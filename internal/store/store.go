@@ -19,7 +19,10 @@ type Store interface {
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
 	GetProblemBySlug(ctx context.Context, slug string) (*Problem, error)
+	GetProblemBySlugAny(ctx context.Context, slug string) (*Problem, error)
+	ListProblemsNeedingEnrichment(ctx context.Context) ([]Problem, error)
 	UpsertProblem(ctx context.Context, problem *Problem) error
+	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
 
 	// Add more interfaces as phases progress

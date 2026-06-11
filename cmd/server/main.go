@@ -44,7 +44,11 @@ func main() {
 	slog.Info("database: connected", "environment", cfg.Environment)
 
 	// Create HTTP router
-	router := api.NewRouter(cfg, storeInstance)
+	router, err := api.NewRouter(cfg, storeInstance)
+	if err != nil {
+		slog.Error("failed to initialize router", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
