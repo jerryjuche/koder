@@ -48,7 +48,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			token := authorization[len(bearerPrefix):]
 			claims, err := auth.VerifyToken(token, cfg.JWTSecret)
 			if err != nil {
-				RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid or expired token", err.Error())
+				RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid or expired token", nil)
 				return
 			}
 
