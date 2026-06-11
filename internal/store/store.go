@@ -16,6 +16,12 @@ type Store interface {
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 
+	// Problem operations
+	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
+	GetProblemBySlug(ctx context.Context, slug string) (*Problem, error)
+	UpsertProblem(ctx context.Context, problem *Problem) error
+	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
+
 	// Add more interfaces as phases progress
 }
 

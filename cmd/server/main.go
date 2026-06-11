@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jerryjuche/koder/internal/api"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
@@ -42,19 +43,12 @@ func main() {
 
 	slog.Info("database: connected", "environment", cfg.Environment)
 
-	// Create HTTP server
-	mux := http.NewServeMux()
-
-	// Health check endpoint
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"success":true,"data":{"status":"healthy"},"error":null}`)
-	})
+	// Create HTTP router
+	router := api.NewRouter(cfg, storeInstance)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
