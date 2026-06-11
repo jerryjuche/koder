@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"os/exec"
@@ -25,18 +26,19 @@ type RawProblem struct {
 	SourceHash string
 	RawReadme  string
 	RepoURL    string
+	Type       string
 }
 
 func NewParser(baseDir string) *Parser {
 	return &Parser{baseDir: baseDir}
 }
 
-func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) (*RawProblem, error) {
+func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) ([]*RawProblem, error) {
 	if repoURL == "" {
 		return nil, fmt.Errorf("repo_url cannot be empty")
 	}
 
-	slug, module, err := parseRepoMetadata(repoURL)
+	repoSlug, repoModule, err := parseRepoMetadata(repoURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %w", err)
 	}
@@ -47,20 +49,94 @@ func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) (*RawProb
 	}
 	defer cleanup()
 
-	readme, err := extractReadme(repoPath)
+	problems, err := collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract README: %w", err)
+		return nil, err
 	}
 
-	sourceHash := computeSourceHash(readme)
+	if len(problems) == 0 {
+		readme, err := extractReadme(repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("no exercises found and root README extraction failed: %w", err)
+		}
 
-	return &RawProblem{
-		Slug:       slug,
-		Module:     module,
-		SourceHash: sourceHash,
-		RawReadme:  readme,
-		RepoURL:    repoURL,
-	}, nil
+		problems = append(problems, &RawProblem{
+			Slug:       repoSlug,
+			Module:     repoModule,
+			SourceHash: computeSourceHash(readme),
+			RawReadme:  strings.TrimSpace(readme),
+			RepoURL:    repoURL,
+			Type:       detectProblemType(readme),
+		})
+	}
+
+	return problems, nil
+}
+
+func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*RawProblem, error) {
+	var problems []*RawProblem
+
+	err := filepath.WalkDir(repoPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !isReadmeFile(d.Name()) {
+			return nil
+		}
+
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("unable to read %s: %w", path, err)
+		}
+
+		content := strings.TrimSpace(string(raw))
+		if content == "" {
+			return nil
+		}
+
+		dir := filepath.Dir(path)
+		relPath, err := filepath.Rel(repoPath, dir)
+		if err != nil {
+			return err
+		}
+
+		if relPath == "." || !strings.HasPrefix(filepath.ToSlash(relPath), "exercises") {
+			return nil
+		}
+
+		exerciseSlug := normalizeSlug(fmt.Sprintf("%s-%s", repoSlug, strings.ReplaceAll(filepath.ToSlash(relPath), "/", "-")))
+		problems = append(problems, &RawProblem{
+			Slug:       exerciseSlug,
+			Module:     normalizeModule(filepath.Join(repoModule, relPath)),
+			SourceHash: computeSourceHash(content),
+			RawReadme:  content,
+			RepoURL:    repoURL,
+			Type:       detectProblemType(content),
+		})
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan repository for exercise READMEs: %w", err)
+	}
+
+	return problems, nil
+}
+
+func isReadmeFile(name string) bool {
+	lower := strings.ToLower(name)
+	return lower == "readme" || lower == "readme.md" || lower == "readme.markdown" || lower == "readme.txt"
+}
+
+func detectProblemType(rawReadme string) string {
+	lower := strings.ToLower(rawReadme)
+	if strings.Contains(lower, "expected function") {
+		return "function"
+	}
+	return "program"
 }
 
 func (p *Parser) cloneRepository(ctx context.Context, repoURL string) (string, func(), error) {
@@ -95,8 +171,7 @@ func extractReadme(repoPath string) (string, error) {
 		}
 
 		name := entry.Name()
-		lower := strings.ToLower(name)
-		if lower == "readme" || lower == "readme.md" || lower == "readme.markdown" || lower == "readme.txt" {
+		if isReadmeFile(name) {
 			readmePath := filepath.Join(repoPath, name)
 			bytes, err := os.ReadFile(readmePath)
 			if err != nil {

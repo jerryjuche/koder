@@ -44,6 +44,7 @@ type ingestionResponse struct {
 	Slug       string `json:"slug"`
 	Module     string `json:"module"`
 	SourceHash string `json:"source_hash"`
+	Status     string `json:"status"`
 }
 
 func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
@@ -60,43 +61,56 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawProblem, err := h.parser.IngestGitHubRepo(r.Context(), req.RepoURL)
+	rawProblems, err := h.parser.IngestGitHubRepo(r.Context(), req.RepoURL)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "INGEST_FAILED", "Unable to ingest GitHub repository", err.Error())
 		return
 	}
 
-	existingProblem, err := h.store.GetProblemBySlugAny(r.Context(), rawProblem.Slug)
-	if err == nil && existingProblem.SourceHash == rawProblem.SourceHash {
-		RespondSuccess(w, ingestionResponse{Slug: existingProblem.Slug, Module: existingProblem.Module, SourceHash: existingProblem.SourceHash})
-		return
+	responses := make([]ingestionResponse, 0, len(rawProblems))
+	for _, rawProblem := range rawProblems {
+		existingProblem, err := h.store.GetProblemBySlugAny(r.Context(), rawProblem.Slug)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to check existing problem", err.Error())
+			return
+		}
+		if err == nil && existingProblem.SourceHash == rawProblem.SourceHash {
+			responses = append(responses, ingestionResponse{Slug: existingProblem.Slug, Module: existingProblem.Module, SourceHash: existingProblem.SourceHash, Status: "unchanged"})
+			continue
+		}
+
+		problem := &store.Problem{
+			Slug:       rawProblem.Slug,
+			Module:     rawProblem.Module,
+			Type:       rawProblem.Type,
+			Language:   "go",
+			Title:      fmt.Sprintf("%s exercise", strings.Title(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
+			Statement:  "Problem ingestion pending AI enrichment.",
+			FuncName:   "",
+			ReturnType: "",
+			ParamTypes: []string{},
+			Hints:      []string{"Pending enrichment."},
+			Difficulty: 1,
+			XPReward:   10,
+			Tags:       []string{"go", "ai-generated"},
+			Visible:    false,
+			SourceHash: rawProblem.SourceHash,
+			RawReadme:  rawProblem.RawReadme,
+		}
+
+		if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
+			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to save ingested problem", err.Error())
+			return
+		}
+
+		status := "created"
+		if err == nil {
+			status = "updated"
+		}
+		responses = append(responses, ingestionResponse{Slug: problem.Slug, Module: problem.Module, SourceHash: problem.SourceHash, Status: status})
 	}
 
-	problem := &store.Problem{
-		Slug:       rawProblem.Slug,
-		Module:     rawProblem.Module,
-		Type:       "function",
-		Language:   "go",
-		Title:      fmt.Sprintf("%s exercise", strings.Title(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
-		Statement:  "Problem ingestion pending AI enrichment.",
-		FuncName:   "",
-		ReturnType: "",
-		ParamTypes: []string{},
-		Hints:      []string{"Pending enrichment."},
-		Difficulty: 1,
-		XPReward:   10,
-		Tags:       []string{"go", "ai-generated"},
-		Visible:    false,
-		SourceHash: rawProblem.SourceHash,
-		RawReadme:  rawProblem.RawReadme,
-	}
-
-	if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
-		RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to save ingested problem", err.Error())
-		return
-	}
-
-	RespondCreated(w, ingestionResponse{Slug: problem.Slug, Module: problem.Module, SourceHash: problem.SourceHash})
+	RespondCreated(w, responses)
 }
 
 func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
