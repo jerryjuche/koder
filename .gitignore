@@ -1,0 +1,19 @@
+.env
+.env.local
+.env.*.local
+
+# Binary
+koder
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Deps
+vendor/
+
+# Temp
+/tmp/koder/
