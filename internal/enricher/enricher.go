@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +18,26 @@ type Enricher struct {
 	client      *genai.Client
 	mu          sync.Mutex
 	lastRequest time.Time
+}
+
+type enrichedResponse struct {
+	Title      string             `json:"title"`
+	Statement  string             `json:"statement"`
+	FuncName   string             `json:"func_name"`
+	ReturnType string             `json:"return_type"`
+	ParamTypes []string           `json:"param_types"`
+	Hints      []string           `json:"hints"`
+	Difficulty int                `json:"difficulty"`
+	XPReward   int                `json:"xp_reward"`
+	Tags       []string           `json:"tags"`
+	TestCases  []enrichedTestCase `json:"test_cases"`
+}
+
+type enrichedTestCase struct {
+	Input    json.RawMessage `json:"input_json"`
+	Expected string          `json:"expected"`
+	IsHidden bool            `json:"is_hidden"`
+	Ordinal  int             `json:"ordinal"`
 }
 
 func NewEnricher(ctx context.Context, cfg *config.Config) (*Enricher, error) {
@@ -39,43 +58,63 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 		return nil, nil, err
 	}
 
-	prompt := fmt.Sprintf(`You are an expert Go curriculum author. Analyze the exercise README below and return exactly one function call to register_problem. Do not output any explanatory text or markdown. Return only a single Tool call with structured arguments.
+	systemInstruction := genai.NewContentFromText(
+		`You are an expert Go curriculum author. Use only the Go standard library in examples. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r) while preserving semantics. Output only valid JSON that matches the requested schema, with no markdown fences, comments, or extra fields.`,
+		genai.RoleUser,
+	)
+
+	userPrompt := genai.NewContentFromText(fmt.Sprintf(`Analyze the exercise README below and return exactly one JSON object that conforms to the requested schema. Use stringified Go literals for expected values.
 
 README:
-%s`, strings.TrimSpace(rawReadme))
+%s`, strings.TrimSpace(rawReadme)), genai.RoleUser)
 
 	config := &genai.GenerateContentConfig{
-		Temperature:     float32Ptr(0.0),
-		MaxOutputTokens: 2000,
-		Tools: []*genai.Tool{{
-			FunctionDeclarations: []*genai.FunctionDeclaration{registerProblemDeclaration()},
-		}},
-		ToolConfig: &genai.ToolConfig{
-			FunctionCallingConfig: &genai.FunctionCallingConfig{
-				Mode:                 genai.FunctionCallingConfigModeAny,
-				AllowedFunctionNames: []string{"register_problem"},
-			},
-		},
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   enrichmentSchema(),
+		Temperature:      float32Ptr(0.0),
+		MaxOutputTokens:  2500,
 	}
 
-	response, err := e.client.Models.GenerateContent(ctx, e.cfg.GeminiModel, []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}, config)
+	response, err := e.client.Models.GenerateContent(ctx, e.cfg.GeminiModel, []*genai.Content{systemInstruction, userPrompt}, config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("gemini generate content failed: %w", err)
 	}
 
-	calls := response.FunctionCalls()
-	if len(calls) == 0 {
-		return nil, nil, fmt.Errorf("gemini did not return a function call")
+	payload := strings.TrimSpace(response.Text())
+	if payload == "" {
+		return nil, nil, fmt.Errorf("empty response from Gemini")
 	}
 
-	call := calls[0]
-	if call.Name != "register_problem" {
-		return nil, nil, fmt.Errorf("unexpected function call %q from Gemini", call.Name)
+	var parsed enrichedResponse
+	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
+		return nil, nil, fmt.Errorf("unable to parse Gemini JSON response: %w", err)
 	}
 
-	problem, testCases, err := parseRegisteredProblemArgs(call.Args)
-	if err != nil {
-		return nil, nil, err
+	problem := &store.Problem{
+		Title:      strings.TrimSpace(parsed.Title),
+		Statement:  strings.TrimSpace(parsed.Statement),
+		FuncName:   strings.TrimSpace(parsed.FuncName),
+		ReturnType: strings.TrimSpace(parsed.ReturnType),
+		ParamTypes: parsed.ParamTypes,
+		Hints:      parsed.Hints,
+		Difficulty: parsed.Difficulty,
+		XPReward:   parsed.XPReward,
+		Tags:       parsed.Tags,
+	}
+
+	testCases := make([]store.TestCase, 0, len(parsed.TestCases))
+	for _, tc := range parsed.TestCases {
+		normalized, err := normalizeTestCaseInput(tc.Input)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid test case input payload: %w", err)
+		}
+
+		testCases = append(testCases, store.TestCase{
+			Input:    normalized,
+			Expected: strings.TrimSpace(tc.Expected),
+			IsHidden: tc.IsHidden,
+			Ordinal:  tc.Ordinal,
+		})
 	}
 
 	if err := validateEnrichedProblem(problem, testCases); err != nil {
@@ -104,267 +143,47 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	return nil
 }
 
-func registerProblemDeclaration() *genai.FunctionDeclaration {
-	return &genai.FunctionDeclaration{
-		Name:        "register_problem",
-		Description: "Return a structured exercise definition using only a function call with typed arguments.",
-		ParametersJsonSchema: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"title":       map[string]any{"type": "string"},
-				"statement":   map[string]any{"type": "string"},
-				"func_name":   map[string]any{"type": "string"},
-				"return_type": map[string]any{"type": "string"},
-				"param_types": map[string]any{
-					"type":  "array",
-					"items": map[string]any{"type": "string"},
-				},
-				"hints": map[string]any{
-					"type":     "array",
-					"items":    map[string]any{"type": "string"},
-					"minItems": 3,
-					"maxItems": 3,
-				},
-				"difficulty": map[string]any{"type": "integer"},
-				"xp_reward":  map[string]any{"type": "integer"},
-				"tags": map[string]any{
-					"type":  "array",
-					"items": map[string]any{"type": "string"},
-				},
-				"test_cases": map[string]any{
-					"type": "array",
-					"items": map[string]any{
-						"type": "object",
-						"properties": map[string]any{
-							"input":     map[string]any{},
-							"expected":  map[string]any{"type": "string"},
-							"is_hidden": map[string]any{"type": "boolean"},
-							"ordinal":   map[string]any{"type": "integer"},
+func enrichmentSchema() *genai.Schema {
+	return &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"title":       {Type: genai.TypeString},
+			"statement":   {Type: genai.TypeString},
+			"func_name":   {Type: genai.TypeString},
+			"return_type": {Type: genai.TypeString},
+			"param_types": {
+				Type:  genai.TypeArray,
+				Items: &genai.Schema{Type: genai.TypeString},
+			},
+			"hints": {
+				Type:     genai.TypeArray,
+				Items:    &genai.Schema{Type: genai.TypeString},
+				MinItems: int64Ptr(3),
+				MaxItems: int64Ptr(3),
+			},
+			"difficulty": {Type: genai.TypeInteger},
+			"xp_reward":  {Type: genai.TypeInteger},
+			"tags": {
+				Type:  genai.TypeArray,
+				Items: &genai.Schema{Type: genai.TypeString},
+			},
+			"test_cases": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"input_json": {
+							AnyOf: []*genai.Schema{{Type: genai.TypeObject}, {Type: genai.TypeString}},
 						},
-						"required":             []string{"input", "expected", "ordinal"},
-						"additionalProperties": false,
+						"expected":  {Type: genai.TypeString},
+						"is_hidden": {Type: genai.TypeBoolean},
+						"ordinal":   {Type: genai.TypeInteger},
 					},
+					Required: []string{"input_json", "expected", "ordinal"},
 				},
 			},
-			"required":             []string{"title", "statement", "func_name", "return_type", "param_types", "hints", "difficulty", "xp_reward", "tags", "test_cases"},
-			"additionalProperties": false,
 		},
-	}
-}
-
-func parseRegisteredProblemArgs(args map[string]any) (*store.Problem, []store.TestCase, error) {
-	title, err := getStringArg(args, "title", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	statement, err := getStringArg(args, "statement", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	funcName, err := getStringArg(args, "func_name", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	returnType, err := getStringArg(args, "return_type", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	paramTypes, err := getStringArrayArg(args, "param_types", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hints, err := getStringArrayArg(args, "hints", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	difficulty, err := getIntArg(args, "difficulty", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	xpReward, err := getIntArg(args, "xp_reward", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tags, err := getStringArrayArg(args, "tags", true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	testCasesRaw, ok := args["test_cases"]
-	if !ok {
-		return nil, nil, fmt.Errorf("missing test_cases")
-	}
-
-	testCasesSlice, ok := testCasesRaw.([]any)
-	if !ok {
-		return nil, nil, fmt.Errorf("test_cases must be an array")
-	}
-
-	testCases := make([]store.TestCase, 0, len(testCasesSlice))
-	for i, raw := range testCasesSlice {
-		tcMap, ok := raw.(map[string]any)
-		if !ok {
-			return nil, nil, fmt.Errorf("test_cases[%d] must be an object", i)
-		}
-
-		inputJSON, err := normalizeTestCaseInput(tcMap["input"])
-		if err != nil {
-			return nil, nil, fmt.Errorf("test_cases[%d] input error: %w", i, err)
-		}
-
-		expected, err := getStringArg(tcMap, "expected", true)
-		if err != nil {
-			return nil, nil, fmt.Errorf("test_cases[%d] expected error: %w", i, err)
-		}
-
-		isHidden, err := getBoolArg(tcMap, "is_hidden", false)
-		if err != nil {
-			return nil, nil, fmt.Errorf("test_cases[%d] is_hidden error: %w", i, err)
-		}
-
-		ordinal, err := getIntArg(tcMap, "ordinal", true)
-		if err != nil {
-			return nil, nil, fmt.Errorf("test_cases[%d] ordinal error: %w", i, err)
-		}
-
-		testCases = append(testCases, store.TestCase{
-			Input:    inputJSON,
-			Expected: strings.TrimSpace(expected),
-			IsHidden: isHidden,
-			Ordinal:  ordinal,
-		})
-	}
-
-	return &store.Problem{
-		Title:      strings.TrimSpace(title),
-		Statement:  strings.TrimSpace(statement),
-		FuncName:   strings.TrimSpace(funcName),
-		ReturnType: strings.TrimSpace(returnType),
-		ParamTypes: paramTypes,
-		Hints:      hints,
-		Difficulty: difficulty,
-		XPReward:   xpReward,
-		Tags:       tags,
-	}, testCases, nil
-}
-
-func getStringArg(args map[string]any, key string, required bool) (string, error) {
-	raw, ok := args[key]
-	if !ok || raw == nil {
-		if !required {
-			return "", nil
-		}
-		return "", fmt.Errorf("%s is required", key)
-	}
-
-	value, ok := raw.(string)
-	if !ok {
-		return "", fmt.Errorf("%s must be a string", key)
-	}
-
-	if required && strings.TrimSpace(value) == "" {
-		return "", fmt.Errorf("%s cannot be empty", key)
-	}
-
-	return value, nil
-}
-
-func getStringArrayArg(args map[string]any, key string, required bool) ([]string, error) {
-	raw, ok := args[key]
-	if !ok || raw == nil {
-		if !required {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("%s is required", key)
-	}
-
-	items, ok := raw.([]any)
-	if !ok {
-		return nil, fmt.Errorf("%s must be an array", key)
-	}
-
-	result := make([]string, 0, len(items))
-	for i, item := range items {
-		value, ok := item.(string)
-		if !ok {
-			return nil, fmt.Errorf("%s[%d] must be a string", key, i)
-		}
-		result = append(result, strings.TrimSpace(value))
-	}
-
-	if required && len(result) == 0 {
-		return nil, fmt.Errorf("%s cannot be empty", key)
-	}
-
-	return result, nil
-}
-
-func getIntArg(args map[string]any, key string, required bool) (int, error) {
-	raw, ok := args[key]
-	if !ok || raw == nil {
-		if !required {
-			return 0, nil
-		}
-		return 0, fmt.Errorf("%s is required", key)
-	}
-
-	switch value := raw.(type) {
-	case float64:
-		return int(value), nil
-	case int:
-		return value, nil
-	case int64:
-		return int(value), nil
-	case json.Number:
-		parsed, err := value.Int64()
-		if err != nil {
-			return 0, fmt.Errorf("%s must be an integer", key)
-		}
-		return int(parsed), nil
-	case string:
-		if strings.TrimSpace(value) == "" {
-			if !required {
-				return 0, nil
-			}
-			return 0, fmt.Errorf("%s cannot be empty", key)
-		}
-		parsed, err := strconv.Atoi(value)
-		if err != nil {
-			return 0, fmt.Errorf("%s must be an integer", key)
-		}
-		return parsed, nil
-	default:
-		return 0, fmt.Errorf("%s must be an integer", key)
-	}
-}
-
-func getBoolArg(args map[string]any, key string, defaultValue bool) (bool, error) {
-	raw, ok := args[key]
-	if !ok || raw == nil {
-		return defaultValue, nil
-	}
-
-	switch value := raw.(type) {
-	case bool:
-		return value, nil
-	case string:
-		if strings.EqualFold(value, "true") {
-			return true, nil
-		}
-		if strings.EqualFold(value, "false") {
-			return false, nil
-		}
-		return false, fmt.Errorf("%s must be a boolean", key)
-	default:
-		return false, fmt.Errorf("%s must be a boolean", key)
+		Required: []string{"title", "statement", "func_name", "return_type", "param_types", "hints", "difficulty", "xp_reward", "tags", "test_cases"},
 	}
 }
 
@@ -442,5 +261,9 @@ func validateEnrichedProblem(problem *store.Problem, testCases []store.TestCase)
 }
 
 func float32Ptr(value float32) *float32 {
+	return &value
+}
+
+func int64Ptr(value int64) *int64 {
 	return &value
 }
