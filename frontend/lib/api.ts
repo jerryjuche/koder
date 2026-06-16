@@ -57,21 +57,52 @@ export async function register(data: any): Promise<ApiResponse<{ token: string }
 }
 
 export async function fetchUser(): Promise<ApiResponse<User>> {
-  // Wait, user said "There is no /user or /me endpoint yet"
-  // So we will just decode JWT or mock user for now to avoid breaking UI
-  // The UI requires a User object. Let's return a dummy user.
-  return {
-    success: true,
-    data: {
-      id: 'u1',
-      name: 'Student',
-      studentId: 's1234567',
-      avatarIndex: 1,
-      xp: 0,
-      level: 1,
-      solvedCount: 0
-    }
-  };
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (!token) {
+    return { success: false, data: null, error: { code: 'UNAUTHORIZED', message: 'No token' } };
+  }
+
+  // Try the real /me endpoint first
+  const res = await fetchApi<any>('/me');
+  if (res.success && res.data) {
+    return {
+      success: true,
+      data: {
+        id: res.data.id,
+        name: res.data.name || res.data.student_id || 'Student',
+        studentId: res.data.student_id,
+        avatarIndex: res.data.color_index || 0,
+        xp: res.data.xp || 0,
+        level: 1,
+        solvedCount: 0,
+      }
+    };
+  }
+
+  // Fallback: decode JWT locally
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const payload = JSON.parse(jsonPayload);
+
+    return {
+      success: true,
+      data: {
+        id: payload.user_id || 'u1',
+        name: payload.name || payload.student_id || 'Student',
+        studentId: payload.student_id || 's000000',
+        avatarIndex: 0,
+        xp: 0,
+        level: 1,
+        solvedCount: 0
+      }
+    };
+  } catch (e) {
+    return { success: false, data: null, error: { code: 'INVALID_TOKEN', message: 'Invalid token' } };
+  }
 }
 
 export async function fetchProblems(): Promise<ApiResponse<Problem[]>> {

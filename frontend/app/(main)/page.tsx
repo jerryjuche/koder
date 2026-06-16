@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, ChevronDown, CheckCircle2, Circle, Clock, Flame, BarChart2 } from 'lucide-react';
 import { fetchProblems } from '@/lib/api';
 import { Problem } from '@/lib/types';
-import { cn, getDifficultyColor } from '@/lib/utils';
+import { cn, getDifficultyColor, getDifficultyLabel } from '@/lib/utils';
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -124,12 +124,12 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-brand-offwhite mb-2 group-hover:text-brand-muted-gold transition-colors">{problem.title}</h3>
               
               <div className="flex items-center gap-1 mb-4">
-                {/* Simulated stars */}
-                {[...Array(3)].map((_, j) => (
-                   <Flame key={j} size={14} className={j < (problem.difficulty === 'Easy' ? 1 : problem.difficulty === 'Medium' ? 2 : problem.difficulty === 'Hard' ? 3 : 0) ? 'text-brand-error' : 'text-brand-charcoal-border'} />
+                {/* Difficulty Stars */}
+                {[...Array(5)].map((_, j) => (
+                   <Flame key={j} size={14} className={j < problem.difficulty ? 'text-brand-error' : 'text-brand-charcoal-border'} />
                 ))}
                 <span className={cn("text-xs font-bold ml-2", getDifficultyColor(problem.difficulty))}>
-                  {problem.difficulty}
+                  {getDifficultyLabel(problem.difficulty)}
                 </span>
               </div>
 

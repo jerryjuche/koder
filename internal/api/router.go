@@ -34,6 +34,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(cfg))
+
+		meHandler := NewMeHandler(store)
+		r.Get("/me", meHandler.GetMe)
+
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
 		r.Post("/submit", submissionHandler.Submit)

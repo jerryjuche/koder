@@ -15,7 +15,7 @@ export type Problem = {
   slug: string;
   title: string;
   module: string;
-  difficulty: ProblemDifficulty;
+  difficulty: number;
   xpReward: number;
   solved: boolean;
   status: 'active' | 'draft' | 'error';
@@ -23,6 +23,7 @@ export type Problem = {
   successRate: number;
   estTimeMinutes: number;
   tags: string[];
+  statement?: string;
   descriptionMarkdown?: string;
 };
 

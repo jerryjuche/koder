@@ -6,18 +6,19 @@ import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
 import Markdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, Play, RotateCcw, Lightbulb, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Copy, Expand } from 'lucide-react';
-import { cn, getDifficultyColor } from '@/lib/utils';
+import { cn, getDifficultyColor, getDifficultyLabel } from '@/lib/utils';
 import { fetchProblem, submitSolution } from '@/lib/api';
 import { Problem, TestResult } from '@/lib/types';
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState('package main\\n\\nimport "fmt"\\n\\nfunc main() {\\n  // TODO: implement your solution here\\n}\\n');
+  const [code, setCode] = useState('package main\n\nimport "fmt"\n\nfunc main() {\n  // TODO: implement your solution here\n}\n');
   const [panelMode, setPanelMode] = useState<'tests' | 'hints'>('tests');
   const [hintsOpen, setHintsOpen] = useState([false, false, false]);
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<TestResult[] | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       if (res.success && res.data) {
         setProblem(res.data);
         if (res.data.slug === 'hello-world' || res.data.slug === 'fibonacci') {
-          setCode(['package main', '', 'import "fmt"', '', '// ' + res.data.slug + ' implementation', 'func ' + res.data.slug.replace('-', '') + '() {', '  // TODO: implement', '}', '', 'func main() {', '  fmt.Println("Running...")', '}'].join('\\n') + '\\n');
+          setCode(['package main', '', 'import "fmt"', '', '// ' + res.data.slug + ' implementation', 'func ' + res.data.slug.replace('-', '') + '() {', '  // TODO: implement', '}', '', 'func main() {', '  fmt.Println("Running...")', '}'].join('\n') + '\n');
         }
       }
     });
@@ -35,6 +36,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setSubmitting(true);
     setPanelMode('tests');
     setTestsExpanded(true);
+    setErrorMsg(null);
 
     const res = await submitSolution(slug, code);
 
@@ -52,7 +54,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
       setResults(mappedResults);
     } else {
-      console.error("Submission failed:", res.error);
+      setErrorMsg(res.error?.message || "Submission failed");
     }
 
     setSubmitting(false);
@@ -78,7 +80,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-brand-offwhite-muted">#{problem.slug === 'hello-world' ? '001' : '002'}</span>
             <span className="font-bold">{problem.title}</span>
-            <span className={cn("text-xs font-bold", getDifficultyColor(problem.difficulty))}>{problem.difficulty}</span>
+            <span className={cn("text-xs font-bold", getDifficultyColor(problem.difficulty))}>{getDifficultyLabel(problem.difficulty)}</span>
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">{problem.module}</span>
           </div>
         </div>
@@ -120,7 +122,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <h1 className="text-2xl font-bold mb-6">{problem.title}</h1>
           <div className="prose prose-invert prose-brand max-w-none text-sm text-brand-offwhite-muted leading-relaxed">
              <div className="markdown-body">
-               <Markdown>{problem.descriptionMarkdown || "No description provided."}</Markdown>
+               <Markdown>{problem.statement || problem.descriptionMarkdown || "No description provided."}</Markdown>
              </div>
           </div>
           
@@ -189,7 +191,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           {/* Bottom Panel (Tests) - Only show if not hints mode or if we specifically want it split */}
-          {results && (
+          {(results || errorMsg) && (
             <div className={cn(
                "border-t border-brand-charcoal-border bg-brand-charcoal-base transition-all duration-300 flex flex-col",
                testsExpanded ? "h-64" : "h-12"
@@ -201,18 +203,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                  <div className="flex items-center gap-3">
                    <ChevronRight size={16} className={cn("text-brand-offwhite-muted transition-transform", testsExpanded && "rotate-90")} />
                    <span className="text-sm font-bold text-brand-offwhite">Test Results</span>
-                   <span className={cn(
-                     "text-xs font-bold px-2 py-0.5 rounded", 
-                     allPassed ? "bg-brand-success/20 text-brand-success" : "bg-brand-error/20 text-brand-error"
-                   )}>
-                     {testsPassed}/{testsTotal}
-                   </span>
+                   {!errorMsg && (
+                     <span className={cn(
+                       "text-xs font-bold px-2 py-0.5 rounded", 
+                       allPassed ? "bg-brand-success/20 text-brand-success" : "bg-brand-error/20 text-brand-error"
+                     )}>
+                       {testsPassed}/{testsTotal}
+                     </span>
+                   )}
                  </div>
                </div>
 
                {testsExpanded && (
                  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                   {!allPassed && (
+                   {errorMsg && (
+                     <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm mb-4 flex items-center gap-2">
+                       <XCircle size={16} /> {errorMsg}
+                     </div>
+                   )}
+                   {!errorMsg && !allPassed && (
                      <div className="flex items-center gap-2 text-brand-error font-medium mb-4">
                        <XCircle size={18} /> {testsPassed}/{testsTotal} tests passed
                      </div>
@@ -223,7 +232,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                      </div>
                    )}
 
-                   {results.map((res, i) => (
+                   {results?.map((res, i) => (
                      <div key={i} className={cn(
                        "rounded-xl border p-4",
                        res.passed ? "bg-brand-success/5 border-brand-success/20" : "bg-brand-error/5 border-brand-error/30"
