@@ -111,9 +111,15 @@ export default function TopNav() {
                     <Settings size={16} /> Settings
                   </Link>
                   <div className="h-px bg-brand-charcoal-border my-1"></div>
-                  <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm text-brand-error hover:bg-brand-error/10 transition-colors">
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      window.location.href = '/login';
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-brand-error hover:bg-brand-error/10 transition-colors"
+                  >
                     <LogOut size={16} /> Sign Out
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>

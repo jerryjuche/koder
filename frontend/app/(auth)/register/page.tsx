@@ -4,17 +4,40 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Code2, ArrowRight } from 'lucide-react';
+import { register } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      router.push('/');
-    }, 1000);
+    setErrorMsg('');
+    try {
+      const res = await register({
+        student_id: studentId || email,
+        name: `${firstName} ${lastName}`.trim(),
+        password
+      });
+      if (res.success && res.data) {
+        localStorage.setItem('token', res.data.token);
+        router.push('/');
+      } else {
+        setErrorMsg(res.error?.message || 'Registration failed');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,12 +54,19 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errorMsg && (
+          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+            {errorMsg}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">First Name</label>
             <input 
               type="text" 
               required
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
               className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
               placeholder="Ada"
             />
@@ -46,6 +76,8 @@ export default function RegisterPage() {
             <input 
               type="text" 
               required
+              value={lastName}
+              onChange={e => setLastName(e.target.value)}
               className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
               placeholder="Lovelace"
             />
@@ -57,6 +89,8 @@ export default function RegisterPage() {
           <input 
             type="email" 
             required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
             placeholder="student@university.edu"
           />
@@ -66,6 +100,8 @@ export default function RegisterPage() {
           <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Student ID (Optional)</label>
           <input 
             type="text" 
+            value={studentId}
+            onChange={e => setStudentId(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
             placeholder="e.g. s1234567"
           />
@@ -76,6 +112,8 @@ export default function RegisterPage() {
           <input 
             type="password" 
             required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
             placeholder="Create a strong password"
           />

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Settings, FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, Clock, GitCommit } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems } from '@/lib/api';
 
 export default function AdminDashboard() {
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
@@ -108,7 +108,16 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <button className="w-full bg-transparent border border-brand-muted-gold text-brand-muted-gold hover:bg-brand-muted-gold hover:text-brand-charcoal-base py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors">
+                <button 
+                  onClick={async () => {
+                    const btn = document.getElementById('enrich-btn');
+                    if (btn) btn.textContent = 'Enriching...';
+                    await enrichAllProblems();
+                    if (btn) btn.textContent = 'Enrich All Problems';
+                  }}
+                  id="enrich-btn"
+                  className="w-full bg-transparent border border-brand-muted-gold text-brand-muted-gold hover:bg-brand-muted-gold hover:text-brand-charcoal-base py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors"
+                >
                   <Wand2 size={18} /> Enrich All Problems
                 </button>
               </div>

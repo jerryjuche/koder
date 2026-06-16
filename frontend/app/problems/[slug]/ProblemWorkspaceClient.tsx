@@ -35,10 +35,26 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setSubmitting(true);
     setPanelMode('tests');
     setTestsExpanded(true);
+
     const res = await submitSolution(slug, code);
-    if (res.success) {
-      setResults(res.data);
+
+    if (res.success && res.data) {
+      const executionResult = res.data;
+      
+      const mappedResults: TestResult[] = (executionResult.test_results || []).map((tr: any, idx: number) => ({
+        id: `t${idx}`,
+        name: tr.name || `Case ${idx + 1}`,
+        passed: tr.passed,
+        executionTimeMs: executionResult.runtime_ms || 0,
+        output: tr.output || '',
+        expectedOutput: undefined,
+      }));
+
+      setResults(mappedResults);
+    } else {
+      console.error("Submission failed:", res.error);
     }
+
     setSubmitting(false);
   };
 

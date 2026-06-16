@@ -4,17 +4,33 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Code2, ArrowRight } from 'lucide-react';
+import { login } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [studentId, setStudentId] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      router.push('/');
-    }, 1000);
+    setErrorMsg('');
+    try {
+      const res = await login({ student_id: studentId, password });
+      if (res.success && res.data) {
+        localStorage.setItem('token', res.data.token);
+        router.push('/');
+      } else {
+        setErrorMsg(res.error?.message || 'Login failed');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,11 +47,18 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {errorMsg && (
+          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+            {errorMsg}
+          </div>
+        )}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Email Address</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Student ID / Email</label>
           <input 
-            type="email" 
+            type="text" 
             required
+            value={studentId}
+            onChange={e => setStudentId(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
             placeholder="student@university.edu"
           />
@@ -49,6 +72,8 @@ export default function LoginPage() {
           <input 
             type="password" 
             required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
             placeholder="••••••••"
           />

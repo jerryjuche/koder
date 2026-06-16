@@ -42,6 +42,21 @@ export type TestResult = {
   expectedOutput?: string;
 };
 
+export type BackendTestResult = {
+  name: string;
+  passed: boolean;
+  output: string;
+};
+
+export type ExecutionResult = {
+  status: 'passed' | 'failed' | 'compiler_error' | 'timeout';
+  passed_count: number;
+  total_count: number;
+  runtime_ms: number;
+  output_logs: string;
+  test_results: BackendTestResult[];
+};
+
 export type ApiResponse<T> = {
   success: boolean;
   data: T | null;
