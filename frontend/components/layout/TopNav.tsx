@@ -11,11 +11,13 @@ import { User } from '@/lib/types';
 export default function TopNav() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchUser().then(res => {
       if (res.success) setUser(res.data);
+      setLoading(false);
     });
   }, []);
 
@@ -63,7 +65,12 @@ export default function TopNav() {
         </div>
 
         {/* Right section: User Status */}
-        {user ? (
+        {loading ? (
+          <div className="flex items-center gap-4 opacity-50">
+            <div className="w-24 h-4 bg-brand-charcoal-hover rounded animate-pulse"></div>
+            <div className="w-8 h-8 rounded-full bg-brand-charcoal-hover animate-pulse"></div>
+          </div>
+        ) : user ? (
           <div className="flex items-center gap-5">
             {/* XP Bar */}
             <div className="hidden lg:flex items-center gap-3">
@@ -125,7 +132,9 @@ export default function TopNav() {
             </div>
           </div>
         ) : (
-          <div className="w-48 h-8 animate-pulse bg-brand-charcoal-hover rounded-md"></div>
+          <Link href="/login" className="text-sm font-bold text-brand-offwhite hover:text-brand-muted-gold transition-colors">
+            Log In
+          </Link>
         )}
       </div>
     </header>

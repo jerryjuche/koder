@@ -13,7 +13,15 @@ import { Problem, TestResult } from '@/lib/types';
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState('package main\n\nimport "fmt"\n\nfunc main() {\n  // TODO: implement your solution here\n}\n');
+  const defaultCode = `package main
+
+import "fmt"
+
+func main() {
+    // TODO: implement your solution here
+}
+`;
+  const [code, setCode] = useState(defaultCode);
   const [panelMode, setPanelMode] = useState<'tests' | 'hints'>('tests');
   const [hintsOpen, setHintsOpen] = useState([false, false, false]);
   const [submitting, setSubmitting] = useState(false);
@@ -26,7 +34,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       if (res.success && res.data) {
         setProblem(res.data);
         if (res.data.slug === 'hello-world' || res.data.slug === 'fibonacci') {
-          setCode(['package main', '', 'import "fmt"', '', '// ' + res.data.slug + ' implementation', 'func ' + res.data.slug.replace('-', '') + '() {', '  // TODO: implement', '}', '', 'func main() {', '  fmt.Println("Running...")', '}'].join('\n') + '\n');
+          setCode(defaultCode);
         }
       }
     });
@@ -122,7 +130,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <h1 className="text-2xl font-bold mb-6">{problem.title}</h1>
           <div className="prose prose-invert prose-brand max-w-none text-sm text-brand-offwhite-muted leading-relaxed">
              <div className="markdown-body">
-               <Markdown>{problem.statement || problem.descriptionMarkdown || "No description provided."}</Markdown>
+               <Markdown>{problem?.statement || problem?.descriptionMarkdown || "No problem statement available yet. This exercise is pending enrichment."}</Markdown>
              </div>
           </div>
           
@@ -217,8 +225,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                {testsExpanded && (
                  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                    {errorMsg && (
-                     <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm mb-4 flex items-center gap-2">
-                       <XCircle size={16} /> {errorMsg}
+                     <div className="bg-brand-error/20 border border-brand-error/50 text-brand-error px-5 py-4 rounded-xl text-sm font-bold mb-4 flex items-start gap-3 shadow-sm shadow-brand-error/10">
+                       <XCircle size={18} className="mt-0.5 shrink-0" /> 
+                       <div>
+                         <div className="uppercase text-[10px] tracking-wider opacity-80 mb-1">Submission Failed</div>
+                         {errorMsg}
+                       </div>
                      </div>
                    )}
                    {!errorMsg && !allPassed && (
