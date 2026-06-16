@@ -5,17 +5,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jerryjuche/koder/internal/config"
+	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
 // NewRouter builds the application router for Koder.
-func NewRouter(cfg *config.Config, store store.Store) (http.Handler, error) {
+func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	r.Use(CORSMiddleware(cfg))
 
 	authHandler := NewAuthHandler(store, cfg)
 	problemHandler := NewProblemHandler(store)
+	submissionHandler := NewSubmissionHandler(store, exec)
 	adminHandler, err := NewAdminHandler(store, cfg)
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func NewRouter(cfg *config.Config, store store.Store) (http.Handler, error) {
 		r.Use(AuthMiddleware(cfg))
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
+		r.Post("/submit", submissionHandler.Submit)
 
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)

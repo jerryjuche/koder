@@ -12,6 +12,7 @@ import (
 
 	"github.com/jerryjuche/koder/internal/api"
 	"github.com/jerryjuche/koder/internal/config"
+	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
@@ -43,8 +44,11 @@ func main() {
 
 	slog.Info("database: connected", "environment", cfg.Environment)
 
+	// Initialize Execution Engine
+	execInstance := executor.NewExecutor(cfg, storeInstance)
+
 	// Create HTTP router
-	router, err := api.NewRouter(cfg, storeInstance)
+	router, err := api.NewRouter(cfg, storeInstance, execInstance)
 	if err != nil {
 		slog.Error("failed to initialize router", "error", err)
 		os.Exit(1)
@@ -53,8 +57,8 @@ func main() {
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 

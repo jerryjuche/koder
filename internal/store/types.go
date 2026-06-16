@@ -61,3 +61,29 @@ type TestCase struct {
 	IsHidden  bool        `db:"is_hidden" json:"is_hidden"`
 	Ordinal   int         `db:"ordinal" json:"ordinal"`
 }
+
+// Submission represents a graded solution attempt.
+type Submission struct {
+	ID          pgtype.UUID `db:"id" json:"id"`
+	UserID      pgtype.UUID `db:"user_id" json:"user_id"`
+	ProblemID   pgtype.UUID `db:"problem_id" json:"problem_id"`
+	Language    string      `db:"language" json:"language"`
+	Code        string      `db:"code" json:"code"`
+	Status      string      `db:"status" json:"status"`
+	PassedCount int         `db:"passed_count" json:"passed_count"`
+	TotalCount  int         `db:"total_count" json:"total_count"`
+	OutputLogs  string      `db:"output_logs" json:"output_logs"`
+	RuntimeMs   int         `db:"runtime_ms" json:"runtime_ms"`
+	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
+}
+
+// Progress represents a user's progress on a problem.
+type Progress struct {
+	UserID      pgtype.UUID `db:"user_id"`
+	ProblemID   pgtype.UUID `db:"problem_id"`
+	Solved      bool        `db:"solved"`
+	Stars       int         `db:"stars"`
+	Attempts    int         `db:"attempts"`
+	BestRuntime int         `db:"best_runtime"`
+	XPAwarded   int         `db:"xp_awarded"`
+}

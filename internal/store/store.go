@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -25,7 +26,10 @@ type Store interface {
 	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
 
-	// Add more interfaces as phases progress
+	// Submission & Progress operations
+	CreateSubmission(ctx context.Context, sub *Submission) error
+	UpsertProgress(ctx context.Context, prog *Progress) error
+	GetProblemWithTestCases(ctx context.Context, problemID uuid.UUID) (*Problem, []TestCase, error)
 }
 
 // PostgresStore implements Store using pgx and Postgres.
@@ -35,7 +39,15 @@ type PostgresStore struct {
 
 // NewPostgresStore creates a new PostgresStore and verifies the connection.
 func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, error) {
-	pool, err := pgxpool.New(ctx, databaseURL)
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse database URL: %w", err)
+	}
+
+	// Disable prepared statement cache for compatibility with PgBouncer / Supabase transaction poolers
+	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pgxpool: %w", err)
 	}
