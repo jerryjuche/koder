@@ -1,36 +1,98 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Settings, FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, Clock, GitCommit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { AdminStats, ActivityLog, Problem } from '@/lib/types';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  CheckCircle2,
+  GitCommit,
+  AlertCircle,
+  Github,
+  Activity,
+  Wand2,
+};
 
 export default function AdminDashboard() {
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
   const [ingesting, setIngesting] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const loadData = async () => {
+    const [statsRes, logsRes, problemsRes] = await Promise.all([
+      fetchAdminStats(),
+      fetchAdminActivity(),
+      fetchAllProblemsAdmin()
+    ]);
+
+    if (statsRes.success && statsRes.data) setStats(statsRes.data);
+    if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
+    if (problemsRes.success && problemsRes.data) setProblems(problemsRes.data);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const [statsRes, logsRes, problemsRes] = await Promise.all([
+        fetchAdminStats(),
+        fetchAdminActivity(),
+        fetchAllProblemsAdmin()
+      ]);
+
+      if (cancelled) return;
+
+      if (statsRes.success && statsRes.data) setStats(statsRes.data);
+      if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
+      if (problemsRes.success && problemsRes.data) setProblems(problemsRes.data);
+    };
+
+    load();
+    const interval = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleIngest = async () => {
     setIngesting(true);
     const res = await ingestGitHubRepo(ingestUrl);
     if (res.success) {
       toast.success("Repository ingested successfully!");
+      loadData();
     } else {
       toast.error(res.error?.message || "Ingestion failed.");
     }
     setIngesting(false);
   };
 
-  const activityLogs = [
-    { type: 'success', msg: "Problem 'fibonacci-sequence' graded successfully (batch: 12 submissions)", icon: CheckCircle2, color: 'text-brand-success' },
-    { type: 'info', msg: "User s2022003 submitted solution for 'two-sum'", icon: GitCommit, color: 'text-brand-offwhite' },
-    { type: 'warning', msg: "Problem 'json-parser' test runner timeout — retrying (1/3)", icon: AlertCircle, color: 'text-brand-muted-gold' },
-    { type: 'success', msg: "GitHub repo ingested: 3 new problems queued for enrichment", icon: Github, color: 'text-brand-success' },
-    { type: 'info', msg: "Leaderboard recalculated — 342 students ranked", icon: Activity, color: 'text-brand-offwhite' },
-    { type: 'error', msg: "Problem 'json-parser' enrichment failed: LLM rate limit hit", icon: AlertCircle, color: 'text-brand-error' },
-    { type: 'success', msg: "Problem 'goroutine-counter' made visible", icon: CheckCircle2, color: 'text-brand-success' },
-    { type: 'info', msg: "Cron: Running nightly XP decay pass", icon: GitCommit, color: 'text-brand-offwhite' },
-  ];
+  const handleEnrich = async () => {
+    setEnriching(true);
+    const res = await enrichAllProblems();
+    if (res.success) {
+      toast.success("Enrichment completed!");
+      loadData();
+    } else {
+      toast.error(res.error?.message || "Enrichment failed.");
+    }
+    setEnriching(false);
+  };
+
+  const filteredProblems = problems.filter(p => 
+    p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const draftsCount = problems.filter(p => !p.visible).length;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
@@ -49,17 +111,17 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <FileText size={20} className="text-brand-muted-gold mb-4" />
-          <div className="text-3xl font-bold text-brand-offwhite mb-1">10</div>
+          <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_problems || 0}</div>
           <div className="text-sm text-brand-offwhite-muted font-medium">Total Problems</div>
         </div>
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <CheckCircle2 size={20} className="text-brand-success mb-4" />
-          <div className="text-3xl font-bold text-brand-offwhite mb-1">6</div>
+          <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.active_problems || 0}</div>
           <div className="text-sm text-brand-offwhite-muted font-medium">Active Problems</div>
         </div>
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <Activity size={20} className="text-[#8DB4B9] mb-4" />
-          <div className="text-3xl font-bold text-brand-offwhite mb-1">1,587</div>
+          <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_submissions || 0}</div>
           <div className="text-sm text-brand-offwhite-muted font-medium">Total Submissions</div>
         </div>
       </div>
@@ -106,25 +168,21 @@ export default function AdminDashboard() {
                 <div className="space-y-3 mb-6 font-mono text-xs">
                   <div className="flex justify-between border-b border-brand-charcoal-border/50 pb-2">
                     <span className="text-brand-offwhite-muted">Last enrichment</span>
-                    <span className="text-brand-offwhite">2 hours ago</span>
+                    <span className="text-brand-offwhite">Live</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-brand-offwhite-muted">Problems pending</span>
-                    <span className="text-brand-muted-gold font-bold">3 drafts</span>
+                    <span className="text-brand-muted-gold font-bold">{draftsCount} drafts</span>
                   </div>
                 </div>
 
                 <button 
-                  onClick={async () => {
-                    const btn = document.getElementById('enrich-btn');
-                    if (btn) btn.textContent = 'Enriching...';
-                    await enrichAllProblems();
-                    if (btn) btn.textContent = 'Enrich All Problems';
-                  }}
-                  id="enrich-btn"
-                  className="w-full bg-transparent border border-brand-muted-gold text-brand-muted-gold hover:bg-brand-muted-gold hover:text-brand-charcoal-base py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors"
+                  onClick={handleEnrich}
+                  disabled={enriching || draftsCount === 0}
+                  className="w-full bg-transparent border border-brand-muted-gold text-brand-muted-gold hover:bg-brand-muted-gold hover:text-brand-charcoal-base py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-brand-muted-gold"
                 >
-                  <Wand2 size={18} /> Enrich All Problems
+                  {enriching ? <Activity className="animate-spin" size={18} /> : <Wand2 size={18} />} 
+                  {enriching ? 'Enriching...' : 'Enrich All Problems'}
                 </button>
               </div>
             </div>
@@ -134,11 +192,17 @@ export default function AdminDashboard() {
           <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-brand-charcoal-border flex justify-between items-center">
               <div className="font-bold flex items-center gap-2 text-brand-offwhite">
-                <FileText size={18} className="text-brand-offwhite" /> Problems <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">10</span>
+                <FileText size={18} className="text-brand-offwhite" /> Problems <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">{problems.length}</span>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" size={14} />
-                <input type="text" placeholder="Filter problems..." className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64" />
+                <input 
+                  type="text" 
+                  placeholder="Filter problems..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64" 
+                />
               </div>
             </div>
             
@@ -154,44 +218,47 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-charcoal-border/50">
-                {[
-                  { title: 'Hello, World!', slug: 'hello-world', mod: 'Basics', diff: 'Beginner', diffColor: 'text-brand-success', status: 'active' },
-                  { title: 'Fibonacci Sequence', slug: 'fibonacci-sequence', mod: 'Recursion', diff: 'Easy', diffColor: 'text-[#8DB4B9]', status: 'active' },
-                  { title: 'Two Sum', slug: 'two-sum', mod: 'Arrays', diff: 'Easy', diffColor: 'text-[#8DB4B9]', status: 'active' },
-                  { title: 'Reverse a Linked List', slug: 'linked-list-reversal', mod: 'Data Structures', diff: 'Medium', diffColor: 'text-brand-muted-gold', status: 'active' },
-                  { title: 'Binary Search', slug: 'binary-search', mod: 'Algorithms', diff: 'Easy', diffColor: 'text-[#8DB4B9]', status: 'draft' },
-                  { title: 'Concurrent Counter', slug: 'goroutine-counter', mod: 'Concurrency', diff: 'Hard', diffColor: 'text-brand-error', status: 'active' },
-                  { title: 'Merge Sort', slug: 'merge-sort', mod: 'Algorithms', diff: 'Medium', diffColor: 'text-brand-muted-gold', status: 'draft' },
-                  { title: 'JSON Decoder', slug: 'json-parser', mod: 'Standard Library', diff: 'Medium', diffColor: 'text-brand-muted-gold', status: 'error' },
-                  { title: 'Channel Pipeline', slug: 'channel-pipeline', mod: 'Concurrency', diff: 'Expert', diffColor: 'text-[#C96464]', status: 'draft' },
-                ].map((p, i) => (
-                  <tr key={i} className="hover:bg-brand-charcoal-hover/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-brand-offwhite">{p.title}</div>
-                      <div className="text-xs text-brand-offwhite-muted font-mono">{p.slug}</div>
-                    </td>
-                    <td className="px-6 py-4 text-brand-offwhite-muted">{p.mod}</td>
-                    <td className={cn("px-6 py-4 font-medium", p.diffColor)}>{p.diff}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded font-medium",
-                        p.status === 'active' ? "bg-brand-success/10 text-brand-success border border-brand-success/20" :
-                        p.status === 'error' ? "bg-brand-error/10 text-brand-error border border-brand-error/20" :
-                        "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
-                      )}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", p.status === 'active' ? 'bg-brand-success' : 'bg-brand-charcoal-border')}>
-                        <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", p.status === 'active' ? 'right-1' : 'left-1')}></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="text-brand-offwhite-muted hover:text-brand-offwhite"><MoreHorizontal size={18} /></button>
+                {filteredProblems.map((p, i) => {
+                  const isActive = p.visible;
+                  const diffLabel = p.difficulty === 1 ? 'Easy' : p.difficulty === 2 ? 'Medium' : p.difficulty === 3 ? 'Hard' : 'Expert';
+                  const diffColor = p.difficulty === 1 ? 'text-[#8DB4B9]' : p.difficulty === 2 ? 'text-brand-muted-gold' : 'text-brand-error';
+                  
+                  return (
+                    <tr key={i} className="hover:bg-brand-charcoal-hover/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-brand-offwhite">{p.title}</div>
+                        <div className="text-xs text-brand-offwhite-muted font-mono">{p.slug}</div>
+                      </td>
+                      <td className="px-6 py-4 text-brand-offwhite-muted">{p.module}</td>
+                      <td className={cn("px-6 py-4 font-medium", diffColor)}>{diffLabel}</td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "text-xs px-2 py-1 rounded font-medium",
+                          isActive
+                            ? "bg-brand-success/10 text-brand-success border border-brand-success/20"
+                            : "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
+                        )}>
+                          {isActive ? 'active' : 'draft'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", isActive ? 'bg-brand-success' : 'bg-brand-charcoal-border')}>
+                          <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", isActive ? 'right-1' : 'left-1')}></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button className="text-brand-offwhite-muted hover:text-brand-offwhite"><MoreHorizontal size={18} /></button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filteredProblems.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-brand-offwhite-muted">
+                      No problems found.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -205,22 +272,42 @@ export default function AdminDashboard() {
           </div>
           <div className="p-5 space-y-6 overflow-y-auto overflow-x-hidden flex-1 scrollbar-hide">
              {activityLogs.map((log, i) => {
-               const Icon = log.icon;
+               const Icon = ICON_MAP[log.icon] || Activity;
                return (
-                 <div key={i} className="flex gap-4 relative animate-in slide-in-from-right-4 fade-in" style={{ animationDelay: (i * 100) + 'ms', animationFillMode: 'both' }}>
+                 <div key={log.id} className="flex gap-4 relative animate-in slide-in-from-right-4 fade-in">
                    <div className="relative z-10 shrink-0 bg-brand-charcoal-card">
                      <Icon size={16} className={log.color} />
                    </div>
                    {i !== activityLogs.length - 1 && (
                      <div className="absolute left-2 top-4 bottom-[-24px] w-px bg-brand-charcoal-border z-0"></div>
                    )}
-                   <p className="text-sm text-brand-offwhite-muted leading-tight pt-0.5">{log.msg}</p>
+                   <p className="text-sm text-brand-offwhite-muted leading-tight pt-0.5">{log.message}</p>
                  </div>
                )
              })}
+             {activityLogs.length === 0 && (
+                <div className="text-sm text-brand-offwhite-muted text-center pt-8">No recent activity</div>
+             )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+// Two fixes were applied:
+
+// **1. TypeScript: dead `'error'` branch in `cn()` ternary**
+// Replaced the `status` string variable with a plain boolean 
+// `isActive = p.visible`. This eliminated the need for a union 
+// type and removed the unreachable `status === 'error'` branch 
+// that TypeScript was correctly rejecting.
+
+// **2. React: setState called synchronously inside `useEffect`**
+// Moved the async fetch logic inline into the effect as a scoped `
+// load` function, rather than calling the external `loadData` 
+// directly. Added a `cancelled` flag to guard against stale 
+// state updates on unmount. `loadData` is kept as a standalone 
+// function for `handleIngest` and `handleEnrich` to call after 
+// mutations.

@@ -30,6 +30,12 @@ type Store interface {
 	CreateSubmission(ctx context.Context, sub *Submission) error
 	UpsertProgress(ctx context.Context, prog *Progress) error
 	GetProblemWithTestCases(ctx context.Context, problemID uuid.UUID) (*Problem, []TestCase, error)
+	ListAllProblemsAdmin(ctx context.Context) ([]Problem, error)
+
+	// Admin operations
+	GetAdminStats(ctx context.Context) (*AdminStats, error)
+	LogActivity(ctx context.Context, logType, message, color, icon string) error
+	GetRecentActivity(ctx context.Context, limit int) ([]ActivityLog, error)
 }
 
 // PostgresStore implements Store using pgx and Postgres.

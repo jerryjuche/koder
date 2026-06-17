@@ -28,6 +28,23 @@ export type Problem = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  total_submissions?: number;
+  success_rate?: number;
+};
+
+export type AdminStats = {
+  total_problems: number;
+  active_problems: number;
+  total_submissions: number;
+};
+
+export type ActivityLog = {
+  id: string;
+  type: string;
+  message: string;
+  color: string;
+  icon: string;
+  created_at: string;
 };
 
 export type LeaderboardEntry = {

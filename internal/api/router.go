@@ -47,6 +47,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Post("/admin/ingest", adminHandler.Ingest)
 			r.Post("/admin/enrich", adminHandler.Enrich)
 			r.Post("/admin/enrich-all", adminHandler.EnrichAll)
+			r.Get("/admin/stats", adminHandler.GetAdminStats)
+			r.Get("/admin/activity", adminHandler.GetAdminActivity)
+			r.Get("/admin/problems", adminHandler.ListAllProblems)
 		})
 	})
 

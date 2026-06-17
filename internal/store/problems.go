@@ -76,12 +76,15 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
-		       p.created_at, p.updated_at
+		       p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs
 		FROM problems p
 		WHERE p.slug = $1 AND p.visible = true
 	`
 
 	var problem Problem
+	var successfulSubs int
 	if err := s.pool.QueryRow(ctx, query, slug).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -102,8 +105,14 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
+		&problem.TotalSubmissions,
+		&successfulSubs,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
+	}
+
+	if problem.TotalSubmissions > 0 {
+		problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
 	}
 
 	return &problem, nil
@@ -182,12 +191,15 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
-		       p.created_at, p.updated_at
+		       p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs
 		FROM problems p
 		WHERE p.slug = $1
 	`
 
 	var problem Problem
+	var successfulSubs int
 	if err := s.pool.QueryRow(ctx, query, slug).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -208,8 +220,14 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
+		&problem.TotalSubmissions,
+		&successfulSubs,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
+	}
+
+	if problem.TotalSubmissions > 0 {
+		problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
 	}
 
 	return &problem, nil
@@ -307,4 +325,61 @@ func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID
 	}
 
 	return nil
+}
+
+// ListAllProblemsAdmin returns all problems (visible and non-visible) for the admin dashboard.
+func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, error) {
+	query := `
+		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		       p.created_at, p.updated_at
+		FROM problems p
+		ORDER BY p.module, p.difficulty ASC
+	`
+
+	rows, err := s.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all problems: %w", err)
+	}
+	defer rows.Close()
+
+	var problems []Problem
+	for rows.Next() {
+		var problem Problem
+		if err := rows.Scan(
+			&problem.ID,
+			&problem.Slug,
+			&problem.Module,
+			&problem.Type,
+			&problem.Language,
+			&problem.Title,
+			&problem.Statement,
+			&problem.FuncName,
+			&problem.ReturnType,
+			&problem.ParamTypes,
+			&problem.Hints,
+			&problem.Difficulty,
+			&problem.XPReward,
+			&problem.Tags,
+			&problem.Visible,
+			&problem.SourceHash,
+			&problem.RawReadme,
+			&problem.CreatedAt,
+			&problem.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan problem: %w", err)
+		}
+		problems = append(problems, problem)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("problems iteration error: %w", err)
+	}
+
+	if problems == nil {
+		problems = make([]Problem, 0)
+	}
+
+	return problems, nil
 }

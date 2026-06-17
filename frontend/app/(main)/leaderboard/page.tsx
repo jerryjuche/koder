@@ -27,7 +27,7 @@ export default function LeaderboardPage() {
           <Trophy size={32} className="text-brand-muted-gold" />
         </div>
         <h1 className="text-4xl font-bold text-brand-offwhite">Leaderboard</h1>
-        <p className="text-brand-offwhite-muted">15 students competing · Updated live</p>
+        <p className="text-brand-offwhite-muted">{leaderboard.length} students competing · Updated live</p>
       </div>
 
       {/* Top 3 Podium */}

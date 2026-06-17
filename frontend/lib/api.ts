@@ -1,4 +1,4 @@
-import { ApiResponse, LeaderboardEntry, Problem, ExecutionResult, User } from './types';
+import { ApiResponse, LeaderboardEntry, Problem, ExecutionResult, User, AdminStats, ActivityLog } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -135,4 +135,16 @@ export async function enrichAllProblems(): Promise<ApiResponse<any>> {
   return fetchApi<any>('/admin/enrich-all', {
     method: 'POST',
   });
+}
+
+export async function fetchAdminStats(): Promise<ApiResponse<AdminStats>> {
+  return fetchApi<AdminStats>('/admin/stats');
+}
+
+export async function fetchAdminActivity(): Promise<ApiResponse<ActivityLog[]>> {
+  return fetchApi<ActivityLog[]>('/admin/activity');
+}
+
+export async function fetchAllProblemsAdmin(): Promise<ApiResponse<Problem[]>> {
+  return fetchApi<Problem[]>('/admin/problems');
 }

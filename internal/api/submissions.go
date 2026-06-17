@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -89,6 +90,12 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to grade solution attempt", err.Error())
 		return
+	}
+
+	if res.Status == "passed" {
+		h.store.LogActivity(r.Context(), "success", fmt.Sprintf("User %s successfully solved '%s'", claims.StudentID, problem.Slug), "text-brand-success", "CheckCircle2")
+	} else if res.Status == "timeout" {
+		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
 	}
 
 	RespondSuccess(w, res)

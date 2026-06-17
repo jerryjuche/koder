@@ -164,15 +164,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
           <div className="grid grid-cols-3 gap-3 border-t border-brand-charcoal-border pt-6">
              <div className="text-center">
-               <div className="text-xl font-bold text-brand-offwhite mb-1">342</div>
+               <div className="text-xl font-bold text-brand-offwhite mb-1">{problem.total_submissions || 0}</div>
                <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">Submissions</div>
              </div>
              <div className="text-center">
-               <div className="text-xl font-bold text-brand-success mb-1">{problem.successRate}%</div>
+               <div className="text-xl font-bold text-brand-success mb-1">{problem.success_rate !== undefined ? Math.round(problem.success_rate) : 0}%</div>
                <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">Success Rate</div>
              </div>
              <div className="text-center">
-               <div className="text-xl font-bold text-brand-muted-gold mb-1">{problem.estTimeMinutes}m</div>
+               <div className="text-xl font-bold text-brand-muted-gold mb-1">{problem.difficulty === 1 ? 15 : problem.difficulty === 2 ? 30 : 60}m</div>
                <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">Est. Time</div>
              </div>
           </div>

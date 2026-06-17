@@ -49,7 +49,9 @@ type Problem struct {
 	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
 	Solved      bool        `json:"solved"`
 	Stars       int         `json:"stars"`
-	Attempts    int         `json:"attempts"`
+	Attempts         int         `json:"attempts"`
+	TotalSubmissions int         `json:"total_submissions"`
+	SuccessRate      float64     `json:"success_rate"`
 }
 
 // TestCase represents a single problem test case.
@@ -86,4 +88,21 @@ type Progress struct {
 	Attempts    int         `db:"attempts"`
 	BestRuntime int         `db:"best_runtime"`
 	XPAwarded   int         `db:"xp_awarded"`
+}
+
+// ActivityLog represents a system event for the admin dashboard.
+type ActivityLog struct {
+	ID        pgtype.UUID `db:"id" json:"id"`
+	Type      string      `db:"type" json:"type"` // e.g. "success", "info", "warning", "error"
+	Message   string      `db:"message" json:"message"`
+	Color     string      `db:"color" json:"color"`
+	Icon      string      `db:"icon" json:"icon"`
+	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+}
+
+// AdminStats represents the aggregation counters for the admin dashboard.
+type AdminStats struct {
+	TotalProblems    int `json:"total_problems"`
+	ActiveProblems   int `json:"active_problems"`
+	TotalSubmissions int `json:"total_submissions"`
 }

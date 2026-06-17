@@ -110,6 +110,8 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 		responses = append(responses, ingestionResponse{Slug: problem.Slug, Module: problem.Module, SourceHash: problem.SourceHash, Status: status})
 	}
 
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("GitHub repo ingested: %d new problems queued", len(rawProblems)), "text-brand-success", "Github")
+
 	RespondCreated(w, responses)
 }
 
@@ -218,5 +220,34 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		results = append(results, map[string]any{"slug": problem.Slug, "status": "enriched"})
 	}
 
+	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Batch enrichment completed. %d problems processed.", len(results)), "text-brand-success", "Wand2")
+
 	RespondSuccess(w, results)
+}
+
+func (h *AdminHandler) GetAdminStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.store.GetAdminStats(r.Context())
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "STATS_FAILED", "Unable to get admin stats", err.Error())
+		return
+	}
+	RespondSuccess(w, stats)
+}
+
+func (h *AdminHandler) GetAdminActivity(w http.ResponseWriter, r *http.Request) {
+	logs, err := h.store.GetRecentActivity(r.Context(), 50)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "ACTIVITY_FAILED", "Unable to get activity logs", err.Error())
+		return
+	}
+	RespondSuccess(w, logs)
+}
+
+func (h *AdminHandler) ListAllProblems(w http.ResponseWriter, r *http.Request) {
+	problems, err := h.store.ListAllProblemsAdmin(r.Context())
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "PROBLEMS_FAILED", "Unable to list problems", err.Error())
+		return
+	}
+	RespondSuccess(w, problems)
 }
