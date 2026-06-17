@@ -1,0 +1,36 @@
+Koder Update Log
+=================
+
+Date: 2026-06-17
+
+Summary of Recent Changes:
+
+1. Backend ColorIndex Synchronization
+- Updated internal/store/users.go to assign a random ColorIndex between 0 and 5 for new user registrations.
+- Added crypto/rand and math/big imports for secure random assignment.
+- Ensured CreateUser now persists the assigned ColorIndex in the users table and returns it in the User object.
+- Updated internal/api/me.go to include ColorIndex in the meResponse payload.
+- Added clampColorIndex helper in internal/api/me.go to enforce ColorIndex bounds when exposing profile data.
+- Updated internal/store/types.go LeaderboardUser to use ColorIndex instead of AvatarIndex.
+- Updated internal/store/users.go leaderboard query scanning to populate ColorIndex from the database.
+
+2. Frontend Theme Integration
+- Updated frontend/lib/utils.ts getUserColor to map index values 0-5 explicitly to centralized color tokens:
+  0 -> Gold
+  1 -> Terracotta
+  2 -> Silver
+  3 -> Green
+  4 -> Grey
+  5 -> Bronze
+- Added bounds clamping in getUserColor so invalid indexes resolve safely.
+- Updated frontend/lib/types.ts to use colorIndex instead of avatarIndex in the User type.
+- Updated frontend/lib/api.ts to map backend response color_index into User.colorIndex.
+- Updated fallback JWT decode path in frontend/lib/api.ts to return colorIndex: 0 when no profile payload is available.
+- Updated frontend/components/layout/TopNav.tsx to apply getUserColor(user.colorIndex) for the user avatar.
+- Updated frontend/app/(main)/leaderboard/page.tsx to use getUserColor(user.colorIndex) for podium avatars and leaderboard row avatars.
+- Updated frontend/app/(main)/page.tsx to import getUserColor and use it in the dashboard user accent widget.
+
+3. Notes
+- Styling is centralized through utility-first Tailwind classes and the cn() merge helper.
+- No raw hex values were hardcoded outside the centralized frontend design token helper.
+- This update log file is created for monitoring all recent code updates and review activity.

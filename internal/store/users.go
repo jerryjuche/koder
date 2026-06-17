@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -31,14 +33,21 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	var userID pgtype.UUID
 	var createdAt pgtype.Timestamp
 
+	// Assign a stable design token index between 0 and 5 for avatar colors.
+	colorIndexBig, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to assign color index: %w", err)
+	}
+	colorIndex := int(colorIndexBig.Int64())
+
 	// Insert into database with parameterized query
 	query := `
 		INSERT INTO users (student_id, name, password, role, color_index, xp, created_at)
-		VALUES ($1, $2, $3, $4, 0, 0, NOW())
+		VALUES ($1, $2, $3, $4, $5, 0, NOW())
 		RETURNING id, created_at
 	`
 
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Name, string(hashedPassword), user.Role).
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Name, string(hashedPassword), user.Role, colorIndex).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -50,7 +59,7 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		Name:       user.Name,
 		Password:   string(hashedPassword),
 		Role:       user.Role,
-		ColorIndex: 0,
+		ColorIndex: colorIndex,
 		XP:         0,
 		CreatedAt:  createdAt.Time,
 	}, nil
@@ -180,19 +189,19 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context) ([]LeaderboardEntry,
 		var uID pgtype.UUID
 		var u LeaderboardUser
 		var bestTime int
-		
+
 		err := rows.Scan(
-			&uID, &u.Name, &u.StudentID, &u.Role, &u.AvatarIndex, &u.XP, 
+			&uID, &u.Name, &u.StudentID, &u.Role, &u.ColorIndex, &u.XP,
 			&u.SolvedCount, &bestTime,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
 		}
-		
+
 		if uID.Valid {
 			u.ID = uuid.UUID(uID.Bytes).String()
 		}
-		
+
 		u.Level = (u.XP / 1000) + 1
 
 		entries = append(entries, LeaderboardEntry{

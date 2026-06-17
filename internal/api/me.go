@@ -29,6 +29,16 @@ type meResponse struct {
 	SolvedCount int    `json:"solved_count"`
 }
 
+func clampColorIndex(index int) int {
+	if index < 0 {
+		return 0
+	}
+	if index > 5 {
+		return 5
+	}
+	return index
+}
+
 // GetMe returns the authenticated user's profile.
 func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
@@ -65,7 +75,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		StudentID:   user.StudentID,
 		Name:        user.Name,
 		Role:        user.Role,
-		ColorIndex:  user.ColorIndex,
+		ColorIndex:  clampColorIndex(user.ColorIndex),
 		XP:          user.XP,
 		Level:       level,
 		SolvedCount: solvedCount,

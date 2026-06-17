@@ -3,13 +3,18 @@ export type User = {
   name: string;
   studentId: string;
   role: string;
-  avatarIndex: number;
+  colorIndex: number;
   xp: number;
   level: number;
   solvedCount: number;
 };
 
-export type ProblemDifficulty = 'Beginner' | 'Easy' | 'Medium' | 'Hard' | 'Expert';
+export type ProblemDifficulty =
+  | "Beginner"
+  | "Easy"
+  | "Medium"
+  | "Hard"
+  | "Expert";
 
 export type Problem = {
   id: string;
@@ -19,7 +24,7 @@ export type Problem = {
   difficulty: number;
   xpReward: number;
   solved: boolean;
-  status: 'active' | 'draft' | 'error';
+  status: "active" | "draft" | "error";
   visible: boolean;
   successRate: number;
   estTimeMinutes: number;
@@ -53,7 +58,7 @@ export type Submission = {
   problem_id: string;
   language: string;
   code: string;
-  status: 'passed' | 'failed' | 'compiler_error' | 'timeout';
+  status: "passed" | "failed" | "compiler_error" | "timeout";
   passed_count: number;
   total_count: number;
   output_logs: string;
@@ -113,7 +118,7 @@ export type BackendTestResult = {
 };
 
 export type ExecutionResult = {
-  status: 'passed' | 'failed' | 'compiler_error' | 'timeout';
+  status: "passed" | "failed" | "compiler_error" | "timeout";
   passed_count: number;
   total_count: number;
   runtime_ms: number;
