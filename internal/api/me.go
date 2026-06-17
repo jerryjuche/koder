@@ -19,12 +19,14 @@ func NewMeHandler(s store.Store) *MeHandler {
 
 // meResponse is the safe, password-free user profile response.
 type meResponse struct {
-	ID         string `json:"id"`
-	StudentID  string `json:"student_id"`
-	Name       string `json:"name"`
-	Role       string `json:"role"`
-	ColorIndex int    `json:"color_index"`
-	XP         int    `json:"xp"`
+	ID          string `json:"id"`
+	StudentID   string `json:"student_id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	ColorIndex  int    `json:"color_index"`
+	XP          int    `json:"xp"`
+	Level       int    `json:"level"`
+	SolvedCount int    `json:"solved_count"`
 }
 
 // GetMe returns the authenticated user's profile.
@@ -53,12 +55,19 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Query solved count from progress table
+	solvedCount, _ := h.store.GetSolvedCount(r.Context(), userUUID)
+
+	level := (user.XP / 1000) + 1
+
 	RespondSuccess(w, meResponse{
-		ID:         idStr,
-		StudentID:  user.StudentID,
-		Name:       user.Name,
-		Role:       user.Role,
-		ColorIndex: user.ColorIndex,
-		XP:         user.XP,
+		ID:          idStr,
+		StudentID:   user.StudentID,
+		Name:        user.Name,
+		Role:        user.Role,
+		ColorIndex:  user.ColorIndex,
+		XP:          user.XP,
+		Level:       level,
+		SolvedCount: solvedCount,
 	})
 }

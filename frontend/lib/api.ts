@@ -74,8 +74,8 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         role: res.data.role || 'student',
         avatarIndex: res.data.color_index || 0,
         xp: res.data.xp || 0,
-        level: 1,
-        solvedCount: 0,
+        level: res.data.level || 1,
+        solvedCount: res.data.solved_count || 0,
       }
     };
   }

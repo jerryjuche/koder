@@ -210,3 +210,15 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context) ([]LeaderboardEntry,
 
 	return entries, nil
 }
+
+// GetSolvedCount returns the number of problems a user has solved.
+func (s *PostgresStore) GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM progress WHERE user_id = $1 AND solved = true`, userID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get solved count: %w", err)
+	}
+	return count, nil
+}

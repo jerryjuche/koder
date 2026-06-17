@@ -18,6 +18,7 @@ type Store interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	GetLeaderboard(ctx context.Context) ([]LeaderboardEntry, error)
+	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
