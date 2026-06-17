@@ -8,6 +8,7 @@ import Markdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, Play, RotateCcw, Lightbulb, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Copy, Expand } from 'lucide-react';
 import { cn, getDifficultyColor, getDifficultyLabel } from '@/lib/utils';
 import { fetchProblem, submitSolution } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { Problem, TestResult } from '@/lib/types';
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
@@ -51,18 +52,33 @@ func main() {
     if (res.success && res.data) {
       const executionResult = res.data;
       
-      const mappedResults: TestResult[] = (executionResult.test_results || []).map((tr: any, idx: number) => ({
-        id: `t${idx}`,
-        name: tr.name || `Case ${idx + 1}`,
-        passed: tr.passed,
-        executionTimeMs: executionResult.runtime_ms || 0,
-        output: tr.output || '',
-        expectedOutput: undefined,
-      }));
-
-      setResults(mappedResults);
+      if (executionResult.status === 'compiler_error' || executionResult.status === 'timeout') {
+         setErrorMsg(executionResult.output_logs || `Execution failed with status: ${executionResult.status}`);
+         setResults(null);
+         toast.error(`Execution failed: ${executionResult.status}`);
+      } else {
+         const mappedResults: TestResult[] = (executionResult.test_results || []).map((tr: any, idx: number) => ({
+           id: `t${idx}`,
+           name: tr.name || `Case ${idx + 1}`,
+           passed: tr.passed,
+           executionTimeMs: executionResult.runtime_ms || 0,
+           output: tr.got || '',
+           expectedOutput: tr.expected || '',
+         }));
+         setResults(mappedResults);
+         
+         const passedAll = mappedResults.length > 0 && mappedResults.every(r => r.passed);
+         if (passedAll) {
+           toast.success("Solution accepted!");
+           window.dispatchEvent(new Event('user-updated'));
+         } else {
+           toast.error("Some test cases failed.");
+         }
+      }
     } else {
       setErrorMsg(res.error?.message || "Submission failed");
+      setResults(null);
+      toast.error(res.error?.message || "Submission failed");
     }
 
     setSubmitting(false);

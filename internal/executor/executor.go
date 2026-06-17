@@ -137,7 +137,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		runRegex    = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
 		passRegex   = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
 		failRegex   = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		detailRegex = regexp.MustCompile(`got\s+(.+),\s+want\s+(.+)`)
+		detailRegex = regexp.MustCompile(`KODER_FAILED_START\|\|(.*)\|\|(.*)\|\|KODER_FAILED_END`)
 
 		passedMap = make(map[int]bool)
 		gotMap    = make(map[int]string)

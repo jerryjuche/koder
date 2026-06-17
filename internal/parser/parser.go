@@ -103,11 +103,12 @@ func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*
 			return err
 		}
 
-		if relPath == "." || !strings.HasPrefix(filepath.ToSlash(relPath), "exercises") {
+		slashPath := filepath.ToSlash(relPath)
+		if slashPath == "." || (!strings.HasPrefix(slashPath, "exercises/") && slashPath != "exercises" && !strings.Contains(slashPath, "/exercises/")) {
 			return nil
 		}
 
-		exerciseSlug := normalizeSlug(fmt.Sprintf("%s-%s", repoSlug, strings.ReplaceAll(filepath.ToSlash(relPath), "/", "-")))
+		exerciseSlug := normalizeSlug(fmt.Sprintf("%s-%s", repoSlug, strings.ReplaceAll(slashPath, "/", "-")))
 		problems = append(problems, &RawProblem{
 			Slug:       exerciseSlug,
 			Module:     normalizeModule(filepath.Join(repoModule, relPath)),

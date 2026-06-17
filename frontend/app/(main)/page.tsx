@@ -3,19 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, ChevronDown, CheckCircle2, Circle, Clock, Flame, BarChart2 } from 'lucide-react';
-import { fetchProblems } from '@/lib/api';
-import { Problem } from '@/lib/types';
+import { fetchProblems, fetchUser } from '@/lib/api';
+import { Problem, User } from '@/lib/types';
 import { cn, getDifficultyColor, getDifficultyLabel } from '@/lib/utils';
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProblems().then(res => {
-      if (res.success) {
-        setProblems(res.data || []);
-      }
+    Promise.all([fetchProblems(), fetchUser()]).then(([probRes, userRes]) => {
+      if (probRes.success) setProblems(probRes.data || []);
+      if (userRes.success) setUser(userRes.data);
       setLoading(false);
     });
   }, []);
@@ -44,7 +44,7 @@ export default function Dashboard() {
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
             </svg>
             <div>
-              <div className="text-sm font-bold leading-none mb-1">270</div>
+              <div className="text-sm font-bold leading-none mb-1">{user?.xp?.toLocaleString() || 0}</div>
               <div className="text-xs text-brand-offwhite-muted font-medium">XP Earned</div>
             </div>
           </div>

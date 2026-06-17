@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Settings, FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, Clock, GitCommit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems } from '@/lib/api';
+import { toast } from '@/lib/toast';
 
 export default function AdminDashboard() {
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
@@ -11,7 +12,12 @@ export default function AdminDashboard() {
 
   const handleIngest = async () => {
     setIngesting(true);
-    await ingestGitHubRepo(ingestUrl);
+    const res = await ingestGitHubRepo(ingestUrl);
+    if (res.success) {
+      toast.success("Repository ingested successfully!");
+    } else {
+      toast.error(res.error?.message || "Ingestion failed.");
+    }
     setIngesting(false);
   };
 

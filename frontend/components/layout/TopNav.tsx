@@ -15,10 +15,15 @@ export default function TopNav() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
-    fetchUser().then(res => {
-      if (res.success) setUser(res.data);
-      setLoading(false);
-    });
+    const loadUser = () => {
+      fetchUser().then(res => {
+        if (res.success) setUser(res.data);
+        setLoading(false);
+      });
+    };
+    loadUser();
+    window.addEventListener('user-updated', loadUser);
+    return () => window.removeEventListener('user-updated', loadUser);
   }, []);
 
   const navLinks = [
