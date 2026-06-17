@@ -38,6 +38,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		meHandler := NewMeHandler(store)
 		r.Get("/me", meHandler.GetMe)
 
+		leaderboardHandler := NewLeaderboardHandler(store)
+		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
+
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
 		r.Post("/submit", submissionHandler.Submit)

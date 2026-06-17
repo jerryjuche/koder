@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
 
@@ -17,9 +18,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
   const [ingesting, setIngesting] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
@@ -42,6 +45,15 @@ export default function AdminDashboard() {
     let cancelled = false;
 
     const load = async () => {
+      const userRes = await fetchUser();
+      if (cancelled) return;
+      
+      if (!userRes.success || userRes.data?.role !== 'admin') {
+        router.push('/');
+        return;
+      }
+      setIsAuthorized(true);
+
       const [statsRes, logsRes, problemsRes] = await Promise.all([
         fetchAdminStats(),
         fetchAdminActivity(),
@@ -61,7 +73,7 @@ export default function AdminDashboard() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [router]);
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -93,6 +105,14 @@ export default function AdminDashboard() {
   );
 
   const draftsCount = problems.filter(p => !p.visible).length;
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex items-center justify-center h-64 text-brand-offwhite-muted">
+        <Activity className="animate-spin mr-2" size={18} /> Verifying access...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">

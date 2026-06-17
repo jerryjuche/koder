@@ -35,6 +35,10 @@ type Config struct {
 
 	// CORS
 	AllowedOrigin string
+
+	// Admin
+	AdminEmail    string
+	AdminPassword string
 }
 
 func loadEnvFile() {
@@ -176,6 +180,10 @@ func Load() (*Config, error) {
 	if cfg.AllowedOrigin == "" {
 		cfg.AllowedOrigin = "http://localhost:3000"
 	}
+
+	// Admin Credentials
+	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")
+	cfg.AdminPassword = os.Getenv("ADMIN_PASSWORD")
 
 	return cfg, nil
 }

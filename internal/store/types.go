@@ -106,3 +106,23 @@ type AdminStats struct {
 	ActiveProblems   int `json:"active_problems"`
 	TotalSubmissions int `json:"total_submissions"`
 }
+
+// LeaderboardUser represents the embedded user in a leaderboard entry.
+type LeaderboardUser struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	StudentID   string `json:"studentId"`
+	Role        string `json:"role"`
+	AvatarIndex int    `json:"avatarIndex"`
+	XP          int    `json:"xp"`
+	Level       int    `json:"level"`
+	SolvedCount int    `json:"solvedCount"`
+}
+
+// LeaderboardEntry represents a single row on the leaderboard.
+type LeaderboardEntry struct {
+	Rank       int             `json:"rank"`
+	User       LeaderboardUser `json:"user"`
+	BestTimeMs int             `json:"bestTimeMs"`
+	RankDelta  int             `json:"rankDelta"`
+}

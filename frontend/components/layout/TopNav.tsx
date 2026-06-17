@@ -47,7 +47,7 @@ export default function TopNav() {
           </Link>
 
           <nav className="hidden md:flex gap-1.5">
-            {navLinks.map(link => {
+            {navLinks.filter(link => link.name !== 'Admin' || user?.role === 'admin').map(link => {
               const isActive = pathname === link.href || (pathname !== '/' && link.href !== '/' && pathname?.startsWith(link.href));
               const Icon = link.icon;
               return (

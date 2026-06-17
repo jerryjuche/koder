@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
 )
@@ -97,6 +98,27 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	} else if res.Status == "timeout" {
 		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
 	}
+
+	// Log to database
+	sub := &store.Submission{
+		UserID:      pgtype.UUID{Bytes: userID, Valid: true},
+		ProblemID:   problem.ID,
+		Language:    problem.Language,
+		Code:        req.Code,
+		Status:      res.Status,
+		PassedCount: res.PassedCount,
+		TotalCount:  res.TotalCount,
+		RuntimeMs:   res.RuntimeMs,
+	}
+	_ = h.store.CreateSubmission(r.Context(), sub)
+
+	prog := &store.Progress{
+		UserID:      pgtype.UUID{Bytes: userID, Valid: true},
+		ProblemID:   problem.ID,
+		Solved:      res.Status == "passed",
+		BestRuntime: res.RuntimeMs,
+	}
+	_ = h.store.UpsertProgress(r.Context(), prog)
 
 	RespondSuccess(w, res)
 }

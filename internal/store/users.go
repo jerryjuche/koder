@@ -125,3 +125,88 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 
 	return user, nil
 }
+
+// UpdateUserRole updates the role for a user by UUID.
+func (s *PostgresStore) UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if role != "admin" && role != "student" {
+		return fmt.Errorf("invalid role: %s", role)
+	}
+
+	query := `
+		UPDATE users
+		SET role = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, role, id)
+	if err != nil {
+		return fmt.Errorf("failed to update user role: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// GetLeaderboard fetches the top users ranked by XP, then solved count.
+func (s *PostgresStore) GetLeaderboard(ctx context.Context) ([]LeaderboardEntry, error) {
+	query := `
+		SELECT 
+			u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
+			COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
+			COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms
+		FROM users u
+		LEFT JOIN progress p ON u.id = p.user_id
+		WHERE u.role != 'admin'
+		GROUP BY u.id
+		ORDER BY u.xp DESC, solved_count DESC
+		LIMIT 100
+	`
+
+	rows, err := s.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query leaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []LeaderboardEntry
+	rank := 1
+	for rows.Next() {
+		var uID pgtype.UUID
+		var u LeaderboardUser
+		var bestTime int
+		
+		err := rows.Scan(
+			&uID, &u.Name, &u.StudentID, &u.Role, &u.AvatarIndex, &u.XP, 
+			&u.SolvedCount, &bestTime,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
+		}
+		
+		if uID.Valid {
+			u.ID = uuid.UUID(uID.Bytes).String()
+		}
+		
+		u.Level = (u.XP / 1000) + 1
+
+		entries = append(entries, LeaderboardEntry{
+			Rank:       rank,
+			User:       u,
+			BestTimeMs: bestTime,
+			RankDelta:  0, // RankDelta would require historical snapshots, just pass 0 for now.
+		})
+		rank++
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("leaderboard rows iteration error: %w", err)
+	}
+
+	return entries, nil
+}

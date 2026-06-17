@@ -57,11 +57,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role := "student"
+	if h.config.AdminEmail != "" && req.StudentID == h.config.AdminEmail && req.Password == h.config.AdminPassword {
+		role = "admin"
+	}
+
 	newUser := &store.NewUser{
 		StudentID: req.StudentID,
 		Name:      req.Name,
 		Password:  req.Password,
-		Role:      "student",
+		Role:      role,
 	}
 
 	user, err := h.store.CreateUser(r.Context(), newUser)
@@ -114,6 +119,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", err.Error())
 		return
+	}
+
+	// Dynamic admin upgrade if environment variables changed after user creation
+	if user.Role != "admin" && h.config.AdminEmail != "" && req.StudentID == h.config.AdminEmail && req.Password == h.config.AdminPassword {
+		uID, _ := uuid.Parse(userID)
+		if err := h.store.UpdateUserRole(r.Context(), uID, "admin"); err == nil {
+			user.Role = "admin"
+		}
 	}
 
 	token, err := auth.SignToken(userID, user.StudentID, user.Role, h.config.JWTSecret, h.config.JWTExpiry())

@@ -2,6 +2,7 @@ export type User = {
   id: string;
   name: string;
   studentId: string;
+  role: string;
   avatarIndex: number;
   xp: number;
   level: number;
