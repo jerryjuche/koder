@@ -34,3 +34,18 @@ Summary of Recent Changes:
 - Styling is centralized through utility-first Tailwind classes and the cn() merge helper.
 - No raw hex values were hardcoded outside the centralized frontend design token helper.
 - This update log file is created for monitoring all recent code updates and review activity.
+
+Date: 2026-06-17
+
+Landing page redesign:
+- Replaced /landing page with a professional two-column hero layout.
+- Added stronger brand styling using Koder color tokens and polished dashboard previews.
+- Introduced instructor dashboard preview cards, feature highlights, stats panels, and CTA sections.
+- Applied elevated card styling, modern section spacing, and consistent admin-inspired visual language.
+
+Date: 2026-06-17
+
+Landing page polished:
+- Replaced invalid `brand-gold` classes with valid `brand-muted-gold` token usage.
+- Brought landing page accents in line with the profile/admin color system.
+- Kept professional dark panels with warm gold and green highlights for better hierarchy.
