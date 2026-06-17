@@ -20,9 +20,12 @@ func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *Tem
 		return "", fmt.Errorf("failed to create sandbox directory: %w", err)
 	}
 
-	// Prepare solution.go
+	// Prepare solution.go — force package piscine to match test template.
+	// Students may submit "package main" but the test runner lives in package piscine.
 	solutionCode := strings.TrimSpace(code)
-	if !packageRegexp.MatchString(solutionCode) {
+	if packageRegexp.MatchString(solutionCode) {
+		solutionCode = packageRegexp.ReplaceAllString(solutionCode, "package piscine")
+	} else {
 		solutionCode = "package piscine\n\n" + solutionCode
 	}
 

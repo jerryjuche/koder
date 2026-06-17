@@ -34,6 +34,33 @@ func NewExecutor(cfg *config.Config, store store.Store) *Executor {
 	}
 }
 
+// Warmup pulls the configured Docker image and initializes the build cache to prevent cold-start timeouts.
+func (e *Executor) Warmup(ctx context.Context) error {
+	slog.Info("executor: warming up docker image", "image", e.cfg.DockerImage)
+	cmdPull := exec.CommandContext(ctx, "docker", "pull", e.cfg.DockerImage)
+	cmdPull.Stdout = os.Stdout
+	cmdPull.Stderr = os.Stderr
+	if err := cmdPull.Run(); err != nil {
+		slog.Warn("executor: failed to pull docker image, cold start might be slow", "error", err)
+	}
+
+	slog.Info("executor: populating go build cache")
+	if err := os.MkdirAll(e.cfg.BuildCacheDir, 0755); err != nil {
+		return fmt.Errorf("failed to create build cache dir: %w", err)
+	}
+
+	cmdRun := exec.CommandContext(ctx, "docker", "run", "--rm",
+		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
+		e.cfg.DockerImage, "go", "env")
+	
+	if err := cmdRun.Run(); err != nil {
+		slog.Warn("executor: failed to run dummy container, cache might not be populated", "error", err)
+	}
+	
+	slog.Info("executor: warmup complete")
+	return nil
+}
+
 // Execute acquires a concurrency slot, compiles, runs, and grades a submission.
 func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*ExecutionResult, error) {
 	// 1. Acquire semaphore slot
@@ -118,8 +145,8 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	cmd := exec.CommandContext(runCtx, "docker", "run",
 		"--rm",
 		"--network=none",
-		"--memory=64m",
-		"--cpus=0.5",
+		"--memory=256m",
+		"--cpus=1.0",
 		"-v", fmt.Sprintf("%s:/app", sandboxPath),
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		"-w", "/app",
@@ -175,6 +202,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	}
 
 	if runCtx.Err() == context.DeadlineExceeded {
+		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"

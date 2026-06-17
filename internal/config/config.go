@@ -60,6 +60,9 @@ func loadEnvFile() {
 			os.Setenv(key, val)
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: error reading .env file: %v\n", err)
+	}
 }
 
 // Load reads all environment variables and validates them.
@@ -120,7 +123,7 @@ func Load() (*Config, error) {
 
 	executorTimeoutStr := os.Getenv("EXECUTOR_TIMEOUT_SECONDS")
 	if executorTimeoutStr == "" {
-		executorTimeoutStr = "5"
+		executorTimeoutStr = "30"
 	}
 	executorTimeout, err := strconv.Atoi(executorTimeoutStr)
 	if err != nil {

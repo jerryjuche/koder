@@ -25,6 +25,9 @@ export type Problem = {
   tags: string[];
   statement?: string;
   descriptionMarkdown?: string;
+  func_name?: string;
+  return_type?: string;
+  param_types?: string[];
 };
 
 export type LeaderboardEntry = {
@@ -44,9 +47,12 @@ export type TestResult = {
 };
 
 export type BackendTestResult = {
-  name: string;
+  test_case_id: string;
+  ordinal: number;
   passed: boolean;
-  output: string;
+  got: string;
+  expected: string;
+  is_hidden: boolean;
 };
 
 export type ExecutionResult = {

@@ -11,18 +11,16 @@ import { fetchProblem, submitSolution } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Problem, TestResult } from '@/lib/types';
 
+const DEFAULT_CODE = `package piscine
+
+// Write your solution here.
+// The backend will test your exported function automatically.
+`;
+
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const [problem, setProblem] = useState<Problem | null>(null);
-  const defaultCode = `package main
-
-import "fmt"
-
-func main() {
-    // TODO: implement your solution here
-}
-`;
-  const [code, setCode] = useState(defaultCode);
+  const [code, setCode] = useState(DEFAULT_CODE);
   const [panelMode, setPanelMode] = useState<'tests' | 'hints'>('tests');
   const [hintsOpen, setHintsOpen] = useState([false, false, false]);
   const [submitting, setSubmitting] = useState(false);
@@ -34,8 +32,12 @@ func main() {
     fetchProblem(slug).then(res => {
       if (res.success && res.data) {
         setProblem(res.data);
-        if (res.data.slug === 'hello-world' || res.data.slug === 'fibonacci') {
-          setCode(defaultCode);
+        const p = res.data;
+        if (p.func_name) {
+          const params = p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(', ') || '';
+          const ret = p.return_type ? ` ${p.return_type}` : '';
+          const scaffold = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+          setCode(scaffold);
         }
       }
     });
@@ -58,12 +60,12 @@ func main() {
          toast.error(`Execution failed: ${executionResult.status}`);
       } else {
          const mappedResults: TestResult[] = (executionResult.test_results || []).map((tr: any, idx: number) => ({
-           id: `t${idx}`,
-           name: tr.name || `Case ${idx + 1}`,
+           id: tr.test_case_id || `t${idx}`,
+           name: `Case ${tr.ordinal ?? idx + 1}`,
            passed: tr.passed,
            executionTimeMs: executionResult.runtime_ms || 0,
-           output: tr.got || '',
-           expectedOutput: tr.expected || '',
+           output: tr.is_hidden && !tr.passed ? '(hidden test case)' : (tr.got || ''),
+           expectedOutput: tr.is_hidden && !tr.passed ? '(hidden)' : (tr.expected || ''),
          }));
          setResults(mappedResults);
          
