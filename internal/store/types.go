@@ -126,3 +126,19 @@ type LeaderboardEntry struct {
 	BestTimeMs int             `json:"bestTimeMs"`
 	RankDelta  int             `json:"rankDelta"`
 }
+
+// DifficultyProgress represents progress for a single difficulty level.
+type DifficultyProgress struct {
+	Solved int `json:"solved"`
+	Total  int `json:"total"`
+}
+
+// UserStats represents aggregated statistics for a user's profile.
+type UserStats struct {
+	SolvedCount       int                           `json:"solved_count"`
+	AttemptedCount    int                           `json:"attempted_count"`
+	AverageStars      float64                       `json:"average_stars"`
+	BestRuntimeMs     int                           `json:"best_runtime_ms"`
+	CurrentStreakDays int                           `json:"current_streak_days"`
+	ProgressByDiff    map[string]DifficultyProgress `json:"progress_by_difficulty"`
+}

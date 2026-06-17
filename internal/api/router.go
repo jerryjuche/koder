@@ -38,6 +38,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		meHandler := NewMeHandler(store)
 		r.Get("/me", meHandler.GetMe)
 
+		profileHandler := NewProfileHandler(store)
+		r.Get("/me/profile", profileHandler.GetProfile)
+		r.Put("/me/profile", profileHandler.UpdateProfile)
+
 		leaderboardHandler := NewLeaderboardHandler(store)
 		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
 

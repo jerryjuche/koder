@@ -1,4 +1,4 @@
-import { ApiResponse, LeaderboardEntry, Problem, ExecutionResult, User, AdminStats, ActivityLog } from './types';
+import { ApiResponse, LeaderboardEntry, Problem, ExecutionResult, User, AdminStats, ActivityLog, UserProfile } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -149,4 +149,15 @@ export async function fetchAdminActivity(): Promise<ApiResponse<ActivityLog[]>> 
 
 export async function fetchAllProblemsAdmin(): Promise<ApiResponse<Problem[]>> {
   return fetchApi<Problem[]>('/admin/problems');
+}
+
+export async function fetchUserProfile(): Promise<ApiResponse<UserProfile>> {
+  return fetchApi<UserProfile>('/me/profile');
+}
+
+export async function updateUserName(name: string): Promise<ApiResponse<User>> {
+  return fetchApi<User>('/me/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
 }

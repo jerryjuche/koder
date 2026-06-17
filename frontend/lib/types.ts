@@ -48,6 +48,45 @@ export type ActivityLog = {
   created_at: string;
 };
 
+export type Submission = {
+  id: string;
+  problem_id: string;
+  language: string;
+  code: string;
+  status: 'passed' | 'failed' | 'compiler_error' | 'timeout';
+  passed_count: number;
+  total_count: number;
+  output_logs: string;
+  runtime_ms: number;
+  created_at: string;
+};
+
+export type ProgressByDifficulty = {
+  easy: { solved: number; total: number };
+  medium: { solved: number; total: number };
+  hard: { solved: number; total: number };
+};
+
+export type UserProfile = {
+  id: string;
+  student_id: string;
+  name: string;
+  color_index: number;
+  xp: number;
+  level: number;
+  global_rank: number;
+  created_at: string;
+  stats: {
+    solved_count: number;
+    attempted_count: number;
+    average_stars: number;
+    best_runtime_ms: number;
+    current_streak_days: number;
+  };
+  progress_by_difficulty: ProgressByDifficulty;
+  recent_submissions: Submission[];
+};
+
 export type LeaderboardEntry = {
   rank: number;
   user: User;

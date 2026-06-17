@@ -222,3 +222,211 @@ func (s *PostgresStore) GetSolvedCount(ctx context.Context, userID uuid.UUID) (i
 	}
 	return count, nil
 }
+
+// UpdateUserName updates the user's name by ID.
+func (s *PostgresStore) UpdateUserName(ctx context.Context, id uuid.UUID, name string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET name = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, name, id)
+	if err != nil {
+		return fmt.Errorf("failed to update user name: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// GetUserRank returns the user's rank (1-indexed position) in the leaderboard.
+func (s *PostgresStore) GetUserRank(ctx context.Context, userID uuid.UUID) (int, error) {
+	var rank int
+	query := `
+		SELECT COUNT(*) + 1
+		FROM users u
+		WHERE u.role != 'admin'
+		  AND (
+			u.xp > (SELECT xp FROM users WHERE id = $1)
+			OR (
+			  u.xp = (SELECT xp FROM users WHERE id = $1)
+			  AND u.id < $1
+			)
+		  )
+	`
+
+	err := s.pool.QueryRow(ctx, query, userID).Scan(&rank)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get user rank: %w", err)
+	}
+	return rank, nil
+}
+
+// GetUserStats returns comprehensive statistics for a user's profile.
+func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error) {
+	stats := &UserStats{
+		ProgressByDiff: make(map[string]DifficultyProgress),
+	}
+
+	// Get attempted and solved counts, average stars, best runtime
+	query1 := `
+		SELECT 
+			COUNT(DISTINCT p.problem_id) FILTER (WHERE p.solved) as solved_count,
+			COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN s.id END) as attempted_count,
+			COALESCE(AVG(p.stars) FILTER (WHERE p.solved), 0.0) as avg_stars,
+			COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved AND p.best_runtime > 0), 0) as best_runtime
+		FROM progress p
+		LEFT JOIN submissions s ON p.user_id = s.user_id AND p.problem_id = s.problem_id
+		WHERE p.user_id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query1, userID).Scan(
+		&stats.SolvedCount,
+		&stats.AttemptedCount,
+		&stats.AverageStars,
+		&stats.BestRuntimeMs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get basic stats: %w", err)
+	}
+
+	// Get progress by difficulty
+	query2 := `
+		SELECT 
+			pr.difficulty,
+			COUNT(DISTINCT CASE WHEN pg.solved THEN pg.problem_id END) as solved,
+			COUNT(DISTINCT pr.id) as total
+		FROM problems pr
+		LEFT JOIN progress pg ON pr.id = pg.problem_id AND pg.user_id = $1
+		WHERE pr.visible = true
+		GROUP BY pr.difficulty
+		ORDER BY pr.difficulty
+	`
+
+	rows, err := s.pool.Query(ctx, query2, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get difficulty progress: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var difficulty int
+		var solved, total int
+		if err := rows.Scan(&difficulty, &solved, &total); err != nil {
+			return nil, fmt.Errorf("failed to scan difficulty progress: %w", err)
+		}
+
+		diffLabel := "easy"
+		if difficulty == 2 {
+			diffLabel = "medium"
+		} else if difficulty == 3 {
+			diffLabel = "hard"
+		}
+
+		stats.ProgressByDiff[diffLabel] = DifficultyProgress{
+			Solved: solved,
+			Total:  total,
+		}
+	}
+
+	// Ensure all three difficulty levels exist in the map
+	if _, ok := stats.ProgressByDiff["easy"]; !ok {
+		stats.ProgressByDiff["easy"] = DifficultyProgress{0, 0}
+	}
+	if _, ok := stats.ProgressByDiff["medium"]; !ok {
+		stats.ProgressByDiff["medium"] = DifficultyProgress{0, 0}
+	}
+	if _, ok := stats.ProgressByDiff["hard"]; !ok {
+		stats.ProgressByDiff["hard"] = DifficultyProgress{0, 0}
+	}
+
+	// Calculate current streak (number of consecutive days with submissions)
+	queryStreak := `
+		SELECT COUNT(*) as streak_days
+		FROM (
+			SELECT DATE(created_at) as submission_date
+			FROM submissions
+			WHERE user_id = $1
+			  AND created_at >= NOW() - INTERVAL '365 days'
+			GROUP BY DATE(created_at)
+			ORDER BY submission_date DESC
+		) daily_submissions,
+		(
+			SELECT DATE(NOW()) - (ROW_NUMBER() OVER (ORDER BY DATE(created_at) DESC) - 1) * INTERVAL '1 day' as expected_date
+			FROM submissions
+			WHERE user_id = $1
+			  AND created_at >= NOW() - INTERVAL '365 days'
+			GROUP BY DATE(created_at)
+			ORDER BY DATE(created_at) DESC
+			LIMIT 1
+		) streak_check
+		WHERE submission_date = expected_date
+	`
+
+	err = s.pool.QueryRow(ctx, queryStreak, userID).Scan(&stats.CurrentStreakDays)
+	if err != nil {
+		stats.CurrentStreakDays = 0
+	}
+
+	return stats, nil
+}
+
+// GetRecentSubmissions returns the most recent submissions for a user.
+func (s *PostgresStore) GetRecentSubmissions(ctx context.Context, userID uuid.UUID, limit int) ([]Submission, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	query := `
+		SELECT id, user_id, problem_id, language, code, status, passed_count, total_count, output_logs, runtime_ms, created_at
+		FROM submissions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := s.pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query recent submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []Submission
+	for rows.Next() {
+		var sub Submission
+		err := rows.Scan(
+			&sub.ID,
+			&sub.UserID,
+			&sub.ProblemID,
+			&sub.Language,
+			&sub.Code,
+			&sub.Status,
+			&sub.PassedCount,
+			&sub.TotalCount,
+			&sub.OutputLogs,
+			&sub.RuntimeMs,
+			&sub.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan submission: %w", err)
+		}
+		submissions = append(submissions, sub)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate submissions: %w", err)
+	}
+
+	return submissions, nil
+}
