@@ -17,8 +17,12 @@ type Store interface {
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
+	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
 	GetLeaderboard(ctx context.Context) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
+	GetUserRank(ctx context.Context, userID uuid.UUID) (int, error)
+	GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error)
+	GetRecentSubmissions(ctx context.Context, userID uuid.UUID, limit int) ([]Submission, error)
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
