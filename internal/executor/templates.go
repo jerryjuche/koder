@@ -45,17 +45,16 @@ func TestSolution(t *testing.T) {
 		if got != want {
 			t.Errorf("=== FAIL: Case {{$tc.Ordinal}}\nGOT: %#v\nWANT: %#v", got, want)
 		}
-		{{else}}
+		{{else if eq $.ReturnType "[]int"}}
 		// For integer slices, sort before comparison to handle order-independent results
-		var gotCmp, wantCmp interface{} = got, want
-		if gotSlice, ok := got.([]int); ok {
-			gotCmp = sortIntSlice(gotSlice)
+		gotSorted := sortIntSlice(got)
+		wantSorted := sortIntSlice(want)
+		if !reflect.DeepEqual(gotSorted, wantSorted) {
+			t.Errorf("=== FAIL: Case {{$tc.Ordinal}}\nGOT: %#v\nWANT: %#v", gotSorted, wantSorted)
 		}
-		if wantSlice, ok := want.([]int); ok {
-			wantCmp = sortIntSlice(wantSlice)
-		}
-		if !reflect.DeepEqual(gotCmp, wantCmp) {
-			t.Errorf("=== FAIL: Case {{$tc.Ordinal}}\nGOT: %#v\nWANT: %#v", gotCmp, wantCmp)
+		{{else}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("=== FAIL: Case {{$tc.Ordinal}}\nGOT: %#v\nWANT: %#v", got, want)
 		}
 		{{end}}
 		{{else}}

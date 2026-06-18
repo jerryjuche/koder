@@ -123,6 +123,28 @@ Phase 7 Premium UI Elevation (Admin-Style):
 
 Date: 2026-06-18
 
+Critical fix: Expected value JSON-to-Go-literal conversion
+- Updated `internal/executor/executor.go` test case rendering:
+  - Added `formatGoLiteral(problem.ReturnType, []byte(tc.Expected))` conversion before template rendering.
+  - Database stores `expected` as JSON strings (e.g., `'{"hello":2,"world":1}'`).
+  - These must be converted to valid Go literals (e.g., `map[string]int{"hello":2,"world":1}`) before inserting into template.
+  - Fixes "unexpected comma; expecting ]" compilation errors in generated main_test.go.
+  - All complex types (slices, maps, structs) now render correctly as valid Go syntax.
+- Build verification: `go build ./...` succeeds without errors.
+
+Date: 2026-06-18
+
+Template fix: Type-safe slice sorting for order-independent comparisons
+- Updated `internal/executor/templates.go`:
+  - Fixed invalid type assertion logic that was causing "is not an interface" compilation errors.
+  - Now uses direct `eq` template function to check if `ReturnType` is exactly `"[]int"`.
+  - When true, explicitly sorts both `got` and `want` before `reflect.DeepEqual()`.
+  - For all other types, uses standard `reflect.DeepEqual()` comparison.
+  - No more runtime type assertions on strongly-typed variables.
+  - Handles two-sum-indices and similar order-independent return types correctly.
+
+Date: 2026-06-18
+
 Phase 6 Functional Fixes (Execution Engine & Sync):
 - templates.go: Improved `t.Errorf` to explicitly state `GOT:` and `WANT:` for robust multiline test extraction.
 - executor.go: Replaced fragile single-line regex with a robust state-machine scanner capable of extracting multiline array/slice representations.

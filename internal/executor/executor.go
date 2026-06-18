@@ -108,9 +108,15 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			formattedArgs = append(formattedArgs, formatted)
 		}
 
+		// Convert expected JSON string to Go literal
+		formattedExpected, err := formatGoLiteral(problem.ReturnType, []byte(tc.Expected))
+		if err != nil {
+			return nil, fmt.Errorf("failed to format expected value for test case %d: %w", tc.Ordinal, err)
+		}
+
 		renderedCases = append(renderedCases, TestCaseRenderData{
 			Args:     strings.Join(formattedArgs, ", "),
-			Expected: tc.Expected,
+			Expected: formattedExpected,
 			Ordinal:  tc.Ordinal,
 		})
 	}
