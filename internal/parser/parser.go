@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/exec"
@@ -104,11 +105,25 @@ func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*
 		}
 
 		slashPath := filepath.ToSlash(relPath)
-		if slashPath == "." || (!strings.HasPrefix(slashPath, "exercises/") && slashPath != "exercises" && !strings.Contains(slashPath, "/exercises/")) {
+		
+		parts := strings.Split(slashPath, "/")
+		hasExercises := false
+		for _, part := range parts {
+			if part == "exercises" {
+				hasExercises = true
+				break
+			}
+		}
+
+		if slashPath == "." || !hasExercises {
 			return nil
 		}
 
 		exerciseSlug := normalizeSlug(fmt.Sprintf("%s-%s", repoSlug, strings.ReplaceAll(slashPath, "/", "-")))
+		
+		// Debug logging for discovered problem
+		slog.Debug("parser: discovered exercise", "path", slashPath, "slug", exerciseSlug)
+
 		problems = append(problems, &RawProblem{
 			Slug:       exerciseSlug,
 			Module:     normalizeModule(filepath.Join(repoModule, relPath)),

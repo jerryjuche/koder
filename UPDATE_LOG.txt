@@ -87,3 +87,12 @@ Phase 7 Premium UI Elevation (Admin-Style):
 - landing/page.tsx: Changed secondary CTA to "Browse Problems" directly mapping to the main app dashboard.
 - landing/page.tsx: Redesigned highlights section to strictly follow the admin-dashboard card layout with large opacity-driven background icons.
 - landing/page.tsx: Added a brand new "Enterprise Assessment" section focusing on Docker Sandboxing, Zero-Cost Scaling, and AI Enrichment, dropping the flat stats cards.
+
+Date: 2026-06-18
+
+Phase 6 Functional Fixes (Execution Engine & Sync):
+- templates.go: Improved `t.Errorf` to explicitly state `GOT:` and `WANT:` for robust multiline test extraction.
+- executor.go: Replaced fragile single-line regex with a robust state-machine scanner capable of extracting multiline array/slice representations.
+- parser.go: Fortified ingest discovery with cross-platform `filepath.ToSlash` and exact directory-segment matching for `exercises`.
+- ProblemWorkspaceClient.tsx: Added `whitespace-pre-wrap` for multiline output legibility and wired a global `user-updated` event upon successful completion.
+- page.tsx & leaderboard/page.tsx: Attached global listeners to dynamically re-fetch data on `user-updated`, enabling live XP/Level tracking.

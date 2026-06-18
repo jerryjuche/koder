@@ -20,11 +20,23 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchLeaderboard(), fetchUser()]).then(([lbRes, userRes]) => {
-      if (lbRes.success) setLeaderboard(lbRes.data || []);
-      if (userRes.success) setUser(userRes.data);
-      setLoading(false);
-    });
+    let mounted = true;
+    const loadData = () => {
+      Promise.all([fetchLeaderboard(), fetchUser()]).then(([lbRes, userRes]) => {
+        if (!mounted) return;
+        if (lbRes.success) setLeaderboard(lbRes.data || []);
+        if (userRes.success) setUser(userRes.data);
+        setLoading(false);
+      });
+    };
+
+    loadData();
+
+    window.addEventListener("user-updated", loadData);
+    return () => {
+      mounted = false;
+      window.removeEventListener("user-updated", loadData);
+    };
   }, []);
 
   return (

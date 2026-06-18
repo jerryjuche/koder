@@ -279,12 +279,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                          <div className="mt-4 pt-4 border-t border-brand-error/20 space-y-3">
                            <div>
                              <div className="text-[10px] uppercase font-bold text-brand-offwhite-muted mb-1">Output</div>
-                             <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-offwhite border border-brand-charcoal-border">{res.output}</div>
+                             <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-offwhite border border-brand-charcoal-border whitespace-pre-wrap break-all">{res.output}</div>
                            </div>
                            {res.expectedOutput && (
                              <div>
                                <div className="text-[10px] uppercase font-bold text-brand-offwhite-muted mb-1">Expected</div>
-                               <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-success border border-brand-charcoal-border">{res.expectedOutput}</div>
+                               <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-success border border-brand-charcoal-border whitespace-pre-wrap break-all">{res.expectedOutput}</div>
                              </div>
                            )}
                          </div>

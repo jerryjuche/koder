@@ -32,11 +32,11 @@ func TestSolution(t *testing.T) {
 		want := {{$tc.Expected}}
 		{{if $.IsPrimitive}}
 		if got != want {
-			t.Errorf("KODER_FAILED_START||%#v||%#v||KODER_FAILED_END", got, want)
+			t.Errorf("=== FAIL: Case %d\nGOT: %#v\nWANT: %#v\n", {{$tc.Ordinal}}, got, want)
 		}
 		{{else}}
 		if !reflect.DeepEqual(got, want) {
-			t.Errorf("KODER_FAILED_START||%#v||%#v||KODER_FAILED_END", got, want)
+			t.Errorf("=== FAIL: Case %d\nGOT: %#v\nWANT: %#v\n", {{$tc.Ordinal}}, got, want)
 		}
 		{{end}}
 		{{else}}

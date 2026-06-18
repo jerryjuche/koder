@@ -26,11 +26,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchProblems(), fetchUser()]).then(([probRes, userRes]) => {
-      if (probRes.success) setProblems(probRes.data || []);
-      if (userRes.success) setUser(userRes.data);
-      setLoading(false);
-    });
+    let mounted = true;
+    const loadData = () => {
+      Promise.all([fetchProblems(), fetchUser()]).then(([probRes, userRes]) => {
+        if (!mounted) return;
+        if (probRes.success) setProblems(probRes.data || []);
+        if (userRes.success) setUser(userRes.data);
+        setLoading(false);
+      });
+    };
+
+    loadData();
+
+    window.addEventListener("user-updated", loadData);
+    return () => {
+      mounted = false;
+      window.removeEventListener("user-updated", loadData);
+    };
   }, []);
 
   const solvedCount = problems.filter((p) => p.solved).length;

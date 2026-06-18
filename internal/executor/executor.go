@@ -147,11 +147,15 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		"--network=none",
 		"--memory=256m",
 		"--cpus=1.0",
+		"--env", "GOPROXY=off",
+		"--env", "GOSUMDB=off",
+		"--env", "GOTOOLCHAIN=local",
+		"--env", "GOFLAGS=-buildvcs=false",
 		"-v", fmt.Sprintf("%s:/app", sandboxPath),
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		"-w", "/app",
 		e.cfg.DockerImage,
-		"go", "test", "./...", "-v",
+		"go", "test", "-v", "-count=1", "-timeout=25s", "./...",
 	)
 
 	startTime := time.Now()
@@ -161,32 +165,60 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 	// 6. Parse go test output
 	var (
-		runRegex    = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
-		passRegex   = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
-		failRegex   = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		detailRegex = regexp.MustCompile(`KODER_FAILED_START\|\|(.*)\|\|(.*)\|\|KODER_FAILED_END`)
+		runRegex      = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
+		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
+		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
+		caseFailRegex = regexp.MustCompile(`=== FAIL: Case (\d+)`)
 
 		passedMap = make(map[int]bool)
 		gotMap    = make(map[int]string)
 	)
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
+	
+	const (
+		StateNormal = iota
+		StateGot
+		StateWant
+	)
+	
+	state := StateNormal
 	currentOrdinal := -1
+	var gotBuffer []string
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
 
-		if matches := runRegex.FindStringSubmatch(line); len(matches) > 1 {
+		if matches := runRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			currentOrdinal = ord
-		} else if matches := detailRegex.FindStringSubmatch(line); len(matches) > 2 && currentOrdinal != -1 {
-			gotMap[currentOrdinal] = strings.TrimSpace(matches[1])
-		} else if matches := passRegex.FindStringSubmatch(line); len(matches) > 1 {
+			state = StateNormal
+		} else if matches := passRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			passedMap[ord] = true
-		} else if matches := failRegex.FindStringSubmatch(line); len(matches) > 1 {
+			state = StateNormal
+		} else if matches := failRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			passedMap[ord] = false
+			state = StateNormal
+		} else if matches := caseFailRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
+			ord, _ := strconv.Atoi(matches[1])
+			currentOrdinal = ord
+			state = StateNormal
+		} else if strings.HasPrefix(trimmed, "GOT: ") {
+			state = StateGot
+			gotBuffer = []string{strings.TrimPrefix(trimmed, "GOT: ")}
+		} else if strings.HasPrefix(trimmed, "WANT: ") {
+			state = StateWant
+			if currentOrdinal != -1 {
+				gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
+			}
+		} else {
+			if state == StateGot {
+				// preserve raw line (or slightly trimmed)
+				gotBuffer = append(gotBuffer, strings.TrimPrefix(line, "\t\t"))
+			}
 		}
 	}
 
@@ -206,7 +238,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		status = "timeout"
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
-	} else if passedCount == totalCount {
+	} else if totalCount > 0 && passedCount == totalCount {
 		status = "passed"
 	} else {
 		status = "failed"
