@@ -52,11 +52,11 @@ func (e *Executor) Warmup(ctx context.Context) error {
 	cmdRun := exec.CommandContext(ctx, "docker", "run", "--rm",
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		e.cfg.DockerImage, "go", "env")
-	
+
 	if err := cmdRun.Run(); err != nil {
 		slog.Warn("executor: failed to run dummy container, cache might not be populated", "error", err)
 	}
-	
+
 	slog.Info("executor: warmup complete")
 	return nil
 }
@@ -169,56 +169,70 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
 		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
 		caseFailRegex = regexp.MustCompile(`=== FAIL: Case (\d+)`)
+		gotRegex      = regexp.MustCompile(`^GOT: (.*)$`)
+		wantRegex     = regexp.MustCompile(`^WANT: (.*)$`)
 
 		passedMap = make(map[int]bool)
 		gotMap    = make(map[int]string)
+		wantMap   = make(map[int]string)
 	)
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
-	
-	const (
-		StateNormal = iota
-		StateGot
-		StateWant
-	)
-	
-	state := StateNormal
-	currentOrdinal := -1
+
+	var currentOrdinal int = -1
+	var currentState string // "", "got", "want"
 	var gotBuffer []string
+	var wantBuffer []string
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
 
+		// Detect test run start
 		if matches := runRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			currentOrdinal = ord
-			state = StateNormal
+			currentState = ""
 		} else if matches := passRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			passedMap[ord] = true
-			state = StateNormal
+			currentState = ""
 		} else if matches := failRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			passedMap[ord] = false
-			state = StateNormal
+			currentState = ""
 		} else if matches := caseFailRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
 			ord, _ := strconv.Atoi(matches[1])
 			currentOrdinal = ord
-			state = StateNormal
-		} else if strings.HasPrefix(trimmed, "GOT: ") {
-			state = StateGot
-			gotBuffer = []string{strings.TrimPrefix(trimmed, "GOT: ")}
-		} else if strings.HasPrefix(trimmed, "WANT: ") {
-			state = StateWant
-			if currentOrdinal != -1 {
+			passedMap[ord] = false
+			currentState = ""
+		} else if matches := gotRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
+			// Starting GOT section
+			currentState = "got"
+			gotBuffer = []string{matches[1]}
+		} else if matches := wantRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
+			// Starting WANT section; finalize GOT
+			if currentOrdinal != -1 && len(gotBuffer) > 0 {
 				gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
 			}
-		} else {
-			if state == StateGot {
-				// preserve raw line (or slightly trimmed)
-				gotBuffer = append(gotBuffer, strings.TrimPrefix(line, "\t\t"))
-			}
+			currentState = "want"
+			wantBuffer = []string{matches[1]}
+		} else if currentState == "got" && trimmed != "" {
+			// Continue accumulating GOT line (remove leading tab indentation from output)
+			gotBuffer = append(gotBuffer, strings.TrimLeft(line, "\t"))
+		} else if currentState == "want" && trimmed != "" {
+			// Continue accumulating WANT line
+			wantBuffer = append(wantBuffer, strings.TrimLeft(line, "\t"))
+		}
+	}
+
+	// Finalize any remaining buffers
+	if currentOrdinal != -1 {
+		if len(gotBuffer) > 0 {
+			gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
+		}
+		if len(wantBuffer) > 0 {
+			wantMap[currentOrdinal] = strings.Join(wantBuffer, "\n")
 		}
 	}
 
@@ -279,23 +293,36 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	var results []TestResult
 	for _, tc := range testCases {
 		passed := passedMap[tc.Ordinal]
-		got := tc.Expected
-		if !passed {
-			if parsedGot, exists := gotMap[tc.Ordinal]; exists {
-				got = parsedGot
-			} else {
-				got = "failed (no output captured)"
-			}
+		var got, want string
+
+		// Prefer parsed output from go test; fall back to expected value
+		if parsedGot, exists := gotMap[tc.Ordinal]; exists {
+			got = parsedGot
+		} else if !passed {
+			got = "(no output captured)"
+		} else {
+			got = tc.Expected
 		}
 
-		// Handle hidden test cases: hide got/expected from the student if it's hidden and didn't pass
-		// Wait, the client only needs test_case details if visible.
+		// Use parsed WANT if available; otherwise use stored expected
+		if parsedWant, exists := wantMap[tc.Ordinal]; exists {
+			want = parsedWant
+		} else {
+			want = tc.Expected
+		}
+
+		// Hide test case details from students if hidden and didn't pass
+		if tc.IsHidden && !passed {
+			got = "(hidden test case)"
+			want = "(hidden)"
+		}
+
 		results = append(results, TestResult{
 			TestCaseID: uuid.UUID(tc.ID.Bytes),
 			Ordinal:    tc.Ordinal,
 			Passed:     passed,
 			Got:        got,
-			Expected:   tc.Expected,
+			Expected:   want,
 			IsHidden:   tc.IsHidden,
 		})
 	}

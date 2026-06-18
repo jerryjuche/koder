@@ -68,6 +68,39 @@ Problem seed migration cleanup:
 
 Date: 2026-06-18
 
+Robust test generation & parsing improvements:
+- Updated `internal/executor/templates.go`:
+  - Removed format specifiers from error messages for consistent parsing.
+  - Added `sort.Ints()` helper function to handle order-independent slice comparisons.
+  - Integer slice results are sorted before comparison via `reflect.DeepEqual()` to handle functions like `TwoSumIndices` that may return indices in any order.
+  - Structured error output with clear `=== FAIL: Case {{.Ordinal}}` markers, `GOT:` and `WANT:` labels.
+
+- Updated `internal/executor/executor.go`:
+  - Rewrote output parser with dedicated regex patterns for `GOT:` and `WANT:` detection.
+  - Implemented multiline buffer accumulation to handle complex types (slices, maps, structs).
+  - Enhanced state machine to properly transition between GOT and WANT sections.
+  - Properly finalize buffers and store parsed values in `gotMap` and `wantMap`.
+  - Use parsed WANT values if available; fall back to stored expected values.
+  - Correctly hide test case details for hidden tests that failed.
+  - Fixed result mapping to pass accurate `Got` and `Expected` values to frontend.
+
+- Verified `migrations/004_problem_seeds.sql`:
+  - Confirmed all `expected` values are valid JSON (strings, arrays, objects).
+  - Two-sum-indices expected values are stored as sorted ascending arrays (e.g., `[0,1]`).
+  - Judge comparison uses sorted comparison for order-independent results.
+
+- No changes to `ProblemWorkspaceClient.tsx` required:
+  - Frontend already maps `tr.got` and `tr.expected` safely.
+  - Hidden test details are filtered at backend before sending to client.
+
+Success criteria validated:
+- `go build ./...` succeeds without errors.
+- Test output parsing handles multiline values for slices, maps, and complex types.
+- Two-sum and similar problems with order-independent outputs now properly compare sorted arrays.
+- "Failed to fetch" and "unexpected comma" parsing errors should be resolved.
+
+Date: 2026-06-18
+
 Phase 6 UI Polish:
 - ProfileHeader.tsx: Replaced hardcoded avatar colors with getUserColor and added a subtle glow.
 - PerformanceStats.tsx & RecentActivity.tsx: Added gentle hover lift and shadows to stat cards and recent activity rows.

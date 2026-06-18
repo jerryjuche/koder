@@ -15,7 +15,12 @@ func NewLeaderboardHandler(store store.Store) *LeaderboardHandler {
 }
 
 func (h *LeaderboardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
-	entries, err := h.store.GetLeaderboard(r.Context())
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "all"
+	}
+
+	entries, err := h.store.GetLeaderboard(r.Context(), period)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", "Failed to fetch leaderboard", err.Error())
 		return

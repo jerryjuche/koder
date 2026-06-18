@@ -163,19 +163,48 @@ func (s *PostgresStore) UpdateUserRole(ctx context.Context, id uuid.UUID, role s
 }
 
 // GetLeaderboard fetches the top users ranked by XP, then solved count.
-func (s *PostgresStore) GetLeaderboard(ctx context.Context) ([]LeaderboardEntry, error) {
-	query := `
-		SELECT 
-			u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
-			COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
-			COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms
-		FROM users u
-		LEFT JOIN progress p ON u.id = p.user_id
-		WHERE u.role != 'admin'
-		GROUP BY u.id
-		ORDER BY u.xp DESC, solved_count DESC
-		LIMIT 100
-	`
+func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error) {
+	var query string
+
+	if period == "weekly" || period == "monthly" {
+		interval := "7 days"
+		if period == "monthly" {
+			interval = "30 days"
+		}
+		query = fmt.Sprintf(`
+			SELECT 
+				u.id, u.name, u.student_id, u.role, u.color_index,
+				COALESCE(SUM(pr.xp_reward), 0) as xp,
+				COUNT(DISTINCT sub.problem_id) as solved_count,
+				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms
+			FROM users u
+			LEFT JOIN (
+				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
+				FROM submissions
+				WHERE status = 'passed' AND created_at >= NOW() - INTERVAL '%s'
+				GROUP BY user_id, problem_id
+			) sub ON u.id = sub.user_id
+			LEFT JOIN problems pr ON sub.problem_id = pr.id
+			WHERE u.role != 'admin'
+			GROUP BY u.id
+			ORDER BY xp DESC, solved_count DESC
+			LIMIT 100
+		`, interval)
+	} else {
+		// All time
+		query = `
+			SELECT 
+				u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
+				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
+				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms
+			FROM users u
+			LEFT JOIN progress p ON u.id = p.user_id
+			WHERE u.role != 'admin'
+			GROUP BY u.id
+			ORDER BY u.xp DESC, solved_count DESC
+			LIMIT 100
+		`
+	}
 
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {
