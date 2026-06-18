@@ -14,38 +14,40 @@ interface PerformanceStatsProps {
   profile: UserProfile;
 }
 
+const StatCard = ({
+  label,
+  value,
+  unit = "",
+  IconComponent,
+}: {
+  label: string;
+  value: string | number;
+  unit?: string;
+  IconComponent?: React.ComponentType<{ size: number; className: string }>;
+}) => (
+  <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl hover:border-brand-muted-gold/30 transition-all duration-300">
+    {IconComponent && (
+      <IconComponent
+        size={20}
+        className="text-brand-muted-gold mb-4"
+      />
+    )}
+    <p className="text-brand-offwhite-muted text-sm font-medium mb-2">
+      {label}
+    </p>
+    <div className="flex items-baseline gap-2">
+      <span className="text-3xl font-bold text-brand-offwhite">{value}</span>
+      {unit && (
+        <span className="text-brand-offwhite-muted text-sm">{unit}</span>
+      )}
+    </div>
+  </div>
+);
+
 export default function PerformanceStats({ profile }: PerformanceStatsProps) {
   const { stats } = profile;
 
-  const StatCard = ({
-    label,
-    value,
-    unit = "",
-    IconComponent,
-  }: {
-    label: string;
-    value: string | number;
-    unit?: string;
-    IconComponent?: React.ComponentType<{ size: number; className: string }>;
-  }) => (
-    <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
-      {IconComponent && (
-        <IconComponent
-          size={20}
-          className="text-brand-muted-gold mb-4"
-        />
-      )}
-      <p className="text-brand-offwhite-muted text-sm font-medium mb-2">
-        {label}
-      </p>
-      <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold text-brand-offwhite">{value}</span>
-        {unit && (
-          <span className="text-brand-offwhite-muted text-sm">{unit}</span>
-        )}
-      </div>
-    </div>
-  );
+
 
   const formatRuntime = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;

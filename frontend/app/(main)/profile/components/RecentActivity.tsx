@@ -13,12 +13,12 @@ export default function RecentActivity({ profile }: RecentActivityProps) {
         return {
           label: "Passed",
           color:
-            "bg-brand-success/20 text-brand-success border-brand-success/30",
+            "bg-brand-success/10 text-brand-success border-brand-success/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]",
         };
       case "failed":
         return {
           label: "Failed",
-          color: "bg-brand-error/20 text-brand-error border-brand-error/30",
+          color: "bg-brand-error/10 text-brand-error border-brand-error/30",
         };
       case "compiler_error":
         return {
@@ -84,7 +84,7 @@ export default function RecentActivity({ profile }: RecentActivityProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
           {profile.recent_submissions.map((submission: Submission) => {
             const status = getStatusBadge(submission.status);
             const icon = getStatusIcon(submission.status);
@@ -92,7 +92,7 @@ export default function RecentActivity({ profile }: RecentActivityProps) {
             return (
               <div
                 key={submission.id}
-                className="bg-brand-charcoal-panel border border-brand-charcoal-border rounded-lg p-4 hover:bg-brand-charcoal-hover transition flex items-center justify-between"
+                className="bg-brand-charcoal-panel border border-brand-charcoal-border rounded-lg p-4 hover:-translate-y-1 hover:shadow-xl hover:border-brand-muted-gold/30 transition-all duration-300 flex items-center justify-between"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

@@ -111,7 +111,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="rounded-full bg-brand-muted-gold px-5 py-2 text-sm font-semibold text-brand-charcoal-base shadow-md shadow-brand-muted-gold/20 transition hover:bg-brand-muted-gold-dark"
+              className="rounded-full bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark px-5 py-2 text-sm font-semibold text-brand-charcoal-base shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-all duration-300 hover:shadow-[0_0_20px_rgba(212,175,55,0.35)] hover:scale-[1.02]"
             >
               Get started
             </Link>
@@ -119,15 +119,18 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <section className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <main className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 relative">
+        {/* Subtle radial gradient background blob */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[600px] bg-brand-muted-gold/5 blur-[120px] rounded-full pointer-events-none" />
+
+        <section className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center relative z-10">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-3 rounded-full border border-brand-charcoal-border bg-brand-charcoal-card px-4 py-2 text-sm text-brand-offwhite-muted">
               <Zap className="h-4 w-4 text-brand-muted-gold" />
               Free-tier infrastructure with no hidden costs
             </div>
             <div className="space-y-6">
-              <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
+              <h1 className="text-5xl font-bold tracking-tight sm:text-6xl bg-gradient-to-r from-brand-offwhite via-[#F4E3B2] to-brand-offwhite bg-clip-text text-transparent">
                 A professional Go grading platform built for modern curricula.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-brand-offwhite-muted">
@@ -139,16 +142,16 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-muted-gold px-8 py-4 text-base font-semibold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20 transition hover:bg-brand-muted-gold-dark"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark px-8 py-4 text-base font-semibold text-brand-charcoal-base shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(212,175,55,0.35)] hover:scale-[1.02]"
               >
                 Start grading
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
-                href="/admin"
+                href="/"
                 className="inline-flex items-center justify-center rounded-full border border-brand-charcoal-border bg-brand-charcoal-card px-8 py-4 text-base font-semibold text-brand-offwhite transition hover:border-brand-muted-gold hover:text-brand-muted-gold"
               >
-                Explore admin tools
+                Browse Problems
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -180,7 +183,8 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[2.5rem] border border-brand-charcoal-border bg-brand-charcoal-card p-8 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="rounded-[2.5rem] border border-brand-charcoal-border/80 bg-brand-charcoal-card/90 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(0,0,0,0.3)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-muted-gold/20 to-transparent"></div>
               <div className="flex items-center justify-between text-sm text-brand-offwhite-muted mb-6">
                 <div className="rounded-2xl bg-brand-charcoal-base px-3 py-1">
                   Instructor dashboard
@@ -272,37 +276,51 @@ export default function LandingPage() {
             return (
               <div
                 key={idx}
-                className="rounded-3xl border border-brand-charcoal-border bg-brand-charcoal-card p-8 shadow-sm transition hover:-translate-y-1"
+                className="bg-brand-charcoal-card border border-brand-charcoal-border hover:border-brand-muted-gold/30 transition-all duration-300 rounded-3xl p-8 relative overflow-hidden group hover:-translate-y-1 shadow-sm"
               >
-                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-brand-charcoal-base text-brand-muted-gold">
-                  <Icon className="h-6 w-6" />
+                <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-brand-offwhite pointer-events-none">
+                  <Icon size={140} />
                 </div>
-                <h3 className="text-xl font-semibold text-brand-offwhite mb-3">
-                  {highlight.title}
-                </h3>
-                <p className="text-brand-offwhite-muted leading-relaxed">
-                  {highlight.description}
-                </p>
+                <div className="relative z-10">
+                  <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-charcoal-base border border-brand-charcoal-border text-brand-muted-gold shadow-sm shadow-brand-muted-gold/10">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-brand-offwhite mb-3">
+                    {highlight.title}
+                  </h3>
+                  <p className="text-brand-offwhite-muted leading-relaxed">
+                    {highlight.description}
+                  </p>
+                </div>
               </div>
             );
           })}
         </section>
 
-        <section className="mt-24 rounded-[2.5rem] border border-brand-muted-gold/20 bg-brand-charcoal-card p-10 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
-          <div className="grid gap-8 lg:grid-cols-4">
-            {stats.map((stat, idx) => (
-              <div
-                key={idx}
-                className="rounded-3xl border border-brand-charcoal-border bg-brand-charcoal-base p-6 text-center"
-              >
-                <p className="text-sm uppercase tracking-[0.35em] text-brand-offwhite-muted mb-3">
-                  {stat.label}
-                </p>
-                <p className="text-4xl font-semibold text-brand-offwhite">
-                  {stat.value}
-                </p>
+        <section className="mt-24 rounded-[2.5rem] border border-brand-charcoal-border/50 bg-brand-charcoal-card p-12 shadow-[0_30px_80px_rgba(0,0,0,0.18)] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-muted-gold/5 to-transparent opacity-50 rounded-[2.5rem] pointer-events-none"></div>
+          <div className="relative z-10">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-brand-offwhite">Enterprise Assessment, Zero Overhead</h2>
+              <p className="text-brand-offwhite-muted mt-3 max-w-2xl mx-auto">Built specifically to solve the hardest infrastructure problems in evaluating code at scale.</p>
+            </div>
+            <div className="grid gap-8 lg:grid-cols-3">
+              <div className="rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-base p-6 text-center">
+                <p className="text-sm uppercase tracking-[0.35em] text-brand-offwhite-muted mb-3">Isolation</p>
+                <p className="text-xl font-semibold text-brand-offwhite">Docker Sandboxing</p>
+                <p className="text-sm text-brand-offwhite-muted mt-3">Safely execute untrusted learner code in secure, ephemeral nsjail containers.</p>
               </div>
-            ))}
+              <div className="rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-base p-6 text-center border-t-brand-muted-gold/30">
+                <p className="text-sm uppercase tracking-[0.35em] text-brand-offwhite-muted mb-3">Economics</p>
+                <p className="text-xl font-semibold text-brand-offwhite">Zero-Cost Scaling</p>
+                <p className="text-sm text-brand-offwhite-muted mt-3">Leverage heavily optimized concurrent Go routines that require zero paid cloud instances.</p>
+              </div>
+              <div className="rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-base p-6 text-center">
+                <p className="text-sm uppercase tracking-[0.35em] text-brand-offwhite-muted mb-3">Intelligence</p>
+                <p className="text-xl font-semibold text-brand-offwhite">AI Enrichment</p>
+                <p className="text-sm text-brand-offwhite-muted mt-3">Automatically generate hints, tags, and difficulty metadata for thousands of problems.</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -321,7 +339,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/register"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-muted-gold px-8 py-4 text-base font-semibold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20 transition hover:bg-brand-muted-gold-dark"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark px-8 py-4 text-base font-semibold text-brand-charcoal-base shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(212,175,55,0.35)] hover:scale-[1.02]"
             >
               Create an account
               <ArrowRight className="h-5 w-5" />

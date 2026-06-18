@@ -3,20 +3,15 @@
 import { UserProfile } from "@/lib/types";
 import { useState } from "react";
 import { updateUserName } from "@/lib/api";
+import { getUserColor, cn } from "@/lib/utils";
+import { Flame } from "lucide-react";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
   onNameUpdate: () => void;
 }
 
-const avatarColors = [
-  "bg-red-500",
-  "bg-orange-500",
-  "bg-yellow-500",
-  "bg-green-500",
-  "bg-blue-500",
-  "bg-purple-500",
-];
+
 
 export default function ProfileHeader({
   profile,
@@ -54,16 +49,19 @@ export default function ProfileHeader({
     }
   };
 
-  const avatarColor = avatarColors[profile.color_index % avatarColors.length];
+
 
   return (
     <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-6">
       <div className="flex flex-col items-center text-center">
         {/* Avatar */}
         <div
-          className={`${avatarColor} w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-lg`}
+          className={cn(
+            "w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-[0_0_25px_rgba(212,175,55,0.2)] border-2 border-brand-charcoal-base",
+            getUserColor(profile.color_index)
+          )}
         >
-          <span className="text-4xl font-bold text-brand-charcoal-base">
+          <span className="text-4xl font-bold text-white shadow-inner">
             {profile.name.charAt(0).toUpperCase()}
           </span>
         </div>
@@ -121,13 +119,40 @@ export default function ProfileHeader({
           )}
         </div>
 
-        {/* Student ID */}
-        <p className="text-sm text-brand-offwhite-muted mb-2">
-          ID:{" "}
-          <span className="text-brand-offwhite font-mono">
-            {profile.student_id}
-          </span>
-        </p>
+        {/* Student ID & Status */}
+        <div className="flex flex-col items-center gap-3 mb-5">
+          <p className="text-sm text-brand-offwhite-muted">
+            ID:{" "}
+            <span className="text-brand-offwhite font-mono">
+              {profile.student_id}
+            </span>
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="bg-[#1A2521] border border-brand-success/30 text-brand-success px-3 py-1 rounded-full flex items-center gap-2 text-xs font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand-success animate-pulse"></div>
+              Active
+            </div>
+            {profile.stats.current_streak_days > 0 && (
+              <div className="bg-brand-charcoal-panel border border-brand-muted-gold/30 text-brand-muted-gold px-3 py-1 rounded-full flex items-center gap-1.5 text-xs font-medium">
+                <Flame size={12} />
+                {profile.stats.current_streak_days} Day Streak
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Level and XP */}
+        <div className="flex items-center gap-6 mb-5">
+          <div className="text-center">
+            <p className="text-[10px] text-brand-offwhite-muted uppercase tracking-wider font-semibold mb-1">Level</p>
+            <p className="text-xl font-bold text-brand-offwhite">{profile.level}</p>
+          </div>
+          <div className="w-px h-8 bg-brand-charcoal-border"></div>
+          <div className="text-center">
+            <p className="text-[10px] text-brand-offwhite-muted uppercase tracking-wider font-semibold mb-1">XP</p>
+            <p className="text-xl font-bold text-brand-muted-gold">{profile.xp.toLocaleString()}</p>
+          </div>
+        </div>
 
         {/* Join Date */}
         <p className="text-xs text-brand-offwhite-muted">

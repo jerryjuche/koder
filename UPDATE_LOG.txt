@@ -65,3 +65,25 @@ Problem seed migration cleanup:
 - Replaced fake automatic source hashes with explicit `MANUAL:` prefixes.
 - Added judge contract guidance for order-independent two-sum index outputs.
 - Confirmed the seed file requires the base schema migrations (`001_init.sql` through `003_activity_logs.sql`) before applying `004_problem_seeds.sql`.
+
+Date: 2026-06-18
+
+Phase 6 UI Polish:
+- ProfileHeader.tsx: Replaced hardcoded avatar colors with getUserColor and added a subtle glow.
+- PerformanceStats.tsx & RecentActivity.tsx: Added gentle hover lift and shadows to stat cards and recent activity rows.
+- landing/page.tsx: Added a subtle radial gradient blob behind the hero section.
+- landing/page.tsx: Applied light metallic text gradient to the main headline.
+- landing/page.tsx: Added soft glowing shadows and hover scaling to primary CTA buttons.
+- landing/page.tsx: Enhanced preview cards with light glassmorphism and subtle border highlights.
+
+Date: 2026-06-18
+
+Phase 7 Premium UI Elevation (Admin-Style):
+- ProfileClient.tsx: Implemented an animated skeleton layout to replace the simple loading spinner.
+- ProfileClient.tsx: Added the missing `<RecentActivity />` component to the right column so live submissions load correctly.
+- ProfileHeader.tsx: Upgraded to show live XP and Level data instead of static details.
+- ProfileHeader.tsx: Added a live "Active" badge and "Flame" streak indicator.
+- RecentActivity.tsx: Polished with a sleek scrollbar container and passed status glow effects.
+- landing/page.tsx: Changed secondary CTA to "Browse Problems" directly mapping to the main app dashboard.
+- landing/page.tsx: Redesigned highlights section to strictly follow the admin-dashboard card layout with large opacity-driven background icons.
+- landing/page.tsx: Added a brand new "Enterprise Assessment" section focusing on Docker Sandboxing, Zero-Cost Scaling, and AI Enrichment, dropping the flat stats cards.
