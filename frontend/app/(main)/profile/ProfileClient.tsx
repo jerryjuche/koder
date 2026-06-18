@@ -13,26 +13,32 @@ export default function ProfileClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadProfile = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetchUserProfile();
+      if (response.success && response.data) {
+        setProfile(response.data);
+      } else {
+        setError(response.error?.message || "Failed to load profile");
+      }
+    } catch (err) {
+      setError("An error occurred while loading your profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadProfile = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetchUserProfile();
-        if (response.success && response.data) {
-          setProfile(response.data);
-        } else {
-          setError(response.error?.message || "Failed to load profile");
-        }
-      } catch (err) {
-        setError("An error occurred while loading your profile");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProfile();
+
+    // Also listen for global user-updated events to refresh profile
+    const onUserUpdated = () => {
+      loadProfile();
+    };
+    window.addEventListener("user-updated", onUserUpdated);
+    return () => window.removeEventListener("user-updated", onUserUpdated);
   }, []);
 
   if (loading) {
@@ -86,7 +92,7 @@ export default function ProfileClient() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column: Header and Rank */}
           <div className="lg:col-span-1 space-y-6">
-            <ProfileHeader profile={profile} onNameUpdate={() => {}} />
+            <ProfileHeader profile={profile} onNameUpdate={() => { loadProfile(); }} />
             <RankStats profile={profile} />
           </div>
 

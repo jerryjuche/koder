@@ -49,3 +49,19 @@ Landing page polished:
 - Replaced invalid `brand-gold` classes with valid `brand-muted-gold` token usage.
 - Brought landing page accents in line with the profile/admin color system.
 - Kept professional dark panels with warm gold and green highlights for better hierarchy.
+
+Date: 2026-06-17
+
+Profile edit: CORS and server restart
+- Allowed `PUT`, `PATCH`, and `DELETE` in server CORS middleware to permit profile updates and preflight requests.
+- Rebuilt and restarted the backend server binary so the middleware change is active.
+- Verified `/health` returns `Access-Control-Allow-Methods` including `PUT` and preflight responses succeed.
+- This should resolve the "Failed to fetch" error when saving name edits from the `/profile` UI (if the frontend supplies a valid auth token).
+
+Date: 2026-06-17
+
+Problem seed migration cleanup:
+- Updated `migrations/004_problem_seeds.sql` to store `expected` values as JSON-normalized text.
+- Replaced fake automatic source hashes with explicit `MANUAL:` prefixes.
+- Added judge contract guidance for order-independent two-sum index outputs.
+- Confirmed the seed file requires the base schema migrations (`001_init.sql` through `003_activity_logs.sql`) before applying `004_problem_seeds.sql`.

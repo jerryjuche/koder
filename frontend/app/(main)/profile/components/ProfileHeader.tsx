@@ -38,6 +38,10 @@ export default function ProfileHeader({
       if (response.success) {
         setIsEditing(false);
         onNameUpdate();
+        // Notify other components (TopNav) to reload user data
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("user-updated"));
+        }
       } else {
         alert(response.error?.message || "Failed to update name");
         setName(profile.name);
