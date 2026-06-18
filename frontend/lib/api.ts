@@ -158,10 +158,10 @@ export async function submitSolution(
   });
 }
 
-export async function fetchLeaderboard(): Promise<
+export async function fetchLeaderboard(period: string = "all"): Promise<
   ApiResponse<LeaderboardEntry[]>
 > {
-  return fetchApi<LeaderboardEntry[]>("/leaderboard");
+  return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
 }
 
 export async function ingestGitHubRepo(url: string): Promise<ApiResponse<any>> {
