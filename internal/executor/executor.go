@@ -444,5 +444,5 @@ func formatGoLiteral(paramType string, data []byte) (string, error) {
 		}
 	}
 
-	return string(data), nil
+	return "", fmt.Errorf("unsupported Go type %q: cannot format %s as a Go literal", paramType, string(data))
 }
