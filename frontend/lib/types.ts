@@ -31,6 +31,7 @@ export type Problem = {
   tags: string[];
   statement?: string;
   descriptionMarkdown?: string;
+  examples?: { id: string; input: string; expected: string; ordinal: number }[];
   func_name?: string;
   return_type?: string;
   param_types?: string[];

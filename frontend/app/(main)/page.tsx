@@ -242,11 +242,11 @@ export default function Dashboard() {
               </div>
 
               <p className="text-sm text-brand-offwhite-muted line-clamp-2 h-10 mb-5">
-                {problem.slug === "hello-world"
-                  ? "Print 'Hello, World!' to stdout using Go's fmt package."
-                  : problem.slug === "two-sum"
-                    ? "Find two numbers in a slice that add up to a target sum."
-                    : "Implement a function to efficiently process standard typical input requirements."}
+                {problem.statement ? (
+                  <span dangerouslySetInnerHTML={{ __html: problem.statement.split('\n').slice(0,2).join(' ') }} />
+                ) : (
+                  <span>No short description available.</span>
+                )}
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">
@@ -263,10 +263,13 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-xs text-brand-offwhite-muted pt-4 border-t border-brand-charcoal-border/50">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1">
-                    <Clock size={14} /> {problem.estTimeMinutes}m
+                    <Circle size={14} /> {problem.total_submissions || 0}
                   </span>
                   <span className="flex items-center gap-1">
-                    <BarChart2 size={14} /> {problem.successRate}%
+                    <BarChart2 size={14} /> {Math.round(problem.successRate || 0)}%
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} /> {problem.estTimeMinutes || 0}m
                   </span>
                 </div>
                 <div className="font-bold flex items-center gap-1 text-brand-muted-gold">

@@ -28,9 +28,21 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function formatMs(ms: number): string {
+function formatTime(ms: number): string {
   if (ms <= 0) return "—";
-  return ms.toFixed(0) + " ms";
+
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds - minutes * 60;
+  if (remainder < 0.5) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${remainder.toFixed(1)}s`;
 }
 
 function getRankSuffix(rank: number): string {
@@ -266,7 +278,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="w-px h-8 bg-brand-charcoal-border hidden sm:block" />
             <div className="text-center">
-              <div className="text-xl font-bold text-[#8DB4B9]">{formatMs(myEntry.bestTimeMs)}</div>
+              <div className="text-xl font-bold text-[#8DB4B9]">{formatTime(myEntry.bestTimeMs)}</div>
               <div className="text-[10px] uppercase tracking-wider text-brand-offwhite-muted font-semibold">Best</div>
             </div>
           </div>
@@ -433,7 +445,7 @@ export default function LeaderboardPage() {
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5 font-mono text-sm text-[#8DB4B9]">
                           <Clock size={12} className="opacity-60" />
-                          {formatMs(entry.bestTimeMs)}
+                          {formatTime(entry.bestTimeMs)}
                         </div>
                       </td>
                     </tr>

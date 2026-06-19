@@ -52,6 +52,9 @@ type Problem struct {
 	Attempts         int         `json:"attempts"`
 	TotalSubmissions int         `json:"total_submissions"`
 	SuccessRate      float64     `json:"success_rate"`
+	AvgRuntimeMs     int         `json:"avg_runtime_ms"`
+	EstTimeMinutes   int         `json:"estTimeMinutes"`
+	Examples         []TestCase  `json:"examples"`
 }
 
 // TestCase represents a single problem test case.
