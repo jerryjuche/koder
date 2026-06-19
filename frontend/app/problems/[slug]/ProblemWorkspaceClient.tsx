@@ -196,97 +196,203 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       {/* Main Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Problem Statement */}
-        <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar p-6">
-          <h1 className="text-2xl font-bold mb-6">{problem.title}</h1>
-          <div className="prose prose-invert prose-brand max-w-none text-sm text-brand-offwhite-muted leading-relaxed">
-            <div className="markdown-body">
-              <Markdown>
-                {problem?.statement ||
-                  problem?.descriptionMarkdown ||
-                  "No problem statement available yet. This exercise is pending enrichment."}
-              </Markdown>
+        <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
+          <div className="p-6">
+            {/* Problem Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-brand-offwhite mb-3">
+                {problem.title}
+              </h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span
+                  className={cn(
+                    "text-sm font-bold px-3 py-1 rounded-full",
+                    getDifficultyColor(problem.difficulty),
+                  )}
+                >
+                  {getDifficultyLabel(problem.difficulty)}
+                </span>
+                <span className="text-xs font-mono text-brand-offwhite-muted bg-brand-charcoal-hover px-2.5 py-1 rounded border border-brand-charcoal-border">
+                  Go
+                </span>
+                {problem.solved && (
+                  <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
+                    ✓ Solved
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          {problem.examples && problem.examples.length > 0 && (
-            <div className="mt-6">
-              <div className="text-sm font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-                Examples
+            {/* Statistics Grid */}
+            <div className="grid grid-cols-3 gap-3 mb-6 pb-6 border-b border-brand-charcoal-border/50">
+              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                <div className="text-lg font-bold text-brand-offwhite">
+                  {problem.success_rate !== undefined
+                    ? Math.round(problem.success_rate)
+                    : 0}
+                  %
+                </div>
+                <div className="text-xs text-brand-offwhite-muted font-medium">
+                  Acceptance
+                </div>
               </div>
-              <div className="space-y-3">
-                {problem.examples.map((ex) => (
-                  <div
-                    key={ex.id}
-                    className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card p-3 text-sm"
-                  >
-                    <div className="text-xs text-brand-offwhite-muted mb-1">
-                      Input
-                    </div>
-                    <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#0B0B0B] p-2 rounded">
-                      {ex.input}
-                    </div>
-                    <div className="text-xs text-brand-offwhite-muted mt-2 mb-1">
-                      Expected
-                    </div>
-                    <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#0B0B0B] p-2 rounded">
-                      {ex.expected}
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                <div className="text-lg font-bold text-brand-offwhite">
+                  {problem.total_submissions || 0}
+                </div>
+                <div className="text-xs text-brand-offwhite-muted font-medium">
+                  Submissions
+                </div>
+              </div>
+              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                <div className="text-lg font-bold text-brand-muted-gold">
+                  {problem.estTimeMinutes ||
+                    (problem as any).EstTimeMinutes ||
+                    (problem.difficulty === 1
+                      ? 15
+                      : problem.difficulty === 2
+                        ? 30
+                        : 60)}
+                  m
+                </div>
+                <div className="text-xs text-brand-offwhite-muted font-medium">
+                  Time
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Metadata Cards */}
-          <div className="mt-10 mb-2 text-xs font-bold tracking-wider text-brand-offwhite uppercase">
-            Tags
-          </div>
-          <div className="flex flex-wrap gap-2 mb-8">
-            {problem.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-1 rounded-md border border-brand-charcoal-border"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+            {/* Problem Description */}
+            <div className="mb-6">
+              <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+                Description
+              </div>
+              <div className="prose prose-invert prose-brand max-w-none text-sm text-brand-offwhite-muted leading-relaxed">
+                <div className="markdown-body">
+                  <Markdown>
+                    {problem?.statement ||
+                      problem?.descriptionMarkdown ||
+                      "No problem statement available yet. This exercise is pending enrichment."}
+                  </Markdown>
+                </div>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-3 gap-3 border-t border-brand-charcoal-border pt-6">
-            <div className="text-center">
-              <div className="text-xl font-bold text-brand-offwhite mb-1">
-                {problem.total_submissions || 0}
+            {/* Examples Section */}
+            {problem.examples && problem.examples.length > 0 && (
+              <div className="mb-6">
+                <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+                  Examples
+                </div>
+                <div className="space-y-3">
+                  {problem.examples.map((ex, idx) => (
+                    <div
+                      key={ex.id}
+                      className="rounded-lg border border-brand-charcoal-border bg-brand-charcoal-card overflow-hidden"
+                    >
+                      <div className="px-4 py-2 bg-brand-charcoal-hover/50 border-b border-brand-charcoal-border/50">
+                        <div className="text-xs font-semibold text-brand-offwhite-muted">
+                          Example {idx + 1}
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <div className="text-xs font-bold text-brand-offwhite-muted mb-2">
+                            Input:
+                          </div>
+                          <div className="font-mono text-xs text-brand-offwhite break-words whitespace-pre-wrap bg-[#0B0B0B] p-3 rounded border border-brand-charcoal-border">
+                            {ex.input}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-brand-offwhite-muted mb-2">
+                            Output:
+                          </div>
+                          <div className="font-mono text-xs text-brand-success break-words whitespace-pre-wrap bg-[#0B0B0B] p-3 rounded border border-brand-charcoal-border">
+                            {ex.expected}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">
-                Submissions
+            )}
+
+            {/* Constraints Section */}
+            <div className="mb-6">
+              <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+                Constraints
+              </div>
+              <div className="rounded-lg border border-brand-charcoal-border bg-brand-charcoal-card/50 p-4">
+                <ul className="space-y-2 text-sm text-brand-offwhite-muted">
+                  {problem.param_types && problem.param_types.length > 0 && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-brand-muted-gold mt-0.5">•</span>
+                      <span>
+                        <span className="font-mono text-brand-offwhite">
+                          Parameters:
+                        </span>{" "}
+                        {problem.param_types.map((t) => `${t}`).join(", ")}
+                      </span>
+                    </li>
+                  )}
+                  {problem.return_type && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-brand-muted-gold mt-0.5">•</span>
+                      <span>
+                        <span className="font-mono text-brand-offwhite">
+                          Return Type:
+                        </span>{" "}
+                        {problem.return_type}
+                      </span>
+                    </li>
+                  )}
+                  <li className="flex items-start gap-2">
+                    <span className="text-brand-muted-gold mt-0.5">•</span>
+                    <span>
+                      <span className="font-mono text-brand-offwhite">
+                        Difficulty:
+                      </span>{" "}
+                      {getDifficultyLabel(problem.difficulty)}
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-brand-muted-gold mt-0.5">•</span>
+                    <span>
+                      <span className="font-mono text-brand-offwhite">
+                        Time Limit:
+                      </span>{" "}
+                      {problem.estTimeMinutes ||
+                        (problem.difficulty === 1
+                          ? 15
+                          : problem.difficulty === 2
+                            ? 30
+                            : 60)}{" "}
+                      minutes
+                    </span>
+                  </li>
+                </ul>
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-brand-success mb-1">
-                {problem.success_rate !== undefined
-                  ? Math.round(problem.success_rate)
-                  : 0}
-                %
+
+            {/* Tags Section */}
+            {problem.tags && problem.tags.length > 0 && (
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+                  Topics
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {problem.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs bg-brand-muted-gold/10 text-brand-muted-gold px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">
-                Success Rate
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-brand-muted-gold mb-1">
-                {problem.estTimeMinutes ||
-                  (problem as any).EstTimeMinutes ||
-                  (problem.difficulty === 1
-                    ? 15
-                    : problem.difficulty === 2
-                      ? 30
-                      : 60)}
-                m
-              </div>
-              <div className="text-[10px] uppercase font-bold tracking-wide text-brand-offwhite-muted">
-                Est. Time
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -320,6 +426,60 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               theme="vs-dark"
               value={code}
               onChange={(v) => setCode(v || "")}
+              onMount={(editor, monaco) => {
+                // Register Go autocomplete provider
+                monaco.languages.registerCompletionItemProvider("go", {
+                  triggerCharacters: [".", " "],
+                  provideCompletionItems: (model: any, position: any) => {
+                    const word = model.getWordUntilPosition(position);
+                    const range = {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: word.startColumn,
+                      endColumn: position.column,
+                    };
+
+                    // Go standard library packages
+                    const packages = [
+                      "fmt", "strings", "io", "os", "time", "math", "sort",
+                      "encoding/json", "net/http", "context", "errors",
+                      "bufio", "bytes", "crypto", "database/sql", "flag",
+                      "hash", "html", "image", "log", "mime", "net", "path",
+                      "regexp", "sync", "syscall", "testing", "text/template",
+                      "unicode", "archive/tar", "archive/zip", "compress/gzip",
+                    ];
+
+                    // Go keywords
+                    const keywords = [
+                      "func", "var", "const", "if", "else", "for", "switch",
+                      "case", "default", "break", "continue", "return", "defer",
+                      "go", "chan", "select", "range", "type", "struct",
+                      "interface", "map", "slice", "array", "import", "package",
+                      "fallthrough", "goto", "panic", "recover",
+                    ];
+
+                    // Combine suggestions
+                    const suggestions = [
+                      ...packages.map((pkg) => ({
+                        label: pkg,
+                        kind: monaco.languages.CompletionItemKind.Module,
+                        insertText: pkg,
+                        range,
+                        detail: "Go standard library",
+                      })),
+                      ...keywords.map((kw) => ({
+                        label: kw,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: kw,
+                        range,
+                        detail: "Go keyword",
+                      })),
+                    ];
+
+                    return { suggestions };
+                  },
+                });
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -332,6 +492,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 renderLineHighlight: "none",
                 overviewRulerLanes: 0,
                 hideCursorInOverviewRuler: true,
+                quickSuggestions: { other: true, comments: false, strings: false },
+                suggestOnTriggerCharacters: true,
+                acceptSuggestionOnEnter: "smart",
               }}
             />
           </div>
