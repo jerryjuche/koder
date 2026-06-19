@@ -18,6 +18,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	authHandler := NewAuthHandler(store, cfg)
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
+	testHandler := NewTestHandler(store, exec)
 	adminHandler, err := NewAdminHandler(store, cfg)
 	if err != nil {
 		return nil, err
@@ -48,6 +49,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
 		r.Post("/submit", submissionHandler.Submit)
+		r.Post("/test", testHandler.Test)
 
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)

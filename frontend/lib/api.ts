@@ -158,9 +158,19 @@ export async function submitSolution(
   });
 }
 
-export async function fetchLeaderboard(period: string = "all"): Promise<
-  ApiResponse<LeaderboardEntry[]>
-> {
+export async function testCode(
+  slug: string,
+  code: string,
+): Promise<ApiResponse<ExecutionResult>> {
+  return fetchApi<ExecutionResult>(`/test`, {
+    method: "POST",
+    body: JSON.stringify({ problem_slug: slug, code: code }),
+  });
+}
+
+export async function fetchLeaderboard(
+  period: string = "all",
+): Promise<ApiResponse<LeaderboardEntry[]>> {
   return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
 }
 

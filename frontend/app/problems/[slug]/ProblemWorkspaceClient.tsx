@@ -20,7 +20,7 @@ import {
   Expand,
 } from "lucide-react";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
-import { fetchProblem, submitSolution } from "@/lib/api";
+import { fetchProblem, submitSolution, testCode } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Problem, TestResult } from "@/lib/types";
 
@@ -111,6 +111,59 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setSubmitting(false);
   };
 
+  const handleTest = async () => {
+    setSubmitting(true);
+    setPanelMode("tests");
+    setTestsExpanded(true);
+    setErrorMsg(null);
+
+    const res = await testCode(slug, code);
+
+    if (res.success && res.data) {
+      const executionResult = res.data;
+
+      if (
+        executionResult.status === "compiler_error" ||
+        executionResult.status === "timeout"
+      ) {
+        setErrorMsg(
+          executionResult.output_logs ||
+            `Execution failed with status: ${executionResult.status}`,
+        );
+        setResults(null);
+        toast.error(`Test failed: ${executionResult.status}`);
+      } else {
+        const mappedResults: TestResult[] = (
+          executionResult.test_results || []
+        ).map((tr: any, idx: number) => ({
+          id: tr.test_case_id || `t${idx}`,
+          name: `Case ${tr.ordinal ?? idx + 1}`,
+          passed: tr.passed,
+          executionTimeMs: executionResult.runtime_ms || 0,
+          output:
+            tr.is_hidden && !tr.passed ? "(hidden test case)" : tr.got || "",
+          expectedOutput:
+            tr.is_hidden && !tr.passed ? "(hidden)" : tr.expected || "",
+        }));
+        setResults(mappedResults);
+
+        const passedAll =
+          mappedResults.length > 0 && mappedResults.every((r) => r.passed);
+        if (passedAll) {
+          toast.success("All visible tests passed!");
+        } else {
+          toast.error("Some test cases failed.");
+        }
+      }
+    } else {
+      setErrorMsg(res.error?.message || "Test failed");
+      setResults(null);
+      toast.error(res.error?.message || "Test failed");
+    }
+
+    setSubmitting(false);
+  };
+
   const testsPassed = results?.filter((r) => r.passed).length || 0;
   const testsTotal = results?.length || 0;
   const allPassed = testsTotal > 0 && testsPassed === testsTotal;
@@ -177,6 +230,18 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </button>
           <button className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover">
             <RotateCcw size={18} />
+          </button>
+          <button
+            onClick={handleTest}
+            disabled={submitting}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
+          >
+            {submitting ? (
+              <div className="w-4 h-4 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
+            ) : (
+              <Play size={16} fill="currentColor" />
+            )}
+            Test
           </button>
           <button
             onClick={handleSubmit}
