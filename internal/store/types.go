@@ -40,7 +40,7 @@ type Problem struct {
 	ParamTypes       []string    `db:"param_types" json:"param_types"`
 	Hints            []string    `db:"hints" json:"hints"`
 	Difficulty       int         `db:"difficulty" json:"difficulty"`
-	XPReward         int         `db:"xp_reward" json:"xp_reward"`
+	XPReward         int         `db:"xp_reward" json:"xpReward"`
 	Tags             []string    `db:"tags" json:"tags"`
 	Visible          bool        `db:"visible" json:"visible"`
 	SourceHash       string      `db:"source_hash" json:"source_hash"`

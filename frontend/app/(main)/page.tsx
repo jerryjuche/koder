@@ -10,6 +10,7 @@ import {
   Clock,
   Flame,
   BarChart2,
+  Code,
 } from "lucide-react";
 import { fetchProblems, fetchUser } from "@/lib/api";
 import { Problem, User } from "@/lib/types";
@@ -243,7 +244,14 @@ export default function Dashboard() {
 
               <p className="text-sm text-brand-offwhite-muted line-clamp-2 h-10 mb-5">
                 {problem.statement ? (
-                  <span dangerouslySetInnerHTML={{ __html: problem.statement.split('\n').slice(0,2).join(' ') }} />
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: problem.statement
+                        .split("\n")
+                        .slice(0, 2)
+                        .join(" "),
+                    }}
+                  />
                 ) : (
                   <span>No short description available.</span>
                 )}
@@ -263,25 +271,29 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-xs text-brand-offwhite-muted pt-4 border-t border-brand-charcoal-border/50">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1">
-                    <Circle size={14} /> {problem.total_submissions || 0}
+                    <Code size={14} /> {problem.total_submissions || 0}
                   </span>
                   <span className="flex items-center gap-1">
-                    <BarChart2 size={14} /> {Math.round(problem.successRate || 0)}%
+                    <BarChart2 size={14} />{" "}
+                    {Math.round(problem.successRate || 0)}%
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock size={14} /> {problem.estTimeMinutes || 0}m
                   </span>
                 </div>
-                <div className="font-bold flex items-center gap-1 text-brand-muted-gold">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-muted-gold/5 border border-brand-muted-gold/20">
                   <svg
-                    width="10"
-                    height="12"
+                    width="14"
+                    height="18"
                     viewBox="0 0 12 16"
                     fill="currentColor"
+                    className="text-brand-muted-gold flex-shrink-0"
                   >
                     <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
                   </svg>
-                  +{problem.xpReward} XP
+                  <span className="font-semibold text-sm text-brand-muted-gold whitespace-nowrap">
+                    +{problem.xpReward ?? 0} XP
+                  </span>
                 </div>
               </div>
             </Link>
