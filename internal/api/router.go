@@ -52,6 +52,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
+		r.Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
 		r.Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
 
 		leaderboardHandler := NewLeaderboardHandler(store)

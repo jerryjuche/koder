@@ -7,6 +7,7 @@ import {
   AdminStats,
   ActivityLog,
   UserProfile,
+  UserProblem,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -220,8 +221,8 @@ export async function submitContribution(data: any): Promise<ApiResponse<any>> {
   });
 }
 
-export async function fetchMyContributions(): Promise<ApiResponse<any>> {
-  return fetchApi<any>("/me/contributions");
+export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {
+  return fetchApi<UserProblem[]>("/me/contributions");
 }
 
 export async function fetchPendingContributions(): Promise<ApiResponse<any>> {

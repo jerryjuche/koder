@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { submitContribution } from "@/lib/api";
-import { toast } from "@/lib/toast";
+import { submitContribution, fetchMyContributions } from "@/lib/api";
+import { toast } from "sonner";
 import { PlusCircle, Trash2, Send } from "lucide-react";
 
-export default function ContributePage() {
+function ContributeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -29,6 +31,24 @@ export default function ContributePage() {
     tags: [""],
     test_cases: [{ input: "", expected: "", is_hidden: false, ordinal: 1 }],
   });
+
+  useEffect(() => {
+    if (editId) {
+      fetchMyContributions().then((res) => {
+        if (res.success && res.data) {
+          const prob = res.data.find((p) => p.id === editId);
+          if (prob) {
+            setForm({
+              ...prob,
+              test_cases: prob.test_cases.length > 0 
+                ? prob.test_cases.map(tc => ({ ...tc, input: JSON.stringify(tc.input) }))
+                : [{ input: "", expected: "", is_hidden: false, ordinal: 1 }]
+            });
+          }
+        }
+      });
+    }
+  }, [editId]);
 
   const resetForm = () => {
     setForm({
@@ -82,6 +102,13 @@ export default function ContributePage() {
 
       toast.success("Contribution submitted successfully!");
       setIsSuccess(true);
+      
+      // If we were editing, redirect after a short delay
+      if (editId) {
+        setTimeout(() => {
+          router.push("/profile");
+        }, 1500);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -330,9 +357,17 @@ export default function ContributePage() {
             )}
           </Button>
         </div>
-      </form>
+        </form>
         </>
       )}
     </div>
+  );
+}
+
+export default function ContributePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-brand-offwhite-muted">Loading...</div>}>
+      <ContributeContent />
+    </Suspense>
   );
 }

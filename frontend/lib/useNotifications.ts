@@ -19,7 +19,7 @@ export function useNotifications() {
     try {
       const res = await fetchApi<Notification[]>("/notifications", { method: "GET" });
       if (res.success && res.data) {
-        setNotifications(res.data);
+        setNotifications(res.data.slice(0, 10)); // Limit to 10 most recent
         setUnreadCount(res.data.filter((n: Notification) => !n.is_read).length);
       }
     } catch (err) {
@@ -38,6 +38,18 @@ export function useNotifications() {
       }
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const res = await fetchApi("/notifications/read-all", { method: "POST" });
+      if (res.success) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
     }
   };
 
@@ -66,5 +78,5 @@ export function useNotifications() {
     };
   }, [fetchNotifications]);
 
-  return { notifications, unreadCount, markAsRead, fetchNotifications };
+  return { notifications, unreadCount, markAsRead, markAllAsRead, fetchNotifications };
 }

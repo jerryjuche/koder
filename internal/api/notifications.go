@@ -68,3 +68,25 @@ func (h *NotificationsHandler) MarkAsRead(w http.ResponseWriter, r *http.Request
 
 	RespondSuccess(w, map[string]string{"status": "success"})
 }
+
+// MarkAllAsRead marks all notifications as read for the current user.
+func (h *NotificationsHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid user ID", nil)
+		return
+	}
+
+	if err := h.store.MarkAllNotificationsAsRead(r.Context(), userID); err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to mark all notifications as read", err.Error())
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"status": "success"})
+}

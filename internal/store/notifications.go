@@ -78,6 +78,20 @@ func (s *PostgresStore) MarkNotificationAsRead(ctx context.Context, id, userID u
 	return nil
 }
 
+// MarkAllNotificationsAsRead marks all notifications as read for a user.
+func (s *PostgresStore) MarkAllNotificationsAsRead(ctx context.Context, userID uuid.UUID) error {
+	query := `
+		UPDATE notifications
+		SET is_read = TRUE
+		WHERE user_id = $1 AND is_read = FALSE
+	`
+	_, err := s.pool.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to mark all notifications as read: %w", err)
+	}
+	return nil
+}
+
 // NotifyAdmins sends a notification to all admins.
 func (s *PostgresStore) NotifyAdmins(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
 	query := `

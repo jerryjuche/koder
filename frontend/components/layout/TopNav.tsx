@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,6 +11,8 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
+  PlusCircle,
+  CheckCheck,
 } from "lucide-react";
 import { cn, getUserColor } from "@/lib/utils";
 import { fetchUser } from "@/lib/api";
@@ -24,7 +26,22 @@ export default function TopNav() {
   const [loading, setLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifMenuOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadUser = () => {
@@ -120,7 +137,18 @@ export default function TopNav() {
               </span>
             </div>
 
-            <div className="relative">
+            {/* Add New Problem Button */}
+            {(user.role === "verified_contributor" || user.role === "admin") && (
+              <Link 
+                href="/contribute"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-charcoal-base bg-brand-muted-gold hover:bg-brand-muted-gold-dark rounded-md transition-colors mr-2"
+              >
+                <PlusCircle size={16} />
+                <span>Add Problem</span>
+              </Link>
+            )}
+
+            <div className="relative" ref={notifRef}>
               <button 
                 onClick={() => setNotifMenuOpen(!notifMenuOpen)}
                 className="relative p-2 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
@@ -163,12 +191,25 @@ export default function TopNav() {
                       ))
                     )}
                   </div>
+                  {notifications.length > 0 && unreadCount > 0 && (
+                    <div className="px-4 py-2 border-t border-brand-charcoal-border bg-brand-charcoal-panel/50">
+                      <button 
+                        onClick={() => {
+                          markAllAsRead();
+                          setNotifMenuOpen(false);
+                        }}
+                        className="flex items-center justify-center gap-2 w-full py-1.5 text-sm text-brand-muted-gold hover:text-brand-muted-gold-dark transition-colors font-medium"
+                      >
+                        <CheckCheck size={16} /> Mark all as read
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={userRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-3 hover:opacity-80 transition-opacity"

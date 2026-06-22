@@ -8,10 +8,17 @@ import ProfileHeader from "./components/ProfileHeader";
 import ProgressMetrics from "./components/ProgressMetrics";
 import StatsOverview from "./components/StatsOverview";
 import MyContributions from "./components/MyContributions";
+import { useNotifications } from "@/lib/useNotifications";
 
 export default function ProfileClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { notifications } = useNotifications();
+
+  // Check if we have unread contribution notifications
+  const hasContributionNotif = notifications.some(
+    (n) => !n.is_read && (n.type === "contribution_approved" || n.type === "contribution_rejected")
+  );
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "contributions">("overview");
   useEffect(() => {
@@ -139,9 +146,12 @@ export default function ProfileClient() {
                 {/* Verified Contributor Tab */}
                 <button 
                   onClick={() => setActiveTab("contributions")}
-                  className={`pb-4 px-2 font-semibold transition ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+                  className={`pb-4 px-2 font-semibold transition flex items-center gap-2 ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
                 >
                   My Contributions
+                  {hasContributionNotif && (
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  )}
                 </button>
               </div>
             </div>

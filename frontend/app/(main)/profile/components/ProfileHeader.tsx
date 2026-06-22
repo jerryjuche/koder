@@ -155,7 +155,7 @@ export default function ProfileHeader({
         </div>
 
         {/* Join Date */}
-        <p className="text-xs text-brand-offwhite-muted">
+        <p className="text-xs text-brand-offwhite-muted mb-6">
           Member since{" "}
           {new Date(profile.created_at).toLocaleDateString("en-US", {
             year: "numeric",
@@ -163,6 +163,14 @@ export default function ProfileHeader({
             day: "numeric",
           })}
         </p>
+
+        {/* Edit Profile Placeholder Button */}
+        <button 
+          className="w-full mt-auto py-2 px-4 rounded-lg border border-brand-charcoal-border bg-brand-charcoal-panel hover:bg-brand-charcoal-hover text-brand-offwhite text-sm font-medium transition-colors"
+          onClick={() => alert("Edit Profile settings coming soon!")}
+        >
+          Edit Profile
+        </button>
       </div>
     </div>
   );
