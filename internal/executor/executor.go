@@ -254,11 +254,15 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		}
 	}
 
+	var friendlyMessage string
+
 	if runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
+		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
+		friendlyMessage = parseCompilerError(output)
 	} else if totalCount > 0 && passedCount == totalCount {
 		status = "passed"
 	} else {
@@ -335,13 +339,34 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	}
 
 	return &ExecutionResult{
-		Status:      status,
-		PassedCount: passedCount,
-		TotalCount:  totalCount,
-		OutputLogs:  output,
-		RuntimeMs:   runtimeMs,
-		TestResults: results,
+		Status:          status,
+		FriendlyMessage: friendlyMessage,
+		PassedCount:     passedCount,
+		TotalCount:      totalCount,
+		OutputLogs:      output,
+		RuntimeMs:       runtimeMs,
+		TestResults:     results,
 	}, nil
+}
+
+func parseCompilerError(output string) string {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "solution.go:") {
+			parts := strings.SplitN(line, "solution.go:", 2)
+			return "Line " + strings.TrimSpace(parts[1])
+		}
+	}
+	
+	// Fallback to first meaningful line
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") {
+			return trimmed
+		}
+	}
+	
+	return "Compilation failed due to a syntax error."
 }
 
 // ExecuteVisibleOnly executes code against visible test cases only (used for testing without submission).
@@ -539,11 +564,15 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		}
 	}
 
+	var friendlyMessage string
+
 	if runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
+		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
+		friendlyMessage = parseCompilerError(output)
 	} else if totalCount > 0 && passedCount == totalCount {
 		status = "passed"
 	} else {
@@ -583,12 +612,13 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 	}
 
 	return &ExecutionResult{
-		Status:      status,
-		PassedCount: passedCount,
-		TotalCount:  totalCount,
-		OutputLogs:  output,
-		RuntimeMs:   runtimeMs,
-		TestResults: results,
+		Status:          status,
+		FriendlyMessage: friendlyMessage,
+		PassedCount:     passedCount,
+		TotalCount:      totalCount,
+		OutputLogs:      output,
+		RuntimeMs:       runtimeMs,
+		TestResults:     results,
 	}, nil
 }
 

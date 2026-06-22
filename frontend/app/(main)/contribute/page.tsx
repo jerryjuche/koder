@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { submitContribution, fetchMyContributions } from "@/lib/api";
+import { UserProblem } from "@/lib/types";
 import { toast } from "sonner";
 import { PlusCircle, Trash2, Send } from "lucide-react";
 
@@ -36,12 +37,12 @@ function ContributeContent() {
     if (editId) {
       fetchMyContributions().then((res) => {
         if (res.success && res.data) {
-          const prob = res.data.find((p) => p.id === editId);
+          const prob = res.data.find((p: UserProblem) => p.id === editId);
           if (prob) {
             setForm({
               ...prob,
               test_cases: prob.test_cases.length > 0 
-                ? prob.test_cases.map(tc => ({ ...tc, input: JSON.stringify(tc.input) }))
+                ? prob.test_cases.map((tc: any) => ({ ...tc, input: JSON.stringify(tc.input) }))
                 : [{ input: "", expected: "", is_hidden: false, ordinal: 1 }]
             });
           }
@@ -103,8 +104,9 @@ function ContributeContent() {
       toast.success("Contribution submitted successfully!");
       setIsSuccess(true);
       
-      // If we were editing, redirect after a short delay
+      // If we were editing, remove query param and redirect
       if (editId) {
+        router.replace("/contribute");
         setTimeout(() => {
           router.push("/profile");
         }, 1500);

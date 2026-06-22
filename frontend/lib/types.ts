@@ -151,6 +151,7 @@ export type BackendTestResult = {
 
 export type ExecutionResult = {
   status: "passed" | "failed" | "compiler_error" | "timeout";
+  friendly_message?: string;
   passed_count: number;
   total_count: number;
   runtime_ms: number;

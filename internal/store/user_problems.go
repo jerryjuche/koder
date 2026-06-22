@@ -24,9 +24,23 @@ func (s *PostgresStore) CreateUserProblem(ctx context.Context, userID uuid.UUID,
 	query := `
 		INSERT INTO user_problems (
 			user_id, slug, title, statement, func_name, return_type, 
-			param_types, hints, difficulty, xp_reward, tags, test_cases
+			param_types, hints, difficulty, xp_reward, tags, test_cases, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::JSONB[])
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::JSONB[], 'pending')
+		ON CONFLICT (slug) DO UPDATE SET
+			title = EXCLUDED.title,
+			statement = EXCLUDED.statement,
+			func_name = EXCLUDED.func_name,
+			return_type = EXCLUDED.return_type,
+			param_types = EXCLUDED.param_types,
+			hints = EXCLUDED.hints,
+			difficulty = EXCLUDED.difficulty,
+			xp_reward = EXCLUDED.xp_reward,
+			tags = EXCLUDED.tags,
+			test_cases = EXCLUDED.test_cases,
+			status = 'pending',
+			admin_notes = NULL
+		WHERE user_problems.user_id = EXCLUDED.user_id
 		RETURNING id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, status, created_at
 	`
 
@@ -40,7 +54,10 @@ func (s *PostgresStore) CreateUserProblem(ctx context.Context, userID uuid.UUID,
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user problem: %w", err)
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("slug already exists and you are not the author")
+		}
+		return nil, fmt.Errorf("failed to create or update user problem: %w", err)
 	}
 
 	up.TestCases = problem.TestCases

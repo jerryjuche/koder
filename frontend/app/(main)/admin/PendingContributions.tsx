@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { UserProblem } from "@/lib/types";
 import { fetchPendingContributions, approveContribution, rejectContribution } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { Check, X, Code, MessageSquare, ExternalLink } from "lucide-react";
+import { Check, X, Code, MessageSquare, ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
@@ -118,8 +118,20 @@ export default function PendingContributions() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-brand-charcoal-border flex justify-between items-start shrink-0">
               <div>
-                <h3 className="text-xl font-bold text-brand-offwhite">{selectedProblem.title}</h3>
-                <p className="text-sm text-brand-offwhite-muted">by {selectedProblem.author_name} • {selectedProblem.xp_reward} XP • Difficulty {selectedProblem.difficulty}/5</p>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-brand-offwhite">{selectedProblem.title}</h3>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedProblem.slug);
+                      toast.success("Slug copied!");
+                    }}
+                    className="p-1 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors rounded-md hover:bg-brand-charcoal-hover"
+                    title="Copy Slug"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+                <p className="text-sm text-brand-offwhite-muted mt-1">by {selectedProblem.author_name} • {selectedProblem.xp_reward} XP • Difficulty {selectedProblem.difficulty}/5</p>
               </div>
               <div className="flex items-center gap-4">
                 <button

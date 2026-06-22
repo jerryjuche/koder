@@ -57,23 +57,31 @@ export function useNotifications() {
     // Initial fetch
     Promise.resolve().then(() => fetchNotifications());
 
-    // Polling setup (every 30s)
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        fetchNotifications();
-      }
-    }, 30000);
+    let timeoutId: NodeJS.Timeout;
+    
+    const scheduleNext = () => {
+      const delay = document.visibilityState === "visible" ? 30000 : 60000;
+      timeoutId = setTimeout(() => {
+        fetchNotifications().finally(() => {
+          scheduleNext();
+        });
+      }, delay);
+    };
+
+    scheduleNext();
 
     // Fetch when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         fetchNotifications();
+        clearTimeout(timeoutId);
+        scheduleNext();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      clearTimeout(timeoutId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchNotifications]);

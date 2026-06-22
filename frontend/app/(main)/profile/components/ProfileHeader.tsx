@@ -5,6 +5,7 @@ import { useState } from "react";
 import { updateUserName } from "@/lib/api";
 import { getUserColor, cn } from "@/lib/utils";
 import { Flame } from "lucide-react";
+import Link from "next/link";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -165,12 +166,12 @@ export default function ProfileHeader({
         </p>
 
         {/* Edit Profile Placeholder Button */}
-        <button 
-          className="w-full mt-auto py-2 px-4 rounded-lg border border-brand-charcoal-border bg-brand-charcoal-panel hover:bg-brand-charcoal-hover text-brand-offwhite text-sm font-medium transition-colors"
-          onClick={() => alert("Edit Profile settings coming soon!")}
+        <Link 
+          href="/profile/edit"
+          className="w-full mt-auto py-2 px-4 rounded-lg border border-brand-charcoal-border bg-brand-charcoal-panel hover:bg-brand-charcoal-hover text-brand-offwhite text-sm font-medium transition-colors text-center inline-block"
         >
           Edit Profile
-        </button>
+        </Link>
       </div>
     </div>
   );

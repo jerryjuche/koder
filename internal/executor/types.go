@@ -24,10 +24,11 @@ type TestResult struct {
 
 // ExecutionResult represents the output of the grading process.
 type ExecutionResult struct {
-	Status      string       `json:"status"` // "passed" | "failed" | "compiler_error" | "timeout"
-	PassedCount int          `json:"passed_count"`
-	TotalCount  int          `json:"total_count"`
-	OutputLogs  string       `json:"output_logs"`
-	RuntimeMs   int          `json:"runtime_ms"`
-	TestResults []TestResult `json:"test_results"`
+	Status          string       `json:"status"` // "passed" | "failed" | "compiler_error" | "timeout"
+	FriendlyMessage string       `json:"friendly_message,omitempty"`
+	PassedCount     int          `json:"passed_count"`
+	TotalCount      int          `json:"total_count"`
+	OutputLogs      string       `json:"output_logs"`
+	RuntimeMs       int          `json:"runtime_ms"`
+	TestResults     []TestResult `json:"test_results"`
 }

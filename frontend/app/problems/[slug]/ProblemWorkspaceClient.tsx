@@ -39,6 +39,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<TestResult[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
 
   useEffect(() => {
@@ -67,17 +68,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     if (res.success && res.data) {
       const executionResult = res.data;
+      setLastExecution(executionResult);
 
       if (
         executionResult.status === "compiler_error" ||
         executionResult.status === "timeout"
       ) {
-        setErrorMsg(
-          executionResult.output_logs ||
-            `Execution failed with status: ${executionResult.status}`,
-        );
+        setErrorMsg(null); // Clear generic errorMsg, we use lastExecution
         setResults(null);
-        toast.error(`Execution failed: ${executionResult.status}`);
+        toast.error(`Execution failed: ${executionResult.friendly_message || executionResult.status}`);
       } else {
         const mappedResults: TestResult[] = (
           executionResult.test_results || []
@@ -105,6 +104,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     } else {
       setErrorMsg(res.error?.message || "Submission failed");
       setResults(null);
+      setLastExecution(null);
       toast.error(res.error?.message || "Submission failed");
     }
 
@@ -121,17 +121,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     if (res.success && res.data) {
       const executionResult = res.data;
+      setLastExecution(executionResult);
 
       if (
         executionResult.status === "compiler_error" ||
         executionResult.status === "timeout"
       ) {
-        setErrorMsg(
-          executionResult.output_logs ||
-            `Execution failed with status: ${executionResult.status}`,
-        );
+        setErrorMsg(null);
         setResults(null);
-        toast.error(`Test failed: ${executionResult.status}`);
+        toast.error(`Test failed: ${executionResult.friendly_message || executionResult.status}`);
       } else {
         const mappedResults: TestResult[] = (
           executionResult.test_results || []
@@ -158,6 +156,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     } else {
       setErrorMsg(res.error?.message || "Test failed");
       setResults(null);
+      setLastExecution(null);
       toast.error(res.error?.message || "Test failed");
     }
 
@@ -604,18 +603,78 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
               {testsExpanded && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                  {errorMsg && (
+                  {errorMsg && !lastExecution && (
                     <div className="bg-brand-error/20 border border-brand-error/50 text-brand-error px-5 py-4 rounded-xl text-sm font-bold mb-4 flex items-start gap-3 shadow-sm shadow-brand-error/10">
                       <XCircle size={18} className="mt-0.5 shrink-0" />
                       <div>
                         <div className="uppercase text-[10px] tracking-wider opacity-80 mb-1">
-                          Submission Failed
+                          System Error
                         </div>
                         {errorMsg}
                       </div>
                     </div>
                   )}
-                  {!errorMsg && !allPassed && (
+
+                  {lastExecution?.status === "compiler_error" && (
+                    <div className="space-y-4">
+                      <div className="bg-brand-error/10 border border-brand-error/30 p-4 rounded-xl flex items-start gap-3">
+                        <XCircle size={20} className="text-brand-error mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="text-brand-error font-bold text-sm mb-1">Compilation Failed</h4>
+                          <p className="text-brand-offwhite text-sm">{lastExecution.friendly_message || "Syntax error detected."}</p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(lastExecution.output_logs);
+                            toast.success("Copied compiler logs");
+                          }}
+                          className="text-xs bg-brand-charcoal-hover text-brand-offwhite px-3 py-1.5 rounded-lg border border-brand-charcoal-border hover:bg-brand-charcoal-panel transition-colors flex items-center gap-2 shrink-0"
+                        >
+                          <Copy size={12} /> Copy Error
+                        </button>
+                      </div>
+
+                      <div className="bg-brand-muted-gold/10 border border-brand-muted-gold/20 p-4 rounded-xl flex items-start gap-3">
+                        <Lightbulb size={20} className="text-brand-muted-gold mt-0.5 shrink-0" />
+                        <div>
+                          <h4 className="text-brand-muted-gold font-bold text-sm mb-1">Debugging Tip</h4>
+                          <p className="text-brand-offwhite-muted text-sm leading-relaxed">
+                            Check the line number indicated above. Common causes include missing imports (e.g., <code>fmt</code> or <code>strings</code>), mismatched braces <code>{`{}`}</code>, typos, or invalid type assignments.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-brand-offwhite-muted mb-2 ml-1">Raw Output Logs</div>
+                        <div className="bg-[#1A1A1A] rounded-xl p-4 text-sm font-mono text-brand-offwhite-muted border border-brand-charcoal-border overflow-x-auto whitespace-pre-wrap">
+                          {lastExecution.output_logs}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {lastExecution?.status === "timeout" && (
+                    <div className="space-y-4">
+                      <div className="bg-brand-error/10 border border-brand-error/30 p-4 rounded-xl flex items-start gap-3">
+                        <XCircle size={20} className="text-brand-error mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="text-brand-error font-bold text-sm mb-1">Execution Timed Out</h4>
+                          <p className="text-brand-offwhite text-sm">{lastExecution.friendly_message || "Your code took too long to execute."}</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-brand-muted-gold/10 border border-brand-muted-gold/20 p-4 rounded-xl flex items-start gap-3">
+                        <Lightbulb size={20} className="text-brand-muted-gold mt-0.5 shrink-0" />
+                        <div>
+                          <h4 className="text-brand-muted-gold font-bold text-sm mb-1">Debugging Tip</h4>
+                          <p className="text-brand-offwhite-muted text-sm leading-relaxed">
+                            Timeouts usually occur when you have an infinite loop (like a <code>for</code> or <code>while</code> condition that never becomes false), or if your algorithm is extremely inefficient for large test cases (e.g., O(N^3) complexity).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {results && !allPassed && (
                     <div className="flex items-center gap-2 text-brand-error font-medium mb-4">
                       <XCircle size={18} /> {testsPassed}/{testsTotal} tests
                       passed
