@@ -564,7 +564,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           {/* Bottom Panel (Tests) - Only show if not hints mode or if we specifically want it split */}
-          {(results || errorMsg) && (
+          {(results || errorMsg || lastExecution?.status === "compiler_error" || lastExecution?.status === "timeout") && (
             <div
               className={cn(
                 "border-t border-brand-charcoal-border bg-brand-charcoal-base transition-all duration-300 flex flex-col",
@@ -586,7 +586,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   <span className="text-sm font-bold text-brand-offwhite">
                     Test Results
                   </span>
-                  {!errorMsg && (
+                  {!errorMsg && testsTotal > 0 && (
                     <span
                       className={cn(
                         "text-xs font-bold px-2 py-0.5 rounded",
