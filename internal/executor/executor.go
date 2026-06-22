@@ -260,6 +260,10 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
 		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
+		slog.Error("executor: execution OOM", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout" // Treat as timeout so the UI shows the timeout panel
+		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
 		friendlyMessage = parseCompilerError(output)
@@ -570,6 +574,10 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
 		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
+		slog.Error("executor: execution OOM", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout" // Treat as timeout so the UI shows the timeout panel
+		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
 		friendlyMessage = parseCompilerError(output)
