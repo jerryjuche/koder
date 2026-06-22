@@ -58,12 +58,24 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	}
 }
 
-// AdminOnly middleware requires the authenticated user to have role="admin".
+// AdminOnly middleware restricts access to endpoints to users with the "admin" role.
 func AdminOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims := GetClaims(r.Context())
 		if claims == nil || claims.Role != "admin" {
-			RespondError(w, http.StatusForbidden, "FORBIDDEN", "Admin role required", nil)
+			RespondError(w, http.StatusForbidden, "FORBIDDEN", "Admin access required", nil)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// VerifiedContributorOnly restricts access to admin or verified_contributor roles.
+func VerifiedContributorOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims := GetClaims(r.Context())
+		if claims == nil || (claims.Role != "admin" && claims.Role != "verified_contributor") {
+			RespondError(w, http.StatusForbidden, "FORBIDDEN", "Verified contributor access required", nil)
 			return
 		}
 		next.ServeHTTP(w, r)

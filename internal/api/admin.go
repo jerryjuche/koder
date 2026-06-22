@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jerryjuche/koder/internal/config"
@@ -250,4 +251,80 @@ func (h *AdminHandler) ListAllProblems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondSuccess(w, problems)
+}
+
+// ListPendingUserProblems returns all pending community contributions.
+func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
+	problems, err := h.store.ListPendingUserProblems(r.Context())
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch pending problems", err.Error())
+		return
+	}
+	RespondSuccess(w, problems)
+}
+
+// ApproveUserProblem approves a pending community contribution.
+func (h *AdminHandler) ApproveUserProblem(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "id")
+	id, err := uuid.Parse(slug)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", err.Error())
+		return
+	}
+
+	var payload struct {
+		AdminNotes string `json:"admin_notes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		// allow empty payload
+	}
+
+	up, err := h.store.ApproveUserProblem(r.Context(), id, payload.AdminNotes)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to approve problem", err.Error())
+		return
+	}
+
+	upID := uuid.UUID(up.ID.Bytes)
+	submitterID := uuid.UUID(up.UserID.Bytes)
+	h.store.CreateNotification(r.Context(), submitterID, "contribution_approved", fmt.Sprintf("Your contribution '%s' has been approved!", up.Title), &upID)
+
+	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Approved community contribution %s", id.String()), "brand-muted-gold", "check")
+	RespondSuccess(w, map[string]string{"status": "approved"})
+}
+
+// RejectUserProblem rejects a pending community contribution.
+func (h *AdminHandler) RejectUserProblem(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "id")
+	id, err := uuid.Parse(slug)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", err.Error())
+		return
+	}
+
+	var payload struct {
+		AdminNotes string `json:"admin_notes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Invalid payload", err.Error())
+		return
+	}
+
+	if payload.AdminNotes == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Admin notes are required for rejection", nil)
+		return
+	}
+
+	up, err := h.store.RejectUserProblem(r.Context(), id, payload.AdminNotes)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to reject problem", err.Error())
+		return
+	}
+
+	upID := uuid.UUID(up.ID.Bytes)
+	submitterID := uuid.UUID(up.UserID.Bytes)
+	h.store.CreateNotification(r.Context(), submitterID, "contribution_rejected", fmt.Sprintf("Your contribution '%s' was rejected. Note: %s", up.Title, payload.AdminNotes), &upID)
+
+	h.store.LogActivity(r.Context(), "error", fmt.Sprintf("Rejected community contribution %s", id.String()), "red-500", "x")
+	RespondSuccess(w, map[string]string{"status": "rejected"})
 }

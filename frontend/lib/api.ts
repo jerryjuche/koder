@@ -11,7 +11,7 @@ import {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-async function fetchApi<T>(
+export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
@@ -209,5 +209,35 @@ export async function updateUserName(name: string): Promise<ApiResponse<User>> {
   return fetchApi<User>("/me/profile", {
     method: "PUT",
     body: JSON.stringify({ name }),
+  });
+}
+
+// Community Contributions
+export async function submitContribution(data: any): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/user-problems", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchMyContributions(): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/me/contributions");
+}
+
+export async function fetchPendingContributions(): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/admin/user-problems/pending");
+}
+
+export async function approveContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/user-problems/${id}/approve`, {
+    method: "PATCH",
+    body: JSON.stringify({ admin_notes: notes }),
+  });
+}
+
+export async function rejectContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/user-problems/${id}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify({ admin_notes: notes }),
   });
 }

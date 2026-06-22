@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -8,14 +9,16 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID         pgtype.UUID `db:"id"`
-	StudentID  string      `db:"student_id"`
-	Name       string      `db:"name"`
-	Password   string      `db:"password"` // bcrypt hash
-	Role       string      `db:"role"`     // "student" | "admin"
-	ColorIndex int         `db:"color_index"`
-	XP         int         `db:"xp"`
-	CreatedAt  time.Time   `db:"created_at"`
+	ID         pgtype.UUID `db:"id" json:"id"`
+	StudentID  string      `db:"student_id" json:"student_id"`
+	Name       string      `db:"name" json:"name"`
+	Password   string      `db:"password" json:"-"` // bcrypt hash
+	Role       string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
+	ColorIndex int         `db:"color_index" json:"color_index"`
+	XP         int         `db:"xp" json:"xp"`
+	Verified   bool        `db:"verified" json:"verified"`
+	VerifiedAt *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
+	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
 }
 
 // NewUser represents a user creation request.
@@ -45,6 +48,8 @@ type Problem struct {
 	Visible          bool        `db:"visible" json:"visible"`
 	SourceHash       string      `db:"source_hash" json:"source_hash"`
 	RawReadme        string      `db:"raw_readme" json:"raw_readme"`
+	AuthorID         pgtype.UUID `db:"author_id" json:"author_id,omitempty"`
+	AuthorName       *string     `db:"author_name" json:"author_name,omitempty"`
 	CreatedAt        time.Time   `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time   `db:"updated_at" json:"updated_at"`
 	Solved           bool        `json:"solved"`
@@ -144,4 +149,59 @@ type UserStats struct {
 	BestRuntimeMs     int                           `json:"best_runtime_ms"`
 	CurrentStreakDays int                           `json:"current_streak_days"`
 	ProgressByDiff    map[string]DifficultyProgress `json:"progress_by_difficulty"`
+}
+
+// UserProblemTestCase represents an embedded test case in a UserProblem payload.
+type UserProblemTestCase struct {
+	Input    json.RawMessage `json:"input"`
+	Expected string          `json:"expected"`
+	IsHidden bool            `json:"is_hidden"`
+	Ordinal  int             `json:"ordinal"`
+}
+
+// UserProblem represents a staging problem submitted by a verified contributor.
+type UserProblem struct {
+	ID         pgtype.UUID           `db:"id" json:"id"`
+	UserID     pgtype.UUID           `db:"user_id" json:"user_id"`
+	Slug       string                `db:"slug" json:"slug"`
+	Title      string                `db:"title" json:"title"`
+	Statement  string                `db:"statement" json:"statement"`
+	FuncName   string                `db:"func_name" json:"func_name"`
+	ReturnType string                `db:"return_type" json:"return_type"`
+	ParamTypes []string              `db:"param_types" json:"param_types"`
+	Hints      []string              `db:"hints" json:"hints"`
+	Difficulty int                   `db:"difficulty" json:"difficulty"`
+	XPReward   int                   `db:"xp_reward" json:"xp_reward"`
+	Tags       []string              `db:"tags" json:"tags"`
+	TestCases  []UserProblemTestCase `db:"test_cases" json:"test_cases"`
+	Status     string                `db:"status" json:"status"` // pending | approved | rejected
+	AdminNotes *string               `db:"admin_notes" json:"admin_notes,omitempty"`
+	CreatedAt  time.Time             `db:"created_at" json:"created_at"`
+	ReviewedAt *time.Time            `db:"reviewed_at" json:"reviewed_at,omitempty"`
+}
+
+// Notification represents an alert for a user.
+type Notification struct {
+	ID        pgtype.UUID  `db:"id" json:"id"`
+	UserID    pgtype.UUID  `db:"user_id" json:"user_id"`
+	Type      string       `db:"type" json:"type"`
+	Message   string       `db:"message" json:"message"`
+	RelatedID *pgtype.UUID `db:"related_id" json:"related_id,omitempty"`
+	IsRead    bool         `db:"is_read" json:"is_read"`
+	CreatedAt time.Time    `db:"created_at" json:"created_at"`
+}
+
+// NewUserProblem is the payload for creating a community contribution.
+type NewUserProblem struct {
+	Slug       string                `json:"slug"`
+	Title      string                `json:"title"`
+	Statement  string                `json:"statement"`
+	FuncName   string                `json:"func_name"`
+	ReturnType string                `json:"return_type"`
+	ParamTypes []string              `json:"param_types"`
+	Hints      []string              `json:"hints"`
+	Difficulty int                   `json:"difficulty"`
+	XPReward   int                   `json:"xp_reward"`
+	Tags       []string              `json:"tags"`
+	TestCases  []UserProblemTestCase `json:"test_cases"`
 }

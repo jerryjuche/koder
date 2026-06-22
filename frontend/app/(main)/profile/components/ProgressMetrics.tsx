@@ -1,7 +1,8 @@
 "use client";
 
 import { UserProfile } from "@/lib/types";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Target } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface ProgressMetricsProps {
   profile: UserProfile;

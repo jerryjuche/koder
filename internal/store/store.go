@@ -43,6 +43,20 @@ type Store interface {
 	GetAdminStats(ctx context.Context) (*AdminStats, error)
 	LogActivity(ctx context.Context, logType, message, color, icon string) error
 	GetRecentActivity(ctx context.Context, limit int) ([]ActivityLog, error)
+
+	// Community Contributions
+	CreateUserProblem(ctx context.Context, userID uuid.UUID, problem *NewUserProblem) (*UserProblem, error)
+	ListUserProblemsByUser(ctx context.Context, userID uuid.UUID) ([]UserProblem, error)
+	ListPendingUserProblems(ctx context.Context) ([]UserProblem, error)
+	GetUserProblemByID(ctx context.Context, id uuid.UUID) (*UserProblem, error)
+	RejectUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error)
+	ApproveUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error)
+
+	// Notifications
+	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error
+	GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
+	MarkNotificationAsRead(ctx context.Context, id, userID uuid.UUID) error
+	NotifyAdmins(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error
 }
 
 // PostgresStore implements Store using pgx and Postgres.

@@ -7,6 +7,7 @@ export type User = {
   xp: number;
   level: number;
   solvedCount: number;
+  verified?: boolean;
 };
 
 export type ProblemDifficulty =
@@ -37,6 +38,36 @@ export type Problem = {
   param_types?: string[];
   total_submissions?: number;
   success_rate?: number;
+  author_id?: string;
+  author_name?: string;
+};
+
+export type UserProblemTestCase = {
+  input: any; // Can be parsed JSON
+  expected: string;
+  is_hidden: boolean;
+  ordinal: number;
+};
+
+export type UserProblem = {
+  id: string;
+  user_id: string;
+  slug: string;
+  title: string;
+  statement: string;
+  func_name: string;
+  return_type: string;
+  param_types: string[];
+  hints: string[];
+  difficulty: number;
+  xp_reward: number;
+  tags: string[];
+  test_cases: UserProblemTestCase[];
+  author_name?: string;
+  status: "pending" | "approved" | "rejected";
+  admin_notes?: string;
+  created_at: string;
+  reviewed_at?: string;
 };
 
 export type AdminStats = {

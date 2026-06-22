@@ -15,12 +15,16 @@ import {
 import { cn, getUserColor } from "@/lib/utils";
 import { fetchUser } from "@/lib/api";
 import { User } from "@/lib/types";
+import { useNotifications } from "@/lib/useNotifications";
+import { formatDistanceToNow } from "date-fns";
 
 export default function TopNav() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   useEffect(() => {
     const loadUser = () => {
@@ -116,10 +120,52 @@ export default function TopNav() {
               </span>
             </div>
 
-            <button className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors relative">
-              <Bell size={20} />
-              <span className="absolute 0 right-0 w-2 h-2 bg-brand-error rounded-full ring-2 ring-brand-charcoal-base"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setNotifMenuOpen(!notifMenuOpen)}
+                className="relative p-2 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-brand-charcoal-base">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifMenuOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-2 border-b border-brand-charcoal-border">
+                    <h3 className="font-semibold text-brand-offwhite">Notifications</h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-brand-offwhite-muted text-sm">
+                        No new notifications.
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div 
+                          key={n.id} 
+                          onClick={() => {
+                            if (!n.is_read) markAsRead(n.id);
+                          }}
+                          className={cn(
+                            "px-4 py-3 border-b border-brand-charcoal-border/50 cursor-pointer transition-colors",
+                            n.is_read ? "opacity-60" : "bg-brand-charcoal-hover/30"
+                          )}
+                        >
+                          <p className="text-sm text-brand-offwhite">{n.message}</p>
+                          <span className="text-xs text-brand-offwhite-muted mt-1 block">
+                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile Dropdown */}
             <div className="relative">

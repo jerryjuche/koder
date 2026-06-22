@@ -257,7 +257,7 @@ export default function Dashboard() {
                 )}
               </p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {problem.tags.map((tag) => (
                   <span
                     key={tag}
@@ -267,6 +267,13 @@ export default function Dashboard() {
                   </span>
                 ))}
               </div>
+
+              {problem.author_name && (
+                <div className="text-xs text-brand-offwhite-muted mb-6 flex items-center gap-1 font-mono">
+                  by <span className="text-brand-muted-gold">@{problem.author_name}</span>
+                  <CheckCircle2 className="w-3 h-3 text-brand-muted-gold" />
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-xs text-brand-offwhite-muted pt-4 border-t border-brand-charcoal-border/50">
                 <div className="flex items-center gap-4">

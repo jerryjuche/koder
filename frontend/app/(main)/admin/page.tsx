@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
+import PendingContributions from './PendingContributions';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -282,6 +283,7 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
+          <PendingContributions />
         </div>
 
         {/* Activity Log */}

@@ -43,6 +43,17 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Get("/me/profile", profileHandler.GetProfile)
 		r.Put("/me/profile", profileHandler.UpdateProfile)
 
+		contributionsHandler := NewContributionsHandler(store)
+		r.Group(func(r chi.Router) {
+			r.Use(VerifiedContributorOnly)
+			r.Post("/user-problems", contributionsHandler.PostContribution)
+		})
+		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
+
+		notificationsHandler := NewNotificationsHandler(store)
+		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
+		r.Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
+
 		leaderboardHandler := NewLeaderboardHandler(store)
 		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
 
@@ -59,6 +70,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
+			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
+			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
+			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
 		})
 	})
 

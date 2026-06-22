@@ -5,15 +5,15 @@ import { User, Activity } from "lucide-react";
 import { UserProfile } from "@/lib/types";
 import { fetchUserProfile } from "@/lib/api";
 import ProfileHeader from "./components/ProfileHeader";
-import RankStats from "./components/RankStats";
 import ProgressMetrics from "./components/ProgressMetrics";
-import PerformanceStats from "./components/PerformanceStats";
-import RecentActivity from "./components/RecentActivity";
+import StatsOverview from "./components/StatsOverview";
+import MyContributions from "./components/MyContributions";
 
 export default function ProfileClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "contributions">("overview");
   useEffect(() => {
     let mounted = true;
 
@@ -124,14 +124,38 @@ export default function ProfileClient() {
           {/* Left column: Header and Rank */}
           <div className="lg:col-span-1 space-y-6">
             <ProfileHeader profile={profile} onNameUpdate={handleNameUpdate} />
-            <RankStats profile={profile} />
           </div>
 
           {/* Right column: Metrics */}
           <div className="lg:col-span-2 space-y-6">
-            <ProgressMetrics profile={profile} />
-            <PerformanceStats profile={profile} />
-            <RecentActivity profile={profile} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 border-b border-brand-charcoal-border w-full">
+                <button 
+                  onClick={() => setActiveTab("overview")}
+                  className={`pb-4 px-2 font-semibold transition ${activeTab === "overview" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  Overview
+                </button>
+                {/* Verified Contributor Tab */}
+                <button 
+                  onClick={() => setActiveTab("contributions")}
+                  className={`pb-4 px-2 font-semibold transition ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  My Contributions
+                </button>
+              </div>
+            </div>
+
+            {activeTab === "overview" ? (
+              <div className="space-y-6">
+                <StatsOverview profile={profile} />
+                <ProgressMetrics profile={profile} />
+              </div>
+            ) : (
+              <div className="pt-4">
+                <MyContributions />
+              </div>
+            )}
           </div>
         </div>
       </div>
