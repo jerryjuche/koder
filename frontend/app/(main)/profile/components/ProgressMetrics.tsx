@@ -137,6 +137,34 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           </div>
         </div>
       )}
+
+      {/* Module Proficiency */}
+      {profile.module_proficiency && Object.keys(profile.module_proficiency).length > 0 && (
+        <div className="mt-8 pt-6 border-t border-brand-charcoal-border">
+          <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-4">
+            Module Progress
+          </div>
+          <div className="space-y-4">
+            {Object.entries(profile.module_proficiency).map(([moduleName, stats]) => {
+              const percentage = stats.total === 0 ? 0 : (stats.solved / stats.total) * 100;
+              return (
+                <div key={moduleName} className="bg-brand-charcoal-panel border border-brand-charcoal-border rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-brand-offwhite">{moduleName}</span>
+                    <span className="text-xs text-brand-offwhite-muted font-mono">{stats.solved}/{stats.total}</span>
+                  </div>
+                  <div className="w-full bg-brand-charcoal-base rounded-full h-1.5 overflow-hidden border border-brand-charcoal-border/50">
+                    <div 
+                      className="bg-brand-muted-gold h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

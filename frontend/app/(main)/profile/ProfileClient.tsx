@@ -8,6 +8,7 @@ import ProfileHeader from "./components/ProfileHeader";
 import ProgressMetrics from "./components/ProgressMetrics";
 import StatsOverview from "./components/StatsOverview";
 import MyContributions from "./components/MyContributions";
+import Achievements from "./components/Achievements";
 import { useNotifications } from "@/lib/useNotifications";
 
 export default function ProfileClient() {
@@ -77,14 +78,21 @@ export default function ProfileClient() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left column skeleton */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="h-72 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-64 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              <div className="h-80 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              <div className="h-40 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
             </div>
             {/* Right column skeleton */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="h-80 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-48 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-64 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              {/* Stats Overview */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                   <div key={i} className="h-24 bg-brand-charcoal-card rounded-xl border border-brand-charcoal-border"></div>
+                ))}
+              </div>
+              {/* Progress Metrics + Module Proficiency */}
+              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              {/* Achievements */}
+              <div className="h-[250px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
             </div>
           </div>
         </div>
@@ -160,6 +168,7 @@ export default function ProfileClient() {
               <div className="space-y-6">
                 <StatsOverview profile={profile} />
                 <ProgressMetrics profile={profile} />
+                <Achievements profile={profile} />
               </div>
             ) : (
               <div className="pt-4">

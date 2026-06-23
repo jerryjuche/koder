@@ -8,6 +8,7 @@ import {
   ActivityLog,
   UserProfile,
   UserProblem,
+  CommunitySolution,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -211,6 +212,31 @@ export async function updateUserName(name: string): Promise<ApiResponse<User>> {
     method: "PUT",
     body: JSON.stringify({ name }),
   });
+}
+
+export async function updateUserProfile(name: string, bio: string): Promise<ApiResponse<User>> {
+  return fetchApi<User>("/me/profile", {
+    method: "PUT",
+    body: JSON.stringify({ name, bio }),
+  });
+}
+
+// Community & Likes
+
+export async function fetchCommunitySolutions(slug: string, limit: number = 3): Promise<ApiResponse<CommunitySolution[]>> {
+  return fetchApi<CommunitySolution[]>(`/problems/${slug}/community-solutions?limit=${limit}`);
+}
+
+export async function fetchBestPractices(limit: number = 20): Promise<ApiResponse<CommunitySolution[]>> {
+  return fetchApi<CommunitySolution[]>(`/best-practices?limit=${limit}`);
+}
+
+export async function likeSubmission(submissionId: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "POST" });
+}
+
+export async function unlikeSubmission(submissionId: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "DELETE" });
 }
 
 // Community Contributions

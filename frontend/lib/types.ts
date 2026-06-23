@@ -108,6 +108,7 @@ export type UserProfile = {
   id: string;
   student_id: string;
   name: string;
+  bio?: string;
   color_index: number;
   xp: number;
   level: number;
@@ -121,7 +122,22 @@ export type UserProfile = {
     current_streak_days: number;
   };
   progress_by_difficulty: ProgressByDifficulty;
+  module_proficiency: Record<string, { solved: number; total: number }>;
   recent_submissions: Submission[];
+};
+
+export type CommunitySolution = {
+  id: string;
+  user_id: string;
+  user_name: string;
+  problem_id: string;
+  problem_slug?: string;
+  language: string;
+  code: string;
+  runtime_ms: number;
+  likes: number;
+  has_liked: boolean;
+  created_at: string;
 };
 
 export type LeaderboardEntry = {

@@ -12,7 +12,17 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
         {children}
-        <Toaster theme="dark" position="top-right" />
+        <Toaster 
+          theme="dark" 
+          position="top-right" 
+          toastOptions={{
+            classNames: {
+              success: 'bg-brand-success/10 border-brand-success/50 text-brand-success',
+              error: 'bg-brand-error/10 border-brand-error/50 text-brand-error',
+              toast: 'bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite'
+            }
+          }}
+        />
       </body>
     </html>
   );
