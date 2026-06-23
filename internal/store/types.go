@@ -12,6 +12,7 @@ type User struct {
 	ID         pgtype.UUID `db:"id" json:"id"`
 	StudentID  string      `db:"student_id" json:"student_id"`
 	Name       string      `db:"name" json:"name"`
+	Bio        *string     `db:"bio" json:"bio,omitempty"`
 	Password   string      `db:"password" json:"-"` // bcrypt hash
 	Role       string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
 	ColorIndex int         `db:"color_index" json:"color_index"`
@@ -204,4 +205,19 @@ type NewUserProblem struct {
 	XPReward   int                   `json:"xp_reward"`
 	Tags       []string              `json:"tags"`
 	TestCases  []UserProblemTestCase `json:"test_cases"`
+}
+
+// CommunitySolution represents a submission returned for the community solutions/best practices view.
+type CommunitySolution struct {
+	ID          pgtype.UUID `json:"id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	UserName    string      `json:"user_name"`
+	ProblemID   pgtype.UUID `json:"problem_id"`
+	ProblemSlug string      `json:"problem_slug,omitempty"`
+	Language    string      `json:"language"`
+	Code        string      `json:"code"`
+	RuntimeMs   int         `json:"runtime_ms"`
+	Likes       int         `json:"likes"`
+	HasLiked    bool        `json:"has_liked"`
+	CreatedAt   time.Time   `json:"created_at"`
 }

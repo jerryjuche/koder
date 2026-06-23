@@ -54,16 +54,7 @@ export default function ProfileClient() {
     };
   }, []);
 
-  const handleNameUpdate = async () => {
-    try {
-      const response = await fetchUserProfile();
-      if (response.success && response.data) {
-        setProfile(response.data);
-      }
-    } catch (err) {
-      console.error("Failed to refresh profile after name update", err);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -122,7 +113,7 @@ export default function ProfileClient() {
     <div className="bg-brand-charcoal-base py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
         {/* Header */}
-        <div>
+        <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <User size={32} className="text-brand-muted-gold" />
             <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite">
@@ -134,48 +125,50 @@ export default function ProfileClient() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column: Header and Rank */}
-          <div className="lg:col-span-1 space-y-6">
-            <ProfileHeader profile={profile} onNameUpdate={handleNameUpdate} />
+        {/* Horizontal Profile Header */}
+        <ProfileHeader profile={profile} />
+
+        {/* Main Content Area */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4 border-b border-brand-charcoal-border w-full">
+              <button 
+                onClick={() => setActiveTab("overview")}
+                className={`pb-4 px-2 font-semibold transition ${activeTab === "overview" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Overview
+              </button>
+              {/* Verified Contributor Tab */}
+              <button 
+                onClick={() => setActiveTab("contributions")}
+                className={`pb-4 px-2 font-semibold transition flex items-center gap-2 ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                My Contributions
+                {hasContributionNotif && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Right column: Metrics */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 border-b border-brand-charcoal-border w-full">
-                <button 
-                  onClick={() => setActiveTab("overview")}
-                  className={`pb-4 px-2 font-semibold transition ${activeTab === "overview" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
-                >
-                  Overview
-                </button>
-                {/* Verified Contributor Tab */}
-                <button 
-                  onClick={() => setActiveTab("contributions")}
-                  className={`pb-4 px-2 font-semibold transition flex items-center gap-2 ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
-                >
-                  My Contributions
-                  {hasContributionNotif && (
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {activeTab === "overview" ? (
-              <div className="space-y-6">
+          {activeTab === "overview" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Stats */}
+              <div className="lg:col-span-1 space-y-6">
                 <StatsOverview profile={profile} />
+              </div>
+              
+              {/* Right Column: Progress and Achievements */}
+              <div className="lg:col-span-2 space-y-6">
                 <ProgressMetrics profile={profile} />
                 <Achievements profile={profile} />
               </div>
-            ) : (
-              <div className="pt-4">
-                <MyContributions />
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="pt-4">
+              <MyContributions />
+            </div>
+          )}
         </div>
       </div>
     </div>

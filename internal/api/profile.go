@@ -23,6 +23,7 @@ type profileResponse struct {
 	ID                  string                                    `json:"id"`
 	StudentID           string                                    `json:"student_id"`
 	Name                string                                    `json:"name"`
+	Bio                 string                                    `json:"bio"`
 	ColorIndex          int                                       `json:"color_index"`
 	XP                  int                                       `json:"xp"`
 	Level               int                                       `json:"level"`
@@ -30,6 +31,7 @@ type profileResponse struct {
 	CreatedAt           string                                    `json:"created_at"`
 	Stats               profileStatsResponse                      `json:"stats"`
 	ProgressByDifficulty map[string]difficultyProgressResponse  `json:"progress_by_difficulty"`
+	ModuleProficiency    map[string]difficultyProgressResponse  `json:"module_proficiency"`
 	RecentSubmissions   []submissionResponse                      `json:"recent_submissions"`
 }
 
@@ -112,6 +114,20 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		Total:  stats.ProgressByDiff["hard"].Total,
 	}
 
+	// Get module proficiency
+	moduleProf, err := h.store.GetModuleProficiency(r.Context(), userUUID)
+	if err != nil {
+		moduleProf = make(map[string]store.DifficultyProgress)
+	}
+
+	moduleProfResp := make(map[string]difficultyProgressResponse)
+	for k, v := range moduleProf {
+		moduleProfResp[k] = difficultyProgressResponse{
+			Solved: v.Solved,
+			Total:  v.Total,
+		}
+	}
+
 	// Convert recent submissions to response format
 	recentSubs := make([]submissionResponse, 0, len(submissions))
 	for _, sub := range submissions {
@@ -132,10 +148,16 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, _ := uuidStringFromPGType(user.ID)
 	level := (user.XP / 1000) + 1
 
+	bio := ""
+	if user.Bio != nil {
+		bio = *user.Bio
+	}
+
 	resp := profileResponse{
 		ID:         userID,
 		StudentID:  user.StudentID,
 		Name:       user.Name,
+		Bio:        bio,
 		ColorIndex: user.ColorIndex,
 		XP:         user.XP,
 		Level:      level,
@@ -149,6 +171,7 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 			CurrentStreakDays: stats.CurrentStreakDays,
 		},
 		ProgressByDifficulty: progressByDiff,
+		ModuleProficiency:    moduleProfResp,
 		RecentSubmissions:    recentSubs,
 	}
 
@@ -158,6 +181,7 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // updateProfileRequest is the request body for updating user profile.
 type updateProfileRequest struct {
 	Name string `json:"name"`
+	Bio  string `json:"bio"`
 }
 
 // UpdateProfile updates the authenticated user's profile (currently just name).
@@ -185,8 +209,8 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user name
-	if err := h.store.UpdateUserName(r.Context(), userUUID, req.Name); err != nil {
+	// Update user profile
+	if err := h.store.UpdateUserProfile(r.Context(), userUUID, req.Name, req.Bio); err != nil {
 		RespondError(w, http.StatusInternalServerError, "UPDATE_ERROR", "Failed to update profile", nil)
 		return
 	}
@@ -201,9 +225,15 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, _ := uuidStringFromPGType(user.ID)
 	level := (user.XP / 1000) + 1
 
+	bioStr := ""
+	if user.Bio != nil {
+		bioStr = *user.Bio
+	}
+
 	RespondSuccess(w, map[string]interface{}{
 		"id":          userID,
 		"name":        user.Name,
+		"bio":         bioStr,
 		"student_id":  user.StudentID,
 		"xp":          user.XP,
 		"level":       level,

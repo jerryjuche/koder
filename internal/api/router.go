@@ -60,6 +60,13 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
+		
+		communityHandler := NewCommunityHandler(store)
+		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)
+		r.Get("/best-practices", communityHandler.GetBestPractices)
+		r.Post("/submissions/{id}/like", communityHandler.LikeSubmission)
+		r.Delete("/submissions/{id}/like", communityHandler.UnlikeSubmission)
+
 		r.Post("/submit", submissionHandler.Submit)
 		r.Post("/test", testHandler.Test)
 

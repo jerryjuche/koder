@@ -18,10 +18,12 @@ type Store interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
+	UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error
 	GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
 	GetUserRank(ctx context.Context, userID uuid.UUID) (int, error)
 	GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error)
+	GetModuleProficiency(ctx context.Context, userID uuid.UUID) (map[string]DifficultyProgress, error)
 	GetRecentSubmissions(ctx context.Context, userID uuid.UUID, limit int) ([]Submission, error)
 
 	// Problem operations
@@ -38,6 +40,12 @@ type Store interface {
 	UpsertProgress(ctx context.Context, prog *Progress) error
 	GetProblemWithTestCases(ctx context.Context, problemID uuid.UUID) (*Problem, []TestCase, error)
 	ListAllProblemsAdmin(ctx context.Context) ([]Problem, error)
+
+	// Community Solutions & Likes
+	LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
+	UnlikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
+	GetTopCommunitySolutionsForProblem(ctx context.Context, problemID, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
+	GetBestPractices(ctx context.Context, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
 
 	// Admin operations
 	GetAdminStats(ctx context.Context) (*AdminStats, error)
