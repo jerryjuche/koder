@@ -34,30 +34,42 @@ func NewParser(baseDir string) *Parser {
 	return &Parser{baseDir: baseDir}
 }
 
-func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) ([]*RawProblem, error) {
-	if repoURL == "" {
+func (p *Parser) IngestGitHubRepo(ctx context.Context, inputURL string) ([]*RawProblem, error) {
+	if inputURL == "" {
 		return nil, fmt.Errorf("repo_url cannot be empty")
 	}
 
-	repoURL = cleanRepoURL(repoURL)
+	repoURL, subPath, err := parseGitHubURL(inputURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repository URL: %w", err)
+	}
 
 	repoSlug, repoModule, err := parseRepoMetadata(repoURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %w", err)
 	}
 
-	repoPath, cleanup, err := p.cloneRepository(ctx, repoURL)
+	repoPath, cleanup, err := p.cloneRepository(ctx, repoURL, subPath)
 	if err != nil {
 		return nil, err
 	}
 	defer cleanup()
 
-	problems, err := collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule)
+	targetPath := repoPath
+	if subPath != "" {
+		targetPath = filepath.Join(repoPath, subPath)
+		// Ensure targetPath exists
+		if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("specified subfolder '%s' does not exist in repository", subPath)
+		}
+	}
+
+	problems, err := collectExerciseReadmes(targetPath, repoPath, repoURL, repoSlug, repoModule)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(problems) == 0 {
+	if len(problems) == 0 && subPath == "" {
 		readme, err := extractReadme(repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("no exercises found and root README extraction failed: %w", err)
@@ -76,10 +88,10 @@ func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) ([]*RawPr
 	return problems, nil
 }
 
-func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*RawProblem, error) {
+func collectExerciseReadmes(targetPath, rootRepoPath, repoURL, repoSlug, repoModule string) ([]*RawProblem, error) {
 	var problems []*RawProblem
 
-	err := filepath.WalkDir(repoPath, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(targetPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -101,7 +113,7 @@ func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*
 		}
 
 		dir := filepath.Dir(path)
-		relPath, err := filepath.Rel(repoPath, dir)
+		relPath, err := filepath.Rel(rootRepoPath, dir)
 		if err != nil {
 			return err
 		}
@@ -148,7 +160,7 @@ func detectProblemType(rawReadme string) string {
 	return "program"
 }
 
-func (p *Parser) cloneRepository(ctx context.Context, repoURL string) (string, func(), error) {
+func (p *Parser) cloneRepository(ctx context.Context, repoURL string, subPath string) (string, func(), error) {
 	tempDir := filepath.Join(p.baseDir, uuid.NewString())
 	if err := os.MkdirAll(tempDir, 0o755); err != nil {
 		return "", nil, fmt.Errorf("failed to create temp directory: %w", err)
@@ -158,11 +170,30 @@ func (p *Parser) cloneRepository(ctx context.Context, repoURL string) (string, f
 		_ = os.RemoveAll(tempDir)
 	}
 
-	cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", repoURL, tempDir)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		cleanup()
-		return "", nil, fmt.Errorf("git clone failed: %w - %s", err, strings.TrimSpace(string(output)))
+	if subPath != "" {
+		// Use sparse checkout for incredibly fast subfolder cloning
+		cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", repoURL, tempDir)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git clone sparse failed: %w - %s", err, strings.TrimSpace(string(output)))
+		}
+
+		cmdSparse := exec.CommandContext(ctx, "git", "sparse-checkout", "set", subPath)
+		cmdSparse.Dir = tempDir
+		outputSparse, err := cmdSparse.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git sparse-checkout failed: %w - %s", err, strings.TrimSpace(string(outputSparse)))
+		}
+	} else {
+		// Standard full clone
+		cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", repoURL, tempDir)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git clone failed: %w - %s", err, strings.TrimSpace(string(output)))
+		}
 	}
 
 	return tempDir, cleanup, nil
@@ -252,6 +283,49 @@ func normalizeModule(pathValue string) string {
 	normalized = strings.TrimSuffix(normalized, ".git")
 	normalized = strings.Trim(normalized, "/")
 	return strings.ToLower(normalized)
+}
+
+func parseGitHubURL(inputURL string) (repoURL string, subPath string, err error) {
+	cleaned := strings.TrimSpace(inputURL)
+	
+	if strings.HasPrefix(cleaned, "git@") {
+		parts := strings.SplitN(cleaned, ":", 2)
+		if len(parts) == 2 {
+			pathParts := strings.Split(strings.Trim(parts[1], "/"), "/")
+			if len(pathParts) >= 2 {
+				repoURL = fmt.Sprintf("%s:%s/%s", parts[0], pathParts[0], strings.TrimSuffix(pathParts[1], ".git"))
+				return repoURL, "", nil // SSH URLs rarely have subpaths passed directly, keep simple
+			}
+		}
+		return cleaned, "", nil
+	}
+
+	parsed, err := url.Parse(cleaned)
+	if err == nil && strings.Contains(parsed.Host, "github.com") {
+		pathParts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+		var filtered []string
+		for _, p := range pathParts {
+			if p != "" {
+				filtered = append(filtered, p)
+			}
+		}
+		if len(filtered) >= 2 {
+			repoURL = fmt.Sprintf("https://github.com/%s/%s", filtered[0], strings.TrimSuffix(filtered[1], ".git"))
+			
+			if len(filtered) > 4 && (filtered[2] == "tree" || filtered[2] == "blob") {
+				// branch is filtered[3], subpath is everything after
+				subPath = strings.Join(filtered[4:], "/")
+			} else if len(filtered) > 2 && filtered[2] != "tree" && filtered[2] != "blob" {
+				// E.g. master/subjects -> branch master, subpath subjects
+				subPath = strings.Join(filtered[3:], "/")
+			}
+			return repoURL, subPath, nil
+		}
+	}
+	
+	// Fallback
+	repoURL = cleanRepoURL(cleaned)
+	return repoURL, "", nil
 }
 
 func cleanRepoURL(repoURL string) string {
