@@ -116,7 +116,7 @@ export default function MyContributions() {
         <Card 
           key={prob.id} 
           onClick={() => setSelectedProblem(prob)}
-          className="bg-brand-charcoal-card border-brand-charcoal-border hover:border-brand-muted-gold/30 hover:-translate-y-0.5 transition-all cursor-pointer group"
+          className="bg-brand-charcoal-card border-brand-charcoal-border hover:border-brand-muted-gold/30 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group hover:shadow-lg hover:shadow-brand-muted-gold/5"
         >
           <div className="p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
             <div className="flex-1 min-w-0">
@@ -150,8 +150,8 @@ export default function MyContributions() {
 
       {/* Detail Modal */}
       {selectedProblem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-brand-charcoal-card border border-brand-charcoal-border/60 rounded-xl shadow-2xl shadow-black/50 w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-brand-charcoal-border bg-brand-charcoal-base rounded-t-xl">

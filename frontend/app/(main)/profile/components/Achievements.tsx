@@ -74,7 +74,7 @@ export default function Achievements({ profile }: AchievementsProps) {
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
-    <div className="mt-8 pt-6 border-t border-brand-charcoal-border relative">
+    <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-6 hover:-translate-y-0.5 transition-all duration-300 shadow-lg shadow-brand-charcoal-border/5">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Award size={24} className="text-brand-muted-gold" />
@@ -95,10 +95,10 @@ export default function Achievements({ profile }: AchievementsProps) {
               key={achievement.id}
               onClick={() => setSelectedAchievement(achievement)}
               className={cn(
-                "relative overflow-hidden transition-all duration-300 cursor-pointer group hover:scale-[1.02]",
+                "relative overflow-hidden transition-all duration-300 cursor-pointer group hover:-translate-y-0.5",
                 achievement.unlocked
-                  ? "bg-brand-charcoal-card border-brand-charcoal-border hover:border-brand-muted-gold/30"
-                  : "bg-brand-charcoal-base border-brand-charcoal-border/30 opacity-60 grayscale hover:grayscale-0"
+                  ? "bg-brand-charcoal-card border-brand-charcoal-border hover:border-brand-muted-gold/30 hover:shadow-lg hover:shadow-brand-muted-gold/5"
+                  : "bg-brand-charcoal-base border-brand-charcoal-border/30 opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
               )}
             >
               {achievement.unlocked && (

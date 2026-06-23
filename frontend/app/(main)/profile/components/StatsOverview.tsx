@@ -10,7 +10,7 @@ interface StatsOverviewProps {
 
 export default function StatsOverview({ profile }: StatsOverviewProps) {
   return (
-    <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-6 h-full flex flex-col relative overflow-hidden">
+    <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-6 h-full flex flex-col relative overflow-hidden hover:-translate-y-0.5 transition-all duration-300 shadow-lg shadow-brand-charcoal-border/5">
       {/* Background fade pattern like the image */}
       <div 
         className="absolute -bottom-32 -right-32 w-96 h-96 opacity-[0.03] pointer-events-none"
@@ -26,15 +26,23 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
       </div>
 
       <div className="flex flex-col gap-4 relative z-10 flex-1">
-        {/* Top Row: Total XP and Level */}
-        <div className="flex gap-4">
-          <div className="flex-1 bg-[#121418] border border-brand-charcoal-border/50 rounded-xl p-5 text-center shadow-inner">
-            <p className="text-[11px] text-brand-offwhite-muted font-bold mb-2 tracking-widest uppercase">Total XP</p>
-            <p className="text-3xl font-bold text-brand-offwhite font-mono">{profile.xp.toLocaleString()}</p>
+        {/* Top Row: Level + XP Progress */}
+        <div className="bg-[#121418] border border-brand-charcoal-border/50 rounded-xl p-5 group hover:bg-[#15181C] transition-colors relative overflow-hidden">
+          <div className="flex justify-between items-end mb-3">
+            <div>
+              <p className="text-[11px] text-brand-offwhite-muted font-bold tracking-widest uppercase mb-1">Current Level</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-brand-muted-gold font-mono">{profile.level}</span>
+                <span className="text-sm font-medium text-brand-offwhite-muted">{profile.xp.toLocaleString()} Total XP</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-brand-muted-gold">{Math.floor((profile.xp % 1000) / 10)}%</span>
           </div>
-          <div className="flex-1 bg-[#121418] border border-brand-charcoal-border/50 rounded-xl p-5 text-center shadow-inner">
-            <p className="text-[11px] text-brand-offwhite-muted font-bold mb-2 tracking-widest uppercase">Level</p>
-            <p className="text-3xl font-bold text-brand-muted-gold font-mono">{profile.level}</p>
+          <div className="w-full bg-brand-charcoal-base rounded-full h-1.5 overflow-hidden border border-brand-charcoal-border/50">
+            <div 
+              className="bg-brand-muted-gold h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(212,175,55,0.5)]" 
+              style={{ width: `${Math.max(5, (profile.xp % 1000) / 10)}%` }}
+            />
           </div>
         </div>
 

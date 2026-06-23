@@ -39,6 +39,8 @@ func (p *Parser) IngestGitHubRepo(ctx context.Context, repoURL string) ([]*RawPr
 		return nil, fmt.Errorf("repo_url cannot be empty")
 	}
 
+	repoURL = cleanRepoURL(repoURL)
+
 	repoSlug, repoModule, err := parseRepoMetadata(repoURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %w", err)
@@ -105,17 +107,8 @@ func collectExerciseReadmes(repoPath, repoURL, repoSlug, repoModule string) ([]*
 		}
 
 		slashPath := filepath.ToSlash(relPath)
-		
-		parts := strings.Split(slashPath, "/")
-		hasExercises := false
-		for _, part := range parts {
-			if part == "exercises" {
-				hasExercises = true
-				break
-			}
-		}
 
-		if slashPath == "." || !hasExercises {
+		if slashPath == "." {
 			return nil
 		}
 
@@ -206,6 +199,7 @@ func computeSourceHash(rawReadme string) string {
 }
 
 func parseRepoMetadata(repoURL string) (slug string, module string, err error) {
+	repoURL = cleanRepoURL(repoURL)
 	if strings.HasPrefix(repoURL, "git@") {
 		return parseGitSSHURL(repoURL)
 	}
@@ -258,4 +252,46 @@ func normalizeModule(pathValue string) string {
 	normalized = strings.TrimSuffix(normalized, ".git")
 	normalized = strings.Trim(normalized, "/")
 	return strings.ToLower(normalized)
+}
+
+func cleanRepoURL(repoURL string) string {
+	cleaned := strings.TrimSpace(repoURL)
+	
+	if strings.HasPrefix(cleaned, "git@") {
+		parts := strings.SplitN(cleaned, ":", 2)
+		if len(parts) == 2 {
+			pathParts := strings.Split(strings.Trim(parts[1], "/"), "/")
+			if len(pathParts) >= 2 {
+				return fmt.Sprintf("%s:%s/%s", parts[0], pathParts[0], strings.TrimSuffix(pathParts[1], ".git"))
+			}
+		}
+		return cleaned
+	}
+
+	parsed, err := url.Parse(cleaned)
+	if err == nil && strings.Contains(parsed.Host, "github.com") {
+		pathParts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+		var filtered []string
+		for _, p := range pathParts {
+			if p != "" {
+				filtered = append(filtered, p)
+			}
+		}
+		if len(filtered) >= 2 {
+			return fmt.Sprintf("https://github.com/%s/%s", filtered[0], strings.TrimSuffix(filtered[1], ".git"))
+		}
+	}
+	
+	// Fallback cleaning
+	if idx := strings.Index(cleaned, "/tree/"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+	if idx := strings.Index(cleaned, "/blob/"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+	
+	cleaned = strings.TrimSuffix(cleaned, "/")
+	cleaned = strings.TrimSuffix(cleaned, ".git")
+	
+	return cleaned
 }

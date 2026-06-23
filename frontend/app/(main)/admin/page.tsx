@@ -76,11 +76,44 @@ export default function AdminDashboard() {
     };
   }, [router]);
 
+  const cleanGitHubUrl = (url: string): string => {
+    let clean = url.trim();
+    try {
+      // Handle standard https URLs
+      const parsedUrl = new URL(clean);
+      if (parsedUrl.hostname.includes('github.com')) {
+        const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+        if (pathParts.length >= 2) {
+          return `https://${parsedUrl.hostname}/${pathParts[0]}/${pathParts[1].replace(/\.git$/, '')}`;
+        }
+      }
+    } catch (e) {
+      // Handle git@ SSH URLs
+      if (clean.startsWith('git@')) {
+        const parts = clean.split(':');
+        if (parts.length === 2) {
+          const pathParts = parts[1].split('/').filter(Boolean);
+          if (pathParts.length >= 2) {
+            return `${parts[0]}:${pathParts[0]}/${pathParts[1].replace(/\.git$/, '')}`;
+          }
+        }
+      }
+    }
+    return clean;
+  };
+
   const handleIngest = async () => {
+    if (!ingestUrl) {
+      toast.error("Please enter a valid GitHub URL");
+      return;
+    }
+    
+    const cleanUrl = cleanGitHubUrl(ingestUrl);
     setIngesting(true);
-    const res = await ingestGitHubRepo(ingestUrl);
+    const res = await ingestGitHubRepo(cleanUrl);
     if (res.success) {
       toast.success("Repository ingested successfully!");
+      setIngestUrl(cleanUrl); // Update input to show the cleaned URL
       loadData();
     } else {
       toast.error(res.error?.message || "Ingestion failed.");
@@ -163,6 +196,7 @@ export default function AdminDashboard() {
                 <input 
                   value={ingestUrl}
                   onChange={(e) => setIngestUrl(e.target.value)}
+                  placeholder="https://github.com/01-edu/public"
                   className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2 text-sm text-brand-offwhite mb-4 focus:outline-none focus:border-brand-muted-gold"
                 />
                 <button 

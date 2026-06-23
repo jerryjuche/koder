@@ -11,11 +11,11 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   return (
-    <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-8 flex flex-col md:flex-row gap-8 items-start">
+    <div className="bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border p-8 flex flex-col md:flex-row gap-8 items-start hover:-translate-y-0.5 transition-all duration-300 shadow-lg shadow-brand-charcoal-border/5">
       {/* Avatar */}
       <div
         className={cn(
-          "w-32 h-32 rounded-3xl flex-shrink-0 flex items-center justify-center shadow-lg border-2 border-brand-charcoal-border/50",
+          "w-32 h-32 rounded-3xl flex-shrink-0 flex items-center justify-center shadow-[0_0_30px_rgba(212,175,55,0.15)] border-2 border-brand-charcoal-border/50",
           getUserColor(profile.color_index)
         )}
       >
