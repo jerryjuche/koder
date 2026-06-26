@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { User, Activity } from "lucide-react";
+import { User } from "lucide-react";
 import { UserProfile } from "@/lib/types";
 import { fetchUserProfile } from "@/lib/api";
 import ProfileHeader from "./components/ProfileHeader";
@@ -66,24 +66,17 @@ export default function ProfileClient() {
             <div className="h-5 w-64 bg-brand-charcoal-card rounded-md border border-brand-charcoal-border"></div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column skeleton */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="h-80 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-40 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+          <div className="space-y-6">
+            {/* Stats Bar Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                 <div key={i} className="h-32 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              ))}
             </div>
-            {/* Right column skeleton */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Stats Overview */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {[...Array(6)].map((_, i) => (
-                   <div key={i} className="h-24 bg-brand-charcoal-card rounded-xl border border-brand-charcoal-border"></div>
-                ))}
-              </div>
-              {/* Progress Metrics + Module Proficiency */}
+            {/* Two-column skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              {/* Achievements */}
-              <div className="h-[250px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
             </div>
           </div>
         </div>
@@ -152,14 +145,12 @@ export default function ProfileClient() {
           </div>
 
           {activeTab === "overview" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Stats */}
-              <div className="lg:col-span-1 space-y-6">
-                <StatsOverview profile={profile} />
-              </div>
+            <div className="space-y-6">
+              {/* Full-width Stats Bar */}
+              <StatsOverview profile={profile} />
               
-              {/* Right Column: Progress and Achievements */}
-              <div className="lg:col-span-2 space-y-6">
+              {/* Two-column: Module Proficiency + Achievements */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ProgressMetrics profile={profile} />
                 <Achievements profile={profile} />
               </div>

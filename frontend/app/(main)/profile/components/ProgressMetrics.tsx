@@ -46,18 +46,16 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
                 </span>
               </div>
               <div className="w-full bg-brand-charcoal-base rounded-full h-1.5 overflow-hidden border border-brand-charcoal-border/50 relative">
-                {/* Track glow */}
-                <div 
-                  className="absolute inset-y-0 left-0 bg-brand-muted-gold/20 blur-[2px]" 
+                <div
+                  className="absolute inset-y-0 left-0 bg-brand-muted-gold/20 blur-[2px]"
                   style={{ width: `${percentage}%` }}
                 />
-                {/* Main progress bar */}
-                <div 
-                  className="bg-brand-muted-gold h-full rounded-full transition-all duration-1000 ease-out relative z-10" 
+                <div
+                  className="bg-brand-muted-gold h-full rounded-full transition-all duration-1000 ease-out relative z-10"
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex justify-between mt-1.5">
                 <span className="text-[10px] text-brand-offwhite-muted uppercase tracking-wider">{stats.solved} solved</span>
                 <span className="text-[10px] text-brand-offwhite-muted uppercase tracking-wider">{stats.total} total</span>
               </div>
