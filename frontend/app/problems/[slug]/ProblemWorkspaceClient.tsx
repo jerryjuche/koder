@@ -486,7 +486,113 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               value={code}
               onChange={(v) => setCode(v || "")}
               onMount={(editor, monaco) => {
-                // Register Go autocomplete provider
+                const pkgMethods: Record<string, { label: string; detail: string; insertText: string }[]> = {
+                  fmt: [
+                    { label: "Println(a ...any)", detail: "fmt.Println", insertText: "Println(${1:})" },
+                    { label: "Printf(format string, a ...any)", detail: "fmt.Printf", insertText: "Printf(\"${1:}\\n\", ${2:})" },
+                    { label: "Sprintf(format string, a ...any)", detail: "fmt.Sprintf", insertText: "Sprintf(\"${1:}\\n\", ${2:})" },
+                    { label: "Fprint(w io.Writer, a ...any)", detail: "fmt.Fprint", insertText: "Fprint(${1:w}, ${2:})" },
+                    { label: "Fprintln(w io.Writer, a ...any)", detail: "fmt.Fprintln", insertText: "Fprintln(${1:w}, ${2:})" },
+                    { label: "Errorf(format string, a ...any)", detail: "fmt.Errorf", insertText: "Errorf(\"${1:}\\n\", ${2:})" },
+                    { label: "Scan(a ...any)", detail: "fmt.Scan", insertText: "Scan(${1:})" },
+                    { label: "Scanf(format string, a ...any)", detail: "fmt.Scanf", insertText: "Scanf(\"${1:}\", ${2:})" },
+                    { label: "Sscan(str string, a ...any)", detail: "fmt.Sscan", insertText: "Sscan(\"${1:}\", ${2:})" },
+                  ],
+                  strings: [
+                    { label: "Contains(s, substr string) bool", detail: "strings.Contains", insertText: "Contains(${1:s}, ${2:substr})" },
+                    { label: "Count(s, substr string) int", detail: "strings.Count", insertText: "Count(${1:s}, ${2:substr})" },
+                    { label: "HasPrefix(s, prefix string) bool", detail: "strings.HasPrefix", insertText: "HasPrefix(${1:s}, ${2:prefix})" },
+                    { label: "HasSuffix(s, suffix string) bool", detail: "strings.HasSuffix", insertText: "HasSuffix(${1:s}, ${2:suffix})" },
+                    { label: "Index(s, substr string) int", detail: "strings.Index", insertText: "Index(${1:s}, ${2:substr})" },
+                    { label: "Join(elems []string, sep string) string", detail: "strings.Join", insertText: "Join(${1:elems}, \"${2:sep}\")" },
+                    { label: "Split(s, sep string) []string", detail: "strings.Split", insertText: "Split(${1:s}, \"${2:sep}\")" },
+                    { label: "ToLower(s string) string", detail: "strings.ToLower", insertText: "ToLower(${1:s})" },
+                    { label: "ToUpper(s string) string", detail: "strings.ToUpper", insertText: "ToUpper(${1:s})" },
+                    { label: "Trim(s, cutset string) string", detail: "strings.Trim", insertText: "Trim(${1:s}, \"${2:cutset}\")" },
+                    { label: "TrimSpace(s string) string", detail: "strings.TrimSpace", insertText: "TrimSpace(${1:s})" },
+                    { label: "Replace(s, old, new string, n int) string", detail: "strings.Replace", insertText: "Replace(${1:s}, \"${2:old}\", \"${3:new}\", ${4:n})" },
+                    { label: "Fields(s string) []string", detail: "strings.Fields", insertText: "Fields(${1:s})" },
+                  ],
+                  math: [
+                    { label: "Abs(x float64) float64", detail: "math.Abs", insertText: "Abs(${1:x})" },
+                    { label: "Pow(x, y float64) float64", detail: "math.Pow", insertText: "Pow(${1:x}, ${2:y})" },
+                    { label: "Sqrt(x float64) float64", detail: "math.Sqrt", insertText: "Sqrt(${1:x})" },
+                    { label: "Max(x, y float64) float64", detail: "math.Max", insertText: "Max(${1:x}, ${2:y})" },
+                    { label: "Min(x, y float64) float64", detail: "math.Min", insertText: "Min(${1:x}, ${2:y})" },
+                    { label: "Floor(x float64) float64", detail: "math.Floor", insertText: "Floor(${1:x})" },
+                    { label: "Ceil(x float64) float64", detail: "math.Ceil", insertText: "Ceil(${1:x})" },
+                    { label: "Round(x float64) float64", detail: "math.Round", insertText: "Round(${1:x})" },
+                    { label: "Sin(x float64) float64", detail: "math.Sin", insertText: "Sin(${1:x})" },
+                    { label: "Cos(x float64) float64", detail: "math.Cos", insertText: "Cos(${1:x})" },
+                    { label: "Exp(x float64) float64", detail: "math.Exp", insertText: "Exp(${1:x})" },
+                    { label: "Log(x float64) float64", detail: "math.Log", insertText: "Log(${1:x})" },
+                  ],
+                  sort: [
+                    { label: "Ints(a []int)", detail: "sort.Ints", insertText: "Ints(${1:a})" },
+                    { label: "Strings(a []string)", detail: "sort.Strings", insertText: "Strings(${1:a})" },
+                    { label: "Float64s(a []float64)", detail: "sort.Float64s", insertText: "Float64s(${1:a})" },
+                    { label: "SearchInts(a []int, x int) int", detail: "sort.SearchInts", insertText: "SearchInts(${1:a}, ${2:x})" },
+                    { label: "SearchStrings(a []string, x string) int", detail: "sort.SearchStrings", insertText: "SearchStrings(${1:a}, \"${2:x}\")" },
+                    { label: "Slice(x any, less func(i, j int) bool)", detail: "sort.Slice", insertText: "Slice(${1:x}, func(i, j int) bool { return ${2:} })" },
+                    { label: "IsSorted(data Interface) bool", detail: "sort.IsSorted", insertText: "IsSorted(${1:data})" },
+                    { label: "Reverse(data Interface) Interface", detail: "sort.Reverse", insertText: "Reverse(${1:data})" },
+                  ],
+                  os: [
+                    { label: "Getenv(key string) string", detail: "os.Getenv", insertText: "Getenv(\"${1:key}\")" },
+                    { label: "Setenv(key, value string) error", detail: "os.Setenv", insertText: "Setenv(\"${1:key}\", \"${2:value}\")" },
+                    { label: "Getwd() (string, error)", detail: "os.Getwd", insertText: "Getwd()" },
+                    { label: "Chdir(dir string) error", detail: "os.Chdir", insertText: "Chdir(\"${1:dir}\")" },
+                    { label: "Exit(code int)", detail: "os.Exit", insertText: "Exit(${1:code})" },
+                    { label: "ReadFile(name string) ([]byte, error)", detail: "os.ReadFile", insertText: "ReadFile(\"${1:name}\")" },
+                    { label: "WriteFile(name string, data []byte, perm FileMode) error", detail: "os.WriteFile", insertText: "WriteFile(\"${1:name}\", ${2:data}, ${3:0644})" },
+                  ],
+                  strconv: [
+                    { label: "Atoi(s string) (int, error)", detail: "strconv.Atoi", insertText: "Atoi(${1:s})" },
+                    { label: "Itoa(i int) string", detail: "strconv.Itoa", insertText: "Itoa(${1:i})" },
+                    { label: "ParseFloat(s string, bitSize int) (float64, error)", detail: "strconv.ParseFloat", insertText: "ParseFloat(\"${1:s}\", ${2:bitSize})" },
+                    { label: "FormatFloat(f float64, fmt byte, prec, bitSize int) string", detail: "strconv.FormatFloat", insertText: "FormatFloat(${1:f}, '${2:f}', ${3:-1}, ${4:64})" },
+                  ],
+                  time: [
+                    { label: "Now() Time", detail: "time.Now", insertText: "Now()" },
+                    { label: "Since(t Time) Duration", detail: "time.Since", insertText: "Since(${1:t})" },
+                    { label: "Sleep(d Duration)", detail: "time.Sleep", insertText: "Sleep(${1:d})" },
+                    { label: "Parse(layout, value string) (Time, error)", detail: "time.Parse", insertText: "Parse(\"${1:2006-01-02}\", \"${2:value}\")" },
+                  ],
+                  errors: [
+                    { label: "New(text string) error", detail: "errors.New", insertText: "New(\"${1:text}\")" },
+                    { label: "As(err error, target any) bool", detail: "errors.As", insertText: "As(${1:err}, ${2:target})" },
+                    { label: "Is(err, target error) bool", detail: "errors.Is", insertText: "Is(${1:err}, ${2:target})" },
+                    { label: "Unwrap(err error) error", detail: "errors.Unwrap", insertText: "Unwrap(${1:err})" },
+                  ],
+                  "encoding/json": [
+                    { label: "Marshal(v any) ([]byte, error)", detail: "json.Marshal", insertText: "Marshal(${1:v})" },
+                    { label: "Unmarshal(data []byte, v any) error", detail: "json.Unmarshal", insertText: "Unmarshal(${1:data}, ${2:v})" },
+                    { label: "NewDecoder(r io.Reader) *Decoder", detail: "json.NewDecoder", insertText: "NewDecoder(${1:r})" },
+                    { label: "NewEncoder(w io.Writer) *Encoder", detail: "json.NewEncoder", insertText: "NewEncoder(${1:w})" },
+                  ],
+                };
+
+                const allPackages = [
+                  "fmt", "strings", "io", "os", "time", "math", "sort",
+                  "encoding/json", "net/http", "context", "errors",
+                  "bufio", "bytes", "crypto", "database/sql", "flag",
+                  "hash", "html", "image", "log", "mime", "net", "path",
+                  "regexp", "sync", "syscall", "testing", "text/template",
+                  "unicode", "archive/tar", "archive/zip", "compress/gzip",
+                  "strconv", "reflect", "fmt",
+                ];
+
+                const keywords = [
+                  "func", "var", "const", "if", "else", "for", "switch",
+                  "case", "default", "break", "continue", "return", "defer",
+                  "go", "chan", "select", "range", "type", "struct",
+                  "interface", "map", "slice", "array", "import", "package",
+                  "fallthrough", "goto", "panic", "recover", "nil", "true", "false",
+                  "int", "string", "bool", "float64", "byte", "rune", "error",
+                  "int8", "int16", "int32", "int64", "uint", "uint8", "uint16",
+                  "uint32", "uint64", "float32", "complex64", "complex128",
+                ];
+
                 monaco.languages.registerCompletionItemProvider("go", {
                   triggerCharacters: [".", " "],
                   provideCompletionItems: (model: any, position: any) => {
@@ -498,33 +604,40 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       endColumn: position.column,
                     };
 
-                    // Go standard library packages
-                    const packages = [
-                      "fmt", "strings", "io", "os", "time", "math", "sort",
-                      "encoding/json", "net/http", "context", "errors",
-                      "bufio", "bytes", "crypto", "database/sql", "flag",
-                      "hash", "html", "image", "log", "mime", "net", "path",
-                      "regexp", "sync", "syscall", "testing", "text/template",
-                      "unicode", "archive/tar", "archive/zip", "compress/gzip",
-                    ];
+                    const textUntilPos = model.getValueInRange({
+                      startLineNumber: position.lineNumber,
+                      startColumn: 1,
+                      endLineNumber: position.lineNumber,
+                      endColumn: position.column,
+                    });
 
-                    // Go keywords
-                    const keywords = [
-                      "func", "var", "const", "if", "else", "for", "switch",
-                      "case", "default", "break", "continue", "return", "defer",
-                      "go", "chan", "select", "range", "type", "struct",
-                      "interface", "map", "slice", "array", "import", "package",
-                      "fallthrough", "goto", "panic", "recover",
-                    ];
+                    const dotMatch = textUntilPos.match(/(\w+)\.\s*$/);
 
-                    // Combine suggestions
+                    if (dotMatch) {
+                      const pkgName = dotMatch[1];
+                      const methods = pkgMethods[pkgName];
+                      if (methods) {
+                        return {
+                          suggestions: methods.map((m) => ({
+                            label: m.label,
+                            kind: monaco.languages.CompletionItemKind.Function,
+                            insertText: m.insertText,
+                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            range,
+                            detail: m.detail,
+                          })),
+                        };
+                      }
+                      return { suggestions: [] };
+                    }
+
                     const suggestions = [
-                      ...packages.map((pkg) => ({
+                      ...allPackages.map((pkg) => ({
                         label: pkg,
                         kind: monaco.languages.CompletionItemKind.Module,
                         insertText: pkg,
                         range,
-                        detail: "Go standard library",
+                        detail: "Go package",
                       })),
                       ...keywords.map((kw) => ({
                         label: kw,
