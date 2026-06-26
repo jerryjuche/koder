@@ -1,4 +1,4 @@
-# ZeroJudge
+# Koder
 
 > A zero-cost, production-grade automated code-grading platform for Go programming curricula.  
 > Built for constraint. Engineered for correctness. Designed for scale within those constraints.
@@ -28,7 +28,7 @@
 
 ## 1. Project Overview
 
-**ZeroJudge** is a self-hosted, automated programming assignment grader. It ingests a GitHub-based Go curriculum, processes raw exercise definitions through a generative AI enrichment pipeline, and evaluates student function submissions inside ephemeral, isolated Docker containers — all at **$0/month** operating cost.
+**Koder** is a self-hosted, automated programming assignment grader. It ingests a GitHub-based Go curriculum, processes raw exercise definitions through a generative AI enrichment pipeline, and evaluates student function submissions inside ephemeral, isolated Docker containers — all at **$0/month** operating cost.
 
 ### Primary Constraints (Non-Negotiable)
 
@@ -98,7 +98,7 @@
 │  ┌──────────────────────────┼───────────────────▼──────────┐   │
 │  │                          │      Docker Daemon           │   │
 │  │                          │   golang:1.22-alpine         │   │
-│  │                          │   /tmp/zerojudge/<uuid>/     │   │
+│  │                          │   /tmp/koder/<uuid>/     │   │
 │  └──────────────────────────┼──────────────────────────────┘   │
 └──────────────────────────────┼──────────────────────────────────┘
                                │ HTTPS
@@ -119,11 +119,11 @@
 ## 4. Repository Structure
 
 ```
-zerojudge/
+koder/
 ├── README.md                        # This file
 ├── .env.example                     # All required environment variables documented
 ├── .gitignore
-├── go.mod                           # module github.com/yourorg/zerojudge
+├── go.mod                           # module github.com/jerryjuche/koder
 ├── go.sum
 │
 ├── cmd/
@@ -397,7 +397,7 @@ Acquire semaphore (buffered channel cap=2) — blocks if 2 workers active
 Load problem + test_cases from DB
       │
       ▼
-Create /tmp/zerojudge/<uuid>/
+Create /tmp/koder/<uuid>/
 Write solution.go:
   package piscine
   <student code>
@@ -415,7 +415,7 @@ Render main_test.go from template:
 context.WithTimeout(5 * time.Second)
 exec.CommandContext(ctx, "docker", "run",
   "--rm", "--network=none", "--memory=64m", "--cpus=0.5",
-  "-v", "/tmp/zerojudge/<uuid>:/app",
+  "-v", "/tmp/koder/<uuid>:/app",
   "-v", "/tmp/go-build-cache:/root/.cache/go-build",
   "-w", "/app",
   "golang:1.22-alpine", "go", "test", "./...", "-v")
@@ -433,7 +433,7 @@ UPSERT progress row (solved, stars, attempts, best_runtime, xp_awarded)
 UPDATE users.xp (if first solve)
       │
       ▼
-os.RemoveAll(/tmp/zerojudge/<uuid>)
+os.RemoveAll(/tmp/koder/<uuid>)
 Release semaphore
       │
       ▼
@@ -623,7 +623,7 @@ Each phase ends with a **Definition of Done** checklist. Do not begin the next p
 **Goal:** A running Go server that connects to Supabase and can execute raw queries.
 
 **Tasks:**
-1. Initialize Go module: `go mod init github.com/yourorg/zerojudge`
+1. Initialize Go module: `go mod init github.com/jerryjuche/koder`
 2. Add dependencies: `jackc/pgx/v5`, `golang-jwt/jwt/v5`, `golang.org/x/crypto`
 3. Implement `internal/config/config.go` — fail fast on missing env vars
 4. Implement `internal/store/store.go` — pgx connection pool, ping on startup
@@ -702,7 +702,7 @@ Each phase ends with a **Definition of Done** checklist. Do not begin the next p
 - [ ] Code with syntax error receives `status: "compiler_error"`
 - [ ] Execution of an infinite loop receives `status: "timeout"` within 5s
 - [ ] Two concurrent submissions do not crash the VM (semaphore verified under load)
-- [ ] `/tmp/zerojudge/<uuid>` directory is cleaned up after every execution path
+- [ ] `/tmp/koder/<uuid>` directory is cleaned up after every execution path
 - [ ] Execution time logged; with warm cache, clean solution runs in <500ms
 
 ---
@@ -781,7 +781,7 @@ GEMINI_MODEL=gemini-2.5-pro
 EXECUTOR_MAX_CONCURRENCY=2
 EXECUTOR_TIMEOUT_SECONDS=5
 DOCKER_IMAGE=golang:1.22-alpine
-SANDBOX_BASE_DIR=/tmp/zerojudge
+SANDBOX_BASE_DIR=/tmp/koder
 BUILD_CACHE_DIR=/tmp/go-build-cache
 
 # Server
@@ -789,7 +789,7 @@ PORT=8080
 ENVIRONMENT=production  # "development" | "production"
 
 # CORS
-ALLOWED_ORIGIN=https://zerojudge.vercel.app
+ALLOWED_ORIGIN=https://koder.vercel.app
 ```
 
 ---
@@ -885,7 +885,7 @@ This section exists specifically so GitHub Copilot and AI assistants have struct
 
 - The semaphore is `chan struct{}`, capacity 2. Acquire = send, release = receive via defer.
 - All `exec.CommandContext` calls must use a context from `context.WithTimeout(ctx, 5*time.Second)`
-- The working directory is always `/tmp/zerojudge/<uuid>` where `<uuid>` comes from `uuid.NewString()`
+- The working directory is always `/tmp/koder/<uuid>` where `<uuid>` comes from `uuid.NewString()`
 - Three files are always written: `solution.go`, `main_test.go`, `go.mod` — never more, never less
 - Parse stdout with `bufio.Scanner`, match lines with `strings.HasPrefix(line, "--- PASS:")` and `strings.HasPrefix(line, "--- FAIL:")`
 
@@ -918,8 +918,8 @@ This section exists specifically so GitHub Copilot and AI assistants have struct
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourorg/zerojudge.git
-cd zerojudge
+git clone https://github.com/jerryjuche/koder.git
+cd koder
 
 # 2. Copy and fill environment variables
 cp .env.example .env
@@ -952,4 +952,4 @@ MIT
 
 ---
 
-*This document is the single source of truth for ZeroJudge. Any deviation from the architecture, conventions, or constraints described here requires an explicit ADR entry explaining the reasoning.*
+*This document is the single source of truth for Koder. Any deviation from the architecture, conventions, or constraints described here requires an explicit ADR entry explaining the reasoning.*

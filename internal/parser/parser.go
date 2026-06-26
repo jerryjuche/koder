@@ -1,0 +1,371 @@
+package parser
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io/fs"
+	"log/slog"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/google/uuid"
+)
+
+type Parser struct {
+	baseDir string
+}
+
+type RawProblem struct {
+	Slug       string
+	Module     string
+	SourceHash string
+	RawReadme  string
+	RepoURL    string
+	Type       string
+}
+
+func NewParser(baseDir string) *Parser {
+	return &Parser{baseDir: baseDir}
+}
+
+func (p *Parser) IngestGitHubRepo(ctx context.Context, inputURL string) ([]*RawProblem, error) {
+	if inputURL == "" {
+		return nil, fmt.Errorf("repo_url cannot be empty")
+	}
+
+	repoURL, subPath, err := parseGitHubURL(inputURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repository URL: %w", err)
+	}
+
+	repoSlug, repoModule, err := parseRepoMetadata(repoURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repository URL: %w", err)
+	}
+
+	repoPath, cleanup, err := p.cloneRepository(ctx, repoURL, subPath)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	targetPath := repoPath
+	if subPath != "" {
+		targetPath = filepath.Join(repoPath, subPath)
+		// Ensure targetPath exists
+		if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("specified subfolder '%s' does not exist in repository", subPath)
+		}
+	}
+
+	problems, err := collectExerciseReadmes(targetPath, repoPath, repoURL, repoSlug, repoModule)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(problems) == 0 && subPath == "" {
+		readme, err := extractReadme(repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("no exercises found and root README extraction failed: %w", err)
+		}
+
+		problems = append(problems, &RawProblem{
+			Slug:       repoSlug,
+			Module:     repoModule,
+			SourceHash: computeSourceHash(readme),
+			RawReadme:  strings.TrimSpace(readme),
+			RepoURL:    repoURL,
+			Type:       detectProblemType(readme),
+		})
+	}
+
+	return problems, nil
+}
+
+func collectExerciseReadmes(targetPath, rootRepoPath, repoURL, repoSlug, repoModule string) ([]*RawProblem, error) {
+	var problems []*RawProblem
+
+	err := filepath.WalkDir(targetPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !isReadmeFile(d.Name()) {
+			return nil
+		}
+
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("unable to read %s: %w", path, err)
+		}
+
+		content := strings.TrimSpace(string(raw))
+		if content == "" {
+			return nil
+		}
+
+		dir := filepath.Dir(path)
+		relPath, err := filepath.Rel(rootRepoPath, dir)
+		if err != nil {
+			return err
+		}
+
+		slashPath := filepath.ToSlash(relPath)
+
+		if slashPath == "." {
+			return nil
+		}
+
+		exerciseSlug := normalizeSlug(fmt.Sprintf("%s-%s", repoSlug, strings.ReplaceAll(slashPath, "/", "-")))
+		
+		// Debug logging for discovered problem
+		slog.Debug("parser: discovered exercise", "path", slashPath, "slug", exerciseSlug)
+
+		problems = append(problems, &RawProblem{
+			Slug:       exerciseSlug,
+			Module:     normalizeModule(filepath.Join(repoModule, relPath)),
+			SourceHash: computeSourceHash(content),
+			RawReadme:  content,
+			RepoURL:    repoURL,
+			Type:       detectProblemType(content),
+		})
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan repository for exercise READMEs: %w", err)
+	}
+
+	return problems, nil
+}
+
+func isReadmeFile(name string) bool {
+	lower := strings.ToLower(name)
+	return lower == "readme" || lower == "readme.md" || lower == "readme.markdown" || lower == "readme.txt"
+}
+
+func detectProblemType(rawReadme string) string {
+	lower := strings.ToLower(rawReadme)
+	if strings.Contains(lower, "expected function") {
+		return "function"
+	}
+	return "program"
+}
+
+func (p *Parser) cloneRepository(ctx context.Context, repoURL string, subPath string) (string, func(), error) {
+	tempDir := filepath.Join(p.baseDir, uuid.NewString())
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
+		return "", nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	cleanup := func() {
+		_ = os.RemoveAll(tempDir)
+	}
+
+	if subPath != "" {
+		// Use sparse checkout for incredibly fast subfolder cloning
+		cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", repoURL, tempDir)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git clone sparse failed: %w - %s", err, strings.TrimSpace(string(output)))
+		}
+
+		cmdSparse := exec.CommandContext(ctx, "git", "sparse-checkout", "set", subPath)
+		cmdSparse.Dir = tempDir
+		outputSparse, err := cmdSparse.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git sparse-checkout failed: %w - %s", err, strings.TrimSpace(string(outputSparse)))
+		}
+	} else {
+		// Standard full clone
+		cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", repoURL, tempDir)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("git clone failed: %w - %s", err, strings.TrimSpace(string(output)))
+		}
+	}
+
+	return tempDir, cleanup, nil
+}
+
+func extractReadme(repoPath string) (string, error) {
+	entries, err := os.ReadDir(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("unable to read repository directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if isReadmeFile(name) {
+			readmePath := filepath.Join(repoPath, name)
+			bytes, err := os.ReadFile(readmePath)
+			if err != nil {
+				return "", fmt.Errorf("unable to read %s: %w", name, err)
+			}
+			return string(bytes), nil
+		}
+	}
+
+	return "", fmt.Errorf("README file not found in repository root")
+}
+
+func computeSourceHash(rawReadme string) string {
+	hash := sha256.Sum256([]byte(rawReadme))
+	return hex.EncodeToString(hash[:])
+}
+
+func parseRepoMetadata(repoURL string) (slug string, module string, err error) {
+	repoURL = cleanRepoURL(repoURL)
+	if strings.HasPrefix(repoURL, "git@") {
+		return parseGitSSHURL(repoURL)
+	}
+
+	parsed, err := url.Parse(repoURL)
+	if err != nil {
+		parsed, err = url.Parse("https://" + repoURL)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	pathValue := strings.TrimSuffix(strings.Trim(parsed.Path, "/"), ".git")
+	if pathValue == "" {
+		return "", "", fmt.Errorf("repository path cannot be empty")
+	}
+
+	slug = normalizeSlug(filepath.Base(pathValue))
+	module = normalizeModule(pathValue)
+	return slug, module, nil
+}
+
+func parseGitSSHURL(repoURL string) (slug string, module string, err error) {
+	parts := strings.SplitN(repoURL, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid ssh repository URL")
+	}
+
+	pathValue := strings.TrimSuffix(strings.Trim(parts[1], "/"), ".git")
+	if pathValue == "" {
+		return "", "", fmt.Errorf("repository path cannot be empty")
+	}
+
+	slug = normalizeSlug(filepath.Base(pathValue))
+	module = normalizeModule(pathValue)
+	return slug, module, nil
+}
+
+func normalizeSlug(name string) string {
+	name = strings.TrimSpace(name)
+	name = strings.TrimSuffix(name, ".git")
+	name = strings.Trim(name, "/")
+	name = strings.ToLower(name)
+	nonAlpha := regexp.MustCompile(`[^a-z0-9._-]+`)
+	return nonAlpha.ReplaceAllString(name, "-")
+}
+
+func normalizeModule(pathValue string) string {
+	normalized := strings.TrimSpace(pathValue)
+	normalized = strings.TrimSuffix(normalized, ".git")
+	normalized = strings.Trim(normalized, "/")
+	return strings.ToLower(normalized)
+}
+
+func parseGitHubURL(inputURL string) (repoURL string, subPath string, err error) {
+	cleaned := strings.TrimSpace(inputURL)
+	
+	if strings.HasPrefix(cleaned, "git@") {
+		parts := strings.SplitN(cleaned, ":", 2)
+		if len(parts) == 2 {
+			pathParts := strings.Split(strings.Trim(parts[1], "/"), "/")
+			if len(pathParts) >= 2 {
+				repoURL = fmt.Sprintf("%s:%s/%s", parts[0], pathParts[0], strings.TrimSuffix(pathParts[1], ".git"))
+				return repoURL, "", nil // SSH URLs rarely have subpaths passed directly, keep simple
+			}
+		}
+		return cleaned, "", nil
+	}
+
+	parsed, err := url.Parse(cleaned)
+	if err == nil && strings.Contains(parsed.Host, "github.com") {
+		pathParts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+		var filtered []string
+		for _, p := range pathParts {
+			if p != "" {
+				filtered = append(filtered, p)
+			}
+		}
+		if len(filtered) >= 2 {
+			repoURL = fmt.Sprintf("https://github.com/%s/%s", filtered[0], strings.TrimSuffix(filtered[1], ".git"))
+			
+			if len(filtered) > 4 && (filtered[2] == "tree" || filtered[2] == "blob") {
+				// branch is filtered[3], subpath is everything after
+				subPath = strings.Join(filtered[4:], "/")
+			} else if len(filtered) > 2 && filtered[2] != "tree" && filtered[2] != "blob" {
+				// E.g. master/subjects -> branch master, subpath subjects
+				subPath = strings.Join(filtered[3:], "/")
+			}
+			return repoURL, subPath, nil
+		}
+	}
+	
+	// Fallback
+	repoURL = cleanRepoURL(cleaned)
+	return repoURL, "", nil
+}
+
+func cleanRepoURL(repoURL string) string {
+	cleaned := strings.TrimSpace(repoURL)
+	
+	if strings.HasPrefix(cleaned, "git@") {
+		parts := strings.SplitN(cleaned, ":", 2)
+		if len(parts) == 2 {
+			pathParts := strings.Split(strings.Trim(parts[1], "/"), "/")
+			if len(pathParts) >= 2 {
+				return fmt.Sprintf("%s:%s/%s", parts[0], pathParts[0], strings.TrimSuffix(pathParts[1], ".git"))
+			}
+		}
+		return cleaned
+	}
+
+	parsed, err := url.Parse(cleaned)
+	if err == nil && strings.Contains(parsed.Host, "github.com") {
+		pathParts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+		var filtered []string
+		for _, p := range pathParts {
+			if p != "" {
+				filtered = append(filtered, p)
+			}
+		}
+		if len(filtered) >= 2 {
+			return fmt.Sprintf("https://github.com/%s/%s", filtered[0], strings.TrimSuffix(filtered[1], ".git"))
+		}
+	}
+	
+	// Fallback cleaning
+	if idx := strings.Index(cleaned, "/tree/"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+	if idx := strings.Index(cleaned, "/blob/"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+	
+	cleaned = strings.TrimSuffix(cleaned, "/")
+	cleaned = strings.TrimSuffix(cleaned, ".git")
+	
+	return cleaned
+}

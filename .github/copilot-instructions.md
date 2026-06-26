@@ -22,7 +22,7 @@ You are an elite, hard-nosed systems engineer writing code for a hyper-frugal, h
 ### B. Execution Engine (`internal/executor`)
 - Concurrency Control: Implement throttling via a hard buffered channel semaphore: `chan struct{}` with a maximum capacity of 2.
 - Timeout Governance: Wrap all `exec.CommandContext` calls within a deterministic `context.WithTimeout(ctx, 5*time.Second)`.
-- Ephemeral Sandboxing: Every submission must execute within a highly unique, temporary path: `/tmp/zerojudge/<uuid>`.
+- Ephemeral Sandboxing: Every submission must execute within a highly unique, temporary path: `/tmp/koder/<uuid>`.
 - Container Constraints: Every Docker invocation must strictly pass these isolation flags:
   `docker run --rm --network=none --memory=64m --cpus=0.5`
 - Compilation Strategy: Mount the pre-warmed compilation cache volume `-v /tmp/go-build-cache:/root/.cache/go-build` to prevent cold starts.

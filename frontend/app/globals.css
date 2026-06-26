@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-muted-gold: #D4AF37;
+  --color-brand-muted-gold-dark: #C5A059;
+  --color-brand-charcoal-base: #0C0C0D;
+  --color-brand-charcoal-card: #161618;
+  --color-brand-charcoal-panel: #111113;
+  --color-brand-charcoal-hover: rgba(255, 255, 255, 0.05);
+  --color-brand-charcoal-border: rgba(255, 255, 255, 0.08);
+  --color-brand-offwhite: #E0E0E0;
+  --color-brand-offwhite-muted: #8E8E93;
+  --color-brand-success: #22c55e;
+  --color-brand-error: #ef4444;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-charcoal-base);
+    color: var(--color-brand-offwhite);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom Scrollbar for editor/panels */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-charcoal-border); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15); 
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.animate-toast-progress {
+  animation: toast-progress linear forwards;
+}

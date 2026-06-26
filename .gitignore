@@ -1,0 +1,28 @@
+.env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+
+# Binary
+koder
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Deps
+vendor/
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/coverage/
+
+# Temp
+/tmp/koder/
+
+CODEBASE_ANALYSIS.md
