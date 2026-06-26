@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
@@ -27,8 +27,12 @@ const DEFAULT_CODE = `package piscine
 // The backend will test your exported function automatically.
 `;
 
+const STORE_KEY = (s: string) => `koder_code_${s}`;
+
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState(DEFAULT_CODE);
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
@@ -38,6 +42,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
+  const [saved, setSaved] = useState(true);
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -50,10 +55,92 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           const ret = p.return_type ? ` ${p.return_type}` : "";
           const scaffold = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
           setCode(scaffold);
+          setSaved(true);
         }
       }
     });
   }, [slug]);
+
+  // Auto-save to localStorage with 2s debounce
+  useEffect(() => {
+    if (!problem) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(STORE_KEY(slug), code);
+      setSaved(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [code, slug, problem]);
+
+  // Restore saved code on mount
+  useEffect(() => {
+    if (!problem || !problem.func_name) return;
+    const savedCode = localStorage.getItem(STORE_KEY(slug));
+    if (savedCode) {
+      setCode(savedCode);
+      setSaved(true);
+    }
+  }, [problem, slug]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (e.shiftKey) handleSubmit();
+        else handleTest();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleFormat();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
+
+  const handleReset = () => {
+    const p = problem;
+    let fresh: string;
+    if (p?.func_name) {
+      const params =
+        p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
+      const ret = p.return_type ? ` ${p.return_type}` : "";
+      fresh = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+    } else {
+      fresh = DEFAULT_CODE;
+    }
+    setCode(fresh);
+    setSaved(true);
+    setResults(null);
+    setErrorMsg(null);
+    setLastExecution(null);
+    setHintsOpen([false, false, false]);
+    localStorage.removeItem(STORE_KEY(slug));
+    toast.success("Reset to original scaffold");
+  };
+
+  const handleFormat = () => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const raw = ed.getValue();
+    const formatted = raw
+      .split("\n")
+      .map((l: string) => l.replace(/[ \t]+$/, ""))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/^(\t*) +/gm, (_: string, tabs: string) => tabs + " ".repeat(4))
+      .trimEnd() + "\n";
+    ed.executeEdits("format", [
+      {
+        range: ed.getModel().getFullModelRange(),
+        text: formatted,
+        forceMoveMarkers: true,
+      },
+    ]);
+    setCode(formatted);
+    setSaved(true);
+    toast.success("Code formatted");
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -222,7 +309,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           >
             <Lightbulb size={16} /> Hints
           </button>
-          <button className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover">
+          <button
+            onClick={handleReset}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover"
+            title="Reset code to original"
+          >
             <RotateCcw size={18} />
           </button>
           <button
@@ -468,6 +559,23 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              {!saved && (
+                <span className="text-[10px] text-brand-offwhite-muted/60 animate-pulse">
+                  ● Unsaved
+                </span>
+              )}
+              {saved && code !== DEFAULT_CODE && (
+                <span className="text-[10px] text-brand-success/60">
+                  ● Saved
+                </span>
+              )}
+              <button
+                onClick={handleFormat}
+                className="text-xs text-brand-offwhite-muted hover:text-brand-offwhite px-2 py-1 rounded hover:bg-brand-charcoal-hover transition-colors border border-brand-charcoal-border font-mono"
+                title="Format code (Ctrl+S)"
+              >
+                {`{ }`}
+              </button>
               <button className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors">
                 <Copy size={16} />
               </button>
@@ -484,8 +592,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               defaultLanguage="go"
               theme="vs-dark"
               value={code}
-              onChange={(v) => setCode(v || "")}
+              onChange={(v) => {
+                setCode(v || "");
+                setSaved(false);
+              }}
               onMount={(editor, monaco) => {
+                editorRef.current = editor;
+                monacoRef.current = monaco;
                 const pkgMethods: Record<string, { label: string; detail: string; insertText: string }[]> = {
                   fmt: [
                     { label: "Println(a ...any)", detail: "fmt.Println", insertText: "Println(${1:})" },
@@ -579,7 +692,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   "hash", "html", "image", "log", "mime", "net", "path",
                   "regexp", "sync", "syscall", "testing", "text/template",
                   "unicode", "archive/tar", "archive/zip", "compress/gzip",
-                  "strconv", "reflect", "fmt",
+                  "strconv", "reflect",
                 ];
 
                 const keywords = [
@@ -593,8 +706,34 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   "uint32", "uint64", "float32", "complex64", "complex128",
                 ];
 
+                monaco.languages.registerHoverProvider("go", {
+                  provideHover: (model: any, position: any) => {
+                    const word = model.getWordAtPosition(position);
+                    if (!word) return null;
+                    const lineContent = model.getLineContent(position.lineNumber);
+                    const beforeMatch = lineContent.slice(0, word.startColumn - 1).match(/(\w+)\.\s*$/);
+                    if (beforeMatch) {
+                      const pkgName = beforeMatch[1];
+                      const fnName = word.word;
+                      const methods = pkgMethods[pkgName];
+                      if (methods) {
+                        const match = methods.find((m) => m.label.startsWith(fnName));
+                        if (match) {
+                          return {
+                            contents: [
+                              { value: `**${match.detail}**` },
+                              { value: `\`\`\`go\nfunc ${match.label}\n\`\`\`` },
+                            ],
+                          };
+                        }
+                      }
+                    }
+                    return null;
+                  },
+                });
+
                 monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: [".", " "],
+                  triggerCharacters: ["."],
                   provideCompletionItems: (model: any, position: any) => {
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -664,7 +803,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 renderLineHighlight: "none",
                 overviewRulerLanes: 0,
                 hideCursorInOverviewRuler: true,
-                quickSuggestions: { other: true, comments: false, strings: false },
+                quickSuggestions: false,
                 suggestOnTriggerCharacters: true,
                 acceptSuggestionOnEnter: "smart",
               }}
