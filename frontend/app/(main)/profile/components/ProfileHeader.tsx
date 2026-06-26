@@ -46,7 +46,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
               </div>
               <div className="flex items-center gap-1.5 mt-1.5 text-brand-offwhite-muted/70 text-sm">
                 <Mail size={14} />
-                <span>{profile.student_id?.toLowerCase()}@koder.dev</span>
+                <span>{profile.student_id}</span>
               </div>
             </div>
 

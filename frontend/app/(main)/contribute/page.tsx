@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { submitContribution, fetchMyContributions } from "@/lib/api";
 import { UserProblem } from "@/lib/types";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { PlusCircle, Trash2, Send } from "lucide-react";
 
 function ContributeContent() {

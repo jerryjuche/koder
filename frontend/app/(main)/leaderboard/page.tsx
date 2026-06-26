@@ -9,9 +9,9 @@ import {
   Search,
   CheckCircle2,
   Clock,
+  Zap,
   Medal,
   RefreshCw,
-  Zap,
 } from "lucide-react";
 import { fetchLeaderboard, fetchUser } from "@/lib/api";
 import { LeaderboardEntry, User } from "@/lib/types";
@@ -30,18 +30,11 @@ function getInitials(name: string): string {
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "—";
-
   const seconds = ms / 1000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)}s`;
-  }
-
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds - minutes * 60;
-  if (remainder < 0.5) {
-    return `${minutes}m`;
-  }
-
+  if (remainder < 0.5) return `${minutes}m`;
   return `${minutes}m ${remainder.toFixed(1)}s`;
 }
 
@@ -52,7 +45,11 @@ function getRankSuffix(rank: number): string {
   return "th";
 }
 
-// No longer needed: Backend now supports period filtering natively.
+const PERIOD_LABELS: Record<Period, string> = {
+  weekly: "This Week",
+  monthly: "This Month",
+  all: "All Time",
+};
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -83,29 +80,19 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     mounted.current = true;
-    
-    // Defer the initial load to avoid synchronous setState warnings
-    const timer = setTimeout(() => {
-      loadData(true, period);
-    }, 0);
-
-    // Live polling every 30s
+    const timer = setTimeout(() => loadData(true, period), 0);
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(() => loadData(true, period), 30_000);
-
     const onUserUpdated = () => loadData(true, period);
     window.addEventListener("user-updated", onUserUpdated);
-
     return () => {
       mounted.current = false;
       clearTimeout(timer);
       if (pollingRef.current) clearInterval(pollingRef.current);
       window.removeEventListener("user-updated", onUserUpdated);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
-  // Apply search filter
   const filtered = useMemo(() => {
     if (!search.trim()) return leaderboard;
     const q = search.trim().toLowerCase();
@@ -116,7 +103,6 @@ export default function LeaderboardPage() {
     );
   }, [leaderboard, search]);
 
-  // My rank based on current filtered set (or original leaderboard for the banner)
   const myRankInFull = useMemo(
     () => leaderboard.findIndex((e) => e.user.id === user?.id) + 1,
     [leaderboard, user]
@@ -126,110 +112,120 @@ export default function LeaderboardPage() {
     [leaderboard, user]
   );
 
-  const top3 = [leaderboard[1], leaderboard[0], leaderboard[2]]; // 2nd, 1st, 3rd podium order
+  const top3 = [leaderboard[1], leaderboard[0], leaderboard[2]];
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-4">
-        <div className="h-10 w-48 bg-brand-charcoal-card rounded-xl mx-auto" />
-        <div className="h-4 w-64 bg-brand-charcoal-card rounded-xl mx-auto" />
-        <div className="flex justify-center gap-6 items-end mt-12">
+      <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-4 pb-12 px-4">
+        <div className="h-12 w-56 bg-brand-charcoal-card rounded-xl mx-auto" />
+        <div className="h-4 w-72 bg-brand-charcoal-card rounded-xl mx-auto" />
+        <div className="flex justify-center gap-5 items-end mt-12">
           {[1, 2, 3].map((i) => (
-            <div key={i} className={cn("bg-brand-charcoal-card rounded-2xl", i === 2 ? "w-72 h-44" : "w-64 h-36")} />
+            <div key={i} className={cn("bg-brand-charcoal-card rounded-2xl", i === 2 ? "w-72 h-48" : "w-60 h-40")} />
           ))}
         </div>
         <div className="h-16 bg-brand-charcoal-card rounded-2xl" />
-        <div className="bg-brand-charcoal-card rounded-2xl h-64" />
+        <div className="bg-brand-charcoal-card rounded-2xl h-72" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
+    <div className="max-w-5xl mx-auto pb-12 px-4 animate-in fade-in duration-500">
 
       {/* ── Header ── */}
-      <div className="text-center space-y-3 pt-4">
-        <div className="inline-flex justify-center items-center w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-muted-gold/20 to-brand-charcoal-card border border-brand-muted-gold/30 shadow-lg shadow-brand-muted-gold/5">
-          <Trophy size={28} className="text-brand-muted-gold" />
+      <div className="text-center space-y-4 pt-4 pb-2 relative">
+        <div className="relative inline-flex">
+          <div className="absolute inset-0 bg-brand-muted-gold/20 blur-3xl rounded-full" />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-muted-gold/20 to-brand-charcoal-card border border-brand-muted-gold/30 flex items-center justify-center shadow-lg shadow-brand-muted-gold/10">
+            <Trophy size={32} className="text-brand-muted-gold" />
+          </div>
         </div>
-        <h1 className="text-4xl font-bold text-brand-offwhite tracking-tight">Leaderboard</h1>
-        <div className="flex items-center justify-center gap-2 text-sm text-brand-offwhite-muted">
-          <span className="inline-flex items-center gap-1.5">
+        <h1 className="text-4xl font-bold tracking-tight text-brand-offwhite">Leaderboard</h1>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-brand-offwhite-muted">
+          <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-brand-success animate-pulse" />
-            {leaderboard.length} students competing
+            {leaderboard.length} student{leaderboard.length !== 1 ? "s" : ""} competing
           </span>
           {lastUpdated && (
-            <span className="text-brand-charcoal-border">·</span>
-          )}
-          {lastUpdated && (
-            <span>
-              Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            <span className="flex items-center gap-1.5">
+              <Clock size={13} />
+              Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
           <button
             onClick={() => loadData(false)}
             disabled={refreshing}
-            className="ml-1 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors disabled:opacity-50"
+            className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors disabled:opacity-50"
             title="Refresh"
           >
-            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
-      {/* ── Top 3 Podium ── */}
+      {/* ── Podium ── */}
       {leaderboard.length >= 1 && (
-        <div className="flex justify-center gap-4 items-end pt-6 pb-2">
+        <div className="flex justify-center gap-4 items-end pt-8 pb-4">
           {top3.map((entry, i) => {
             if (!entry?.user) return <div key={i} className={cn("w-60", i === 1 ? "h-44" : "h-36")} />;
             const rankVal = i === 1 ? 1 : i === 0 ? 2 : 3;
             const isFirst = rankVal === 1;
-            const medalColors: Record<number, string> = {
-              1: "from-yellow-400/20 to-brand-muted-gold/10 border-brand-muted-gold/50 shadow-brand-muted-gold/10",
-              2: "from-slate-400/10 to-slate-500/5 border-slate-400/30 shadow-slate-400/5",
-              3: "from-orange-600/10 to-orange-700/5 border-orange-500/30 shadow-orange-500/5",
-            };
-            const avatarRing: Record<number, string> = {
-              1: "border-brand-muted-gold",
-              2: "border-slate-400",
-              3: "border-orange-500",
-            };
-            const rankLabel: Record<number, string> = {
-              1: "text-brand-muted-gold bg-brand-muted-gold/10",
-              2: "text-slate-300 bg-slate-400/10",
-              3: "text-orange-400 bg-orange-500/10",
-            };
+
+            const rankConfig = {
+              1: {
+                cardBg: "bg-gradient-to-b from-amber-500/10 via-brand-muted-gold/5 to-transparent border-brand-muted-gold/30 shadow-lg shadow-brand-muted-gold/5",
+                avatarRing: "ring-brand-muted-gold",
+                rankBadge: "bg-gradient-to-r from-amber-500 to-brand-muted-gold text-white shadow-lg shadow-amber-500/30",
+                crown: true,
+              },
+              2: {
+                cardBg: "bg-gradient-to-b from-slate-400/10 to-transparent border-slate-400/20 shadow-md shadow-slate-400/5",
+                avatarRing: "ring-slate-400",
+                rankBadge: "bg-slate-500/20 text-slate-300 border border-slate-400/30",
+                crown: false,
+              },
+              3: {
+                cardBg: "bg-gradient-to-b from-orange-600/10 to-transparent border-orange-500/20 shadow-md shadow-orange-500/5",
+                avatarRing: "ring-orange-500",
+                rankBadge: "bg-orange-500/20 text-orange-400 border border-orange-500/30",
+                crown: false,
+              },
+            }[rankVal];
+
             return (
               <div
                 key={rankVal}
                 className={cn(
-                  "relative flex flex-col items-center px-6 pb-6 pt-10 bg-gradient-to-b rounded-2xl border shadow-lg transition-transform hover:-translate-y-1 duration-200",
-                  medalColors[rankVal],
+                  "relative flex flex-col items-center px-6 pb-6 pt-8 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
+                  rankConfig.cardBg,
                   isFirst ? "w-72 h-52" : "w-60 h-40"
                 )}
               >
-                {/* Rank badge at top */}
-                <div className={cn(
-                  "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-0.5 rounded-full border",
-                  rankLabel[rankVal],
-                  rankVal === 1 ? "border-brand-muted-gold/40" : rankVal === 2 ? "border-slate-400/30" : "border-orange-500/30"
-                )}>
+                {/* Rank badge */}
+                <div className={cn("absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full", rankConfig.rankBadge)}>
                   {rankVal}{getRankSuffix(rankVal)}
                 </div>
 
+                {/* Crown for 1st */}
+                {rankConfig.crown && (
+                  <div className="absolute -top-6 text-lg">👑</div>
+                )}
+
                 {/* Avatar */}
                 <div className={cn(
-                  "absolute -top-7 w-14 h-14 rounded-full flex items-center justify-center font-bold text-base text-white shadow-lg border-4 border-brand-charcoal-base",
-                  getUserColor(entry.user.colorIndex || 0),
+                  "w-14 h-14 rounded-full flex items-center justify-center font-bold text-base text-white shadow-lg ring-2 ring-offset-2 ring-offset-brand-charcoal-base",
+                  rankConfig.avatarRing,
+                  getUserColor(entry.user.colorIndex || 0)
                 )}>
                   {getInitials(entry.user.name)}
                 </div>
 
-                <div className="text-center mt-2">
+                <div className="text-center mt-3">
                   <div className={cn("font-bold truncate max-w-[10rem]", isFirst ? "text-lg text-brand-offwhite" : "text-base text-brand-offwhite-muted")}>
                     {entry.user.name}
                   </div>
-                  <div className="flex items-center justify-center gap-1 text-brand-muted-gold font-bold mt-1 text-sm">
+                  <div className="flex items-center justify-center gap-1 text-brand-muted-gold font-bold mt-1.5 text-sm">
                     <Zap size={12} />
                     {(entry.user.xp || 0).toLocaleString()} XP
                   </div>
@@ -246,13 +242,11 @@ export default function LeaderboardPage() {
 
       {/* ── My Ranking Banner ── */}
       {user && myEntry && (
-        <div className="bg-gradient-to-r from-brand-muted-gold/10 via-brand-charcoal-card to-brand-charcoal-card border border-brand-muted-gold/25 rounded-2xl px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-brand-muted-gold/5">
+        <div className="bg-gradient-to-r from-brand-muted-gold/10 via-brand-charcoal-card to-brand-charcoal-card border border-brand-muted-gold/25 rounded-2xl px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-brand-muted-gold/5 mb-6">
           <div className="flex items-center gap-4">
-            {/* Rank number badge */}
             <div className="w-11 h-11 rounded-xl bg-brand-muted-gold/15 border border-brand-muted-gold/30 flex items-center justify-center font-mono font-bold text-brand-muted-gold text-lg shrink-0">
               {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
             </div>
-            {/* Avatar */}
             <div className={cn(
               "w-11 h-11 rounded-full flex items-center justify-center font-bold text-base text-white shadow-inner shrink-0",
               getUserColor(user.colorIndex)
@@ -289,7 +283,6 @@ export default function LeaderboardPage() {
       <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden shadow-sm">
         {/* Toolbar */}
         <div className="p-4 border-b border-brand-charcoal-border flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-brand-charcoal-hover/20">
-          {/* Search */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" size={15} />
             <input
@@ -301,23 +294,19 @@ export default function LeaderboardPage() {
             />
           </div>
 
-          {/* Period toggle */}
           <div className="flex items-center bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg p-1 gap-0.5">
             {(["weekly", "monthly", "all"] as Period[]).map((p) => (
               <button
                 key={p}
-                onClick={() => {
-                  setRefreshing(true);
-                  setPeriod(p);
-                }}
+                onClick={() => { setRefreshing(true); setPeriod(p); }}
                 className={cn(
-                  "px-4 py-1.5 text-xs font-semibold rounded-md transition-all capitalize",
+                  "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
                   period === p
                     ? "bg-brand-charcoal-hover text-brand-offwhite shadow-sm border border-brand-charcoal-border"
                     : "text-brand-offwhite-muted hover:text-brand-offwhite"
                 )}
               >
-                {p === "all" ? "All Time" : p.charAt(0).toUpperCase() + p.slice(1)}
+                {PERIOD_LABELS[p]}
               </button>
             ))}
           </div>
@@ -353,8 +342,9 @@ export default function LeaderboardPage() {
                   return (
                     <tr
                       key={rowUser?.id || idx}
+                      style={{ animationDelay: `${idx * 30}ms` }}
                       className={cn(
-                        "group transition-colors duration-100",
+                        "group transition-all duration-150 animate-in fade-in slide-in-from-bottom-1",
                         isMe
                           ? "bg-brand-muted-gold/5 border-l-2 border-l-brand-muted-gold"
                           : "hover:bg-brand-charcoal-hover/40"
@@ -431,9 +421,7 @@ export default function LeaderboardPage() {
                         <div className="flex items-center justify-center gap-1.5">
                           <CheckCircle2
                             size={14}
-                            className={cn(
-                              (rowUser?.solvedCount ?? 0) > 0 ? "text-brand-success" : "text-brand-offwhite-muted/30"
-                            )}
+                            className={(rowUser?.solvedCount ?? 0) > 0 ? "text-brand-success" : "text-brand-offwhite-muted/30"}
                           />
                           <span className="text-sm font-semibold text-brand-offwhite">
                             {rowUser?.solvedCount ?? 0}
@@ -459,7 +447,7 @@ export default function LeaderboardPage() {
         {/* Footer */}
         <div className="px-5 py-3 border-t border-brand-charcoal-border/50 flex items-center justify-between text-[11px] text-brand-offwhite-muted bg-brand-charcoal-hover/10">
           <span>
-            Showing {filtered.length} of {leaderboard.length} students
+            Showing {filtered.length} of {leaderboard.length} student{leaderboard.length !== 1 ? "s" : ""}
             {search && ` matching "${search}"`}
           </span>
           <span className="flex items-center gap-1.5">

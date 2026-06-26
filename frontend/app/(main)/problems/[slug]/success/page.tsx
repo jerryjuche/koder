@@ -22,7 +22,7 @@ import {
   unlikeSubmission,
 } from "@/lib/api";
 import { Problem, CommunitySolution } from "@/lib/types";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export default function SuccessPage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();

@@ -5,7 +5,7 @@ import { User, Settings as SettingsIcon, Monitor, Bell, Shield, Code, Palette, L
 import { cn } from "@/lib/utils";
 import { fetchUserProfile, updateUserProfile } from "@/lib/api";
 import { UserProfile } from "@/lib/types";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 
 type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
@@ -62,13 +62,19 @@ export default function SettingsPage() {
     try {
       const res = await updateUserProfile(name, bio);
       if (res.success) {
-        toast.success("Profile updated successfully");
+        toast.success({
+          title: "Profile updated",
+          description: "Your profile changes have been saved successfully.",
+        });
         window.dispatchEvent(new Event("user-updated"));
       } else {
         throw new Error(res.error?.message || "Failed to update profile");
       }
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error({
+        title: "Update failed",
+        description: err.message || "Something went wrong while saving your profile.",
+      });
     } finally {
       setSaving(false);
     }
@@ -78,7 +84,10 @@ export default function SettingsPage() {
     localStorage.setItem("koder_theme", theme);
     localStorage.setItem("koder_font_size", fontSize);
     localStorage.setItem("koder_auto_save", autoSave ? "true" : "false");
-    toast.success("Preferences saved successfully");
+    toast.success({
+      title: "Preferences saved",
+      description: "Your editor preferences have been updated.",
+    });
   };
 
   const handleLogout = () => {

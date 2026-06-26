@@ -1,10 +1,10 @@
 import type {Metadata} from 'next';
-import './globals.css'; // Global styles
+import './globals.css';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-  title: 'My Google AI Studio App',
-  description: 'My Google AI Studio App',
+  title: 'Koder — Code. Learn. Master Go.',
+  description: 'A zero-cost, production-grade automated code-grading platform for Go programming.',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
@@ -12,15 +12,19 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
         {children}
-        <Toaster 
-          theme="dark" 
-          position="top-right" 
+        <Toaster
+          theme="dark"
+          position="top-right"
+          gap={12}
+          offset={16}
+          visibleToasts={5}
           toastOptions={{
-            classNames: {
-              success: 'bg-brand-success/10 border-brand-success/50 text-brand-success',
-              error: 'bg-brand-error/10 border-brand-error/50 text-brand-error',
-              toast: 'bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite'
-            }
+            style: {
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
+              padding: 0,
+            },
           }}
         />
       </body>
