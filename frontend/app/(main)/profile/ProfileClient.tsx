@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { User, Activity } from "lucide-react";
+import { User } from "lucide-react";
 import { UserProfile } from "@/lib/types";
 import { fetchUserProfile } from "@/lib/api";
 import ProfileHeader from "./components/ProfileHeader";
-import RankStats from "./components/RankStats";
 import ProgressMetrics from "./components/ProgressMetrics";
-import PerformanceStats from "./components/PerformanceStats";
-import RecentActivity from "./components/RecentActivity";
+import StatsOverview from "./components/StatsOverview";
+import MyContributions from "./components/MyContributions";
+import Achievements from "./components/Achievements";
+import { useNotifications } from "@/lib/useNotifications";
 
 export default function ProfileClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { notifications } = useNotifications();
+
+  // Check if we have unread contribution notifications
+  const hasContributionNotif = notifications.some(
+    (n) => !n.is_read && (n.type === "contribution_approved" || n.type === "contribution_rejected")
+  );
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "contributions">("overview");
   useEffect(() => {
     let mounted = true;
 
@@ -46,16 +54,7 @@ export default function ProfileClient() {
     };
   }, []);
 
-  const handleNameUpdate = async () => {
-    try {
-      const response = await fetchUserProfile();
-      if (response.success && response.data) {
-        setProfile(response.data);
-      }
-    } catch (err) {
-      console.error("Failed to refresh profile after name update", err);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -67,17 +66,17 @@ export default function ProfileClient() {
             <div className="h-5 w-64 bg-brand-charcoal-card rounded-md border border-brand-charcoal-border"></div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column skeleton */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="h-72 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-64 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+          <div className="space-y-6">
+            {/* Stats Bar Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                 <div key={i} className="h-32 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              ))}
             </div>
-            {/* Right column skeleton */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="h-80 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-48 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-64 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+            {/* Two-column skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
+              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
             </div>
           </div>
         </div>
@@ -107,7 +106,7 @@ export default function ProfileClient() {
     <div className="bg-brand-charcoal-base py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
         {/* Header */}
-        <div>
+        <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <User size={32} className="text-brand-muted-gold" />
             <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite">
@@ -119,20 +118,48 @@ export default function ProfileClient() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column: Header and Rank */}
-          <div className="lg:col-span-1 space-y-6">
-            <ProfileHeader profile={profile} onNameUpdate={handleNameUpdate} />
-            <RankStats profile={profile} />
+        {/* Horizontal Profile Header */}
+        <ProfileHeader profile={profile} />
+
+        {/* Main Content Area */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4 border-b border-brand-charcoal-border w-full">
+              <button 
+                onClick={() => setActiveTab("overview")}
+                className={`pb-4 px-2 font-semibold transition ${activeTab === "overview" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Overview
+              </button>
+              {/* Verified Contributor Tab */}
+              <button 
+                onClick={() => setActiveTab("contributions")}
+                className={`pb-4 px-2 font-semibold transition flex items-center gap-2 ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                My Contributions
+                {hasContributionNotif && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Right column: Metrics */}
-          <div className="lg:col-span-2 space-y-6">
-            <ProgressMetrics profile={profile} />
-            <PerformanceStats profile={profile} />
-            <RecentActivity profile={profile} />
-          </div>
+          {activeTab === "overview" ? (
+            <div className="space-y-6">
+              {/* Full-width Stats Bar */}
+              <StatsOverview profile={profile} />
+              
+              {/* Two-column: Module Proficiency + Achievements */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ProgressMetrics profile={profile} />
+                <Achievements profile={profile} />
+              </div>
+            </div>
+          ) : (
+            <div className="pt-4">
+              <MyContributions />
+            </div>
+          )}
         </div>
       </div>
     </div>

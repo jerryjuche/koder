@@ -3,6 +3,7 @@ package executor
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,6 +56,9 @@ func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *Tem
 		_ = os.RemoveAll(sandboxPath)
 		return "", fmt.Errorf("failed to render main_test.go: %w", err)
 	}
+
+	// Log the generated test file for debugging compile errors
+	slog.Debug("sandbox: generated main_test.go", "content", buf.String())
 
 	err = os.WriteFile(filepath.Join(sandboxPath, "main_test.go"), buf.Bytes(), 0644)
 	if err != nil {

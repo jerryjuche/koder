@@ -7,11 +7,13 @@ import {
   AdminStats,
   ActivityLog,
   UserProfile,
+  UserProblem,
+  CommunitySolution,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-async function fetchApi<T>(
+export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
@@ -158,9 +160,19 @@ export async function submitSolution(
   });
 }
 
-export async function fetchLeaderboard(period: string = "all"): Promise<
-  ApiResponse<LeaderboardEntry[]>
-> {
+export async function testCode(
+  slug: string,
+  code: string,
+): Promise<ApiResponse<ExecutionResult>> {
+  return fetchApi<ExecutionResult>(`/test`, {
+    method: "POST",
+    body: JSON.stringify({ problem_slug: slug, code: code }),
+  });
+}
+
+export async function fetchLeaderboard(
+  period: string = "all",
+): Promise<ApiResponse<LeaderboardEntry[]>> {
   return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
 }
 
@@ -199,5 +211,60 @@ export async function updateUserName(name: string): Promise<ApiResponse<User>> {
   return fetchApi<User>("/me/profile", {
     method: "PUT",
     body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateUserProfile(name: string, bio: string): Promise<ApiResponse<User>> {
+  return fetchApi<User>("/me/profile", {
+    method: "PUT",
+    body: JSON.stringify({ name, bio }),
+  });
+}
+
+// Community & Likes
+
+export async function fetchCommunitySolutions(slug: string, limit: number = 3): Promise<ApiResponse<CommunitySolution[]>> {
+  return fetchApi<CommunitySolution[]>(`/problems/${slug}/community-solutions?limit=${limit}`);
+}
+
+export async function fetchBestPractices(limit: number = 20): Promise<ApiResponse<CommunitySolution[]>> {
+  return fetchApi<CommunitySolution[]>(`/best-practices?limit=${limit}`);
+}
+
+export async function likeSubmission(submissionId: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "POST" });
+}
+
+export async function unlikeSubmission(submissionId: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "DELETE" });
+}
+
+// Community Contributions
+export async function submitContribution(data: any): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/user-problems", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {
+  return fetchApi<UserProblem[]>("/me/contributions");
+}
+
+export async function fetchPendingContributions(): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/admin/user-problems/pending");
+}
+
+export async function approveContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/user-problems/${id}/approve`, {
+    method: "PATCH",
+    body: JSON.stringify({ admin_notes: notes }),
+  });
+}
+
+export async function rejectContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/user-problems/${id}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify({ admin_notes: notes }),
   });
 }

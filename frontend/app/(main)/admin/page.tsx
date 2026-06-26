@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
+import PendingContributions from './PendingContributions';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -76,14 +77,35 @@ export default function AdminDashboard() {
   }, [router]);
 
   const handleIngest = async () => {
-    setIngesting(true);
-    const res = await ingestGitHubRepo(ingestUrl);
-    if (res.success) {
-      toast.success("Repository ingested successfully!");
-      loadData();
-    } else {
-      toast.error(res.error?.message || "Ingestion failed.");
+    if (!ingestUrl.trim()) {
+      toast.error("Please enter at least one GitHub URL");
+      return;
     }
+    
+    setIngesting(true);
+    const urls = ingestUrl.split('\n').map(u => u.trim()).filter(Boolean);
+    
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const url of urls) {
+      const res = await ingestGitHubRepo(url);
+      if (res.success) {
+        successCount++;
+      } else {
+        failCount++;
+        toast.error(`Failed to ingest ${url}: ${res.error?.message}`);
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Successfully ingested ${successCount} folder(s) or repository(s)!`);
+      loadData();
+    }
+    if (failCount === 0 && successCount > 0) {
+      setIngestUrl(''); // clear on full success
+    }
+    
     setIngesting(false);
   };
 
@@ -159,10 +181,12 @@ export default function AdminDashboard() {
                   <Github className="text-brand-offwhite" size={20} /> Ingest GitHub Repo
                 </div>
                 <p className="text-sm text-brand-offwhite-muted mb-6">Pull problems from repository</p>
-                <input 
+                <textarea 
                   value={ingestUrl}
                   onChange={(e) => setIngestUrl(e.target.value)}
-                  className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2 text-sm text-brand-offwhite mb-4 focus:outline-none focus:border-brand-muted-gold"
+                  placeholder="https://github.com/01-edu/public/tree/master/subjects/isprime&#10;https://github.com/01-edu/public/tree/master/subjects/isprintable"
+                  rows={3}
+                  className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-3 text-sm text-brand-offwhite mb-4 focus:outline-none focus:border-brand-muted-gold resize-y font-mono whitespace-nowrap overflow-x-auto"
                 />
                 <button 
                   onClick={handleIngest}
@@ -282,6 +306,7 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
+          <PendingContributions />
         </div>
 
         {/* Activity Log */}

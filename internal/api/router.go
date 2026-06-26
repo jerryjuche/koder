@@ -18,6 +18,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	authHandler := NewAuthHandler(store, cfg)
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
+	testHandler := NewTestHandler(store, exec)
 	adminHandler, err := NewAdminHandler(store, cfg)
 	if err != nil {
 		return nil, err
@@ -42,12 +43,32 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Get("/me/profile", profileHandler.GetProfile)
 		r.Put("/me/profile", profileHandler.UpdateProfile)
 
+		contributionsHandler := NewContributionsHandler(store)
+		r.Group(func(r chi.Router) {
+			r.Use(VerifiedContributorOnly)
+			r.Post("/user-problems", contributionsHandler.PostContribution)
+		})
+		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
+
+		notificationsHandler := NewNotificationsHandler(store)
+		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
+		r.Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
+		r.Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
+
 		leaderboardHandler := NewLeaderboardHandler(store)
 		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
 
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
+		
+		communityHandler := NewCommunityHandler(store)
+		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)
+		r.Get("/best-practices", communityHandler.GetBestPractices)
+		r.Post("/submissions/{id}/like", communityHandler.LikeSubmission)
+		r.Delete("/submissions/{id}/like", communityHandler.UnlikeSubmission)
+
 		r.Post("/submit", submissionHandler.Submit)
+		r.Post("/test", testHandler.Test)
 
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)
@@ -57,6 +78,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
+			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
+			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
+			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
 		})
 	})
 

@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata = {
   title: "Koder - Zero-Cost Automated Code Grading Platform",
@@ -183,66 +184,63 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[2.5rem] border border-brand-charcoal-border/80 bg-brand-charcoal-card/90 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(0,0,0,0.3)] relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-muted-gold/20 to-transparent"></div>
-              <div className="flex items-center justify-between text-sm text-brand-offwhite-muted mb-6">
-                <div className="rounded-2xl bg-brand-charcoal-base px-3 py-1">
-                  Instructor dashboard
+            <div className="relative">
+              {/* Hero visual: image + futuristic accents */}
+              <div className="absolute -right-8 top-0 w-[520px] h-[520px] rounded-full bg-gradient-to-r from-brand-muted-gold/8 to-transparent blur-3xl pointer-events-none" />
+              <div className="relative rounded-[2.5rem] border border-brand-charcoal-border/80 bg-brand-charcoal-card/90 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(0,0,0,0.3)] overflow-hidden">
+                <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none">
+                  <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.06" />
+                        <stop offset="100%" stopColor="#52B788" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    <rect width="800" height="600" fill="url(#g1)" />
+                  </svg>
                 </div>
-                <div className="rounded-full bg-brand-success/10 px-3 py-1 text-brand-success">
-                  Live
-                </div>
-              </div>
-              <div className="space-y-6">
-                <div className="rounded-3xl border border-brand-charcoal-border bg-brand-charcoal-base p-5">
-                  <div className="flex items-center justify-between gap-4 text-sm text-brand-offwhite-muted mb-4">
-                    <span>Active assignment</span>
-                    <span className="font-semibold text-brand-offwhite">
-                      Pointers 2.0
-                    </span>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-3xl bg-brand-charcoal-card p-4 border border-brand-charcoal-border">
-                      <p className="text-xs uppercase tracking-[0.35em] text-brand-offwhite-muted">
-                        Submissions
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-brand-offwhite">
-                        1.2K
-                      </p>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-center">
+                  <div className="order-2 lg:order-1">
+                    <div className="absolute top-4 left-4 w-28 h-28 rounded-2xl bg-brand-charcoal-base/60 border border-brand-charcoal-border/50 shadow-md flex items-center justify-center text-brand-muted-gold"> 
+                      <Zap className="h-7 w-7" />
                     </div>
-                    <div className="rounded-3xl bg-brand-charcoal-card p-4 border border-brand-charcoal-border">
-                      <p className="text-xs uppercase tracking-[0.35em] text-brand-offwhite-muted">
-                        Pass rate
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-brand-success">
-                        92%
-                      </p>
+                    <div className="pl-2">
+                      <div className="flex items-center justify-between text-sm text-brand-offwhite-muted mb-6">
+                        <div className="rounded-2xl bg-brand-charcoal-base px-3 py-1">Instructor dashboard</div>
+                        <div className="rounded-full bg-brand-success/10 px-3 py-1 text-brand-success">Live</div>
+                      </div>
+                      <div className="space-y-6">
+                        <div className="rounded-3xl border border-brand-charcoal-border bg-brand-charcoal-base p-5">
+                          <div className="flex items-center justify-between gap-4 text-sm text-brand-offwhite-muted mb-4">
+                            <span>Active assignment</span>
+                            <span className="font-semibold text-brand-offwhite">Pointers 2.0</span>
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="rounded-3xl bg-brand-charcoal-card p-4 border border-brand-charcoal-border">
+                              <p className="text-xs uppercase tracking-[0.35em] text-brand-offwhite-muted">Submissions</p>
+                              <p className="mt-2 text-xl font-semibold text-brand-offwhite">1.2K</p>
+                            </div>
+                            <div className="rounded-3xl bg-brand-charcoal-card p-4 border border-brand-charcoal-border">
+                              <p className="text-xs uppercase tracking-[0.35em] text-brand-offwhite-muted">Pass rate</p>
+                              <p className="mt-2 text-xl font-semibold text-brand-success">92%</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="rounded-3xl bg-brand-charcoal-card p-5 border border-brand-charcoal-border">
-                  <div className="flex items-center justify-between text-sm text-brand-offwhite-muted mb-4">
-                    <span>Review queue</span>
-                    <span className="rounded-full bg-brand-muted-gold/10 px-3 py-1 text-brand-muted-gold">
-                      Fast
-                    </span>
-                  </div>
-                  <div className="grid gap-3">
-                    <div className="rounded-3xl bg-brand-charcoal-base p-4">
-                      <p className="text-sm text-brand-offwhite-muted">
-                        Draft problems awaiting enrichment
-                      </p>
-                      <p className="mt-3 text-lg font-semibold text-brand-offwhite">
-                        24
-                      </p>
-                    </div>
-                    <div className="rounded-3xl bg-brand-charcoal-base p-4">
-                      <p className="text-sm text-brand-offwhite-muted">
-                        Active learners
-                      </p>
-                      <p className="mt-3 text-lg font-semibold text-brand-offwhite">
-                        2.1K
-                      </p>
+                  <div className="order-1 lg:order-2 flex items-center justify-center">
+                    {/* User-provided image; expected at /landing-hero.jpg in public or /assets/landing-hero.jpg */}
+                    <div className="relative w-[320px] h-[240px] sm:w-[420px] sm:h-[320px] rounded-xl overflow-hidden border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-panel to-brand-charcoal-card">
+                      <Image
+                        src="/landing-hero.jpg"
+                        alt="Koder hero"
+                        fill
+                        sizes="(max-width: 768px) 320px, 420px"
+                        className="object-cover object-center"
+                        priority
+                      />
+                      <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/30 text-xs text-brand-offwhite-muted backdrop-blur-sm">Demo student workspace</div>
                     </div>
                   </div>
                 </div>

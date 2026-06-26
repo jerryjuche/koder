@@ -74,7 +74,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, password, role, color_index, xp, created_at
+		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
 		FROM users
 		WHERE student_id = $1
 	`
@@ -83,6 +83,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 		&user.ID,
 		&user.StudentID,
 		&user.Name,
+		&user.Bio,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
@@ -109,7 +110,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, password, role, color_index, xp, created_at
+		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
 		FROM users
 		WHERE id = $1
 	`
@@ -118,6 +119,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.ID,
 		&user.StudentID,
 		&user.Name,
+		&user.Bio,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
@@ -288,6 +290,33 @@ func (s *PostgresStore) UpdateUserName(ctx context.Context, id uuid.UUID, name s
 	return nil
 }
 
+// UpdateUserProfile updates the user's name and bio by ID.
+func (s *PostgresStore) UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET name = $1, bio = $2
+		WHERE id = $3
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, name, bio, id)
+	if err != nil {
+		return fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 // GetUserRank returns the user's rank (1-indexed position) in the leaderboard.
 func (s *PostgresStore) GetUserRank(ctx context.Context, userID uuid.UUID) (int, error) {
 	var rank int
@@ -391,25 +420,25 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 
 	// Calculate current streak (number of consecutive days with submissions)
 	queryStreak := `
-		SELECT COUNT(*) as streak_days
-		FROM (
-			SELECT DATE(created_at) as submission_date
+		WITH daily_submissions AS (
+			SELECT DISTINCT DATE(created_at) AS sub_date
 			FROM submissions
-			WHERE user_id = $1
-			  AND created_at >= NOW() - INTERVAL '365 days'
-			GROUP BY DATE(created_at)
-			ORDER BY submission_date DESC
-		) daily_submissions,
-		(
-			SELECT DATE(NOW()) - (ROW_NUMBER() OVER (ORDER BY DATE(created_at) DESC) - 1) * INTERVAL '1 day' as expected_date
-			FROM submissions
-			WHERE user_id = $1
-			  AND created_at >= NOW() - INTERVAL '365 days'
-			GROUP BY DATE(created_at)
-			ORDER BY DATE(created_at) DESC
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		streak_groups AS (
+			SELECT sub_date,
+				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
+			FROM daily_submissions
+		)
+		SELECT COUNT(*)
+		FROM streak_groups
+		WHERE grp = (
+			SELECT grp 
+			FROM streak_groups 
+			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day' 
+			ORDER BY sub_date DESC 
 			LIMIT 1
-		) streak_check
-		WHERE submission_date = expected_date
+		)
 	`
 
 	err = s.pool.QueryRow(ctx, queryStreak, userID).Scan(&stats.CurrentStreakDays)
@@ -418,6 +447,42 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 	}
 
 	return stats, nil
+}
+
+// GetModuleProficiency returns the user's progress by module.
+func (s *PostgresStore) GetModuleProficiency(ctx context.Context, userID uuid.UUID) (map[string]DifficultyProgress, error) {
+	query := `
+		SELECT 
+			pr.module,
+			COUNT(DISTINCT CASE WHEN pg.solved THEN pg.problem_id END) as solved,
+			COUNT(DISTINCT pr.id) as total
+		FROM problems pr
+		LEFT JOIN progress pg ON pr.id = pg.problem_id AND pg.user_id = $1
+		WHERE pr.visible = true
+		GROUP BY pr.module
+		ORDER BY pr.module
+	`
+
+	rows, err := s.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get module proficiency: %w", err)
+	}
+	defer rows.Close()
+
+	proficiency := make(map[string]DifficultyProgress)
+	for rows.Next() {
+		var module string
+		var solved, total int
+		if err := rows.Scan(&module, &solved, &total); err != nil {
+			return nil, fmt.Errorf("failed to scan module proficiency: %w", err)
+		}
+		proficiency[module] = DifficultyProgress{
+			Solved: solved,
+			Total:  total,
+		}
+	}
+
+	return proficiency, nil
 }
 
 // GetRecentSubmissions returns the most recent submissions for a user.

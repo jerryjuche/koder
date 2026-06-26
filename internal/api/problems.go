@@ -57,5 +57,47 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	RespondSuccess(w, problem)
+	// Convert example inputs (byte arrays) to readable strings for JSON payload
+	var examples []map[string]interface{}
+	for _, tc := range problem.Examples {
+		examples = append(examples, map[string]interface{}{
+			"id": tc.ID,
+			"input": string(tc.Input),
+			"expected": tc.Expected,
+			"ordinal": tc.Ordinal,
+		})
+	}
+
+	// Build response payload merging problem fields and examples
+	payload := map[string]interface{}{
+		"id": problem.ID,
+		"slug": problem.Slug,
+		"module": problem.Module,
+		"type": problem.Type,
+		"language": problem.Language,
+		"title": problem.Title,
+		"statement": problem.Statement,
+		"func_name": problem.FuncName,
+		"return_type": problem.ReturnType,
+		"param_types": problem.ParamTypes,
+		"hints": problem.Hints,
+		"difficulty": problem.Difficulty,
+		"xpReward": problem.XPReward,
+		"tags": problem.Tags,
+		"visible": problem.Visible,
+		"source_hash": problem.SourceHash,
+		"raw_readme": problem.RawReadme,
+		"created_at": problem.CreatedAt,
+		"updated_at": problem.UpdatedAt,
+		"solved": problem.Solved,
+		"stars": problem.Stars,
+		"attempts": problem.Attempts,
+		"total_submissions": problem.TotalSubmissions,
+		"success_rate": problem.SuccessRate,
+		"avg_runtime_ms": problem.AvgRuntimeMs,
+		"estTimeMinutes": problem.EstTimeMinutes,
+		"examples": examples,
+	}
+
+	RespondSuccess(w, payload)
 }

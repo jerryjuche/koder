@@ -18,10 +18,12 @@ type Store interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
+	UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error
 	GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
 	GetUserRank(ctx context.Context, userID uuid.UUID) (int, error)
 	GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error)
+	GetModuleProficiency(ctx context.Context, userID uuid.UUID) (map[string]DifficultyProgress, error)
 	GetRecentSubmissions(ctx context.Context, userID uuid.UUID, limit int) ([]Submission, error)
 
 	// Problem operations
@@ -39,10 +41,31 @@ type Store interface {
 	GetProblemWithTestCases(ctx context.Context, problemID uuid.UUID) (*Problem, []TestCase, error)
 	ListAllProblemsAdmin(ctx context.Context) ([]Problem, error)
 
+	// Community Solutions & Likes
+	LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
+	UnlikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
+	GetTopCommunitySolutionsForProblem(ctx context.Context, problemID, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
+	GetBestPractices(ctx context.Context, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
+
 	// Admin operations
 	GetAdminStats(ctx context.Context) (*AdminStats, error)
 	LogActivity(ctx context.Context, logType, message, color, icon string) error
 	GetRecentActivity(ctx context.Context, limit int) ([]ActivityLog, error)
+
+	// Community Contributions
+	CreateUserProblem(ctx context.Context, userID uuid.UUID, problem *NewUserProblem) (*UserProblem, error)
+	ListUserProblemsByUser(ctx context.Context, userID uuid.UUID) ([]UserProblem, error)
+	ListPendingUserProblems(ctx context.Context) ([]UserProblem, error)
+	GetUserProblemByID(ctx context.Context, id uuid.UUID) (*UserProblem, error)
+	RejectUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error)
+	ApproveUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error)
+
+	// Notifications
+	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error
+	GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
+	MarkNotificationAsRead(ctx context.Context, id, userID uuid.UUID) error
+	MarkAllNotificationsAsRead(ctx context.Context, userID uuid.UUID) error
+	NotifyAdmins(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error
 }
 
 // PostgresStore implements Store using pgx and Postgres.

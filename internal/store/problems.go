@@ -14,7 +14,10 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 		       p.created_at, p.updated_at,
-		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0)
+		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) AS total_subs,
+		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') AS successful_subs,
+		       COALESCE((SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0)::int AS avg_runtime_ms
 		FROM problems p
 		LEFT JOIN progress pr ON pr.problem_id = p.id AND pr.user_id = $1
 		WHERE p.visible = true
@@ -30,6 +33,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 	var problems []Problem
 	for rows.Next() {
 		var problem Problem
+		var successfulSubs int
 		if err := rows.Scan(
 			&problem.ID,
 			&problem.Slug,
@@ -53,8 +57,17 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.Solved,
 			&problem.Stars,
 			&problem.Attempts,
+			&problem.TotalSubmissions,
+			&successfulSubs,
+			&problem.AvgRuntimeMs,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan problem row: %w", err)
+		}
+		if problem.TotalSubmissions > 0 {
+			problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
+		}
+		if problem.AvgRuntimeMs > 0 {
+			problem.EstTimeMinutes = int((problem.AvgRuntimeMs + 59999) / 60000) // ceil to minutes
 		}
 		problems = append(problems, problem)
 	}
@@ -74,11 +87,12 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
-		       p.created_at, p.updated_at,
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs
+			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+			   p.created_at, p.updated_at,
+			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
+			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs,
+			   COALESCE( (SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0 )::int AS avg_runtime_ms
 		FROM problems p
 		WHERE p.slug = $1 AND p.visible = true
 	`
@@ -107,12 +121,31 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 		&problem.UpdatedAt,
 		&problem.TotalSubmissions,
 		&successfulSubs,
+		&problem.AvgRuntimeMs,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
 	}
 
 	if problem.TotalSubmissions > 0 {
 		problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
+	}
+	if problem.AvgRuntimeMs > 0 {
+		problem.EstTimeMinutes = int((problem.AvgRuntimeMs + 59999) / 60000)
+	}
+
+	// Load non-hidden example test cases (limit 3)
+	tcRows, err := s.pool.Query(ctx, `SELECT id, input, expected, is_hidden, ordinal FROM test_cases WHERE problem_id = $1 AND is_hidden = false ORDER BY ordinal ASC LIMIT 3`, problem.ID)
+	if err == nil {
+		defer tcRows.Close()
+		examples := make([]TestCase, 0)
+		for tcRows.Next() {
+			var tc TestCase
+			if err := tcRows.Scan(&tc.ID, &tc.Input, &tc.Expected, &tc.IsHidden, &tc.Ordinal); err != nil {
+				continue
+			}
+			examples = append(examples, tc)
+		}
+		problem.Examples = examples
 	}
 
 	return &problem, nil
@@ -189,11 +222,12 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
-		       p.created_at, p.updated_at,
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs
+			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+			   p.created_at, p.updated_at,
+			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
+			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs,
+			   COALESCE( (SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0 )::int AS avg_runtime_ms
 		FROM problems p
 		WHERE p.slug = $1
 	`
@@ -222,12 +256,31 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.UpdatedAt,
 		&problem.TotalSubmissions,
 		&successfulSubs,
+		&problem.AvgRuntimeMs,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
 	}
 
 	if problem.TotalSubmissions > 0 {
 		problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
+	}
+	if problem.AvgRuntimeMs > 0 {
+		problem.EstTimeMinutes = int((problem.AvgRuntimeMs + 59999) / 60000)
+	}
+
+	// Load non-hidden example test cases (limit 3)
+	tcRows, err := s.pool.Query(ctx, `SELECT id, input, expected, is_hidden, ordinal FROM test_cases WHERE problem_id = $1 AND is_hidden = false ORDER BY ordinal ASC LIMIT 3`, problem.ID)
+	if err == nil {
+		defer tcRows.Close()
+		examples := make([]TestCase, 0)
+		for tcRows.Next() {
+			var tc TestCase
+			if err := tcRows.Scan(&tc.ID, &tc.Input, &tc.Expected, &tc.IsHidden, &tc.Ordinal); err != nil {
+				continue
+			}
+			examples = append(examples, tc)
+		}
+		problem.Examples = examples
 	}
 
 	return &problem, nil
