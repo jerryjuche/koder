@@ -7,13 +7,9 @@ import Editor from "@monaco-editor/react";
 import Markdown from "react-markdown";
 import {
   ChevronLeft,
-  ChevronRight,
   Play,
   RotateCcw,
   Lightbulb,
-  CheckCircle2,
-  XCircle,
-  Clock,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -22,7 +18,8 @@ import {
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
 import { fetchProblem, submitSolution, testCode } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { Problem, TestResult } from "@/lib/types";
+import { Problem, TestResult, ExecutionResult } from "@/lib/types";
+import TestResultPanel from "@/components/TestResultPanel";
 
 const DEFAULT_CODE = `package piscine
 
@@ -164,10 +161,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     setSubmitting(false);
   };
-
-  const testsPassed = results?.filter((r) => r.passed).length || 0;
-  const testsTotal = results?.length || 0;
-  const allPassed = testsTotal > 0 && testsPassed === testsTotal;
 
   if (!problem) {
     return (
@@ -565,193 +558,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             />
           </div>
 
-          {/* Bottom Panel (Tests) - Only show if not hints mode or if we specifically want it split */}
-          {(results || errorMsg || lastExecution?.status === "compiler_error" || lastExecution?.status === "timeout") && (
-            <div
-              className={cn(
-                "border-t border-brand-charcoal-border bg-brand-charcoal-base transition-all duration-300 flex flex-col",
-                testsExpanded ? "h-64" : "h-12",
-              )}
-            >
-              <div
-                className="h-12 flex items-center justify-between px-4 cursor-pointer hover:bg-brand-charcoal-hover/50 select-none shrink-0"
-                onClick={() => setTestsExpanded(!testsExpanded)}
-              >
-                <div className="flex items-center gap-3">
-                  <ChevronRight
-                    size={16}
-                    className={cn(
-                      "text-brand-offwhite-muted transition-transform",
-                      testsExpanded && "rotate-90",
-                    )}
-                  />
-                  <span className="text-sm font-bold text-brand-offwhite">
-                    Test Results
-                  </span>
-                  {!errorMsg && testsTotal > 0 && (
-                    <span
-                      className={cn(
-                        "text-xs font-bold px-2 py-0.5 rounded",
-                        allPassed
-                          ? "bg-brand-success/20 text-brand-success"
-                          : "bg-brand-error/20 text-brand-error",
-                      )}
-                    >
-                      {testsPassed}/{testsTotal}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {testsExpanded && (
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                  {errorMsg && !lastExecution && (
-                    <div className="bg-brand-error/20 border border-brand-error/50 text-brand-error px-5 py-4 rounded-xl text-sm font-bold mb-4 flex items-start gap-3 shadow-sm shadow-brand-error/10">
-                      <XCircle size={18} className="mt-0.5 shrink-0" />
-                      <div>
-                        <div className="uppercase text-[10px] tracking-wider opacity-80 mb-1">
-                          System Error
-                        </div>
-                        {errorMsg}
-                      </div>
-                    </div>
-                  )}
-
-                  {lastExecution?.status === "compiler_error" && (
-                    <div className="space-y-4">
-                      <div className="bg-brand-error/10 border border-brand-error/30 p-4 rounded-xl flex items-start gap-3">
-                        <XCircle size={20} className="text-brand-error mt-0.5 shrink-0" />
-                        <div className="flex-1">
-                          <h4 className="text-brand-error font-bold text-sm mb-1">Compilation Failed</h4>
-                          <p className="text-brand-offwhite text-sm">{lastExecution.friendly_message || "Syntax error detected."}</p>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(lastExecution.output_logs);
-                            toast.success("Copied compiler logs");
-                          }}
-                          className="text-xs bg-brand-charcoal-hover text-brand-offwhite px-3 py-1.5 rounded-lg border border-brand-charcoal-border hover:bg-brand-charcoal-panel transition-colors flex items-center gap-2 shrink-0"
-                        >
-                          <Copy size={12} /> Copy Error
-                        </button>
-                      </div>
-
-                      <div className="bg-brand-muted-gold/10 border border-brand-muted-gold/20 p-4 rounded-xl flex items-start gap-3">
-                        <Lightbulb size={20} className="text-brand-muted-gold mt-0.5 shrink-0" />
-                        <div>
-                          <h4 className="text-brand-muted-gold font-bold text-sm mb-1">Debugging Tip</h4>
-                          <p className="text-brand-offwhite-muted text-sm leading-relaxed">
-                            Check the line number indicated above. Common causes include missing imports (e.g., <code>fmt</code> or <code>strings</code>), mismatched braces <code>{`{}`}</code>, typos, or invalid type assignments.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-brand-offwhite-muted mb-2 ml-1">Raw Output Logs</div>
-                        <div className="bg-[#1A1A1A] rounded-xl p-4 text-sm font-mono text-brand-offwhite-muted border border-brand-charcoal-border overflow-x-auto whitespace-pre-wrap">
-                          {lastExecution.output_logs}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {lastExecution?.status === "timeout" && (
-                    <div className="space-y-4">
-                      <div className="bg-brand-error/10 border border-brand-error/30 p-4 rounded-xl flex items-start gap-3">
-                        <XCircle size={20} className="text-brand-error mt-0.5 shrink-0" />
-                        <div className="flex-1">
-                          <h4 className="text-brand-error font-bold text-sm mb-1">Execution Timed Out</h4>
-                          <p className="text-brand-offwhite text-sm">{lastExecution.friendly_message || "Your code took too long to execute."}</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-brand-muted-gold/10 border border-brand-muted-gold/20 p-4 rounded-xl flex items-start gap-3">
-                        <Lightbulb size={20} className="text-brand-muted-gold mt-0.5 shrink-0" />
-                        <div>
-                          <h4 className="text-brand-muted-gold font-bold text-sm mb-1">Debugging Tip</h4>
-                          <p className="text-brand-offwhite-muted text-sm leading-relaxed">
-                            Timeouts usually occur when you have an infinite loop (like a <code>for</code> or <code>while</code> condition that never becomes false), or if your algorithm is extremely inefficient for large test cases (e.g., O(N^3) complexity).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {results && !allPassed && (
-                    <div className="flex items-center gap-2 text-brand-error font-medium mb-4">
-                      <XCircle size={18} /> {testsPassed}/{testsTotal} tests
-                      passed
-                    </div>
-                  )}
-                  {allPassed && (
-                    <div className="flex items-center gap-2 text-brand-success font-medium mb-4">
-                      <CheckCircle2 size={18} /> All {testsTotal} tests passed
-                      successfully!
-                    </div>
-                  )}
-
-                  {results?.map((res, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "rounded-xl border p-4",
-                        res.passed
-                          ? "bg-brand-success/5 border-brand-success/20"
-                          : "bg-brand-error/5 border-brand-error/30",
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 font-mono text-sm">
-                          {res.passed ? (
-                            <CheckCircle2
-                              size={16}
-                              className="text-brand-success"
-                            />
-                          ) : (
-                            <XCircle size={16} className="text-brand-error" />
-                          )}
-                          <span
-                            className={
-                              res.passed
-                                ? "text-brand-success"
-                                : "text-brand-error"
-                            }
-                          >
-                            {res.name}
-                          </span>
-                        </div>
-                        <div className="text-xs font-mono text-brand-offwhite-muted">
-                          {res.executionTimeMs.toFixed(1)}ms
-                        </div>
-                      </div>
-
-                      {!res.passed && res.output && (
-                        <div className="mt-4 pt-4 border-t border-brand-error/20 space-y-3">
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-brand-offwhite-muted mb-1">
-                              Output
-                            </div>
-                            <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-offwhite border border-brand-charcoal-border whitespace-pre-wrap break-all">
-                              {res.output}
-                            </div>
-                          </div>
-                          {res.expectedOutput && (
-                            <div>
-                              <div className="text-[10px] uppercase font-bold text-brand-offwhite-muted mb-1">
-                                Expected
-                              </div>
-                              <div className="bg-[#1A1A1A] rounded p-2 text-sm font-mono text-brand-success border border-brand-charcoal-border whitespace-pre-wrap break-all">
-                                {res.expectedOutput}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Bottom Panel (Tests) — Professional Test Result Display */}
+          <TestResultPanel
+            results={results}
+            execution={lastExecution as ExecutionResult | null}
+            errorMsg={errorMsg}
+            expanded={testsExpanded}
+            onToggle={() => setTestsExpanded(!testsExpanded)}
+          />
         </div>
 
         {/* Right: Hints Panel (Collapsible) */}
