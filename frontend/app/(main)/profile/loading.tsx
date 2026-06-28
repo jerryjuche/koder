@@ -33,13 +33,17 @@ export default function ProfileLoading() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="h-64 bg-card rounded-xl border border-border" />
-            <div className="h-64 bg-card rounded-xl border border-border" />
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="h-5 w-48 bg-muted rounded-md mb-6" />
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-muted rounded-xl" />
+                ))}
+              </div>
+            </div>
           </div>
           <div className="h-80 bg-card rounded-xl border border-border" />
         </div>
-
-        {/* Activity skeleton */}
-        <div className="h-48 bg-card rounded-xl border border-border" />
       </div>
     </div>
   );

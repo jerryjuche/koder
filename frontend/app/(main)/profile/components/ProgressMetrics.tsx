@@ -5,6 +5,7 @@ import { BookOpen, Layers } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { ActivityGauge } from "@/components/ui/activity-gauge";
 
 interface ProgressMetricsProps {
   profile: UserProfile;
@@ -106,31 +107,15 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           <h3 className="text-lg font-bold text-foreground">Module Proficiency</h3>
         </div>
 
-        <div className="space-y-5">
-          {Object.entries(displayModules).map(([moduleName, stats]) => {
-            const percentage = stats.total === 0 ? 0 : (stats.solved / stats.total) * 100;
-            return (
-              <div key={moduleName} className="group">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {moduleName}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded-full border border-border">
-                    {percentage.toFixed(0)}%
-                  </span>
-                </div>
-                <Progress value={percentage} className="h-1.5" />
-                <div className="flex justify-between mt-1.5">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {stats.solved} solved
-                  </span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {stats.total} total
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(displayModules).map(([moduleName, stats]) => (
+            <ActivityGauge
+              key={moduleName}
+              value={stats.solved}
+              max={stats.total}
+              label={moduleName}
+            />
+          ))}
         </div>
       </Card>
     </div>

@@ -10,7 +10,6 @@ import {
   Target,
   CheckCircle2,
   Flame,
-  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +23,11 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface AchievementsProps {
@@ -130,76 +134,51 @@ export default function Achievements({ profile }: AchievementsProps) {
           </Badge>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-3">
           {achievements.map((achievement) => {
             const Icon = achievement.icon;
             return (
-              <button
-                key={achievement.id}
-                onClick={() => setSelected(achievement)}
-                className="w-full text-left"
-              >
-                <Card
-                  className={cn(
-                    "relative overflow-hidden transition-all duration-300 cursor-pointer hover:-translate-y-0.5",
-                    achievement.unlocked
-                      ? "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
-                      : "opacity-50 grayscale hover:grayscale-[50%] hover:opacity-80"
-                  )}
-                >
-                  <div className="p-4 flex items-center gap-4">
-                    <div
-                      className={cn(
-                        "p-3 rounded-xl flex-shrink-0 border transition-colors",
+              <Tooltip key={achievement.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setSelected(achievement)}
+                    className={cn(
+                      "w-full aspect-square rounded-full flex items-center justify-center border transition-all duration-200",
+                      achievement.unlocked
+                        ? "bg-card border-border hover:ring-2 hover:ring-primary/50 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-lg"
+                        : "bg-muted/30 border-border opacity-30 grayscale"
+                    )}
+                  >
+                    <Icon
+                      size={22}
+                      className={
                         achievement.unlocked
-                          ? achievement.bg
-                          : "bg-muted",
-                        achievement.unlocked
-                          ? "border-transparent"
-                          : "border-border"
-                      )}
-                    >
-                      <Icon
-                        size={22}
-                        className={
-                          achievement.unlocked
-                            ? achievement.color
-                            : "text-muted-foreground"
-                        }
+                          ? achievement.color
+                          : "text-muted-foreground"
+                      }
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-44">
+                  <p className="font-semibold text-xs mb-0.5">
+                    {achievement.title}
+                    {achievement.unlocked && (
+                      <CheckCircle2
+                        size={10}
+                        className="inline ml-1 text-emerald-400"
                       />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4
-                          className={cn(
-                            "font-bold text-sm",
-                            achievement.unlocked
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {achievement.title}
-                        </h4>
-                        {achievement.unlocked && (
-                          <CheckCircle2
-                            size={14}
-                            className="text-emerald-400 shrink-0"
-                          />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {achievement.description}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </button>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {achievement.description}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
       </Card>
 
-      {/* Single detail dialog */}
       <Dialog
         open={selected !== null}
         onOpenChange={(open) => !open && setSelected(null)}
@@ -209,13 +188,9 @@ export default function Achievements({ profile }: AchievementsProps) {
             <div className="text-center mb-2 mt-2">
               <div
                 className={cn(
-                  "w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-4 border",
-                  selected?.unlocked
-                    ? selected.bg
-                    : "bg-muted/50",
-                  selected?.unlocked
-                    ? "border-transparent"
-                    : "border-border"
+                  "w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 border",
+                  selected?.unlocked ? selected.bg : "bg-muted/50",
+                  selected?.unlocked ? "border-transparent" : "border-border"
                 )}
               >
                 {selected && (
