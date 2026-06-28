@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import {
   Trophy,
   TrendingUp,
@@ -13,6 +14,7 @@ import {
   Medal,
   Crown,
   Users,
+  GitBranch,
 } from "lucide-react";
 import { fetchLeaderboard, fetchUser } from "@/lib/api";
 import { LeaderboardEntry, User } from "@/lib/types";
@@ -107,6 +109,7 @@ export default function LeaderboardClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<Period>("all");
+  const [avatarsFailed, setAvatarsFailed] = useState<Set<string>>(new Set());
   const mounted = useRef(true);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialLoad = useRef(true);
@@ -247,18 +250,41 @@ export default function LeaderboardClient() {
                   </div>
 
                   {/* Avatar */}
-                  <Avatar
-                    className={cn(
-                      "w-14 h-14 text-base shadow-lg ring-2 ring-offset-2 ring-offset-background",
-                      config.avatarRing
-                    )}
-                  >
-                    <AvatarFallback
-                      className={getUserColor(entry.user.colorIndex || 0)}
+                  {entry.user.gitea_avatar_url &&
+                  !avatarsFailed.has(entry.user.id) ? (
+                    <div
+                      className={cn(
+                        "w-14 h-14 rounded-full overflow-hidden shadow-lg ring-2 ring-offset-2 ring-offset-background",
+                        config.avatarRing
+                      )}
                     >
-                      {getInitials(entry.user.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                      <Image
+                        src={entry.user.gitea_avatar_url}
+                        alt={entry.user.gitea_username ?? "Avatar"}
+                        width={56}
+                        height={56}
+                        className="w-full h-full object-cover"
+                        onError={() =>
+                          setAvatarsFailed(
+                            (prev) => new Set(prev).add(entry.user.id)
+                          )
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <Avatar
+                      className={cn(
+                        "w-14 h-14 text-base shadow-lg ring-2 ring-offset-2 ring-offset-background",
+                        config.avatarRing
+                      )}
+                    >
+                      <AvatarFallback
+                        className={getUserColor(entry.user.colorIndex || 0)}
+                      >
+                        {getInitials(entry.user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
 
                   <div className="text-center mt-3">
                     <div
@@ -293,11 +319,26 @@ export default function LeaderboardClient() {
               <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center font-mono font-bold text-primary text-lg shrink-0">
                 {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
               </div>
-              <Avatar className="w-11 h-11 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
-                <AvatarFallback className={getUserColor(user.colorIndex)}>
-                  {getInitials(user.name)}
-                </AvatarFallback>
-              </Avatar>
+              {user.gitea_avatar_url && !avatarsFailed.has(user.id) ? (
+                <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
+                  <Image
+                    src={user.gitea_avatar_url}
+                    alt={user.gitea_username ?? "Avatar"}
+                    width={44}
+                    height={44}
+                    className="w-full h-full object-cover"
+                    onError={() =>
+                      setAvatarsFailed((prev) => new Set(prev).add(user.id))
+                    }
+                  />
+                </div>
+              ) : (
+                <Avatar className="w-11 h-11 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
+                  <AvatarFallback className={getUserColor(user.colorIndex)}>
+                    {getInitials(user.name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">
                   Your Ranking
@@ -305,8 +346,15 @@ export default function LeaderboardClient() {
                 <div className="text-base font-bold text-foreground">
                   {user.name}
                 </div>
-                <div className="text-xs text-muted-foreground font-mono">
-                  {user.studentId}
+                <div className="text-xs text-muted-foreground">
+                  {user.gitea_username ? (
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <GitBranch size={10} />
+                      {user.gitea_username}
+                    </span>
+                  ) : (
+                    <span className="font-mono">{user.studentId}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -485,18 +533,43 @@ export default function LeaderboardClient() {
                         {/* Student */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8 text-xs shrink-0">
-                              <AvatarFallback
-                                className={getUserColor(
-                                  rowUser?.colorIndex || 0
-                                )}
-                              >
-                                {initials}
-                              </AvatarFallback>
-                            </Avatar>
+                            {rowUser?.gitea_avatar_url &&
+                            !avatarsFailed.has(rowUser.id) ? (
+                              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                                <Image
+                                  src={rowUser.gitea_avatar_url}
+                                  alt={rowUser.gitea_username ?? "Avatar"}
+                                  width={32}
+                                  height={32}
+                                  className="w-full h-full object-cover"
+                                  onError={() =>
+                                    setAvatarsFailed(
+                                      (prev) =>
+                                        new Set(prev).add(rowUser.id)
+                                    )
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <Avatar className="w-8 h-8 text-xs shrink-0">
+                                <AvatarFallback
+                                  className={getUserColor(
+                                    rowUser?.colorIndex || 0
+                                  )}
+                                >
+                                  {initials}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
                             <div>
                               <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
                                 {rowUser?.name || "Unknown"}
+                                {rowUser?.gitea_username && (
+                                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                                    <GitBranch size={10} />
+                                    {rowUser.gitea_username}
+                                  </span>
+                                )}
                                 {isMe && (
                                   <Badge
                                     variant="outline"
@@ -505,9 +578,6 @@ export default function LeaderboardClient() {
                                     You
                                   </Badge>
                                 )}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground/70 font-mono mt-0.5">
-                                {rowUser?.studentId || ""}
                               </div>
                             </div>
                           </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UserProfile } from "@/lib/types";
 import { getUserColor, cn } from "@/lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Trophy,
@@ -14,6 +15,7 @@ import {
   MapPin,
   Globe,
   Mail,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [copied, setCopied] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const copyProfileLink = async () => {
     try {
@@ -54,19 +57,32 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
       <div className="h-1.5 w-full bg-gradient-to-r from-primary/80 via-primary to-amber-400/80" />
 
       <div className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-        {/* Avatar */}
+        {/* Avatar — Gitea image or initials fallback */}
         <div className="relative flex-shrink-0">
-          <div
-            className={cn(
-              "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
-              "border-[3px] border-border shadow-lg",
-              getUserColor(profile.color_index)
-            )}
-          >
-            <span className="text-3xl sm:text-4xl font-bold text-white tracking-wider">
-              {initials}
-            </span>
-          </div>
+          {profile.gitea_avatar_url && !avatarError ? (
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-border shadow-lg overflow-hidden">
+              <Image
+                src={profile.gitea_avatar_url}
+                alt={profile.gitea_username ?? "Gitea avatar"}
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+                onError={() => setAvatarError(true)}
+              />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
+                "border-[3px] border-border shadow-lg",
+                getUserColor(profile.color_index)
+              )}
+            >
+              <span className="text-3xl sm:text-4xl font-bold text-white tracking-wider">
+                {initials}
+              </span>
+            </div>
+          )}
           <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-primary/20 to-transparent -z-10 blur-sm" />
         </div>
 
@@ -81,6 +97,12 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 <span className="bg-muted/50 border border-border text-muted-foreground px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
                   @{profile.student_id}
                 </span>
+                {profile.gitea_username && (
+                  <span className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
+                    <GitBranch size={12} />
+                    {profile.gitea_username}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground text-sm">

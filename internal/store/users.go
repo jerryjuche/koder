@@ -110,7 +110,8 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
+		SELECT id, student_id, name, bio, password, role, color_index, xp,
+		       gitea_username, gitea_avatar_url, gitea_token, created_at
 		FROM users
 		WHERE id = $1
 	`
@@ -124,6 +125,9 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
+		&user.GiteaUsername,
+		&user.GiteaAvatarURL,
+		&user.GiteaToken,
 		&user.CreatedAt,
 	)
 
@@ -178,7 +182,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.id, u.name, u.student_id, u.role, u.color_index,
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
-				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms
+				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
+				u.gitea_username, u.gitea_avatar_url
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -198,7 +203,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			SELECT 
 				u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
-				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms
+				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
+				u.gitea_username, u.gitea_avatar_url
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin'
@@ -223,7 +229,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 		err := rows.Scan(
 			&uID, &u.Name, &u.StudentID, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime,
+			&u.SolvedCount, &bestTime, &u.GiteaUsername, &u.GiteaAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
@@ -273,7 +279,8 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	var solvedCount int
 
 	query := `
-		SELECT u.id, u.student_id, u.name, u.bio, u.password, u.role, u.color_index, u.xp, u.created_at,
+		SELECT u.id, u.student_id, u.name, u.bio, u.password, u.role, u.color_index, u.xp,
+		       u.gitea_username, u.gitea_avatar_url, u.created_at,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -288,6 +295,8 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
+		&user.GiteaUsername,
+		&user.GiteaAvatarURL,
 		&user.CreatedAt,
 		&solvedCount,
 	)
@@ -392,6 +401,188 @@ func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid
 	}
 
 	return user, nil
+}
+
+// GetUserByGiteaID retrieves a user by their Gitea user ID.
+func (s *PostgresStore) GetUserByGiteaID(ctx context.Context, giteaID int64) (*User, error) {
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, name, bio, password, role, color_index, xp, verified, verified_at,
+		       gitea_id, gitea_username, gitea_email, gitea_avatar_url, created_at
+		FROM users
+		WHERE gitea_id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, giteaID).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Name,
+		&user.Bio,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.Verified,
+		&user.VerifiedAt,
+		&user.GiteaID,
+		&user.GiteaUsername,
+		&user.GiteaEmail,
+		&user.GiteaAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found by gitea_id: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by gitea_id: %w", err)
+	}
+
+	return user, nil
+}
+
+// CreateUserFromGitea creates a new user from Gitea OAuth profile.
+func (s *PostgresStore) CreateUserFromGitea(ctx context.Context, info *GiteaUserInfo) (*User, error) {
+	if info == nil {
+		return nil, fmt.Errorf("gitea user info cannot be nil")
+	}
+
+	// Generate a random placeholder password (OAuth users don't use password login)
+	placeholderPW, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 12)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash placeholder password: %w", err)
+	}
+
+	colorIndexBig, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to assign color index: %w", err)
+	}
+	colorIndex := int(colorIndexBig.Int64())
+
+	displayName := info.FullName
+	if displayName == "" {
+		displayName = info.Login
+	}
+
+	var userID pgtype.UUID
+	var createdAt pgtype.Timestamp
+
+	query := `
+		INSERT INTO users (student_id, name, password, role, color_index, xp, gitea_id, gitea_username, gitea_email, gitea_avatar_url, created_at)
+		VALUES ($1, $2, $3, 'student', $4, 0, $5, $6, $7, $8, NOW())
+		RETURNING id, created_at
+	`
+
+	err = s.pool.QueryRow(ctx, query,
+		info.Login,        // student_id = Gitea login name
+		displayName,       // name
+		string(placeholderPW),
+		colorIndex,
+		info.ID,           // gitea_id
+		info.Login,        // gitea_username
+		info.Email,        // gitea_email
+		info.AvatarURL,    // gitea_avatar_url
+	).Scan(&userID, &createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user from gitea: %w", err)
+	}
+
+	return &User{
+		ID:            userID,
+		StudentID:     info.Login,
+		Name:          displayName,
+		Password:      string(placeholderPW),
+		Role:          "student",
+		ColorIndex:    colorIndex,
+		XP:            0,
+		GiteaID:       &info.ID,
+		GiteaUsername: &info.Login,
+		GiteaEmail:    &info.Email,
+		GiteaAvatarURL: &info.AvatarURL,
+		CreatedAt:     createdAt.Time,
+	}, nil
+}
+
+// LinkGiteaToUser links an existing user to a Gitea account.
+func (s *PostgresStore) LinkGiteaToUser(ctx context.Context, userID uuid.UUID, info *GiteaUserInfo) error {
+	if userID == uuid.Nil {
+		return fmt.Errorf("userID cannot be nil")
+	}
+	if info == nil {
+		return fmt.Errorf("gitea user info cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET gitea_id = $1, gitea_username = $2, gitea_email = $3, gitea_avatar_url = $4
+		WHERE id = $5
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query,
+		info.ID,
+		info.Login,
+		info.Email,
+		info.AvatarURL,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to link gitea to user: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UpdateGiteaProfile stores or updates the Gitea PAT-linked profile fields.
+func (s *PostgresStore) UpdateGiteaProfile(ctx context.Context, userID uuid.UUID, username, avatarURL, encryptedToken string) error {
+	if userID == uuid.Nil {
+		return fmt.Errorf("userID cannot be nil")
+	}
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET gitea_username = $1, gitea_avatar_url = $2, gitea_token = $3
+		WHERE id = $4
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, username, avatarURL, encryptedToken, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update gitea profile: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// ClearGiteaProfile removes the Gitea PAT-linked profile fields from a user.
+func (s *PostgresStore) ClearGiteaProfile(ctx context.Context, userID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return fmt.Errorf("userID cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET gitea_id = NULL, gitea_username = NULL, gitea_email = NULL, gitea_avatar_url = NULL, gitea_token = NULL
+		WHERE id = $1
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to clear gitea profile: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }
 
 // GetUserRank returns the user's rank (1-indexed position) in the leaderboard.

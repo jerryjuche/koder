@@ -39,6 +39,7 @@ type Store interface {
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetUserByGiteaID(ctx context.Context, giteaID int64) (*User, error)
 	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
@@ -52,6 +53,10 @@ type Store interface {
 	GetFullProfile(ctx context.Context, userID uuid.UUID) (*FullProfileResult, error)
 	GetUserActivity(ctx context.Context, userID uuid.UUID, year int) ([]ActivityEntry, error)
 	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
+	CreateUserFromGitea(ctx context.Context, info *GiteaUserInfo) (*User, error)
+	LinkGiteaToUser(ctx context.Context, userID uuid.UUID, info *GiteaUserInfo) error
+	UpdateGiteaProfile(ctx context.Context, userID uuid.UUID, username, avatarURL, encryptedToken string) error
+	ClearGiteaProfile(ctx context.Context, userID uuid.UUID) error
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)

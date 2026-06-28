@@ -8,6 +8,8 @@ export type User = {
   level: number;
   solvedCount: number;
   verified?: boolean;
+  gitea_username?: string;
+  gitea_avatar_url?: string;
 };
 
 export type ProblemDifficulty =
@@ -114,6 +116,8 @@ export type UserProfile = {
   level: number;
   global_rank: number;
   created_at: string;
+  gitea_username?: string;
+  gitea_avatar_url?: string;
   stats: {
     solved_count: number;
     attempted_count: number;

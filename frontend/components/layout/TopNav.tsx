@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Code2,
@@ -14,6 +15,7 @@ import {
   PlusCircle,
   CheckCheck,
   ChevronDown,
+  GitBranch,
 } from "lucide-react";
 import { cn, getUserColor } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -33,6 +35,7 @@ export default function TopNav() {
   const { user, loading } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
+  const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
   // Close notification menu on outside click
@@ -206,53 +209,89 @@ export default function TopNav() {
             </div>
 
             {/* Profile Dropdown (shadcn DropdownMenu) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                  <div
-                    className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-inner",
-                      getUserColor(user.colorIndex),
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    {user.gitea_avatar_url && !avatarError ? (
+                      <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
+                        <Image
+                          src={user.gitea_avatar_url}
+                          alt={user.gitea_username ?? "Avatar"}
+                          width={36}
+                          height={36}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-inner flex-shrink-0",
+                          getUserColor(user.colorIndex),
+                        )}
+                      >
+                        {user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
                     )}
-                  >
-                    {user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2">
-                    <div className="text-left">
-                      <div className="text-sm font-medium text-foreground leading-tight">
-                        {user.name}
+                    <div className="hidden sm:flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-sm font-medium text-foreground leading-tight">
+                          {user.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {user.gitea_username || (
+                            <span className="font-mono">{user.studentId}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {user.studentId}
-                      </div>
+                      <ChevronDown size={14} className="text-muted-foreground" />
                     </div>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex items-center gap-3 py-1">
-                    <div
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white",
-                        getUserColor(user.colorIndex),
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-3 py-1">
+                      {user.gitea_avatar_url && !avatarError ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
+                          <Image
+                            src={user.gitea_avatar_url}
+                            alt={user.gitea_username ?? "Avatar"}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0",
+                            getUserColor(user.colorIndex),
+                          )}
+                        >
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </div>
                       )}
-                    >
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.gitea_username ? (
+                            <span className="flex items-center gap-1 text-emerald-400">
+                              <GitBranch size={10} />
+                              {user.gitea_username}
+                            </span>
+                          ) : (
+                            <span className="font-mono">{user.studentId}</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{user.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{user.studentId}</p>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
+                  </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile">

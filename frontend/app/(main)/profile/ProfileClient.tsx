@@ -11,6 +11,7 @@ import ProgressMetrics from "./components/ProgressMetrics";
 import StatsOverview from "./components/StatsOverview";
 import MyContributions from "./components/MyContributions";
 import Achievements from "./components/Achievements";
+import ActivityFeed from "./components/ActivityFeed";
 
 import ContributionGraphSection from "./components/ContributionGraphSection";
 import { useNotifications } from "@/lib/useNotifications";
@@ -170,7 +171,18 @@ export default function ProfileClient() {
             </TabsContent>
 
             <TabsContent value="contributions" className="mt-6">
-              <MyContributions />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <MyContributions />
+                </div>
+                <div>
+                  <ActivityFeed
+                    profile={profile}
+                    activity={activity}
+                    contributionCount={0}
+                  />
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

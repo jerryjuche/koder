@@ -29,6 +29,8 @@ type profileResponse struct {
 	Level               int                                       `json:"level"`
 	GlobalRank          int                                       `json:"global_rank"`
 	CreatedAt           string                                    `json:"created_at"`
+	GiteaUsername       *string                                   `json:"gitea_username,omitempty"`
+	GiteaAvatarURL      *string                                   `json:"gitea_avatar_url,omitempty"`
 	Stats               profileStatsResponse                      `json:"stats"`
 	ProgressByDifficulty map[string]difficultyProgressResponse   `json:"progress_by_difficulty"`
 	ModuleProficiency    map[string]difficultyProgressResponse   `json:"module_proficiency"`
@@ -161,6 +163,8 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	user, _ := h.store.GetUserByID(r.Context(), userUUID)
+
 	resp := profileResponse{
 		ID:         raw.User.ID,
 		StudentID:  raw.User.StudentID,
@@ -181,6 +185,10 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		ProgressByDifficulty: raw.ProgressByDifficulty,
 		ModuleProficiency:    raw.ModuleProficiency,
 		RecentSubmissions:    recentSubs,
+	}
+	if user != nil {
+		resp.GiteaUsername = user.GiteaUsername
+		resp.GiteaAvatarURL = user.GiteaAvatarURL
 	}
 
 	cacheProfile(r.Context(), userUUID.String(), resp)

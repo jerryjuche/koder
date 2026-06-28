@@ -36,6 +36,12 @@ type Config struct {
 	// CORS
 	AllowedOrigin string
 
+	// Gitea OAuth2
+	GiteaURL           string
+	GiteaClientID      string
+	GiteaClientSecret  string
+	GiteaRedirectURL   string // Full URL to /auth/gitea/callback on the backend
+
 	// Admin
 	AdminEmail    string
 	AdminPassword string
@@ -180,6 +186,22 @@ func Load() (*Config, error) {
 	if cfg.AllowedOrigin == "" {
 		cfg.AllowedOrigin = "http://localhost:3000"
 	}
+
+	// Gitea OAuth2
+	cfg.GiteaURL = os.Getenv("GITEA_URL")
+	if cfg.GiteaURL == "" {
+		return nil, fmt.Errorf("GITEA_URL is required")
+	}
+	if cfg.Environment == "production" && !strings.HasPrefix(cfg.GiteaURL, "https://") {
+		return nil, fmt.Errorf("GITEA_URL must use HTTPS in production")
+	}
+	cfg.GiteaClientID = os.Getenv("GITEA_CLIENT_ID")
+	// GITEA_CLIENT_ID is optional — only needed for OAuth2 flow (dormant). PAT linking does not require it.
+	cfg.GiteaClientSecret = os.Getenv("GITEA_CLIENT_SECRET")
+	// GITEA_CLIENT_SECRET is optional — only needed for OAuth2 flow (dormant). PAT linking does not require it.
+
+	cfg.GiteaRedirectURL = os.Getenv("GITEA_REDIRECT_URL")
+	// GITEA_REDIRECT_URL is optional — only needed for OAuth2 flow (dormant). PAT linking does not require it.
 
 	// Admin Credentials
 	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")

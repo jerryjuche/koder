@@ -255,6 +255,15 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
+- **Gitea avatar + username sync across all surfaces:**
+  - Backend: `LeaderboardUser` now includes `gitea_username`/`gitea_avatar_url` (selected by leaderboard SQL queries); `/me/profile` now returns gitea fields; all Gitea handlers (`link`/`unlink`/`sync`) invalidate profile+user caches
+  - TopNav dropdown: Gitea avatar via `<Image>` + `@username` badge; shows name by default, student_id as fallback
+  - Dashboard: Gitea avatar + `@username` in user summary card
+  - Leaderboard: Gitea avatars on podium, "Your Ranking" banner, and table rows (with per-user `onError` fallback to initials); gitea_username badges inline; removed `studentId` column from table
+  - Profile "My Contributions" tab: new `ActivityFeed` sidebar showing achievement grid + recent activity timeline (solved counts, submissions, contributions)
+- **Gitea PAT linking:** Optional PAT-based Gitea account linking for profile avatar + username display
+  - Backend: `EncryptToken`/`DecryptToken` (AES-256-GCM), 4 new API handlers (`link/unlink/status/sync`), encrypted token storage (`gitea_token` column, `json:"-"`), optional OAuth vars in config
+  - Frontend: Gitea linking UI in Settings (Security tab), avatar via `<Image>` in ProfileHeader, `@username` badge with GitBranch icon, real-time `user-updated` event sync
 - **Dashboard UI updates:** est time, description, success rate display (c008449)
 - **Executor hardening:** Improved test generation sandbox debugging (a01d5a8)
 - **Complexity refactoring:** Reduced cyclomatic complexity in code runs (281a427)
