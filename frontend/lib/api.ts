@@ -9,6 +9,7 @@ import {
   UserProfile,
   UserProblem,
   CommunitySolution,
+  ActivityEntry,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -245,6 +246,11 @@ export async function submitContribution(data: any): Promise<ApiResponse<any>> {
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+export async function fetchUserActivity(year?: number): Promise<ApiResponse<ActivityEntry[]>> {
+  const params = year ? `?year=${year}` : "";
+  return fetchApi<ActivityEntry[]>(`/me/activity${params}`);
 }
 
 export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {

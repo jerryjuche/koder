@@ -17,6 +17,7 @@
     "@radix-ui/react-tooltip": "^1.2.10",
     "@radix-ui/react-use-controllable-state": "^1.2.3",
     "@shikijs/transformers": "^4.3.0",
+    "@tanstack/react-virtual": "^3.14.4",
     "autoprefixer": "^10.4.21",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",

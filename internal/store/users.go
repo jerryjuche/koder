@@ -263,6 +263,45 @@ func (s *PostgresStore) GetSolvedCount(ctx context.Context, userID uuid.UUID) (i
 	return count, nil
 }
 
+// GetUserWithSolvedCount returns a user with their solved count in one query.
+func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error) {
+	if id == uuid.Nil {
+		return nil, 0, fmt.Errorf("id cannot be nil")
+	}
+
+	user := &User{}
+	var solvedCount int
+
+	query := `
+		SELECT u.id, u.student_id, u.name, u.bio, u.password, u.role, u.color_index, u.xp, u.created_at,
+		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
+		FROM users u
+		WHERE u.id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Name,
+		&user.Bio,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.CreatedAt,
+		&solvedCount,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, 0, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, 0, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, solvedCount, nil
+}
+
 // UpdateUserName updates the user's name by ID.
 func (s *PostgresStore) UpdateUserName(ctx context.Context, id uuid.UUID, name string) error {
 	if id == uuid.Nil {
@@ -315,6 +354,44 @@ func (s *PostgresStore) UpdateUserProfile(ctx context.Context, id uuid.UUID, nam
 	}
 
 	return nil
+}
+
+// UpdateUserProfileWithReturn updates the user's name and bio and returns the updated user.
+func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("id cannot be nil")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("name cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		UPDATE users
+		SET name = $1, bio = $2
+		WHERE id = $3
+		RETURNING id, student_id, name, bio, role, color_index, xp, created_at
+	`
+
+	err := s.pool.QueryRow(ctx, query, name, bio, id).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Name,
+		&user.Bio,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	return user, nil
 }
 
 // GetUserRank returns the user's rank (1-indexed position) in the leaderboard.

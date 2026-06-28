@@ -175,6 +175,14 @@ export type ExecutionResult = {
   test_results: BackendTestResult[];
 };
 
+export type ActivityEntry = {
+  date: string;
+  submissions: number;
+  solved: number;
+  tests_run: number;
+  level: number;
+};
+
 export type ApiResponse<T> = {
   success: boolean;
   data: T | null;

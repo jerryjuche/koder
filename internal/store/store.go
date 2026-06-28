@@ -10,12 +10,36 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// FullProfileResult holds all data returned by the GetFullProfile query.
+type FullProfileResult struct {
+	UserJSON             []byte
+	Rank                 int
+	SolvedCount          int
+	AttemptedCount       int
+	AverageStars         float64
+	BestRuntimeMs        int
+	CurrentStreakDays    int
+	ProgressByDifficulty map[string]DifficultyProgress
+	ModuleProficiency    map[string]DifficultyProgress
+	RecentSubmissions    []Submission
+}
+
+// ActivityEntry represents a single day's activity for the contribution graph.
+type ActivityEntry struct {
+	Date           string `json:"date"`
+	Submissions    int    `json:"submissions"`
+	Solved         int    `json:"solved"`
+	TestsRun       int    `json:"tests_run"`
+	Level          int    `json:"level"`
+}
+
 // Store defines the interface for all database operations.
 type Store interface {
 	// User operations
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
 	UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error
@@ -25,6 +49,9 @@ type Store interface {
 	GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error)
 	GetModuleProficiency(ctx context.Context, userID uuid.UUID) (map[string]DifficultyProgress, error)
 	GetRecentSubmissions(ctx context.Context, userID uuid.UUID, limit int) ([]Submission, error)
+	GetFullProfile(ctx context.Context, userID uuid.UUID) (*FullProfileResult, error)
+	GetUserActivity(ctx context.Context, userID uuid.UUID, year int) ([]ActivityEntry, error)
+	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)

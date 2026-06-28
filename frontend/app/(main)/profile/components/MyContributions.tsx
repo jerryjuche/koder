@@ -22,6 +22,7 @@ import {
   MessageSquare,
   ArrowUpRight,
   ArrowUpDown,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -30,10 +31,7 @@ import remarkGfm from "remark-gfm";
 export default function MyContributions() {
   const [contributions, setContributions] = useState<UserProblem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProblem, setSelectedProblem] = useState<UserProblem | null>(
-    null
-  );
-
+  const [selectedProblem, setSelectedProblem] = useState<UserProblem | null>(null);
   const [sortField, setSortField] = useState<"date" | "status">("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
@@ -73,8 +71,7 @@ export default function MyContributions() {
           No Contributions Yet
         </h3>
         <p className="text-muted-foreground mb-6">
-          Start building your legacy by submitting a new problem to the
-          community.
+          Start building your legacy by submitting a new problem to the community.
         </p>
         <Button asChild>
           <a href="/contribute">Submit a Problem</a>
@@ -83,29 +80,23 @@ export default function MyContributions() {
     );
   }
 
-  const statusConfig = {
-    approved: {
-      label: "Approved",
-      color: "text-emerald-400",
-    },
-    rejected: {
-      label: "Rejected",
-      color: "text-rose-400",
-    },
-    pending: {
-      label: "Pending",
-      color: "text-amber-400",
-    },
-  } as const;
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <CheckCircle2 size={14} />;
+      case "rejected":
+        return <XCircle size={14} />;
+      default:
+        return <Clock size={14} />;
+    }
+  };
 
   const statusPriority = { pending: 1, rejected: 2, approved: 3 };
 
   const sortedContributions = [...contributions].sort((a, b) => {
     if (sortField === "status") {
-      const pA =
-        statusPriority[a.status as keyof typeof statusPriority] || 0;
-      const pB =
-        statusPriority[b.status as keyof typeof statusPriority] || 0;
+      const pA = statusPriority[a.status as keyof typeof statusPriority] || 0;
+      const pB = statusPriority[b.status as keyof typeof statusPriority] || 0;
       return sortDirection === "asc" ? pA - pB : pB - pA;
     } else {
       const dA = new Date(a.created_at).getTime();
@@ -123,56 +114,51 @@ export default function MyContributions() {
     }
   };
 
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle2 size={14} />;
-      case "rejected":
-        return <XCircle size={14} />;
-      default:
-        return <Clock size={14} />;
-    }
-  };
+  const selected = selectedProblem;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-4 mb-4">
-        <span className="text-sm text-muted-foreground">Sort by:</span>
-        <button
-          onClick={() => toggleSort("date")}
-          className={cn(
-            "flex items-center gap-1 text-sm font-medium transition-colors",
-            sortField === "date"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Date{" "}
-          <ArrowUpDown
-            size={14}
-            className={sortField === "date" ? "opacity-100" : "opacity-0"}
-          />
-        </button>
-        <button
-          onClick={() => toggleSort("status")}
-          className={cn(
-            "flex items-center gap-1 text-sm font-medium transition-colors",
-            sortField === "status"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Status{" "}
-          <ArrowUpDown
-            size={14}
-            className={sortField === "status" ? "opacity-100" : "opacity-0"}
-          />
-        </button>
-      </div>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center justify-end gap-4 mb-4">
+          <span className="text-sm text-muted-foreground">Sort by:</span>
+          <button
+            onClick={() => toggleSort("date")}
+            className={cn(
+              "flex items-center gap-1 text-sm font-medium transition-colors",
+              sortField === "date"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Date{" "}
+            <ArrowUpDown
+              size={14}
+              className={sortField === "date" ? "opacity-100" : "opacity-0"}
+            />
+          </button>
+          <button
+            onClick={() => toggleSort("status")}
+            className={cn(
+              "flex items-center gap-1 text-sm font-medium transition-colors",
+              sortField === "status"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Status{" "}
+            <ArrowUpDown
+              size={14}
+              className={sortField === "status" ? "opacity-100" : "opacity-0"}
+            />
+          </button>
+        </div>
 
-      {sortedContributions.map((prob) => (
-        <Dialog key={prob.id}>
-          <DialogTrigger asChild>
+        {sortedContributions.map((prob) => (
+          <button
+            key={prob.id}
+            onClick={() => setSelectedProblem(prob)}
+            className="w-full text-left"
+          >
             <Card className="hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-primary/5">
               <div className="p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div className="flex-1 min-w-0">
@@ -188,7 +174,11 @@ export default function MyContributions() {
                             ? "destructive"
                             : "secondary"
                       }
-                      className="gap-1 shrink-0"
+                      className={cn(
+                        "gap-1 shrink-0",
+                        prob.status === "approved" &&
+                          "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                      )}
                     >
                       {statusIcon(prob.status)}
                       {prob.status}
@@ -206,51 +196,66 @@ export default function MyContributions() {
                 </div>
 
                 <div className="flex items-center shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground transition-colors">
                     <ChevronRight size={20} />
                   </div>
                 </div>
               </div>
             </Card>
-          </DialogTrigger>
+          </button>
+        ))}
+      </div>
 
-          <DialogContent
-            className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0"
-            showCloseButton={false}
-          >
-            <DialogHeader className="p-6 border-b border-border bg-muted/30 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <DialogTitle className="flex items-center gap-3 text-xl">
-                    {prob.title}
+      {/* Single detail dialog */}
+      <Dialog
+        open={selected !== null}
+        onOpenChange={(open) => !open && setSelectedProblem(null)}
+      >
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0"
+          showCloseButton={false}
+        >
+          <DialogHeader className="p-6 border-b border-border bg-muted/30 rounded-t-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="flex items-center gap-3 text-xl">
+                  {selected?.title}
+                  {selected && (
                     <Badge
                       variant={
-                        prob.status === "approved"
+                        selected.status === "approved"
                           ? "outline"
-                          : prob.status === "rejected"
+                          : selected.status === "rejected"
                             ? "destructive"
                             : "secondary"
                       }
-                      className="gap-1"
+                      className={cn(
+                        "gap-1",
+                        selected.status === "approved" &&
+                          "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                      )}
                     >
-                      {statusIcon(prob.status)}
-                      {prob.status}
+                      {statusIcon(selected.status)}
+                      {selected.status}
                     </Badge>
-                  </DialogTitle>
-                  <p className="text-sm text-muted-foreground font-mono mt-1">
-                    {prob.slug}
-                  </p>
-                </div>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="shrink-0 bg-muted/50">
-                    <XCircle size={20} />
-                  </Button>
-                </DialogTrigger>
+                  )}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground font-mono mt-1">
+                  {selected?.slug}
+                </p>
               </div>
-            </DialogHeader>
+              <button
+                onClick={() => setSelectedProblem(null)}
+                className="shrink-0 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </DialogHeader>
 
+          {selected && (
             <div className="p-6 overflow-y-auto space-y-8 flex-1">
-              {prob.admin_notes && (
+              {selected.admin_notes && (
                 <div className="p-4 bg-muted/50 rounded-lg border border-border flex items-start gap-3">
                   <MessageSquare
                     size={20}
@@ -261,7 +266,7 @@ export default function MyContributions() {
                       Admin Feedback
                     </h4>
                     <p className="text-muted-foreground text-sm">
-                      {prob.admin_notes}
+                      {selected.admin_notes}
                     </p>
                   </div>
                 </div>
@@ -273,7 +278,7 @@ export default function MyContributions() {
                 </h4>
                 <div className="prose prose-invert prose-sm max-w-none text-muted-foreground">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {prob.statement}
+                    {selected.statement}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -284,8 +289,8 @@ export default function MyContributions() {
                 </h4>
                 <div className="bg-muted/50 border border-border rounded-lg p-4 font-mono text-sm text-foreground overflow-x-auto">
                   <span className="text-primary">func</span>{" "}
-                  {prob.func_name}({prob.param_types.join(", ")}){" "}
-                  {prob.return_type} {"{"}
+                  {selected.func_name}({selected.param_types.join(", ")}){" "}
+                  {selected.return_type} {"{"}
                   <br />
                   <span className="text-muted-foreground ml-4">
                     {"// implementation"}
@@ -297,7 +302,7 @@ export default function MyContributions() {
 
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b border-border pb-2">
-                  Test Cases ({prob.test_cases.length})
+                  Test Cases ({selected.test_cases.length})
                 </h4>
                 <div className="border border-border rounded-lg overflow-hidden">
                   <table className="w-full text-left text-sm">
@@ -313,7 +318,7 @@ export default function MyContributions() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {prob.test_cases.map((tc, idx) => (
+                      {selected.test_cases.map((tc, idx) => (
                         <tr key={idx} className="bg-background">
                           <td className="px-4 py-3 font-mono text-foreground">
                             {JSON.stringify(tc.input)}
@@ -323,10 +328,7 @@ export default function MyContributions() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             {tc.is_hidden ? (
-                              <Badge
-                                variant="destructive"
-                                className="text-[10px]"
-                              >
+                              <Badge variant="destructive" className="text-[10px]">
                                 Yes
                               </Badge>
                             ) : (
@@ -345,31 +347,31 @@ export default function MyContributions() {
                 </div>
               </div>
             </div>
+          )}
 
-            <DialogFooter className="p-6 border-t border-border bg-muted/30 rounded-b-xl">
-              <span className="text-xs text-muted-foreground">
-                Submitted on {new Date(prob.created_at).toLocaleString()}
-              </span>
-              <div className="flex gap-3">
-                <DialogTrigger asChild>
-                  <Button variant="outline">Close</Button>
-                </DialogTrigger>
-                {prob.status === "rejected" && (
-                  <Button asChild>
-                    <a
-                      href={`/contribute?edit=${prob.id}`}
-                      className="flex items-center gap-2"
-                    >
-                      Re-edit & Resubmit{" "}
-                      <ArrowUpRight size={16} />
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      ))}
-    </div>
+          <DialogFooter className="p-6 border-t border-border bg-muted/30 rounded-b-xl">
+            <span className="text-xs text-muted-foreground">
+              {selected && `Submitted on ${new Date(selected.created_at).toLocaleString()}`}
+            </span>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setSelectedProblem(null)}>
+                Close
+              </Button>
+              {selected?.status === "rejected" && (
+                <Button asChild>
+                  <a
+                    href={`/contribute?edit=${selected.id}`}
+                    className="flex items-center gap-2"
+                  >
+                    Re-edit & Resubmit{" "}
+                    <ArrowUpRight size={16} />
+                  </a>
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

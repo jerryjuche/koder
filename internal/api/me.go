@@ -53,7 +53,13 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	// Check cache first
+	if cached, ok := getCachedUser(r.Context(), userUUID.String()); ok {
+		RespondSuccess(w, cached)
+		return
+	}
+
+	user, solvedCount, err := h.store.GetUserWithSolvedCount(r.Context(), userUUID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
 		return
@@ -65,10 +71,18 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query solved count from progress table
-	solvedCount, _ := h.store.GetSolvedCount(r.Context(), userUUID)
-
 	level := (user.XP / 1000) + 1
+
+	cacheUser(r.Context(), userUUID.String(), meResponse{
+		ID:          idStr,
+		StudentID:   user.StudentID,
+		Name:        user.Name,
+		Role:        user.Role,
+		ColorIndex:  clampColorIndex(user.ColorIndex),
+		XP:          user.XP,
+		Level:       level,
+		SolvedCount: solvedCount,
+	})
 
 	RespondSuccess(w, meResponse{
 		ID:          idStr,

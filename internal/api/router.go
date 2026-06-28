@@ -43,6 +43,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Get("/me/profile", profileHandler.GetProfile)
 		r.Put("/me/profile", profileHandler.UpdateProfile)
 
+		activityHandler := NewActivityHandler(store)
+		r.Get("/me/activity", activityHandler.GetActivity)
+
 		contributionsHandler := NewContributionsHandler(store)
 		r.Group(func(r chi.Router) {
 			r.Use(VerifiedContributorOnly)

@@ -1,40 +1,76 @@
 "use client";
 
+import { useState } from "react";
 import { UserProfile } from "@/lib/types";
 import { getUserColor, cn } from "@/lib/utils";
 import Link from "next/link";
-import { Trophy, Settings, Mail } from "lucide-react";
+import {
+  Trophy,
+  Settings,
+  Calendar,
+  Share2,
+  Copy,
+  Check,
+  MapPin,
+  Globe,
+  Mail,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
 }
 
 export default function ProfileHeader({ profile }: ProfileHeaderProps) {
+  const [copied, setCopied] = useState(false);
+
+  const copyProfileLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      toast.success("Profile link copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const joinDate = new Date(profile.created_at).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const initials = profile.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-lg relative overflow-hidden">
+    <div className="bg-card rounded-2xl border border-border shadow-sm relative overflow-hidden">
+      {/* Accent gradient line */}
       <div className="h-1.5 w-full bg-gradient-to-r from-primary/80 via-primary to-amber-400/80" />
 
       <div className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
+        {/* Avatar */}
         <div className="relative flex-shrink-0">
           <div
             className={cn(
-              "w-24 h-24 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center",
-              "border-2 border-border/60 shadow-xl",
+              "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
+              "border-[3px] border-border shadow-lg",
               getUserColor(profile.color_index)
             )}
           >
-            <span className="text-4xl sm:text-5xl font-bold text-white tracking-wider">
-              {profile.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .substring(0, 2)
-                .toUpperCase()}
+            <span className="text-3xl sm:text-4xl font-bold text-white tracking-wider">
+              {initials}
             </span>
           </div>
-          <div className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent -z-10 blur-sm" />
+          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-primary/20 to-transparent -z-10 blur-sm" />
         </div>
 
+        {/* Main content */}
         <div className="flex-1 min-w-0 w-full">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="min-w-0">
@@ -43,15 +79,28 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                   {profile.name}
                 </h2>
                 <span className="bg-muted/50 border border-border text-muted-foreground px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
-                  {profile.student_id}
+                  @{profile.student_id}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground/70 text-sm">
+
+              <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground text-sm">
                 <Mail size={14} />
                 <span>{profile.student_id}</span>
               </div>
+
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar size={12} />
+                  Joined {joinDate}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Trophy size={12} className="text-primary" />
+                  Level {profile.level}
+                </span>
+              </div>
             </div>
 
+            {/* Rank badge */}
             <div className="flex-shrink-0 self-start">
               <div
                 className={cn(
@@ -73,6 +122,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
             </div>
           </div>
 
+          {/* Bio */}
           {profile.bio && (
             <div className="mt-4 relative">
               <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/40 to-primary/5 rounded-full" />
@@ -82,14 +132,27 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
             </div>
           )}
 
-          <div className="mt-5 flex items-center gap-3">
-            <Link
-              href="/settings"
-              className="inline-flex items-center gap-2 px-5 py-2 bg-background hover:bg-muted border border-border text-foreground rounded-xl transition text-sm font-semibold"
-            >
-              <Settings size={15} />
-              Edit Profile
-            </Link>
+          {/* Action buttons */}
+          <div className="mt-5 flex items-center gap-3 flex-wrap">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/settings">
+                <Settings size={15} />
+                Edit Profile
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={copyProfileLink}>
+              {copied ? (
+                <>
+                  <Check size={15} className="text-emerald-400" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy size={15} />
+                  Copy Link
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
