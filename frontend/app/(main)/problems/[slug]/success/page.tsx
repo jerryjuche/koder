@@ -4,7 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import Editor from "@monaco-editor/react";
+import {
+  CodeBlock,
+  CodeBlockBody,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockFilename,
+  CodeBlockFiles,
+  CodeBlockHeader,
+  CodeBlockItem,
+} from "@/components/kibo-ui/code-block";
+import type { BundledLanguage } from "@/components/kibo-ui/code-block";
 import {
   CheckCircle2,
   ChevronRight,
@@ -196,33 +206,42 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             Your Solution
           </h2>
-          <div className="rounded-2xl border border-brand-charcoal-border bg-[#0F1115] overflow-hidden shadow-xl h-[400px]">
-            <div className="h-10 bg-brand-charcoal-card border-b border-brand-charcoal-border flex items-center px-4">
-              <span className="text-xs font-mono text-brand-offwhite-muted">
-                solution.go
-              </span>
-            </div>
-            <Editor
-              height="calc(100% - 40px)"
-              defaultLanguage="go"
-              theme="vs-dark"
-              value={code}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                fontSize: 14,
-                fontFamily: "var(--font-mono), monospace",
-                padding: { top: 16 },
-                scrollbar: {
-                  verticalScrollbarSize: 8,
-                  horizontalScrollbarSize: 8,
-                },
-                renderLineHighlight: "none",
-                overviewRulerLanes: 0,
-                hideCursorInOverviewRuler: true,
-              }}
-            />
-          </div>
+          <CodeBlock
+            data={[
+              {
+                language: "go",
+                filename: "solution.go",
+                code,
+              },
+            ]}
+            defaultValue="go"
+            className="h-[400px]"
+          >
+            <CodeBlockHeader>
+              <CodeBlockFiles>
+                {(item) => (
+                  <CodeBlockFilename
+                    key={item.language}
+                    value={item.language}
+                  >
+                    {item.filename}
+                  </CodeBlockFilename>
+                )}
+              </CodeBlockFiles>
+              <CodeBlockCopyButton />
+            </CodeBlockHeader>
+            <CodeBlockBody>
+              {(item) => (
+                <CodeBlockItem key={item.language} value={item.language}>
+                  <CodeBlockContent
+                    language={item.language as BundledLanguage}
+                  >
+                    {item.code}
+                  </CodeBlockContent>
+                </CodeBlockItem>
+              )}
+            </CodeBlockBody>
+          </CodeBlock>
         </div>
 
         {/* Right: Community Solutions */}
@@ -275,28 +294,45 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                       {sol.likes}
                     </button>
                   </div>
-                  <div className="h-[200px] bg-[#0F1115]">
-                    <Editor
-                      height="100%"
-                      defaultLanguage="go"
-                      theme="vs-dark"
-                      value={sol.code}
-                      options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        fontSize: 12,
-                        fontFamily: "var(--font-mono), monospace",
-                        padding: { top: 12 },
-                        scrollbar: {
-                          verticalScrollbarSize: 4,
-                          horizontalScrollbarSize: 4,
-                        },
-                        renderLineHighlight: "none",
-                        overviewRulerLanes: 0,
-                        hideCursorInOverviewRuler: true,
-                      }}
-                    />
-                  </div>
+                  <CodeBlock
+                    data={[
+                      {
+                        language: "go",
+                        filename: "solution.go",
+                        code: sol.code,
+                      },
+                    ]}
+                    defaultValue="go"
+                    className="h-[200px]"
+                  >
+                    <CodeBlockHeader>
+                      <CodeBlockFiles>
+                        {(item) => (
+                          <CodeBlockFilename
+                            key={item.language}
+                            value={item.language}
+                          >
+                            {item.filename}
+                          </CodeBlockFilename>
+                        )}
+                      </CodeBlockFiles>
+                      <CodeBlockCopyButton />
+                    </CodeBlockHeader>
+                    <CodeBlockBody>
+                      {(item) => (
+                        <CodeBlockItem
+                          key={item.language}
+                          value={item.language}
+                        >
+                          <CodeBlockContent
+                            language={item.language as BundledLanguage}
+                          >
+                            {item.code}
+                          </CodeBlockContent>
+                        </CodeBlockItem>
+                      )}
+                    </CodeBlockBody>
+                  </CodeBlock>
                 </div>
               ))
             )}

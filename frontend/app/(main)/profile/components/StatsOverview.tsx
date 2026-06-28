@@ -2,6 +2,8 @@
 
 import { UserProfile } from "@/lib/types";
 import { Trophy, Hash, CheckCircle2, Target, Flame } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface StatsOverviewProps {
@@ -20,13 +22,11 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
       label: "Current Level",
       value: profile.level,
       icon: Trophy,
-      color: "text-brand-muted-gold",
-      bg: "bg-brand-muted-gold/10",
-      border: "border-brand-muted-gold/20",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-primary/20",
       sub: `${profile.xp.toLocaleString()} Total XP`,
-      progress: true,
-      progressValue: xpPercent,
-      progressLabel: `${Math.floor(xpPercent)}%`,
+      progress: xpPercent,
     },
     {
       label: "Global Rank",
@@ -67,42 +67,33 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
       {statCards.map((card) => {
         const Icon = card.icon;
         return (
-          <div
+          <Card
             key={card.label}
             className={cn(
-              "bg-brand-charcoal-card rounded-2xl border p-5",
-              "hover:-translate-y-0.5 transition-all duration-300",
-              "shadow-lg shadow-brand-charcoal-border/5",
+              "p-5 hover:-translate-y-0.5 transition-all duration-300 shadow-lg",
               card.border
             )}
           >
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className={cn("p-2 rounded-lg", card.bg)}>
-                  <Icon size={16} className={card.color} />
-                </div>
-                <span className="text-[10px] font-bold text-brand-offwhite-muted uppercase tracking-widest">
-                  {card.label}
-                </span>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={cn("p-2 rounded-lg", card.bg)}>
+                <Icon size={16} className={card.color} />
               </div>
-              <div className="text-2xl font-bold text-brand-offwhite font-mono">
-                {card.value}
-              </div>
-              {card.sub && (
-                <p className="text-xs text-brand-offwhite-muted mt-1">{card.sub}</p>
-              )}
-              {card.progress && (
-                <div className="mt-3">
-                  <div className="w-full bg-brand-charcoal-base rounded-full h-1.5 overflow-hidden border border-brand-charcoal-border/50">
-                    <div
-                      className="bg-brand-muted-gold h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(212,175,55,0.4)]"
-                      style={{ width: `${card.progressValue}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                {card.label}
+              </span>
             </div>
-          </div>
+            <div className="text-2xl font-bold text-foreground font-mono">
+              {card.value}
+            </div>
+            {card.sub && (
+              <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+            )}
+            {"progress" in card && (
+              <div className="mt-3">
+                <Progress value={card.progress as number} className="h-1.5" />
+              </div>
+            )}
+          </Card>
         );
       })}
     </div>

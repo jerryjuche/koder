@@ -24,7 +24,17 @@ import {
   getDifficultyLabel,
   getUserColor,
 } from "@/lib/utils";
-import Editor from "@monaco-editor/react";
+import {
+  CodeBlock,
+  CodeBlockBody,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockFilename,
+  CodeBlockFiles,
+  CodeBlockHeader,
+  CodeBlockItem,
+} from "@/components/kibo-ui/code-block";
+import type { BundledLanguage } from "@/components/kibo-ui/code-block";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
 
@@ -527,28 +537,45 @@ export default function Dashboard() {
                     {sol.likes}
                   </button>
                 </div>
-                <div className="h-[250px] bg-[#0F1115] relative">
-                  <Editor
-                    height="100%"
-                    defaultLanguage="go"
-                    theme="vs-dark"
-                    value={sol.code}
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      fontFamily: "var(--font-mono), monospace",
-                      padding: { top: 16 },
-                      scrollbar: {
-                        verticalScrollbarSize: 6,
-                        horizontalScrollbarSize: 6,
-                      },
-                      renderLineHighlight: "none",
-                      overviewRulerLanes: 0,
-                      hideCursorInOverviewRuler: true,
-                    }}
-                  />
-                </div>
+                <CodeBlock
+                  data={[
+                    {
+                      language: "go",
+                      filename: "solution.go",
+                      code: sol.code,
+                    },
+                  ]}
+                  defaultValue="go"
+                  className="h-[250px]"
+                >
+                  <CodeBlockHeader>
+                    <CodeBlockFiles>
+                      {(item) => (
+                        <CodeBlockFilename
+                          key={item.language}
+                          value={item.language}
+                        >
+                          {item.filename}
+                        </CodeBlockFilename>
+                      )}
+                    </CodeBlockFiles>
+                    <CodeBlockCopyButton />
+                  </CodeBlockHeader>
+                  <CodeBlockBody>
+                    {(item) => (
+                      <CodeBlockItem
+                        key={item.language}
+                        value={item.language}
+                      >
+                        <CodeBlockContent
+                          language={item.language as BundledLanguage}
+                        >
+                          {item.code}
+                        </CodeBlockContent>
+                      </CodeBlockItem>
+                    )}
+                  </CodeBlockBody>
+                </CodeBlock>
               </div>
             ))
           )}
