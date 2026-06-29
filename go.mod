@@ -8,7 +8,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
 	golang.org/x/crypto v0.36.0
-	golang.org/x/oauth2 v0.23.0
 	google.golang.org/genai v1.60.0
 )
 

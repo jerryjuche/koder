@@ -120,7 +120,7 @@ func Load() (*Config, error) {
 	// Execution
 	executorMaxConcurrencyStr := os.Getenv("EXECUTOR_MAX_CONCURRENCY")
 	if executorMaxConcurrencyStr == "" {
-		executorMaxConcurrencyStr = "4"
+		executorMaxConcurrencyStr = "6"
 	}
 	executorMaxConcurrency, err := strconv.Atoi(executorMaxConcurrencyStr)
 	if err != nil {
@@ -133,7 +133,7 @@ func Load() (*Config, error) {
 
 	executorTimeoutStr := os.Getenv("EXECUTOR_TIMEOUT_SECONDS")
 	if executorTimeoutStr == "" {
-		executorTimeoutStr = "25"
+		executorTimeoutStr = "30"
 	}
 	executorTimeout, err := strconv.Atoi(executorTimeoutStr)
 	if err != nil {
@@ -146,7 +146,7 @@ func Load() (*Config, error) {
 
 	cfg.DockerImage = os.Getenv("DOCKER_IMAGE")
 	if cfg.DockerImage == "" {
-		cfg.DockerImage = "golang:1.22-alpine"
+		cfg.DockerImage = "golang:1.23-alpine"
 	}
 
 	cfg.SandboxBaseDir = os.Getenv("SANDBOX_BASE_DIR")
