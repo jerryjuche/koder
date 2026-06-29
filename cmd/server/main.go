@@ -46,6 +46,7 @@ func main() {
 
 	// Initialize Execution Engine
 	execInstance := executor.NewExecutor(cfg, storeInstance)
+	slog.Info("executor: initialized", "max_concurrency", cfg.ExecutorMaxConcurrency, "timeout_seconds", cfg.ExecutorTimeoutSeconds)
 	go func() {
 		warmupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()

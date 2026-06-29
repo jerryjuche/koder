@@ -247,7 +247,8 @@ See `.env.example` for full template.
 |---|---|
 | **50 Gemini calls/day** | Idempotent enrichment with SHA256 change detection; cache results |
 | **2 req/min Gemini** | Enforced `time.Sleep(30s)` between calls; queued requests |
-| **2 concurrent executions** | Buffered channel semaphore (no goroutine pool abstraction) |
+| **4 concurrent executions** | Buffered channel semaphore (configurable via `EXECUTOR_MAX_CONCURRENCY`) |
+| **Rate limiting (submissions)** | Per-user sliding window: 5 req / 45s; admins exempt |
 | **500MB Postgres storage** | No JSONB bloat; normalized schema; archive old submissions quarterly |
 | **ARM64 only** | All Docker images multi-arch or explicitly ARM64; no `x86_64`-only binaries |
 
@@ -255,6 +256,14 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
+- **Concurrency & Rate Limiting:**
+  - Increased default `EXECUTOR_MAX_CONCURRENCY` from 2 to 4 (env-configurable)
+  - Default executor timeout changed from 30s to 25s
+  - Added per-user rate limiter (5 submissions per 45s sliding window; admins exempt)
+  - Warmup now pre-compiles `go build std` instead of just `go env`, reducing cold start
+  - Added `--read-only` and `-gcflags=-l` flags to Docker containers for faster compilation
+  - Queue depth now logged on semaphore acquire for observability
+  - Frontend shows countdown cooldown on buttons when rate limited
 - **Problem Statements & Workspace Polish:**
   - Database: Updated all core problem statements (including `edit-distance`) with professional, rich markdown descriptions, explicit examples, edge case considerations, and realistic solve-time estimates.
   - Frontend: Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, enhanced typography with `@tailwindcss/typography`, dynamic hover states, and glowing accents for descriptions and test examples.

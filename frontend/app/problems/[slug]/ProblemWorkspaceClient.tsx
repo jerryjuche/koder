@@ -44,6 +44,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -61,6 +62,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       }
     });
   }, [slug]);
+
+  // Cooldown countdown for rate limiting
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   // Auto-save to localStorage with 2s debounce
   useEffect(() => {
@@ -188,6 +198,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.error("Some test cases failed.");
         }
       }
+    } else if (res.error?.code === "RATE_LIMITED") {
+      setErrorMsg(null);
+      setResults(null);
+      setLastExecution(null);
+      const match = res.error.message.match(/(\d+)/);
+      const seconds = match ? parseInt(match[1]) : 10;
+      setCooldown(seconds);
+      toast.error(res.error.message);
     } else {
       setErrorMsg(res.error?.message || "Submission failed");
       setResults(null);
@@ -240,6 +258,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.error("Some test cases failed.");
         }
       }
+    } else if (res.error?.code === "RATE_LIMITED") {
+      setErrorMsg(null);
+      setResults(null);
+      setLastExecution(null);
+      const match = res.error.message.match(/(\d+)/);
+      const seconds = match ? parseInt(match[1]) : 10;
+      setCooldown(seconds);
+      toast.error(res.error.message);
     } else {
       setErrorMsg(res.error?.message || "Test failed");
       setResults(null);
@@ -319,27 +345,31 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </button>
           <button
             onClick={handleTest}
-            disabled={submitting}
+            disabled={submitting || cooldown > 0}
             className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
           >
-            {submitting ? (
+            {cooldown > 0 ? (
+              <span className="text-brand-muted-gold font-mono">{cooldown}s</span>
+            ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
             ) : (
               <Play size={16} fill="currentColor" />
             )}
-            Test
+            {cooldown > 0 ? "Wait" : "Test"}
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || cooldown > 0}
             className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md shadow-brand-muted-gold/10 transition-all disabled:opacity-70"
           >
-            {submitting ? (
+            {cooldown > 0 ? (
+              <span className="text-brand-charcoal-base font-mono">{cooldown}s</span>
+            ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
             ) : (
               <Play size={16} fill="currentColor" />
             )}
-            Submit
+            {cooldown > 0 ? "Wait" : "Submit"}
           </button>
         </div>
       </header>
