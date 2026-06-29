@@ -121,14 +121,15 @@
 ```
 koder/
 ├── README.md                        # This file
+├── SESSION_LOG.md                   # Session logbook (AI pairing context)
+├── CLAUDE.md                        # Project index for AI assistants
 ├── .env.example                     # All required environment variables documented
 ├── .gitignore
 ├── go.mod                           # module github.com/jerryjuche/koder
 ├── go.sum
 │
-├── cmd/
-│   └── server/
-│       └── main.go                  # Entry point: wires deps, starts HTTP server
+├── cmd/server/
+│   └── main.go                      # Entry point: wires deps, starts HTTP server
 │
 ├── internal/
 │   ├── config/
@@ -136,11 +137,13 @@ koder/
 │   │
 │   ├── store/                       # DATABASE LAYER — pure pgx/v5, no ORM
 │   │   ├── store.go                 # Store interface + postgres implementation
-│   │   ├── users.go                 # User CRUD, bcrypt auth
+│   │   ├── users.go                 # User CRUD, bcrypt auth, Gitea linking
 │   │   ├── problems.go              # Problem queries + visibility management
 │   │   ├── testcases.go             # Test case queries with JSONB handling
 │   │   ├── submissions.go           # Submission insert + history queries
-│   │   └── progress.go              # Upsert progress, XP logic
+│   │   ├── progress.go              # Upsert progress, XP logic
+│   │   ├── admin.go                 # Admin-level DB operations
+│   │   └── types.go                 # FullProfile, ActivityEntry, LeaderboardUser, shared types
 │   │
 │   ├── parser/                      # PIPELINE 1: Ingest
 │   │   ├── parser.go                # Git clone/pull, directory walk
@@ -160,44 +163,82 @@ koder/
 │   │   └── types.go                 # ExecutionResult struct
 │   │
 │   ├── api/                         # HTTP LAYER
-│   │   ├── router.go                # Route registration (net/http or chi)
+│   │   ├── router.go                # Route registration (chi)
 │   │   ├── middleware.go            # Auth JWT, rate limiting, CORS
-│   │   ├── handlers/
-│   │   │   ├── auth.go              # POST /auth/login, POST /auth/register
-│   │   │   ├── problems.go          # GET /problems, GET /problems/:slug
-│   │   │   ├── submissions.go       # POST /submit, GET /submissions/:id
-│   │   │   ├── progress.go          # GET /me/progress
-│   │   │   └── admin.go             # POST /admin/ingest, POST /admin/enrich
+│   │   ├── auth.go                  # Login, register, Gitea PAT linking handlers
+│   │   ├── problems.go              # GET /problems, GET /problems/:slug
+│   │   ├── admin.go                 # POST /admin/ingest, POST /admin/enrich
+│   │   ├── leaderboard.go           # GET /leaderboard
+│   │   ├── profile.go               # GET /me/profile (single get_full_profile() call)
+│   │   ├── me.go                    # GET /me, GET /me/activity (cached)
 │   │   └── responses.go             # Standardized JSON response helpers
 │   │
 │   └── auth/
 │       ├── jwt.go                   # JWT sign/verify (HS256)
-│       └── password.go              # bcrypt wrap
+│       ├── password.go              # bcrypt wrap
+│       └── oauth.go                 # Gitea API fetch, EncryptToken/DecryptToken (AES-256-GCM)
 │
 ├── migrations/
 │   ├── 001_init.sql                 # Full schema from spec
-│   └── 002_indexes.sql              # All performance indexes
+│   ├── 002_indexes.sql              # All performance indexes
+│   ├── 009_get_full_profile.sql     # Collapsed 7 queries into get_full_profile()
+│   ├── 010_add_gitea_auth.sql       # Gitea OAuth identity fields
+│   └── 011_add_gitea_token.sql      # Gitea PAT encrypted token storage
 │
 ├── frontend/                        # Next.js App Router project
 │   ├── app/
 │   │   ├── layout.tsx
-│   │   ├── page.tsx                 # Problem list / dashboard
-│   │   ├── problems/
-│   │   │   └── [slug]/
-│   │   │       └── page.tsx         # Problem detail + Monaco editor
-│   │   ├── leaderboard/
-│   │   │   └── page.tsx
-│   │   └── admin/
-│   │       └── page.tsx             # Ingest/enrich triggers, problem approval
+│   │   │   ├── oauth/                # OAuth callback (token capture + replaceState scrub)
+│   │   ├── (auth)/                  # Login/register pages
+│   │   ├── (main)/
+│   │   │   ├── page.tsx             # Dashboard / problem grid
+│   │   │   ├── leaderboard/        # Leaderboard with podium + table
+│   │   │   │   ├── page.tsx         # Server wrapper
+│   │   │   │   ├── LeaderboardClient.tsx  # Full leaderboard UI
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── error.tsx
+│   │   │   ├── profile/            # Profile page with tabs
+│   │   │   │   ├── page.tsx         # Server wrapper
+│   │   │   │   ├── ProfileClient.tsx
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── ProfileHeader.tsx
+│   │   │   │   │   ├── StatsOverview.tsx
+│   │   │   │   │   ├── ProgressMetrics.tsx
+│   │   │   │   │   ├── Achievements.tsx
+│   │   │   │   │   ├── MyContributions.tsx
+│   │   │   │   │   ├── ActivityFeed.tsx
+│   │   │   │   │   └── ContributionGraphSection.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── error.tsx
+│   │   │   └── admin/              # Admin panel
+│   │   ├── problems/[slug]/         # Monaco Editor workspace
+│   │   └── layout.tsx
 │   ├── components/
+│   │   ├── ui/                     # shadcn/ui primitives
+│   │   │   ├── activity-gauge.tsx   # Radial bar chart gauge (recharts)
+│   │   │   ├── avatar.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── progress.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   └── tooltip.tsx
 │   │   ├── Editor.tsx               # Monaco Editor wrapper
-│   │   ├── TestResultPanel.tsx      # Per-test-case pass/fail display
-│   │   ├── HintAccordion.tsx        # Progressive 3-level hints
-│   │   ├── XPBar.tsx
-│   │   └── ProblemCard.tsx
+│   │   ├── TestResultPanel.tsx
+│   │   ├── HintAccordion.tsx
+│   │   ├── ProblemCard.tsx
+│   │   └── kibo-ui/
+│   │       └── contribution-graph.tsx # GitHub-style activity graph
+│   ├── hooks/
+│   │   └── ...                      # Custom React hooks
 │   ├── lib/
 │   │   ├── api.ts                   # Typed fetch wrappers for backend
-│   │   └── types.ts                 # Shared TypeScript types
+│   │   ├── types.ts                 # Shared TypeScript types
+│   │   ├── utils.ts                 # cn(), getUserColor(), etc.
+│   │   └── UserContext.tsx          # Auth/user context provider
 │   ├── next.config.ts
 │   └── package.json
 │
@@ -527,6 +568,12 @@ All endpoints return `application/json`. All protected endpoints require `Author
 |--------|------|------|-------------|
 | POST | `/auth/register` | None | Create student account |
 | POST | `/auth/login` | None | Returns JWT |
+| GET | `/auth/gitea/login` | None | OAuth2 redirect to Gitea (dormant — requires admin setup) |
+| GET | `/auth/gitea/callback` | None | OAuth2 callback handler (dormant) |
+| POST | `/auth/gitea/link` | Student | Link Gitea account via PAT (AES-256-GCM encrypted) |
+| DELETE | `/auth/gitea/link` | Student | Unlink Gitea account |
+| GET | `/auth/gitea/status` | Student | Get Gitea linking status |
+| POST | `/auth/gitea/sync` | Student | Re-fetch Gitea profile from stored PAT |
 
 ### Problems
 
@@ -534,21 +581,22 @@ All endpoints return `application/json`. All protected endpoints require `Author
 |--------|------|------|-------------|
 | GET | `/problems` | Student | List visible problems with progress overlay |
 | GET | `/problems/:slug` | Student | Full problem detail + non-hidden test cases |
+| POST | `/problems/:slug/submit` | Student | Submit code for grading |
 
-### Submissions
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/submit` | Student | Grade a submission (blocking, ≤5s) |
-| GET | `/submissions` | Student | Submission history for current user |
-| GET | `/submissions/:id` | Student | Full result with logs |
-
-### Progress
+### User / Profile
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/me` | Student | User profile + XP |
-| GET | `/me/progress` | Student | All problem progress for current user |
+| GET | `/me` | Student | User profile + XP (cached 30s) |
+| GET | `/me/profile` | Student | Full profile (stats, modules, difficulty, contributions — single `get_full_profile()` call, cached 30s) |
+| GET | `/me/activity` | Student | Daily activity entries for contribution graph |
+| GET | `/profile/:username` | Student | Another user's profile |
+| GET | `/profile/:username/stats` | Student | Another user's performance stats |
+
+### Leaderboard
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
 | GET | `/leaderboard` | Student | Top N users by XP |
 
 ### Admin
@@ -557,6 +605,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 |--------|------|------|-------------|
 | POST | `/admin/ingest` | Admin | Trigger Pipeline 1 against GitHub repo |
 | POST | `/admin/enrich` | Admin | Trigger Pipeline 2 for pending problems |
+| POST | `/admin/execute` | Admin | Manually trigger execution for testing |
 | PATCH | `/admin/problems/:id/visibility` | Admin | Toggle `visible` flag |
 | GET | `/admin/problems` | Admin | All problems including hidden |
 
@@ -588,27 +637,75 @@ All endpoints return `application/json`. All protected endpoints require `Author
 ### Stack
 
 - **Next.js 14** (App Router, Server Components where appropriate)
-- **Tailwind CSS** (utility-first, no component library bloat)
+- **Tailwind CSS** with CSS variables (brand primary `#D4AF37` mapped to `fill-primary`, `stroke-primary`, etc.)
+- **shadcn/ui** (component library — Card, Badge, Button, Avatar, Dialog, Tabs, Tooltip, DropdownMenu, Input, Progress)
+- **recharts** (radial bar charts for activity gauges)
 - **Monaco Editor** (VS Code editor engine, Go language support)
 - **Vercel Hobby Tier** (static/SSR hybrid deployment)
+
+### State Management
+
+- `UserContext` (`lib/UserContext.tsx`) — wraps `fetchUser()` with `user-updated` event listener for reactive auth state
+- No Redux. React Server Components for read-heavy pages, `useState` + `fetch` for interactive flows
+- JWT stored in `localStorage`, sent via `Authorization: Bearer` header
 
 ### Key Pages
 
 **`/` — Dashboard**  
-Problem grid filtered by module. Shows per-card: difficulty stars, XP reward, solved/unsolved state from progress API. Filterable by tag and module.
+Problem grid filtered by module. Shows per-card: difficulty, XP reward, solved/unsolved state. Filterable by tag and module.
 
 **`/problems/[slug]` — Problem Workspace**  
-Split-pane layout: left = problem statement in markdown (react-markdown), right = Monaco Editor. Below editor: Submit button, test result panel showing per-case pass/fail, hint accordion with 3 levels progressively unlocked.
+Split-pane: left = problem statement (react-markdown), right = Monaco Editor. Below: Submit button, per-case pass/fail results, 3-level hint accordion.
 
-**`/leaderboard` — XP Rankings**  
-Student avatars (color_index → Tailwind color), name, XP bar, solved count.
+**`/leaderboard` — Rankings with Podium**  
+- Top 3 displayed as cards with gradient backgrounds, shadcn Avatars, rank badges (Crown/Medal)
+- Top 15 table with shadcn Avatar + name/ID, XP, solved count, best time
+- "You" badge on current user's row, rank delta tooltip (up/down/unchanged)
+- Weekly/Monthly/All Time period filter, search by name or student ID
+- Loading skeleton, error boundary, 30-second auto-polling
+
+**`/profile` — User Profile with Tabs**  
+Two tabs: **Overview** | **My Contributions**
+
+Overview layout:
+1. **ProfileHeader** — Gitea avatar via `<Image>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@gitea_username` badge if linked
+2. **StatsOverview** — 6-column grid: Level (XP progress bar), Global Rank, Solved, Success Rate, Streak, Best Runtime (all with tooltips)
+3. **ContributionGraphSection** — GitHub-style activity heatmap (recharts-based `kibo-ui` graph)
+4. Two-column grid:
+   - **ProgressMetrics** — Difficulty breakdown (Easy/Medium/Hard bars) + Module Proficiency (2×3 radial activity gauges)
+   - **Achievements** — GitHub-style circular badge grid with tooltips on hover + detail dialog on click
+
+My Contributions layout:  
+3-column grid: `MyContributions` (user-submitted problems list, 2 cols) + `ActivityFeed` sidebar (achievement grid + recent activity timeline)
+
+**`/settings` — Account Settings with Tabs**  
+Two tabs: **Profile** | **Security**  
+Security tab contains **Gitea Account** section: PAT input, Link/Unlink/Sync buttons, avatar preview, encrypted storage notice
 
 **`/admin` — Admin Dashboard**  
 Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Only accessible if JWT role = `admin`.
 
-### State Management
+### Key Components
 
-No Redux. Use React Server Components for read-heavy pages. Use `useState` + `fetch` for the editor submission flow. JWT stored in an `httpOnly` cookie.
+#### Activity Gauge (`components/ui/activity-gauge.tsx`)
+- `recharts` `RadialBarChart` with single gold color (`fill-primary`)
+- Percentage only in center (large `text-3xl font-bold`)
+- `innerRadius={48}`, `outerRadius={76}`, `startAngle={90}`, `endAngle={450}`, `barSize={12}`
+- 1200ms ease-out animation
+- Wrapped in shadcn `Card`, used in `ProgressMetrics` module proficiency section
+
+#### Achievements (`profile/components/Achievements.tsx`)
+- 3-column grid of circular 52px badge buttons
+- **Unlocked:** `opacity-100 grayscale-0`, hover → `ring-2 ring-primary/50`
+- **Locked:** `opacity-30 grayscale`
+- Hover → shadcn `Tooltip` showing title + description + checkmark
+- Click → shadcn `Dialog` with icon, unlocked/locked badge, criteria, close button
+- 6 hardcoded achievements: First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist
+
+#### Contribution Graph (`profile/components/ContributionGraphSection.tsx`)
+- Uses `kibo-ui/contribution-graph` components
+- 5 activity levels mapped from daily submission counts
+- Each block wrapped in shadcn `Tooltip` (date, submissions, solved, tests_run)
 
 ---
 
@@ -790,6 +887,12 @@ ENVIRONMENT=production  # "development" | "production"
 
 # CORS
 ALLOWED_ORIGIN=https://koder.vercel.app
+
+# Gitea (all optional — PAT linking works with just GITEA_URL)
+GITEA_URL=https://gitea.com
+GITEA_CLIENT_ID=              # OAuth only (dormant)
+GITEA_CLIENT_SECRET=          # OAuth only (dormant)
+GITEA_REDIRECT_URL=           # OAuth only (dormant)
 ```
 
 ---
@@ -860,12 +963,13 @@ GitHub Actions workflow:
 ## 15. Performance Constraints & Mitigations
 
 | Bottleneck | Target | Mitigation |
-|---|---|---|
+|---|---|---|---|
 | Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std` |
 | Gemini API rate limit | 2 req/min | Sequential enrichment with 30s sleep between calls; idempotent re-runs |
 | Supabase 500MB cap | Never exceed | No binary storage; raw_readme + statement are the largest text fields |
 | Oracle VM RAM | Never OOM | Semaphore cap=2; `--memory=64m` per container; Go server typically <50MB RSS |
 | Vercel cold start | <200ms | Minimize `"use client"` components; no heavy server-side data fetching on initial load |
+| DB query latency (profile page) | <100ms | Collapsed 7 queries into single `get_full_profile()` PL/pgSQL function + in-memory lru cache (30s TTL) |
 
 ---
 
@@ -928,6 +1032,9 @@ cp .env.example .env
 # 3. Apply database migrations
 psql $DATABASE_URL -f migrations/001_init.sql
 psql $DATABASE_URL -f migrations/002_indexes.sql
+psql $DATABASE_URL -f migrations/009_get_full_profile.sql
+psql $DATABASE_URL -f migrations/010_add_gitea_auth.sql
+psql $DATABASE_URL -f migrations/011_add_gitea_token.sql
 
 # 4. Warm the Docker build cache
 chmod +x scripts/setup-docker-cache.sh
@@ -939,10 +1046,17 @@ go run ./cmd/server
 # 6. Run the frontend (separate terminal)
 cd frontend
 npm install
+
+# Build (use npx, not npm — Windows DLL crash on npm run build):
+npx next build
+
+# Dev mode:
 npm run dev
 ```
 
 Server starts on `http://localhost:8080`. Frontend on `http://localhost:3000`.
+
+**Note:** On Windows, `npm run build` crashes with DLL exit code `3221225794`. Use `npx next build` instead.
 
 ---
 
@@ -953,3 +1067,8 @@ MIT
 ---
 
 *This document is the single source of truth for Koder. Any deviation from the architecture, conventions, or constraints described here requires an explicit ADR entry explaining the reasoning.*
+
+
+## Update: Problem Statements & Workspace Polish
+- Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
+- Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, dynamic hover states, glowing accents, and enhanced `@tailwindcss/typography` (`remarkGfm`) markdown styling.

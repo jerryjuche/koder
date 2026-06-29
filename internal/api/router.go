@@ -16,6 +16,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	r.Use(CORSMiddleware(cfg))
 
 	authHandler := NewAuthHandler(store, cfg)
+
+	// Note: Gitea OAuth2 was removed in favor of PAT linking
+
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
 	testHandler := NewTestHandler(store, exec)
@@ -31,6 +34,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
+		// Gitea OAuth2 endpoints removed in favor of PAT
 	})
 
 	r.Group(func(r chi.Router) {
@@ -43,12 +47,21 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Get("/me/profile", profileHandler.GetProfile)
 		r.Put("/me/profile", profileHandler.UpdateProfile)
 
+		activityHandler := NewActivityHandler(store)
+		r.Get("/me/activity", activityHandler.GetActivity)
+
 		contributionsHandler := NewContributionsHandler(store)
 		r.Group(func(r chi.Router) {
 			r.Use(VerifiedContributorOnly)
 			r.Post("/user-problems", contributionsHandler.PostContribution)
 		})
 		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
+
+		// Gitea PAT linking routes
+		r.Post("/auth/gitea/link", authHandler.GiteaLink)
+		r.Delete("/auth/gitea/link", authHandler.GiteaUnlink)
+		r.Get("/auth/gitea/status", authHandler.GiteaStatus)
+		r.Post("/auth/gitea/sync", authHandler.GiteaSync)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)

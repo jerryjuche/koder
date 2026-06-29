@@ -768,3 +768,8 @@ app/
 6. **Structured Gemini outputs**: ResponseSchema enforces shape, no parsing markdown
 7. **Monolithic binary**: Single process on single host, no queue abstraction
 8. **Direct Docker subprocess**: No gVisor, simpler isolation with `--network=none --memory=256m`
+
+
+## Update: Problem Statements & Workspace Polish
+- Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
+- Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, dynamic hover states, glowing accents, and enhanced `@tailwindcss/typography` (`remarkGfm`) markdown styling.

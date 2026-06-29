@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   ChevronDown,
@@ -15,6 +16,7 @@ import {
   Trophy,
   ArrowLeft,
   BookOpen,
+  GitBranch,
 } from "lucide-react";
 import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
 import { Problem, User, CommunitySolution } from "@/lib/types";
@@ -24,13 +26,24 @@ import {
   getDifficultyLabel,
   getUserColor,
 } from "@/lib/utils";
-import Editor from "@monaco-editor/react";
+import {
+  CodeBlock,
+  CodeBlockBody,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockFilename,
+  CodeBlockFiles,
+  CodeBlockHeader,
+  CodeBlockItem,
+} from "@/components/kibo-ui/code-block";
+import type { BundledLanguage } from "@/components/kibo-ui/code-block";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -136,25 +149,45 @@ export default function Dashboard() {
 
         {user && (
           <div className="flex items-center gap-3 rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card px-4 py-3 shadow-sm">
-            <div
-              className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-inner",
-                getUserColor(user.colorIndex),
-              )}
-            >
-              {user.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .substring(0, 2)
-                .toUpperCase()}
-            </div>
+            {user.gitea_avatar_url && !avatarError ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
+                <Image
+                  src={user.gitea_avatar_url}
+                  alt={user.gitea_username ?? "Avatar"}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
+                />
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-inner flex-shrink-0",
+                  getUserColor(user.colorIndex),
+                )}
+              >
+                {user.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
             <div>
               <div className="text-sm font-semibold text-brand-offwhite">
                 {user.name}
               </div>
               <div className="text-xs text-brand-offwhite-muted">
-                Student profile accent
+                {user.gitea_username ? (
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <GitBranch size={10} />
+                    {user.gitea_username}
+                  </span>
+                ) : (
+                  "Student"
+                )}
               </div>
             </div>
           </div>
@@ -527,28 +560,45 @@ export default function Dashboard() {
                     {sol.likes}
                   </button>
                 </div>
-                <div className="h-[250px] bg-[#0F1115] relative">
-                  <Editor
-                    height="100%"
-                    defaultLanguage="go"
-                    theme="vs-dark"
-                    value={sol.code}
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      fontFamily: "var(--font-mono), monospace",
-                      padding: { top: 16 },
-                      scrollbar: {
-                        verticalScrollbarSize: 6,
-                        horizontalScrollbarSize: 6,
-                      },
-                      renderLineHighlight: "none",
-                      overviewRulerLanes: 0,
-                      hideCursorInOverviewRuler: true,
-                    }}
-                  />
-                </div>
+                <CodeBlock
+                  data={[
+                    {
+                      language: "go",
+                      filename: "solution.go",
+                      code: sol.code,
+                    },
+                  ]}
+                  defaultValue="go"
+                  className="h-[250px]"
+                >
+                  <CodeBlockHeader>
+                    <CodeBlockFiles>
+                      {(item) => (
+                        <CodeBlockFilename
+                          key={item.language}
+                          value={item.language}
+                        >
+                          {item.filename}
+                        </CodeBlockFilename>
+                      )}
+                    </CodeBlockFiles>
+                    <CodeBlockCopyButton />
+                  </CodeBlockHeader>
+                  <CodeBlockBody>
+                    {(item) => (
+                      <CodeBlockItem
+                        key={item.language}
+                        value={item.language}
+                      >
+                        <CodeBlockContent
+                          language={item.language as BundledLanguage}
+                        >
+                          {item.code}
+                        </CodeBlockContent>
+                      </CodeBlockItem>
+                    )}
+                  </CodeBlockBody>
+                </CodeBlock>
               </div>
             ))
           )}

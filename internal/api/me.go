@@ -19,14 +19,16 @@ func NewMeHandler(s store.Store) *MeHandler {
 
 // meResponse is the safe, password-free user profile response.
 type meResponse struct {
-	ID          string `json:"id"`
-	StudentID   string `json:"student_id"`
-	Name        string `json:"name"`
-	Role        string `json:"role"`
-	ColorIndex  int    `json:"color_index"`
-	XP          int    `json:"xp"`
-	Level       int    `json:"level"`
-	SolvedCount int    `json:"solved_count"`
+	ID             string  `json:"id"`
+	StudentID      string  `json:"student_id"`
+	Name           string  `json:"name"`
+	Role           string  `json:"role"`
+	ColorIndex     int     `json:"color_index"`
+	XP             int     `json:"xp"`
+	Level          int     `json:"level"`
+	SolvedCount    int     `json:"solved_count"`
+	GiteaUsername  *string `json:"gitea_username,omitempty"`
+	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
 }
 
 func clampColorIndex(index int) int {
@@ -53,7 +55,13 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	// Check cache first
+	if cached, ok := getCachedUser(r.Context(), userUUID.String()); ok {
+		RespondSuccess(w, cached)
+		return
+	}
+
+	user, solvedCount, err := h.store.GetUserWithSolvedCount(r.Context(), userUUID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
 		return
@@ -65,19 +73,31 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query solved count from progress table
-	solvedCount, _ := h.store.GetSolvedCount(r.Context(), userUUID)
-
 	level := (user.XP / 1000) + 1
 
+	cacheUser(r.Context(), userUUID.String(), meResponse{
+		ID:             idStr,
+		StudentID:      user.StudentID,
+		Name:           user.Name,
+		Role:           user.Role,
+		ColorIndex:     clampColorIndex(user.ColorIndex),
+		XP:             user.XP,
+		Level:          level,
+		SolvedCount:    solvedCount,
+		GiteaUsername:  user.GiteaUsername,
+		GiteaAvatarURL: user.GiteaAvatarURL,
+	})
+
 	RespondSuccess(w, meResponse{
-		ID:          idStr,
-		StudentID:   user.StudentID,
-		Name:        user.Name,
-		Role:        user.Role,
-		ColorIndex:  clampColorIndex(user.ColorIndex),
-		XP:          user.XP,
-		Level:       level,
-		SolvedCount: solvedCount,
+		ID:             idStr,
+		StudentID:      user.StudentID,
+		Name:           user.Name,
+		Role:           user.Role,
+		ColorIndex:     clampColorIndex(user.ColorIndex),
+		XP:             user.XP,
+		Level:          level,
+		SolvedCount:    solvedCount,
+		GiteaUsername:  user.GiteaUsername,
+		GiteaAvatarURL: user.GiteaAvatarURL,
 	})
 }

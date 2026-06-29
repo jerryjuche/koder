@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { User, Settings as SettingsIcon, Monitor, Bell, Shield, Code, Palette, LogOut, CheckCircle2 } from "lucide-react";
+import { User, Settings as SettingsIcon, Monitor, Bell, Shield, Code, Palette, LogOut, CheckCircle2, GitBranch, RefreshCw, Trash2, ExternalLink, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchUserProfile, updateUserProfile } from "@/lib/api";
+import { fetchUserProfile, updateUserProfile, getGiteaStatus, linkGiteaToken, unlinkGitea, syncGiteaProfile } from "@/lib/api";
 import { UserProfile } from "@/lib/types";
+import Image from "next/image";
 import { toast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +21,15 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Gitea linking states
+  const [giteaLinking, setGiteaLinking] = useState(false);
+  const [giteaLinked, setGiteaLinked] = useState(false);
+  const [giteaUsername, setGiteaUsername] = useState<string | undefined>();
+  const [giteaAvatarUrl, setGiteaAvatarUrl] = useState<string | undefined>();
+  const [giteaPat, setGiteaPat] = useState("");
+  const [giteaSyncing, setGiteaSyncing] = useState(false);
+  const [giteaAvatarError, setGiteaAvatarError] = useState(false);
 
   // Preferences states (local storage)
   const [theme, setTheme] = useState("vs-dark");
@@ -46,6 +56,22 @@ export default function SettingsPage() {
       }
     };
     loadProfile();
+
+    // Fetch Gitea linking status
+    (async () => {
+      try {
+        const statusRes = await getGiteaStatus();
+        if (!mounted) return;
+        if (statusRes.success && statusRes.data) {
+          setGiteaLinked(statusRes.data.linked);
+          setGiteaUsername(statusRes.data.gitea_username);
+          setGiteaAvatarUrl(statusRes.data.gitea_avatar_url);
+          setGiteaAvatarError(false);
+        }
+      } catch {
+        // Gitea status is non-critical
+      }
+    })();
 
     // Load local preferences
     setTheme(localStorage.getItem("koder_theme") || "vs-dark");
@@ -88,6 +114,88 @@ export default function SettingsPage() {
       title: "Preferences saved",
       description: "Your editor preferences have been updated.",
     });
+  };
+
+  const handleLinkGitea = async () => {
+    if (!giteaPat.trim()) {
+      toast.error({ title: "Validation error", description: "Please enter a Gitea Personal Access Token." });
+      return;
+    }
+    setGiteaLinking(true);
+    try {
+      const res = await linkGiteaToken(giteaPat.trim());
+      if (res.success && res.data) {
+        setGiteaLinked(true);
+        setGiteaUsername(res.data.gitea_username);
+        setGiteaAvatarUrl(res.data.gitea_avatar_url);
+        setGiteaAvatarError(false);
+        setGiteaPat("");
+        window.dispatchEvent(new Event("user-updated"));
+        toast.success({
+          title: "Gitea linked",
+          description: `Your Gitea profile (@${res.data.gitea_username}) has been linked successfully.`,
+        });
+      } else {
+        throw new Error(res.error?.message || "Failed to link Gitea");
+      }
+    } catch (err: any) {
+      toast.error({
+        title: "Link failed",
+        description: err.message || "Could not link Gitea account. Check your token and try again.",
+      });
+    } finally {
+      setGiteaLinking(false);
+    }
+  };
+
+  const handleUnlinkGitea = async () => {
+    try {
+      const res = await unlinkGitea();
+      if (res.success) {
+        setGiteaLinked(false);
+        setGiteaUsername(undefined);
+        setGiteaAvatarUrl(undefined);
+        setGiteaAvatarError(false);
+        window.dispatchEvent(new Event("user-updated"));
+        toast.success({
+          title: "Gitea unlinked",
+          description: "Your Gitea account has been unlinked.",
+        });
+      } else {
+        throw new Error(res.error?.message || "Failed to unlink");
+      }
+    } catch (err: any) {
+      toast.error({
+        title: "Unlink failed",
+        description: err.message || "Could not unlink Gitea account.",
+      });
+    }
+  };
+
+  const handleSyncGitea = async () => {
+    setGiteaSyncing(true);
+    try {
+      const res = await syncGiteaProfile();
+      if (res.success && res.data) {
+        setGiteaUsername(res.data.gitea_username);
+        setGiteaAvatarUrl(res.data.gitea_avatar_url);
+        setGiteaAvatarError(false);
+        window.dispatchEvent(new Event("user-updated"));
+        toast.success({
+          title: "Gitea synced",
+          description: `Profile synced as @${res.data.gitea_username}.`,
+        });
+      } else {
+        throw new Error(res.error?.message || "Failed to sync");
+      }
+    } catch (err: any) {
+      toast.error({
+        title: "Sync failed",
+        description: err.message || "Could not sync Gitea profile. Your token may have expired.",
+      });
+    } finally {
+      setGiteaSyncing(false);
+    }
   };
 
   const handleLogout = () => {
@@ -389,6 +497,102 @@ export default function SettingsPage() {
                   <button className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors">
                     Change Password
                   </button>
+                </div>
+
+                {/* Gitea Linking */}
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <GitBranch className="text-emerald-400" size={20} />
+                    <h3 className="font-bold text-sm text-brand-offwhite">Gitea Account</h3>
+                  </div>
+
+                  {giteaLinked && giteaUsername ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-brand-charcoal-hover/50 border border-brand-charcoal-border">
+                        {giteaAvatarUrl && !giteaAvatarError ? (
+                          <Image
+                            src={giteaAvatarUrl}
+                            alt={giteaUsername ?? "Gitea avatar"}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full border border-brand-charcoal-border"
+                            onError={() => setGiteaAvatarError(true)}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                            <GitBranch size={18} className="text-emerald-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm text-brand-offwhite truncate">@{giteaUsername}</div>
+                          <div className="text-xs text-emerald-400/80">Connected</div>
+                        </div>
+                        <a
+                          href={`https://gitea.com/${giteaUsername}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+                        >
+                          <ExternalLink size={16} />
+                        </a>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleSyncGitea}
+                          disabled={giteaSyncing}
+                          className="flex items-center gap-2 bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw size={14} className={giteaSyncing ? "animate-spin" : ""} />
+                          {giteaSyncing ? "Syncing..." : "Sync"}
+                        </button>
+                        <button
+                          onClick={handleUnlinkGitea}
+                          className="flex items-center gap-2 bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                        >
+                          <Trash2 size={14} />
+                          Unlink
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-brand-offwhite-muted">
+                        Your token is stored encrypted and is only used to fetch your Gitea profile. Sync to refresh your username and avatar.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-brand-offwhite-muted">
+                        Link your Gitea account to display your Gitea avatar and username on your profile.
+                        Generate a <strong>Personal Access Token</strong> from your Gitea account settings and paste it below.
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" />
+                          <input
+                            type="password"
+                            value={giteaPat}
+                            onChange={(e) => setGiteaPat(e.target.value)}
+                            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                            className="w-full bg-brand-charcoal-card border border-brand-charcoal-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted/50 focus:outline-none focus:border-brand-muted-gold transition-colors font-mono"
+                          />
+                        </div>
+                        <button
+                          onClick={handleLinkGitea}
+                          disabled={giteaLinking || !giteaPat.trim()}
+                          className="flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500/30 text-emerald-400 px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <GitBranch size={16} />
+                          {giteaLinking ? "Linking..." : "Link Account"}
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-brand-offwhite-muted">
+                        Your token is never exposed to other users and is encrypted before storage.
+                        You can unlink at any time.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">

@@ -29,9 +29,11 @@ type profileResponse struct {
 	Level               int                                       `json:"level"`
 	GlobalRank          int                                       `json:"global_rank"`
 	CreatedAt           string                                    `json:"created_at"`
+	GiteaUsername       *string                                   `json:"gitea_username,omitempty"`
+	GiteaAvatarURL      *string                                   `json:"gitea_avatar_url,omitempty"`
 	Stats               profileStatsResponse                      `json:"stats"`
-	ProgressByDifficulty map[string]difficultyProgressResponse  `json:"progress_by_difficulty"`
-	ModuleProficiency    map[string]difficultyProgressResponse  `json:"module_proficiency"`
+	ProgressByDifficulty map[string]difficultyProgressResponse   `json:"progress_by_difficulty"`
+	ModuleProficiency    map[string]difficultyProgressResponse   `json:"module_proficiency"`
 	RecentSubmissions   []submissionResponse                      `json:"recent_submissions"`
 }
 
@@ -59,6 +61,40 @@ type submissionResponse struct {
 	CreatedAt   string `json:"created_at"`
 }
 
+// rawProfileJSON is used to parse the nested JSON from GetFullProfile
+type rawProfileJSON struct {
+	User struct {
+		ID         string `json:"id"`
+		StudentID  string `json:"student_id"`
+		Name       string `json:"name"`
+		Bio        *string `json:"bio"`
+		Role       string `json:"role"`
+		ColorIndex int    `json:"color_index"`
+		XP         int    `json:"xp"`
+		CreatedAt  string `json:"created_at"`
+	} `json:"user"`
+	Rank int `json:"rank"`
+	Stats struct {
+		SolvedCount       int     `json:"solved_count"`
+		AttemptedCount    int     `json:"attempted_count"`
+		AverageStars      float64 `json:"average_stars"`
+		BestRuntimeMs     int     `json:"best_runtime_ms"`
+		CurrentStreakDays int     `json:"current_streak_days"`
+	} `json:"stats"`
+	ProgressByDifficulty map[string]difficultyProgressResponse `json:"progress_by_difficulty"`
+	ModuleProficiency    map[string]difficultyProgressResponse `json:"module_proficiency"`
+	RecentSubmissions    []struct {
+		ID          string `json:"id"`
+		ProblemID   string `json:"problem_id"`
+		Language    string `json:"language"`
+		Status      string `json:"status"`
+		PassedCount int    `json:"passed_count"`
+		TotalCount  int    `json:"total_count"`
+		RuntimeMs   int    `json:"runtime_ms"`
+		CreatedAt   string `json:"created_at"`
+	} `json:"recent_submissions"`
+}
+
 // GetProfile returns the authenticated user's detailed profile.
 func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
@@ -73,108 +109,89 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user from database
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+	// Check cache first
+	if cached, ok := getCachedProfile(r.Context(), userUUID.String()); ok {
+		RespondSuccess(w, cached)
 		return
 	}
 
-	// Get user rank
-	rank, err := h.store.GetUserRank(r.Context(), userUUID)
+	result, err := h.store.GetFullProfile(r.Context(), userUUID)
 	if err != nil {
-		rank = 0
-	}
-
-	// Get user stats
-	stats, err := h.store.GetUserStats(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "STATS_ERROR", "Failed to retrieve stats", nil)
+		RespondError(w, http.StatusInternalServerError, "PROFILE_ERROR", "Failed to load profile", nil)
 		return
 	}
 
-	// Get recent submissions
-	submissions, err := h.store.GetRecentSubmissions(r.Context(), userUUID, 10)
-	if err != nil {
-		submissions = []store.Submission{}
+	var raw rawProfileJSON
+	if err := json.Unmarshal(result.UserJSON, &raw); err != nil {
+		RespondError(w, http.StatusInternalServerError, "PARSE_ERROR", "Failed to parse profile data", nil)
+		return
 	}
 
-	// Convert difficulty progress to response format
-	progressByDiff := make(map[string]difficultyProgressResponse)
-	progressByDiff["easy"] = difficultyProgressResponse{
-		Solved: stats.ProgressByDiff["easy"].Solved,
-		Total:  stats.ProgressByDiff["easy"].Total,
-	}
-	progressByDiff["medium"] = difficultyProgressResponse{
-		Solved: stats.ProgressByDiff["medium"].Solved,
-		Total:  stats.ProgressByDiff["medium"].Total,
-	}
-	progressByDiff["hard"] = difficultyProgressResponse{
-		Solved: stats.ProgressByDiff["hard"].Solved,
-		Total:  stats.ProgressByDiff["hard"].Total,
+	level := (raw.User.XP / 1000) + 1
+
+	bio := ""
+	if raw.User.Bio != nil {
+		bio = *raw.User.Bio
 	}
 
-	// Get module proficiency
-	moduleProf, err := h.store.GetModuleProficiency(r.Context(), userUUID)
-	if err != nil {
-		moduleProf = make(map[string]store.DifficultyProgress)
-	}
-
-	moduleProfResp := make(map[string]difficultyProgressResponse)
-	for k, v := range moduleProf {
-		moduleProfResp[k] = difficultyProgressResponse{
-			Solved: v.Solved,
-			Total:  v.Total,
-		}
-	}
-
-	// Convert recent submissions to response format
-	recentSubs := make([]submissionResponse, 0, len(submissions))
-	for _, sub := range submissions {
-		subID, _ := uuidStringFromPGType(sub.ID)
-		probID, _ := uuidStringFromPGType(sub.ProblemID)
+	// Convert submissions
+	recentSubs := make([]submissionResponse, 0, len(raw.RecentSubmissions))
+	for _, sub := range raw.RecentSubmissions {
 		recentSubs = append(recentSubs, submissionResponse{
-			ID:          subID,
-			ProblemID:   probID,
+			ID:          sub.ID,
+			ProblemID:   sub.ProblemID,
 			Language:    sub.Language,
 			Status:      sub.Status,
 			PassedCount: sub.PassedCount,
 			TotalCount:  sub.TotalCount,
 			RuntimeMs:   sub.RuntimeMs,
-			CreatedAt:   sub.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:   sub.CreatedAt,
 		})
 	}
 
-	userID, _ := uuidStringFromPGType(user.ID)
-	level := (user.XP / 1000) + 1
-
-	bio := ""
-	if user.Bio != nil {
-		bio = *user.Bio
+	// Ensure progress maps exist (they should from the SQL, but guard anyway)
+	if raw.ProgressByDifficulty == nil {
+		raw.ProgressByDifficulty = make(map[string]difficultyProgressResponse)
 	}
+	if raw.ModuleProficiency == nil {
+		raw.ModuleProficiency = make(map[string]difficultyProgressResponse)
+	}
+	// Ensure all three difficulty levels exist
+	for _, d := range []string{"easy", "medium", "hard"} {
+		if _, ok := raw.ProgressByDifficulty[d]; !ok {
+			raw.ProgressByDifficulty[d] = difficultyProgressResponse{0, 0}
+		}
+	}
+
+	user, _ := h.store.GetUserByID(r.Context(), userUUID)
 
 	resp := profileResponse{
-		ID:         userID,
-		StudentID:  user.StudentID,
-		Name:       user.Name,
+		ID:         raw.User.ID,
+		StudentID:  raw.User.StudentID,
+		Name:       raw.User.Name,
 		Bio:        bio,
-		ColorIndex: user.ColorIndex,
-		XP:         user.XP,
+		ColorIndex: raw.User.ColorIndex,
+		XP:         raw.User.XP,
 		Level:      level,
-		GlobalRank: rank,
-		CreatedAt:  user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		GlobalRank: raw.Rank,
+		CreatedAt:  raw.User.CreatedAt,
 		Stats: profileStatsResponse{
-			SolvedCount:       stats.SolvedCount,
-			AttemptedCount:    stats.AttemptedCount,
-			AverageStars:      stats.AverageStars,
-			BestRuntimeMs:     stats.BestRuntimeMs,
-			CurrentStreakDays: stats.CurrentStreakDays,
+			SolvedCount:       raw.Stats.SolvedCount,
+			AttemptedCount:    raw.Stats.AttemptedCount,
+			AverageStars:      raw.Stats.AverageStars,
+			BestRuntimeMs:     raw.Stats.BestRuntimeMs,
+			CurrentStreakDays: raw.Stats.CurrentStreakDays,
 		},
-		ProgressByDifficulty: progressByDiff,
-		ModuleProficiency:    moduleProfResp,
+		ProgressByDifficulty: raw.ProgressByDifficulty,
+		ModuleProficiency:    raw.ModuleProficiency,
 		RecentSubmissions:    recentSubs,
 	}
+	if user != nil {
+		resp.GiteaUsername = user.GiteaUsername
+		resp.GiteaAvatarURL = user.GiteaAvatarURL
+	}
 
+	cacheProfile(r.Context(), userUUID.String(), resp)
 	RespondSuccess(w, resp)
 }
 
@@ -184,7 +201,7 @@ type updateProfileRequest struct {
 	Bio  string `json:"bio"`
 }
 
-// UpdateProfile updates the authenticated user's profile (currently just name).
+// UpdateProfile updates the authenticated user's profile and returns updated data without re-fetching.
 func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
 	if claims == nil {
@@ -209,18 +226,15 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user profile
-	if err := h.store.UpdateUserProfile(r.Context(), userUUID, req.Name, req.Bio); err != nil {
+	// Update and return in a single operation
+	user, err := h.store.UpdateUserProfileWithReturn(r.Context(), userUUID, req.Name, req.Bio)
+	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "UPDATE_ERROR", "Failed to update profile", nil)
 		return
 	}
 
-	// Get updated user
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "FETCH_ERROR", "Failed to fetch updated user", nil)
-		return
-	}
+	// Invalidate cache so next read fetches fresh data
+	InvalidateUserCache(userUUID.String())
 
 	userID, _ := uuidStringFromPGType(user.ID)
 	level := (user.XP / 1000) + 1

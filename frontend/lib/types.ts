@@ -8,6 +8,8 @@ export type User = {
   level: number;
   solvedCount: number;
   verified?: boolean;
+  gitea_username?: string;
+  gitea_avatar_url?: string;
 };
 
 export type ProblemDifficulty =
@@ -36,6 +38,7 @@ export type Problem = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  hints?: string[];
   total_submissions?: number;
   success_rate?: number;
   author_id?: string;
@@ -114,6 +117,8 @@ export type UserProfile = {
   level: number;
   global_rank: number;
   created_at: string;
+  gitea_username?: string;
+  gitea_avatar_url?: string;
   stats: {
     solved_count: number;
     attempted_count: number;
@@ -173,6 +178,14 @@ export type ExecutionResult = {
   runtime_ms: number;
   output_logs: string;
   test_results: BackendTestResult[];
+};
+
+export type ActivityEntry = {
+  date: string;
+  submissions: number;
+  solved: number;
+  tests_run: number;
+  level: number;
 };
 
 export type ApiResponse<T> = {

@@ -9,9 +9,10 @@ import {
   UserProfile,
   UserProblem,
   CommunitySolution,
+  ActivityEntry,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export async function fetchApi<T>(
   endpoint: string,
@@ -30,14 +31,25 @@ export async function fetchApi<T>(
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    let data: ApiResponse<T>;
+    try {
+      data = await response.json();
+    } catch {
+      data = { success: false, data: null, error: { code: "PARSE_ERROR", message: `Server returned ${response.status}` } };
     }
 
-    const data: ApiResponse<T> = await response.json();
+    if (!response.ok) {
+      const serverError = data?.error as { message?: string; details?: string } | undefined;
+      if (serverError?.details) {
+        (data.error as any).message = `${serverError.message}: ${serverError.details}`;
+      }
+      return data;
+    }
 
     if (!data.success && data.error) {
-      throw new Error(data.error.message);
+      const err = data.error as any;
+      const msg = err.details ? `${err.message}: ${err.details}` : err.message;
+      throw new Error(msg);
     }
 
     return data;
@@ -100,6 +112,8 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         xp: res.data.xp || 0,
         level: res.data.level || 1,
         solvedCount: res.data.solved_count || 0,
+        gitea_username: res.data.gitea_username,
+        gitea_avatar_url: res.data.gitea_avatar_url,
       },
     };
   }
@@ -247,6 +261,11 @@ export async function submitContribution(data: any): Promise<ApiResponse<any>> {
   });
 }
 
+export async function fetchUserActivity(year?: number): Promise<ApiResponse<ActivityEntry[]>> {
+  const params = year ? `?year=${year}` : "";
+  return fetchApi<ActivityEntry[]>(`/me/activity${params}`);
+}
+
 export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {
   return fetchApi<UserProblem[]>("/me/contributions");
 }
@@ -266,5 +285,32 @@ export async function rejectContribution(id: string, notes: string): Promise<Api
   return fetchApi<any>(`/admin/user-problems/${id}/reject`, {
     method: "PATCH",
     body: JSON.stringify({ admin_notes: notes }),
+  });
+}
+
+// ============================================
+// GITEA PAT LINKING
+// ============================================
+
+export async function linkGiteaToken(token: string): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
+  return fetchApi("/auth/gitea/link", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function unlinkGitea(): Promise<ApiResponse<{ linked: boolean }>> {
+  return fetchApi("/auth/gitea/link", {
+    method: "DELETE",
+  });
+}
+
+export async function getGiteaStatus(): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
+  return fetchApi("/auth/gitea/status");
+}
+
+export async function syncGiteaProfile(): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
+  return fetchApi("/auth/gitea/sync", {
+    method: "POST",
   });
 }

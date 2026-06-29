@@ -9,17 +9,31 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID         pgtype.UUID `db:"id" json:"id"`
-	StudentID  string      `db:"student_id" json:"student_id"`
-	Name       string      `db:"name" json:"name"`
-	Bio        *string     `db:"bio" json:"bio,omitempty"`
-	Password   string      `db:"password" json:"-"` // bcrypt hash
-	Role       string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
-	ColorIndex int         `db:"color_index" json:"color_index"`
-	XP         int         `db:"xp" json:"xp"`
-	Verified   bool        `db:"verified" json:"verified"`
-	VerifiedAt *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
-	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
+	ID            pgtype.UUID `db:"id" json:"id"`
+	StudentID     string      `db:"student_id" json:"student_id"`
+	Name          string      `db:"name" json:"name"`
+	Bio           *string     `db:"bio" json:"bio,omitempty"`
+	Password      string      `db:"password" json:"-"` // bcrypt hash (or placeholder for OAuth users)
+	Role          string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
+	ColorIndex    int         `db:"color_index" json:"color_index"`
+	XP            int         `db:"xp" json:"xp"`
+	Verified      bool        `db:"verified" json:"verified"`
+	VerifiedAt    *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
+	GiteaID       *int64      `db:"gitea_id" json:"gitea_id,omitempty"`
+	GiteaUsername *string     `db:"gitea_username" json:"gitea_username,omitempty"`
+	GiteaEmail    *string     `db:"gitea_email" json:"gitea_email,omitempty"`
+	GiteaAvatarURL *string    `db:"gitea_avatar_url" json:"gitea_avatar_url,omitempty"`
+	GiteaToken    *string    `db:"gitea_token" json:"-"`
+	CreatedAt     time.Time   `db:"created_at" json:"created_at"`
+}
+
+// GiteaUserInfo represents the user info returned by Gitea's API /api/v1/user.
+type GiteaUserInfo struct {
+	ID        int64  `json:"id"`
+	Login     string `json:"login"`
+	FullName  string `json:"full_name"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 // NewUser represents a user creation request.
@@ -118,14 +132,16 @@ type AdminStats struct {
 
 // LeaderboardUser represents the embedded user in a leaderboard entry.
 type LeaderboardUser struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	StudentID   string `json:"studentId"`
-	Role        string `json:"role"`
-	ColorIndex  int    `json:"colorIndex"`
-	XP          int    `json:"xp"`
-	Level       int    `json:"level"`
-	SolvedCount int    `json:"solvedCount"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	StudentID      string  `json:"studentId"`
+	Role           string  `json:"role"`
+	ColorIndex     int     `json:"colorIndex"`
+	XP             int     `json:"xp"`
+	Level          int     `json:"level"`
+	SolvedCount    int     `json:"solvedCount"`
+	GiteaUsername  *string `json:"gitea_username,omitempty"`
+	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
 }
 
 // LeaderboardEntry represents a single row on the leaderboard.

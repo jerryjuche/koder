@@ -1,6 +1,7 @@
 package api
 
 import (
+
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,10 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(store store.Store, cfg *config.Config) *AuthHandler {
-	return &AuthHandler{store: store, config: cfg}
+	return &AuthHandler{
+		store:  store,
+		config: cfg,
+	}
 }
 
 type registerRequest struct {
@@ -136,4 +140,187 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondSuccess(w, authResponse{Token: token})
+}
+
+
+
+// giteaLinkRequest is the payload for linking a Gitea PAT.
+type giteaLinkRequest struct {
+	Token string `json:"token"`
+}
+
+// giteaStatusResponse is returned by the Gitea status and link endpoints.
+type giteaStatusResponse struct {
+	Linked      bool    `json:"linked"`
+	GiteaUsername *string `json:"gitea_username,omitempty"`
+	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
+}
+
+// GiteaLink links the authenticated user's Gitea account via a Personal Access Token.
+// POST /auth/gitea/link
+func (h *AuthHandler) GiteaLink(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	var req giteaLinkRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		return
+	}
+
+	if req.Token == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Gitea PAT token is required", nil)
+		return
+	}
+
+	// Fetch Gitea user info using the PAT
+	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, req.Token)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to verify Gitea token", err.Error())
+		return
+	}
+
+	// Encrypt the PAT before storage
+	encryptedToken, err := auth.EncryptToken(req.Token, h.config.JWTSecret)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "ENCRYPTION_FAILED", "Failed to encrypt token", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	if err := h.store.UpdateGiteaProfile(r.Context(), userUUID, giteaUser.Login, giteaUser.AvatarURL, encryptedToken); err != nil {
+		RespondError(w, http.StatusInternalServerError, "LINK_FAILED", "Failed to link Gitea account", err.Error())
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	RespondSuccess(w, giteaStatusResponse{
+		Linked:         true,
+		GiteaUsername:  &giteaUser.Login,
+		GiteaAvatarURL: &giteaUser.AvatarURL,
+	})
+}
+
+// GiteaUnlink removes the Gitea PAT-linked profile from the authenticated user.
+// DELETE /auth/gitea/link
+func (h *AuthHandler) GiteaUnlink(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	if err := h.store.ClearGiteaProfile(r.Context(), userUUID); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UNLINK_FAILED", "Failed to unlink Gitea account", err.Error())
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	RespondSuccess(w, giteaStatusResponse{Linked: false})
+}
+
+// GiteaStatus returns the Gitea linking status for the authenticated user.
+// GET /auth/gitea/status
+func (h *AuthHandler) GiteaStatus(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	linked := user.GiteaUsername != nil && *user.GiteaUsername != ""
+	RespondSuccess(w, giteaStatusResponse{
+		Linked:         linked,
+		GiteaUsername:  user.GiteaUsername,
+		GiteaAvatarURL: user.GiteaAvatarURL,
+	})
+}
+
+// GiteaSync re-fetches the Gitea profile using the stored encrypted PAT.
+// POST /auth/gitea/sync
+func (h *AuthHandler) GiteaSync(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	if user.GiteaToken == nil || *user.GiteaToken == "" {
+		RespondError(w, http.StatusBadRequest, "NOT_LINKED", "No Gitea account is linked", nil)
+		return
+	}
+
+	// Decrypt the stored token
+	plainToken, err := auth.DecryptToken(*user.GiteaToken, h.config.JWTSecret)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DECRYPTION_FAILED", "Failed to decrypt stored token", nil)
+		return
+	}
+
+	// Re-fetch Gitea profile
+	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, plainToken)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to fetch Gitea profile", err.Error())
+		return
+	}
+
+	// Re-encrypt with the same key (rotation-safe)
+	encryptedToken, err := auth.EncryptToken(plainToken, h.config.JWTSecret)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "ENCRYPTION_FAILED", "Failed to encrypt token", nil)
+		return
+	}
+
+	if err := h.store.UpdateGiteaProfile(r.Context(), userUUID, giteaUser.Login, giteaUser.AvatarURL, encryptedToken); err != nil {
+		RespondError(w, http.StatusInternalServerError, "SYNC_FAILED", "Failed to sync Gitea profile", err.Error())
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	RespondSuccess(w, giteaStatusResponse{
+		Linked:         true,
+		GiteaUsername:  &giteaUser.Login,
+		GiteaAvatarURL: &giteaUser.AvatarURL,
+	})
 }
