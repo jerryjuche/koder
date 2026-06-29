@@ -1,10 +1,16 @@
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /build
+COPY go.mod ./
+# No go.sum — sandbox has zero external dependencies
+COPY main.go ratelimit.go ./
+RUN CGO_ENABLED=0 go build -o sandbox-runner .
+
 FROM golang:1.23-alpine
 
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
+COPY --from=builder /build/sandbox-runner /usr/local/bin/
 
-COPY . .
-RUN go build -o sandbox-runner ./cmd/sandbox
+EXPOSE 8080
 
-CMD ["./sandbox-runner"]
+CMD ["sandbox-runner"]
