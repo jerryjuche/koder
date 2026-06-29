@@ -187,12 +187,11 @@ func Load() (*Config, error) {
 		cfg.AllowedOrigin = "http://localhost:3000"
 	}
 
-	// Gitea OAuth2
+	// Gitea (optional — PAT linking defaults to public gitea.com)
 	cfg.GiteaURL = os.Getenv("GITEA_URL")
 	if cfg.GiteaURL == "" {
-		return nil, fmt.Errorf("GITEA_URL is required")
-	}
-	if cfg.Environment == "production" && !strings.HasPrefix(cfg.GiteaURL, "https://") {
+		cfg.GiteaURL = "https://gitea.com"
+	} else if cfg.Environment == "production" && !strings.HasPrefix(cfg.GiteaURL, "https://") {
 		return nil, fmt.Errorf("GITEA_URL must use HTTPS in production")
 	}
 	cfg.GiteaClientID = os.Getenv("GITEA_CLIENT_ID")
