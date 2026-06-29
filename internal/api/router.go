@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jerryjuche/koder/internal/config"
@@ -28,7 +29,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	}
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		RespondSuccess(w, map[string]string{"status": "healthy"})
+		RespondSuccess(w, map[string]string{
+			"status": "healthy",
+			"time":   time.Now().UTC().String(),
+		})
 	})
 
 	r.Route("/auth", func(r chi.Router) {
@@ -73,7 +77,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
-		
+
 		communityHandler := NewCommunityHandler(store)
 		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)
 		r.Get("/best-practices", communityHandler.GetBestPractices)
