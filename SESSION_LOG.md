@@ -376,3 +376,17 @@ Gitea avatar URL exists + no onError → <Image> with next/image
 ### Build Verification
 - Backend: `go vet ./internal/auth/ ./internal/store/ ./internal/api/` — all pass
 - Frontend: `npx next build` — `✓ Compiled successfully` (Windows DLL crash in NFT phase is environment-only)
+
+
+---
+
+## 12. Problem Statements & Workspace Polish
+
+### Overview
+Updated all problem descriptions to be professional and elaborate, and overhauled the frontend workspace to look highly premium and dynamic.
+
+### Backend Changes
+- Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
+
+### Frontend Changes
+- `ProblemWorkspaceClient.tsx`: Upgraded the Problem Description and Examples sections to use a glassmorphic design, dynamic glowing dots, gradients, and `@tailwindcss/typography` (`remarkGfm`) for better markdown styling.

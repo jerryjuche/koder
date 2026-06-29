@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
@@ -18,9 +17,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 	authHandler := NewAuthHandler(store, cfg)
 
-	// Configure Gitea OAuth2
-	oauthCfg := auth.NewGiteaOAuthConfig(cfg.GiteaURL, cfg.GiteaClientID, cfg.GiteaClientSecret, cfg.GiteaRedirectURL)
-	authHandler.SetGiteaOAuthConfig(oauthCfg)
+	// Note: Gitea OAuth2 was removed in favor of PAT linking
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
@@ -37,8 +34,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
-		r.Get("/gitea/login", authHandler.GiteaLogin)
-		r.Get("/gitea/callback", authHandler.GiteaCallback)
+		// Gitea OAuth2 endpoints removed in favor of PAT
 	})
 
 	r.Group(func(r chi.Router) {

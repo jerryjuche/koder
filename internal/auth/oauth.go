@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/jerryjuche/koder/internal/store"
-	"golang.org/x/oauth2"
 )
 
 // deriveEncryptionKey derives a 256-bit AES key from the JWT secret using SHA-256.
@@ -112,31 +111,16 @@ func VerifyOAuthState(state, secret string) bool {
 	return hmac.Equal([]byte(sig), []byte(expected))
 }
 
-// NewGiteaOAuthConfig creates an OAuth2 config for Gitea.
-func NewGiteaOAuthConfig(giteaURL, clientID, clientSecret, redirectURL string) *oauth2.Config {
-	giteaURL = strings.TrimRight(giteaURL, "/")
-	return &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
-		Scopes:       []string{"read:user"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  giteaURL + "/login/oauth/authorize",
-			TokenURL: giteaURL + "/login/oauth/access_token",
-		},
-	}
-}
 
 // FetchGiteaUser calls Gitea's /api/v1/user endpoint with the access token
 // and returns the user's profile information.
-// The token is used only for this call and then discarded.
-func FetchGiteaUser(ctx context.Context, giteaURL string, token *oauth2.Token) (*store.GiteaUserInfo, error) {
+func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.GiteaUserInfo, error) {
 	giteaURL = strings.TrimRight(giteaURL, "/")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, giteaURL+"/api/v1/user", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gitea user request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

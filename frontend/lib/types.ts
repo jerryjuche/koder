@@ -38,6 +38,7 @@ export type Problem = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  hints?: string[];
   total_submissions?: number;
   success_rate?: number;
   author_id?: string;

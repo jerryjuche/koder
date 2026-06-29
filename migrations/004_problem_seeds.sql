@@ -39,14 +39,14 @@ WITH p AS (
         true,
         'MANUAL:reverse-string',
         $$Reverse the input string and return the reversed value.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '["hello"]'::jsonb, '"olleh"', false, 1),
     ((SELECT id FROM p), '["GoLang"]'::jsonb, '"gnaLoG"', false, 2),
     ((SELECT id FROM p), '["racecar"]'::jsonb, '"racecar"', false, 3),
     ((SELECT id FROM p), '[""]'::jsonb, '""', true, 4),
-    ((SELECT id FROM p), '["a"]'::jsonb, '"a"', true, 5);
+    ((SELECT id FROM p), '["a"]'::jsonb, '"a"', true, 5) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 2: Prime number checker
@@ -78,14 +78,14 @@ WITH p AS (
         true,
         'MANUAL:is-prime',
         $$Determine whether the input number is prime.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[2]'::jsonb, 'true', false, 1),
     ((SELECT id FROM p), '[15]'::jsonb, 'false', false, 2),
     ((SELECT id FROM p), '[17]'::jsonb, 'true', false, 3),
     ((SELECT id FROM p), '[1]'::jsonb, 'false', true, 4),
-    ((SELECT id FROM p), '[97]'::jsonb, 'true', true, 5);
+    ((SELECT id FROM p), '[97]'::jsonb, 'true', true, 5) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 3: Sum of even numbers
@@ -117,13 +117,13 @@ WITH p AS (
         true,
         'MANUAL:sum-even-numbers',
         $$Compute the sum of even integers in the list.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[[1,2,3,4,5]]'::jsonb, '6', false, 1),
     ((SELECT id FROM p), '[[10,11,12,13]]'::jsonb, '22', false, 2),
     ((SELECT id FROM p), '[[]]'::jsonb, '0', false, 3),
-    ((SELECT id FROM p), '[[-2,-4,1,3]]'::jsonb, '-6', true, 4);
+    ((SELECT id FROM p), '[[-2,-4,1,3]]'::jsonb, '-6', true, 4) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 4: Merge two sorted arrays
@@ -155,13 +155,13 @@ WITH p AS (
         true,
         'MANUAL:merge-sorted-arrays',
         $$Merge two sorted lists into a single sorted result.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[[1,3,5],[2,4,6]]'::jsonb, '[1,2,3,4,5,6]', false, 1),
     ((SELECT id FROM p), '[[1,2,2],[2,3]]'::jsonb, '[1,2,2,2,3]', false, 2),
     ((SELECT id FROM p), '[[],[7,8]]'::jsonb, '[7,8]', false, 3),
-    ((SELECT id FROM p), '[[],[]]'::jsonb, '[]', true, 4);
+    ((SELECT id FROM p), '[[],[]]'::jsonb, '[]', true, 4) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 5: Word frequency counter
@@ -193,7 +193,7 @@ WITH p AS (
         true,
         'MANUAL:word-frequency',
         $$Count words in a sentence and return a frequency map.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 -- NOTE: expected values are JSON objects. Judge comparison must be
 -- key-value equality, not string equality, because map JSON order is not stable.
@@ -201,7 +201,7 @@ INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '["Hello hello world"]'::jsonb,    '{"hello":2,"world":1}',    false, 1),
     ((SELECT id FROM p), '["Go is great!"]'::jsonb,         '{"go":1,"is":1,"great":1}', false, 2),
     ((SELECT id FROM p), '["repeat repeat repeat"]'::jsonb, '{"repeat":3}',             false, 3),
-    ((SELECT id FROM p), '[""]'::jsonb,                     '{}',                        true,  4);
+    ((SELECT id FROM p), '[""]'::jsonb,                     '{}',                        true,  4) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 6: Matrix diagonal sum
@@ -233,12 +233,12 @@ WITH p AS (
         true,
         'MANUAL:matrix-diagonal-sum',
         $$Sum the main diagonal values of a square matrix.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[[[1,2,3],[4,5,6],[7,8,9]]]'::jsonb, '15', false, 1),
     ((SELECT id FROM p), '[[[5,0],[0,5]]]'::jsonb,             '10', false, 2),
-    ((SELECT id FROM p), '[[[7]]]'::jsonb,                     '7',  false, 3);
+    ((SELECT id FROM p), '[[[7]]]'::jsonb,                     '7',  false, 3) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 7: Rotate matrix clockwise 90°
@@ -270,12 +270,12 @@ WITH p AS (
         true,
         'MANUAL:rotate-matrix',
         $$Rotate a square matrix clockwise by 90 degrees.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[[[1,2],[3,4]]]'::jsonb,           '[[3,1],[4,2]]',         false, 1),
     ((SELECT id FROM p), '[[[1,2,3],[4,5,6],[7,8,9]]]'::jsonb, '[[7,4,1],[8,5,2],[9,6,3]]', false, 2),
-    ((SELECT id FROM p), '[[[42]]]'::jsonb,                  '[[42]]',                false, 3);
+    ((SELECT id FROM p), '[[[42]]]'::jsonb,                  '[[42]]',                false, 3) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 8: Balanced parentheses checker
@@ -307,14 +307,14 @@ WITH p AS (
         true,
         'MANUAL:balanced-parentheses',
         $$Check whether parentheses and brackets in a string are balanced.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '["()[]{}"]'::jsonb,   'true',  false, 1),
     ((SELECT id FROM p), '["([)]"]'::jsonb,     'false', false, 2),
     ((SELECT id FROM p), '["{[()()]}"]'::jsonb, 'true',  false, 3),
     ((SELECT id FROM p), '[""]'::jsonb,         'true',  true,  4),
-    ((SELECT id FROM p), '["("]'::jsonb,        'false', true,  5);
+    ((SELECT id FROM p), '["("]'::jsonb,        'false', true,  5) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 9: Longest common prefix
@@ -346,13 +346,13 @@ WITH p AS (
         true,
         'MANUAL:longest-common-prefix',
         $$Find the longest common prefix for a list of strings.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[ ["flower","flow","flight"] ]'::jsonb,              '"fl"',      false, 1),
     ((SELECT id FROM p), '[ ["dog","racecar","car"] ]'::jsonb,                 '""',        false, 2),
     ((SELECT id FROM p), '[ ["interspecies","interstellar","interstate"] ]'::jsonb, '"inters"', false, 3),
-    ((SELECT id FROM p), '[ ["abc"] ]'::jsonb,                                  '"abc"',     true,  4);
+    ((SELECT id FROM p), '[ ["abc"] ]'::jsonb,                                  '"abc"',     true,  4) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
 
 -- ---------------------------------------------------------------------------
 -- Problem 10: Two-sum indices
@@ -386,11 +386,53 @@ WITH p AS (
         true,
         'MANUAL:two-sum-indices',
         $$Find two indices for numbers that sum to the target. Return indices in any order.$$
-    ) RETURNING id
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
 )
 -- Expected values are sorted ascending index pairs. The judge should sort output before comparing.
 INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
     ((SELECT id FROM p), '[[2,7,11,15],9]'::jsonb,    '[0,1]', false, 1),
     ((SELECT id FROM p), '[[3,2,4],6]'::jsonb,       '[1,2]', false, 2),
     ((SELECT id FROM p), '[[3,3],6]'::jsonb,         '[0,1]', false, 3),
-    ((SELECT id FROM p), '[[-1,-2,-3,-4,-5],-8]'::jsonb, '[2,4]', true, 4);
+    ((SELECT id FROM p), '[[-1,-2,-3,-4,-5],-8]'::jsonb, '[2,4]', true, 4) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;
+
+-- ---------------------------------------------------------------------------
+-- Problem 11: Edit Distance
+-- ---------------------------------------------------------------------------
+WITH p AS (
+    INSERT INTO problems (
+        slug, module, type, language, title, statement,
+        func_name, return_type, param_types,
+        hints, difficulty, xp_reward, tags,
+        visible, source_hash, raw_readme
+    ) VALUES (
+        'edit-distance',
+        'Dynamic Programming',
+        'function',
+        'go',
+        'Edit Distance',
+        'Return the minimum number of operations (insert, delete, replace) to convert string word1 into string word2.',
+        'EditDistance',
+        'int',
+        ARRAY['string', 'string']::text[],
+        ARRAY[
+            'DP[i][j] = edit distance between word1[0:i] and word2[0:j].',
+            'If characters match: DP[i][j] = DP[i-1][j-1].',
+            'Else: DP[i][j] = 1 + min(insert, delete, replace).'
+        ],
+        4,
+        200,
+        ARRAY['dp', 'strings', 'hard'],
+        true,
+        'MANUAL:edit-distance',
+        $$Minimum edit distance between two strings.$$
+    ) ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug, statement = EXCLUDED.statement, raw_readme = EXCLUDED.raw_readme, hints = EXCLUDED.hints RETURNING id
+)
+INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES
+    ((SELECT id FROM p), '["horse", "ros"]'::jsonb, '3', false, 1),
+    ((SELECT id FROM p), '["intention", "execution"]'::jsonb, '5', false, 2),
+    ((SELECT id FROM p), '["", "a"]'::jsonb, '1', false, 3),
+    ((SELECT id FROM p), '["a", ""]'::jsonb, '1', true, 4),
+    ((SELECT id FROM p), '["", ""]'::jsonb, '0', true, 5),
+    ((SELECT id FROM p), '["abc", "abc"]'::jsonb, '0', true, 6),
+    ((SELECT id FROM p), '["kitten", "sitting"]'::jsonb, '3', true, 7),
+    ((SELECT id FROM p), '["zoologicoarchaeologist", "zoogeologist"]'::jsonb, '10', true, 8) ON CONFLICT (problem_id, ordinal) DO UPDATE SET input = EXCLUDED.input, expected = EXCLUDED.expected, is_hidden = EXCLUDED.is_hidden;

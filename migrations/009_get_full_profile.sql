@@ -134,8 +134,8 @@ DECLARE
 BEGIN
   WITH date_series AS (
     SELECT generate_series(
-      make_date(p_year, 1, 1),
-      make_date(p_year, 12, 31),
+      CURRENT_DATE - INTERVAL '364 days',
+      CURRENT_DATE,
       '1 day'::interval
     )::date AS activity_date
   ),

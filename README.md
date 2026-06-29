@@ -1067,3 +1067,8 @@ MIT
 ---
 
 *This document is the single source of truth for Koder. Any deviation from the architecture, conventions, or constraints described here requires an explicit ADR entry explaining the reasoning.*
+
+
+## Update: Problem Statements & Workspace Polish
+- Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
+- Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, dynamic hover states, glowing accents, and enhanced `@tailwindcss/typography` (`remarkGfm`) markdown styling.

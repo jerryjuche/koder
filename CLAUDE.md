@@ -255,6 +255,9 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
+- **Problem Statements & Workspace Polish:**
+  - Database: Updated all core problem statements (including `edit-distance`) with professional, rich markdown descriptions, explicit examples, edge case considerations, and realistic solve-time estimates.
+  - Frontend: Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, enhanced typography with `@tailwindcss/typography`, dynamic hover states, and glowing accents for descriptions and test examples.
 - **Gitea avatar + username sync across all surfaces:**
   - Backend: `LeaderboardUser` now includes `gitea_username`/`gitea_avatar_url` (selected by leaderboard SQL queries); `/me/profile` now returns gitea fields; all Gitea handlers (`link`/`unlink`/`sync`) invalidate profile+user caches
   - TopNav dropdown: Gitea avatar via `<Image>` + `@username` badge; shows name by default, student_id as fallback
