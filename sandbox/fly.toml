@@ -1,5 +1,5 @@
 app = "koder-sandbox"
-primary_region = "ord"
+primary_region = "fra"
 
 [env]
   PORT = "8080"
