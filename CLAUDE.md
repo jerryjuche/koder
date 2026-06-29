@@ -102,7 +102,7 @@ The system has **three sequential pipelines**:
 
 ### 3. **Execute** (`executor.go` → Docker)
 - Student submits code
-- Executor spawns Docker container with `golang:1.22-alpine` + generated test file
+- Executor spawns Docker container with `golang:1.23-alpine` + generated test file
 - Runs `go test` inside container
 - Returns pass/fail + coverage metrics
 - **Concurrency limit:** 2 concurrent executions (buffered channel semaphore)
@@ -216,7 +216,7 @@ See `.env.example` for full template.
 ## Key Implementation Notes
 
 ### Execution Sandbox (`executor/sandbox.go`)
-- Docker image: `golang:1.22-alpine` (ARM64-compatible)
+- Docker image: `golang:1.23-alpine` (ARM64-compatible)
 - Resource limits: `--memory=64m`, `--network=none`
 - Test file generated at runtime from Go template
 - Output captured via `docker logs` and parsed for pass/fail counts
@@ -247,7 +247,7 @@ See `.env.example` for full template.
 |---|---|
 | **50 Gemini calls/day** | Idempotent enrichment with SHA256 change detection; cache results |
 | **2 req/min Gemini** | Enforced `time.Sleep(30s)` between calls; queued requests |
-| **4 concurrent executions** | Buffered channel semaphore (configurable via `EXECUTOR_MAX_CONCURRENCY`) |
+| **6 concurrent executions** | Buffered channel semaphore (configurable via `EXECUTOR_MAX_CONCURRENCY`) |
 | **Rate limiting (submissions)** | Per-user sliding window: 5 req / 45s; admins exempt |
 | **500MB Postgres storage** | No JSONB bloat; normalized schema; archive old submissions quarterly |
 | **ARM64 only** | All Docker images multi-arch or explicitly ARM64; no `x86_64`-only binaries |
@@ -257,8 +257,8 @@ See `.env.example` for full template.
 ## Recent Changes
 
 - **Concurrency & Rate Limiting:**
-  - Increased default `EXECUTOR_MAX_CONCURRENCY` from 2 to 4 (env-configurable)
-  - Default executor timeout changed from 30s to 25s
+  - Increased default `EXECUTOR_MAX_CONCURRENCY` from 2 to 6 (env-configurable)
+  - Default executor timeout changed to 30s
   - Added per-user rate limiter (5 submissions per 45s sliding window; admins exempt)
   - Warmup now pre-compiles `go build std` instead of just `go env`, reducing cold start
   - Added `--read-only` and `-gcflags=-l` flags to Docker containers for faster compilation

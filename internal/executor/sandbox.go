@@ -37,7 +37,7 @@ func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *Tem
 	}
 
 	// Prepare go.mod
-	goModContent := "module sandbox\n\ngo 1.22\n"
+	goModContent := "module sandbox\n\ngo 1.23\n"
 	err = os.WriteFile(filepath.Join(sandboxPath, "go.mod"), []byte(goModContent), 0644)
 	if err != nil {
 		_ = os.RemoveAll(sandboxPath)

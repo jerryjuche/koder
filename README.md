@@ -39,7 +39,7 @@
 | 500MB Supabase storage | No bloated JSONB, no redundant columns |
 | 50 Gemini API calls/day | Ingest + Enrich must be idempotent with SHA256 change detection |
 | 2 req/min Gemini rate | Sequential enrichment with enforced sleep between calls |
-| 4 concurrent executions max | Buffered-channel semaphore (configurable via EXECUTOR_MAX_CONCURRENCY) |
+| 6 concurrent executions max | Buffered-channel semaphore (configurable via EXECUTOR_MAX_CONCURRENCY) |
 | 5 submissions per 45s per user | Per-user sliding window rate limiter; admins exempt |
 
 ### What This System Is Not
@@ -98,7 +98,7 @@
 │                             │ Gemini API         │ docker run   │
 │  ┌──────────────────────────┼───────────────────▼──────────┐   │
 │  │                          │      Docker Daemon           │   │
-│  │                          │   golang:1.22-alpine         │   │
+│  │                          │   golang:1.23-alpine         │   │
 │  │                          │   /tmp/koder/<uuid>/     │   │
 │  └──────────────────────────┼──────────────────────────────┘   │
 └──────────────────────────────┼──────────────────────────────────┘
@@ -460,7 +460,7 @@ exec.CommandContext(ctx, "docker", "run",
   "-v", "/tmp/koder/<uuid>:/app",
   "-v", "/tmp/go-build-cache:/root/.cache/go-build",
   "-w", "/app",
-  "golang:1.22-alpine", "go", "test", "./...", "-v")
+  "golang:1.23-alpine", "go", "test", "./...", "-v")
       │
       ▼
 Parse stdout line by line:
@@ -551,7 +551,7 @@ Before first run, the host must warm the cache:
 mkdir -p /tmp/go-build-cache
 docker run --rm \
   -v /tmp/go-build-cache:/root/.cache/go-build \
-  golang:1.22-alpine \
+  golang:1.23-alpine \
   go build std
 ```
 
@@ -876,9 +876,9 @@ GEMINI_API_KEY=<google-ai-studio-api-key>
 GEMINI_MODEL=gemini-2.5-pro
 
 # Execution
-EXECUTOR_MAX_CONCURRENCY=4
-EXECUTOR_TIMEOUT_SECONDS=25
-DOCKER_IMAGE=golang:1.22-alpine
+EXECUTOR_MAX_CONCURRENCY=6
+EXECUTOR_TIMEOUT_SECONDS=30
+DOCKER_IMAGE=golang:1.23-alpine
 SANDBOX_BASE_DIR=/tmp/koder
 BUILD_CACHE_DIR=/tmp/go-build-cache
 
@@ -968,7 +968,7 @@ GitHub Actions workflow:
 | Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std` |
 | Gemini API rate limit | 2 req/min | Sequential enrichment with 30s sleep between calls; idempotent re-runs |
 | Supabase 500MB cap | Never exceed | No binary storage; raw_readme + statement are the largest text fields |
-| Oracle VM RAM | Never OOM | Semaphore cap=4; `--memory=256m` per container; Go server typically <50MB RSS |
+| Oracle VM RAM | Never OOM | Semaphore cap=6; `--memory=256m` per container; Go server typically <50MB RSS |
 | Vercel cold start | <200ms | Minimize `"use client"` components; no heavy server-side data fetching on initial load |
 | DB query latency (profile page) | <100ms | Collapsed 7 queries into single `get_full_profile()` PL/pgSQL function + in-memory lru cache (30s TTL) |
 | Rate limiting (submissions) | 5 per 45s per user | Per-user sliding window rate limiter; admins exempt |
