@@ -83,25 +83,34 @@ func classifyOutput(output string, timedOut bool, cmdErr error) parseResult {
 	var (
 		passedSet = make(map[int]bool)
 		failedSet = make(map[int]bool)
+		allSet    = make(map[int]bool)
 	)
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
+		if m := runRegex.FindStringSubmatch(line); len(m) > 1 {
+			ord, _ := strconv.Atoi(m[1])
+			allSet[ord] = true
+			continue
+		}
 		if m := passRegex.FindStringSubmatch(line); len(m) > 1 {
 			ord, _ := strconv.Atoi(m[1])
 			passedSet[ord] = true
+			allSet[ord] = true
 			continue
 		}
 		if m := failStdRegex.FindStringSubmatch(line); len(m) > 1 {
 			ord, _ := strconv.Atoi(m[1])
 			failedSet[ord] = true
+			allSet[ord] = true
 			continue
 		}
 		if m := caseFailRegex.FindStringSubmatch(line); len(m) > 1 {
 			ord, _ := strconv.Atoi(m[1])
 			failedSet[ord] = true
+			allSet[ord] = true
 			continue
 		}
 	}
@@ -114,24 +123,7 @@ func classifyOutput(output string, timedOut bool, cmdErr error) parseResult {
 		return parseResult{status: "compiler_error"}
 	}
 
-	// Total = all ordinals seen (either passed or failed)
-	all := make(map[int]bool)
-	for k := range passedSet {
-		all[k] = true
-	}
-	for k := range failedSet {
-		all[k] = true
-	}
-	// Also detect total from --- PASS / --- FAIL lines
-	for _, line := range strings.Split(output, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if m := runRegex.FindStringSubmatch(trimmed); len(m) > 1 {
-			ord, _ := strconv.Atoi(m[1])
-			all[ord] = true
-		}
-	}
-
-	total := len(all)
+	total := len(allSet)
 	passed := len(passedSet)
 
 	var status string
@@ -160,6 +152,15 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	timeoutSec := req.TimeoutSec
 	if timeoutSec <= 0 || timeoutSec > maxTimeoutSec {
 		timeoutSec = defaultTimeoutSec
+	}
+
+	// Validate code for dangerous patterns before any I/O
+	if err := validateCode(req.Code); err != nil {
+		log.Printf("security: blocked submission: %v", err)
+		return ExecuteResponse{
+			Status: "security_error",
+			Error:  err.Error(),
+		}
 	}
 	goModule := req.GoModule
 	if goModule == "" {
@@ -212,13 +213,29 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	)
 	cmd.Dir = tmpDir
 
+	// Apply OS-level resource limits (memory, processes, fds, cpu)
+	// These are enforced by the kernel and cannot be bypassed by the child.
+	setProcessAttributes(cmd, timeoutSec)
+
 	output, err := cmd.CombinedOutput()
+
+	// If timed out, forcefully kill the entire process group to ensure no
+	// zombie children survive (fork bombs, runaway goroutines, etc.)
+	if runCtx.Err() == context.DeadlineExceeded {
+		killProcessGroup(cmd)
+		reapProcess(cmd)
+	}
+
 	runtimeMs := int(time.Since(start).Milliseconds())
 	stdout := string(output)
 
 	// Classify result
 	timedOut := runCtx.Err() == context.DeadlineExceeded
 	result := classifyOutput(stdout, timedOut, err)
+
+	// Resource monitoring log
+	log.Printf("execution: status=%s passed=%d total=%d runtime=%dms timeout=%ds",
+		result.status, result.passedCount, result.totalCount, runtimeMs, timeoutSec)
 
 	return ExecuteResponse{
 		Status:      result.status,
@@ -295,6 +312,13 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "invalid_request_body")
 		return
 	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		respondError(w, http.StatusUnsupportedMediaType, "content_type_required")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
 
 	if req.Code == "" {
 		respondError(w, http.StatusBadRequest, "code_required")
