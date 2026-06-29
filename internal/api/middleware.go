@@ -2,11 +2,95 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/config"
 )
+
+// RateLimiter implements a per-user sliding window rate limiter.
+type RateLimiter struct {
+	mu       sync.RWMutex
+	limits   map[string]*userRateLimit
+	maxReqs  int
+	window   time.Duration
+}
+
+type userRateLimit struct {
+	count       int
+	windowStart time.Time
+}
+
+// NewRateLimiter creates a new rate limiter allowing maxReqs requests per window duration.
+func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
+	return &RateLimiter{
+		limits:  make(map[string]*userRateLimit),
+		maxReqs: maxReqs,
+		window:  window,
+	}
+}
+
+// Allow checks if a user is allowed to proceed. Returns true + 0 if allowed,
+// or false + retryAfter duration if rate limited.
+func (rl *RateLimiter) Allow(userID string) (bool, time.Duration) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	entry, exists := rl.limits[userID]
+
+	if !exists || now.Sub(entry.windowStart) >= rl.window {
+		rl.limits[userID] = &userRateLimit{
+			count:       1,
+			windowStart: now,
+		}
+		return true, 0
+	}
+
+	entry.count++
+	if entry.count <= rl.maxReqs {
+		return true, 0
+	}
+
+	elapsed := now.Sub(entry.windowStart)
+	retryAfter := rl.window - elapsed
+	return false, retryAfter
+}
+
+// RateLimitMiddleware returns a middleware that enforces per-user rate limits
+// on submission and test endpoints. Admin users are exempt.
+func RateLimitMiddleware(rl *RateLimiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := GetClaims(r.Context())
+			if claims == nil {
+				RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+				return
+			}
+
+			// Exempt admin users from rate limiting
+			if claims.Role == "admin" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			allowed, retryAfter := rl.Allow(claims.UserID)
+			if !allowed {
+				seconds := int(retryAfter.Seconds()) + 1
+				msg := fmt.Sprintf("Too many submissions. Try again in %d seconds.", seconds)
+				slog.Warn("rate_limit: denied", "user_id", claims.UserID, "retry_after_seconds", seconds)
+				RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", msg, nil)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
 type contextKey string
 

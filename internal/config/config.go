@@ -120,7 +120,7 @@ func Load() (*Config, error) {
 	// Execution
 	executorMaxConcurrencyStr := os.Getenv("EXECUTOR_MAX_CONCURRENCY")
 	if executorMaxConcurrencyStr == "" {
-		executorMaxConcurrencyStr = "2"
+		executorMaxConcurrencyStr = "4"
 	}
 	executorMaxConcurrency, err := strconv.Atoi(executorMaxConcurrencyStr)
 	if err != nil {
@@ -133,7 +133,7 @@ func Load() (*Config, error) {
 
 	executorTimeoutStr := os.Getenv("EXECUTOR_TIMEOUT_SECONDS")
 	if executorTimeoutStr == "" {
-		executorTimeoutStr = "30"
+		executorTimeoutStr = "25"
 	}
 	executorTimeout, err := strconv.Atoi(executorTimeoutStr)
 	if err != nil {

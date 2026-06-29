@@ -51,7 +51,7 @@ func (e *Executor) Warmup(ctx context.Context) error {
 
 	cmdRun := exec.CommandContext(ctx, "docker", "run", "--rm",
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
-		e.cfg.DockerImage, "go", "env")
+		e.cfg.DockerImage, "go", "build", "std")
 
 	if err := cmdRun.Run(); err != nil {
 		slog.Warn("executor: failed to run dummy container, cache might not be populated", "error", err)
@@ -71,7 +71,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	}
 	defer func() { <-e.semaphore }()
 
-	slog.Info("executor: acquired semaphore slot", "user_id", req.UserID, "problem_id", req.ProblemID)
+	slog.Info("executor: acquired semaphore slot", "user_id", req.UserID, "problem_id", req.ProblemID, "concurrent", len(e.semaphore))
 
 	// 2. Fetch problem and test cases from the database
 	problem, testCases, err := e.store.GetProblemWithTestCases(ctx, req.ProblemID)
@@ -154,6 +154,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		"--memory=256m",
 		"--cpus=1.0",
 		"--pids-limit=512",
+		"--read-only",
 		"--env", "GOPROXY=off",
 		"--env", "GOSUMDB=off",
 		"--env", "GOTOOLCHAIN=local",
@@ -162,7 +163,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		"-w", "/app",
 		e.cfg.DockerImage,
-		"go", "test", "-v", "-count=1", "-timeout=25s", "./...",
+		"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
 	)
 
 	startTime := time.Now()
@@ -474,6 +475,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		"--memory=256m",
 		"--cpus=1.0",
 		"--pids-limit=512",
+		"--read-only",
 		"--env", "GOPROXY=off",
 		"--env", "GOSUMDB=off",
 		"--env", "GOTOOLCHAIN=local",
@@ -482,7 +484,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		"-w", "/app",
 		e.cfg.DockerImage,
-		"go", "test", "-v", "-count=1", "-timeout=25s", "./...",
+		"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
 	)
 
 	startTime := time.Now()

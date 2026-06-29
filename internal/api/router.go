@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,6 +24,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
 	testHandler := NewTestHandler(store, exec)
+
+	rateLimiter := NewRateLimiter(5, 45*time.Second)
+	slog.Info("rate_limiter: enabled", "max_requests", 5, "window_seconds", 45)
+
 	adminHandler, err := NewAdminHandler(store, cfg)
 	if err != nil {
 		return nil, err
@@ -84,8 +89,8 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Post("/submissions/{id}/like", communityHandler.LikeSubmission)
 		r.Delete("/submissions/{id}/like", communityHandler.UnlikeSubmission)
 
-		r.Post("/submit", submissionHandler.Submit)
-		r.Post("/test", testHandler.Test)
+		r.With(RateLimitMiddleware(rateLimiter)).Post("/submit", submissionHandler.Submit)
+		r.With(RateLimitMiddleware(rateLimiter)).Post("/test", testHandler.Test)
 
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)
