@@ -28,6 +28,7 @@ type Config struct {
 	DockerImage            string
 	SandboxBaseDir         string
 	BuildCacheDir          string
+	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
 
 	// Server
 	Port        int
@@ -158,6 +159,9 @@ func Load() (*Config, error) {
 	if cfg.BuildCacheDir == "" {
 		cfg.BuildCacheDir = "/tmp/go-build-cache"
 	}
+
+	cfg.SandboxURL = os.Getenv("SANDBOX_URL")
+	// Empty SANDBOX_URL means use local Docker (default behavior)
 
 	// Server
 	portStr := os.Getenv("PORT")

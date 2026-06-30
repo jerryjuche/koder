@@ -144,32 +144,61 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 	slog.Info("executor: sandbox created", "path", sandboxPath)
 
-	// 5. Run Docker container with a command execution timeout
-	runCtx, runCancel := context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
-	defer runCancel()
-
-	cmd := exec.CommandContext(runCtx, "docker", "run",
-		"--rm",
-		"--network=none",
-		"--memory=256m",
-		"--cpus=1.0",
-		"--pids-limit=512",
-		"--read-only",
-		"--env", "GOPROXY=off",
-		"--env", "GOSUMDB=off",
-		"--env", "GOTOOLCHAIN=local",
-		"--env", "GOFLAGS=-buildvcs=false",
-		"-v", fmt.Sprintf("%s:/app", sandboxPath),
-		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
-		"-w", "/app",
-		e.cfg.DockerImage,
-		"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
+	// 5. Execute: remote sandbox or local Docker
+	var (
+		output        string
+		runtimeMs     int
+		cmdErr        error
+		sandboxStatus string // non-empty = use sandbox result directly
+		runCtx        context.Context
+		runCancel     context.CancelFunc
 	)
 
-	startTime := time.Now()
-	outputBytes, cmdErr := cmd.CombinedOutput()
-	runtimeMs := int(time.Since(startTime).Milliseconds())
-	output := string(outputBytes)
+	if e.cfg.SandboxURL != "" {
+		codeBytes, err := os.ReadFile(filepath.Join(sandboxPath, "solution.go"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read solution.go: %w", err)
+		}
+		testBytes, err := os.ReadFile(filepath.Join(sandboxPath, "main_test.go"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
+		}
+		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
+		resp, err := client.execute(ctx, string(codeBytes), string(testBytes))
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: %w", err)
+		}
+		output = resp.Stdout
+		runtimeMs = resp.RuntimeMs
+		sandboxStatus = resp.Status
+	} else {
+		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
+		defer runCancel()
+
+		cmd := exec.CommandContext(runCtx, "docker", "run",
+			"--rm",
+			"--network=none",
+			"--memory=256m",
+			"--cpus=1.0",
+			"--pids-limit=512",
+			"--read-only",
+			"--env", "GOPROXY=off",
+			"--env", "GOSUMDB=off",
+			"--env", "GOTOOLCHAIN=local",
+			"--env", "GOFLAGS=-buildvcs=false",
+			"-v", fmt.Sprintf("%s:/app", sandboxPath),
+			"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
+			"-w", "/app",
+			e.cfg.DockerImage,
+			"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
+		)
+
+		startTime := time.Now()
+		var outputBytes []byte
+		outputBytes, cmdErr = cmd.CombinedOutput()
+		runtimeMs = int(time.Since(startTime).Milliseconds())
+		output = string(outputBytes)
+	}
 
 	// 6. Parse go test output
 	var (
@@ -257,13 +286,25 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 	var friendlyMessage string
 
-	if runCtx.Err() == context.DeadlineExceeded {
+	if sandboxStatus != "" {
+		status = sandboxStatus
+		switch status {
+		case "timeout":
+			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
+			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+		case "compiler_error":
+			friendlyMessage = parseCompilerError(output)
+		case "security_error":
+			status = "compiler_error"
+			friendlyMessage = "Your code was blocked for security reasons."
+		}
+	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
 		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
 		slog.Error("executor: execution OOM", "output", output, "runtime_ms", runtimeMs)
-		status = "timeout" // Treat as timeout so the UI shows the timeout panel
+		status = "timeout"
 		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"
@@ -465,32 +506,61 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 
 	slog.Info("executor: sandbox created", "path", sandboxPath)
 
-	// 6. Run Docker container with a command execution timeout
-	runCtx, runCancel := context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
-	defer runCancel()
-
-	cmd := exec.CommandContext(runCtx, "docker", "run",
-		"--rm",
-		"--network=none",
-		"--memory=256m",
-		"--cpus=1.0",
-		"--pids-limit=512",
-		"--read-only",
-		"--env", "GOPROXY=off",
-		"--env", "GOSUMDB=off",
-		"--env", "GOTOOLCHAIN=local",
-		"--env", "GOFLAGS=-buildvcs=false",
-		"-v", fmt.Sprintf("%s:/app", sandboxPath),
-		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
-		"-w", "/app",
-		e.cfg.DockerImage,
-		"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
+	// 6. Execute: remote sandbox or local Docker
+	var (
+		output        string
+		runtimeMs     int
+		cmdErr        error
+		sandboxStatus string
+		runCtx        context.Context
+		runCancel     context.CancelFunc
 	)
 
-	startTime := time.Now()
-	outputBytes, cmdErr := cmd.CombinedOutput()
-	runtimeMs := int(time.Since(startTime).Milliseconds())
-	output := string(outputBytes)
+	if e.cfg.SandboxURL != "" {
+		codeBytes, err := os.ReadFile(filepath.Join(sandboxPath, "solution.go"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read solution.go: %w", err)
+		}
+		testBytes, err := os.ReadFile(filepath.Join(sandboxPath, "main_test.go"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
+		}
+		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
+		resp, err := client.execute(ctx, string(codeBytes), string(testBytes))
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: %w", err)
+		}
+		output = resp.Stdout
+		runtimeMs = resp.RuntimeMs
+		sandboxStatus = resp.Status
+	} else {
+		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
+		defer runCancel()
+
+		cmd := exec.CommandContext(runCtx, "docker", "run",
+			"--rm",
+			"--network=none",
+			"--memory=256m",
+			"--cpus=1.0",
+			"--pids-limit=512",
+			"--read-only",
+			"--env", "GOPROXY=off",
+			"--env", "GOSUMDB=off",
+			"--env", "GOTOOLCHAIN=local",
+			"--env", "GOFLAGS=-buildvcs=false",
+			"-v", fmt.Sprintf("%s:/app", sandboxPath),
+			"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
+			"-w", "/app",
+			e.cfg.DockerImage,
+			"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
+		)
+
+		startTime := time.Now()
+		var outputBytes []byte
+		outputBytes, cmdErr = cmd.CombinedOutput()
+		runtimeMs = int(time.Since(startTime).Milliseconds())
+		output = string(outputBytes)
+	}
 
 	// 7. Parse go test output
 	var (
@@ -572,13 +642,25 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 
 	var friendlyMessage string
 
-	if runCtx.Err() == context.DeadlineExceeded {
+	if sandboxStatus != "" {
+		status = sandboxStatus
+		switch status {
+		case "timeout":
+			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
+			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+		case "compiler_error":
+			friendlyMessage = parseCompilerError(output)
+		case "security_error":
+			status = "compiler_error"
+			friendlyMessage = "Your code was blocked for security reasons."
+		}
+	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 		status = "timeout"
 		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
 		slog.Error("executor: execution OOM", "output", output, "runtime_ms", runtimeMs)
-		status = "timeout" // Treat as timeout so the UI shows the timeout panel
+		status = "timeout"
 		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
 	} else if cmdErr != nil && len(passedMap) == 0 {
 		status = "compiler_error"

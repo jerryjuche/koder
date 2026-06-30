@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jerryjuche/koder/internal/store"
 )
@@ -112,6 +113,9 @@ func VerifyOAuthState(state, secret string) bool {
 }
 
 
+// giteaHTTPClient is an HTTP client with a 15s timeout for Gitea API calls.
+var giteaHTTPClient = &http.Client{Timeout: 15 * time.Second}
+
 // FetchGiteaUser calls Gitea's /api/v1/user endpoint with the access token
 // and returns the user's profile information.
 func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.GiteaUserInfo, error) {
@@ -121,8 +125,10 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 		return nil, fmt.Errorf("failed to create gitea user request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("User-Agent", "Koder/1.0")
+	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := giteaHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch gitea user: %w", err)
 	}
