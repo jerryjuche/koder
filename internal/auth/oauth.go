@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
+	"compress/gzip"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -139,7 +140,6 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Set("Referer", giteaURL+"/")
 	req.Header.Set("DNT", "1")
 	req.Header.Set("Sec-Fetch-Dest", "empty")
@@ -154,11 +154,19 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		bodyStr := string(body)
+		reader := resp.Body
+		if resp.Header.Get("Content-Encoding") == "gzip" {
+			gr, err := gzip.NewReader(resp.Body)
+			if err == nil {
+				defer gr.Close()
+				reader = gr
+			}
+		}
+		body, _ := io.ReadAll(reader)
+		bodyStr := strings.TrimSpace(string(body))
 		// Detect Cloudflare challenges and give a helpful error
 		if resp.StatusCode == http.StatusForbidden && (strings.Contains(bodyStr, "Cloudflare") || strings.Contains(bodyStr, "cf-error-details")) {
-			return nil, fmt.Errorf("gitea API blocked by Cloudflare: add your backend server's IP to the Cloudflare WAF allowlist, or use a Gitea instance not behind Cloudflare (learn2earn.ng returned 403)")
+			return nil, fmt.Errorf("gitea API blocked by Cloudflare: add your backend server's IP to the Cloudflare WAF allowlist, or use a Gitea instance not behind Cloudflare")
 		}
 		return nil, fmt.Errorf("gitea API returned status %d: %s", resp.StatusCode, bodyStr)
 	}
