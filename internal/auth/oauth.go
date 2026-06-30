@@ -1,14 +1,13 @@
 package auth
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/tls"
-	"compress/gzip"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -115,17 +114,9 @@ func VerifyOAuthState(state, secret string) bool {
 }
 
 
-// giteaTransport is a custom transport that forces HTTP/1.1 and sets TLS parameters
-// to mimic a browser fingerprint, avoiding Cloudflare bot detection.
-var giteaTransport = &http.Transport{
-	// Disable HTTP/2 so the TLS fingerprint (JA3) matches Chrome's HTTP/1.1 pattern
-	TLSNextProto: make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
-}
-
 // giteaHTTPClient is an HTTP client with a 15s timeout for Gitea API calls.
 var giteaHTTPClient = &http.Client{
-	Timeout:   15 * time.Second,
-	Transport: giteaTransport,
+	Timeout: 15 * time.Second,
 }
 
 // FetchGiteaUser calls Gitea's /api/v1/user endpoint with the access token
@@ -137,15 +128,8 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 		return nil, fmt.Errorf("failed to create gitea user request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Referer", giteaURL+"/")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Sec-Fetch-Dest", "empty")
-	req.Header.Set("Sec-Fetch-Mode", "cors")
-	req.Header.Set("Sec-Fetch-Site", "same-origin")
-	req.Header.Set("Priority", "u=1, i")
+	req.Header.Set("User-Agent", "Koder/1.0")
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := giteaHTTPClient.Do(req)
 	if err != nil {
