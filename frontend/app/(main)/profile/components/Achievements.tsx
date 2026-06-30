@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { UserProfile } from "@/lib/types";
-import {
-  Award,
-  Zap,
-  Code,
-  Star,
-  Target,
-  CheckCircle2,
-  Flame,
-} from "lucide-react";
+import { Award, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,91 +21,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { getAchievements, type Achievement } from "@/lib/achievements";
 
 interface AchievementsProps {
   profile: UserProfile;
 }
 
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  unlocked: boolean;
-  color: string;
-  bg: string;
-  border: string;
-}
-
-function allAchievements(profile: UserProfile): Achievement[] {
-  return [
-    {
-      id: "first_blood",
-      title: "First Blood",
-      description: "Solved your first problem",
-      icon: Target,
-      unlocked: profile.stats.solved_count >= 1,
-      color: "text-emerald-400",
-      bg: "bg-emerald-400/10",
-      border: "border-emerald-400/20",
-    },
-    {
-      id: "hot_streak",
-      title: "Hot Streak",
-      description: "Maintained a 3-day streak",
-      icon: Flame,
-      unlocked: profile.stats.current_streak_days >= 3,
-      color: "text-orange-400",
-      bg: "bg-orange-400/10",
-      border: "border-orange-400/20",
-    },
-    {
-      id: "perfectionist",
-      title: "Perfectionist",
-      description: "Achieved an average quality score of 2.5+",
-      icon: Star,
-      unlocked:
-        profile.stats.average_stars >= 2.5 && profile.stats.solved_count > 0,
-      color: "text-primary",
-      bg: "bg-primary/10",
-      border: "border-primary/20",
-    },
-    {
-      id: "speed_demon",
-      title: "Speed Demon",
-      description: "Submitted a solution under 10ms",
-      icon: Zap,
-      unlocked:
-        profile.stats.best_runtime_ms > 0 && profile.stats.best_runtime_ms < 10,
-      color: "text-cyan-400",
-      bg: "bg-cyan-400/10",
-      border: "border-cyan-400/20",
-    },
-    {
-      id: "veteran",
-      title: "Veteran Coder",
-      description: "Reached level 10",
-      icon: Award,
-      unlocked: profile.level >= 10,
-      color: "text-purple-400",
-      bg: "bg-purple-400/10",
-      border: "border-purple-400/20",
-    },
-    {
-      id: "completionist",
-      title: "Completionist",
-      description: "Solved 50 problems",
-      icon: Code,
-      unlocked: profile.stats.solved_count >= 50,
-      color: "text-blue-400",
-      bg: "bg-blue-400/10",
-      border: "border-blue-400/20",
-    },
-  ];
-}
-
 export default function Achievements({ profile }: AchievementsProps) {
-  const achievements = allAchievements(profile);
+  const achievements = getAchievements(profile);
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const [selected, setSelected] = useState<Achievement | null>(null);
 
@@ -143,10 +58,10 @@ export default function Achievements({ profile }: AchievementsProps) {
                   <button
                     onClick={() => setSelected(achievement)}
                     className={cn(
-                      "w-full aspect-square rounded-full flex items-center justify-center border transition-all duration-200",
+                      "w-full aspect-square rounded-full flex items-center justify-center border border-border transition-all duration-200",
                       achievement.unlocked
-                        ? "bg-card border-border hover:ring-2 hover:ring-primary/50 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-lg"
-                        : "bg-muted/30 border-border opacity-30 grayscale"
+                        ? "hover:ring-2 hover:ring-primary/50 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-lg"
+                        : "opacity-30 grayscale"
                     )}
                   >
                     <Icon
@@ -188,9 +103,10 @@ export default function Achievements({ profile }: AchievementsProps) {
             <div className="text-center mb-2 mt-2">
               <div
                 className={cn(
-                  "w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 border",
-                  selected?.unlocked ? selected.bg : "bg-muted/50",
-                  selected?.unlocked ? "border-transparent" : "border-border"
+                  "w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 border-2",
+                  selected?.unlocked
+                    ? selected.bg + " " + selected.border
+                    : "bg-muted/50 border-border"
                 )}
               >
                 {selected && (
@@ -228,7 +144,7 @@ export default function Achievements({ profile }: AchievementsProps) {
               Criteria
             </p>
             <DialogDescription className="text-sm text-foreground">
-              {selected?.description}
+              {selected?.criteria || selected?.description}
             </DialogDescription>
           </div>
 

@@ -3,80 +3,12 @@
 import { useMemo } from "react";
 import {
   Trophy,
-  Target,
-  Flame,
-  Star,
-  Zap,
-  Award,
-  Code,
   CheckCircle2,
   GitPullRequest,
 } from "lucide-react";
 import { UserProfile, ActivityEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  color: string;
-  unlocked: boolean;
-}
-
-function allAchievements(profile: UserProfile): Achievement[] {
-  const stats = profile.stats;
-  return [
-    {
-      id: "first_blood",
-      title: "First Blood",
-      description: "Solved your first problem",
-      icon: Target,
-      color: "text-emerald-400",
-      unlocked: stats.solved_count >= 1,
-    },
-    {
-      id: "hot_streak",
-      title: "Hot Streak",
-      description: "Maintained a 3-day streak",
-      icon: Flame,
-      color: "text-orange-400",
-      unlocked: stats.current_streak_days >= 3,
-    },
-    {
-      id: "perfectionist",
-      title: "Perfectionist",
-      description: "Average quality score of 2.5+",
-      icon: Star,
-      color: "text-primary",
-      unlocked: stats.average_stars >= 2.5 && stats.solved_count > 0,
-    },
-    {
-      id: "speed_demon",
-      title: "Speed Demon",
-      description: "Submitted a solution under 10ms",
-      icon: Zap,
-      color: "text-cyan-400",
-      unlocked: stats.best_runtime_ms > 0 && stats.best_runtime_ms < 10,
-    },
-    {
-      id: "veteran",
-      title: "Veteran Coder",
-      description: "Reached level 10",
-      icon: Award,
-      color: "text-purple-400",
-      unlocked: profile.level >= 10,
-    },
-    {
-      id: "completionist",
-      title: "Completionist",
-      description: "Solved 50 problems",
-      icon: Code,
-      color: "text-blue-400",
-      unlocked: stats.solved_count >= 50,
-    },
-  ];
-}
+import { getAchievements } from "@/lib/achievements";
 
 interface ActivityFeedProps {
   profile: UserProfile;
@@ -85,7 +17,7 @@ interface ActivityFeedProps {
 }
 
 export default function ActivityFeed({ profile, activity, contributionCount }: ActivityFeedProps) {
-  const achievements = useMemo(() => allAchievements(profile), [profile]);
+  const achievements = useMemo(() => getAchievements(profile), [profile]);
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const recentActivity = useMemo(() => {
     return activity
@@ -116,14 +48,14 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
                 className={cn(
                   "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors",
                   a.unlocked
-                    ? "bg-muted/30 hover:bg-muted/50"
+                    ? "hover:bg-muted/50"
                     : "opacity-30 grayscale"
                 )}
               >
                 <div
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center",
-                    a.unlocked ? "bg-muted" : "bg-transparent"
+                    a.unlocked ? a.bg + " " + a.border : "bg-transparent"
                   )}
                 >
                   <Icon size={18} className={a.unlocked ? a.color : "text-muted-foreground"} />

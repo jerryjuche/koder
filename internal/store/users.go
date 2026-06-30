@@ -41,13 +41,14 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	colorIndex := int(colorIndexBig.Int64())
 
 	// Insert into database with parameterized query
+	email := user.Email
 	query := `
-		INSERT INTO users (student_id, name, password, role, color_index, xp, created_at)
-		VALUES ($1, $2, $3, $4, $5, 0, NOW())
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NOW())
 		RETURNING id, created_at
 	`
 
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Name, string(hashedPassword), user.Role, colorIndex).
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), user.Role, colorIndex).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -56,6 +57,7 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	return &User{
 		ID:         userID,
 		StudentID:  user.StudentID,
+		Username:   user.Username,
 		Name:       user.Name,
 		Password:   string(hashedPassword),
 		Role:       user.Role,
@@ -74,7 +76,8 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
 		FROM users
 		WHERE student_id = $1
 	`
@@ -82,12 +85,17 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 	err := s.pool.QueryRow(ctx, query, studentID).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
+		&user.Email,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 	)
 
@@ -110,8 +118,8 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp,
-		       gitea_username, gitea_avatar_url, gitea_token, created_at
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
 		FROM users
 		WHERE id = $1
 	`
@@ -119,15 +127,17 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
+		&user.Email,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
-		&user.GiteaUsername,
-		&user.GiteaAvatarURL,
-		&user.GiteaToken,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 	)
 
@@ -136,6 +146,175 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 			return nil, fmt.Errorf("user not found: %w", err)
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByUsername retrieves a user by their username.
+func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	if username == "" {
+		return nil, fmt.Errorf("username cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE username = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, username).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByEmail retrieves a user by their email.
+func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	if email == "" {
+		return nil, fmt.Errorf("email cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE email = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByLogin retrieves a user by checking username, email, or student_id.
+func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User, error) {
+	if login == "" {
+		return nil, fmt.Errorf("login cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE username = $1 OR email = $1 OR student_id = $1
+		LIMIT 1
+	`
+
+	err := s.pool.QueryRow(ctx, query, login).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by login: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByGoogleID retrieves a user by their Google ID.
+func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) (*User, error) {
+	if googleID == "" {
+		return nil, fmt.Errorf("googleID cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE google_id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, googleID).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found by google_id: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by google_id: %w", err)
 	}
 
 	return user, nil
@@ -179,11 +358,11 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		}
 		query = fmt.Sprintf(`
 			SELECT 
-				u.id, u.name, u.student_id, u.role, u.color_index,
+				u.id, u.name, u.student_id, u.username, u.role, u.color_index,
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
 				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
-				u.gitea_username, u.gitea_avatar_url
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -201,10 +380,10 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		// All time
 		query = `
 			SELECT 
-				u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
+				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
 				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
-				u.gitea_username, u.gitea_avatar_url
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin'
@@ -228,8 +407,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		var bestTime int
 
 		err := rows.Scan(
-			&uID, &u.Name, &u.StudentID, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime, &u.GiteaUsername, &u.GiteaAvatarURL,
+			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
@@ -279,8 +458,8 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	var solvedCount int
 
 	query := `
-		SELECT u.id, u.student_id, u.name, u.bio, u.password, u.role, u.color_index, u.xp,
-		       u.gitea_username, u.gitea_avatar_url, u.created_at,
+		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
+		       u.google_id, u.google_email, u.google_avatar_url, u.created_at,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -289,14 +468,17 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
+		&user.Email,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
-		&user.GiteaUsername,
-		&user.GiteaAvatarURL,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&solvedCount,
 	)
@@ -380,12 +562,13 @@ func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid
 		UPDATE users
 		SET name = $1, bio = $2
 		WHERE id = $3
-		RETURNING id, student_id, name, bio, role, color_index, xp, created_at
+		RETURNING id, student_id, username, name, bio, role, color_index, xp, created_at
 	`
 
 	err := s.pool.QueryRow(ctx, query, name, bio, id).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
 		&user.Role,
@@ -403,49 +586,59 @@ func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid
 	return user, nil
 }
 
-// GetUserByGiteaID retrieves a user by their Gitea user ID.
-func (s *PostgresStore) GetUserByGiteaID(ctx context.Context, giteaID int64) (*User, error) {
-	user := &User{}
-
-	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp, verified, verified_at,
-		       gitea_id, gitea_username, gitea_email, gitea_avatar_url, created_at
-		FROM users
-		WHERE gitea_id = $1
-	`
-
-	err := s.pool.QueryRow(ctx, query, giteaID).Scan(
-		&user.ID,
-		&user.StudentID,
-		&user.Name,
-		&user.Bio,
-		&user.Password,
-		&user.Role,
-		&user.ColorIndex,
-		&user.XP,
-		&user.Verified,
-		&user.VerifiedAt,
-		&user.GiteaID,
-		&user.GiteaUsername,
-		&user.GiteaEmail,
-		&user.GiteaAvatarURL,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("user not found by gitea_id: %w", err)
-		}
-		return nil, fmt.Errorf("failed to get user by gitea_id: %w", err)
+// UpdateUserUsername updates the username for a user.
+func (s *PostgresStore) UpdateUserUsername(ctx context.Context, id uuid.UUID, username string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
 	}
 
-	return user, nil
+	query := `
+		UPDATE users
+		SET username = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, username, id)
+	if err != nil {
+		return fmt.Errorf("failed to update username: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }
 
-// CreateUserFromGitea creates a new user from Gitea OAuth profile.
-func (s *PostgresStore) CreateUserFromGitea(ctx context.Context, info *GiteaUserInfo) (*User, error) {
+// UpdateUserGoogleAvatar updates the Google avatar URL for a user.
+func (s *PostgresStore) UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET google_avatar_url = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, avatarURL, id)
+	if err != nil {
+		return fmt.Errorf("failed to update google avatar: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// CreateUserFromGoogle creates a new user from a Google OAuth profile.
+func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error) {
 	if info == nil {
-		return nil, fmt.Errorf("gitea user info cannot be nil")
+		return nil, fmt.Errorf("google user info cannot be nil")
 	}
 
 	// Generate a random placeholder password (OAuth users don't use password login)
@@ -460,123 +653,73 @@ func (s *PostgresStore) CreateUserFromGitea(ctx context.Context, info *GiteaUser
 	}
 	colorIndex := int(colorIndexBig.Int64())
 
-	displayName := info.FullName
-	if displayName == "" {
-		displayName = info.Login
-	}
+	// Generate a temporary student_id and username from Google metadata
+	tempUsername := "g_" + info.Sub[:8]
 
 	var userID pgtype.UUID
 	var createdAt pgtype.Timestamp
 
 	query := `
-		INSERT INTO users (student_id, name, password, role, color_index, xp, gitea_id, gitea_username, gitea_email, gitea_avatar_url, created_at)
-		VALUES ($1, $2, $3, 'student', $4, 0, $5, $6, $7, $8, NOW())
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, created_at)
+		VALUES ($1, $2, $3, $4, $5, 'student', $6, 0, $7, $8, $9, NOW())
 		RETURNING id, created_at
 	`
 
 	err = s.pool.QueryRow(ctx, query,
-		info.Login,        // student_id = Gitea login name
-		displayName,       // name
+		info.Email,       // student_id = Google email (internal)
+		tempUsername,     // username (temporary, user will set it on onboarding)
+		info.Name,        // name from Google
+		info.Email,       // email
 		string(placeholderPW),
 		colorIndex,
-		info.ID,           // gitea_id
-		info.Login,        // gitea_username
-		info.Email,        // gitea_email
-		info.AvatarURL,    // gitea_avatar_url
+		info.Sub,         // google_id
+		info.Email,       // google_email
+		info.Picture,     // google_avatar_url
 	).Scan(&userID, &createdAt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user from gitea: %w", err)
+		return nil, fmt.Errorf("failed to create user from google: %w", err)
 	}
 
 	return &User{
-		ID:            userID,
-		StudentID:     info.Login,
-		Name:          displayName,
-		Password:      string(placeholderPW),
-		Role:          "student",
-		ColorIndex:    colorIndex,
-		XP:            0,
-		GiteaID:       &info.ID,
-		GiteaUsername: &info.Login,
-		GiteaEmail:    &info.Email,
-		GiteaAvatarURL: &info.AvatarURL,
-		CreatedAt:     createdAt.Time,
+		ID:             userID,
+		StudentID:      info.Email,
+		Username:       tempUsername,
+		Name:           info.Name,
+		Email:          &info.Email,
+		Password:       string(placeholderPW),
+		Role:           "student",
+		ColorIndex:     colorIndex,
+		XP:             0,
+		GoogleID:       &info.Sub,
+		GoogleEmail:    &info.Email,
+		GoogleAvatarURL: &info.Picture,
+		CreatedAt:      createdAt.Time,
 	}, nil
 }
 
-// LinkGiteaToUser links an existing user to a Gitea account.
-func (s *PostgresStore) LinkGiteaToUser(ctx context.Context, userID uuid.UUID, info *GiteaUserInfo) error {
+// LinkGoogleToUser links an existing user to a Google account.
+func (s *PostgresStore) LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error {
 	if userID == uuid.Nil {
 		return fmt.Errorf("userID cannot be nil")
 	}
 	if info == nil {
-		return fmt.Errorf("gitea user info cannot be nil")
+		return fmt.Errorf("google user info cannot be nil")
 	}
 
 	query := `
 		UPDATE users
-		SET gitea_id = $1, gitea_username = $2, gitea_email = $3, gitea_avatar_url = $4
-		WHERE id = $5
-	`
-
-	cmdTag, err := s.pool.Exec(ctx, query,
-		info.ID,
-		info.Login,
-		info.Email,
-		info.AvatarURL,
-		userID,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to link gitea to user: %w", err)
-	}
-	if cmdTag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
-	}
-
-	return nil
-}
-
-// UpdateGiteaProfile stores or updates the Gitea PAT-linked profile fields.
-func (s *PostgresStore) UpdateGiteaProfile(ctx context.Context, userID uuid.UUID, username, avatarURL, encryptedToken string) error {
-	if userID == uuid.Nil {
-		return fmt.Errorf("userID cannot be nil")
-	}
-	if username == "" {
-		return fmt.Errorf("username cannot be empty")
-	}
-
-	query := `
-		UPDATE users
-		SET gitea_username = $1, gitea_avatar_url = $2, gitea_token = $3
+		SET google_id = $1, google_email = $2, google_avatar_url = $3, email = COALESCE(email, $2)
 		WHERE id = $4
 	`
 
-	cmdTag, err := s.pool.Exec(ctx, query, username, avatarURL, encryptedToken, userID)
+	cmdTag, err := s.pool.Exec(ctx, query,
+		info.Sub,
+		info.Email,
+		info.Picture,
+		userID,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to update gitea profile: %w", err)
-	}
-	if cmdTag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
-	}
-
-	return nil
-}
-
-// ClearGiteaProfile removes the Gitea PAT-linked profile fields from a user.
-func (s *PostgresStore) ClearGiteaProfile(ctx context.Context, userID uuid.UUID) error {
-	if userID == uuid.Nil {
-		return fmt.Errorf("userID cannot be nil")
-	}
-
-	query := `
-		UPDATE users
-		SET gitea_id = NULL, gitea_username = NULL, gitea_email = NULL, gitea_avatar_url = NULL, gitea_token = NULL
-		WHERE id = $1
-	`
-
-	cmdTag, err := s.pool.Exec(ctx, query, userID)
-	if err != nil {
-		return fmt.Errorf("failed to clear gitea profile: %w", err)
+		return fmt.Errorf("failed to link google to user: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
 		return fmt.Errorf("user not found")

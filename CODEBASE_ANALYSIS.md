@@ -61,8 +61,11 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 **User**:
 - `ID` (UUID, primary key)
 - `StudentID` (string, unique, email or identifier)
+- `Username` (string, unique, public display identifier)
 - `Name`, `Password` (bcrypt hash), `Role` ("student"|"admin")
-- `ColorIndex` (0-5 for avatar colors), `XP`, `CreatedAt`
+- `Email` (*string), `Bio` (*string)
+- `GoogleID` (*string, unique), `GoogleEmail` (*string), `GoogleAvatarURL` (*string)
+- `ColorIndex` (0-5 for avatar colors), `XP`, `Verified` (bool), `CreatedAt`
 
 **Problem**:
 - `ID`, `Slug` (unique), `Module`, `Type`, `Language` ("go")
@@ -88,8 +91,8 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 - `ID`, `Type`, `Message`, `Color`, `Icon`, `CreatedAt`
 - Used for admin dashboard real-time activity feed
 
-**LeaderboardEntry**:
-- `Rank`, `User` (embedded LeaderboardUser), `BestTimeMs`, `RankDelta`
+**LeaderboardUser**: ID, Name, StudentID, Username, Role, ColorIndex, XP, Level, SolvedCount, GoogleAvatarURL
+**LeaderboardEntry**: Rank, User (LeaderboardUser), BestTimeMs, RankDelta
 
 #### store.go - Interface & Connection
 **Store Interface**: Defines all database operations contract
@@ -107,9 +110,17 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 - Validates role ("student"|"admin"), returns generated UUID
 - Query: INSERT with RETURNING id, created_at
 
-**GetUserByStudentID()** / **GetUserByID()**:
-- Explicit field scanning (11 fields scanned manually)
+**GetUserByStudentID()** / **GetUserByID()** / **GetUserByUsername()** / **GetUserByEmail()** / **GetUserByLogin()** / **GetUserByGoogleID()**:
+- All scan 14 fields explicitly (id, student_id, username, name, bio, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, created_at)
+- `GetUserByLogin` checks username, email, AND student_id with LIMIT 1
 - Returns pgx.ErrNoRows wrapped in formatted error
+
+**CreateUserFromGoogle()**:
+- Creates user with Google OAuth metadata, temporary username `g_<sub[:8]>`, placeholder bcrypt password
+- Sets google_id, google_email, google_avatar_url fields
+
+**LinkGoogleToUser()**:
+- Links an existing email/password user to a Google account by setting google_id, google_email, google_avatar_url
 
 **UpdateUserRole()**:
 - Simple UPDATE with role validation
@@ -198,7 +209,8 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 - Handlers: Auth, Problem, Submission, Admin, Me, Leaderboard
 - Routes:
   - `GET /health` - health check
-  - `POST /auth/register`, `POST /auth/login` - public
+  - `POST /auth/register`, `POST /auth/login`, `POST /auth/google` - public
+  - `POST /auth/complete-google`, `GET /auth/check-username` - protected
   - Protected routes (via AuthMiddleware):
     - `GET /me` - user profile
     - `GET /leaderboard` - leaderboard
@@ -209,6 +221,7 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
       - `POST /admin/ingest` - ingest GitHub repo
       - `POST /admin/enrich` - enrich single problem
       - `POST /admin/enrich-all` - batch enrichment
+      - `POST /admin/problems/publish-all` - publish all drafts
       - `GET /admin/stats`, `/admin/activity`, `/admin/problems`
 
 #### middleware.go - Request Processing
@@ -241,21 +254,38 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 - RespondError = custom status + structured APIError
 
 #### auth.go - Authentication Handler
-**RegisterRequest**: `student_id`, `name`, `password`
-**LoginRequest**: `student_id`, `password`
+**RegisterRequest**: `username`, `name`, `password`, `email?`
+**LoginRequest**: `login`, `password` (login = username, email, or student_id)
+**GoogleAuthRequest**: `id_token`
+**CompleteGoogleRequest**: `username`
 
 **Register()**:
-- Parses JSON, validates fields
-- **Admin detection**: if `ADMIN_EMAIL` env set and studentId/password match, role="admin"
-- Creates user via store.CreateUser()
-- Signs JWT token via `auth.SignToken(userID, studentID, role, secret, expiry)`
-- Returns token in authResponse
+- Parses JSON, validates fields (username, name, password required)
+- Admin detection: if ADMIN_EMAIL set and username/password match, role="admin"
+- Creates user via store.CreateUser() with both student_id and username set to req.Username
+- Signs JWT with `auth.SignToken(userID, studentID, username, role, secret, expiry, false)`
 
 **Login()**:
-- Gets user by studentId
-- Compares password via `auth.ComparePassword(hashedPassword, plainPassword)`
-- **Dynamic admin upgrade**: if credentials match ADMIN_EMAIL/ADMIN_PASSWORD, promotes to admin
+- Calls `store.GetUserByLogin(login)` — checks username, email, AND student_id
+- Compares password via bcrypt
+- Dynamic admin upgrade if credentials match ADMIN_EMAIL/ADMIN_PASSWORD
 - Signs and returns token
+
+**GoogleAuth()**:
+- Calls `auth.VerifyGoogleToken(idToken, clientID)` → GoogleUserInfo{Sub, Email, Name, Picture}
+- If existing Google user: sync avatar via `UpdateUserGoogleAvatar`, sign token
+- If email matches existing user: link Google to account via `LinkGoogleToUser`, sign token
+- New user: `CreateUserFromGoogle` with temp username `g_<sub[:8]>`, sign token with `onboarding=true`
+
+**CompleteGoogle()**:
+- Requires valid JWT with onboarding claim
+- Validates username (min 3 chars, uniqueness check via `GetUserByUsername`)
+- Updates username via `UpdateUserUsername`, invalidates cache
+- Returns fresh JWT without onboarding claim
+
+**CheckUsername()**:
+- GET /auth/check-username?username=xxx
+- Calls `GetUserByUsername`, returns `{available: true/false}`
 
 #### problems.go - Problem Handler
 **ListVisibleProblems()**:
@@ -326,8 +356,11 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 
 #### jwt.go - JWT Operations
 **Claims Struct**:
-- `UserID` (string), `StudentID` (string), `Role` (string)
+- `UserID` (string), `StudentID` (string), `Username` (string), `Role` (string)
+- `Onboarding` (bool) — true for new Google users who haven't set a username
 - Embeds `jwt.RegisteredClaims` (IssuedAt, ExpiresAt, NotBefore)
+
+**SignToken()** now accepts: `userID, studentID, username, role, secret, expiry, onboarding`
 
 **SignToken()**:
 - Validates all inputs (non-empty, positive expiry)
@@ -564,7 +597,7 @@ app/
 ```
 
 ### 2. TYPES: frontend/lib/types.ts
-**User**: id, name, studentId, role, avatarIndex, xp, level, solvedCount
+**User**: id, name, username, studentId, role, colorIndex, xp, level, solvedCount, google_avatar_url?
 **Problem**: id, slug, title, module, difficulty, xpReward, solved, status, visible, successRate, estTimeMinutes, tags, statement, descriptionMarkdown, func_name, return_type, param_types, total_submissions, success_rate
 **ExecutionResult**: status, passed_count, total_count, runtime_ms, output_logs, test_results (array of BackendTestResult)
 **LeaderboardEntry**: rank, user (User), bestTimeMs, rankDelta
@@ -578,6 +611,9 @@ app/
 
 **All Endpoints**:
 - `login(data)`, `register(data)` - POST
+- `googleLogin(idToken)` - POST /auth/google
+- `completeGoogleOnboarding(username)` - POST /auth/complete-google
+- `checkUsername(username)` - GET /auth/check-username
 - `fetchUser()` - GET /me (with JWT fallback decode)
 - `fetchProblems()` - GET /problems
 - `fetchProblem(slug)` - GET /problems/{slug}
@@ -588,6 +624,8 @@ app/
 - `fetchAdminStats()` - GET /admin/stats
 - `fetchAdminActivity()` - GET /admin/activity
 - `fetchAllProblemsAdmin()` - GET /admin/problems
+- `toggleProblemVisibility(id, visible)` - PATCH /admin/problems/{id}/visibility
+- `publishAllDrafts()` - POST /admin/problems/publish-all
 
 ### 4. UTILITIES: frontend/lib/utils.ts
 **cn()**: Tailwind className merge (clsx + tailwind-merge)
@@ -597,15 +635,21 @@ app/
 
 ### 5. AUTHENTICATION PAGES
 **LoginPage** (app/(auth)/login/page.tsx):
-- Form: studentId, password
-- Calls `login()`, stores token in localStorage
-- Redirects to `/` on success
+- Form: "Username or Email" + password
+- Google Sign-In button via Google Identity Services (GIS) CDN
+- Calls `login()` or `googleLogin()`, stores token in localStorage
+- New Google users redirected to `/onboarding` if JWT has `onboarding: true`
 
 **RegisterPage** (app/(auth)/register/page.tsx):
-- Form: firstName, lastName, studentId (optional), email, password
-- Creates user with name = `${firstName} ${lastName}`
-- Uses email or studentId for student_id field
+- Form: firstName, lastName, username, email, password
+- Creates user with name = `${firstName} ${lastName}`, both `student_id` and `username` set to req.Username
 - Stores token, redirects to `/`
+
+**OnboardingPage** (app/(auth)/onboarding/page.tsx):
+- For new Google users who haven't chosen a username
+- Debounced username availability check (500ms, via `/auth/check-username`)
+- Visual feedback: spinner, green checkmark (available), red X (taken)
+- Submit calls `completeGoogleOnboarding(username)`, stores new token, redirects to `/`
 
 ### 6. MAIN DASHBOARD: app/(main)/page.tsx
 **State**:
@@ -712,6 +756,7 @@ app/
 
 ### 11. UTILITIES
 **toast.ts**: Wrapper around `sonner` toast library (success, error, info, default)
+**achievements.ts**: Shared `Achievement` type + `getAchievements(profile: UserProfile)` function — 6 achievements, single source of truth for both Achievements.tsx and ActivityFeed.tsx
 **hooks/use-mobile.ts**: React hook to detect mobile viewport
 
 ---
@@ -773,3 +818,15 @@ app/
 ## Update: Problem Statements & Workspace Polish
 - Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
 - Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, dynamic hover states, glowing accents, and enhanced `@tailwindcss/typography` (`remarkGfm`) markdown styling.
+
+## Update: Google Sign-In Migration
+- Removed all Gitea OAuth + PAT linking code (backend handlers, store methods, types, config; frontend types, API client, all component surfaces)
+- Added Google Sign-In via GIS frontend button + `oauth2.googleapis.com/tokeninfo` backend verification (zero extra Go deps)
+- Added `username` column as public identifier; `student_id` kept for backward compat
+- Added `/onboarding` page for new Google users to choose permanent username
+- Migration `012_add_google_auth.sql`: `google_id`, `google_email`, `google_avatar_url`, `username`, `email` columns
+
+## Update: Frontend Polish
+- **Problem visibility**: enrichment now auto-publishes (`visible=true`); new `POST /admin/problems/publish-all` endpoint + button
+- **Achievements**: extracted to shared `lib/achievements.ts` module — both `Achievements.tsx` and `ActivityFeed.tsx` import from single source
+- **Module proficiency gauges**: responsive sizing via ResizeObserver (scales 85% of card width); 16-color module palette replaces single gold; `line-clamp-2` text overflow; sorted alphabetically; empty state message

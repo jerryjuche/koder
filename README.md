@@ -142,7 +142,7 @@ koder/
 │   │
 │   ├── store/                       # DATABASE LAYER — pure pgx/v5, no ORM
 │   │   ├── store.go                 # Store interface + postgres implementation
-│   │   ├── users.go                 # User CRUD, bcrypt auth, Gitea linking
+│   │   ├── users.go                 # User CRUD, bcrypt auth, Google linking
 │   │   ├── problems.go              # Problem queries + visibility management
 │   │   ├── testcases.go             # Test case queries with JSONB handling
 │   │   ├── submissions.go           # Submission insert + history queries
@@ -170,7 +170,7 @@ koder/
 │   ├── api/                         # HTTP LAYER
 │   │   ├── router.go                # Route registration (chi)
 │   │   ├── middleware.go            # Auth JWT, rate limiting, CORS
-│   │   ├── auth.go                  # Login, register, Gitea PAT linking handlers
+│   │   ├── auth.go                  # Login, register, Google Sign-In handlers
 │   │   ├── problems.go              # GET /problems, GET /problems/:slug
 │   │   ├── admin.go                 # POST /admin/ingest, POST /admin/enrich
 │   │   ├── leaderboard.go           # GET /leaderboard
@@ -181,7 +181,7 @@ koder/
 │   └── auth/
 │       ├── jwt.go                   # JWT sign/verify (HS256)
 │       ├── password.go              # bcrypt wrap
-│       └── oauth.go                 # Gitea API fetch, EncryptToken/DecryptToken (AES-256-GCM)
+│       └── oauth.go                 # Google ID token verification (oauth2.googleapis.com/tokeninfo)
 │
 ├── sandbox/                         # Standalone Go execution sandbox (Railway)
 │   ├── main.go                      # HTTP server: /health, /version, /execute
@@ -196,8 +196,9 @@ koder/
 │   ├── 001_init.sql                 # Full schema from spec
 │   ├── 002_indexes.sql              # All performance indexes
 │   ├── 009_get_full_profile.sql     # Collapsed 7 queries into get_full_profile()
-│   ├── 010_add_gitea_auth.sql       # Gitea OAuth identity fields
-│   └── 011_add_gitea_token.sql      # Gitea PAT encrypted token storage
+│   ├── 010_add_gitea_auth.sql       # (archived) Gitea OAuth identity fields
+│   ├── 011_add_gitea_token.sql      # (archived) Gitea PAT encrypted token storage
+│   └── 012_add_google_auth.sql      # Google OAuth fields + username + email columns
 │
 ├── frontend/                        # Next.js App Router project
 │   ├── app/
@@ -605,14 +606,11 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | None | Create student account |
-| POST | `/auth/login` | None | Returns JWT |
-| GET | `/auth/gitea/login` | None | OAuth2 redirect to Gitea (dormant — requires admin setup) |
-| GET | `/auth/gitea/callback` | None | OAuth2 callback handler (dormant) |
-| POST | `/auth/gitea/link` | Student | Link Gitea account via PAT (AES-256-GCM encrypted) |
-| DELETE | `/auth/gitea/link` | Student | Unlink Gitea account |
-| GET | `/auth/gitea/status` | Student | Get Gitea linking status |
-| POST | `/auth/gitea/sync` | Student | Re-fetch Gitea profile from stored PAT |
+| POST | `/auth/register` | None | Create account (username + email + password) |
+| POST | `/auth/login` | None | Returns JWT (accepts username/email/student_id) |
+| POST | `/auth/google` | None | Google Sign-In with ID token |
+| POST | `/auth/complete-google` | Student | Set username after Google onboarding |
+| GET | `/auth/check-username?username=xxx` | Student | Username availability check |
 
 ### Problems
 
@@ -646,6 +644,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | POST | `/admin/enrich` | Admin | Trigger Pipeline 2 for pending problems |
 | POST | `/admin/execute` | Admin | Manually trigger execution for testing |
 | PATCH | `/admin/problems/:id/visibility` | Admin | Toggle `visible` flag |
+| POST | `/admin/problems/publish-all` | Admin | Publish all draft (hidden) problems |
 | GET | `/admin/problems` | Admin | All problems including hidden |
 
 ### Response Envelope
@@ -707,7 +706,7 @@ Split-pane: left = problem statement (react-markdown), right = Monaco Editor. Be
 Two tabs: **Overview** | **My Contributions**
 
 Overview layout:
-1. **ProfileHeader** — Gitea avatar via `<Image>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@gitea_username` badge if linked
+1. **ProfileHeader** — Google avatar via `<Image>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@{username}` badge
 2. **StatsOverview** — 6-column grid: Level (XP progress bar), Global Rank, Solved, Success Rate, Streak, Best Runtime (all with tooltips)
 3. **ContributionGraphSection** — GitHub-style activity heatmap (recharts-based `kibo-ui` graph)
 4. Two-column grid:
@@ -717,9 +716,8 @@ Overview layout:
 My Contributions layout:  
 3-column grid: `MyContributions` (user-submitted problems list, 2 cols) + `ActivityFeed` sidebar (achievement grid + recent activity timeline)
 
-**`/settings` — Account Settings with Tabs**  
-Two tabs: **Profile** | **Security**  
-Security tab contains **Gitea Account** section: PAT input, Link/Unlink/Sync buttons, avatar preview, encrypted storage notice
+**`/settings` — Account Settings**  
+Single Profile tab with name, bio, and read-only username fields
 
 **`/admin` — Admin Dashboard**  
 Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Only accessible if JWT role = `admin`.
@@ -930,11 +928,9 @@ ALLOWED_ORIGIN=https://koder.vercel.app
 # Sandbox (optional — empty = use local Docker)
 SANDBOX_URL=https://koder-production.up.railway.app
 
-# Gitea (all optional — PAT linking works with just GITEA_URL)
-GITEA_URL=https://gitea.com
-GITEA_CLIENT_ID=              # OAuth only (dormant)
-GITEA_CLIENT_SECRET=          # OAuth only (dormant)
-GITEA_REDIRECT_URL=           # OAuth only (dormant)
+# Google OAuth2 (required for Google Sign-In button)
+GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
+# Frontend also needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (same value)
 ```
 
 ---
@@ -1084,6 +1080,7 @@ psql $DATABASE_URL -f migrations/002_indexes.sql
 psql $DATABASE_URL -f migrations/009_get_full_profile.sql
 psql $DATABASE_URL -f migrations/010_add_gitea_auth.sql
 psql $DATABASE_URL -f migrations/011_add_gitea_token.sql
+psql $DATABASE_URL -f migrations/012_add_google_auth.sql
 
 # 4. Warm the Docker build cache
 chmod +x scripts/setup-docker-cache.sh

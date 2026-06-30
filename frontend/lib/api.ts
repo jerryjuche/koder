@@ -71,8 +71,8 @@ export async function fetchApi<T>(
 
 export async function login(
   data: any,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/login", {
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/login", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -85,6 +85,32 @@ export async function register(
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+export async function googleLogin(
+  idToken: string,
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
+export async function completeGoogleOnboarding(
+  username: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/complete-google", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export async function checkUsername(
+  username: string,
+): Promise<ApiResponse<{ username: string; available: boolean }>> {
+  return fetchApi<{ username: string; available: boolean }>(
+    `/auth/check-username?username=${encodeURIComponent(username)}`,
+  );
 }
 
 export async function fetchUser(): Promise<ApiResponse<User>> {
@@ -106,14 +132,14 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
       data: {
         id: res.data.id,
         name: res.data.name || res.data.student_id || "Student",
+        username: res.data.username || res.data.student_id || "",
         studentId: res.data.student_id,
         role: res.data.role || "student",
         colorIndex: res.data.color_index ?? 0,
         xp: res.data.xp || 0,
         level: res.data.level || 1,
         solvedCount: res.data.solved_count || 0,
-        gitea_username: res.data.gitea_username,
-        gitea_avatar_url: res.data.gitea_avatar_url,
+        google_avatar_url: res.data.google_avatar_url,
       },
     };
   }
@@ -137,6 +163,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
       data: {
         id: payload.user_id || "u1",
         name: payload.name || payload.student_id || "Student",
+        username: payload.username || payload.student_id || "",
         studentId: payload.student_id || "s000000",
         role: payload.role || "student",
         colorIndex: 0,
@@ -295,29 +322,10 @@ export async function toggleProblemVisibility(id: string, visible: boolean): Pro
   });
 }
 
-// ============================================
-// GITEA PAT LINKING
-// ============================================
-
-export async function linkGiteaToken(token: string): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
-  return fetchApi("/auth/gitea/link", {
-    method: "POST",
-    body: JSON.stringify({ token }),
-  });
-}
-
-export async function unlinkGitea(): Promise<ApiResponse<{ linked: boolean }>> {
-  return fetchApi("/auth/gitea/link", {
-    method: "DELETE",
-  });
-}
-
-export async function getGiteaStatus(): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
-  return fetchApi("/auth/gitea/status");
-}
-
-export async function syncGiteaProfile(): Promise<ApiResponse<{ linked: boolean; gitea_username?: string; gitea_avatar_url?: string }>> {
-  return fetchApi("/auth/gitea/sync", {
+export async function publishAllDrafts(): Promise<ApiResponse<{ published: number }>> {
+  return fetchApi<{ published: number }>("/admin/problems/publish-all", {
     method: "POST",
   });
 }
+
+

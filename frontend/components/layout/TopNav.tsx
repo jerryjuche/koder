@@ -15,7 +15,6 @@ import {
   PlusCircle,
   CheckCheck,
   ChevronDown,
-  GitBranch,
 } from "lucide-react";
 import { cn, getUserColor } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -212,11 +211,11 @@ export default function TopNav() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    {user.gitea_avatar_url && !avatarError ? (
+                    {user.google_avatar_url && !avatarError ? (
                       <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
                         <Image
-                          src={user.gitea_avatar_url}
-                          alt={user.gitea_username ?? "Avatar"}
+                          src={user.google_avatar_url}
+                          alt={user.username ?? "Avatar"}
                           width={36}
                           height={36}
                           className="w-full h-full object-cover"
@@ -242,7 +241,7 @@ export default function TopNav() {
                           {user.name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {user.gitea_username || (
+                          {user.username || (
                             <span className="font-mono">{user.studentId}</span>
                           )}
                         </div>
@@ -254,11 +253,11 @@ export default function TopNav() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-3 py-1">
-                      {user.gitea_avatar_url && !avatarError ? (
+                      {user.google_avatar_url && !avatarError ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
                           <Image
-                            src={user.gitea_avatar_url}
-                            alt={user.gitea_username ?? "Avatar"}
+                            src={user.google_avatar_url}
+                            alt={user.username ?? "Avatar"}
                             width={32}
                             height={32}
                             className="w-full h-full object-cover"
@@ -280,10 +279,9 @@ export default function TopNav() {
                       <div>
                         <p className="text-sm font-medium text-foreground">{user.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {user.gitea_username ? (
-                            <span className="flex items-center gap-1 text-emerald-400">
-                              <GitBranch size={10} />
-                              {user.gitea_username}
+                          {user.username ? (
+                            <span className="text-emerald-400">
+                              @{user.username}
                             </span>
                           ) : (
                             <span className="font-mono">{user.studentId}</span>

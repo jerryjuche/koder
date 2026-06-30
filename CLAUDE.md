@@ -138,8 +138,11 @@ The system has **three sequential pipelines**:
 ## API Endpoints
 
 ### Auth
-- `POST /auth/register` — Create account
-- `POST /auth/login` — JWT token
+- `POST /auth/register` — Create account (username, email, password)
+- `POST /auth/login` — JWT token (accepts username/email/student_id)
+- `POST /auth/google` — Google Sign-In with ID token
+- `POST /auth/complete-google` — Set username after Google onboarding
+- `GET /auth/check-username?username=xxx` — Username availability check
 - `GET /me` — Current user + stats
 
 ### Problems
@@ -181,11 +184,13 @@ The system has **three sequential pipelines**:
 DATABASE_URL=postgres://...        # Supabase connection string
 GEMINI_API_KEY=...                 # Google AI Studio key
 JWT_SECRET=...                     # For token signing
+GOOGLE_CLIENT_ID=...               # Google OAuth client ID (for Sign-In)
 ADMIN_PASSWORD=...                 # Admin panel access
 SANDBOX_URL=...                    # Remote sandbox URL (optional; empty = local Docker)
 
 # Frontend (Next.js)
 NEXT_PUBLIC_API_URL=...            # Backend domain (used by fetch)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...   # Same as GOOGLE_CLIENT_ID (for GIS button)
 ```
 
 See `.env.example` for full template.
@@ -288,15 +293,12 @@ See `.env.example` for full template.
 - **Problem Statements & Workspace Polish:**
   - Database: Updated all core problem statements (including `edit-distance`) with professional, rich markdown descriptions, explicit examples, edge case considerations, and realistic solve-time estimates.
   - Frontend: Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, enhanced typography with `@tailwindcss/typography`, dynamic hover states, and glowing accents for descriptions and test examples.
-- **Gitea avatar + username sync across all surfaces:**
-  - Backend: `LeaderboardUser` now includes `gitea_username`/`gitea_avatar_url` (selected by leaderboard SQL queries); `/me/profile` now returns gitea fields; all Gitea handlers (`link`/`unlink`/`sync`) invalidate profile+user caches
-  - TopNav dropdown: Gitea avatar via `<Image>` + `@username` badge; shows name by default, student_id as fallback
-  - Dashboard: Gitea avatar + `@username` in user summary card
-  - Leaderboard: Gitea avatars on podium, "Your Ranking" banner, and table rows (with per-user `onError` fallback to initials); gitea_username badges inline; removed `studentId` column from table
-  - Profile "My Contributions" tab: new `ActivityFeed` sidebar showing achievement grid + recent activity timeline (solved counts, submissions, contributions)
-- **Gitea PAT linking:** Optional PAT-based Gitea account linking for profile avatar + username display
-  - Backend: `EncryptToken`/`DecryptToken` (AES-256-GCM), 4 new API handlers (`link/unlink/status/sync`), encrypted token storage (`gitea_token` column, `json:"-"`), optional OAuth vars in config
-  - Frontend: Gitea linking UI in Settings (Security tab), avatar via `<Image>` in ProfileHeader, `@username` badge with GitBranch icon, real-time `user-updated` event sync
+- **Google Sign-In migration (replaced Gitea):**
+  - Backend: Added `google_id`/`google_email`/`google_avatar_url`/`username`/`email` columns (migration 012); new store methods (`GetUserByGoogleID`, `CreateUserFromGoogle`, `LinkGoogleToUser`, `GetUserByLogin`, `GetUserByEmail`, `UpdateUserUsername`, `UpdateUserGoogleAvatar`); removed all Gitea code
+  - Auth: `VerifyGoogleToken` via `oauth2.googleapis.com/tokeninfo` endpoint (zero extra deps); JWT includes `Username` + `Onboarding` claims; `Login` accepts username/email/student_id
+  - API: `POST /auth/google` (Google Sign-In), `POST /auth/complete-google` (username onboarding), `GET /auth/check-username` (availability check); removed all Gitea PAT/handlers
+  - Frontend: Google Identity Services (GIS) button on login page; `/onboarding` page for new Google users (debounced username availability check); all surfaces use `username`/`google_avatar_url` instead of `gitea_username`/`gitea_avatar_url`
+  - Settings page: Removed Gitea linking section; shows read-only username field
 - **Dashboard UI updates:** est time, description, success rate display (c008449)
 - **Executor hardening:** Improved test generation sandbox debugging (a01d5a8)
 - **Complexity refactoring:** Reduced cyclomatic complexity in code runs (281a427)
@@ -314,7 +316,8 @@ See `.env.example` for full template.
   - `executor.go` branches on `SANDBOX_URL`: sends `solution.go` + `main_test.go` to remote sandbox, falls back to local Docker when unset
   - Warmup skipped when `SANDBOX_URL` is set (no Docker needed)
   - Config: `SANDBOX_URL` env var added, config_test defaults updated
-- **Gitea API Fix:** Added `User-Agent: Koder/1.0` and `Accept: application/json` headers + 15s timeout to fix Cloudflare 403 blocking Go's default HTTP client
+- **Gitea API Fix (archived):** Added `User-Agent: Koder/1.0` and `Accept: application/json` headers + 15s timeout to fix Cloudflare 403 blocking Go's default HTTP client
+- **Frontend fixes:** Auto-publish problems after enrichment + "Publish All Drafts" button in admin; shared achievements utility (`lib/achievements.ts`) with improved dialog design; responsive module proficiency gauges with module-specific colors and empty state
 
 ---
 

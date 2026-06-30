@@ -22,6 +22,7 @@ func NewProfileHandler(s store.Store) *ProfileHandler {
 type profileResponse struct {
 	ID                  string                                    `json:"id"`
 	StudentID           string                                    `json:"student_id"`
+	Username            string                                    `json:"username"`
 	Name                string                                    `json:"name"`
 	Bio                 string                                    `json:"bio"`
 	ColorIndex          int                                       `json:"color_index"`
@@ -29,8 +30,7 @@ type profileResponse struct {
 	Level               int                                       `json:"level"`
 	GlobalRank          int                                       `json:"global_rank"`
 	CreatedAt           string                                    `json:"created_at"`
-	GiteaUsername       *string                                   `json:"gitea_username,omitempty"`
-	GiteaAvatarURL      *string                                   `json:"gitea_avatar_url,omitempty"`
+	GoogleAvatarURL     *string                                   `json:"google_avatar_url,omitempty"`
 	Stats               profileStatsResponse                      `json:"stats"`
 	ProgressByDifficulty map[string]difficultyProgressResponse   `json:"progress_by_difficulty"`
 	ModuleProficiency    map[string]difficultyProgressResponse   `json:"module_proficiency"`
@@ -187,8 +187,8 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		RecentSubmissions:    recentSubs,
 	}
 	if user != nil {
-		resp.GiteaUsername = user.GiteaUsername
-		resp.GiteaAvatarURL = user.GiteaAvatarURL
+		resp.Username = user.Username
+		resp.GoogleAvatarURL = user.GoogleAvatarURL
 	}
 
 	cacheProfile(r.Context(), userUUID.String(), resp)
