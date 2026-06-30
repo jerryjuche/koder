@@ -44,6 +44,10 @@ func VerifyGoogleToken(idToken, expectedClientID string) (*store.GoogleUserInfo,
 		return nil, fmt.Errorf("Google token missing subject (sub)")
 	}
 
+	if info.Audience != expectedClientID {
+		return nil, fmt.Errorf("Google token audience mismatch: expected %s, got %s", expectedClientID, info.Audience)
+	}
+
 	if !info.EmailVerified {
 		return nil, fmt.Errorf("Google email not verified")
 	}
