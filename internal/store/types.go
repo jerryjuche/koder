@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -27,14 +28,29 @@ type User struct {
 	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
 }
 
+// FlexibleBool accepts both JSON boolean and string ("true"/"false").
+type FlexibleBool bool
+
+func (b *FlexibleBool) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "true", `"true"`:
+		*b = true
+	case "false", `"false"`:
+		*b = false
+	default:
+		return fmt.Errorf("FlexibleBool: cannot unmarshal %s", string(data))
+	}
+	return nil
+}
+
 // GoogleUserInfo represents the user info from Google's ID token.
 type GoogleUserInfo struct {
-	Sub           string `json:"sub"`
-	Email         string `json:"email"`
-	Name          string `json:"name"`
-	Picture       string `json:"picture"`
-	EmailVerified bool   `json:"email_verified"`
-	Audience      string `json:"aud"`
+	Sub           string       `json:"sub"`
+	Email         string       `json:"email"`
+	Name          string       `json:"name"`
+	Picture       string       `json:"picture"`
+	EmailVerified FlexibleBool `json:"email_verified"`
+	Audience      string       `json:"aud"`
 }
 
 // NewUser represents a user creation request.

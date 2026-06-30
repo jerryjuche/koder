@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { motion } from "motion/react";
 import { User, FileText, GitPullRequest } from "lucide-react";
 import { UserProfile, ActivityEntry } from "@/lib/types";
 import { fetchUserProfile, fetchUserActivity } from "@/lib/api";
@@ -12,9 +13,53 @@ import StatsOverview from "./components/StatsOverview";
 import MyContributions from "./components/MyContributions";
 import Achievements from "./components/Achievements";
 import ActivityFeed from "./components/ActivityFeed";
-
 import ContributionGraphSection from "./components/ContributionGraphSection";
 import { useNotifications } from "@/lib/useNotifications";
+
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return (
+    <div className={`overflow-hidden rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-white/[0.03] bg-[length:200%_100%] animate-shimmer ${className}`} />
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header skeleton */}
+        <div className="rounded-2xl bg-black/20 backdrop-blur-sm border border-white/5 p-8">
+          <div className="flex gap-6 items-start">
+            <SkeletonBlock className="w-24 h-24 rounded-full" />
+            <div className="flex-1 space-y-3">
+              <SkeletonBlock className="h-8 w-48" />
+              <SkeletonBlock className="h-4 w-32" />
+              <SkeletonBlock className="h-4 w-3/4" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <SkeletonBlock key={i} className="h-28" />
+          ))}
+        </div>
+
+        {/* Two column skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <SkeletonBlock className="h-64" />
+            <SkeletonBlock className="h-48" />
+          </div>
+          <div className="space-y-6">
+            <SkeletonBlock className="h-64" />
+            <SkeletonBlock className="h-48" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfileClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -23,11 +68,14 @@ export default function ProfileClient() {
   const [error, setError] = useState<string | null>(null);
   const { notifications } = useNotifications();
 
-  const hasContributionNotif = notifications.some(
-    (n) =>
-      !n.is_read &&
-      (n.type === "contribution_approved" ||
-        n.type === "contribution_rejected")
+  const hasContributionNotif = useMemo(
+    () => notifications.some(
+      (n) =>
+        !n.is_read &&
+        (n.type === "contribution_approved" ||
+          n.type === "contribution_rejected")
+    ),
+    [notifications]
   );
 
   useEffect(() => {
@@ -70,53 +118,27 @@ export default function ProfileClient() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
-          {/* Header skeleton */}
-          <div className="bg-card rounded-2xl border border-border p-8">
-            <div className="flex gap-6 items-start">
-              <div className="w-24 h-24 rounded-2xl bg-muted" />
-              <div className="flex-1 space-y-3">
-                <div className="h-8 w-48 bg-muted rounded-lg" />
-                <div className="h-4 w-32 bg-muted rounded-md" />
-                <div className="h-16 w-3/4 bg-muted rounded-lg" />
-              </div>
-            </div>
-          </div>
-          {/* Stats skeleton */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-28 bg-card rounded-xl border border-border" />
-            ))}
-          </div>
-          {/* Two column skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="h-64 bg-card rounded-xl border border-border" />
-              <div className="h-48 bg-card rounded-xl border border-border" />
-            </div>
-            <div className="h-96 bg-card rounded-xl border border-border" />
-          </div>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-destructive text-lg">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-4"
+        >
+          <p className="text-red-400 text-lg">
             {error || "Failed to load profile"}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/80 rounded-lg transition font-medium"
+            className="px-5 py-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition font-medium"
           >
             Try Again
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -124,20 +146,26 @@ export default function ProfileClient() {
   return (
     <TooltipProvider>
       <div className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <User size={28} className="text-primary" />
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Page title */}
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 mb-2"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <User size={22} className="text-amber-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="text-3xl font-bold tracking-tight text-white">
                 My Profile
               </h1>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-white/40 text-sm">
                 View your progress, rank, and problem-solving statistics
               </p>
             </div>
-          </div>
+          </motion.div>
 
           <ProfileHeader profile={profile} />
 
@@ -151,23 +179,20 @@ export default function ProfileClient() {
                 <GitPullRequest size={16} />
                 My Contributions
                 {hasContributionNotif && (
-                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse absolute -top-0.5 -right-1" />
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse absolute -top-0.5 -right-1" />
                 )}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-6">
               <StatsOverview profile={profile} />
-
               <ContributionGraphSection activity={activity} />
-
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <ProgressMetrics profile={profile} />
                 </div>
                 <Achievements profile={profile} />
               </div>
-
             </TabsContent>
 
             <TabsContent value="contributions" className="mt-6">
