@@ -171,8 +171,10 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		goVersion = defaultGoVersion
 	}
 
-	// Create an isolated temp directory
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("sandbox-%s-", randString(8)))
+	// Create an isolated temp directory.
+	// Use WORKDIR (/app) as base so we don't depend on /tmp — Railway
+	// containers may start with a read-only root or missing /tmp.
+	tmpDir, err := os.MkdirTemp(".", fmt.Sprintf("sandbox-%s-", randString(8)))
 	if err != nil {
 		return errorResponse("internal_error", fmt.Sprintf("failed to create temp directory: %v", err))
 	}
