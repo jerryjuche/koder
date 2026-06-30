@@ -3,7 +3,7 @@ FROM golang:1.23-alpine AS builder
 WORKDIR /build
 COPY go.mod ./
 # No go.sum — sandbox has zero external dependencies
-COPY main.go ratelimit.go ./
+COPY *.go ./
 RUN CGO_ENABLED=0 go build -o sandbox-runner .
 
 FROM golang:1.23-alpine
