@@ -5,7 +5,7 @@
 **Koder** is a zero-cost, production-grade automated code-grading platform for Go programming curricula. It runs on Oracle Cloud's free ARM64 tier and uses Gemini API for AI-powered test enrichment.
 
 - **Stack:** Go 1.26 backend (chi router, pgx/v5 for PostgreSQL) + Next.js 14 frontend (Vercel free tier)
-- **Infrastructure:** Single monolithic Go binary on Oracle Ampere A1 (ARM64), Supabase Postgres, Vercel frontend
+- **Infrastructure:** Go monolith on Oracle Ampere A1 (ARM64) + standalone Go sandbox on Railway (ARM64) + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, 50 Gemini API calls/day, 2 concurrent executions max)
 
 ---
@@ -36,7 +36,8 @@ koder/
 │   │   ├── admin.go                # Admin operations
 │   │   └── types.go                # Shared types
 │   ├── executor/                   # Code execution engine
-│   │   ├── executor.go             # Main execution orchestrator
+│   │   ├── executor.go             # Main execution orchestrator (Docker + HTTP sandbox)
+│   │   ├── sandbox_client.go       # HTTP client for remote sandbox service
 │   │   ├── sandbox.go              # Docker spawn logic
 │   │   ├── templates.go            # Go test file generation
 │   │   └── types.go                # Test & result structs
@@ -66,6 +67,14 @@ koder/
 ├── migrations/                    # SQL schema (Supabase migrations)
 ├── scripts/                       # Utility scripts (seed data, etc.)
 ├── go.mod / go.sum               # Go dependencies
+├── sandbox/                      # Standalone code execution service (Railway)
+│   ├── main.go                   # HTTP server: /health, /version, /execute
+│   ├── ratelimit.go              # Per-IP sliding window rate limiter
+│   ├── secure.go                 # Pre-exec malicious code validation
+│   ├── secure_unix.go            # rlimit, process group isolation
+│   ├── secure_other.go           # Noop for non-Unix
+│   ├── Dockerfile                # Two-stage arm64 build
+│   └── go.mod                    # Standalone module, zero deps
 └── CLAUDE.md                     # This file
 ```
 
@@ -78,6 +87,7 @@ koder/
 | **Monolithic Go Backend** | Single binary, single process | 4 ARM cores, 24GB RAM; microservices overhead too expensive |
 | **Raw pgx/v5 (not GORM)** | Handwritten SQL | Full control over queries, predictable performance, smaller footprint |
 | **Docker Subprocess** | `os/exec` + `docker run --network=none` | gVisor not available on Oracle free tier; WASM not ready for Go |
+| **Sandbox HTTP Service** | Standalone Go binary on Railway | Default execution path avoids Docker-in-Docker nesting on Oracle OCI; cuts cold start to ~800ms; falls back to local Docker when `SANDBOX_URL` is empty |
 | **Structured Outputs (Gemini)** | `ResponseSchema` API | Guaranteed response shape; no markdown parsing brittleness |
 | **Go `text/template` for Tests** | Template compilation | Type-safe conditionals (primitive vs `reflect.DeepEqual`); injection-proof |
 | **Synchronous Execution** | Buffered channel semaphore (max 2) | Simplifies resource management; avoids queue/Redis complexity |
@@ -100,12 +110,13 @@ The system has **three sequential pipelines**:
 - **Rate limit:** 2 req/min with enforced sleep between calls
 - Respects 50 calls/day quota
 
-### 3. **Execute** (`executor.go` → Docker)
+### 3. **Execute** (`executor.go` → Docker / Sandbox)
 - Student submits code
-- Executor spawns Docker container with `golang:1.23-alpine` + generated test file
-- Runs `go test` inside container
+- Executor renders `main_test.go` from template + writes `solution.go`
+- **Primary path:** Sends code to remote HTTP sandbox (`SANDBOX_URL`) — runs `go test` in Railway-hosted container
+- **Fallback path:** Spawns local Docker container with `golang:1.23-alpine` + generated test file
 - Returns pass/fail + coverage metrics
-- **Concurrency limit:** 2 concurrent executions (buffered channel semaphore)
+- **Concurrency limit:** 6 concurrent executions (buffered channel semaphore, configurable)
 
 ---
 
@@ -171,6 +182,7 @@ DATABASE_URL=postgres://...        # Supabase connection string
 GEMINI_API_KEY=...                 # Google AI Studio key
 JWT_SECRET=...                     # For token signing
 ADMIN_PASSWORD=...                 # Admin panel access
+SANDBOX_URL=...                    # Remote sandbox URL (optional; empty = local Docker)
 
 # Frontend (Next.js)
 NEXT_PUBLIC_API_URL=...            # Backend domain (used by fetch)
@@ -220,6 +232,15 @@ See `.env.example` for full template.
 - Resource limits: `--memory=64m`, `--network=none`
 - Test file generated at runtime from Go template
 - Output captured via `docker logs` and parsed for pass/fail counts
+
+### Remote Sandbox Service (`sandbox/`)
+- Standalone Go binary, zero external deps, deployed on Railway
+- `POST /execute` receives `{code, test_code, timeout_sec}`, writes temp `main_test.go`, runs `go test -v`
+- Pre-exec validation blocks dangerous patterns (`os/exec`, `syscall`, `unsafe`, `net`, filesystem writes)
+- `setrlimit` sandboxing: NPROC=6, NOFILE=1024, FSIZE=64MB; `Setpgid` for process group kill
+- Per-IP sliding window rate limiter: 10 req/min, HTTP 429 with `Retry-After`
+- Health (`GET /health`) and version (`GET /version`) endpoints bypass rate limiter
+- Backend branches on `SANDBOX_URL` — sends `solution.go` + `main_test.go` via HTTP, falls back to local Docker when unset
 
 ### Test Generation (`executor/templates.go`)
 - Uses Go's `text/template` package
@@ -280,6 +301,20 @@ See `.env.example` for full template.
 - **Executor hardening:** Improved test generation sandbox debugging (a01d5a8)
 - **Complexity refactoring:** Reduced cyclomatic complexity in code runs (281a427)
 - **Leaderboard fixes:** Real-time ranking updates (dc2277d)
+- **Remote Sandbox Service (Railway):**
+  - Created `sandbox/` standalone Go module with zero external deps
+  - HTTP endpoints: `GET /health`, `GET /version` (git commit embedded), `POST /execute` (receives code + test_code, runs `go test -v`)
+  - Pre-exec malicious code validation (`os/exec`, `syscall`, `unsafe`, `net`, filesystem writes blocked)
+  - `setrlimit` sandboxing: NPROC=6, NOFILE=1024, FSIZE=64MB; `Setpgid` process group isolation
+  - Per-IP sliding window rate limiter: 10 req/min (health/version bypass)
+  - Two-stage ARM64 Dockerfile with `GIT_COMMIT` build arg
+  - Deployed and verified on Railway: passing/failing tests, malicious code rejection all working
+- **Backend Sandbox Integration:**
+  - Created `internal/executor/sandbox_client.go` — HTTP client with 2-retry exponential backoff
+  - `executor.go` branches on `SANDBOX_URL`: sends `solution.go` + `main_test.go` to remote sandbox, falls back to local Docker when unset
+  - Warmup skipped when `SANDBOX_URL` is set (no Docker needed)
+  - Config: `SANDBOX_URL` env var added, config_test defaults updated
+- **Gitea API Fix:** Added `User-Agent: Koder/1.0` and `Accept: application/json` headers + 15s timeout to fix Cloudflare 403 blocking Go's default HTTP client
 
 ---
 
