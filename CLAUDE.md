@@ -282,42 +282,26 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
-- **Concurrency & Rate Limiting:**
-  - Increased default `EXECUTOR_MAX_CONCURRENCY` from 2 to 6 (env-configurable)
-  - Default executor timeout changed to 30s
-  - Added per-user rate limiter (5 submissions per 45s sliding window; admins exempt)
-  - Warmup now pre-compiles `go build std` instead of just `go env`, reducing cold start
-  - Added `--read-only` and `-gcflags=-l` flags to Docker containers for faster compilation
-  - Queue depth now logged on semaphore acquire for observability
-  - Frontend shows countdown cooldown on buttons when rate limited
-- **Problem Statements & Workspace Polish:**
-  - Database: Updated all core problem statements (including `edit-distance`) with professional, rich markdown descriptions, explicit examples, edge case considerations, and realistic solve-time estimates.
-  - Frontend: Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, enhanced typography with `@tailwindcss/typography`, dynamic hover states, and glowing accents for descriptions and test examples.
+- **Profile page redesign:**
+  - All 6 components overhauled: glassmorphism (`backdrop-blur-xl`, `bg-black/40`), animated gradient backgrounds
+  - SVG XP ring with `stroke-dashoffset` animation around level badge
+  - `AnimatedNumber` counters using `motion/react` `useMotionValue` + `animate` with staggered entrance
+  - Timeline activity feed with vertical gradient line + animated dots
+  - Shimmer skeleton with `@keyframes shimmer` replacing pulse skeleton
+  - `pulse-slow` + `shimmer` animations added to `globals.css`
+  - Hover lift with `whileHover`, per-stat gradient overlays
+  - Premium achievement dialog with `backdrop-blur-xl`
+- **Legal pages:** `/privacy` and `/terms` routes in `(legal)` layout group; auth footer links
+- **Google token fix:** Added `FlexibleBool` custom JSON unmarshaler for `email_verified` (Google's `tokeninfo` endpoint returns string `"true"` not bool `true`); added `aud` claim validation
 - **Google Sign-In migration (replaced Gitea):**
-  - Backend: Added `google_id`/`google_email`/`google_avatar_url`/`username`/`email` columns (migration 012); new store methods (`GetUserByGoogleID`, `CreateUserFromGoogle`, `LinkGoogleToUser`, `GetUserByLogin`, `GetUserByEmail`, `UpdateUserUsername`, `UpdateUserGoogleAvatar`); removed all Gitea code
-  - Auth: `VerifyGoogleToken` via `oauth2.googleapis.com/tokeninfo` endpoint (zero extra deps); JWT includes `Username` + `Onboarding` claims; `Login` accepts username/email/student_id
-  - API: `POST /auth/google` (Google Sign-In), `POST /auth/complete-google` (username onboarding), `GET /auth/check-username` (availability check); removed all Gitea PAT/handlers
-  - Frontend: Google Identity Services (GIS) button on login page; `/onboarding` page for new Google users (debounced username availability check); all surfaces use `username`/`google_avatar_url` instead of `gitea_username`/`gitea_avatar_url`
-  - Settings page: Removed Gitea linking section; shows read-only username field
-- **Dashboard UI updates:** est time, description, success rate display (c008449)
-- **Executor hardening:** Improved test generation sandbox debugging (a01d5a8)
-- **Complexity refactoring:** Reduced cyclomatic complexity in code runs (281a427)
-- **Leaderboard fixes:** Real-time ranking updates (dc2277d)
-- **Remote Sandbox Service (Railway):**
-  - Created `sandbox/` standalone Go module with zero external deps
-  - HTTP endpoints: `GET /health`, `GET /version` (git commit embedded), `POST /execute` (receives code + test_code, runs `go test -v`)
-  - Pre-exec malicious code validation (`os/exec`, `syscall`, `unsafe`, `net`, filesystem writes blocked)
-  - `setrlimit` sandboxing: NPROC=6, NOFILE=1024, FSIZE=64MB; `Setpgid` process group isolation
-  - Per-IP sliding window rate limiter: 10 req/min (health/version bypass)
-  - Two-stage ARM64 Dockerfile with `GIT_COMMIT` build arg
-  - Deployed and verified on Railway: passing/failing tests, malicious code rejection all working
-- **Backend Sandbox Integration:**
-  - Created `internal/executor/sandbox_client.go` — HTTP client with 2-retry exponential backoff
-  - `executor.go` branches on `SANDBOX_URL`: sends `solution.go` + `main_test.go` to remote sandbox, falls back to local Docker when unset
-  - Warmup skipped when `SANDBOX_URL` is set (no Docker needed)
-  - Config: `SANDBOX_URL` env var added, config_test defaults updated
-- **Gitea API Fix (archived):** Added `User-Agent: Koder/1.0` and `Accept: application/json` headers + 15s timeout to fix Cloudflare 403 blocking Go's default HTTP client
-- **Frontend fixes:** Auto-publish problems after enrichment + "Publish All Drafts" button in admin; shared achievements utility (`lib/achievements.ts`) with improved dialog design; responsive module proficiency gauges with module-specific colors and empty state
+  - Backend: Migration 012 with `google_id`/`google_email`/`google_avatar_url`/`username`/`email` columns; all Google store methods; removed all Gitea code
+  - Auth: `VerifyGoogleToken` via `oauth2.googleapis.com/tokeninfo`; JWT includes `Username` + `Onboarding` claims; `Login` accepts username/email/student_id
+  - API: `POST /auth/google`, `POST /auth/complete-google`, `GET /auth/check-username`
+  - Frontend: GIS button on login; `/onboarding` page with debounced username check; all surfaces use `username`/`google_avatar_url`
+  - Settings page: Removed Gitea section; username read-only
+- **Problem auto-publish:** Enrichment now sets `visible=true`; `POST /admin/problems/publish-all` endpoint + button
+- **Shared achievements:** `lib/achievements.ts` module imported by both Achievements.tsx and ActivityFeed.tsx
+- **Module proficiency gauges:** ResizeObserver responsive sizing, 16-color module palette, empty state
 
 ---
 
