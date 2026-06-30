@@ -150,6 +150,7 @@ export default function LeaderboardClient() {
     const q = search.trim().toLowerCase();
     return all.filter(
       (e) =>
+        e.user.username?.toLowerCase().includes(q) ||
         e.user.name.toLowerCase().includes(q) ||
         e.user.studentId.toLowerCase().includes(q)
     );
@@ -285,26 +286,34 @@ export default function LeaderboardClient() {
                     </Avatar>
                   )}
 
-                  <div className="text-center mt-3">
-                    <div
-                      className={cn(
-                        "font-bold truncate max-w-[10rem]",
-                        isFirst
-                          ? "text-lg text-foreground"
-                          : "text-base text-muted-foreground"
-                      )}
-                    >
+                  {/* Username (student ID) primary, name on hover */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-center mt-3 cursor-default">
+                        <div
+                          className={cn(
+                            "font-bold truncate max-w-[10rem] font-mono",
+                            isFirst
+                              ? "text-lg text-foreground"
+                              : "text-base text-muted-foreground"
+                          )}
+                        >
+                          {entry.user.username || entry.user.name}
+                        </div>
+                        <div className="flex items-center justify-center gap-1 text-primary font-bold mt-1.5 text-sm">
+                          <Zap size={12} />
+                          {(entry.user.xp || 0).toLocaleString()} XP
+                        </div>
+                        <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mt-1">
+                          <CheckCircle2 size={11} className="text-amber-400" />
+                          {entry.user.solvedCount ?? 0} solved
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
                       {entry.user.name}
-                    </div>
-                    <div className="flex items-center justify-center gap-1 text-primary font-bold mt-1.5 text-sm">
-                      <Zap size={12} />
-                      {(entry.user.xp || 0).toLocaleString()} XP
-                    </div>
-                    <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mt-1">
-                      <CheckCircle2 size={11} className="text-emerald-400" />
-                      {entry.user.solvedCount ?? 0} solved
-                    </div>
-                  </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               );
             })}
@@ -342,17 +351,18 @@ export default function LeaderboardClient() {
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">
                   Your Ranking
                 </div>
-                <div className="text-base font-bold text-foreground">
-                  {user.name}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {user.username ? (
-                    <span className="text-emerald-400">
-                      @{user.username}
-                    </span>
-                  ) : (
-                    <span className="font-mono">{user.studentId}</span>
-                  )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-base font-bold text-foreground font-mono cursor-default">
+                      {user.username || user.studentId}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
+                    {user.name}
+                  </TooltipContent>
+                </Tooltip>
+                <div className="text-xs text-muted-foreground font-mono">
+                  {user.studentId}
                 </div>
               </div>
             </div>
@@ -398,7 +408,7 @@ export default function LeaderboardClient() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or ID..."
+                placeholder="Search by username or name..."
                 className="pl-9 h-9 text-sm"
               />
             </div>
@@ -430,7 +440,7 @@ export default function LeaderboardClient() {
                   <th className="px-2 py-3 w-8 text-center">
                     <span className="sr-only">Trend</span>
                   </th>
-                  <th className="px-4 py-3">Student</th>
+                  <th className="px-4 py-3">Username</th>
                   <th className="px-5 py-3 text-right">XP</th>
                   <th className="px-5 py-3 text-center">Solved</th>
                   <th className="px-5 py-3 text-right">Best Time</th>
@@ -498,7 +508,7 @@ export default function LeaderboardClient() {
                           ) : entry.rankDelta > 0 ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="flex items-center justify-center text-emerald-400 gap-0.5 cursor-default">
+                                <div className="flex items-center justify-center text-amber-400 gap-0.5 cursor-default">
                                   <TrendingUp size={12} />
                                   <span className="text-[10px] font-bold">
                                     {entry.rankDelta}
@@ -528,7 +538,7 @@ export default function LeaderboardClient() {
                           )}
                         </td>
 
-                        {/* Student */}
+                        {/* Student - Username primary, name on hover */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             {rowUser?.google_avatar_url &&
@@ -561,12 +571,16 @@ export default function LeaderboardClient() {
                             )}
                             <div>
                               <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
-                                {rowUser?.name || "Unknown"}
-                                {rowUser?.username && (
-                                  <span className="text-[10px] text-emerald-400 font-mono">
-                                    @{rowUser.username}
-                                  </span>
-                                )}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="font-mono cursor-default">
+                                      {rowUser?.username || rowUser?.name || "Unknown"}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs bg-black/90 border border-white/10 text-white/80">
+                                    {rowUser?.name || "Unknown"}
+                                  </TooltipContent>
+                                </Tooltip>
                                 {isMe && (
                                   <Badge
                                     variant="outline"
@@ -595,7 +609,7 @@ export default function LeaderboardClient() {
                               size={14}
                               className={
                                 (rowUser?.solvedCount ?? 0) > 0
-                                  ? "text-emerald-400"
+                                  ? "text-amber-400"
                                   : "text-muted-foreground/30"
                               }
                             />
@@ -607,7 +621,7 @@ export default function LeaderboardClient() {
 
                         {/* Best Time */}
                         <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5 font-mono text-sm text-cyan-400">
+                          <div className="flex items-center justify-end gap-1.5 font-mono text-sm text-amber-400">
                             <Clock size={12} className="opacity-60" />
                             {formatTime(entry.bestTimeMs)}
                           </div>

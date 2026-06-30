@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Code2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { completeGoogleOnboarding, checkUsername, fetchUser } from '@/lib/api';
+import { completeOnboarding, checkUsername, fetchUser } from '@/lib/api';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await completeGoogleOnboarding(username);
+      const res = await completeOnboarding(username);
       if (res.success && res.data) {
         localStorage.setItem('token', res.data.token);
         router.push('/');
@@ -78,9 +78,11 @@ export default function OnboardingPage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-brand-offwhite mb-2">Welcome, {userName || 'Coder'}!</h1>
+          <h1 className="text-2xl font-bold text-brand-offwhite mb-2">
+            {userName ? `Welcome, ${userName}!` : 'Complete Your Account'}
+          </h1>
           <p className="text-brand-offwhite-muted text-sm">
-            Choose a unique username to complete your account setup.
+            Choose a unique username to complete your account setup. This will be your student identifier across the platform.
           </p>
         </div>
 
@@ -108,7 +110,7 @@ export default function OnboardingPage() {
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {checking && <Loader2 size={18} className="animate-spin text-brand-offwhite-muted" />}
                 {!checking && available === true && (
-                  <CheckCircle2 size={18} className="text-emerald-400" />
+                  <CheckCircle2 size={18} className="text-amber-400" />
                 )}
                 {!checking && available === false && (
                   <XCircle size={18} className="text-red-400" />
@@ -116,7 +118,7 @@ export default function OnboardingPage() {
               </div>
             </div>
             {username.length >= 3 && !checking && available === true && (
-              <p className="text-xs text-emerald-400 mt-1">Username available</p>
+              <p className="text-xs text-amber-400 mt-1">Username available</p>
             )}
             {username.length >= 3 && !checking && available === false && (
               <p className="text-xs text-red-400 mt-1">Username already taken</p>
@@ -138,6 +140,10 @@ export default function OnboardingPage() {
             )}
           </button>
         </form>
+
+        <p className="text-center text-xs text-brand-offwhite-muted/50 mt-6">
+          Your username will also serve as your student ID and cannot be changed later.
+        </p>
       </div>
     </div>
   );

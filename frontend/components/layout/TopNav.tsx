@@ -235,15 +235,13 @@ export default function TopNav() {
                           .join("")}
                       </div>
                     )}
-                    <div className="hidden sm:flex items-center gap-2">
+                      <div className="hidden sm:flex items-center gap-2">
                       <div className="text-left">
                         <div className="text-sm font-medium text-foreground leading-tight">
                           {user.name}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {user.username || (
-                            <span className="font-mono">{user.studentId}</span>
-                          )}
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {user.username || user.studentId}
                         </div>
                       </div>
                       <ChevronDown size={14} className="text-muted-foreground" />
@@ -279,13 +277,9 @@ export default function TopNav() {
                       <div>
                         <p className="text-sm font-medium text-foreground">{user.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {user.username ? (
-                            <span className="text-emerald-400">
-                              @{user.username}
-                            </span>
-                          ) : (
-                            <span className="font-mono">{user.studentId}</span>
-                          )}
+                          <span className="text-amber-400 font-mono text-xs">
+                            {user.username || user.studentId}
+                          </span>
                         </p>
                       </div>
                     </div>

@@ -612,6 +612,32 @@ func (s *PostgresStore) UpdateUserUsername(ctx context.Context, id uuid.UUID, us
 	return nil
 }
 
+// UpdateUserStudentID updates the student_id for a user.
+func (s *PostgresStore) UpdateUserStudentID(ctx context.Context, id uuid.UUID, studentID string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if studentID == "" {
+		return fmt.Errorf("studentID cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET student_id = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, studentID, id)
+	if err != nil {
+		return fmt.Errorf("failed to update student_id: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 // UpdateUserGoogleAvatar updates the Google avatar URL for a user.
 func (s *PostgresStore) UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error {
 	if id == uuid.Nil {

@@ -25,7 +25,6 @@ func NewAuthHandler(store store.Store, cfg *config.Config) *AuthHandler {
 }
 
 type registerRequest struct {
-	Username string  `json:"username"`
 	Name     string  `json:"name"`
 	Password string  `json:"password"`
 	Email    *string `json:"email,omitempty"`
@@ -65,19 +64,22 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username == "" || req.Name == "" || req.Password == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username, name, and password are required", nil)
+	if req.Name == "" || req.Password == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "name and password are required", nil)
 		return
 	}
 
+	// Generate temporary username and student_id
+	tempUsername := "u_" + uuid.New().String()[:8]
+
 	role := "student"
-	if h.config.AdminEmail != "" && req.Username == h.config.AdminEmail && req.Password == h.config.AdminPassword {
+	if h.config.AdminEmail != "" && req.Email != nil && *req.Email == h.config.AdminEmail && req.Password == h.config.AdminPassword {
 		role = "admin"
 	}
 
 	newUser := &store.NewUser{
-		StudentID: req.Username,
-		Username:  req.Username,
+		StudentID: tempUsername,
+		Username:  tempUsername,
 		Name:      req.Name,
 		Email:     req.Email,
 		Password:  req.Password,
@@ -96,13 +98,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	// Issue JWT with onboarding flag — user must set their username
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), true)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 		return
 	}
 
-	RespondCreated(w, authResponse{Token: token})
+	RespondCreated(w, authResponse{Token: token, Onboarding: true})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -245,9 +248,9 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, authResponse{Token: token, Onboarding: true})
 }
 
-// CompleteGoogle completes the Google onboarding flow by setting a username.
-// POST /auth/complete-google
-func (h *AuthHandler) CompleteGoogle(w http.ResponseWriter, r *http.Request) {
+// CompleteOnboarding completes the onboarding flow by setting a username and student_id.
+// POST /auth/complete-google (legacy) / POST /auth/complete-onboarding
+func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
 	if claims == nil {
 		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
@@ -290,8 +293,13 @@ func (h *AuthHandler) CompleteGoogle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Update both username and student_id to the chosen value
 	if err := h.store.UpdateUserUsername(r.Context(), userUUID, req.Username); err != nil {
 		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", err.Error())
+		return
+	}
+	if err := h.store.UpdateUserStudentID(r.Context(), userUUID, req.Username); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set student ID", err.Error())
 		return
 	}
 
@@ -301,6 +309,87 @@ func (h *AuthHandler) CompleteGoogle(w http.ResponseWriter, r *http.Request) {
 	updatedUser, err := h.store.GetUserByID(r.Context(), userUUID)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "USER_NOT_FOUND", "User not found after update", nil)
+		return
+	}
+
+	userID, _ := uuidStringFromPGType(updatedUser.ID)
+	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		return
+	}
+
+	RespondSuccess(w, authResponse{Token: token})
+}
+
+// LinkGoogle links a Google account to the currently authenticated user.
+// POST /auth/link-google
+func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	var req googleAuthRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		return
+	}
+
+	if req.IDToken == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "id_token is required", nil)
+		return
+	}
+
+	info, err := auth.VerifyGoogleToken(req.IDToken, h.config.GoogleClientID)
+	if err != nil {
+		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", err.Error())
+		return
+	}
+
+	// Check if Google ID already linked to another user
+	existingGoogleUser, err := h.store.GetUserByGoogleID(r.Context(), info.Sub)
+	if err == nil && existingGoogleUser != nil {
+		existingID, _ := uuidStringFromPGType(existingGoogleUser.ID)
+		if existingID != claims.UserID {
+			RespondError(w, http.StatusConflict, "GOOGLE_ALREADY_LINKED", "This Google account is already linked to another user", nil)
+			return
+		}
+		// Already linked to this user — just update avatar
+		userUUID := uuid.MustParse(claims.UserID)
+		if info.Picture != "" {
+			_ = h.store.UpdateUserGoogleAvatar(r.Context(), userUUID, info.Picture)
+		}
+		RespondSuccess(w, authResponse{Token: ""})
+		return
+	}
+
+	// Check if Google email already used by another user
+	existingEmailUser, err := h.store.GetUserByEmail(r.Context(), info.Email)
+	if err == nil && existingEmailUser != nil {
+		existingID, _ := uuidStringFromPGType(existingEmailUser.ID)
+		if existingID != claims.UserID {
+			RespondError(w, http.StatusConflict, "EMAIL_ALREADY_USED", "This Google email is already associated with another account", nil)
+			return
+		}
+	}
+
+	// Link Google to the authenticated user
+	userUUID := uuid.MustParse(claims.UserID)
+	if err := h.store.LinkGoogleToUser(r.Context(), userUUID, info); err != nil {
+		RespondError(w, http.StatusInternalServerError, "LINK_FAILED", "Failed to link Google account", err.Error())
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	// Fetch updated user for fresh JWT
+	updatedUser, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "USER_NOT_FOUND", "User not found after linking", nil)
 		return
 	}
 

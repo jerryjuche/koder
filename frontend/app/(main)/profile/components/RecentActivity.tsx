@@ -25,9 +25,9 @@ const statusConfig: Record<string, { icon: React.ElementType; label: string; col
   passed: {
     icon: CheckCircle2,
     label: "Passed",
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10",
-    dotColor: "bg-emerald-400",
+    color: "text-amber-400",
+    bg: "bg-amber-400/10",
+    dotColor: "bg-amber-400",
   },
   failed: {
     icon: XCircle,
@@ -155,7 +155,7 @@ export default function RecentActivity({ profile }: RecentActivityProps) {
                             className={cn(
                               "shrink-0",
                               submission.status === "passed" &&
-                                "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                                "text-amber-400 border-amber-400/30 bg-amber-400/5"
                             )}
                           >
                             {config.label}

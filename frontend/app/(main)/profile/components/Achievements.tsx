@@ -43,8 +43,8 @@ export default function Achievements({ profile }: AchievementsProps) {
         <Card className="p-6 bg-black/20 backdrop-blur-sm border border-white/5">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                <Award size={18} className="text-purple-400" />
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <Award size={18} className="text-amber-400" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">Achievements</h3>
@@ -92,7 +92,7 @@ export default function Achievements({ profile }: AchievementsProps) {
                       <p className="font-semibold text-xs mb-0.5">
                         {achievement.title}
                         {achievement.unlocked && (
-                          <CheckCircle2 size={10} className="inline ml-1 text-emerald-400" />
+                          <CheckCircle2 size={10} className="inline ml-1 text-amber-400" />
                         )}
                       </p>
                       <p className="text-[10px] text-white/50">
@@ -141,7 +141,7 @@ export default function Achievements({ profile }: AchievementsProps) {
               {selected?.unlocked ? (
                 <Badge
                   variant="outline"
-                  className="bg-emerald-400/10 text-emerald-400 border-emerald-400/20 gap-1"
+                  className="bg-amber-400/10 text-amber-400 border-amber-400/20 gap-1"
                 >
                   <CheckCircle2 size={12} />
                   Unlocked

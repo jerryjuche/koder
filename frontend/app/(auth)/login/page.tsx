@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Code2, ArrowRight } from 'lucide-react';
+import { Code2, ArrowRight, Loader2 } from 'lucide-react';
 import { login, googleLogin } from '@/lib/api';
 
 declare global {
@@ -32,31 +32,48 @@ export default function LoginPage() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [gisLoaded, setGisLoaded] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const gisInitialized = useRef(false);
 
   useEffect(() => {
-    // Load Google Identity Services script
+    if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      if (window.google && googleButtonRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-          callback: handleGoogleResponse,
-          cancel_on_tap_outside: true,
-        });
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          text: 'signin_with',
-          width: '100%',
-        });
-      }
+      setGisLoaded(true);
     };
     document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (gisLoaded && window.google && googleButtonRef.current && !gisInitialized.current) {
+      gisInitialized.current = true;
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+        callback: handleGoogleResponse,
+        cancel_on_tap_outside: true,
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        width: '100%',
+      });
+    }
+  }, [gisLoaded]);
 
   const handleGoogleResponse = async (response: { credential: string }) => {
     setLoading(true);
@@ -158,19 +175,46 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-brand-charcoal-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-brand-charcoal-card px-2 text-brand-offwhite-muted">or</span>
-        </div>
-      </div>
+      {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+        <>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-brand-charcoal-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-brand-charcoal-card px-2 text-brand-offwhite-muted">or</span>
+            </div>
+          </div>
 
-      <div ref={googleButtonRef} className="flex justify-center w-full [&>div]:w-full" />
+          <div className="w-full min-h-[45px]">
+            {gisLoaded ? (
+              <div ref={googleButtonRef} className="flex justify-center w-full [&>div]:w-full" />
+            ) : (
+              <div className="w-full h-[45px] bg-brand-charcoal-base/50 border border-brand-charcoal-border rounded-lg flex items-center justify-center gap-2">
+                <Loader2 size={14} className="animate-spin text-brand-offwhite-muted" />
+                <span className="text-[11px] text-brand-offwhite-muted/50">Loading Google Sign-In...</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <p className="text-center text-sm text-brand-offwhite-muted mt-8">
-        Don&apos;t have an account? <Link href="/register" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">Apply for access</Link>
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">
+          Apply for access
+        </Link>
+      </p>
+
+      <p className="mt-6 pt-4 border-t border-brand-charcoal-border text-center text-xs text-brand-offwhite-muted/60 leading-relaxed">
+        By signing in, you agree to our{' '}
+        <Link href="/terms" className="text-brand-muted-gold hover:text-brand-muted-gold-dark transition-colors font-medium">
+          Terms of Service
+        </Link>
+        {' '}and{' '}
+        <Link href="/privacy" className="text-brand-muted-gold hover:text-brand-muted-gold-dark transition-colors font-medium">
+          Privacy Policy
+        </Link>
       </p>
     </div>
   );

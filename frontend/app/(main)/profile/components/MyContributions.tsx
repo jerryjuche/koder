@@ -177,7 +177,7 @@ export default function MyContributions() {
                       className={cn(
                         "gap-1 shrink-0",
                         prob.status === "approved" &&
-                          "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                          "text-amber-400 border-amber-400/30 bg-amber-400/5"
                       )}
                     >
                       {statusIcon(prob.status)}
@@ -232,7 +232,7 @@ export default function MyContributions() {
                       className={cn(
                         "gap-1",
                         selected.status === "approved" &&
-                          "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                          "text-amber-400 border-amber-400/30 bg-amber-400/5"
                       )}
                     >
                       {statusIcon(selected.status)}
@@ -323,7 +323,7 @@ export default function MyContributions() {
                           <td className="px-4 py-3 font-mono text-foreground">
                             {JSON.stringify(tc.input)}
                           </td>
-                          <td className="px-4 py-3 font-mono text-emerald-400">
+                          <td className="px-4 py-3 font-mono text-amber-400">
                             {tc.expected}
                           </td>
                           <td className="px-4 py-3 text-center">
@@ -334,7 +334,7 @@ export default function MyContributions() {
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] text-emerald-400 border-emerald-400/30"
+                                className="text-[10px] text-amber-400 border-amber-400/30"
                               >
                                 No
                               </Badge>

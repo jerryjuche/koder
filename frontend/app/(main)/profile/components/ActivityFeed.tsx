@@ -118,12 +118,12 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
                         "relative z-10 w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 mt-0.5",
                         "border-2 transition-all duration-200",
                         day.solved > 0
-                          ? "border-emerald-500/50 bg-emerald-500/20 group-hover:bg-emerald-500/30 group-hover:shadow-lg group-hover:shadow-emerald-500/10"
+                          ? "border-amber-500/50 bg-amber-500/20 group-hover:bg-amber-500/30 group-hover:shadow-lg group-hover:shadow-amber-500/10"
                           : "border-white/10 bg-white/5"
                       )}>
                         <div className={cn(
                           "w-2 h-2 rounded-full",
-                          day.solved > 0 ? "bg-emerald-400" : "bg-white/20"
+                          day.solved > 0 ? "bg-amber-400" : "bg-white/20"
                         )} />
                       </div>
 
@@ -139,7 +139,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
                           {day.solved > 0 && (
-                            <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
+                            <span className="text-xs font-medium text-amber-400 flex items-center gap-1">
                               <CheckCircle2 size={11} />
                               {day.solved} solved
                             </span>

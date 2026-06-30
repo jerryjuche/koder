@@ -80,8 +80,8 @@ export async function login(
 
 export async function register(
   data: any,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/register", {
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -99,9 +99,24 @@ export async function googleLogin(
 export async function completeGoogleOnboarding(
   username: string,
 ): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/complete-google", {
+  return completeOnboarding(username);
+}
+
+export async function completeOnboarding(
+  username: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/complete-onboarding", {
     method: "POST",
     body: JSON.stringify({ username }),
+  });
+}
+
+export async function linkGoogle(
+  idToken: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/link-google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
   });
 }
 

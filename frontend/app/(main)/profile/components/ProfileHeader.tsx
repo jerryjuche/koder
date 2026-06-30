@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { UserProfile } from "@/lib/types";
 import { getUserColor, cn } from "@/lib/utils";
 import Image from "next/image";
@@ -10,13 +10,11 @@ import {
   Trophy,
   Settings,
   Share2,
-  Copy,
   Check,
   Calendar,
   Target,
   Flame,
   Zap,
-  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,15 +23,14 @@ interface ProfileHeaderProps {
   profile: UserProfile;
 }
 
-function AnimatedStat({ value, label, icon: Icon, color }: {
+function MiniStat({ value, label, icon: Icon }: {
   value: number | string;
   label: string;
   icon: React.ElementType;
-  color: string;
 }) {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5">
-      <Icon size={13} className={cn("shrink-0", color)} />
+      <Icon size={13} className="shrink-0 text-amber-400/70" />
       <span className="text-sm font-bold text-white tabular-nums">{value}</span>
       <span className="text-[10px] text-white/50 uppercase tracking-wider hidden sm:inline">{label}</span>
     </div>
@@ -84,19 +81,15 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className="relative rounded-2xl overflow-hidden"
     >
-      {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-amber-600/5 animate-pulse-slow" />
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl" />
       <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl" />
 
-      {/* Glass card */}
       <div className="relative backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl shadow-2xl">
-        {/* Gold accent line */}
         <div className="h-[3px] w-full bg-gradient-to-r from-amber-600/40 via-amber-400 to-amber-600/40" />
 
         <div className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-            {/* Avatar with animated glow */}
             <div className="relative flex-shrink-0 group">
               <div className="absolute -inset-2 bg-gradient-to-br from-amber-400/30 via-amber-500/20 to-transparent rounded-full blur-md animate-pulse-slow" />
               <div className="absolute -inset-1 bg-gradient-to-br from-amber-400/20 to-transparent rounded-full blur-sm" />
@@ -127,7 +120,6 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
               )}
             </div>
 
-            {/* Content */}
             <div className="flex-1 min-w-0 w-full">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -136,16 +128,13 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                       {profile.name}
                     </h2>
                     {profile.username && (
-                      <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono shrink-0">
-                        @{profile.username}
+                      <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 px-2.5 py-0.5 rounded-full text-xs font-mono shrink-0">
+                        {profile.username}
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-1.5 mt-1.5 text-white/50 text-sm">
-                    <Star size={13} />
-                    <span>{profile.student_id}</span>
-                    <span className="mx-1.5">&middot;</span>
                     <Calendar size={13} />
                     <span>Joined {joinDate}</span>
                   </div>
@@ -157,7 +146,6 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                   )}
                 </div>
 
-                {/* Level + XP ring */}
                 <div className="flex-shrink-0 self-start flex items-center gap-3">
                   <div className="relative w-16 h-16 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
@@ -183,7 +171,6 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                     </div>
                   </div>
 
-                  {/* Rank badge */}
                   <div className="px-4 py-2.5 rounded-xl border border-amber-500/20 text-center min-w-[110px] bg-amber-500/5">
                     <div className="flex items-center justify-center gap-1 mb-0.5">
                       <Trophy size={12} className="text-amber-400" />
@@ -196,7 +183,6 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 </div>
               </div>
 
-              {/* XP bar */}
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-amber-400/70 font-mono font-semibold">{xpInLevel.toLocaleString()} / 1,000 XP</span>
@@ -212,15 +198,13 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 </div>
               </div>
 
-              {/* Inline mini stats */}
               <div className="mt-4 flex flex-wrap gap-2">
-                <AnimatedStat value={`#${profile.global_rank || "-"}`} label="Rank" icon={Trophy} color="text-amber-400" />
-                <AnimatedStat value={profile.stats.solved_count} label="Solved" icon={Target} color="text-emerald-400" />
-                <AnimatedStat value={`${successRate}%`} label="Rate" icon={Zap} color="text-cyan-400" />
-                <AnimatedStat value={`${profile.stats.current_streak_days}d`} label="Streak" icon={Flame} color="text-orange-400" />
+                <MiniStat value={`#${profile.global_rank || "-"}`} label="Rank" icon={Trophy} />
+                <MiniStat value={profile.stats.solved_count} label="Solved" icon={Target} />
+                <MiniStat value={`${successRate}%`} label="Rate" icon={Zap} />
+                <MiniStat value={`${profile.stats.current_streak_days}d`} label="Streak" icon={Flame} />
               </div>
 
-              {/* Actions */}
               <div className="mt-5 flex items-center gap-3 flex-wrap">
                 <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-white/70">
                   <Link href="/settings">
@@ -230,7 +214,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 </Button>
                 <Button variant="ghost" size="sm" onClick={copyProfileLink} className="text-white/50 hover:text-white hover:bg-white/5">
                   {copied ? (
-                    <><Check size={14} className="text-emerald-400" /> Copied</>
+                    <><Check size={14} className="text-amber-400" /> Copied</>
                   ) : (
                     <><Share2 size={14} /> Share Profile</>
                   )}
