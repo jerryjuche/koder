@@ -34,7 +34,7 @@ func setRlimits(timeoutSec int) {
 		// address space reservations for its page allocator (mpagealloc_64bit.go).
 		// Railway/Docker already enforce container-level memory limits.
 		{6, 64, 64}, // RLIMIT_NPROC=6 — raw value, not in syscall on linux/arm64
-		{syscall.RLIMIT_NOFILE, 32, 32},                                // max 32 file descriptors
+		{syscall.RLIMIT_NOFILE, 1024, 1024},                            // max 1024 file descriptors
 		{syscall.RLIMIT_FSIZE, 1 << 20, 1 << 20},                       // max 1 MB file write
 		// RLIMIT_CPU is intentionally omitted — the context.WithTimeout wall-clock
 		// deadline already catches infinite loops via exec.CommandContext SIGKILL.
