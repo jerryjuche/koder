@@ -34,7 +34,10 @@ func setRlimits(timeoutSec int) {
 		{syscall.RLIMIT_NPROC, 64, 64},                                 // max 64 processes
 		{syscall.RLIMIT_NOFILE, 32, 32},                                // max 32 file descriptors
 		{syscall.RLIMIT_FSIZE, 1 << 20, 1 << 20},                       // max 1 MB file write
-		{syscall.RLIMIT_CPU, uint64(timeoutSec), uint64(timeoutSec)},   // CPU time in seconds
+		// RLIMIT_CPU is intentionally omitted — the context.WithTimeout wall-clock
+		// deadline already catches infinite loops via exec.CommandContext SIGKILL.
+		// CPU-seconds accumulate faster than wall-time on multi-core, so RLIMIT_CPU
+		// would kill legitimate compilation before the wall-clock deadline.
 	}
 
 	for _, l := range limits {
