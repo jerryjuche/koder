@@ -826,6 +826,25 @@ app/
 - Added `/onboarding` page for new Google users to choose permanent username
 - Migration `012_add_google_auth.sql`: `google_id`, `google_email`, `google_avatar_url`, `username`, `email` columns
 
+## Update: Google Token Fix
+- Added `FlexibleBool` type in `store/types.go` with custom `UnmarshalJSON` that accepts both JSON boolean `true` and string `"true"` — Google's `tokeninfo` endpoint returns `email_verified` as a string
+- Added `aud` (audience) claim validation to `VerifyGoogleToken()` — previously any app's Google ID token would be accepted
+
+## Update: Legal Pages
+- Created `(legal)` route group with branded layout (`> koder` header, copyright footer)
+- `/privacy` page covering data collection, Google OAuth, code submissions, security, retention, user rights
+- `/terms` page covering eligibility, acceptable use, IP, leaderboard visibility, termination, disclaimers, governing law (Nigeria)
+- Auth layout footer now links to both pages
+
+## Update: Profile Page Redesign
+- **ProfileHeader**: glassmorphism card, animated gradient background, pulsing avatar glow, SVG XP ring with `stroke-dashoffset` animation, inline mini-stats row
+- **StatsOverview**: `AnimatedNumber` via `motion/react` `useMotionValue` + `animate`, per-stat gradient overlays, staggered 0.07s entrance, hover lift
+- **ProgressMetrics**: `AnimatedBar` width animation, difficulty gradient cards, section descriptions, improved empty state
+- **Achievements**: motion scale per badge, premium `backdrop-blur-xl` dialog, hover lift with colored shadow
+- **ActivityFeed**: vertical timeline line with gradient + animated dots, motion achievement badge animation
+- **ProfileClient**: shimmer skeleton with `@keyframes shimmer`, motion stagger for page sections
+- **globals.css**: added `@keyframes pulse-slow` and `@keyframes shimmer` animations
+
 ## Update: Frontend Polish
 - **Problem visibility**: enrichment now auto-publishes (`visible=true`); new `POST /admin/problems/publish-all` endpoint + button
 - **Achievements**: extracted to shared `lib/achievements.ts` module — both `Achievements.tsx` and `ActivityFeed.tsx` import from single source

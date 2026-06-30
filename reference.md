@@ -1,41 +1,47 @@
 # Session Reference
 
 ## Goal
-Implement Google Sign-In with username onboarding and synced avatars, remove all Gitea code, then fix three frontend issues (problem visibility, achievements, module proficiency sizing).
-
-## Constraints & Preferences
-- Users sign in with email/password OR Google; email must never be exposed in leaderboard or profile
-- Gitea account linking, avatars, and all related code must be removed
-- Username is the public identifier shown everywhere (leaderboard, search, profile)
-- New Google users are prompted to choose a unique username during first-time onboarding
-- Google profile picture is synced on every login and displayed everywhere
+Google Sign-In migration → Gitea removal → legal pages → profile redesign → token fix.
 
 ## Progress
 
-### Done
-- Google Sign-In implemented: backend (auth handler, store, config, migration, JWT claims) + frontend (login, onboarding, register pages)
-- Gitea fully removed from backend (handlers, store methods, config, types) and frontend (types, api, all components)
-- Settings page cleaned up — Gitea section removed, username shown as read-only
-- **Issue 1 — Problem visibility**: enriched problems auto-publish (`visible=true`), "Publish All Drafts" button in admin, enriched status column
-- **Issue 2 — Achievements**: shared `lib/achievements.ts` module, imported by both Achievements.tsx and ActivityFeed.tsx
-- **Issue 3 — Module proficiency**: responsive gauge sizing (ResizeObserver), module-specific colors, sorted modules, empty state
-- Backend: `go build ./cmd/server/` ✅
-- Frontend: `npx tsc --noEmit` ✅ + `npm run build` ✅
+### Done — Backend
+- Google Sign-In (auth handler, store, config, migration 012, JWT claims)
+- Gitea fully removed (handlers, store methods, config, types, migrations)
+- Enrichment auto-publishes problems (`visible=true`); `POST /admin/problems/publish-all`
+- `aud` claim validation on Google tokens
+- `FlexibleBool` type for `email_verified` (accepts both `true` and `"true"` from JSON)
+- `go build ./cmd/server/` ✅
+
+### Done — Frontend
+- Legal pages: `/privacy` and `/terms` in `(legal)` layout group
+- Auth footer: "Privacy · Terms" links
+- Profile page redesigned: glassmorphism, motion animations, animated counters, SVG XP ring, timeline activity feed, shimmer skeleton, pulse-slow and shimmer CSS keyframes
+- Shared `lib/achievements.ts` module
+- Module proficiency gauges: ResizeObserver + 16-color palette
+- Publish All Drafts button in admin
+- GIS button on login, username onboarding page
+- `npx tsc --noEmit` ✅ + `npm run build` ✅
 
 ### Pending
 - Run migration 012 against the database
 - Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
-- Test Google Sign-In end-to-end (login → onboarding → dashboard)
-- Test existing email/password login still works
+- Test Google Sign-In end-to-end
+- Test existing email/password login
 
 ## Key Decisions
-- Google token verification via `oauth2.googleapis.com/tokeninfo?id_token=` (zero extra Go deps)
-- `username` column keeps existing `student_id` for backward compat; `Login` checks 3 fields
-- `g_<sub[:8]>` temp username for new Google users; permanent name set on `/onboarding`
-- Google avatar synced on every login via `UpdateUserGoogleAvatar`
-- Enrichment auto-publishes problems (`visible=true` after enrichment)
-- Achievements extracted to shared `lib/achievements.ts` to prevent code duplication
-- Module gauges use `ResizeObserver` for responsive sizing + 16-color palette
+| Decision | Rationale |
+|----------|-----------|
+| `tokeninfo` endpoint (not SDK) | Zero extra Go deps; simple HTTP GET |
+| `username` column (not replace student_id) | Backward compat |
+| Google avatar synced on every login | Profile stays current |
+| `g_<sub[:8]>` temp username | Guarantees uniqueness |
+| `GetUserByLogin` checks 3 fields | Username, email, OR student_id |
+| Enrichment auto-publishes | No manual toggle needed |
+| Achievements in shared module | DRY, no copy-paste drift |
+| `FlexibleBool` custom JSON unmarshal | Google tokeninfo returns `email_verified` as string sometimes |
+| Motion for animations | Already in deps as `motion` package |
+| Glassmorphism (`backdrop-blur-xl`, `bg-black/40`) | Premium dark aesthetic, consistent with brand |
 
 ## Relevant Files
 
@@ -43,30 +49,32 @@ Implement Google Sign-In with username onboarding and synced avatars, remove all
 | File | Purpose |
 |------|---------|
 | `migrations/012_add_google_auth.sql` | Google OAuth columns + username + email |
-| `internal/auth/oauth.go` | `VerifyGoogleToken` via tokeninfo endpoint |
+| `internal/auth/oauth.go` | `VerifyGoogleToken` with `aud` check + FlexibleBool |
 | `internal/auth/jwt.go` | JWT with Username + Onboarding claims |
-| `internal/store/types.go` | User/NewUser/LeaderboardUser with Google fields |
+| `internal/store/types.go` | `GoogleUserInfo` with `FlexibleBool`, `User`/`NewUser`/`LeaderboardUser` |
 | `internal/store/users.go` | All Google+login methods, no Gitea |
 | `internal/api/auth.go` | GoogleAuth, CompleteGoogle, CheckUsername, updated Login/Register |
 | `internal/api/router.go` | Google routes, removed Gitea routes |
-| `internal/api/me.go` | meResponse with Username/GoogleAvatarURL |
-| `internal/api/profile.go` | profileResponse with Username/GoogleAvatarURL |
-| `internal/api/admin.go` | Enrich auto-publishes, PublishAllDrafts handler |
-| `internal/config/config.go` | GoogleClientID env var |
+| `internal/api/me.go` | `username` + `google_avatar_url` |
+| `internal/api/profile.go` | `username` + `google_avatar_url` |
+| `internal/api/admin.go` | Enrich auto-publishes, PublishAllDrafts |
+| `internal/config/config.go` | `GoogleClientID` |
 
 ### Frontend
 | File | Purpose |
 |------|---------|
-| `lib/types.ts` | `username`/`google_avatar_url` instead of gitea fields |
-| `lib/api.ts` | `googleLogin`, `completeGoogleOnboarding`, `checkUsername`, `publishAllDrafts` |
-| `lib/achievements.ts` | Shared `Achievement` type + `getAchievements()` |
-| `app/(auth)/login/page.tsx` | Google Sign-In (GIS) + Username or Email form |
-| `app/(auth)/onboarding/page.tsx` | Username setup page with debounced check |
-| `app/(auth)/register/page.tsx` | Username + email fields |
-| `components/layout/TopNav.tsx` | `@{username}` + `google_avatar_url` |
-| `app/(main)/admin/page.tsx` | Publish All Drafts button, enriched status column |
-| `app/(main)/profile/components/Achievements.tsx` | Uses shared `lib/achievements.ts` |
-| `app/(main)/profile/components/ActivityFeed.tsx` | Uses shared `lib/achievements.ts` |
-| `app/(main)/profile/components/ProgressMetrics.tsx` | Module colors, sorted, no fallback data |
-| `components/ui/activity-gauge.tsx` | Responsive sizing via ResizeObserver, module colors |
-| `app/(main)/settings/page.tsx` | No Gitea section, username read-only |
+| `app/(legal)/layout.tsx` | Branded layout for legal pages |
+| `app/(legal)/privacy/page.tsx` | Privacy policy |
+| `app/(legal)/terms/page.tsx` | Terms of service |
+| `app/(auth)/layout.tsx` | Footer with Privacy · Terms links |
+| `app/(main)/profile/ProfileClient.tsx` | Shimmer skeleton, stagger entrance |
+| `app/(main)/profile/components/ProfileHeader.tsx` | Glassmorphism, XP ring, animated glow, mini-stats |
+| `app/(main)/profile/components/StatsOverview.tsx` | `AnimatedNumber` counters, gradient per card, stagger |
+| `app/(main)/profile/components/ProgressMetrics.tsx` | `AnimatedBar`, module gauges, empty state |
+| `app/(main)/profile/components/Achievements.tsx` | Motion scale entrance, glass dialog |
+| `app/(main)/profile/components/ActivityFeed.tsx` | Timeline with vertical line + dots |
+| `components/ui/activity-gauge.tsx` | ResizeObserver, 16-color palette |
+| `lib/achievements.ts` | Shared Achievement type + getAchievements() |
+| `lib/types.ts` | `username`/`google_avatar_url` |
+| `lib/api.ts` | Google + publish endpoints |
+| `app/globals.css` | `pulse-slow` + `shimmer` keyframes |
