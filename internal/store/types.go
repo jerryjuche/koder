@@ -29,11 +29,12 @@ type User struct {
 
 // GoogleUserInfo represents the user info from Google's ID token.
 type GoogleUserInfo struct {
-	Sub       string `json:"sub"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	Picture   string `json:"picture"`
-	EmailVerified bool `json:"email_verified"`
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+	EmailVerified bool   `json:"email_verified"`
+	Audience      string `json:"aud"`
 }
 
 // NewUser represents a user creation request.
