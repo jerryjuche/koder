@@ -72,6 +72,10 @@
 **Decision:** Generate `main_test.go` at runtime from a compiled Go template, not string concatenation.  
 **Rationale:** Test generation requires type-safe conditional logic (primitive `==` vs `reflect.DeepEqual` for slices). String concatenation produces unmaintainable, injection-prone code generation. Templates are auditable and testable independently.
 
+### ADR-006: Remote HTTP Sandbox over Docker-in-Docker
+**Decision:** Standalone Go HTTP service on Railway as default execution path, local Docker fallback.  
+**Rationale:** Running `docker run` inside the Oracle OCI VM creates a Docker-in-Docker pattern with cold-start issues (~2s per submission). A dedicated sandbox service on Railway eliminates Docker nesting, reduces cold start to ~800ms, and provides consistent resource isolation regardless of the backend host. Falls back transparently when `SANDBOX_URL` is empty.
+
 ---
 
 ## 3. Infrastructure Map
@@ -178,6 +182,15 @@ koder/
 │       ├── jwt.go                   # JWT sign/verify (HS256)
 │       ├── password.go              # bcrypt wrap
 │       └── oauth.go                 # Gitea API fetch, EncryptToken/DecryptToken (AES-256-GCM)
+│
+├── sandbox/                         # Standalone Go execution sandbox (Railway)
+│   ├── main.go                      # HTTP server: /health, /version, /execute
+│   ├── ratelimit.go                 # Per-IP sliding window rate limiter (10 req/min)
+│   ├── secure.go                    # Pre-exec malicious code validation
+│   ├── secure_unix.go               # setrlimit sandboxing (NPROC/NOFILE/FSIZE)
+│   ├── secure_other.go              # Noop for non-Unix
+│   ├── Dockerfile                   # Two-stage arm64 build with GIT_COMMIT
+│   └── go.mod                       # Standalone module, zero external deps
 │
 ├── migrations/
 │   ├── 001_init.sql                 # Full schema from spec
@@ -433,7 +446,7 @@ DELETE + INSERT test_cases for this problem_id
 POST /submit {problem_slug, code, language}
       │
       ▼
-Acquire semaphore (buffered channel cap=2) — blocks if 2 workers active
+Acquire semaphore (buffered channel cap=6) — blocks if 6 workers active
       │
       ▼
 Load problem + test_cases from DB
@@ -454,28 +467,35 @@ Render main_test.go from template:
   - Each test is a named subtest: t.Run("case_1", ...)
       │
       ▼
-context.WithTimeout(5 * time.Second)
-exec.CommandContext(ctx, "docker", "run",
-  "--rm", "--network=none", "--memory=64m", "--cpus=0.5",
+Is SANDBOX_URL set?
+      ├── YES ───────────────────────────────────────────────┐
+      │ POST /execute to remote sandbox                        │
+      │ {code, test_code, timeout_sec}                         │
+      │                                                         │
+      ▼                                                         ▼
+context.WithTimeout(30s)                             context.WithTimeout(30s)
+exec.CommandContext(ctx, "docker", "run",     HTTP POST to SANDBOX_URL/execute
+  "--rm", "--network=none", "--memory=64m",   with 2-retry exponential backoff
   "-v", "/tmp/koder/<uuid>:/app",
   "-v", "/tmp/go-build-cache:/root/.cache/go-build",
   "-w", "/app",
-  "golang:1.23-alpine", "go", "test", "./...", "-v")
-      │
-      ▼
-Parse stdout line by line:
-  "--- PASS: TestCase_N" → passed[N] = true
-  "--- FAIL: TestCase_N" → failed[N] = true
-  Exit code != 0 + no PASS/FAIL lines → compiler_error
-  Context deadline exceeded → timeout
-      │
-      ▼
+  "golang:1.23-alpine", "go", "test", "./...")
+      │                                         │
+      ▼                                         ▼
+Parse stdout line by line:            Parse SandboxResponse JSON:
+  "--- PASS: TestCase_N"               status = "passed"|"failed"|"compiler_error"|"timeout"
+  "--- FAIL: TestCase_N"               passed_count / total_count / stdout
+  Exit code != 0 → compiler_error
+  Deadline exceeded → timeout
+      │                                         │
+      └─────────────────┬───────────────────────┘
+                        ▼
 INSERT submissions row
 UPSERT progress row (solved, stars, attempts, best_runtime, xp_awarded)
 UPDATE users.xp (if first solve)
       │
       ▼
-os.RemoveAll(/tmp/koder/<uuid>)
+If Docker path: os.RemoveAll(/tmp/koder/<uuid>)
 Release semaphore
       │
       ▼
@@ -542,9 +562,27 @@ func TestSolution(t *testing.T) {
 `
 ```
 
+### Remote Sandbox Client (`sandbox_client.go`)
+
+When `SANDBOX_URL` is set, `executor.go` routes execution through `sandboxClient`:
+
+```go
+type sandboxClient struct {
+    httpClient *http.Client  // timeout = timeoutSec + 10s
+    baseURL    string        // SANDBOX_URL
+}
+
+func (c *sandboxClient) execute(ctx, code, testCode) (*SandboxResponse, error)
+```
+
+- Retry policy: up to 2 retries with exponential backoff (500ms, 1s)
+- Per-request timeout derived from `EXECUTOR_TIMEOUT_SECONDS` + 10s buffer
+- Sends `{code, test_code, timeout_sec}` as JSON, parses `SandboxResponse` JSON
+- Non-200 status codes → error returned to caller, retry attempted
+
 ### Build Cache Strategy
 
-Before first run, the host must warm the cache:
+When using the local Docker path, the host must warm the cache:
 
 ```bash
 # scripts/setup-docker-cache.sh
@@ -555,7 +593,7 @@ docker run --rm \
   go build std
 ```
 
-This drops per-submission cold start from ~2000ms to ~150–250ms by caching the Go standard library compilation artifacts.
+This drops per-submission cold start from ~2000ms to ~150–250ms by caching the Go standard library compilation artifacts. When `SANDBOX_URL` is set, the build cache is handled by the sandbox service—no local warmup needed.
 
 ---
 
@@ -889,6 +927,9 @@ ENVIRONMENT=production  # "development" | "production"
 # CORS
 ALLOWED_ORIGIN=https://koder.vercel.app
 
+# Sandbox (optional — empty = use local Docker)
+SANDBOX_URL=https://koder-production.up.railway.app
+
 # Gitea (all optional — PAT linking works with just GITEA_URL)
 GITEA_URL=https://gitea.com
 GITEA_CLIENT_ID=              # OAuth only (dormant)
@@ -950,7 +991,8 @@ GitHub Actions workflow:
 
 | Threat | Mitigation |
 |--------|-----------|
-| Code injection via student submission | `--network=none` container; no filesystem access outside `/app`; memory cap 64MB |
+| Code injection via student submission | `--network=none` container (Docker path) or pre-exec pattern validation (sandbox path); no filesystem access outside temp dir; memory cap 64MB |
+| Malicious code (sandbox path) | Pre-exec check blocks `os/exec`, `syscall`, `unsafe`, `net`, filesystem writes, reflection abuse; `setrlimit` NPROC=6/NOFILE=1024/FSIZE=64MB; `Setpgid` process group kill on timeout |
 | Container escape | Docker daemon not exposed; no privileged mode; no volume mounts to sensitive paths |
 | Unauthorized admin access | Role checked in JWT claims on every `/admin/*` route |
 | SQL injection | All queries use `pgx` parameterized inputs — never string interpolation |
@@ -965,7 +1007,8 @@ GitHub Actions workflow:
 
 | Bottleneck | Target | Mitigation |
 |---|---|---|---|---|
-| Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std` |
+| Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std`; sandbox path avoids Docker entirely with persistent Railway container |
+| Sandbox execution latency | <1s | Railway ARM64 container with pre-cached Go stdlib; HTTP request overhead ~100ms |
 | Gemini API rate limit | 2 req/min | Sequential enrichment with 30s sleep between calls; idempotent re-runs |
 | Supabase 500MB cap | Never exceed | No binary storage; raw_readme + statement are the largest text fields |
 | Oracle VM RAM | Never OOM | Semaphore cap=6; `--memory=256m` per container; Go server typically <50MB RSS |
@@ -989,11 +1032,15 @@ This section exists specifically so GitHub Copilot and AI assistants have struct
 
 ### When Writing Executor Code
 
-- The semaphore is `chan struct{}`, capacity 2. Acquire = send, release = receive via defer.
-- All `exec.CommandContext` calls must use a context from `context.WithTimeout(ctx, 5*time.Second)`
+- The semaphore is `chan struct{}`, capacity 6 (configurable via `EXECUTOR_MAX_CONCURRENCY`). Acquire = send, release = receive via defer.
+- Execution branches on `cfg.SandboxURL`:
+  - If set: POST `solution.go` + `main_test.go` to `SandboxURL/execute` via `sandboxClient` (2-retry exponential backoff)
+  - If empty: `exec.CommandContext` with `docker run --network=none --memory=64m golang:1.23-alpine`
+- All `exec.CommandContext` calls must use a context from `context.WithTimeout(ctx, 30*time.Second)`
 - The working directory is always `/tmp/koder/<uuid>` where `<uuid>` comes from `uuid.NewString()`
 - Three files are always written: `solution.go`, `main_test.go`, `go.mod` — never more, never less
 - Parse stdout with `bufio.Scanner`, match lines with `strings.HasPrefix(line, "--- PASS:")` and `strings.HasPrefix(line, "--- FAIL:")`
+- When `SandboxURL` is set, the sandbox handles compilation, so the backend uses the sandbox's `SandboxResponse.Status` directly instead of parsing stdout
 
 ### When Writing Enricher Code
 
@@ -1071,6 +1118,3 @@ MIT
 *This document is the single source of truth for Koder. Any deviation from the architecture, conventions, or constraints described here requires an explicit ADR entry explaining the reasoning.*
 
 
-## Update: Problem Statements & Workspace Polish
-- Updated `statement` for 11 core problems (including `edit-distance`) in the database with rich markdown, detailed considerations, examples, and realistic solve-time estimates.
-- Overhauled `ProblemWorkspaceClient.tsx` to feature premium glassmorphic styling, dynamic hover states, glowing accents, and enhanced `@tailwindcss/typography` (`remarkGfm`) markdown styling.

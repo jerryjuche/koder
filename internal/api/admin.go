@@ -253,6 +253,38 @@ func (h *AdminHandler) ListAllProblems(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, problems)
 }
 
+// ToggleVisibility sets the visible flag for a problem.
+// PATCH /admin/problems/{id}/visibility
+func (h *AdminHandler) ToggleVisibility(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "id")
+	problemID, err := uuid.Parse(slug)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", err.Error())
+		return
+	}
+
+	var req struct {
+		Visible bool `json:"visible"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		return
+	}
+
+	if err := h.store.UpdateProblemVisibility(r.Context(), problemID, req.Visible); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update problem visibility", err.Error())
+		return
+	}
+
+	status := "hidden"
+	if req.Visible {
+		status = "visible"
+	}
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Problem %s set to %s", problemID.String(), status), "text-brand-muted-gold", "Eye")
+
+	RespondSuccess(w, map[string]any{"id": problemID.String(), "visible": req.Visible})
+}
+
 // ListPendingUserProblems returns all pending community contributions.
 func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListPendingUserProblems(r.Context())

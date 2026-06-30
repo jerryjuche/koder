@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
 import PendingContributions from './PendingContributions';
@@ -119,6 +119,18 @@ export default function AdminDashboard() {
       toast.error(res.error?.message || "Enrichment failed.");
     }
     setEnriching(false);
+  };
+
+  const handleToggleVisibility = async (problem: Problem) => {
+    const next = !problem.visible;
+    const res = await toggleProblemVisibility(problem.id, next);
+    if (res.success) {
+      toast.success(`"${problem.title}" is now ${next ? 'visible' : 'hidden'}`);
+      loadData();
+    } else {
+      const detail = (res.error as any)?.details;
+      toast.error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Toggle failed"));
+    }
   };
 
   const filteredProblems = problems.filter(p => 
@@ -286,7 +298,10 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", isActive ? 'bg-brand-success' : 'bg-brand-charcoal-border')}>
+                        <div
+                          onClick={() => handleToggleVisibility(p)}
+                          className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", isActive ? 'bg-brand-success' : 'bg-brand-charcoal-border')}
+                        >
                           <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", isActive ? 'right-1' : 'left-1')}></div>
                         </div>
                       </td>
@@ -339,20 +354,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
-// Two fixes were applied:
-
-// **1. TypeScript: dead `'error'` branch in `cn()` ternary**
-// Replaced the `status` string variable with a plain boolean 
-// `isActive = p.visible`. This eliminated the need for a union 
-// type and removed the unreachable `status === 'error'` branch 
-// that TypeScript was correctly rejecting.
-
-// **2. React: setState called synchronously inside `useEffect`**
-// Moved the async fetch logic inline into the effect as a scoped `
-// load` function, rather than calling the external `loadData` 
-// directly. Added a `cancelled` flag to guard against stale 
-// state updates on unmount. `loadData` is kept as a standalone 
-// function for `handleIngest` and `handleEnrich` to call after 
-// mutations.

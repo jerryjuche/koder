@@ -6,6 +6,13 @@ frontend/.env.local
 
 # Binary
 koder
+koder-sandbox
+*.exe
+*.test
+*.out
+
+# Sandbox temp
+sandbox/tmp/
 
 # IDE
 .vscode/
@@ -24,5 +31,11 @@ frontend/coverage/
 
 # Temp
 /tmp/koder/
+*.log
+*.txt
 
+# Project docs (auto-generated)
 CODEBASE_ANALYSIS.md
+
+# Windows reserved device name
+nul

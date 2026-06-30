@@ -136,7 +136,8 @@ export default function SettingsPage() {
           description: `Your Gitea profile (@${res.data.gitea_username}) has been linked successfully.`,
         });
       } else {
-        throw new Error(res.error?.message || "Failed to link Gitea");
+        const detail = (res.error as any)?.details;
+        throw new Error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Failed to link Gitea"));
       }
     } catch (err: any) {
       toast.error({
@@ -186,7 +187,8 @@ export default function SettingsPage() {
           description: `Profile synced as @${res.data.gitea_username}.`,
         });
       } else {
-        throw new Error(res.error?.message || "Failed to sync");
+        const detail = (res.error as any)?.details;
+        throw new Error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Failed to sync"));
       }
     } catch (err: any) {
       toast.error({
