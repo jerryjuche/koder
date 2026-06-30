@@ -287,6 +287,7 @@ ALLOWED_ORIGIN=http://localhost:3000
 - `frontend/app/(main)/profile/components/PerformanceStats.tsx` — Replaced by `ProgressMetrics.tsx`
 - `frontend/app/(main)/profile/components/RankStats.tsx` — Absorbed into `StatsOverview.tsx`
 - `frontend/app/(main)/profile/components/RecentActivity.tsx` — Removed entirely (profile no longer shows recent submissions)
+- All Gitea PAT linking handlers, store methods, migration files (archived in migrations/)
 
 ---
 
@@ -304,83 +305,14 @@ ALLOWED_ORIGIN=http://localhost:3000
 
 - `@tanstack/react-virtual` installed but not used (candidate for virtualized leaderboard for large datasets)
 - Ranks 4+ in leaderboard show flat numbers without special styling
-- Achievement definitions are hardcoded in `Achievements.tsx` — could be fetched from backend
-- Module proficiency fallback data is static (`defaultModules`) — real data comes from backend
+- Achievement definitions are hardcoded in `lib/achievements.ts` — could be fetched from backend
 - Recharts bundle size impact (~30KB gzip) — acceptable for current scope
 - ContributionGraphSection uses `kibo-ui` contribution-graph package; ensure it stays compatible
 - `server.exe`, `tee.txt`, `test.exe` are untracked binaries in root — should be `.gitignored`
 
 ---
 
-## 11. Gitea PAT Linking + Avatar Sync Across All Surfaces (June 28, Session 3)
-
-### Overview
-Added optional PAT-based Gitea account linking (no OAuth app needed). Encrypted token storage (AES-256-GCM). Gitea avatar and username now sync across all surfaces: TopNav dropdown, Dashboard, Leaderboard, Profile page, and Settings. Added ActivityFeed component to profile contributions tab.
-
-### New Files
-| File | Purpose |
-|------|---------|
-| `migrations/011_add_gitea_token.sql` | Adds `gitea_token TEXT` column to `users` |
-| `internal/auth/oauth.go` | `EncryptToken`/`DecryptToken` (AES-256-GCM, key derived from JWT_SECRET) |
-| `frontend/app/(main)/profile/components/ActivityFeed.tsx` | Achievement grid + recent activity timeline |
-
-### Backend Changes
-| File | Change |
-|------|--------|
-| `internal/store/types.go` | Added `GiteaToken *string` (json:"-") to `User`; added `GiteaUsername`/`GiteaAvatarURL` to `LeaderboardUser` |
-| `internal/store/store.go` | Added `UpdateGiteaProfile`/`ClearGiteaProfile` to interface |
-| `internal/store/users.go` | Implemented both methods; leaderboard SQL now selects `gitea_username`/`gitea_avatar_url` |
-| `internal/api/auth.go` | Added 4 PAT handlers (`link`/`unlink`/`status`/`sync`); all invalidate caches on mutation |
-| `internal/api/profile.go` | `profileResponse` now includes `gitea_username`/`gitea_avatar_url` (from `GetUserByID`) |
-| `internal/api/me.go` | `meResponse` includes gitea fields (already added in prior session) |
-| `internal/api/router.go` | Registered 4 PAT routes under auth middleware |
-| `internal/config/config.go` | Made `GITEA_CLIENT_ID`/`GITEA_CLIENT_SECRET`/`GITEA_REDIRECT_URL` optional |
-
-### Frontend Changes
-| File | Change |
-|------|--------|
-| `components/layout/TopNav.tsx` | Gitea `<Image>` avatar + `@gitea_username` badge in dropdown trigger + content |
-| `app/(main)/page.tsx` | Gitea avatar + `@username` in user summary card |
-| `app/(main)/leaderboard/LeaderboardClient.tsx` | Gitea avatars on podium/"Your Ranking"/table rows; removed `studentId` column; per-user `onError` fallback |
-| `app/(main)/profile/components/ProfileHeader.tsx` | Gitea `<Image>` avatar with `onError` → initials fallback; `@gitea_username` badge |
-| `app/(main)/settings/page.tsx` | PAT input, link/unlink/sync buttons, avatar preview, `onError` fallback |
-| `app/(main)/profile/ProfileClient.tsx` | Wired ActivityFeed into "My Contributions" tab sidebar |
-| `app/(main)/profile/components/ActivityFeed.tsx` | NEW: achievement grid (6 badges) + recent activity timeline (solved/submissions/contributions) |
-| `lib/api.ts` | Fixed `fetchApi` to preserve server error details (was discarding 4xx/5xx response body) |
-| `lib/types.ts` | `User` and `UserProfile` include `gitea_username`/`gitea_avatar_url` |
-| `next.config.ts` | Added `seccdn.libravatar.org` and `acad.learn2earn.ng` to `images.remotePatterns` |
-
-### PAT Linking Flow
-```
-Settings → input PAT → POST /auth/gitea/link {token}
-  → EncryptToken() (AES-256-GCM, key derived from JWT_SECRET)
-  → FetchGiteaUser() → GET gitea.com/api/v1/user (Bearer token)
-  → store encrypted token + gitea_username + gitea_avatar_url in DB
-  → InvalidateUserCache() → cached /me + /me/profile cleared
-  → dispatch user-updated event → all components re-fetch with fresh gitea fields
-```
-
-### Avatar Fallback Chain (every surface)
-```
-Gitea avatar URL exists + no onError → <Image> with next/image
-  → onError → setAvatarError(true) → colored initials circle
-  → no gitea_avatar_url at all → colored initials circle
-```
-
-### Display Name Strategy
-- Primary: `name` (first+last from DB)
-- If Gitea linked: `@gitea_username` badge (emerald, GitBranch icon)
-- Fallback in dropdown: `studentId` in monospace
-- Leaderboard: name only (no studentId column — it looks like email)
-
-### Build Verification
-- Backend: `go vet ./internal/auth/ ./internal/store/ ./internal/api/` — all pass
-- Frontend: `npx next build` — `✓ Compiled successfully` (Windows DLL crash in NFT phase is environment-only)
-
-
----
-
-## 12. Problem Statements & Workspace Polish
+## 11. Problem Statements & Workspace Polish
 
 ### Overview
 Updated all problem descriptions to be professional and elaborate, and overhauled the frontend workspace to look highly premium and dynamic.
@@ -390,3 +322,104 @@ Updated all problem descriptions to be professional and elaborate, and overhaule
 
 ### Frontend Changes
 - `ProblemWorkspaceClient.tsx`: Upgraded the Problem Description and Examples sections to use a glassmorphic design, dynamic glowing dots, gradients, and `@tailwindcss/typography` (`remarkGfm`) for better markdown styling.
+
+---
+
+## 12. Google Sign-In Migration (June 29, Session 4 — CURRENT)
+
+### Overview
+Replaced Gitea OAuth + PAT linking with pure Google Sign-In. Uses Google Identity Services (GIS) for the frontend button and `oauth2.googleapis.com/tokeninfo` endpoint for server-side ID token verification — zero extra Go deps. Google users get a temporary tag-based username (`g_<sub[:8]>`) and must set a permanent username on the `/onboarding` page.
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `migrations/012_add_google_auth.sql` | Adds `google_id`, `google_email`, `google_avatar_url`, `username`, `email` columns; backfills existing users |
+| `frontend/app/(auth)/onboarding/page.tsx` | Username setup page for new Google users (debounced availability check) |
+
+### Backend Changes
+| File | Change |
+|------|--------|
+| `internal/auth/oauth.go` | Replaced Gitea code with `VerifyGoogleToken()` using `https://oauth2.googleapis.com/tokeninfo?id_token=...` |
+| `internal/auth/jwt.go` | Added `Username` + `Onboarding` claims to JWT |
+| `internal/store/types.go` | Added `GoogleID`, `GoogleEmail`, `GoogleAvatarURL`, `Username` to `User`; `GoogleUserInfo` struct; removed all Gitea fields |
+| `internal/store/store.go` | Added `GetUserByGoogleID`, `CreateUserFromGoogle`, `LinkGoogleToUser`, `GetUserByLogin`, `GetUserByEmail`, `UpdateUserUsername`, `UpdateUserGoogleAvatar`; removed all Gitea methods |
+| `internal/store/users.go` | Implemented all new methods; leaderboard SQL selects `google_avatar_url` instead of gitea fields |
+| `internal/api/auth.go` | Added `GoogleAuth`, `CompleteGoogle`, `CheckUsername` handlers; updated `Register` (accepts username), `Login` (accepts username/email/student_id) |
+| `internal/api/me.go` | `meResponse` uses `Username`/`GoogleAvatarURL` instead of Gitea fields |
+| `internal/api/profile.go` | `profileResponse` uses `Username`/`GoogleAvatarURL` |
+| `internal/api/router.go` | `/auth/google` public; `/auth/complete-google` + `/auth/check-username` protected; removed all Gitea routes |
+| `internal/config/config.go` | Added `GoogleClientID` env var; removed Gitea vars |
+
+### Frontend Changes
+| File | Change |
+|------|--------|
+| `lib/types.ts` | `User` and `UserProfile` use `username`/`google_avatar_url` (replaced `gitea_username`/`gitea_avatar_url`) |
+| `lib/api.ts` | Added `googleLogin`, `completeGoogleOnboarding`, `checkUsername`; removed `linkGiteaToken`, `unlinkGitea`, `getGiteaStatus`, `syncGiteaProfile` |
+| `lib/achievements.ts` | **NEW** — shared `Achievement` type + `getAchievements()` utility (DRY source for both Achievements.tsx and ActivityFeed.tsx) |
+| `app/(auth)/login/page.tsx` | Google Sign-In button via GIS CDN; login field accepts "Username or Email" |
+| `app/(auth)/register/page.tsx` | Username field + email field (replaced student_id) |
+| `app/(auth)/onboarding/page.tsx` | **NEW** — debounced username check, submit button, error/success states |
+| `components/layout/TopNav.tsx` | `google_avatar_url` for avatar, `@{username}` badge |
+| `app/(main)/page.tsx` | Google avatar + `@{username}` in user summary |
+| `app/(main)/leaderboard/LeaderboardClient.tsx` | `google_avatar_url` for avatars, `username` for display |
+| `app/(main)/profile/components/ProfileHeader.tsx` | Google avatar + `@{username}` badge |
+| `app/(main)/settings/page.tsx` | Removed Gitea PAT section; username is read-only |
+
+### Google Sign-In Flow
+```
+Login Page → Google Sign-In button (GIS)
+  → Google popup → user selects account
+  → Google returns ID token (JWT)
+  → POST /auth/google {id_token}
+  → VerifyGoogleToken() → GET oauth2.googleapis.com/tokeninfo?id_token=...
+  → Check user by google_id (existing) OR email (link) OR create new
+  → New user gets temp username "g_<sub[:8]>" + onboarding=True JWT claim
+  → Onboarding page → set permanent username → POST /auth/complete-google
+  → New JWT without onboarding claim → redirect to /
+```
+
+### Key Design Decisions
+| Decision | Rationale |
+|----------|-----------|
+| `tokeninfo` endpoint (not Google SDK) | Zero extra Go dependencies; simple HTTP GET |
+| `username` column (not replace student_id) | Backward compatibility with existing users who have email-like student_ids |
+| Google avatar synced on every login | Profile picture stays current; `UpdateUserGoogleAvatar` called on every Google auth |
+| `g_<sub[:8]>` temp username | Guarantees uniqueness; user must choose permanent name on `/onboarding` |
+| `GetUserByLogin` checks 3 fields | Accepts username, email, OR student_id for backward compat |
+
+### Build Verification
+- ✅ `go build ./cmd/server/` — backend compiles
+- ✅ `npx tsc --noEmit` — frontend type-checks
+- ✅ `npm run build` — frontend builds (4.3 min)
+
+---
+
+## 13. Frontend Polish: Visibility, Achievements, Module Proficiency (June 30, Session 5)
+
+### Issue 1 — Problem Visibility After Ingestion
+Previously, ingested problems were created with `visible=false` and remained hidden after enrichment. The admin had to manually toggle each one.
+
+**Fixes:**
+- `internal/api/admin.go`: `Enrich` and `EnrichAll` now set `visible=true` after successful enrichment
+- New endpoint `POST /admin/problems/publish-all` — bulk-publishes all draft problems
+- `frontend/app/(main)/admin/page.tsx`: Added "Publish All Drafts (N)" button; status column now shows `published` (green), `pending enrich` (amber), or `draft` (muted)
+- No more manual toggle needed — enrichment auto-publishes
+
+### Issue 2 — Shared Achievements Module
+Achievement definitions were copy-pasted identically in `Achievements.tsx` and `ActivityFeed.tsx`, leading to drift risk.
+
+**Fixes:**
+- Created `frontend/lib/achievements.ts` — single source of truth for `Achievement` type + `getAchievements()` function with 6 achievements
+- Both `Achievements.tsx` and `ActivityFeed.tsx` now import from shared module
+- Added `criteria` field, improved dialog with colored border/bg in icon circle
+
+### Issue 3 — Module Proficiency Gauge Sizing
+`ActivityGauge.tsx` used fixed `height={170}` with absolute radii — unresponsive at different card widths.
+
+**Fixes:**
+- Gauge height now scales to 85% of card width (clamped 120-200px) via `ResizeObserver`
+- `innerRadius`, `outerRadius`, `barSize` scale proportionally to height
+- 16-color module palette replaces single `fill-primary` (module-specific gauge colors)
+- `line-clamp-2` prevents long module name overflow
+- Modules sorted alphabetically; empty state shows "No modules available yet"
+- Removed static fallback data (`defaultModules`)

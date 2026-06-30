@@ -9,37 +9,39 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID            pgtype.UUID `db:"id" json:"id"`
-	StudentID     string      `db:"student_id" json:"student_id"`
-	Name          string      `db:"name" json:"name"`
-	Bio           *string     `db:"bio" json:"bio,omitempty"`
-	Password      string      `db:"password" json:"-"` // bcrypt hash (or placeholder for OAuth users)
-	Role          string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
-	ColorIndex    int         `db:"color_index" json:"color_index"`
-	XP            int         `db:"xp" json:"xp"`
-	Verified      bool        `db:"verified" json:"verified"`
-	VerifiedAt    *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
-	GiteaID       *int64      `db:"gitea_id" json:"gitea_id,omitempty"`
-	GiteaUsername *string     `db:"gitea_username" json:"gitea_username,omitempty"`
-	GiteaEmail    *string     `db:"gitea_email" json:"gitea_email,omitempty"`
-	GiteaAvatarURL *string    `db:"gitea_avatar_url" json:"gitea_avatar_url,omitempty"`
-	GiteaToken    *string    `db:"gitea_token" json:"-"`
-	CreatedAt     time.Time   `db:"created_at" json:"created_at"`
+	ID             pgtype.UUID `db:"id" json:"id"`
+	StudentID      string      `db:"student_id" json:"student_id"`
+	Username       string      `db:"username" json:"username"`
+	Name           string      `db:"name" json:"name"`
+	Bio            *string     `db:"bio" json:"bio,omitempty"`
+	Email          *string     `db:"email" json:"email,omitempty"`
+	Password       string      `db:"password" json:"-"` // bcrypt hash (or placeholder for OAuth users)
+	Role           string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
+	ColorIndex     int         `db:"color_index" json:"color_index"`
+	XP             int         `db:"xp" json:"xp"`
+	Verified       bool        `db:"verified" json:"verified"`
+	VerifiedAt     *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
+	GoogleID       *string     `db:"google_id" json:"-"`
+	GoogleEmail    *string     `db:"google_email" json:"-"`
+	GoogleAvatarURL *string   `db:"google_avatar_url" json:"google_avatar_url,omitempty"`
+	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
 }
 
-// GiteaUserInfo represents the user info returned by Gitea's API /api/v1/user.
-type GiteaUserInfo struct {
-	ID        int64  `json:"id"`
-	Login     string `json:"login"`
-	FullName  string `json:"full_name"`
+// GoogleUserInfo represents the user info from Google's ID token.
+type GoogleUserInfo struct {
+	Sub       string `json:"sub"`
 	Email     string `json:"email"`
-	AvatarURL string `json:"avatar_url"`
+	Name      string `json:"name"`
+	Picture   string `json:"picture"`
+	EmailVerified bool `json:"email_verified"`
 }
 
 // NewUser represents a user creation request.
 type NewUser struct {
 	StudentID string
+	Username  string
 	Name      string
+	Email     *string
 	Password  string // plaintext, will be hashed
 	Role      string // "student" | "admin"
 }
@@ -135,13 +137,13 @@ type LeaderboardUser struct {
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
 	StudentID      string  `json:"studentId"`
+	Username       string  `json:"username"`
 	Role           string  `json:"role"`
 	ColorIndex     int     `json:"colorIndex"`
 	XP             int     `json:"xp"`
 	Level          int     `json:"level"`
 	SolvedCount    int     `json:"solvedCount"`
-	GiteaUsername  *string `json:"gitea_username,omitempty"`
-	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
+	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 }
 
 // LeaderboardEntry represents a single row on the leaderboard.

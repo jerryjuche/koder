@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { UserProfile } from "@/lib/types";
 import { BookOpen, Layers } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -17,20 +18,37 @@ const difficultyConfig: Record<string, { label: string; color: string; barColor:
   hard: { label: "Hard", color: "text-rose-400", barColor: "bg-rose-400" },
 };
 
+const MODULE_GAUGE_COLORS: Record<string, string> = {
+  "Arrays & Slices": "fill-blue-500 stroke-blue-500",
+  "Strings & Runes": "fill-emerald-500 stroke-emerald-500",
+  "Math & Recursion": "fill-purple-500 stroke-purple-500",
+  "Data Structures": "fill-amber-500 stroke-amber-500",
+  "Sorting & Searching": "fill-rose-500 stroke-rose-500",
+  "Hash Maps & Sets": "fill-violet-500 stroke-violet-500",
+  "Concurrency": "fill-cyan-500 stroke-cyan-500",
+  "Dynamic Programming": "fill-fuchsia-500 stroke-fuchsia-500",
+  "Bit Manipulation": "fill-slate-500 stroke-slate-500",
+  "Trees & Graphs": "fill-green-500 stroke-green-500",
+  "Error Handling": "fill-red-500 stroke-red-500",
+  "Testing": "fill-teal-500 stroke-teal-500",
+  "File I/O": "fill-orange-500 stroke-orange-500",
+  "Networking": "fill-indigo-500 stroke-indigo-500",
+  "Interfaces & Generics": "fill-pink-500 stroke-pink-500",
+  "Pointers": "fill-stone-500 stroke-stone-500",
+  "OOP & Composition": "fill-lime-500 stroke-lime-500",
+  "Design Patterns": "fill-yellow-500 stroke-yellow-500",
+};
+
 export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
   const diffProgress = profile.progress_by_difficulty;
 
-  const defaultModules: Record<string, { solved: number; total: number }> = {
-    "Math & Recursion": { solved: 5, total: 10 },
-    "Arrays & Strings": { solved: 12, total: 20 },
-    "Data Structures": { solved: 3, total: 15 },
-    Concurrency: { solved: 1, total: 5 },
-  };
-
-  const displayModules =
-    profile.module_proficiency && Object.keys(profile.module_proficiency).length > 0
-      ? profile.module_proficiency
-      : defaultModules;
+  const displayModules = useMemo(() => {
+    if (!profile.module_proficiency || Object.keys(profile.module_proficiency).length === 0) {
+      return [];
+    }
+    return Object.entries(profile.module_proficiency)
+      .sort(([a], [b]) => a.localeCompare(b));
+  }, [profile.module_proficiency]);
 
   const totalSolved = Object.values(diffProgress).reduce(
     (sum, d) => sum + d.solved,
@@ -107,16 +125,23 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           <h3 className="text-lg font-bold text-foreground">Module Proficiency</h3>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(displayModules).map(([moduleName, stats]) => (
-            <ActivityGauge
-              key={moduleName}
-              value={stats.solved}
-              max={stats.total}
-              label={moduleName}
-            />
-          ))}
-        </div>
+        {displayModules.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No modules available yet. Problems will appear here once the curriculum is ingested.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+            {displayModules.map(([moduleName, stats]) => (
+              <ActivityGauge
+                key={moduleName}
+                value={stats.solved}
+                max={stats.total}
+                label={moduleName}
+                colorClass={MODULE_GAUGE_COLORS[moduleName]}
+              />
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

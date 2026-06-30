@@ -19,8 +19,6 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 	authHandler := NewAuthHandler(store, cfg)
 
-	// Note: Gitea OAuth2 was removed in favor of PAT linking
-
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
 	testHandler := NewTestHandler(store, exec)
@@ -43,7 +41,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
-		// Gitea OAuth2 endpoints removed in favor of PAT
+		r.Post("/google", authHandler.GoogleAuth)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -66,11 +64,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		})
 		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
 
-		// Gitea PAT linking routes
-		r.Post("/auth/gitea/link", authHandler.GiteaLink)
-		r.Delete("/auth/gitea/link", authHandler.GiteaUnlink)
-		r.Get("/auth/gitea/status", authHandler.GiteaStatus)
-		r.Post("/auth/gitea/sync", authHandler.GiteaSync)
+		// Google onboarding routes
+		r.Post("/auth/complete-google", authHandler.CompleteGoogle)
+		r.Get("/auth/check-username", authHandler.CheckUsername)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
@@ -101,6 +97,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
 			r.Patch("/admin/problems/{id}/visibility", adminHandler.ToggleVisibility)
+			r.Post("/admin/problems/publish-all", adminHandler.PublishAllDrafts)
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
 			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
 			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)

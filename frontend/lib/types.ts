@@ -1,6 +1,7 @@
 export type User = {
   id: string;
   name: string;
+  username: string;
   studentId: string;
   role: string;
   colorIndex: number;
@@ -8,8 +9,7 @@ export type User = {
   level: number;
   solvedCount: number;
   verified?: boolean;
-  gitea_username?: string;
-  gitea_avatar_url?: string;
+  google_avatar_url?: string;
 };
 
 export type ProblemDifficulty =
@@ -110,6 +110,7 @@ export type ProgressByDifficulty = {
 export type UserProfile = {
   id: string;
   student_id: string;
+  username: string;
   name: string;
   bio?: string;
   color_index: number;
@@ -117,8 +118,7 @@ export type UserProfile = {
   level: number;
   global_rank: number;
   created_at: string;
-  gitea_username?: string;
-  gitea_avatar_url?: string;
+  google_avatar_url?: string;
   stats: {
     solved_count: number;
     attempted_count: number;

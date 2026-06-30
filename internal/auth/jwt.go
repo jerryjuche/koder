@@ -11,12 +11,14 @@ import (
 type Claims struct {
 	UserID    string `json:"user_id"`
 	StudentID string `json:"student_id"`
+	Username  string `json:"username"`
 	Role      string `json:"role"`
+	Onboarding bool `json:"onboarding"`
 	jwt.RegisteredClaims
 }
 
 // SignToken creates and signs a JWT token using HS256.
-func SignToken(userID, studentID, role, secret string, expiryDuration time.Duration) (string, error) {
+func SignToken(userID, studentID, username, role, secret string, expiryDuration time.Duration, onboarding bool) (string, error) {
 	if userID == "" {
 		return "", fmt.Errorf("userID cannot be empty")
 	}
@@ -37,9 +39,11 @@ func SignToken(userID, studentID, role, secret string, expiryDuration time.Durat
 	expiryTime := now.Add(expiryDuration)
 
 	claims := &Claims{
-		UserID:    userID,
-		StudentID: studentID,
-		Role:      role,
+		UserID:     userID,
+		StudentID:  studentID,
+		Username:   username,
+		Role:       role,
+		Onboarding: onboarding,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiryTime),

@@ -16,7 +16,6 @@ import {
   Trophy,
   ArrowLeft,
   BookOpen,
-  GitBranch,
 } from "lucide-react";
 import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
 import { Problem, User, CommunitySolution } from "@/lib/types";
@@ -149,11 +148,11 @@ export default function Dashboard() {
 
         {user && (
           <div className="flex items-center gap-3 rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card px-4 py-3 shadow-sm">
-            {user.gitea_avatar_url && !avatarError ? (
+            {user.google_avatar_url && !avatarError ? (
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
                 <Image
-                  src={user.gitea_avatar_url}
-                  alt={user.gitea_username ?? "Avatar"}
+                  src={user.google_avatar_url}
+                  alt={user.username ?? "Avatar"}
                   width={48}
                   height={48}
                   className="w-full h-full object-cover"
@@ -180,10 +179,9 @@ export default function Dashboard() {
                 {user.name}
               </div>
               <div className="text-xs text-brand-offwhite-muted">
-                {user.gitea_username ? (
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <GitBranch size={10} />
-                    {user.gitea_username}
+                {user.username ? (
+                  <span className="text-emerald-400">
+                    @{user.username}
                   </span>
                 ) : (
                   "Student"

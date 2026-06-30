@@ -12,7 +12,7 @@ export default function RegisterPage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [studentId, setStudentId] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -23,8 +23,9 @@ export default function RegisterPage() {
     setErrorMsg('');
     try {
       const res = await register({
-        student_id: studentId || email,
+        username: username || email?.split('@')[0] || '',
         name: `${firstName} ${lastName}`.trim(),
+        email: email,
         password
       });
       if (res.success && res.data) {
@@ -97,13 +98,14 @@ export default function RegisterPage() {
         </div>
         
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Student ID (Optional)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Username</label>
           <input 
             type="text" 
-            value={studentId}
-            onChange={e => setStudentId(e.target.value)}
+            required
+            value={username}
+            onChange={e => setUsername(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-            placeholder="e.g. s1234567"
+            placeholder="e.g. adalovelace"
           />
         </div>
 

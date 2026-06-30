@@ -155,7 +155,7 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 	problem.Difficulty = enriched.Difficulty
 	problem.XPReward = enriched.XPReward
 	problem.Tags = enriched.Tags
-	problem.Visible = false
+	problem.Visible = true
 
 	if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
 		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save enriched problem", err.Error())
@@ -200,7 +200,7 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		problem.Difficulty = enriched.Difficulty
 		problem.XPReward = enriched.XPReward
 		problem.Tags = enriched.Tags
-		problem.Visible = false
+		problem.Visible = true
 
 		if err := h.store.UpsertProblem(r.Context(), &problem); err != nil {
 			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
@@ -283,6 +283,30 @@ func (h *AdminHandler) ToggleVisibility(w http.ResponseWriter, r *http.Request) 
 	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Problem %s set to %s", problemID.String(), status), "text-brand-muted-gold", "Eye")
 
 	RespondSuccess(w, map[string]any{"id": problemID.String(), "visible": req.Visible})
+}
+
+// PublishAllDrafts sets all draft (invisible) problems to visible.
+// POST /admin/problems/publish-all
+func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) {
+	problems, err := h.store.ListAllProblemsAdmin(r.Context())
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list problems", err.Error())
+		return
+	}
+
+	published := 0
+	for _, p := range problems {
+		if !p.Visible && p.ID.Valid {
+			problemID := uuid.UUID(p.ID.Bytes)
+			if err := h.store.UpdateProblemVisibility(r.Context(), problemID, true); err == nil {
+				published++
+			}
+		}
+	}
+
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Published %d draft problems", published), "text-brand-muted-gold", "Eye")
+
+	RespondSuccess(w, map[string]any{"published": published})
 }
 
 // ListPendingUserProblems returns all pending community contributions.

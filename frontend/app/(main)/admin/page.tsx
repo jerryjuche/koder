@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
 import PendingContributions from './PendingContributions';
@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
   const [ingesting, setIngesting] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -119,6 +120,18 @@ export default function AdminDashboard() {
       toast.error(res.error?.message || "Enrichment failed.");
     }
     setEnriching(false);
+  };
+
+  const handlePublishAll = async () => {
+    setPublishing(true);
+    const res = await publishAllDrafts();
+    if (res.success) {
+      toast.success(`Published ${res.data?.published ?? 0} draft(s)!`);
+      loadData();
+    } else {
+      toast.error(res.error?.message || "Publish failed");
+    }
+    setPublishing(false);
   };
 
   const handleToggleVisibility = async (problem: Problem) => {
@@ -240,6 +253,17 @@ export default function AdminDashboard() {
                   {enriching ? <Activity className="animate-spin" size={18} /> : <Wand2 size={18} />} 
                   {enriching ? 'Enriching...' : 'Enrich All Problems'}
                 </button>
+
+                {draftsCount > 0 && (
+                  <button
+                    onClick={handlePublishAll}
+                    disabled={publishing}
+                    className="w-full bg-brand-success/10 border border-brand-success/30 text-brand-success hover:bg-brand-success/20 py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors disabled:opacity-50 mt-3"
+                  >
+                    {publishing ? <Activity className="animate-spin" size={18} /> : <Send size={18} />}
+                    {publishing ? 'Publishing...' : `Publish All Drafts (${draftsCount})`}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -292,9 +316,11 @@ export default function AdminDashboard() {
                           "text-xs px-2 py-1 rounded font-medium",
                           isActive
                             ? "bg-brand-success/10 text-brand-success border border-brand-success/20"
-                            : "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
+                            : p.statement?.includes("Pending enrichment")
+                              ? "bg-brand-warning/10 text-brand-warning border border-brand-warning/20"
+                              : "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
                         )}>
-                          {isActive ? 'active' : 'draft'}
+                          {isActive ? 'published' : p.statement?.includes("Pending enrichment") ? 'pending enrich' : 'draft'}
                         </span>
                       </td>
                       <td className="px-6 py-4">

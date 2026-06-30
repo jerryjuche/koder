@@ -38,12 +38,17 @@ type Store interface {
 	// User operations
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
+	GetUserByUsername(ctx context.Context, username string) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetUserByLogin(ctx context.Context, login string) (*User, error) // checks username, email, student_id
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
-	GetUserByGiteaID(ctx context.Context, giteaID int64) (*User, error)
+	GetUserByGoogleID(ctx context.Context, googleID string) (*User, error)
 	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateUserName(ctx context.Context, id uuid.UUID, name string) error
 	UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error
+	UpdateUserUsername(ctx context.Context, id uuid.UUID, username string) error
+	UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
 	GetUserRank(ctx context.Context, userID uuid.UUID) (int, error)
@@ -53,10 +58,8 @@ type Store interface {
 	GetFullProfile(ctx context.Context, userID uuid.UUID) (*FullProfileResult, error)
 	GetUserActivity(ctx context.Context, userID uuid.UUID, year int) ([]ActivityEntry, error)
 	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
-	CreateUserFromGitea(ctx context.Context, info *GiteaUserInfo) (*User, error)
-	LinkGiteaToUser(ctx context.Context, userID uuid.UUID, info *GiteaUserInfo) error
-	UpdateGiteaProfile(ctx context.Context, userID uuid.UUID, username, avatarURL, encryptedToken string) error
-	ClearGiteaProfile(ctx context.Context, userID uuid.UUID) error
+	CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error)
+	LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)

@@ -15,7 +15,6 @@ import {
   MapPin,
   Globe,
   Mail,
-  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -57,13 +56,13 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
       <div className="h-1.5 w-full bg-gradient-to-r from-primary/80 via-primary to-amber-400/80" />
 
       <div className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-        {/* Avatar — Gitea image or initials fallback */}
+        {/* Avatar — Google image or initials fallback */}
         <div className="relative flex-shrink-0">
-          {profile.gitea_avatar_url && !avatarError ? (
+          {profile.google_avatar_url && !avatarError ? (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-border shadow-lg overflow-hidden">
               <Image
-                src={profile.gitea_avatar_url}
-                alt={profile.gitea_username ?? "Gitea avatar"}
+                src={profile.google_avatar_url}
+                alt={profile.username ?? "Avatar"}
                 width={96}
                 height={96}
                 className="w-full h-full object-cover"
@@ -94,13 +93,9 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 <h2 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
                   {profile.name}
                 </h2>
-                <span className="bg-muted/50 border border-border text-muted-foreground px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
-                  @{profile.student_id}
-                </span>
-                {profile.gitea_username && (
-                  <span className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
-                    <GitBranch size={12} />
-                    {profile.gitea_username}
+                {profile.username && (
+                  <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
+                    @{profile.username}
                   </span>
                 )}
               </div>
@@ -109,6 +104,9 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 <Mail size={14} />
                 <span>{profile.student_id}</span>
               </div>
+              {profile.bio && (
+                <p className="text-sm text-muted-foreground mt-2">{profile.bio}</p>
+              )}
 
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">

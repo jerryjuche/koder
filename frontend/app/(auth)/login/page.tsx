@@ -1,25 +1,91 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Code2, ArrowRight, GitBranch } from 'lucide-react';
-import { login, API_BASE } from '@/lib/api';
+import { Code2, ArrowRight } from 'lucide-react';
+import { login, googleLogin } from '@/lib/api';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+            cancel_on_tap_outside?: boolean;
+          }) => void;
+          renderButton: (
+            element: HTMLElement | null,
+            options: { theme: string; size: string; text?: string; width?: string },
+          ) => void;
+        };
+      };
+    };
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  const [studentId, setStudentId] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load Google Identity Services script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google && googleButtonRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+          callback: handleGoogleResponse,
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          text: 'signin_with',
+          width: '100%',
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  const handleGoogleResponse = async (response: { credential: string }) => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await googleLogin(response.credential);
+      if (res.success && res.data) {
+        localStorage.setItem('token', res.data.token);
+        if (res.data.onboarding) {
+          router.push('/onboarding');
+        } else {
+          router.push('/');
+        }
+      } else {
+        setErrorMsg(res.error?.message || 'Google sign-in failed');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await login({ student_id: studentId, password });
+      const res = await login({ login: loginId, password });
       if (res.success && res.data) {
         localStorage.setItem('token', res.data.token);
         router.push('/');
@@ -53,14 +119,14 @@ export default function LoginPage() {
           </div>
         )}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Student ID / Email</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Username or Email</label>
           <input 
             type="text" 
             required
-            value={studentId}
-            onChange={e => setStudentId(e.target.value)}
+            value={loginId}
+            onChange={e => setLoginId(e.target.value)}
             className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-            placeholder="student@university.edu"
+            placeholder="username or email"
           />
         </div>
         
@@ -101,13 +167,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <a
-        href={`${API_BASE}/auth/gitea/login`}
-        className="w-full flex items-center justify-center gap-2 border border-brand-charcoal-border rounded-xl py-3 text-brand-offwhite hover:bg-brand-charcoal-hover transition text-sm font-medium"
-      >
-        <GitBranch size={18} />
-        Sign in with Gitea
-      </a>
+      <div ref={googleButtonRef} className="flex justify-center w-full [&>div]:w-full" />
 
       <p className="text-center text-sm text-brand-offwhite-muted mt-8">
         Don&apos;t have an account? <Link href="/register" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">Apply for access</Link>

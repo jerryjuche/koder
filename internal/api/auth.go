@@ -1,7 +1,6 @@
 package api
 
 import (
-
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,18 +25,28 @@ func NewAuthHandler(store store.Store, cfg *config.Config) *AuthHandler {
 }
 
 type registerRequest struct {
-	StudentID string `json:"student_id"`
-	Name      string `json:"name"`
-	Password  string `json:"password"`
+	Username string  `json:"username"`
+	Name     string  `json:"name"`
+	Password string  `json:"password"`
+	Email    *string `json:"email,omitempty"`
 }
 
 type loginRequest struct {
-	StudentID string `json:"student_id"`
-	Password  string `json:"password"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+type googleAuthRequest struct {
+	IDToken string `json:"id_token"`
+}
+
+type completeGoogleRequest struct {
+	Username string `json:"username"`
 }
 
 type authResponse struct {
-	Token string `json:"token"`
+	Token      string `json:"token"`
+	Onboarding bool   `json:"onboarding,omitempty"`
 }
 
 func uuidStringFromPGType(id pgtype.UUID) (string, error) {
@@ -56,19 +65,21 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.StudentID == "" || req.Name == "" || req.Password == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "student_id, name, and password are required", nil)
+	if req.Username == "" || req.Name == "" || req.Password == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username, name, and password are required", nil)
 		return
 	}
 
 	role := "student"
-	if h.config.AdminEmail != "" && req.StudentID == h.config.AdminEmail && req.Password == h.config.AdminPassword {
+	if h.config.AdminEmail != "" && req.Username == h.config.AdminEmail && req.Password == h.config.AdminPassword {
 		role = "admin"
 	}
 
 	newUser := &store.NewUser{
-		StudentID: req.StudentID,
+		StudentID: req.Username,
+		Username:  req.Username,
 		Name:      req.Name,
+		Email:     req.Email,
 		Password:  req.Password,
 		Role:      role,
 	}
@@ -85,7 +96,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.SignToken(userID, user.StudentID, user.Role, h.config.JWTSecret, h.config.JWTExpiry())
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 		return
@@ -103,12 +114,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.StudentID == "" || req.Password == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "student_id and password are required", nil)
+	if req.Login == "" || req.Password == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "login and password are required", nil)
 		return
 	}
 
-	user, err := h.store.GetUserByStudentID(r.Context(), req.StudentID)
+	user, err := h.store.GetUserByLogin(r.Context(), req.Login)
 	if err != nil {
 		RespondError(w, http.StatusUnauthorized, "AUTH_FAILED", "Invalid credentials", nil)
 		return
@@ -126,14 +137,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Dynamic admin upgrade if environment variables changed after user creation
-	if user.Role != "admin" && h.config.AdminEmail != "" && req.StudentID == h.config.AdminEmail && req.Password == h.config.AdminPassword {
+	if user.Role != "admin" && h.config.AdminEmail != "" && (req.Login == h.config.AdminEmail || req.Login == user.Username) && req.Password == h.config.AdminPassword {
 		uID, _ := uuid.Parse(userID)
 		if err := h.store.UpdateUserRole(r.Context(), uID, "admin"); err == nil {
 			user.Role = "admin"
 		}
 	}
 
-	token, err := auth.SignToken(userID, user.StudentID, user.Role, h.config.JWTSecret, h.config.JWTExpiry())
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 		return
@@ -142,185 +153,181 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, authResponse{Token: token})
 }
 
-
-
-// giteaLinkRequest is the payload for linking a Gitea PAT.
-type giteaLinkRequest struct {
-	Token string `json:"token"`
-}
-
-// giteaStatusResponse is returned by the Gitea status and link endpoints.
-type giteaStatusResponse struct {
-	Linked         bool    `json:"linked"`
-	GiteaUsername  *string `json:"gitea_username,omitempty"`
-	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
-}
-
-// GiteaLink links the authenticated user's Gitea account via a Personal Access Token.
-// POST /auth/gitea/link
-func (h *AuthHandler) GiteaLink(w http.ResponseWriter, r *http.Request) {
-	claims := GetClaims(r.Context())
-	if claims == nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
-		return
-	}
-
-	var req giteaLinkRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// GoogleAuth handles Google Sign-In.
+// POST /auth/google
+func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
+	var req googleAuthRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
 		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
 		return
 	}
 
-	if req.Token == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Gitea PAT token is required", nil)
+	if req.IDToken == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "id_token is required", nil)
 		return
 	}
 
-	// Fetch Gitea user info using the PAT
-	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, req.Token, h.config.SandboxURL)
+	info, err := auth.VerifyGoogleToken(req.IDToken, h.config.GoogleClientID)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to verify Gitea token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", err.Error())
 		return
 	}
 
-	// Encrypt the PAT before storage
-	encryptedToken, err := auth.EncryptToken(req.Token, h.config.JWTSecret)
+	// Check if user already exists by Google ID
+	user, err := h.store.GetUserByGoogleID(r.Context(), info.Sub)
+	if err == nil && user != nil {
+		// Existing Google user — sync avatar
+		if info.Picture != "" && (user.GoogleAvatarURL == nil || *user.GoogleAvatarURL != info.Picture) {
+			idStr, _ := uuidStringFromPGType(user.ID)
+			if idStr != "" {
+				userUUID, _ := uuid.Parse(idStr)
+				_ = h.store.UpdateUserGoogleAvatar(r.Context(), userUUID, info.Picture)
+				InvalidateUserCache(idStr)
+			}
+		}
+
+		userID, _ := uuidStringFromPGType(user.ID)
+		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+		if err != nil {
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+			return
+		}
+
+		RespondSuccess(w, authResponse{Token: token})
+		return
+	}
+
+	// Check if email already used by an existing email/password account
+	existingUser, emailErr := h.store.GetUserByEmail(r.Context(), info.Email)
+	if emailErr == nil && existingUser != nil {
+		// Link Google to existing account
+		existingID, _ := uuidStringFromPGType(existingUser.ID)
+		if existingID != "" {
+			existingUUID, _ := uuid.Parse(existingID)
+			if err := h.store.LinkGoogleToUser(r.Context(), existingUUID, info); err == nil {
+				InvalidateUserCache(existingID)
+			}
+		}
+
+		userID, _ := uuidStringFromPGType(existingUser.ID)
+		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+		if err != nil {
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+			return
+		}
+
+		RespondSuccess(w, authResponse{Token: token})
+		return
+	}
+
+	// New user — create with temporary username
+	newUser, err := h.store.CreateUserFromGoogle(r.Context(), info)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENCRYPTION_FAILED", "Failed to encrypt token", nil)
+		RespondError(w, http.StatusInternalServerError, "USER_CREATION_FAILED", "Unable to create user from Google", err.Error())
 		return
 	}
 
-	userUUID, err := uuid.Parse(claims.UserID)
+	userID, err := uuidStringFromPGType(newUser.ID)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", err.Error())
 		return
 	}
 
-	if err := h.store.UpdateGiteaProfile(r.Context(), userUUID, giteaUser.Login, giteaUser.AvatarURL, encryptedToken); err != nil {
-		RespondError(w, http.StatusInternalServerError, "LINK_FAILED", "Failed to link Gitea account", err.Error())
+	// Issue token with onboarding flag
+	token, err := auth.SignToken(userID, newUser.StudentID, newUser.Username, newUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), true)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 		return
 	}
 
-	InvalidateUserCache(claims.UserID)
-
-	RespondSuccess(w, giteaStatusResponse{
-		Linked:         true,
-		GiteaUsername:  &giteaUser.Login,
-		GiteaAvatarURL: &giteaUser.AvatarURL,
-	})
+	RespondSuccess(w, authResponse{Token: token, Onboarding: true})
 }
 
-// GiteaUnlink removes the Gitea PAT-linked profile from the authenticated user.
-// DELETE /auth/gitea/link
-func (h *AuthHandler) GiteaUnlink(w http.ResponseWriter, r *http.Request) {
+// CompleteGoogle completes the Google onboarding flow by setting a username.
+// POST /auth/complete-google
+func (h *AuthHandler) CompleteGoogle(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
 	if claims == nil {
 		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
 		return
 	}
 
+	var req completeGoogleRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		return
+	}
+
+	if req.Username == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username is required", nil)
+		return
+	}
+
+	if len(req.Username) < 3 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username must be at least 3 characters", nil)
+		return
+	}
+
 	userUUID, err := uuid.Parse(claims.UserID)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
 		return
 	}
 
-	if err := h.store.ClearGiteaProfile(r.Context(), userUUID); err != nil {
-		RespondError(w, http.StatusInternalServerError, "UNLINK_FAILED", "Failed to unlink Gitea account", err.Error())
+	// Check username uniqueness
+	existingUser, err := h.store.GetUserByUsername(r.Context(), req.Username)
+	if err == nil && existingUser != nil {
+		existingID, _ := uuidStringFromPGType(existingUser.ID)
+		if existingID == claims.UserID {
+			// Same user, just re-submitting their current username — allow it
+		} else {
+			RespondError(w, http.StatusConflict, "USERNAME_TAKEN", "Username is already taken", nil)
+			return
+		}
+	}
+
+	if err := h.store.UpdateUserUsername(r.Context(), userUUID, req.Username); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", err.Error())
 		return
 	}
 
 	InvalidateUserCache(claims.UserID)
 
-	RespondSuccess(w, giteaStatusResponse{Linked: false})
+	// Fetch updated user to get fresh data
+	updatedUser, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "USER_NOT_FOUND", "User not found after update", nil)
+		return
+	}
+
+	userID, _ := uuidStringFromPGType(updatedUser.ID)
+	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		return
+	}
+
+	RespondSuccess(w, authResponse{Token: token})
 }
 
-// GiteaStatus returns the Gitea linking status for the authenticated user.
-// GET /auth/gitea/status
-func (h *AuthHandler) GiteaStatus(w http.ResponseWriter, r *http.Request) {
-	claims := GetClaims(r.Context())
-	if claims == nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+// CheckUsername checks if a username is available.
+// GET /auth/check-username?username=xxx
+func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username query parameter is required", nil)
 		return
 	}
 
-	userUUID, err := uuid.Parse(claims.UserID)
-	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
-		return
-	}
+	_, err := h.store.GetUserByUsername(r.Context(), username)
+	available := err != nil
 
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
-		return
-	}
-
-	linked := user.GiteaUsername != nil && *user.GiteaUsername != ""
-	RespondSuccess(w, giteaStatusResponse{
-		Linked:         linked,
-		GiteaUsername:  user.GiteaUsername,
-		GiteaAvatarURL: user.GiteaAvatarURL,
-	})
-}
-
-// GiteaSync re-fetches the Gitea profile using the stored encrypted PAT.
-// POST /auth/gitea/sync
-func (h *AuthHandler) GiteaSync(w http.ResponseWriter, r *http.Request) {
-	claims := GetClaims(r.Context())
-	if claims == nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
-		return
-	}
-
-	userUUID, err := uuid.Parse(claims.UserID)
-	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
-		return
-	}
-
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
-		return
-	}
-
-	if user.GiteaToken == nil || *user.GiteaToken == "" {
-		RespondError(w, http.StatusBadRequest, "NOT_LINKED", "No Gitea account is linked", nil)
-		return
-	}
-
-	// Decrypt the stored token
-	plainToken, err := auth.DecryptToken(*user.GiteaToken, h.config.JWTSecret)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DECRYPTION_FAILED", "Failed to decrypt stored token", nil)
-		return
-	}
-
-	// Re-fetch Gitea profile
-	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, plainToken, h.config.SandboxURL)
-	if err != nil {
-		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to fetch Gitea profile", err.Error())
-		return
-	}
-
-	// Re-encrypt with the same key (rotation-safe)
-	encryptedToken, err := auth.EncryptToken(plainToken, h.config.JWTSecret)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENCRYPTION_FAILED", "Failed to encrypt token", nil)
-		return
-	}
-
-	if err := h.store.UpdateGiteaProfile(r.Context(), userUUID, giteaUser.Login, giteaUser.AvatarURL, encryptedToken); err != nil {
-		RespondError(w, http.StatusInternalServerError, "SYNC_FAILED", "Failed to sync Gitea profile", err.Error())
-		return
-	}
-
-	InvalidateUserCache(claims.UserID)
-
-	RespondSuccess(w, giteaStatusResponse{
-		Linked:         true,
-		GiteaUsername:  &giteaUser.Login,
-		GiteaAvatarURL: &giteaUser.AvatarURL,
+	RespondSuccess(w, map[string]interface{}{
+		"username":   username,
+		"available":  available,
 	})
 }

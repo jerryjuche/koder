@@ -14,7 +14,6 @@ import {
   Medal,
   Crown,
   Users,
-  GitBranch,
 } from "lucide-react";
 import { fetchLeaderboard, fetchUser } from "@/lib/api";
 import { LeaderboardEntry, User } from "@/lib/types";
@@ -250,7 +249,7 @@ export default function LeaderboardClient() {
                   </div>
 
                   {/* Avatar */}
-                  {entry.user.gitea_avatar_url &&
+                  {entry.user.google_avatar_url &&
                   !avatarsFailed.has(entry.user.id) ? (
                     <div
                       className={cn(
@@ -259,8 +258,8 @@ export default function LeaderboardClient() {
                       )}
                     >
                       <Image
-                        src={entry.user.gitea_avatar_url}
-                        alt={entry.user.gitea_username ?? "Avatar"}
+                        src={entry.user.google_avatar_url}
+                        alt={entry.user.username ?? "Avatar"}
                         width={56}
                         height={56}
                         className="w-full h-full object-cover"
@@ -319,11 +318,11 @@ export default function LeaderboardClient() {
               <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center font-mono font-bold text-primary text-lg shrink-0">
                 {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
               </div>
-              {user.gitea_avatar_url && !avatarsFailed.has(user.id) ? (
+              {user.google_avatar_url && !avatarsFailed.has(user.id) ? (
                 <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
                   <Image
-                    src={user.gitea_avatar_url}
-                    alt={user.gitea_username ?? "Avatar"}
+                    src={user.google_avatar_url}
+                    alt={user.username ?? "Avatar"}
                     width={44}
                     height={44}
                     className="w-full h-full object-cover"
@@ -347,10 +346,9 @@ export default function LeaderboardClient() {
                   {user.name}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {user.gitea_username ? (
-                    <span className="flex items-center gap-1 text-emerald-400">
-                      <GitBranch size={10} />
-                      {user.gitea_username}
+                  {user.username ? (
+                    <span className="text-emerald-400">
+                      @{user.username}
                     </span>
                   ) : (
                     <span className="font-mono">{user.studentId}</span>
@@ -533,12 +531,12 @@ export default function LeaderboardClient() {
                         {/* Student */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            {rowUser?.gitea_avatar_url &&
+                            {rowUser?.google_avatar_url &&
                             !avatarsFailed.has(rowUser.id) ? (
                               <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
                                 <Image
-                                  src={rowUser.gitea_avatar_url}
-                                  alt={rowUser.gitea_username ?? "Avatar"}
+                                  src={rowUser.google_avatar_url}
+                                  alt={rowUser.username ?? "Avatar"}
                                   width={32}
                                   height={32}
                                   className="w-full h-full object-cover"
@@ -564,10 +562,9 @@ export default function LeaderboardClient() {
                             <div>
                               <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
                                 {rowUser?.name || "Unknown"}
-                                {rowUser?.gitea_username && (
-                                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-                                    <GitBranch size={10} />
-                                    {rowUser.gitea_username}
+                                {rowUser?.username && (
+                                  <span className="text-[10px] text-emerald-400 font-mono">
+                                    @{rowUser.username}
                                   </span>
                                 )}
                                 {isMe && (
