@@ -36,3 +36,6 @@ frontend/coverage/
 
 # Project docs (auto-generated)
 CODEBASE_ANALYSIS.md
+
+# Windows reserved device name
+nul

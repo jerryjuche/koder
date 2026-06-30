@@ -288,6 +288,13 @@ export async function rejectContribution(id: string, notes: string): Promise<Api
   });
 }
 
+export async function toggleProblemVisibility(id: string, visible: boolean): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/problems/${id}/visibility`, {
+    method: "PATCH",
+    body: JSON.stringify({ visible }),
+  });
+}
+
 // ============================================
 // GITEA PAT LINKING
 // ============================================

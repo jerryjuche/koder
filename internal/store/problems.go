@@ -340,6 +340,23 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 	return problems, nil
 }
 
+// UpdateProblemVisibility sets the visible flag for a problem by ID.
+func (s *PostgresStore) UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error {
+	if problemID == uuid.Nil {
+		return fmt.Errorf("problemID cannot be nil")
+	}
+
+	query := `UPDATE problems SET visible = $1, updated_at = NOW() WHERE id = $2`
+	tag, err := s.pool.Exec(ctx, query, visible, problemID)
+	if err != nil {
+		return fmt.Errorf("failed to update problem visibility: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("problem not found: %s", problemID.String())
+	}
+	return nil
+}
+
 // UpsertTestCasesForProblem deletes existing case rows for a problem and inserts the current set.
 func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error {
 	if problemID == uuid.Nil {

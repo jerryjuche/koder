@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Code2, ArrowRight } from 'lucide-react';
-import { login } from '@/lib/api';
+import { Code2, ArrowRight, GitBranch } from 'lucide-react';
+import { login, API_BASE } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -91,6 +91,23 @@ export default function LoginPage() {
           )}
         </button>
       </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-brand-charcoal-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-brand-charcoal-card px-2 text-brand-offwhite-muted">or</span>
+        </div>
+      </div>
+
+      <a
+        href={`${API_BASE}/auth/gitea/login`}
+        className="w-full flex items-center justify-center gap-2 border border-brand-charcoal-border rounded-xl py-3 text-brand-offwhite hover:bg-brand-charcoal-hover transition text-sm font-medium"
+      >
+        <GitBranch size={18} />
+        Sign in with Gitea
+      </a>
 
       <p className="text-center text-sm text-brand-offwhite-muted mt-8">
         Don&apos;t have an account? <Link href="/register" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">Apply for access</Link>

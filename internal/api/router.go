@@ -100,6 +100,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
+			r.Patch("/admin/problems/{id}/visibility", adminHandler.ToggleVisibility)
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
 			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
 			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
