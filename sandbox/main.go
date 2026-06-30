@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -307,6 +308,53 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
+func giteaProxyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondError(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+
+	var req struct {
+		URL   string `json:"url"`
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_request_body")
+		return
+	}
+	if req.URL == "" || req.Token == "" {
+		respondError(w, http.StatusBadRequest, "url_and_token_required")
+		return
+	}
+
+	giteaURL := os.Getenv("GITEA_URL")
+	if giteaURL == "" {
+		giteaURL = "https://gitea.com"
+	}
+
+	proxyReq, err := http.NewRequestWithContext(r.Context(), http.MethodGet, strings.TrimRight(giteaURL, "/")+req.URL, nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "request_creation_failed")
+		return
+	}
+	proxyReq.Header.Set("Authorization", "Bearer "+req.Token)
+	proxyReq.Header.Set("User-Agent", "Koder/1.0")
+	proxyReq.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(proxyReq)
+	if err != nil {
+		respondError(w, http.StatusBadGateway, "upstream_error")
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
 func versionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -382,13 +430,15 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/version", versionHandler)
 	mux.HandleFunc("/execute", executeHandler)
+	mux.HandleFunc("/gitea-proxy", giteaProxyHandler)
 
-	// Health endpoint bypasses rate limiter
+	// Rate limiter middleware
 	rateLimited := rl.Middleware(mux)
 
-	// Route: /health → no limit, everything else → rate limited
+	// Route: internal endpoints bypass rate limiter
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" {
+		path := r.URL.Path
+		if path == "/health" || path == "/version" || path == "/gitea-proxy" {
 			mux.ServeHTTP(w, r)
 			return
 		}
