@@ -104,11 +104,11 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Port != 8080 {
 		t.Errorf("expected default port 8080, got %d", cfg.Port)
 	}
-	if cfg.ExecutorMaxConcurrency != 2 {
-		t.Errorf("expected default concurrency 2, got %d", cfg.ExecutorMaxConcurrency)
+	if cfg.ExecutorMaxConcurrency != 6 {
+		t.Errorf("expected default concurrency 6, got %d", cfg.ExecutorMaxConcurrency)
 	}
-	if cfg.ExecutorTimeoutSeconds != 5 {
-		t.Errorf("expected default timeout 5, got %d", cfg.ExecutorTimeoutSeconds)
+	if cfg.ExecutorTimeoutSeconds != 30 {
+		t.Errorf("expected default timeout 30, got %d", cfg.ExecutorTimeoutSeconds)
 	}
 
 	os.Unsetenv("DATABASE_URL")
