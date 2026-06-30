@@ -172,9 +172,13 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	}
 
 	// Create an isolated temp directory.
-	// Use WORKDIR (/app) as base so we don't depend on /tmp — Railway
-	// containers may start with a read-only root or missing /tmp.
-	tmpDir, err := os.MkdirTemp(".", fmt.Sprintf("sandbox-%s-", randString(8)))
+	// First try the system temp dir; fall back to CWD if /tmp is missing
+	// (some Railway containers start without /tmp).
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("sandbox-%s-", randString(8)))
+	if err != nil {
+		log.Printf("WARN: system temp dir unavailable (%v), falling back to CWD", err)
+		tmpDir, err = os.MkdirTemp(".", fmt.Sprintf("sandbox-%s-", randString(8)))
+	}
 	if err != nil {
 		return errorResponse("internal_error", fmt.Sprintf("failed to create temp directory: %v", err))
 	}
@@ -303,6 +307,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	commit := gitCommit
+	if commit == "" {
+		commit = "dev"
+	}
+	fmt.Fprintf(w, `{"commit":%q}`, commit)
+}
+
 func executeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		respondError(w, http.StatusMethodNotAllowed, "method_not_allowed")
@@ -352,6 +366,8 @@ func respondError(w http.ResponseWriter, code int, msg string) {
 // Entry point
 // ---------------------------------------------------------------------------
 
+var gitCommit string // set at build time with -ldflags
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -364,6 +380,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/version", versionHandler)
 	mux.HandleFunc("/execute", executeHandler)
 
 	// Health endpoint bypasses rate limiter

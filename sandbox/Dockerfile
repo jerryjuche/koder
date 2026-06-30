@@ -4,7 +4,8 @@ WORKDIR /build
 COPY go.mod ./
 # No go.sum — sandbox has zero external dependencies
 COPY *.go ./
-RUN CGO_ENABLED=0 go build -o sandbox-runner .
+ARG GIT_COMMIT=dev
+RUN CGO_ENABLED=0 go build -ldflags="-X main.gitCommit=${GIT_COMMIT}" -o sandbox-runner .
 
 FROM golang:1.23-alpine
 
