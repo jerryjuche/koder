@@ -151,8 +151,8 @@ type giteaLinkRequest struct {
 
 // giteaStatusResponse is returned by the Gitea status and link endpoints.
 type giteaStatusResponse struct {
-	Linked      bool    `json:"linked"`
-	GiteaUsername *string `json:"gitea_username,omitempty"`
+	Linked         bool    `json:"linked"`
+	GiteaUsername  *string `json:"gitea_username,omitempty"`
 	GiteaAvatarURL *string `json:"gitea_avatar_url,omitempty"`
 }
 
@@ -177,7 +177,7 @@ func (h *AuthHandler) GiteaLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch Gitea user info using the PAT
-	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, req.Token)
+	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, req.Token, h.config.SandboxURL)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to verify Gitea token", err.Error())
 		return
@@ -298,7 +298,7 @@ func (h *AuthHandler) GiteaSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Re-fetch Gitea profile
-	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, plainToken)
+	giteaUser, err := auth.FetchGiteaUser(r.Context(), h.config.GiteaURL, plainToken, h.config.SandboxURL)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "GITEA_FETCH_FAILED", "Failed to fetch Gitea profile", err.Error())
 		return

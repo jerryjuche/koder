@@ -121,7 +121,21 @@ var giteaHTTPClient = &http.Client{
 
 // FetchGiteaUser calls Gitea's /api/v1/user endpoint with the access token
 // and returns the user's profile information.
-func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.GiteaUserInfo, error) {
+// If sandboxURL is non-empty and the direct call is blocked by Cloudflare,
+// the request is retried through the sandbox proxy.
+func FetchGiteaUser(ctx context.Context, giteaURL string, token string, sandboxURL string) (*store.GiteaUserInfo, error) {
+	user, err := fetchGiteaUserDirect(ctx, giteaURL, token)
+	if err != nil && sandboxURL != "" {
+		// Check if the error is a Cloudflare block
+		if strings.Contains(err.Error(), "blocked by Cloudflare") || (strings.Contains(err.Error(), "status 403") && strings.Contains(err.Error(), "Cloudflare")) {
+			sandboxURL = strings.TrimRight(sandboxURL, "/")
+			return fetchGiteaUserViaProxy(ctx, sandboxURL, token)
+		}
+	}
+	return user, err
+}
+
+func fetchGiteaUserDirect(ctx context.Context, giteaURL string, token string) (*store.GiteaUserInfo, error) {
 	giteaURL = strings.TrimRight(giteaURL, "/")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, giteaURL+"/api/v1/user", nil)
 	if err != nil {
@@ -148,7 +162,6 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 		}
 		body, _ := io.ReadAll(reader)
 		bodyStr := strings.TrimSpace(string(body))
-		// Detect Cloudflare challenges and give a helpful error
 		if resp.StatusCode == http.StatusForbidden && (strings.Contains(bodyStr, "Cloudflare") || strings.Contains(bodyStr, "cf-error-details")) {
 			return nil, fmt.Errorf("gitea API blocked by Cloudflare: add your backend server's IP to the Cloudflare WAF allowlist, or use a Gitea instance not behind Cloudflare")
 		}
@@ -162,6 +175,42 @@ func FetchGiteaUser(ctx context.Context, giteaURL string, token string) (*store.
 
 	if user.ID == 0 || user.Login == "" {
 		return nil, fmt.Errorf("gitea returned incomplete user info")
+	}
+
+	return &user, nil
+}
+
+func fetchGiteaUserViaProxy(ctx context.Context, sandboxURL string, token string) (*store.GiteaUserInfo, error) {
+	body := map[string]string{
+		"url":   "/api/v1/user",
+		"token": token,
+	}
+	payload, _ := json.Marshal(body)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sandboxURL+"/gitea-proxy", strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create proxy request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := giteaHTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to proxy gitea request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("gitea proxy returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var user store.GiteaUserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, fmt.Errorf("failed to decode proxy response: %w", err)
+	}
+
+	if user.ID == 0 || user.Login == "" {
+		return nil, fmt.Errorf("proxy returned incomplete user info")
 	}
 
 	return &user, nil
