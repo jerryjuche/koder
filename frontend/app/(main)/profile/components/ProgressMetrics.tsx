@@ -14,14 +14,14 @@ interface ProgressMetricsProps {
 }
 
 const difficultyConfig: Record<string, { label: string; color: string; barColor: string; gradient: string }> = {
-  easy: { label: "Easy", color: "text-emerald-400", barColor: "bg-emerald-400", gradient: "from-emerald-500/10 to-emerald-600/5" },
-  medium: { label: "Medium", color: "text-amber-400", barColor: "bg-amber-400", gradient: "from-amber-500/10 to-amber-600/5" },
+  easy: { label: "Easy", color: "text-amber-400", barColor: "bg-amber-400", gradient: "from-amber-500/10 to-amber-600/5" },
+  medium: { label: "Medium", color: "text-amber-500", barColor: "bg-amber-500", gradient: "from-amber-500/10 to-amber-600/5" },
   hard: { label: "Hard", color: "text-rose-400", barColor: "bg-rose-400", gradient: "from-rose-500/10 to-rose-600/5" },
 };
 
 const MODULE_GAUGE_COLORS: Record<string, string> = {
   "Arrays & Slices": "fill-blue-500 stroke-blue-500",
-  "Strings & Runes": "fill-emerald-500 stroke-emerald-500",
+  "Strings & Runes": "fill-teal-500 stroke-teal-500",
   "Math & Recursion": "fill-purple-500 stroke-purple-500",
   "Data Structures": "fill-amber-500 stroke-amber-500",
   "Sorting & Searching": "fill-rose-500 stroke-rose-500",
@@ -29,7 +29,7 @@ const MODULE_GAUGE_COLORS: Record<string, string> = {
   "Concurrency": "fill-cyan-500 stroke-cyan-500",
   "Dynamic Programming": "fill-fuchsia-500 stroke-fuchsia-500",
   "Bit Manipulation": "fill-slate-500 stroke-slate-500",
-  "Trees & Graphs": "fill-green-500 stroke-green-500",
+  "Trees & Graphs": "fill-sky-500 stroke-sky-500",
   "Error Handling": "fill-red-500 stroke-red-500",
   "Testing": "fill-teal-500 stroke-teal-500",
   "File I/O": "fill-orange-500 stroke-orange-500",
@@ -158,8 +158,8 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
       >
         <Card className="p-6 bg-black/20 backdrop-blur-sm border border-white/5">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-              <BookOpen size={18} className="text-blue-400" />
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+              <BookOpen size={18} className="text-amber-400" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white">Module Proficiency</h3>

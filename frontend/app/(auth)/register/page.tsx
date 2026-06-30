@@ -12,25 +12,32 @@ export default function RegisterPage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreeTerms) {
+      setErrorMsg('You must agree to the Terms of Service and Privacy Policy');
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {
       const res = await register({
-        username: username || email?.split('@')[0] || '',
         name: `${firstName} ${lastName}`.trim(),
         email: email,
         password
       });
       if (res.success && res.data) {
         localStorage.setItem('token', res.data.token);
-        router.push('/');
+        if (res.data.onboarding) {
+          router.push('/onboarding');
+        } else {
+          router.push('/');
+        }
       } else {
         setErrorMsg(res.error?.message || 'Registration failed');
       }
@@ -96,18 +103,6 @@ export default function RegisterPage() {
             placeholder="student@university.edu"
           />
         </div>
-        
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Username</label>
-          <input 
-            type="text" 
-            required
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-            placeholder="e.g. adalovelace"
-          />
-        </div>
 
         <div>
            <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">Password</label>
@@ -121,10 +116,26 @@ export default function RegisterPage() {
           />
         </div>
 
+        <div className="flex items-start gap-3 pt-2">
+          <input
+            id="agree-terms"
+            type="checkbox"
+            checked={agreeTerms}
+            onChange={e => setAgreeTerms(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-brand-charcoal-border bg-brand-charcoal-base text-brand-muted-gold focus:ring-brand-muted-gold focus:ring-offset-0"
+          />
+          <label htmlFor="agree-terms" className="text-xs text-brand-offwhite-muted leading-relaxed">
+            I agree to the{' '}
+            <Link href="/terms" className="text-brand-muted-gold hover:underline font-medium">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-brand-muted-gold hover:underline font-medium">Privacy Policy</Link>
+          </label>
+        </div>
+
         <button 
           type="submit" 
-          disabled={loading}
-          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex justify-center items-center gap-2 group mt-4"
+          disabled={loading || !agreeTerms}
+          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex justify-center items-center gap-2 group mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
@@ -135,7 +146,10 @@ export default function RegisterPage() {
       </form>
 
       <p className="text-center text-sm text-brand-offwhite-muted mt-8">
-        Already have an account? <Link href="/login" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">Sign In</Link>
+        Already have an account?{' '}
+        <Link href="/login" className="text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">
+          Sign In
+        </Link>
       </p>
     </div>
   );

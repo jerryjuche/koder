@@ -169,13 +169,13 @@ export default function PendingContributions() {
                     <div className="bg-[#161b22] px-4 py-2 border-b border-brand-charcoal-border flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
                       <span className="text-xs text-brand-offwhite-muted ml-2 font-mono">solution.go</span>
                     </div>
                     <div className="p-4 font-mono text-sm">
                       <span className="text-purple-400">package</span> main<br/><br/>
                       <span className="text-purple-400">func</span> <span className="text-blue-400">{selectedProblem.func_name}</span>({selectedProblem.param_types.join(", ")}) {selectedProblem.return_type} {"{"}<br/>
-                      <span className="text-green-600 ml-4">{"// Write your code here"}</span><br/>
+                                             <span className="text-amber-600 ml-4">{"// Write your code here"}</span><br/>
                       {"}"}
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export default function PendingContributions() {
                 <Button variant="destructive" className="bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/50" onClick={() => handleReject(selectedProblem.id)}>
                   <X className="w-4 h-4 mr-2" /> Reject
                 </Button>
-                <Button className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50" onClick={() => handleApprove(selectedProblem.id)}>
+                <Button className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50" onClick={() => handleApprove(selectedProblem.id)}>
                   <Check className="w-4 h-4 mr-2" /> Approve & Publish
                 </Button>
               </div>

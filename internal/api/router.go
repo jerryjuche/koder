@@ -64,9 +64,11 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		})
 		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
 
-		// Google onboarding routes
-		r.Post("/auth/complete-google", authHandler.CompleteGoogle)
+		// Onboarding routes
+		r.Post("/auth/complete-google", authHandler.CompleteOnboarding)
+		r.Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
 		r.Get("/auth/check-username", authHandler.CheckUsername)
+		r.Post("/auth/link-google", authHandler.LinkGoogle)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)

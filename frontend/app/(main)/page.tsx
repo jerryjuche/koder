@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,7 +17,7 @@ import {
   ArrowLeft,
   BookOpen,
 } from "lucide-react";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, linkGoogle } from "@/lib/api";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
   cn,
@@ -178,14 +178,8 @@ export default function Dashboard() {
               <div className="text-sm font-semibold text-brand-offwhite">
                 {user.name}
               </div>
-              <div className="text-xs text-brand-offwhite-muted">
-                {user.username ? (
-                  <span className="text-emerald-400">
-                    @{user.username}
-                  </span>
-                ) : (
-                  "Student"
-                )}
+              <div className="text-xs text-brand-offwhite-muted font-mono">
+                {user.username || "Student"}
               </div>
             </div>
           </div>
@@ -224,6 +218,11 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Google Sync Banner */}
+      {user && !user.google_avatar_url && (
+        <GoogleSyncBanner />
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-brand-charcoal-border">
@@ -461,7 +460,7 @@ export default function Dashboard() {
 
                         {problem.author_name && (
                           <div className="text-xs text-brand-offwhite-muted mb-6 flex items-center gap-1 font-mono">
-                            by <span className="text-brand-muted-gold">@{problem.author_name}</span>
+                            by <span className="text-brand-muted-gold">{problem.author_name}</span>
                             <CheckCircle2 className="w-3 h-3 text-brand-muted-gold" />
                           </div>
                         )}
@@ -602,6 +601,95 @@ export default function Dashboard() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function GoogleSyncBanner() {
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('google-sync-dismissed') === 'true';
+    }
+    return false;
+  });
+  const [gisLoaded, setGisLoaded] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const gisInitialized = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGisLoaded(true);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (existing) existing.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gisLoaded || !window.google || gisInitialized.current) return;
+    gisInitialized.current = true;
+
+    window.google.accounts.id.initialize({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      callback: async (response) => {
+        setLinking(true);
+        try {
+          const res = await linkGoogle(response.credential);
+          if (res.success) {
+            if (res.data?.token) {
+              localStorage.setItem('token', res.data.token);
+            }
+            window.dispatchEvent(new Event('user-updated'));
+            setDismissed(true);
+          }
+        } finally {
+          setLinking(false);
+        }
+      },
+      cancel_on_tap_outside: true,
+    });
+  }, [gisLoaded]);
+
+  const handleDismiss = () => {
+    localStorage.setItem('google-sync-dismissed', 'true');
+    setDismissed(true);
+  };
+
+  if (dismissed) return null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-5 py-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-amber-300 font-medium">
+          Link your Google account for seamless sign-in and automatic profile syncing.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => {
+            if (gisLoaded && window.google) {
+              (window.google as any).accounts.id.prompt();
+            }
+          }}
+          disabled={linking || !gisLoaded}
+          className="text-xs font-semibold bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+        >
+          {linking ? 'Connecting...' : 'Connect Google'}
+        </button>
+        <button
+          onClick={handleDismiss}
+          className="text-xs text-white/30 hover:text-white/60 transition-colors"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   );
 }

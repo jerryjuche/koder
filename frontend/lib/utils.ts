@@ -10,8 +10,8 @@ export function getUserColor(index: number): string {
     "bg-[#D4AF37]", // Gold
     "bg-[#E07A5F]", // Terracotta
     "bg-[#8E9AAF]", // Silver
-    "bg-[#52B788]", // Green
     "bg-[#A4A4A4]", // Grey
+    "bg-[#7B8EA0]", // Steel
     "bg-[#AE8E44]", // Bronze
   ];
 
@@ -27,7 +27,7 @@ export function getDifficultyColor(difficulty: string | number): string {
 
   switch (diff) {
     case 1:
-      return "text-[#52B788]"; // Beginner / Easy green
+      return "text-amber-400"; // Beginner / Easy
     case 2:
       return "text-[#8DB4B9]"; // Easy
     case 3:
