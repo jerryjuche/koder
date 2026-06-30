@@ -47,13 +47,19 @@ func main() {
 	// Initialize Execution Engine
 	execInstance := executor.NewExecutor(cfg, storeInstance)
 	slog.Info("executor: initialized", "max_concurrency", cfg.ExecutorMaxConcurrency, "timeout_seconds", cfg.ExecutorTimeoutSeconds)
-	go func() {
-		warmupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-		if err := execInstance.Warmup(warmupCtx); err != nil {
-			slog.Warn("failed to completely warmup executor", "error", err)
-		}
-	}()
+
+	if cfg.SandboxURL != "" {
+		slog.Info("executor: using remote sandbox", "url", cfg.SandboxURL)
+	} else {
+		slog.Info("executor: using local Docker execution")
+		go func() {
+			warmupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			if err := execInstance.Warmup(warmupCtx); err != nil {
+				slog.Warn("failed to completely warmup executor", "error", err)
+			}
+		}()
+	}
 
 	// Create HTTP router
 	router, err := api.NewRouter(cfg, storeInstance, execInstance)
