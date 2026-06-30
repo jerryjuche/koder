@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UserProfile } from "@/lib/types";
 import { getUserColor, cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "motion/react";
 import {
   Trophy,
   Settings,
-  Calendar,
   Share2,
   Copy,
   Check,
-  MapPin,
-  Globe,
-  Mail,
+  Calendar,
+  Target,
+  Flame,
+  Zap,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,9 +25,27 @@ interface ProfileHeaderProps {
   profile: UserProfile;
 }
 
+function AnimatedStat({ value, label, icon: Icon, color }: {
+  value: number | string;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5">
+      <Icon size={13} className={cn("shrink-0", color)} />
+      <span className="text-sm font-bold text-white tabular-nums">{value}</span>
+      <span className="text-[10px] text-white/50 uppercase tracking-wider hidden sm:inline">{label}</span>
+    </div>
+  );
+}
+
 export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const copyProfileLink = async () => {
     try {
@@ -50,132 +70,176 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
     .substring(0, 2)
     .toUpperCase();
 
+  const successRate = profile.stats.attempted_count > 0
+    ? ((profile.stats.solved_count / profile.stats.attempted_count) * 100).toFixed(0)
+    : "0";
+
+  const xpInLevel = profile.xp % 1000;
+  const xpPercent = Math.min(100, (xpInLevel / 1000) * 100);
+
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm relative overflow-hidden">
-      {/* Accent gradient line */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-primary/80 via-primary to-amber-400/80" />
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={mounted ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="relative rounded-2xl overflow-hidden"
+    >
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-amber-600/5 animate-pulse-slow" />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl" />
+      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl" />
 
-      <div className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-        {/* Avatar — Google image or initials fallback */}
-        <div className="relative flex-shrink-0">
-          {profile.google_avatar_url && !avatarError ? (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-border shadow-lg overflow-hidden">
-              <Image
-                src={profile.google_avatar_url}
-                alt={profile.username ?? "Avatar"}
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-                onError={() => setAvatarError(true)}
-              />
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
-                "border-[3px] border-border shadow-lg",
-                getUserColor(profile.color_index)
-              )}
-            >
-              <span className="text-3xl sm:text-4xl font-bold text-white tracking-wider">
-                {initials}
-              </span>
-            </div>
-          )}
-          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-primary/20 to-transparent -z-10 blur-sm" />
-        </div>
+      {/* Glass card */}
+      <div className="relative backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl shadow-2xl">
+        {/* Gold accent line */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-amber-600/40 via-amber-400 to-amber-600/40" />
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0 w-full">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
-                  {profile.name}
-                </h2>
-                {profile.username && (
-                  <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono flex-shrink-0">
-                    @{profile.username}
-                  </span>
-                )}
-              </div>
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
+            {/* Avatar with animated glow */}
+            <div className="relative flex-shrink-0 group">
+              <div className="absolute -inset-2 bg-gradient-to-br from-amber-400/30 via-amber-500/20 to-transparent rounded-full blur-md animate-pulse-slow" />
+              <div className="absolute -inset-1 bg-gradient-to-br from-amber-400/20 to-transparent rounded-full blur-sm" />
 
-              <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground text-sm">
-                <Mail size={14} />
-                <span>{profile.student_id}</span>
-              </div>
-              {profile.bio && (
-                <p className="text-sm text-muted-foreground mt-2">{profile.bio}</p>
-              )}
-
-              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar size={12} />
-                  Joined {joinDate}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Trophy size={12} className="text-primary" />
-                  Level {profile.level}
-                </span>
-              </div>
-            </div>
-
-            {/* Rank badge */}
-            <div className="flex-shrink-0 self-start">
-              <div
-                className={cn(
-                  "px-4 py-2.5 rounded-xl border text-center min-w-[130px]",
-                  "bg-gradient-to-br from-amber-500/10 to-primary/5",
-                  "border-primary/30"
-                )}
-              >
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Trophy size={14} className="text-primary" />
-                  <span className="text-[10px] font-bold text-primary/80 uppercase tracking-wider">
-                    Global Rank
+              {profile.google_avatar_url && !avatarError ? (
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-amber-400/30 shadow-lg overflow-hidden">
+                  <Image
+                    src={profile.google_avatar_url}
+                    alt={profile.username ?? "Avatar"}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
+                    "border-2 border-amber-400/30 shadow-lg",
+                    getUserColor(profile.color_index)
+                  )}
+                >
+                  <span className="text-3xl sm:text-4xl font-bold text-white tracking-wider">
+                    {initials}
                   </span>
                 </div>
-                <span className="text-xl font-bold text-primary font-mono">
-                  #{profile.global_rank || "—"}
-                </span>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white truncate tracking-tight">
+                      {profile.name}
+                    </h2>
+                    {profile.username && (
+                      <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-mono shrink-0">
+                        @{profile.username}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-1.5 text-white/50 text-sm">
+                    <Star size={13} />
+                    <span>{profile.student_id}</span>
+                    <span className="mx-1.5">&middot;</span>
+                    <Calendar size={13} />
+                    <span>Joined {joinDate}</span>
+                  </div>
+
+                  {profile.bio && (
+                    <p className="text-sm text-white/60 mt-2 leading-relaxed max-w-xl">
+                      {profile.bio}
+                    </p>
+                  )}
+                </div>
+
+                {/* Level + XP ring */}
+                <div className="flex-shrink-0 self-start flex items-center gap-3">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
+                      <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                      <motion.circle
+                        cx="32" cy="32" r="28" fill="none"
+                        stroke="url(#xpGrad)" strokeWidth="4" strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 28}`}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 28 }}
+                        animate={mounted ? { strokeDashoffset: 2 * Math.PI * 28 * (1 - xpPercent / 100) } : {}}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+                      />
+                      <defs>
+                        <linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#D4AF37" />
+                          <stop offset="100%" stopColor="#F59E0B" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="text-center">
+                      <div className="text-lg font-black text-white leading-none tracking-tight">{profile.level}</div>
+                      <div className="text-[7px] text-amber-400/70 uppercase tracking-widest font-semibold">Level</div>
+                    </div>
+                  </div>
+
+                  {/* Rank badge */}
+                  <div className="px-4 py-2.5 rounded-xl border border-amber-500/20 text-center min-w-[110px] bg-amber-500/5">
+                    <div className="flex items-center justify-center gap-1 mb-0.5">
+                      <Trophy size={12} className="text-amber-400" />
+                      <span className="text-[9px] font-bold text-amber-400/70 uppercase tracking-wider">Rank</span>
+                    </div>
+                    <span className="text-xl font-bold text-amber-400 font-mono">
+                      #{profile.global_rank || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* XP bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-amber-400/70 font-mono font-semibold">{xpInLevel.toLocaleString()} / 1,000 XP</span>
+                  <span className="text-white/40">{xpPercent.toFixed(0)}%</span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400"
+                    initial={{ width: 0 }}
+                    animate={mounted ? { width: `${xpPercent}%` } : {}}
+                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
+                  />
+                </div>
+              </div>
+
+              {/* Inline mini stats */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <AnimatedStat value={`#${profile.global_rank || "-"}`} label="Rank" icon={Trophy} color="text-amber-400" />
+                <AnimatedStat value={profile.stats.solved_count} label="Solved" icon={Target} color="text-emerald-400" />
+                <AnimatedStat value={`${successRate}%`} label="Rate" icon={Zap} color="text-cyan-400" />
+                <AnimatedStat value={`${profile.stats.current_streak_days}d`} label="Streak" icon={Flame} color="text-orange-400" />
+              </div>
+
+              {/* Actions */}
+              <div className="mt-5 flex items-center gap-3 flex-wrap">
+                <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-white/70">
+                  <Link href="/settings">
+                    <Settings size={14} />
+                    Edit Profile
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={copyProfileLink} className="text-white/50 hover:text-white hover:bg-white/5">
+                  {copied ? (
+                    <><Check size={14} className="text-emerald-400" /> Copied</>
+                  ) : (
+                    <><Share2 size={14} /> Share Profile</>
+                  )}
+                </Button>
               </div>
             </div>
-          </div>
-
-          {/* Bio */}
-          {profile.bio && (
-            <div className="mt-4 relative">
-              <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/40 to-primary/5 rounded-full" />
-              <p className="text-sm text-muted-foreground leading-relaxed pl-4 italic">
-                {profile.bio}
-              </p>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="mt-5 flex items-center gap-3 flex-wrap">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/settings">
-                <Settings size={15} />
-                Edit Profile
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={copyProfileLink}>
-              {copied ? (
-                <>
-                  <Check size={15} className="text-emerald-400" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={15} />
-                  Copy Link
-                </>
-              )}
-            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -53,6 +53,20 @@
   background: rgba(255, 255, 255, 0.15); 
 }
 
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
 @keyframes slideInFromRight {
   from {
     opacity: 0;
