@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -12,7 +12,7 @@ import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
 type Tab = "profile" | "appearance" | "notifications" | "security";
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const validTabs: Tab[] = ["profile", "appearance", "notifications", "security"];
@@ -538,5 +538,17 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
