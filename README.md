@@ -606,10 +606,12 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | None | Create account (username + email + password) |
+| POST | `/auth/register` | None | Create account (name + email + password); JWT with `onboarding: true` |
 | POST | `/auth/login` | None | Returns JWT (accepts username/email/student_id) |
 | POST | `/auth/google` | None | Google Sign-In with ID token |
-| POST | `/auth/complete-google` | Student | Set username after Google onboarding |
+| POST | `/auth/complete-google` | Student | Set username after Google onboarding (legacy, delegates to complete-onboarding) |
+| POST | `/auth/complete-onboarding` | Student | Set username + student_id after any auth method |
+| POST | `/auth/link-google` | Student | Link Google account to existing authenticated user |
 | GET | `/auth/check-username?username=xxx` | Student | Username availability check |
 
 ### Problems
@@ -618,15 +620,18 @@ All endpoints return `application/json`. All protected endpoints require `Author
 |--------|------|------|-------------|
 | GET | `/problems` | Student | List visible problems with progress overlay |
 | GET | `/problems/:slug` | Student | Full problem detail + non-hidden test cases |
-| POST | `/problems/:slug/submit` | Student | Submit code for grading |
+| POST | `/submit` | Student | Submit code for grading (rate limited: 5 req/45s) |
+| POST | `/test` | Student | Test code without scoring |
 
 ### User / Profile
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/me` | Student | User profile + XP (cached 30s) |
-| GET | `/me/profile` | Student | Full profile (stats, modules, difficulty, contributions — single `get_full_profile()` call, cached 30s) |
-| GET | `/me/activity` | Student | Daily activity entries for contribution graph |
+| GET | `/me/profile` | Student | Full profile (stats, modules, achievements, difficulty, contributions) |
+| PUT | `/me/profile` | Student | Update name and bio |
+| GET | `/me/activity?year=2026` | Student | Daily activity entries for contribution graph |
+| GET | `/me/contributions` | Student | User's problem contribution submissions |
 | GET | `/profile/:username` | Student | Another user's profile |
 | GET | `/profile/:username/stats` | Student | Another user's performance stats |
 
@@ -634,18 +639,47 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/leaderboard` | Student | Top N users by XP |
+| GET | `/leaderboard?period=all\|weekly\|monthly` | Student | Top 100 users by XP + solved count |
+
+### Community
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/problems/{slug}/community-solutions` | Student | Top community solutions |
+| GET | `/best-practices` | Student | Best practice solutions |
+| POST | `/submissions/{id}/like` | Student | Like a community solution |
+| DELETE | `/submissions/{id}/like` | Student | Unlike a community solution |
+
+### Contributions
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/me/user-problems` | Student | Submit a user-created problem |
+| GET | `/me/contributions` | Student | User's submitted problems |
+
+### Notifications
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/notifications` | Student | Unread notifications |
+| POST | `/notifications/read-all` | Student | Mark all as read |
+| POST | `/notifications/{id}/read` | Student | Mark single as read |
 
 ### Admin
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/admin/ingest` | Admin | Trigger Pipeline 1 against GitHub repo |
-| POST | `/admin/enrich` | Admin | Trigger Pipeline 2 for pending problems |
-| POST | `/admin/execute` | Admin | Manually trigger execution for testing |
-| PATCH | `/admin/problems/:id/visibility` | Admin | Toggle `visible` flag |
+| POST | `/admin/enrich` | Admin | Trigger Pipeline 2 for a single problem |
+| POST | `/admin/enrich-all` | Admin | Batch enrich all pending problems |
 | POST | `/admin/problems/publish-all` | Admin | Publish all draft (hidden) problems |
+| PATCH | `/admin/problems/{id}/visibility` | Admin | Toggle `visible` flag |
+| GET | `/admin/stats` | Admin | Dashboard statistics |
+| GET | `/admin/activity` | Admin | Recent activity log |
 | GET | `/admin/problems` | Admin | All problems including hidden |
+| GET | `/admin/user-problems/pending` | Admin | List pending user submissions |
+| PATCH | `/admin/user-problems/{id}/approve` | Admin | Approve user problem submission |
+| PATCH | `/admin/user-problems/{id}/reject` | Admin | Reject user problem submission |
 
 ### Response Envelope
 
