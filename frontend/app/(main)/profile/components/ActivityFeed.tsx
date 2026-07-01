@@ -38,12 +38,12 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
       >
-        <div className="p-5 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5">
+        <div className="p-5 rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Trophy size={16} className="text-amber-400" />
-              <h3 className="font-semibold text-white text-sm">Achievements</h3>
-            </div>
+                    <div className="flex items-center gap-2">
+                      <Trophy size={16} className="text-[#7B8CBB]" />
+                      <h3 className="font-semibold text-white text-sm">Achievements</h3>
+                    </div>
             <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-1 rounded-md">
               {unlockedCount} / {achievements.length}
             </span>
@@ -69,7 +69,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
                       "w-10 h-10 rounded-xl flex items-center justify-center border",
                       a.unlocked
                         ? a.bg + " " + a.border
-                        : "bg-transparent border-white/5"
+                        : "bg-transparent border-white/6"
                     )}
                   >
                     <Icon size={18} className={a.unlocked ? a.color : "text-white/30"} />
@@ -90,7 +90,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        <div className="p-5 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5">
+        <div className="p-5 rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center gap-2 mb-5">
             <Zap size={16} className="text-amber-400" />
             <h3 className="font-semibold text-white text-sm">Recent Activity</h3>
@@ -104,7 +104,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
           ) : (
             <div className="relative">
               {/* Timeline vertical line */}
-              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-amber-500/30 via-white/10 to-transparent" />
+              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-[#7B8CBB]/30 via-amber-500/20 to-transparent" />
 
               <div className="space-y-0">
                 {recentActivity.map((day) => {
@@ -118,12 +118,12 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
                         "relative z-10 w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 mt-0.5",
                         "border-2 transition-all duration-200",
                         day.solved > 0
-                          ? "border-amber-500/50 bg-amber-500/20 group-hover:bg-amber-500/30 group-hover:shadow-lg group-hover:shadow-amber-500/10"
+                          ? "border-[#7B8CBB]/50 bg-[#7B8CBB]/20 group-hover:bg-[#7B8CBB]/30 group-hover:shadow-lg group-hover:shadow-[#7B8CBB]/10"
                           : "border-white/10 bg-white/5"
                       )}>
                         <div className={cn(
                           "w-2 h-2 rounded-full",
-                          day.solved > 0 ? "bg-amber-400" : "bg-white/20"
+                          day.solved > 0 ? "bg-[#7B8CBB]" : "bg-white/20"
                         )} />
                       </div>
 
