@@ -282,7 +282,7 @@ See `.env.example` for full template.
 
 ### Remote Sandbox Service (`sandbox/`)
 - Standalone Go binary, zero external deps, deployed on Railway
-- `POST /execute` receives `{code, test_code, timeout_sec}`, writes temp `main_test.go`, runs `go test -v`
+- `POST /execute` receives `{code, test_code, timeout_sec}`, writes temp `main_test.go`, runs `go test -v`  
 - Pre-exec validation blocks dangerous patterns (`os/exec`, `syscall`, `unsafe`, `net`, filesystem writes)
 - `setrlimit` sandboxing: NPROC=6, NOFILE=1024, FSIZE=64MB; `Setpgid` for process group kill
 - Per-IP sliding window rate limiter: 10 req/min, HTTP 429 with `Retry-After`
