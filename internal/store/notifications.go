@@ -143,3 +143,23 @@ func (s *PostgresStore) NotifyAdmins(ctx context.Context, notifType, message str
 	}
 	return nil
 }
+
+// NotifyAllUsers sends a notification to every user.
+func (s *PostgresStore) NotifyAllUsers(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
+	query := `
+		INSERT INTO notifications (user_id, type, message, related_id)
+		SELECT id, $1, $2, $3 FROM users
+	`
+	var rID pgtype.UUID
+	if relatedID != nil {
+		rID = pgtype.UUID{Bytes: *relatedID, Valid: true}
+	} else {
+		rID = pgtype.UUID{Valid: false}
+	}
+
+	_, err := s.pool.Exec(ctx, query, notifType, message, rID)
+	if err != nil {
+		return fmt.Errorf("failed to notify all users: %w", err)
+	}
+	return nil
+}

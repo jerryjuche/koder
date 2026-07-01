@@ -337,7 +337,7 @@ func (h *AdminHandler) ApproveUserProblem(w http.ResponseWriter, r *http.Request
 		// allow empty payload
 	}
 
-	up, err := h.store.ApproveUserProblem(r.Context(), id, payload.AdminNotes)
+	up, newProblemID, err := h.store.ApproveUserProblem(r.Context(), id, payload.AdminNotes)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to approve problem", err.Error())
 		return
@@ -345,7 +345,10 @@ func (h *AdminHandler) ApproveUserProblem(w http.ResponseWriter, r *http.Request
 
 	upID := uuid.UUID(up.ID.Bytes)
 	submitterID := uuid.UUID(up.UserID.Bytes)
+	// Notify the submitter that their contribution was approved
 	h.store.CreateNotification(r.Context(), submitterID, "contribution_approved", fmt.Sprintf("Your contribution '%s' has been approved!", up.Title), &upID)
+	// Notify all users about the new problem
+	h.store.NotifyAllUsers(r.Context(), "new_problem", fmt.Sprintf("New problem available: %s", up.Title), newProblemID)
 
 	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Approved community contribution %s", id.String()), "brand-muted-gold", "check")
 	RespondSuccess(w, map[string]string{"status": "approved"})
