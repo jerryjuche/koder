@@ -61,6 +61,7 @@ type Store interface {
 	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
 	CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error)
 	LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
@@ -71,6 +72,7 @@ type Store interface {
 	UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error
 	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
+	GetVisibleTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
 
 	// Submission & Progress operations
 	CreateSubmission(ctx context.Context, sub *Submission) error

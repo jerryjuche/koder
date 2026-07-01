@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,11 +13,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {children}
       </div>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-10 text-center py-4 text-brand-offwhite-muted/50 text-xs space-x-4">
-        <Link href="/privacy" className="hover:text-brand-muted-gold transition-colors">Privacy</Link>
-        <span className="opacity-30">&middot;</span>
-        <Link href="/terms" className="hover:text-brand-muted-gold transition-colors">Terms</Link>
-      </footer>
     </div>
   );
 }

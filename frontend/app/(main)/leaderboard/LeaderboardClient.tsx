@@ -144,6 +144,11 @@ export default function LeaderboardClient() {
     };
   }, [period]);
 
+  // Reset avatar errors when user data changes (e.g. after Google sync)
+  useEffect(() => {
+    setAvatarsFailed(new Set());
+  }, [user?.google_avatar_url]);
+
   const filtered = useMemo(() => {
     const all = leaderboard;
     if (!search.trim()) return all;
@@ -214,14 +219,11 @@ export default function LeaderboardClient() {
 
         {/* Podium */}
         {leaderboard.length >= 1 && (
-          <div className="flex justify-center gap-4 items-end pt-8 pb-4">
+          <div className="flex justify-center gap-3 sm:gap-4 items-end pt-8 pb-4">
             {top3.map((entry, i) => {
               if (!entry?.user)
                 return (
-                  <div
-                    key={i}
-                    className={cn("w-60", i === 1 ? "h-44" : "h-36")}
-                  />
+                  <div key={"empty-" + i} className={cn("w-56", i === 1 ? "h-52" : "h-44")} />
                 );
               const rankVal = i === 1 ? 1 : i === 0 ? 2 : 3;
               const isFirst = rankVal === 1;
@@ -232,88 +234,91 @@ export default function LeaderboardClient() {
                 <div
                   key={rankVal}
                   className={cn(
-                    "relative flex flex-col items-center px-6 pb-6 pt-8 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
+                    "relative flex flex-col items-center px-5 pb-5 pt-10 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
                     config.cardBg,
-                    isFirst ? "w-72 h-52" : "w-60 h-40"
+                    isFirst ? "w-64" : "w-56"
                   )}
                 >
                   {/* Rank badge */}
                   <div
                     className={cn(
-                      "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1",
+                      "absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg",
                       config.rankBadge
                     )}
                   >
-                    <RankIcon size={12} />
-                    {rankVal}
-                    {getRankSuffix(rankVal)}
+                    <RankIcon size={13} />
+                    <span>{rankVal}{getRankSuffix(rankVal)}</span>
                   </div>
 
                   {/* Avatar */}
-                  {entry.user.google_avatar_url &&
-                  !avatarsFailed.has(entry.user.id) ? (
-                    <div
-                      className={cn(
-                        "w-14 h-14 rounded-full overflow-hidden shadow-lg ring-2 ring-offset-2 ring-offset-background",
-                        config.avatarRing
-                      )}
-                    >
-                      <Image
-                        src={entry.user.google_avatar_url}
-                        alt={entry.user.username ?? "Avatar"}
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-cover"
-                        onError={() =>
-                          setAvatarsFailed(
-                            (prev) => new Set(prev).add(entry.user.id)
-                          )
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <Avatar
-                      className={cn(
-                        "w-14 h-14 text-base shadow-lg ring-2 ring-offset-2 ring-offset-background",
-                        config.avatarRing
-                      )}
-                    >
-                      <AvatarFallback
-                        className={getUserColor(entry.user.colorIndex || 0)}
+                  <div className="mb-3">
+                    {entry.user.google_avatar_url &&
+                    !avatarsFailed.has(entry.user.id) ? (
+                      <div
+                        className={cn(
+                          "w-16 h-16 rounded-full overflow-hidden shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
+                          config.avatarRing
+                        )}
                       >
-                        {getInitials(entry.user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
+                        <Image
+                          src={entry.user.google_avatar_url}
+                          alt={entry.user.username ?? "Avatar"}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                          onError={() =>
+                            setAvatarsFailed(
+                              (prev) => new Set(prev).add(entry.user.id)
+                            )
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <Avatar
+                        className={cn(
+                          "w-16 h-16 text-lg shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
+                          config.avatarRing
+                        )}
+                      >
+                        <AvatarFallback
+                          className={getUserColor(entry.user.colorIndex || 0)}
+                        >
+                          {getInitials(entry.user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                  </div>
 
-                  {/* Username (student ID) primary, name on hover */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="text-center mt-3 cursor-default">
-                        <div
+                  {/* Name + Stats */}
+                  <div className="text-center space-y-1.5 w-full">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p
                           className={cn(
-                            "font-bold truncate max-w-[10rem] font-mono",
+                            "font-bold truncate max-w-[12rem] mx-auto",
                             isFirst
-                              ? "text-lg text-foreground"
-                              : "text-base text-muted-foreground"
+                              ? "text-[15px] text-foreground"
+                              : "text-sm text-muted-foreground"
                           )}
                         >
-                          {entry.user.username || entry.user.name}
-                        </div>
-                        <div className="flex items-center justify-center gap-1 text-primary font-bold mt-1.5 text-sm">
-                          <Zap size={12} />
-                          {(entry.user.xp || 0).toLocaleString()} XP
-                        </div>
-                        <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mt-1">
-                          <CheckCircle2 size={11} className="text-amber-400" />
-                          {entry.user.solvedCount ?? 0} solved
-                        </div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                      {entry.user.name}
-                    </TooltipContent>
-                  </Tooltip>
+                          {entry.user.name}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
+                        {entry.user.username && `@${entry.user.username}`}
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <div className="flex items-center justify-center gap-1.5 text-primary font-semibold">
+                      <Zap size={12} className="shrink-0" />
+                      <span className="text-sm">{(entry.user.xp || 0).toLocaleString()} XP</span>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
+                      <CheckCircle2 size={11} className="text-amber-400 shrink-0" />
+                      <span className="text-[11px]">{entry.user.solvedCount ?? 0} solved</span>
+                    </div>
+                  </div>
                 </div>
               );
             })}

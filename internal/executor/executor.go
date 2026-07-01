@@ -133,7 +133,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 	// 4. Create isolated sandbox directory
 	uuidStr := uuid.NewString()
-	sandboxPath, err := PrepareSandbox(e.cfg.SandboxBaseDir, uuidStr, req.Code, renderData)
+	sandboxPath, err := PrepareSandbox(e.cfg.SandboxBaseDir, uuidStr, req.Code, renderData, e.cfg.GoVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare sandbox: %w", err)
 	}
@@ -165,7 +165,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes))
+		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}
@@ -428,7 +428,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 
 	slog.Info("executor: testing code (visible tests only)", "user_id", req.UserID, "problem_id", req.ProblemID)
 
-	// 2. Fetch problem and all test cases
+	// 2. Fetch problem and test cases from the database
 	problem, allTestCases, err := e.store.GetProblemWithTestCases(ctx, req.ProblemID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch problem and test cases: %w", err)
@@ -441,8 +441,6 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			testCases = append(testCases, tc)
 		}
 	}
-
-	// 4. Format test cases as Go literals and prepare template data
 	var needsReflect bool
 	if !IsPrimitiveType(problem.ReturnType) && problem.ReturnType != "" {
 		needsReflect = true
@@ -495,7 +493,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 
 	// 5. Create isolated sandbox directory
 	uuidStr := uuid.NewString()
-	sandboxPath, err := PrepareSandbox(e.cfg.SandboxBaseDir, uuidStr, req.Code, renderData)
+	sandboxPath, err := PrepareSandbox(e.cfg.SandboxBaseDir, uuidStr, req.Code, renderData, e.cfg.GoVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare sandbox: %w", err)
 	}
@@ -527,7 +525,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes))
+		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}

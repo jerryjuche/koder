@@ -630,6 +630,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/me` | Student | User profile + XP (cached 30s) |
 | GET | `/me/profile` | Student | Full profile (stats, modules, achievements, difficulty, contributions) |
 | PUT | `/me/profile` | Student | Update name and bio |
+| POST | `/me/delete-account` | Student | Permanently delete account and all data |
 | GET | `/me/activity?year=2026` | Student | Daily activity entries for contribution graph |
 | GET | `/me/contributions` | Student | User's problem contribution submissions |
 | GET | `/profile/:username` | Student | Another user's profile |

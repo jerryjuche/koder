@@ -36,6 +36,11 @@ export default function TopNav() {
   const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
+  // Reset avatarError when user data changes (e.g. after Google sync)
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [user?.google_avatar_url]);
+
   // Close notification menu on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,17 +64,18 @@ export default function TopNav() {
   ];
 
   return (
-    <header className="border-b border-border bg-background">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left section: Logo & Nav */}
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center group">
-            <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
+            <div className="relative w-12 h-12 overflow-hidden rounded-xl transition-transform group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt="Koder"
-                width={40}
-                height={40}
+                width={48}
+                height={48}
+                priority
                 className="w-full h-full object-contain"
               />
             </div>

@@ -17,6 +17,7 @@ type SandboxRequest struct {
 	Code       string `json:"code"`
 	TestCode   string `json:"test_code"`
 	TimeoutSec int    `json:"timeout_sec"`
+	GoVersion  string `json:"go_version,omitempty"`
 }
 
 // SandboxResponse is returned by the remote sandbox service.
@@ -50,11 +51,12 @@ func newSandboxClient(baseURL string, timeoutSec int) *sandboxClient {
 
 // execute sends code and test_code to the remote sandbox and returns the result.
 // It performs up to maxRetries attempts with exponential backoff on transient failures.
-func (c *sandboxClient) execute(ctx context.Context, code, testCode string) (*SandboxResponse, error) {
+func (c *sandboxClient) execute(ctx context.Context, code, testCode, goVersion string) (*SandboxResponse, error) {
 	reqBody := SandboxRequest{
 		Code:       code,
 		TestCode:   testCode,
 		TimeoutSec: c.timeoutSec,
+		GoVersion:  goVersion,
 	}
 
 	body, err := json.Marshal(reqBody)

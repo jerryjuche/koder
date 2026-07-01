@@ -63,6 +63,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
       return [];
     }
     return Object.entries(profile.module_proficiency)
+      .filter(([, stats]) => stats.solved > 0)
       .sort(([a], [b]) => a.localeCompare(b));
   }, [profile.module_proficiency]);
 
@@ -173,7 +174,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
               No modules available yet. Problems will appear here once the curriculum is ingested.
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-3">
               {displayModules.map(([moduleName, stats]) => (
                 <ActivityGauge
                   key={moduleName}

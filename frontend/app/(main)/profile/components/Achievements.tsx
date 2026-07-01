@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { UserProfile } from "@/lib/types";
-import { Award, CheckCircle2 } from "lucide-react";
+import { Award, CheckCircle2, Lock, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import {
   Dialog,
@@ -16,11 +16,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getAchievements, type Achievement } from "@/lib/achievements";
 
@@ -56,50 +51,65 @@ export default function Achievements({ profile }: AchievementsProps) {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             {achievements.map((achievement, i) => {
               const Icon = achievement.icon;
               return (
                 <motion.div
                   key={achievement.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.1 + i * 0.06 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.05 + i * 0.04 }}
                 >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setSelected(achievement)}
-                        className={cn(
-                          "w-full aspect-square rounded-2xl flex items-center justify-center border transition-all duration-300",
-                          achievement.unlocked
-                            ? [
-                                achievement.border,
-                                achievement.bg,
-                                "hover:ring-2 hover:ring-white/10 hover:-translate-y-1 hover:shadow-xl",
-                                "hover:shadow-purple-500/10"
-                              ].join(" ")
-                            : "border-white/6 bg-white/[0.02] opacity-30 grayscale"
-                        )}
-                      >
-                        <Icon
-                          size={24}
-                          className={achievement.unlocked ? achievement.color : "text-white/30"}
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-44 bg-[#1A1A24]/95 border border-white/8 text-white/80 backdrop-blur-md">
-                      <p className="font-semibold text-xs mb-0.5">
-                        {achievement.title}
-                        {achievement.unlocked && (
-                          <CheckCircle2 size={10} className="inline ml-1 text-amber-400" />
-                        )}
-                      </p>
-                      <p className="text-[10px] text-white/50">
-                        {achievement.description}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <button
+                    onClick={() => setSelected(achievement)}
+                    className="w-full text-left"
+                  >
+                    <Card
+                      className={cn(
+                        "hover:-translate-y-0.5 transition-all duration-300 cursor-pointer",
+                        achievement.unlocked
+                          ? "bg-[#242430]/80 border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-white/5"
+                          : "bg-[#242430]/40 border-white/5 opacity-50 grayscale hover:opacity-70"
+                      )}
+                    >
+                      <div className="p-4 flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-colors",
+                            achievement.unlocked
+                              ? `${achievement.bg} ${achievement.border}`
+                              : "bg-white/[0.03] border-white/6"
+                          )}
+                        >
+                          <Icon
+                            size={22}
+                            className={achievement.unlocked ? achievement.color : "text-white/30"}
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h4 className="font-semibold text-sm text-white truncate">
+                              {achievement.title}
+                            </h4>
+                            {achievement.unlocked && (
+                              <CheckCircle2 size={12} className="text-amber-400 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-white/40 line-clamp-1">
+                            {achievement.description}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 transition-colors group-hover:bg-white/10">
+                            <ChevronRight size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </button>
                 </motion.div>
               );
             })}
@@ -147,7 +157,10 @@ export default function Achievements({ profile }: AchievementsProps) {
                   Unlocked
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-white/5 text-white/40 border-white/10">Locked</Badge>
+                <Badge variant="secondary" className="bg-white/5 text-white/40 border-white/10 gap-1">
+                  <Lock size={12} />
+                  Locked
+                </Badge>
               )}
             </div>
           </DialogHeader>

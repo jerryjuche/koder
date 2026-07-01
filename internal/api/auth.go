@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -147,13 +148,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 		return
 	}
 
-	RespondSuccess(w, authResponse{Token: token})
+	RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 }
 
 // GoogleAuth handles Google Sign-In.
@@ -192,13 +194,14 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(user.ID)
-		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+		needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
+		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 			return
 		}
 
-		RespondSuccess(w, authResponse{Token: token})
+		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
 
@@ -215,37 +218,23 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(existingUser.ID)
-		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+		needsOnboarding := strings.HasPrefix(existingUser.Username, "u_") || strings.HasPrefix(existingUser.Username, "g_")
+		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
 			return
 		}
 
-		RespondSuccess(w, authResponse{Token: token})
+		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
 
-	// New user — create with temporary username
-	newUser, err := h.store.CreateUserFromGoogle(r.Context(), info)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "USER_CREATION_FAILED", "Unable to create user from Google", err.Error())
-		return
-	}
-
-	userID, err := uuidStringFromPGType(newUser.ID)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", err.Error())
-		return
-	}
-
-	// Issue token with onboarding flag
-	token, err := auth.SignToken(userID, newUser.StudentID, newUser.Username, newUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), true)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
-		return
-	}
-
-	RespondSuccess(w, authResponse{Token: token, Onboarding: true})
+	// No existing user found — return an error instead of auto-creating a duplicate.
+	// The user should sign in with their existing password-based account first
+	// and link Google from their settings.
+	RespondError(w, http.StatusNotFound, "GOOGLE_NOT_LINKED",
+		"No account is linked to this Google profile. Please sign in with your password and link your Google account in Settings.",
+		nil)
 }
 
 // CompleteOnboarding completes the onboarding flow by setting a username and student_id.

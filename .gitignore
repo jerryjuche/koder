@@ -7,6 +7,9 @@ frontend/.env.local
 # Binary
 koder
 koder-sandbox
+main
+server
+sandbox/sandbox
 *.exe
 *.test
 *.out
@@ -28,6 +31,7 @@ node_modules/
 frontend/node_modules/
 frontend/.next/
 frontend/coverage/
+frontend/tsconfig.tsbuildinfo
 
 # Temp
 /tmp/koder/

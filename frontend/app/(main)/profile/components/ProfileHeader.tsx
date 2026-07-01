@@ -92,8 +92,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
         <div className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
             <div className="relative flex-shrink-0 group">
-              <div className="absolute -inset-2 bg-gradient-to-br from-[#7B8CBB]/30 via-amber-500/15 to-transparent rounded-full blur-md animate-pulse-slow" />
-              <div className="absolute -inset-1 bg-gradient-to-br from-[#7B8CBB]/20 to-amber-400/10 rounded-full blur-sm" />
+              <div className="absolute -inset-1 bg-gradient-to-br from-[#7B8CBB]/10 to-amber-400/5 rounded-full blur-sm" />
 
               {profile.google_avatar_url && !avatarError ? (
                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-amber-400/30 shadow-lg overflow-hidden">
@@ -102,6 +101,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                     alt={profile.username ?? "Avatar"}
                     width={96}
                     height={96}
+                    priority
                     className="w-full h-full object-cover"
                     onError={() => setAvatarError(true)}
                   />

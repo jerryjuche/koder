@@ -191,7 +191,9 @@ export default function ProfileClient() {
                 <div className="lg:col-span-2">
                   <ProgressMetrics profile={profile} />
                 </div>
-                <Achievements profile={profile} />
+                <div className="lg:col-span-1">
+                  <Achievements profile={profile} />
+                </div>
               </div>
             </TabsContent>
 

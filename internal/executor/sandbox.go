@@ -15,7 +15,7 @@ var packageRegexp = regexp.MustCompile(`(?m)^\s*package\s+[a-zA-Z0-9_]+`)
 
 // PrepareSandbox creates the temporary sandbox directory, writes the required files,
 // and returns the path to the sandbox. It is the caller's responsibility to clean up.
-func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *TemplateRenderData) (string, error) {
+func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *TemplateRenderData, goVersion string) (string, error) {
 	sandboxPath := filepath.Join(baseDir, uuidStr)
 	if err := os.MkdirAll(sandboxPath, 0755); err != nil {
 		return "", fmt.Errorf("failed to create sandbox directory: %w", err)
@@ -37,7 +37,7 @@ func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *Tem
 	}
 
 	// Prepare go.mod
-	goModContent := "module sandbox\n\ngo 1.23\n"
+	goModContent := "module sandbox\n\ngo " + goVersion + "\n"
 	err = os.WriteFile(filepath.Join(sandboxPath, "go.mod"), []byte(goModContent), 0644)
 	if err != nil {
 		_ = os.RemoveAll(sandboxPath)

@@ -29,6 +29,7 @@ type Config struct {
 	SandboxBaseDir         string
 	BuildCacheDir          string
 	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
+	GoVersion              string // Go version directive for generated go.mod (default "1.23")
 
 	// Server
 	Port        int
@@ -159,6 +160,11 @@ func Load() (*Config, error) {
 
 	cfg.SandboxURL = os.Getenv("SANDBOX_URL")
 	// Empty SANDBOX_URL means use local Docker (default behavior)
+
+	cfg.GoVersion = os.Getenv("GO_VERSION")
+	if cfg.GoVersion == "" {
+		cfg.GoVersion = "1.23"
+	}
 
 	// Server
 	portStr := os.Getenv("PORT")

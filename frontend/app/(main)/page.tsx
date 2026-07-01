@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   BookOpen,
 } from "lucide-react";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, linkGoogle } from "@/lib/api";
+import GoogleLinkBanner from "@/components/GoogleLinkBanner";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
   cn,
@@ -83,6 +84,11 @@ export default function Dashboard() {
     };
   }, []);
 
+  // Reset avatarError when user data changes (e.g. after Google sync)
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.google_avatar_url]);
+
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
     setBestPractices((prev) =>
@@ -143,93 +149,107 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Stats */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            {solvedCount} of {problems.length} problems solved
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-1 text-foreground">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {solvedCount} of {problems.length} problems solved
+            </p>
+          </div>
         </div>
 
-        {user && (
-          <Card className="flex-row items-center gap-3 p-4 shadow-sm">
-            {user.google_avatar_url && !avatarError ? (
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
-                <Image
-                  src={user.google_avatar_url}
-                  alt={user.username ?? "Avatar"}
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-cover"
-                  onError={() => setAvatarError(true)}
-                />
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-inner flex-shrink-0",
-                  getUserColor(user.colorIndex),
-                )}
-              >
-                {user.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .substring(0, 2)
-                  .toUpperCase()}
-              </div>
-            )}
-            <div>
-              <div className="text-sm font-semibold text-foreground">
-                {user.name}
-              </div>
-              <div className="text-xs text-muted-foreground font-mono">
-                {user.username || "Student"}
+        <div className="flex items-center gap-4">
+          {user && (
+            <div className="flex items-center gap-4 pr-4 border-r border-border/60">
+              {user.google_avatar_url && !avatarError ? (
+                <div className="relative shrink-0">
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-primary/30 via-amber-400/20 to-transparent rounded-full blur-sm" />
+                  <div className="relative w-11 h-11 rounded-full overflow-hidden ring-2 ring-border/80">
+                    <Image
+                      src={user.google_avatar_url}
+                      alt={user.username ?? "Avatar"}
+                      width={44}
+                      height={44}
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-border/80 shrink-0",
+                    getUserColor(user.colorIndex),
+                  )}
+                >
+                  {user.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .substring(0, 2)
+                    .toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground truncate max-w-[140px] leading-tight">
+                  {user.name}
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    @{user.username || "student"}
+                  </span>
+                  <span className="size-1 rounded-full bg-muted-foreground/30" />
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    Lvl {user.level || Math.floor((user.xp || 0) / 1000) + 1}
+                  </span>
+                </div>
               </div>
             </div>
-          </Card>
-        )}
+          )}
 
-        <div className="flex items-center gap-3">
-          <Card className="flex-row items-center gap-3 px-4 py-2.5 shadow-sm">
-            <CheckCircle2 className="text-brand-success" size={20} />
-            <div>
-              <div className="text-sm font-bold leading-none mb-1 text-foreground">
-                {solvedCount}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 size={16} className="text-emerald-400" />
               </div>
-              <div className="text-xs text-muted-foreground font-medium">
-                Solved
-              </div>
-            </div>
-          </Card>
-          <Card className="flex-row items-center gap-3 px-4 py-2.5 shadow-sm">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 12 16"
-              className="text-primary"
-              fill="currentColor"
-            >
-              <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-            </svg>
-            <div>
-              <div className="text-sm font-bold leading-none mb-1 text-foreground">
-                {user?.xp?.toLocaleString() || 0}
-              </div>
-              <div className="text-xs text-muted-foreground font-medium">
-                XP Earned
+              <div className="text-right">
+                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
+                  {solvedCount}
+                </div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  Solved
+                </div>
               </div>
             </div>
-          </Card>
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <svg
+                  width="14"
+                  height="16"
+                  viewBox="0 0 12 16"
+                  className="text-primary"
+                  fill="currentColor"
+                >
+                  <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+                </svg>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
+                  {user?.xp?.toLocaleString() || 0}
+                </div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  XP Earned
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Google Sync Banner */}
-      {user && !user.google_avatar_url && (
-        <GoogleSyncBanner />
-      )}
+      <GoogleLinkBanner />
 
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-border">
@@ -630,91 +650,4 @@ export default function Dashboard() {
   );
 }
 
-function GoogleSyncBanner() {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('google-sync-dismissed') === 'true';
-    }
-    return false;
-  });
-  const [gisLoaded, setGisLoaded] = useState(false);
-  const [linking, setLinking] = useState(false);
-  const gisInitialized = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setGisLoaded(true);
-    document.head.appendChild(script);
-
-    return () => {
-      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-      if (existing) existing.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!gisLoaded || !window.google || gisInitialized.current) return;
-    gisInitialized.current = true;
-
-    window.google.accounts.id.initialize({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-      callback: async (response) => {
-        setLinking(true);
-        try {
-          const res = await linkGoogle(response.credential);
-          if (res.success) {
-            if (res.data?.token) {
-              localStorage.setItem('token', res.data.token);
-            }
-            window.dispatchEvent(new Event('user-updated'));
-            setDismissed(true);
-          }
-        } finally {
-          setLinking(false);
-        }
-      },
-      cancel_on_tap_outside: true,
-    });
-  }, [gisLoaded]);
-
-  const handleDismiss = () => {
-    localStorage.setItem('google-sync-dismissed', 'true');
-    setDismissed(true);
-  };
-
-  if (dismissed) return null;
-
-  return (
-    <Card className="flex-row items-center gap-3 px-5 py-3 border border-amber-500/20 bg-amber-500/5">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-amber-300 font-medium">
-          Link your Google account for seamless sign-in and automatic profile syncing.
-        </p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={() => {
-            if (gisLoaded && window.google) {
-              (window.google as any).accounts.id.prompt();
-            }
-          }}
-          disabled={linking || !gisLoaded}
-          className="text-xs font-semibold bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-        >
-          {linking ? 'Connecting...' : 'Connect Google'}
-        </button>
-        <button
-          onClick={handleDismiss}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Dismiss
-        </button>
-      </div>
-    </Card>
-  );
-}
