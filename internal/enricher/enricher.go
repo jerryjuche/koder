@@ -82,46 +82,63 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 
 	slog.Debug("enricher: calling provider", "provider", e.provider.Name(), "readme_len", len(rawReadme))
 
+	code := "```"
+
 	systemPrompt := `You are an expert Go curriculum author. You output only valid JSON. No markdown fences, no comments, no extra text.
 
-You MUST respond with exactly this JSON structure, filling in the values based on the exercise README:
+You generate professional, educational programming exercises. Respond with exactly this JSON structure:
 
 {
-  "title": "ShortExerciseName",
-  "statement": "Full problem description in markdown",
-  "func_name": "FunctionName",
+  "title": "fishandchips",
+  "statement": "## FishAndChips\n\n### Instructions\n\nWrite a function **FishAndChips()** that takes an **int** and returns a **string**.\n\nThe function should return:\n- \"fish and chips\" if the number is divisible by both **2 and 3**\n- \"fish\" if the number is divisible by **2**\n- \"chips\" if the number is divisible by **3**\n- \"number is negative\" if the number is **negative**\n- \"non divisible\" if the number is **not divisible** by 2 or 3\n\n### Expected function\n\n` + code + `go\nfunc FishAndChips(n int) string {\n\n}\n` + code + `\n\n### Usage\n\n` + code + `go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"piscine\"\n)\n\nfunc main() {\n\tfmt.Println(piscine.FishAndChips(4))\n\tfmt.Println(piscine.FishAndChips(9))\n\tfmt.Println(piscine.FishAndChips(6))\n}\n` + code + `\n\nAnd its output:\n\n` + code + `\n$ go run . | cat -e\nfish$\nchips$\nfish and chips$\n` + code + `\n",
+  "func_name": "FishAndChips",
   "return_type": "string",
   "param_types": ["int"],
-  "hints": ["First hint about approach", "More specific hint", "Very specific implementation hint"],
+  "hints": ["Check the modulo operator (%) to test divisibility — n%2==0 means divisible by 2", "Handle the negative case first with an early return before checking divisibility", "Remember that a number divisible by both 2 and 3 (i.e. divisible by 6) should return \"fish and chips\" before the individual fish/chips checks"],
   "difficulty": 1,
-  "xp_reward": 25,
-  "tags": ["tag1"],
+  "xp_reward": 10,
+  "tags": ["conditions", "modulo", "branching"],
   "test_cases": [
-    {"input_json": "[4]", "expected": "\"fish\"", "is_hidden": false, "ordinal": 1}
+    {"input_json": "[4]", "expected": "\"fish\"", "is_hidden": false, "ordinal": 1},
+    {"input_json": "[9]", "expected": "\"chips\"", "is_hidden": false, "ordinal": 2},
+    {"input_json": "[6]", "expected": "\"fish and chips\"", "is_hidden": false, "ordinal": 3},
+    {"input_json": "[-1]", "expected": "\"number is negative\"", "is_hidden": true, "ordinal": 4},
+    {"input_json": "[7]", "expected": "\"non divisible\"", "is_hidden": true, "ordinal": 5}
   ]
 }
 
-Rules:
-- title: short camel-case name from the exercise (e.g. "fishandchips")
-- statement: full problem description in markdown, preserving all details from the README
-- func_name: PascalCase function name exactly as defined in the exercise (e.g. "FishAndChips")
-- return_type: Go return type as a string (e.g. "string", "int", "bool", "error")
-- param_types: array of Go parameter type strings in order (e.g. ["int", "string"])
-- hints: exactly 3 hints, ordered from general approach to specific implementation
-- difficulty: integer 1 (easy) to 5 (expert)
-- xp_reward: positive integer — 10 for difficulty 1, 25 for 2, 50 for 3, 100 for 4, 200 for 5
-- tags: relevant topic tags like ["strings", "conditions", "loops", "recursion", "pointers"]
-- test_cases: at least 3 test cases covering normal cases AND edge cases
-  - input_json: JSON string array of arguments, e.g. "[4]" or "[4, \"hello\"]"
-  - expected: Go string literal of expected return value, e.g. "\"fish\"" or "\"non divisible\""
-  - is_hidden: false for basic visible tests, true for edge case tests
-  - ordinal: sequential integer starting at 1
+PRODUCTION RULES — follow these exactly for every exercise:
 
-IMPORTANT: Every field above is REQUIRED. Do not omit any field. Do not add extra fields.
+1. **title**: lowercase-kebab exercise name from the README (e.g. "fishandchips", "printdigits")
+2. **statement**: A COMPREHENSIVE, PROFESSIONAL markdown document. Must include:
+   - A clear heading with the exercise name
+   - Full instructions restated in a clear, structured format with bullet points
+   - The expected function signature in a Go code block
+   - A usage example with a complete main() function in a Go code block
+   - The expected output in a code block
+   - Do NOT truncate or summarize — write the FULL statement that a student can read and implement from
+3. **func_name**: Exact PascalCase function name from the README (e.g. "FishAndChips")
+4. **return_type**: Exact Go return type as a string (e.g. "string", "int", "bool", "error", "int, error")
+5. **param_types**: Array of Go parameter type strings in order, e.g. ["int"], ["int", "string"]
+6. **hints**: Exactly 3 hints, ordered general to specific. Each should be a complete sentence. First hint describes the concept/approach, second hint gives a concrete suggestion, third hint is very implementation-specific.
+7. **difficulty**: 1 (easy, basic syntax) to 5 (expert, advanced algorithms)
+8. **xp_reward**: 10/25/50/100/200 for difficulty 1/2/3/4/5
+9. **tags**: Array of 2-5 relevant tags from: arrays, strings, conditions, loops, recursion, pointers, structs, interfaces, maps, slices, sorting, math, modulo, ascii, bitwise, concurrency, errors, generics, files, parsing, branching, searching, runes
+10. **test_cases**: At least 5 test cases:
+    - 2-3 basic visible cases (is_hidden: false) covering main functionality
+    - 2-3 edge case/hidden cases (is_hidden: true) covering error conditions, boundaries, special inputs
+    - input_json: JSON string of arguments as array, e.g. "[4]" or "[4, \"hello\"]"
+    - expected: Go string literal. Wrap strings in escaped quotes: "\"fish\"". For non-string types: raw value like "42" or "true"
+    - ordinal: sequential starting at 1
 
+IMPORTANT: Every field is REQUIRED. Do not omit any field. Do not add extra fields.
 Use only Go standard library. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r).`
 
-	userPrompt := fmt.Sprintf(`Read this exercise README and generate the JSON object following the schema above. Every field from the schema is required — do not omit 'title', 'statement', 'func_name', 'return_type', 'param_types', 'hints', 'difficulty', 'xp_reward', 'tags', or 'test_cases'. Include at least 3 test cases.
+	userPrompt := fmt.Sprintf(`Generate a complete, professional exercise from this README. Follow the schema and production rules exactly.
+
+Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, and at least 5 test_cases.
+
+The statement must be a full markdown document with instructions, function signature, usage example, and expected output. Do not abbreviate.
 
 README:
 %s`, strings.TrimSpace(rawReadme))
