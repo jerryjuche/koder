@@ -100,7 +100,7 @@ type Problem struct {
 type TestCase struct {
 	ID        pgtype.UUID `db:"id" json:"id"`
 	ProblemID pgtype.UUID `db:"problem_id" json:"problem_id"`
-	Input     []byte      `db:"input" json:"input"`
+	Input     json.RawMessage `db:"input" json:"input"`
 	Expected  string      `db:"expected" json:"expected"`
 	IsHidden  bool        `db:"is_hidden" json:"is_hidden"`
 	Ordinal   int         `db:"ordinal" json:"ordinal"`

@@ -71,6 +71,7 @@ type Store interface {
 	UpsertProblem(ctx context.Context, problem *Problem) error
 	UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error
 	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
+	UpsertEnrichedProblem(ctx context.Context, problem *Problem, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
 	GetVisibleTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
 
