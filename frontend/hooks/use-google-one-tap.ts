@@ -38,7 +38,6 @@ function ensureInitialized(clientId: string) {
       },
     } as any);
   } catch (err) {
-    console.error('[GIS] initialize() failed:', err);
     initialized = false;
   }
   // Signal ready regardless of init success — renderButton (popup) works
@@ -104,13 +103,7 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
   }, []);
 
   const renderButton = useCallback((element: HTMLElement, options?: { width?: number }) => {
-    console.log('[GIS DEBUG] renderButton called');
-    console.log('[GIS DEBUG] container child count:', element.childElementCount);
-    console.log('[GIS DEBUG] window.google exists:', !!window.google);
-    if (!window.google) {
-      console.warn('[GIS] renderButton: window.google not available');
-      return;
-    }
+    if (!window.google) return;
     try {
       window.google.accounts.id.renderButton(element, {
         type: 'standard',
@@ -120,7 +113,6 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
         text: 'signin_with',
         width: options?.width ?? 350,
       } as any);
-      console.log('[GIS] renderButton: children after render:', element.childElementCount);
     } catch (err) {
       console.error('[GIS] renderButton() failed:', err);
     }

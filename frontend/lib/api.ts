@@ -22,10 +22,6 @@ export async function fetchApi<T>(
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
-    if (typeof window !== "undefined") {
-      console.log(`[API] ${options?.method || 'GET'} ${endpoint}`, token ? 'token present' : 'NO TOKEN');
-    }
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
@@ -34,10 +30,6 @@ export async function fetchApi<T>(
         ...options?.headers,
       },
     });
-
-    if (response.status === 401) {
-      console.warn(`[API] 401 on ${endpoint} — token expired or invalid`);
-    }
 
     let data: ApiResponse<T>;
     try {
