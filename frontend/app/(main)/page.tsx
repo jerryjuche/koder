@@ -26,6 +26,13 @@ import {
   getUserColor,
 } from "@/lib/utils";
 import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   CodeBlock,
   CodeBlockBody,
   CodeBlockContent,
@@ -138,16 +145,16 @@ export default function Dashboard() {
       {/* Header Stats */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2 text-brand-offwhite">
+          <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
             Dashboard
           </h1>
-          <p className="text-brand-offwhite-muted">
+          <p className="text-muted-foreground">
             {solvedCount} of {problems.length} problems solved
           </p>
         </div>
 
         {user && (
-          <div className="flex items-center gap-3 rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card px-4 py-3 shadow-sm">
+          <Card className="flex-row items-center gap-3 p-4 shadow-sm">
             {user.google_avatar_url && !avatarError ? (
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
                 <Image
@@ -175,47 +182,47 @@ export default function Dashboard() {
               </div>
             )}
             <div>
-              <div className="text-sm font-semibold text-brand-offwhite">
+              <div className="text-sm font-semibold text-foreground">
                 {user.name}
               </div>
-              <div className="text-xs text-brand-offwhite-muted font-mono">
+              <div className="text-xs text-muted-foreground font-mono">
                 {user.username || "Student"}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         <div className="flex items-center gap-3">
-          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-sm">
+          <Card className="flex-row items-center gap-3 px-4 py-2.5 shadow-sm">
             <CheckCircle2 className="text-brand-success" size={20} />
             <div>
-              <div className="text-sm font-bold leading-none mb-1">
+              <div className="text-sm font-bold leading-none mb-1 text-foreground">
                 {solvedCount}
               </div>
-              <div className="text-xs text-brand-offwhite-muted font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 Solved
               </div>
             </div>
-          </div>
-          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-sm">
+          </Card>
+          <Card className="flex-row items-center gap-3 px-4 py-2.5 shadow-sm">
             <svg
               width="20"
               height="20"
               viewBox="0 0 12 16"
-              className="text-brand-muted-gold"
+              className="text-primary"
               fill="currentColor"
             >
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
             </svg>
             <div>
-              <div className="text-sm font-bold leading-none mb-1">
+              <div className="text-sm font-bold leading-none mb-1 text-foreground">
                 {user?.xp?.toLocaleString() || 0}
               </div>
-              <div className="text-xs text-brand-offwhite-muted font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 XP Earned
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -225,31 +232,31 @@ export default function Dashboard() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-brand-charcoal-border">
+      <div className="flex items-center gap-6 border-b border-border">
         <button
           onClick={() => setActiveTab("problems")}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "problems" ? "text-brand-offwhite" : "text-brand-offwhite-muted hover:text-brand-offwhite"
+            activeTab === "problems" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <Code size={16} className={cn(activeTab === "problems" && "text-brand-muted-gold")} />
+          <Code size={16} className={cn(activeTab === "problems" && "text-primary")} />
           Problem Set
           {activeTab === "problems" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-muted-gold"></div>
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
         </button>
         <button
           onClick={() => setActiveTab("best-practices")}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "best-practices" ? "text-brand-offwhite" : "text-brand-offwhite-muted hover:text-brand-offwhite"
+            activeTab === "best-practices" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <Trophy size={16} className={cn(activeTab === "best-practices" && "text-brand-muted-gold")} />
+          <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
           Best Practices
           {activeTab === "best-practices" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-muted-gold"></div>
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
         </button>
       </div>
@@ -260,12 +267,12 @@ export default function Dashboard() {
             /* ── Topic Card Grid ── */
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-brand-muted-gold/10 flex items-center justify-center">
-                  <BookOpen size={18} className="text-brand-muted-gold" />
+                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
+                  <BookOpen size={18} className="text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-brand-offwhite">Choose a topic to practice</h2>
-                  <p className="text-xs text-brand-offwhite-muted mt-0.5">
+                  <h2 className="text-lg font-bold text-foreground">Choose a topic to practice</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Select a module to view its problems and track your progress
                   </p>
                 </div>
@@ -273,7 +280,7 @@ export default function Dashboard() {
               {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {[...Array(8)].map((_, i) => (
-                    <div key={i} className="h-36 bg-brand-charcoal-card rounded-2xl animate-pulse border border-brand-charcoal-border" />
+                    <Card key={i} className="h-36 animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -292,15 +299,15 @@ export default function Dashboard() {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setSelectedModule(null)}
-                    className="flex items-center gap-1.5 text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                   >
                     <ArrowLeft size={16} />
                     Back to topics
                   </button>
-                  <div className="w-px h-5 bg-brand-charcoal-border" />
+                  <div className="w-px h-5 bg-border" />
                   <div>
-                    <h2 className="text-lg font-bold text-brand-offwhite">{selectedModule}</h2>
-                    <p className="text-xs text-brand-offwhite-muted">
+                    <h2 className="text-lg font-bold text-foreground">{selectedModule}</h2>
+                    <p className="text-xs text-muted-foreground">
                       {moduleProgress[selectedModule]?.solved || 0} / {moduleProgress[selectedModule]?.total || 0} solved
                     </p>
                   </div>
@@ -308,10 +315,10 @@ export default function Dashboard() {
               </div>
 
               {/* Filters (no module dropdown) */}
-              <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-4 flex flex-col lg:flex-row gap-4">
+              <Card className="p-4 flex flex-col lg:flex-row gap-4">
                 <div className="relative flex-1">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={18}
                   />
                   <input
@@ -319,7 +326,7 @@ export default function Dashboard() {
                     placeholder="Search problems or tags..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted focus:outline-none focus:border-brand-muted-gold transition-colors"
+                    className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
@@ -327,16 +334,16 @@ export default function Dashboard() {
                     <select
                       value={difficultyFilter}
                       onChange={(e) => setDifficultyFilter(e.target.value)}
-                      className="appearance-none bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg pl-4 pr-10 py-2.5 text-sm text-brand-offwhite-muted focus:outline-none focus:border-brand-muted-gold transition-colors"
+                      className="appearance-none bg-background border border-border rounded-lg pl-4 pr-10 py-2.5 text-sm text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                     >
                       {difficulties.map((d) => (
                         <option key={d} value={d}>{d === "All" ? "All Levels" : d}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted pointer-events-none" size={14} />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={14} />
                   </div>
 
-                  <div className="flex items-center bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg p-1">
+                  <div className="flex items-center bg-background border border-border rounded-lg p-1">
                     {(["all", "solved", "unsolved"] as const).map((status) => (
                       <button
                         key={status}
@@ -344,8 +351,8 @@ export default function Dashboard() {
                         className={cn(
                           "px-5 py-1.5 rounded text-sm font-medium transition-colors capitalize",
                           statusFilter === status
-                            ? "bg-brand-charcoal-hover text-brand-offwhite shadow-sm"
-                            : "text-brand-offwhite-muted hover:text-brand-offwhite"
+                            ? "bg-muted text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         {status}
@@ -353,146 +360,160 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              <div className="text-sm text-brand-offwhite-muted font-medium">
+              <p className="text-sm text-muted-foreground font-medium">
                 Showing {filteredProblems.length} of {problems.length} problems
-              </div>
+              </p>
 
               {/* Problem Grid */}
               {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-56 bg-brand-charcoal-card rounded-2xl animate-pulse"></div>
+                    <Card key={i} className="h-56 animate-pulse" />
                   ))}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {filteredProblems.length === 0 ? (
-                    <div className="col-span-full bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-10 text-center">
-                      <p className="text-brand-offwhite-muted">No problems found for the current filters.</p>
+                    <div className="col-span-full">
+                      <Card className="p-10 text-center border-dashed border-white/10 bg-card/50">
+                        <p className="text-muted-foreground">No problems found for the current filters.</p>
+                      </Card>
                     </div>
                   ) : (
                     filteredProblems.map((problem, i) => (
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
-                        className="group block bg-brand-charcoal-card border border-brand-charcoal-border hover:border-brand-muted-gold/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-brand-muted-gold/5 hover:-translate-y-1 relative overflow-hidden"
+                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
                         style={{
                           animationFillMode: "both",
                           animationDelay: i * 50 + "ms",
                         }}
                       >
-                        {problem.solved && (
-                          <div className="absolute top-0 left-0 w-full h-1 bg-brand-success"></div>
-                        )}
-
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-brand-offwhite-muted">
-                              #{problem.slug === "hello-world" ? "001" : "00" + (i + 1)}
-                            </span>
-                            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
-                              {problem.module}
-                            </span>
-                          </div>
-                          {problem.solved ? (
-                            <CheckCircle2 className="text-brand-success" size={20} />
-                          ) : (
-                            <Circle
-                              className="text-brand-charcoal-border group-hover:text-brand-muted-gold/40 transition-colors"
-                              size={20}
-                            />
+                        <Card
+                          className={cn(
+                            "group relative overflow-hidden transition-all duration-300",
+                            "hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5",
+                            "animate-in fade-in slide-in-from-bottom-2",
                           )}
-                        </div>
+                        >
+                          {problem.solved && (
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-success to-amber-400" />
+                          )}
 
-                        <h3 className="text-xl font-bold text-brand-offwhite mb-2 group-hover:text-brand-muted-gold transition-colors">
-                          {problem.title}
-                        </h3>
-
-                        <div className="flex items-center gap-1 mb-4">
-                          {[...Array(5)].map((_, j) => (
-                            <Flame
-                              key={j}
-                              size={14}
-                              className={
-                                j < problem.difficulty
-                                  ? "text-brand-error"
-                                  : "text-brand-charcoal-border"
-                              }
-                            />
-                          ))}
-                          <span
-                            className={cn(
-                              "text-xs font-bold ml-2",
-                              getDifficultyColor(problem.difficulty)
+                          <CardHeader className="flex-row items-center justify-between p-5 pb-0 space-y-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                #{problem.slug === "hello-world" ? "001" : "00" + (i + 1)}
+                              </span>
+                              <span className="bg-muted/50 text-muted-foreground px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-border/50">
+                                {problem.module}
+                              </span>
+                            </div>
+                            {problem.solved ? (
+                              <CheckCircle2 className="text-brand-success" size={20} />
+                            ) : (
+                              <Circle
+                                className="text-muted-foreground/30 group-hover:text-primary/40 transition-colors"
+                                size={20}
+                              />
                             )}
-                          >
-                            {getDifficultyLabel(problem.difficulty)}
-                          </span>
-                        </div>
+                          </CardHeader>
 
-                        <p className="text-sm text-brand-offwhite-muted line-clamp-2 h-10 mb-5">
-                          {problem.statement ? (
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: problem.statement
-                                  .split("\n")
-                                  .slice(0, 2)
-                                  .join(" "),
-                              }}
-                            />
-                          ) : (
-                            <span>No short description available.</span>
-                          )}
-                        </p>
+                          <CardContent className="p-5 pt-3">
+                            <CardTitle className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                              {problem.title}
+                            </CardTitle>
 
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {problem.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-1 rounded-md border border-brand-charcoal-border"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
+                            <div className="flex items-center gap-1 mb-3">
+                              {[...Array(5)].map((_, j) => (
+                                <Flame
+                                  key={j}
+                                  size={14}
+                                  className={
+                                    j < problem.difficulty
+                                      ? "text-destructive"
+                                      : "text-border"
+                                  }
+                                />
+                              ))}
+                              <span
+                                className={cn(
+                                  "text-xs font-bold ml-2",
+                                  getDifficultyColor(problem.difficulty)
+                                )}
+                              >
+                                {getDifficultyLabel(problem.difficulty)}
+                              </span>
+                            </div>
 
-                        {problem.author_name && (
-                          <div className="text-xs text-brand-offwhite-muted mb-6 flex items-center gap-1 font-mono">
-                            by <span className="text-brand-muted-gold">{problem.author_name}</span>
-                            <CheckCircle2 className="w-3 h-3 text-brand-muted-gold" />
-                          </div>
-                        )}
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                              {problem.statement ? (
+                                <span
+                                  dangerouslySetInnerHTML={{
+                                    __html: problem.statement
+                                      .split("\n")
+                                      .slice(0, 2)
+                                      .join(" "),
+                                  }}
+                                />
+                              ) : (
+                                <span>No short description available.</span>
+                              )}
+                            </p>
 
-                        <div className="flex items-center justify-between text-xs text-brand-offwhite-muted pt-4 border-t border-brand-charcoal-border/50">
-                          <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1">
-                              <Code size={14} /> {problem.total_submissions || 0}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <BarChart2 size={14} />{" "}
-                              {Math.round(problem.successRate || 0)}%
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={14} /> {problem.estTimeMinutes || 0}m
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-muted-gold/5 border border-brand-muted-gold/20">
-                            <svg
-                              width="14"
-                              height="18"
-                              viewBox="0 0 12 16"
-                              fill="currentColor"
-                              className="text-brand-muted-gold flex-shrink-0"
-                            >
-                              <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-                            </svg>
-                            <span className="font-semibold text-sm text-brand-muted-gold whitespace-nowrap">
-                              +{problem.xpReward ?? 0} XP
-                            </span>
-                          </div>
-                        </div>
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {problem.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="text-[11px] bg-muted/50 text-muted-foreground px-2 py-0.5 rounded-md border border-border/50"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+
+                            {problem.author_name && (
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                by <span className="text-primary">{problem.author_name}</span>
+                                <CheckCircle2 className="w-3 h-3 text-primary" />
+                              </div>
+                            )}
+                          </CardContent>
+
+                          <CardFooter className="p-5 pt-0 border-t border-border/50 mt-1">
+                            <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
+                              <div className="flex items-center gap-4">
+                                <span className="flex items-center gap-1">
+                                  <Code size={14} /> {problem.total_submissions || 0}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <BarChart2 size={14} />{" "}
+                                  {Math.round(problem.successRate || 0)}%
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock size={14} /> {problem.estTimeMinutes || 0}m
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/5 border border-primary/20">
+                                <svg
+                                  width="14"
+                                  height="18"
+                                  viewBox="0 0 12 16"
+                                  fill="currentColor"
+                                  className="text-primary flex-shrink-0"
+                                >
+                                  <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+                                </svg>
+                                <span className="font-semibold text-sm text-primary whitespace-nowrap">
+                                  +{problem.xpReward ?? 0} XP
+                                </span>
+                              </div>
+                            </div>
+                          </CardFooter>
+                        </Card>
                       </Link>
                     ))
                   )}
@@ -506,36 +527,38 @@ export default function Dashboard() {
           {loading ? (
             <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-[320px] bg-brand-charcoal-card rounded-2xl animate-pulse border border-brand-charcoal-border"></div>
+                <Card key={i} className="h-[320px] animate-pulse" />
               ))}
             </div>
           ) : bestPractices.length === 0 ? (
-            <div className="col-span-full bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-12 text-center text-brand-offwhite-muted">
-              <Trophy className="mx-auto mb-4 opacity-20" size={48} />
-              <h3 className="text-lg font-bold text-brand-offwhite mb-2">No Best Practices Yet</h3>
-              <p>Solve problems and get likes to feature here!</p>
+            <div className="col-span-full">
+              <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
+                <Trophy className="mx-auto mb-4 text-muted-foreground/20" size={48} />
+                <h3 className="text-lg font-bold text-foreground mb-2">No Best Practices Yet</h3>
+                <p className="text-muted-foreground">Solve problems and get likes to feature here!</p>
+              </Card>
             </div>
           ) : (
             bestPractices.map((sol) => (
-              <div
+              <Card
                 key={sol.id}
-                className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden hover:border-brand-charcoal-border/80 transition-colors flex flex-col"
+                className="overflow-hidden flex flex-col gap-0 p-0"
               >
-                <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30">
+                <CardHeader className="p-4 flex-row items-center justify-between space-y-0 border-b border-border/50 bg-muted/20">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand-muted-gold/10 text-brand-muted-gold flex items-center justify-center font-bold text-sm border border-brand-muted-gold/20">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
                       {sol.user_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-brand-offwhite flex items-center gap-2">
+                      <div className="font-bold text-sm text-foreground flex items-center gap-2">
                         {sol.user_name}
                         {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-brand-muted-gold hover:underline font-mono">
+                          <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-primary hover:underline font-mono">
                             in {sol.problem_slug}
                           </Link>
                         )}
                       </div>
-                      <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2 mt-0.5">
+                      <div className="text-xs text-muted-foreground font-mono flex items-center gap-2 mt-0.5">
                         <Clock size={12} /> {sol.runtime_ms}ms
                       </div>
                     </div>
@@ -543,10 +566,10 @@ export default function Dashboard() {
                   <button
                     onClick={() => handleLike(sol.id, sol.has_liked)}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-xs font-bold",
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-xs font-bold shrink-0",
                       sol.has_liked
                         ? "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20"
-                        : "bg-brand-charcoal-hover text-brand-offwhite-muted border-brand-charcoal-border hover:bg-brand-charcoal-base hover:text-brand-offwhite"
+                        : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <Heart
@@ -556,47 +579,49 @@ export default function Dashboard() {
                     />
                     {sol.likes}
                   </button>
-                </div>
-                <CodeBlock
-                  data={[
-                    {
-                      language: "go",
-                      filename: "solution.go",
-                      code: sol.code,
-                    },
-                  ]}
-                  defaultValue="go"
-                  className="h-[250px]"
-                >
-                  <CodeBlockHeader>
-                    <CodeBlockFiles>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <CodeBlock
+                    data={[
+                      {
+                        language: "go",
+                        filename: "solution.go",
+                        code: sol.code,
+                      },
+                    ]}
+                    defaultValue="go"
+                    className="h-[250px]"
+                  >
+                    <CodeBlockHeader>
+                      <CodeBlockFiles>
+                        {(item) => (
+                          <CodeBlockFilename
+                            key={item.language}
+                            value={item.language}
+                          >
+                            {item.filename}
+                          </CodeBlockFilename>
+                        )}
+                      </CodeBlockFiles>
+                      <CodeBlockCopyButton />
+                    </CodeBlockHeader>
+                    <CodeBlockBody>
                       {(item) => (
-                        <CodeBlockFilename
+                        <CodeBlockItem
                           key={item.language}
                           value={item.language}
                         >
-                          {item.filename}
-                        </CodeBlockFilename>
+                          <CodeBlockContent
+                            language={item.language as BundledLanguage}
+                          >
+                            {item.code}
+                          </CodeBlockContent>
+                        </CodeBlockItem>
                       )}
-                    </CodeBlockFiles>
-                    <CodeBlockCopyButton />
-                  </CodeBlockHeader>
-                  <CodeBlockBody>
-                    {(item) => (
-                      <CodeBlockItem
-                        key={item.language}
-                        value={item.language}
-                      >
-                        <CodeBlockContent
-                          language={item.language as BundledLanguage}
-                        >
-                          {item.code}
-                        </CodeBlockContent>
-                      </CodeBlockItem>
-                    )}
-                  </CodeBlockBody>
-                </CodeBlock>
-              </div>
+                    </CodeBlockBody>
+                  </CodeBlock>
+                </CardContent>
+              </Card>
             ))
           )}
         </div>
@@ -665,7 +690,7 @@ function GoogleSyncBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-5 py-3">
+    <Card className="flex-row items-center gap-3 px-5 py-3 border border-amber-500/20 bg-amber-500/5">
       <div className="flex-1 min-w-0">
         <p className="text-sm text-amber-300 font-medium">
           Link your Google account for seamless sign-in and automatic profile syncing.
@@ -685,11 +710,11 @@ function GoogleSyncBanner() {
         </button>
         <button
           onClick={handleDismiss}
-          className="text-xs text-white/30 hover:text-white/60 transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Dismiss
         </button>
       </div>
-    </div>
+    </Card>
   );
 }

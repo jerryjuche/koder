@@ -5,6 +5,9 @@ import { Toaster } from 'sonner';
 export const metadata: Metadata = {
   title: 'Koder — Code. Learn. Master Go.',
   description: 'A zero-cost, production-grade automated code-grading platform for Go programming.',
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
