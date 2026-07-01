@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type OneTapCallback = (response: { credential: string }) => void;
 
@@ -7,6 +7,7 @@ let scriptLoading = false;
 let initialized = false;
 let globalCallback: OneTapCallback | null = null;
 const loadListeners: Array<() => void> = [];
+const initListeners: Array<() => void> = [];
 
 function loadGsiScript() {
   if (scriptLoaded || scriptLoading) return;
@@ -35,22 +36,31 @@ function ensureInitialized(clientId: string) {
       callback: (response: { credential: string }) => {
         globalCallback?.(response);
       },
-      cancel_on_tap_outside: true,
-      itp_support: true,
     } as any);
-  } catch {
+  } catch (err) {
+    console.error('[GIS] initialize() failed:', err);
     initialized = false;
   }
+  // Signal ready regardless of init success — renderButton (popup) works
+  // without a successful initialize(). Only prompt() needs it.
+  initListeners.forEach((fn) => fn());
+  initListeners.length = 0;
 }
 
 export function useGoogleOneTap(onSuccess: OneTapCallback) {
   const cbRef = useRef<OneTapCallback>(onSuccess);
   cbRef.current = onSuccess;
 
-  const ready = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const canLoad = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!canLoad) return;
+
+    if (initialized) {
+      setReady(true);
+      return;
+    }
 
     globalCallback = (response) => {
       cbRef.current(response);
@@ -62,6 +72,9 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
+    const onInit = () => setReady(true);
+    initListeners.push(onInit);
+
     if (scriptLoaded) {
       ensureInitialized(clientId);
     } else {
@@ -70,9 +83,16 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
       return () => {
         const idx = loadListeners.indexOf(onLoad);
         if (idx !== -1) loadListeners.splice(idx, 1);
+        const iidx = initListeners.indexOf(onInit);
+        if (iidx !== -1) initListeners.splice(iidx, 1);
       };
     }
-  }, [ready]);
+
+    return () => {
+      const iidx = initListeners.indexOf(onInit);
+      if (iidx !== -1) initListeners.splice(iidx, 1);
+    };
+  }, [canLoad]);
 
   const prompt = useCallback(() => {
     if (!window.google) return;
@@ -84,7 +104,10 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
   }, []);
 
   const renderButton = useCallback((element: HTMLElement, options?: { width?: number }) => {
-    if (!window.google) return;
+    if (!window.google) {
+      console.warn('[GIS] renderButton: window.google not available');
+      return;
+    }
     try {
       window.google.accounts.id.renderButton(element, {
         type: 'standard',
@@ -94,8 +117,9 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
         text: 'signin_with',
         width: options?.width ?? 350,
       } as any);
-    } catch {
-      // Render failed
+      console.log('[GIS] renderButton: children after render:', element.childElementCount);
+    } catch (err) {
+      console.error('[GIS] renderButton() failed:', err);
     }
   }, []);
 

@@ -35,8 +35,9 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const gisRef = useRef<HTMLDivElement>(null);
+  const [gisFailed, setGisFailed] = useState(false);
 
-  const { renderButton, ready } = useGoogleOneTap(
+  const { renderButton, prompt, ready } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
       setLinkingGoogle(true);
       try {
@@ -66,7 +67,17 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (ready && gisRef.current) {
+      setGisFailed(false);
       renderButton(gisRef.current);
+      const timer = setTimeout(() => {
+        if (gisRef.current && gisRef.current.childElementCount === 0) {
+          console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
+          setGisFailed(true);
+        } else {
+          console.log('[GIS] renderButton: detected', gisRef.current?.childElementCount, 'children');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [ready, renderButton]);
 
@@ -463,21 +474,23 @@ export default function SettingsPage() {
                   <p className="text-sm text-brand-offwhite-muted mb-4">
                     Link your Google account for seamless sign-in. You will still be able to sign in with your password.
                   </p>
-                  <button
-                    onClick={() => {
-                      const el = gisRef.current?.querySelector<HTMLElement>('[role="button"], button');
-                      el?.click();
-                    }}
-                    disabled={linkingGoogle || !ready}
-                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {linkingGoogle ? (
-                      <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
-                    ) : (
-                      <><Chrome size={16} /> Link Google Account</>
-                    )}
-                  </button>
-                  <div ref={gisRef} className="hidden" />
+                  {ready && !gisFailed ? (
+                    <div ref={gisRef} style={{ width: '350px', height: '40px' }} />
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (gisFailed) prompt();
+                      }}
+                      disabled={linkingGoogle || (ready && !gisFailed)}
+                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {linkingGoogle ? (
+                        <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
+                      ) : (
+                        <><Chrome size={16} /> Link Google Account</>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">
