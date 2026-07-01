@@ -14,8 +14,9 @@ export default function GoogleLinkBanner() {
   const [linking, setLinking] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const gisRef = useRef<HTMLDivElement>(null);
+  const [gisFailed, setGisFailed] = useState(false);
 
-  const { renderButton, ready } = useGoogleOneTap(
+  const { renderButton, prompt, ready } = useGoogleOneTap(
     useCallback(async (response) => {
       setLinking(true);
       try {
@@ -59,7 +60,17 @@ export default function GoogleLinkBanner() {
 
   useEffect(() => {
     if (ready && gisRef.current) {
+      setGisFailed(false);
       renderButton(gisRef.current);
+      const timer = setTimeout(() => {
+        if (gisRef.current && gisRef.current.childElementCount === 0) {
+          console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
+          setGisFailed(true);
+        } else {
+          console.log('[GIS] renderButton: detected', gisRef.current?.childElementCount, 'children');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [ready, renderButton]);
 
@@ -95,15 +106,29 @@ export default function GoogleLinkBanner() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        {ready ? (
-          <div ref={gisRef} style={{ width: '100%', minHeight: '40px' }} />
+        {ready && !gisFailed ? (
+          <div ref={gisRef} style={{ width: '350px', height: '40px' }} />
         ) : (
           <button
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold bg-amber-400/15 text-amber-300 opacity-50 cursor-not-allowed"
+            onClick={() => { if (gisFailed) prompt(); }}
+            disabled={linking || (ready && !gisFailed)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
+              "bg-amber-400/15 text-amber-300 hover:bg-amber-400/25",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+            )}
           >
-            <Chrome size={16} />
-            Link Google
+            {linking ? (
+              <>
+                <div className="size-4 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Chrome size={16} />
+                Link Google
+              </>
+            )}
           </button>
         )}
         <button
