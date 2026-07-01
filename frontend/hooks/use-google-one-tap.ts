@@ -104,6 +104,9 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
   }, []);
 
   const renderButton = useCallback((element: HTMLElement, options?: { width?: number }) => {
+    console.log('[GIS DEBUG] renderButton called');
+    console.log('[GIS DEBUG] container child count:', element.childElementCount);
+    console.log('[GIS DEBUG] window.google exists:', !!window.google);
     if (!window.google) {
       console.warn('[GIS] renderButton: window.google not available');
       return;

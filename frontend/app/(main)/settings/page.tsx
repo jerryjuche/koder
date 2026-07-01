@@ -68,7 +68,23 @@ export default function SettingsPage() {
   useEffect(() => {
     if (ready && gisRef.current) {
       setGisFailed(false);
-      renderButton(gisRef.current);
+      // Direct call to bypass hook wrapper for debugging
+      if (window.google) {
+        try {
+          window.google.accounts.id.renderButton(gisRef.current, {
+            theme: "filled_blue",
+            size: "large",
+            width: 350,
+            text: "signin_with",
+          } as any);
+          console.log('[GIS] direct renderButton: children after render:', gisRef.current.childElementCount);
+        } catch (err) {
+          console.error('[GIS] direct renderButton failed:', err);
+        }
+      } else {
+        console.warn('[GIS] direct: window.google not available');
+        renderButton(gisRef.current); // fallback to hook wrapper
+      }
       const timer = setTimeout(() => {
         if (gisRef.current && gisRef.current.childElementCount === 0) {
           console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
