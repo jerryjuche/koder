@@ -63,11 +63,6 @@ export default function GoogleLinkBanner() {
     }
   }, [ready, renderButton]);
 
-  const handleLink = useCallback(() => {
-    const el = gisRef.current?.querySelector<HTMLElement>('[role="button"], button');
-    el?.click();
-  }, []);
-
   const handleDismiss = () => {
     localStorage.setItem("google-banner-dismissed", "true");
     setVisible(false);
@@ -100,27 +95,17 @@ export default function GoogleLinkBanner() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <button
-          onClick={handleLink}
-          disabled={linking || !ready}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
-            "bg-amber-400/15 text-amber-300 hover:bg-amber-400/25",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-          )}
-        >
-          {linking ? (
-            <>
-              <div className="size-4 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Chrome size={16} />
-              Link Google
-            </>
-          )}
-        </button>
+        {ready ? (
+          <div ref={gisRef} className="[&>div]:w-full min-h-[40px]" />
+        ) : (
+          <button
+            disabled
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold bg-amber-400/15 text-amber-300 opacity-50 cursor-not-allowed"
+          >
+            <Chrome size={16} />
+            Link Google
+          </button>
+        )}
         <button
           onClick={handleDismiss}
           className="flex size-8 items-center justify-center rounded-lg text-amber-400/40 hover:bg-amber-500/10 hover:text-amber-300 transition-colors"
@@ -129,7 +114,6 @@ export default function GoogleLinkBanner() {
           <X size={16} />
         </button>
       </div>
-      <div ref={gisRef} className="hidden" />
     </div>
   );
 }

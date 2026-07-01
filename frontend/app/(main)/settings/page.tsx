@@ -463,21 +463,17 @@ export default function SettingsPage() {
                   <p className="text-sm text-brand-offwhite-muted mb-4">
                     Link your Google account for seamless sign-in. You will still be able to sign in with your password.
                   </p>
-                  <button
-                    onClick={() => {
-                      const el = gisRef.current?.querySelector<HTMLElement>('[role="button"], button');
-                      el?.click();
-                    }}
-                    disabled={linkingGoogle || !ready}
-                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {linkingGoogle ? (
-                      <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
-                    ) : (
-                      <><Chrome size={16} /> Link Google Account</>
-                    )}
-                  </button>
-                  <div ref={gisRef} className="hidden" />
+                  {ready ? (
+                    <div ref={gisRef} className="[&>div]:w-full min-h-[40px]" />
+                  ) : (
+                    <button
+                      disabled
+                      className="bg-brand-charcoal-hover border border-brand-charcoal-border text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm opacity-50 cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Chrome size={16} /> Link Google Account
+                    </button>
+                  )}
+                  <div className="hidden" />
                 </div>
 
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">
