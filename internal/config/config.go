@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -18,9 +19,16 @@ type Config struct {
 	JWTSecret      string
 	JWTExpiryHours int
 
+	// AI Provider (gemini or groq)
+	EnrichmentProvider string
+
 	// Gemini
 	GeminiAPIKey string
 	GeminiModel  string
+
+	// Groq
+	GroqAPIKey string
+	GroqModel  string
 
 	// Execution
 	ExecutorMaxConcurrency int
@@ -105,15 +113,42 @@ func Load() (*Config, error) {
 	}
 	cfg.JWTExpiryHours = jwtExpiry
 
-	// Gemini
-	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
-	if cfg.GeminiAPIKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY is required")
+	// AI Provider Selection
+	cfg.EnrichmentProvider = os.Getenv("ENRICHMENT_PROVIDER")
+	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
+
+	if cfg.EnrichmentProvider == "" {
+		if cfg.GroqAPIKey != "" {
+			cfg.EnrichmentProvider = "groq"
+		} else {
+			cfg.EnrichmentProvider = "gemini"
+		}
 	}
 
+	cfg.GroqModel = os.Getenv("GROQ_MODEL")
+	if cfg.GroqModel == "" {
+		cfg.GroqModel = "llama-3.1-70b-versatile"
+	}
+
+	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
 	cfg.GeminiModel = os.Getenv("GEMINI_MODEL")
 	if cfg.GeminiModel == "" {
 		cfg.GeminiModel = "gemini-2.5-pro"
+	}
+
+	switch cfg.EnrichmentProvider {
+	case "gemini":
+		if cfg.GeminiAPIKey == "" {
+			return nil, fmt.Errorf("GEMINI_API_KEY is required when ENRICHMENT_PROVIDER is gemini")
+		}
+		slog.Info("config: using Gemini for problem enrichment", "model", cfg.GeminiModel)
+	case "groq":
+		if cfg.GroqAPIKey == "" {
+			return nil, fmt.Errorf("GROQ_API_KEY is required when ENRICHMENT_PROVIDER is groq")
+		}
+		slog.Info("config: using Groq for problem enrichment", "model", cfg.GroqModel)
+	default:
+		return nil, fmt.Errorf("ENRICHMENT_PROVIDER must be 'gemini' or 'groq', got %q", cfg.EnrichmentProvider)
 	}
 
 	// Execution
