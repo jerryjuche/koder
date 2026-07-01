@@ -1,49 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "@untitledui/icons";
 import { Chrome, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { linkGoogle, fetchUser } from "@/lib/api";
+import { fetchUser } from "@/lib/api";
 import { User } from "@/lib/types";
-import { toast } from "@/lib/toast";
-import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
 export default function GoogleLinkBanner() {
   const [visible, setVisible] = useState(false);
-  const [linking, setLinking] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const gisRef = useRef<HTMLDivElement>(null);
-  const [gisFailed, setGisFailed] = useState(false);
-
-  const { renderButton, prompt, ready } = useGoogleOneTap(
-    useCallback(async (response) => {
-      setLinking(true);
-      try {
-        const res = await linkGoogle(response.credential);
-        if (res.success) {
-          if (res.data?.token) {
-            localStorage.setItem("token", res.data.token);
-          }
-          window.dispatchEvent(new Event("user-updated"));
-          setVisible(false);
-          toast.success({
-            title: "Google account linked",
-            description: "You can now sign in with Google.",
-          });
-        } else {
-          toast.error({
-            title: "Link failed",
-            description: res.error?.message || "Could not link Google account.",
-          });
-        }
-      } catch {
-        toast.error({ title: "Link failed", description: "Network error while linking." });
-      } finally {
-        setLinking(false);
-      }
-    }, []),
-  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -57,38 +23,6 @@ export default function GoogleLinkBanner() {
       if (res.success && res.data) setUser(res.data);
     });
   }, [visible]);
-
-  useEffect(() => {
-    if (ready && gisRef.current) {
-      setGisFailed(false);
-      // Direct call to bypass hook wrapper for debugging
-      if (window.google) {
-        try {
-          window.google.accounts.id.renderButton(gisRef.current, {
-            theme: "filled_blue",
-            size: "large",
-            width: 350,
-            text: "signin_with",
-          } as any);
-          console.log('[GIS] direct renderButton: children after render:', gisRef.current.childElementCount);
-        } catch (err) {
-          console.error('[GIS] direct renderButton failed:', err);
-        }
-      } else {
-        console.warn('[GIS] direct: window.google not available');
-        renderButton(gisRef.current);
-      }
-      const timer = setTimeout(() => {
-        if (gisRef.current && gisRef.current.childElementCount === 0) {
-          console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
-          setGisFailed(true);
-        } else {
-          console.log('[GIS] renderButton: detected', gisRef.current?.childElementCount, 'children');
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [ready, renderButton]);
 
   const handleDismiss = () => {
     localStorage.setItem("google-banner-dismissed", "true");
@@ -122,31 +56,16 @@ export default function GoogleLinkBanner() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        {ready && !gisFailed ? (
-          <div ref={gisRef} style={{ width: '350px', height: '40px' }} />
-        ) : (
-          <button
-            onClick={() => { if (gisFailed) prompt(); }}
-            disabled={linking || (ready && !gisFailed)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
-              "bg-amber-400/15 text-amber-300 hover:bg-amber-400/25",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-            )}
-          >
-            {linking ? (
-              <>
-                <div className="size-4 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <Chrome size={16} />
-                Link Google
-              </>
-            )}
-          </button>
-        )}
+        <a
+          href="/settings?tab=security"
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
+            "bg-amber-400/15 text-amber-300 hover:bg-amber-400/25",
+          )}
+        >
+          <Chrome size={16} />
+          Link Google
+        </a>
         <button
           onClick={handleDismiss}
           className="flex size-8 items-center justify-center rounded-lg text-amber-400/40 hover:bg-amber-500/10 hover:text-amber-300 transition-colors"

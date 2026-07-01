@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { User, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2, Chrome } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount } from "@/lib/api";
@@ -11,7 +12,12 @@ import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validTabs: Tab[] = ["profile", "editor", "appearance", "notifications", "security"];
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam && validTabs.includes(tabParam as Tab) ? (tabParam as Tab) : "profile"
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,10 +40,7 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const gisRef = useRef<HTMLDivElement>(null);
-  const [gisFailed, setGisFailed] = useState(false);
-
-  const { renderButton, prompt, ready } = useGoogleOneTap(
+  const { prompt } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
       setLinkingGoogle(true);
       try {
@@ -64,38 +67,6 @@ export default function SettingsPage() {
       }
     }, []),
   );
-
-  useEffect(() => {
-    if (ready && gisRef.current) {
-      setGisFailed(false);
-      // Direct call to bypass hook wrapper for debugging
-      if (window.google) {
-        try {
-          window.google.accounts.id.renderButton(gisRef.current, {
-            theme: "filled_blue",
-            size: "large",
-            width: 350,
-            text: "signin_with",
-          } as any);
-          console.log('[GIS] direct renderButton: children after render:', gisRef.current.childElementCount);
-        } catch (err) {
-          console.error('[GIS] direct renderButton failed:', err);
-        }
-      } else {
-        console.warn('[GIS] direct: window.google not available');
-        renderButton(gisRef.current); // fallback to hook wrapper
-      }
-      const timer = setTimeout(() => {
-        if (gisRef.current && gisRef.current.childElementCount === 0) {
-          console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
-          setGisFailed(true);
-        } else {
-          console.log('[GIS] renderButton: detected', gisRef.current?.childElementCount, 'children');
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [ready, renderButton]);
 
   useEffect(() => {
     let mounted = true;
@@ -490,23 +461,17 @@ export default function SettingsPage() {
                   <p className="text-sm text-brand-offwhite-muted mb-4">
                     Link your Google account for seamless sign-in. You will still be able to sign in with your password.
                   </p>
-                  {ready && !gisFailed ? (
-                    <div ref={gisRef} style={{ width: '350px', height: '40px' }} />
-                  ) : (
-                    <button
-                      onClick={() => {
-                        if (gisFailed) prompt();
-                      }}
-                      disabled={linkingGoogle || (ready && !gisFailed)}
-                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {linkingGoogle ? (
-                        <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
-                      ) : (
-                        <><Chrome size={16} /> Link Google Account</>
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => prompt()}
+                    disabled={linkingGoogle}
+                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {linkingGoogle ? (
+                      <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
+                    ) : (
+                      <><Chrome size={16} /> Link Google Account</>
+                    )}
+                  </button>
                 </div>
 
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">

@@ -221,7 +221,7 @@ export default function TopNav() {
                   <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     {user.google_avatar_url && !avatarError ? (
                       <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
-                        <Image
+                        <img
                           src={user.google_avatar_url}
                           alt={user.username ?? "Avatar"}
                           width={36}
@@ -261,7 +261,7 @@ export default function TopNav() {
                     <div className="flex items-center gap-3 py-1">
                       {user.google_avatar_url && !avatarError ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
-                          <Image
+                          <img
                             src={user.google_avatar_url}
                             alt={user.username ?? "Avatar"}
                             width={32}
