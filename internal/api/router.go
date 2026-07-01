@@ -49,6 +49,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 		meHandler := NewMeHandler(store)
 		r.Get("/me", meHandler.GetMe)
+		r.Post("/me/delete-account", meHandler.DeleteAccount)
 
 		profileHandler := NewProfileHandler(store)
 		r.Get("/me/profile", profileHandler.GetProfile)

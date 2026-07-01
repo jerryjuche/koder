@@ -15,6 +15,8 @@ import (
 	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/parser"
 	"github.com/jerryjuche/koder/internal/store"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type AdminHandler struct {
@@ -85,7 +87,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 			Module:     rawProblem.Module,
 			Type:       rawProblem.Type,
 			Language:   "go",
-			Title:      fmt.Sprintf("%s exercise", strings.Title(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
+			Title:      fmt.Sprintf("%s exercise", cases.Title(language.English).String(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
 			Statement:  "Problem ingestion pending AI enrichment.",
 			FuncName:   "",
 			ReturnType: "",

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { User, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2 } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { User, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2, Chrome } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchUserProfile, updateUserProfile } from "@/lib/api";
+import { fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount } from "@/lib/api";
 import { UserProfile } from "@/lib/types";
 import { toast } from "@/lib/toast";
+import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
 type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
 
@@ -25,6 +26,49 @@ export default function SettingsPage() {
   const [autoSave, setAutoSave] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(true);
+
+  // Google linking
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+
+  // Delete account
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const gisRef = useRef<HTMLDivElement>(null);
+
+  const { renderButton, ready } = useGoogleOneTap(
+    useCallback(async (response: { credential: string }) => {
+      setLinkingGoogle(true);
+      try {
+        const res = await linkGoogle(response.credential);
+        if (res.success) {
+          if (res.data?.token) {
+            localStorage.setItem("token", res.data.token);
+          }
+          window.dispatchEvent(new Event("user-updated"));
+          toast.success({
+            title: "Google account linked",
+            description: "You can now sign in with Google.",
+          });
+        } else {
+          toast.error({
+            title: "Link failed",
+            description: res.error?.message || "Could not link Google account.",
+          });
+        }
+      } catch {
+        toast.error({ title: "Link failed", description: "Network error while linking." });
+      } finally {
+        setLinkingGoogle(false);
+      }
+    }, []),
+  );
+
+  useEffect(() => {
+    if (ready && gisRef.current) {
+      renderButton(gisRef.current);
+    }
+  }, [ready, renderButton]);
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +135,26 @@ export default function SettingsPage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/auth/login";
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await deleteAccount();
+      if (res.success) {
+        localStorage.removeItem("token");
+        window.location.href = "/auth/login";
+      } else {
+        throw new Error(res.error?.message || "Failed to delete account");
+      }
+    } catch (err: any) {
+      toast.error({
+        title: "Delete failed",
+        description: err.message || "Something went wrong while deleting your account.",
+      });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
@@ -391,14 +455,70 @@ export default function SettingsPage() {
 
 
 
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Chrome className="text-brand-muted-gold" size={20} />
+                    <h3 className="font-bold text-sm text-brand-offwhite">Google Account</h3>
+                  </div>
+                  <p className="text-sm text-brand-offwhite-muted mb-4">
+                    Link your Google account for seamless sign-in. You will still be able to sign in with your password.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const el = gisRef.current?.querySelector<HTMLElement>('[role="button"], button');
+                      el?.click();
+                    }}
+                    disabled={linkingGoogle || !ready}
+                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {linkingGoogle ? (
+                      <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
+                    ) : (
+                      <><Chrome size={16} /> Link Google Account</>
+                    )}
+                  </button>
+                  <div ref={gisRef} className="hidden" />
+                </div>
+
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">
                   <h3 className="font-bold text-sm text-brand-error mb-2">Danger Zone</h3>
                   <p className="text-sm text-brand-error/80 mb-4">
                     Once you delete your account, there is no going back. Please be certain.
                   </p>
-                  <button className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                    Delete Account
-                  </button>
+                  {confirmDelete ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs text-brand-error/70">
+                        All your submissions, progress, and account data will be permanently removed. Are you sure?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="bg-brand-error hover:bg-brand-error/80 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {deleting ? (
+                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                          ) : (
+                            "Yes, delete my account"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(false)}
+                          disabled={deleting}
+                          className="bg-brand-charcoal-hover border border-brand-charcoal-border text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors hover:bg-brand-charcoal-panel disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                    >
+                      Delete Account
+                    </button>
+                  )}
                 </div>
               </div>
             )}

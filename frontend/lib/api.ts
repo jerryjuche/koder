@@ -343,4 +343,10 @@ export async function publishAllDrafts(): Promise<ApiResponse<{ published: numbe
   });
 }
 
+export async function deleteAccount(): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/me/delete-account", {
+    method: "POST",
+  });
+}
+
 

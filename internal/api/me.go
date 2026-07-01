@@ -29,6 +29,7 @@ type meResponse struct {
 	Level          int     `json:"level"`
 	SolvedCount    int     `json:"solved_count"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
+	GoogleLinked    bool    `json:"google_linked"`
 }
 
 func clampColorIndex(index int) int {
@@ -74,30 +75,55 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	level := (user.XP / 1000) + 1
+	googleLinked := user.GoogleID != nil && *user.GoogleID != ""
 
 	cacheUser(r.Context(), userUUID.String(), meResponse{
-		ID:             idStr,
-		StudentID:      user.StudentID,
-		Username:       user.Username,
-		Name:           user.Name,
-		Role:           user.Role,
-		ColorIndex:     clampColorIndex(user.ColorIndex),
-		XP:             user.XP,
-		Level:          level,
-		SolvedCount:    solvedCount,
+		ID:              idStr,
+		StudentID:       user.StudentID,
+		Username:        user.Username,
+		Name:            user.Name,
+		Role:            user.Role,
+		ColorIndex:      clampColorIndex(user.ColorIndex),
+		XP:              user.XP,
+		Level:           level,
+		SolvedCount:     solvedCount,
 		GoogleAvatarURL: user.GoogleAvatarURL,
+		GoogleLinked:    googleLinked,
 	})
 
 	RespondSuccess(w, meResponse{
-		ID:             idStr,
-		StudentID:      user.StudentID,
-		Username:       user.Username,
-		Name:           user.Name,
-		Role:           user.Role,
-		ColorIndex:     clampColorIndex(user.ColorIndex),
-		XP:             user.XP,
-		Level:          level,
-		SolvedCount:    solvedCount,
+		ID:              idStr,
+		StudentID:       user.StudentID,
+		Username:        user.Username,
+		Name:            user.Name,
+		Role:            user.Role,
+		ColorIndex:      clampColorIndex(user.ColorIndex),
+		XP:              user.XP,
+		Level:           level,
+		SolvedCount:     solvedCount,
 		GoogleAvatarURL: user.GoogleAvatarURL,
+		GoogleLinked:    googleLinked,
 	})
+}
+
+// DeleteAccount permanently removes the authenticated user and all their data.
+func (h *MeHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	if err := h.store.DeleteUser(r.Context(), userUUID); err != nil {
+		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete account: "+err.Error(), nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"message": "Account permanently deleted"})
 }

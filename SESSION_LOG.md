@@ -190,3 +190,70 @@ Login Page → GIS button → Google popup → user selects account
 - [ ] Test new registration flow (register → onboarding → dashboard)
 - [ ] Test Google link for existing users (/auth/link-google)
 - [ ] Clean up unused `@tanstack/react-virtual` dependency if not needed
+
+---
+
+## 14. Session 7 (July 1) — Codebase Cleanup, Google Auth Hardening, Account Deletion
+
+### Backend Changes
+| File | Change |
+|------|--------|
+| `cmd/sandbox/main.go` | **REMOVED** — dead placeholder (`select {}`) |
+| `sandbox/main.go` | Removed Gitea proxy handler, route, rate-limiter bypass; dead code removal |
+| `internal/api/admin.go` | Replaced deprecated `strings.Title` → `cases.Title(language.English).String()` |
+| `internal/config/config.go` | Added `GoVersion` field, `GO_VERSION` env var (default `"1.23"`) |
+| `internal/executor/executor.go` | Wired `goVersion` through `PrepareSandbox` and sandbox client |
+| `internal/executor/sandbox.go` | `PrepareSandbox` accepts `goVersion string` param |
+| `internal/executor/sandbox_client.go` | `SandboxRequest` includes `GoVersion` field |
+| `internal/store/store.go` | Added `DeleteUser` + `GetVisibleTestCasesForProblem` to Store interface |
+| `internal/store/users.go` | New `DeleteUser()` — transactional cleanup: submissions → progress → user (cascades to notifications, submission_likes, user_problems) |
+| `internal/api/auth.go` | `GoogleAuth` returns `404 GOOGLE_NOT_LINKED` instead of auto-creating accounts; prevents silent duplicates |
+| `internal/api/me.go` | Added `google_linked: bool` to `/me`; new `DeleteAccount` handler |
+| `internal/api/router.go` | Added `POST /me/delete-account` route (auth-protected) |
+| `internal/auth/auth_test.go` | Updated all 10 `SignToken()` calls to match 7-argument signature |
+| `.env.example` | Added `GO_VERSION` |
+
+### Frontend — Shared GIS Hook (NEW)
+| File | Change |
+|------|--------|
+| `hooks/use-google-one-tap.ts` | **NEW** — module-level singleton: loads GIS script once, calls `initialize()` once, exposes `prompt()` + `renderButton()`. FedCM calls wrapped in try-catch with `itp_support: true`. `renderButton()` uses popup flow (no FedCM dep) |
+
+### Frontend — Google Link Banner (NEW)
+| File | Change |
+|------|--------|
+| `components/GoogleLinkBanner.tsx` | **NEW** — replaces old `GoogleSyncBanner`; amber gradient, `AlertTriangle` icon, localStorage dismiss, auto-hides when `google_linked` is true; uses `renderButton` (popup) for linking |
+| `app/(main)/page.tsx` | Swapped `GoogleSyncBanner` → `GoogleLinkBanner` |
+
+### Frontend — Login & Register Pages
+| File | Change |
+|------|--------|
+| `app/(auth)/login/page.tsx` | Adopted shared hook; `renderButton` (popup, numeric 350 width) replaces direct GIS call with `width: '100%'`; `mounted` state pattern fixes hydration mismatch |
+| `app/(auth)/register/page.tsx` | Same fixes as login: shared hook, numeric width, `mounted` pattern |
+
+### Frontend — Settings Page
+| File | Change |
+|------|--------|
+| `app/(main)/settings/page.tsx` | Delete Account: two-step confirmation dialog → `deleteAccount()` API call → clears token → redirects to `/auth/login`. Google linking uses `renderButton` (popup) instead of `prompt()` (FedCM) |
+
+### Frontend — API & Types
+| File | Change |
+|------|--------|
+| `lib/api.ts` | Added `deleteAccount()` function |
+| `lib/types.ts` | Added `google_linked: boolean` to `User` type |
+
+### Git
+- Branch: `update`
+- Commit: (pending)
+
+### Build Verification
+- ✅ `go build ./...`
+- ✅ `npx tsc --noEmit`
+
+---
+
+## 15. Known Issues & Next Steps
+
+- [ ] Run migration `012_add_google_auth.sql` against the database
+- [ ] Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
+- [ ] Test Google Sign-In end-to-end (login → onboarding → dashboard)
+- [ ] Test account deletion end-to-end

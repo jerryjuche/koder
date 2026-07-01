@@ -373,7 +373,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			LEFT JOIN problems pr ON sub.problem_id = pr.id
 			WHERE u.role != 'admin'
 			GROUP BY u.id
-			ORDER BY xp DESC, solved_count DESC
+			HAVING COALESCE(SUM(pr.xp_reward), 0) > 0
+			ORDER BY xp DESC, solved_count DESC, u.id
 			LIMIT 100
 		`, interval)
 	} else {
@@ -386,9 +387,9 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.google_avatar_url
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
-			WHERE u.role != 'admin'
+			WHERE u.role != 'admin' AND u.xp > 0
 			GROUP BY u.id
-			ORDER BY u.xp DESC, solved_count DESC
+			ORDER BY u.xp DESC, solved_count DESC, u.id
 			LIMIT 100
 		`
 	}
@@ -969,4 +970,37 @@ func (s *PostgresStore) GetRecentSubmissions(ctx context.Context, userID uuid.UU
 	}
 
 	return submissions, nil
+}
+
+// DeleteUser permanently removes a user and all associated data.
+func (s *PostgresStore) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Delete submissions (no ON DELETE CASCADE)
+	if _, err := tx.Exec(ctx, `DELETE FROM submissions WHERE user_id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete submissions: %w", err)
+	}
+
+	// Delete progress (no ON DELETE CASCADE)
+	if _, err := tx.Exec(ctx, `DELETE FROM progress WHERE user_id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete progress: %w", err)
+	}
+
+	// Delete the user (cascades to user_problems, notifications, submission_likes,
+	// and sets author_id = NULL on authored problems)
+	if tag, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	} else if tag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return tx.Commit(ctx)
 }

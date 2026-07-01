@@ -36,6 +36,11 @@ export default function TopNav() {
   const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
+  // Reset avatarError when user data changes (e.g. after Google sync)
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [user?.google_avatar_url]);
+
   // Close notification menu on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,23 +64,21 @@ export default function TopNav() {
   ];
 
   return (
-    <header className="border-b border-border bg-background">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left section: Logo & Nav */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-8 h-8 overflow-hidden rounded-md transition-transform group-hover:scale-105">
+          <Link href="/" className="flex items-center group">
+            <div className="relative w-12 h-12 overflow-hidden rounded-xl transition-transform group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt="Koder"
-                width={32}
-                height={32}
+                width={48}
+                height={48}
+                priority
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="font-bold text-xl tracking-tight text-foreground">
-              Zero<span className="text-primary">Judge</span>
-            </span>
           </Link>
 
           <nav className="hidden md:flex gap-1.5">

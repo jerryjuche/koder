@@ -39,7 +39,7 @@ function nextColor(): string {
 
 export function ActivityGauge({ value, max, label, colorClass }: ActivityGaugeProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [gaugeHeight, setGaugeHeight] = useState(170);
+  const [gaugeHeight, setGaugeHeight] = useState(130);
   const gaugeColor = colorClass || nextColor();
   const percentage = max > 0 ? Math.round((value / max) * 100) : 0;
   const data = [{ name: label, value: percentage, fill: "currentColor" }];
@@ -48,7 +48,7 @@ export function ActivityGauge({ value, max, label, colorClass }: ActivityGaugePr
     function updateSize() {
       if (cardRef.current) {
         const w = cardRef.current.clientWidth;
-        setGaugeHeight(Math.min(Math.max(w * 0.85, 120), 200));
+        setGaugeHeight(Math.min(Math.max(w * 0.75, 90), 160));
       }
     }
     updateSize();
@@ -56,18 +56,18 @@ export function ActivityGauge({ value, max, label, colorClass }: ActivityGaugePr
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  const radius = Math.min(gaugeHeight * 0.22, 48);
+  const radius = Math.min(gaugeHeight * 0.22, 38);
 
   return (
-    <Card ref={cardRef} className="p-3 flex flex-col items-center justify-center overflow-hidden">
+    <Card ref={cardRef} className="p-2.5 flex flex-col items-center justify-center overflow-hidden">
       <ResponsiveContainer width="100%" height={gaugeHeight}>
         <RadialBarChart
           data={data}
-          innerRadius={radius * 0.65}
-          outerRadius={radius * 1.02}
+          innerRadius={radius * 0.6}
+          outerRadius={radius * 1.0}
           startAngle={90}
           endAngle={450}
-          barSize={Math.max(radius * 0.17, 8)}
+          barSize={Math.max(radius * 0.17, 6)}
         >
           <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
           <RadialBar
@@ -83,14 +83,14 @@ export function ActivityGauge({ value, max, label, colorClass }: ActivityGaugePr
             <tspan
               x="50%"
               dy="0"
-              className="fill-foreground text-xl font-bold tabular-nums"
+              className="fill-foreground text-base font-bold tabular-nums"
             >
               {percentage}%
             </tspan>
           </text>
         </RadialBarChart>
       </ResponsiveContainer>
-      <span className="text-[10px] font-semibold text-foreground text-center mt-0.5 leading-tight line-clamp-2 max-w-full px-1">
+      <span className="text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 max-w-full px-1">
         {label}
       </span>
     </Card>

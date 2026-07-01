@@ -282,7 +282,7 @@ See `.env.example` for full template.
 
 ### Remote Sandbox Service (`sandbox/`)
 - Standalone Go binary, zero external deps, deployed on Railway
-- `POST /execute` receives `{code, test_code, timeout_sec}`, writes temp `main_test.go`, runs `go test -v`
+- `POST /execute` receives `{code, test_code, timeout_sec}`, writes temp `main_test.go`, runs `go test -v`  
 - Pre-exec validation blocks dangerous patterns (`os/exec`, `syscall`, `unsafe`, `net`, filesystem writes)
 - `setrlimit` sandboxing: NPROC=6, NOFILE=1024, FSIZE=64MB; `Setpgid` for process group kill
 - Per-IP sliding window rate limiter: 10 req/min, HTTP 429 with `Retry-After`
@@ -324,26 +324,15 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
-- **Profile page redesign:**
-  - All 6 components overhauled: glassmorphism (`backdrop-blur-xl`, `bg-black/40`), animated gradient backgrounds
-  - SVG XP ring with `stroke-dashoffset` animation around level badge
-  - `AnimatedNumber` counters using `motion/react` `useMotionValue` + `animate` with staggered entrance
-  - Timeline activity feed with vertical gradient line + animated dots
-  - Shimmer skeleton with `@keyframes shimmer` replacing pulse skeleton
-  - `pulse-slow` + `shimmer` animations added to `globals.css`
-  - Hover lift with `whileHover`, per-stat gradient overlays
-  - Premium achievement dialog with `backdrop-blur-xl`
-- **Legal pages:** `/privacy` and `/terms` routes in `(legal)` layout group; auth footer links
-- **Google token fix:** Added `FlexibleBool` custom JSON unmarshaler for `email_verified` (Google's `tokeninfo` endpoint returns string `"true"` not bool `true`); added `aud` claim validation
-- **Google Sign-In migration (replaced Gitea):**
-  - Backend: Migration 012 with `google_id`/`google_email`/`google_avatar_url`/`username`/`email` columns; all Google store methods; removed all Gitea code
-  - Auth: `VerifyGoogleToken` via `oauth2.googleapis.com/tokeninfo`; JWT includes `Username` + `Onboarding` claims; `Login` accepts username/email/student_id
-  - API: `POST /auth/google`, `POST /auth/complete-google`, `GET /auth/check-username`
-  - Frontend: GIS button on login; `/onboarding` page with debounced username check; all surfaces use `username`/`google_avatar_url`
-  - Settings page: Removed Gitea section; username read-only
-- **Problem auto-publish:** Enrichment now sets `visible=true`; `POST /admin/problems/publish-all` endpoint + button
-- **Shared achievements:** `lib/achievements.ts` module imported by both Achievements.tsx and ActivityFeed.tsx
-- **Module proficiency gauges:** ResizeObserver responsive sizing, 16-color module palette, empty state
+- **Account deletion:** `POST /me/delete-account` endpoint with transactional cascade cleanup (submissions → progress → user); Settings page two-step confirmation dialog; `deleteAccount()` API function
+- **Go version configurable:** `GO_VERSION` env var (default `"1.23"`) wired through `PrepareSandbox`, sandbox client, and `.env.example`
+- **Dead code removal:** Removed `cmd/sandbox/main.go` placeholder; removed Gitea proxy handler from `sandbox/main.go`; replaced deprecated `strings.Title` with `cases.Title`
+- **Google auth hardening:** `GoogleAuth` no longer auto-creates accounts — returns `404 GOOGLE_NOT_LINKED` on unknown Google profiles; added `google_linked: bool` to `/me` response
+- **Shared GIS hook:** `hooks/use-google-one-tap.ts` — module-level singleton that loads GIS script once and calls `initialize()` once; all 4 consumers (login, register, settings, banner) share it
+- **Popover-based Google linking:** `renderButton()` exposed from hook (popup, no FedCM dependency); banner and settings use it instead of `prompt()`; fixed invalid `width: '100%'` → numeric 350
+- **GoogleLinkBanner component:** Professional amber-gradient banner with `AlertTriangle` icon, localStorage dismiss, auto-hides when `google_linked` is true; replaces old `GoogleSyncBanner`
+- **Hydration mismatch fix:** `mounted` state pattern on login/register pages prevents server/client mismatch caused by `ready` flipping from `false` to `true` post-hydration
+- **FedCM robustness:** `initialize()` and `prompt()` wrapped in try-catch; `itp_support: true` added for browser compatibility
 - **July 1 professional review — auth rework:**
   - Registration flow: `POST /auth/register` now creates user with `student_id = username` (was separate field); issues JWT with `onboarding: true` (was `false`)
   - New endpoint `POST /auth/complete-onboarding`: sets both `username` and `student_id` after registration; unified handler for all auth methods (replaces `complete-google` as the canonical path)
@@ -360,6 +349,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
+- **Immediate:** Run migration `012_add_google_auth.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
 
 ---
 

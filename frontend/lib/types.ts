@@ -10,6 +10,7 @@ export type User = {
   solvedCount: number;
   verified?: boolean;
   google_avatar_url?: string;
+  google_linked?: boolean;
 };
 
 export type ProblemDifficulty =
