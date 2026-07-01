@@ -96,7 +96,7 @@ export default function GoogleLinkBanner() {
 
       <div className="flex shrink-0 items-center gap-2">
         {ready ? (
-          <div ref={gisRef} className="[&>div]:w-full min-h-[40px]" />
+          <div ref={gisRef} style={{ width: '100%', minHeight: '40px' }} />
         ) : (
           <button
             disabled

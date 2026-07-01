@@ -5,16 +5,9 @@ type OneTapCallback = (response: { credential: string }) => void;
 let scriptLoaded = false;
 let scriptLoading = false;
 let initialized = false;
-let gisReady = false;
 let globalCallback: OneTapCallback | null = null;
 const loadListeners: Array<() => void> = [];
-const readyListeners: Array<() => void> = [];
-
-function notifyReady() {
-  gisReady = true;
-  readyListeners.forEach((fn) => fn());
-  readyListeners.length = 0;
-}
+const initListeners: Array<() => void> = [];
 
 function loadGsiScript() {
   if (scriptLoaded || scriptLoading) return;
@@ -43,13 +36,14 @@ function ensureInitialized(clientId: string) {
       callback: (response: { credential: string }) => {
         globalCallback?.(response);
       },
-      cancel_on_tap_outside: true,
-      itp_support: true,
     } as any);
-    notifyReady();
   } catch {
     initialized = false;
   }
+  // Signal ready regardless of init success — renderButton (popup) works
+  // without a successful initialize(). Only prompt() needs it.
+  initListeners.forEach((fn) => fn());
+  initListeners.length = 0;
 }
 
 export function useGoogleOneTap(onSuccess: OneTapCallback) {
@@ -57,12 +51,12 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
   cbRef.current = onSuccess;
 
   const canLoad = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const [ready, setReady] = useState(canLoad && gisReady);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!canLoad) return;
 
-    if (gisReady) {
+    if (initialized) {
       setReady(true);
       return;
     }
@@ -77,8 +71,8 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
-    const onReady = () => setReady(true);
-    readyListeners.push(onReady);
+    const onInit = () => setReady(true);
+    initListeners.push(onInit);
 
     if (scriptLoaded) {
       ensureInitialized(clientId);
@@ -88,14 +82,14 @@ export function useGoogleOneTap(onSuccess: OneTapCallback) {
       return () => {
         const idx = loadListeners.indexOf(onLoad);
         if (idx !== -1) loadListeners.splice(idx, 1);
-        const ridx = readyListeners.indexOf(onReady);
-        if (ridx !== -1) readyListeners.splice(ridx, 1);
+        const iidx = initListeners.indexOf(onInit);
+        if (iidx !== -1) initListeners.splice(iidx, 1);
       };
     }
 
     return () => {
-      const ridx = readyListeners.indexOf(onReady);
-      if (ridx !== -1) readyListeners.splice(ridx, 1);
+      const iidx = initListeners.indexOf(onInit);
+      if (iidx !== -1) initListeners.splice(iidx, 1);
     };
   }, [canLoad]);
 

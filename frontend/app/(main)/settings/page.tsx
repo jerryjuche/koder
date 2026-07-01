@@ -464,7 +464,7 @@ export default function SettingsPage() {
                     Link your Google account for seamless sign-in. You will still be able to sign in with your password.
                   </p>
                   {ready ? (
-                    <div ref={gisRef} className="[&>div]:w-full min-h-[40px]" />
+                    <div ref={gisRef} style={{ width: '100%', minHeight: '40px' }} />
                   ) : (
                     <button
                       disabled
