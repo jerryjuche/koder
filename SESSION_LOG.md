@@ -243,7 +243,7 @@ Login Page → GIS button → Google popup → user selects account
 
 ### Git
 - Branch: `update`
-- Commit: (pending)
+- Commits: `06c0590` (codebase cleanup + account deletion + shared hook), `dd5fcbb` (migration trailing newline), `239c886` (dynamic ready state), `7425582` (direct GIS button rendering), `6c05b84` (ready independent of init success), `1d19bb3` (explicit 350x40 container + fallback)
 
 ### Build Verification
 - ✅ `go build ./...`
@@ -251,9 +251,42 @@ Login Page → GIS button → Google popup → user selects account
 
 ---
 
-## 15. Known Issues & Next Steps
+## 15. Session 7 (cont.) — GIS Button Reliability Fixes
+
+### Problem
+The "Link Google Account" button in Settings and the banner didn't trigger Google authentication. Multiple root causes:
+1. `ready` was a static expression (`typeof window !== "undefined"`) — true immediately on client, but GIS script hadn't loaded
+2. When `ready` was changed to `useState` that required `initialize()` success, `initialize()` threw on localhost (FedCM AbortError) and `ready` stayed `false` forever
+3. `cancel_on_tap_outside` + `itp_support` in `initialize()` triggered FedCM mediation during init, causing throws on localhost
+4. GIS `renderButton()` requires a numeric pixel width (not `100%`)
+5. GIS refuses to render into `display: none` elements (hidden div approach)
+6. Cross-Origin-Opener-Policy blocked popup postMessage on localhost
+7. `/gsi/status` endpoint returned 403 (origin not authorized in Google Cloud Console)
+
+### Fixes Applied
+| Commit | Fix |
+|--------|-----|
+| `239c886` | `ready` changed to `useState` — flips `true` only after init attempt completes (script load + init called). Previously static `typeof window !== "undefined"` |
+| `7425582` | Removed hidden div + programmatic click approach. GIS `renderButton()` now renders directly into a visible container |
+| `6c05b84` | `ready` fires after init attempt regardless of success/failure. Removed `cancel_on_tap_outside` + `itp_support` from `initialize()` |
+| `1d19bb3` | Explicit 350×40px container (was `width: 100%`). 500ms timeout checks `childElementCount` after render; falls back to `prompt()` (One Tap) if zero. All GIS errors logged to console with `[GIS]` prefix |
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `hooks/use-google-one-tap.ts` | Dynamic `ready` state; init error logging; `renderButton` logging; removed FedCM-specific init options |
+| `app/(main)/settings/page.tsx` | Explicit 350×40px container; `gisFailed` detection; fallback button with `prompt()` |
+| `components/GoogleLinkBanner.tsx` | Same pattern as settings: explicit dimensions, fallback detection, prompt fallback |
+
+### Build Verification
+- ✅ `npx tsc --noEmit`
+
+---
+
+## 16. Known Issues & Next Steps
 
 - [ ] Run migration `012_add_google_auth.sql` against the database
 - [ ] Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
-- [ ] Test Google Sign-In end-to-end (login → onboarding → dashboard)
+- [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
+- [ ] Test Google Sign-In on production HTTPS URL (not localhost — FedCM/COOP issues are localhost-only)
 - [ ] Test account deletion end-to-end

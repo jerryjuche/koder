@@ -341,6 +341,13 @@ See `.env.example` for full template.
   - Store: added `UpdateUserStudentID(userID, studentID)` method; `CreateUser` and `CreateUserFromGoogle` no longer set `student_id` on creation
   - `GetUserByLogin` now also checks `username`, `email`, AND `student_id` fields
   - Profile colors: `ColorIndex` now persisted per-user with endpoint-based assignment (4-color palette), stored in `color_index` column
+- **GIS button reliability fixes:**
+  - `ready` signal made dynamic — `useState` that flips `true` only after script loads + init attempt completes (not on init success only, so FedCM localhost errors don't leave UI stuck at disabled fallback)
+  - Removed `cancel_on_tap_outside`/`itp_support` from `initialize()` — these One Tap-specific options trigger FedCM mediation during init, causing throws on localhost; `renderButton()` (popup) doesn't need them
+  - Explicit 350×40px container for GIS `renderButton` target (was `width: 100%` — GIS needs a concrete pixel width)
+  - Fallback detection: 500ms timeout checks `childElementCount` after `renderButton()`; if zero, falls back to `prompt()` (One Tap)
+  - All GIS errors now logged to console with `[GIS]` prefix (were silent — try-catch swallowed everything)
+  - Removed hidden-div + programmatic-click approach (GIS refuses to render into `display: none`)
 
 ---
 
