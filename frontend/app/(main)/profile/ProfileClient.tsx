@@ -27,7 +27,7 @@ function ProfileSkeleton() {
     <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header skeleton */}
-        <div className="rounded-2xl bg-black/20 backdrop-blur-sm border border-white/5 p-8">
+        <div className="rounded-2xl bg-[#242430]/40 backdrop-blur-sm border border-white/6 p-8">
           <div className="flex gap-6 items-start">
             <SkeletonBlock className="w-24 h-24 rounded-full" />
             <div className="flex-1 space-y-3">
@@ -154,8 +154,8 @@ export default function ProfileClient() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="flex items-center gap-3 mb-2"
           >
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <User size={22} className="text-amber-400" />
+            <div className="p-2.5 rounded-xl bg-[#7B8CBB]/10 border border-[#7B8CBB]/20">
+              <User size={22} className="text-[#7B8CBB]" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-white">

@@ -96,10 +96,10 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
         }}
       >
-        <Card className="p-6 bg-black/20 backdrop-blur-sm border border-white/5">
+        <Card className="p-6 bg-[#242430]/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-              <Layers size={18} className="text-amber-400" />
+            <div className="w-9 h-9 rounded-xl bg-[#7B8CBB]/10 flex items-center justify-center border border-[#7B8CBB]/20">
+              <Layers size={18} className="text-[#7B8CBB]" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white">Difficulty Breakdown</h3>
@@ -137,7 +137,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
             })}
           </div>
 
-          <div className="mt-5 pt-4 border-t border-white/5">
+          <div className="mt-5 pt-4 border-t border-white/6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-semibold text-white">Overall Progress</span>
               <span className="text-xs text-white/50 font-mono">
@@ -156,7 +156,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
         }}
       >
-        <Card className="p-6 bg-black/20 backdrop-blur-sm border border-white/5">
+        <Card className="p-6 bg-[#242430]/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
               <BookOpen size={18} className="text-amber-400" />

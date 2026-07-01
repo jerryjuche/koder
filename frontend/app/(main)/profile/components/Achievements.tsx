@@ -40,7 +40,7 @@ export default function Achievements({ profile }: AchievementsProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        <Card className="p-6 bg-black/20 backdrop-blur-sm border border-white/5">
+        <Card className="p-6 bg-[#242430]/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
@@ -79,7 +79,7 @@ export default function Achievements({ profile }: AchievementsProps) {
                                 "hover:ring-2 hover:ring-white/10 hover:-translate-y-1 hover:shadow-xl",
                                 "hover:shadow-purple-500/10"
                               ].join(" ")
-                            : "border-white/5 bg-white/[0.02] opacity-30 grayscale"
+                            : "border-white/6 bg-white/[0.02] opacity-30 grayscale"
                         )}
                       >
                         <Icon
@@ -88,7 +88,7 @@ export default function Achievements({ profile }: AchievementsProps) {
                         />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-44 bg-black/90 border border-white/10 text-white/80 backdrop-blur-md">
+                    <TooltipContent side="top" className="max-w-44 bg-[#1A1A24]/95 border border-white/8 text-white/80 backdrop-blur-md">
                       <p className="font-semibold text-xs mb-0.5">
                         {achievement.title}
                         {achievement.unlocked && (
@@ -111,7 +111,7 @@ export default function Achievements({ profile }: AchievementsProps) {
         open={selected !== null}
         onOpenChange={(open) => !open && setSelected(null)}
       >
-        <DialogContent className="max-w-sm bg-black/90 backdrop-blur-xl border border-white/10">
+        <DialogContent className="max-w-sm bg-[#1A1A24]/95 backdrop-blur-xl border border-white/8">
           <DialogHeader>
             <div className="text-center mb-2 mt-2">
               <div
