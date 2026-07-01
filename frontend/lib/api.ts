@@ -163,6 +163,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         level: res.data.level || 1,
         solvedCount: res.data.solved_count || 0,
         google_avatar_url: res.data.google_avatar_url,
+        google_linked: res.data.google_linked ?? false,
       },
     };
   }
