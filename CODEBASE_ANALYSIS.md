@@ -108,7 +108,7 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 **CreateUser()**:
 - Hashes password with `bcrypt.GenerateFromPassword(password, 12)`
 - Validates role ("student"|"admin"), returns generated UUID
-- Query: INSERT with RETURNING id, created_at
+- Query: INSERT with RETURNING id, created_at (no longer sets student_id — done during onboarding)
 
 **GetUserByStudentID()** / **GetUserByID()** / **GetUserByUsername()** / **GetUserByEmail()** / **GetUserByLogin()** / **GetUserByGoogleID()**:
 - All scan 14 fields explicitly (id, student_id, username, name, bio, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, created_at)
@@ -117,7 +117,12 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 
 **CreateUserFromGoogle()**:
 - Creates user with Google OAuth metadata, temporary username `g_<sub[:8]>`, placeholder bcrypt password
-- Sets google_id, google_email, google_avatar_url fields
+- Sets google_id, google_email, google_avatar_url fields (student_id is empty — set during onboarding)
+
+**UpdateUserStudentID()**:
+- `UPDATE users SET student_id = $2 WHERE id = $1`
+- Called by CompleteOnboarding handler after registration/Google-auth
+- Returns pgx.ErrNoRows if user not found
 
 **LinkGoogleToUser()**:
 - Links an existing email/password user to a Google account by setting google_id, google_email, google_avatar_url
@@ -206,22 +211,27 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 #### router.go - HTTP Routing
 **NewRouter()**:
 - Creates chi router with CORS middleware
-- Handlers: Auth, Problem, Submission, Admin, Me, Leaderboard
+- Handlers: Auth, Problem, Submission, Admin, Me, Leaderboard, Profile, Community
 - Routes:
   - `GET /health` - health check
   - `POST /auth/register`, `POST /auth/login`, `POST /auth/google` - public
-  - `POST /auth/complete-google`, `GET /auth/check-username` - protected
+  - `POST /auth/complete-google`, `POST /auth/complete-onboarding`, `POST /auth/link-google`, `GET /auth/check-username` - protected
   - Protected routes (via AuthMiddleware):
     - `GET /me` - user profile
-    - `GET /leaderboard` - leaderboard
+    - `GET /me/profile`, `PUT /me/profile`, `GET /me/activity`, `GET /me/contributions` - profile & activity
+    - `GET /leaderboard?period=...` - leaderboard
     - `GET /problems` - list visible problems
     - `GET /problems/{slug}` - get problem details
     - `POST /submit` - submit solution
+    - `POST /test` - test code without scoring
+    - `GET /problems/{slug}/community-solutions` - community solutions
+    - `POST /submissions/{id}/like`, `DELETE /submissions/{id}/like` - likes
     - Admin only (via AdminOnly):
       - `POST /admin/ingest` - ingest GitHub repo
       - `POST /admin/enrich` - enrich single problem
       - `POST /admin/enrich-all` - batch enrichment
       - `POST /admin/problems/publish-all` - publish all drafts
+      - `PATCH /admin/problems/{id}/visibility` - toggle visibility
       - `GET /admin/stats`, `/admin/activity`, `/admin/problems`
 
 #### middleware.go - Request Processing
@@ -257,13 +267,14 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 **RegisterRequest**: `username`, `name`, `password`, `email?`
 **LoginRequest**: `login`, `password` (login = username, email, or student_id)
 **GoogleAuthRequest**: `id_token`
-**CompleteGoogleRequest**: `username`
+**CompleteOnboardingRequest**: `username`, `student_id`
+**CompleteGoogleRequest**: `username` (legacy alias)
 
 **Register()**:
 - Parses JSON, validates fields (username, name, password required)
 - Admin detection: if ADMIN_EMAIL set and username/password match, role="admin"
-- Creates user via store.CreateUser() with both student_id and username set to req.Username
-- Signs JWT with `auth.SignToken(userID, studentID, username, role, secret, expiry, false)`
+- Creates user via store.CreateUser() with username set but student_id NOT set (was previously set)
+- Signs JWT with `auth.SignToken(userID, "", username, role, secret, expiry, true)` — onboarding=true
 
 **Login()**:
 - Calls `store.GetUserByLogin(login)` — checks username, email, AND student_id
@@ -277,11 +288,26 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 - If email matches existing user: link Google to account via `LinkGoogleToUser`, sign token
 - New user: `CreateUserFromGoogle` with temp username `g_<sub[:8]>`, sign token with `onboarding=true`
 
-**CompleteGoogle()**:
+**CompleteOnboarding()** (canonical endpoint):
+- Unified handler for completing onboarding after any auth method (email/password or Google)
 - Requires valid JWT with onboarding claim
-- Validates username (min 3 chars, uniqueness check via `GetUserByUsername`)
-- Updates username via `UpdateUserUsername`, invalidates cache
+- Validates username (min 3 chars, uniqueness via `GetUserByUsername`) and student_id
+- Calls `store.UpdateUserUsername` to set username
+- Calls `store.UpdateUserStudentID` to set student_id
 - Returns fresh JWT without onboarding claim
+
+**CompleteGoogle()** (legacy):
+- Now delegates to `CompleteOnboarding`, accepts same request shape
+- Preserved for backward compatibility with existing clients
+
+**LinkGoogle()**:
+- `POST /auth/link-google` — links Google account to an already-authenticated user
+- Requires valid JWT (any role, no onboarding needed)
+- Calls `auth.VerifyGoogleToken(idToken, clientID)` → GoogleUserInfo
+- If Google ID already linked to another account, returns 409 Conflict
+- Calls `store.LinkGoogleToUser(currentUserID, googleUserInfo)` to set google_id, google_email, google_avatar_url
+- Updates avatar via `store.UpdateUserGoogleAvatar`
+- Returns success message
 
 **CheckUsername()**:
 - GET /auth/check-username?username=xxx
@@ -351,6 +377,77 @@ Koder is a zero-cost, production-grade automated code-grading platform for Go pr
 
 **GetAdminStats()**, **GetAdminActivity()**, **ListAllProblems()**:
 - Simple store queries, return JSON responses
+
+**ToggleVisibility()**:
+- PATCH /admin/problems/{id}/visibility
+- Flips `visible` boolean on a problem
+- Returns updated problem
+
+**PublishAllDrafts()**:
+- POST /admin/problems/publish-all
+- Sets `visible=true` for all draft (hidden) problems
+- Returns count of published problems
+
+**ListPendingUserProblems()**, **ApproveUserProblem()**, **RejectUserProblem()**:
+- User-submitted problem moderation flow
+- Pending list returns user-submitted problems awaiting review
+- Approve sets `status = approved`, Reject sets `status = rejected` with optional reason
+
+#### test.go - No-Scoring Execution
+**Test()**:
+- POST /test — same flow as Submit but does NOT score or persist progress
+- Calls executor.Execute(), returns ExecutionResult without UpsertProgress
+- Used for students to test code before final submission
+- Subject to same rate limiting as Submit (5 req/45s)
+
+#### community.go - Community Solutions & Likes
+**GetCommunitySolutions()**:
+- GET /problems/{slug}/community-solutions
+- Returns top community solutions for a problem
+- Ordered by likes, best practices first
+
+**GetBestPractices()**:
+- GET /best-practices
+- Returns best practice solutions across all problems
+
+**LikeSubmission()** / **UnlikeSubmission()**:
+- POST/DELETE /submissions/{id}/like
+- Toggles like on a community solution submission
+- Prevents duplicate likes, tracks who liked
+
+#### contributions.go - User-Submitted Problems
+**PostContribution()**:
+- POST /me/user-problems
+- Allows students to submit their own problem ideas
+- Creates a pending contribution for admin review
+
+**GetMyContributions()**:
+- GET /me/contributions
+- Returns user's submitted problem contributions with status
+
+#### activity.go - Activity Feed
+**GetActivity()**:
+- GET /me/activity?year=2026
+- Returns daily submission counts for contribution graph
+- Grouped by date, includes counts for solved, failed, total
+
+#### notifications.go - Notification System
+**GetUnreadNotifications()**:
+- GET /notifications
+- Returns unread notifications for current user
+- Notifications for: problem approved/rejected, achievement unlocked, etc.
+
+**MarkAllAsRead()** / **MarkAsRead()**:
+- POST /notifications/read-all — marks all unread as read
+- POST /notifications/{id}/read — marks single notification as read
+
+#### cache.go - Response Caching
+**CacheMiddleware**:
+- Simple in-memory response caching for GET endpoints
+- Cache keyed by URL + query params
+- Respects `Cache-Control: no-cache` request header
+- TTL: 30 seconds (configurable via `CACHE_TTL_SECONDS`)
+- Used for: GET /me/profile, GET /problems, GET /leaderboard
 
 ### 5. AUTHENTICATION: internal/auth/
 
