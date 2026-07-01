@@ -1,17 +1,23 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { User, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2, Chrome } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2, Chrome } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount } from "@/lib/api";
-import { UserProfile } from "@/lib/types";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount } from "@/lib/api";
+import { User, UserProfile } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
 type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validTabs: Tab[] = ["profile", "editor", "appearance", "notifications", "security"];
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam && validTabs.includes(tabParam as Tab) ? (tabParam as Tab) : "profile"
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,11 +39,9 @@ export default function SettingsPage() {
   // Delete account
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
-  const gisRef = useRef<HTMLDivElement>(null);
-  const [gisFailed, setGisFailed] = useState(false);
-
-  const { renderButton, prompt, ready } = useGoogleOneTap(
+  const { prompt } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
       setLinkingGoogle(true);
       try {
@@ -66,31 +70,21 @@ export default function SettingsPage() {
   );
 
   useEffect(() => {
-    if (ready && gisRef.current) {
-      setGisFailed(false);
-      renderButton(gisRef.current);
-      const timer = setTimeout(() => {
-        if (gisRef.current && gisRef.current.childElementCount === 0) {
-          console.warn('[GIS] renderButton: no children after 500ms, showing fallback');
-          setGisFailed(true);
-        } else {
-          console.log('[GIS] renderButton: detected', gisRef.current?.childElementCount, 'children');
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [ready, renderButton]);
-
-  useEffect(() => {
     let mounted = true;
     const loadProfile = async () => {
       try {
-        const res = await fetchUserProfile();
+        const [profileRes, userRes] = await Promise.all([
+          fetchUserProfile(),
+          fetchUser(),
+        ]);
         if (!mounted) return;
-        if (res.success && res.data) {
-          setProfile(res.data);
-          setName(res.data.name || "");
-          setBio((res.data as any).bio || "");
+        if (profileRes.success && profileRes.data) {
+          setProfile(profileRes.data);
+          setName(profileRes.data.name || "");
+          setBio((profileRes.data as any).bio || "");
+        }
+        if (userRes.success && userRes.data) {
+          setUser(userRes.data);
         }
       } catch (err) {
         console.error(err);
@@ -105,8 +99,16 @@ export default function SettingsPage() {
     setFontSize(localStorage.getItem("koder_font_size") || "14");
     setAutoSave(localStorage.getItem("koder_auto_save") !== "false");
 
+    const onUserUpdated = () => {
+      fetchUser().then((res) => {
+        if (mounted && res.success && res.data) setUser(res.data);
+      });
+    };
+    window.addEventListener("user-updated", onUserUpdated);
+
     return () => {
       mounted = false;
+      window.removeEventListener("user-updated", onUserUpdated);
     };
   }, []);
 
@@ -169,7 +171,7 @@ export default function SettingsPage() {
   };
 
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
-    { id: "profile", label: "Profile", icon: User },
+    { id: "profile", label: "Profile", icon: UserIcon },
     { id: "editor", label: "Editor", icon: Code },
     { id: "appearance", label: "Appearance", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -471,25 +473,28 @@ export default function SettingsPage() {
                     <Chrome className="text-brand-muted-gold" size={20} />
                     <h3 className="font-bold text-sm text-brand-offwhite">Google Account</h3>
                   </div>
-                  <p className="text-sm text-brand-offwhite-muted mb-4">
-                    Link your Google account for seamless sign-in. You will still be able to sign in with your password.
-                  </p>
-                  {ready && !gisFailed ? (
-                    <div ref={gisRef} style={{ width: '350px', height: '40px' }} />
+                  {user?.google_linked ? (
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <CheckCircle2 size={18} />
+                      <span className="text-sm font-semibold">Account linked</span>
+                    </div>
                   ) : (
-                    <button
-                      onClick={() => {
-                        if (gisFailed) prompt();
-                      }}
-                      disabled={linkingGoogle || (ready && !gisFailed)}
-                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {linkingGoogle ? (
-                        <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
-                      ) : (
-                        <><Chrome size={16} /> Link Google Account</>
-                      )}
-                    </button>
+                    <>
+                      <p className="text-sm text-brand-offwhite-muted mb-4">
+                        Link your Google account for seamless sign-in. You will still be able to sign in with your password.
+                      </p>
+                      <button
+                        onClick={() => prompt()}
+                        disabled={linkingGoogle}
+                        className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {linkingGoogle ? (
+                          <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
+                        ) : (
+                          <><Chrome size={16} /> Link Google Account</>
+                        )}
+                      </button>
+                    </>
                   )}
                 </div>
 

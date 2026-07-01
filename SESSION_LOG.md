@@ -243,7 +243,7 @@ Login Page → GIS button → Google popup → user selects account
 
 ### Git
 - Branch: `update`
-- Commit: (pending)
+- Commits: `06c0590` (codebase cleanup + account deletion + shared hook), `dd5fcbb` (migration trailing newline), `239c886` (dynamic ready state), `7425582` (direct GIS button rendering), `6c05b84` (ready independent of init success), `1d19bb3` (explicit 350x40 container + fallback)
 
 ### Build Verification
 - ✅ `go build ./...`
@@ -251,9 +251,69 @@ Login Page → GIS button → Google popup → user selects account
 
 ---
 
-## 15. Known Issues & Next Steps
+## 15. Session 7 (cont.) — GIS Button Reliability Fixes
+
+### Problem
+The "Link Google Account" button in Settings and the banner didn't trigger Google authentication. Multiple root causes:
+1. `ready` was a static expression (`typeof window !== "undefined"`) — true immediately on client, but GIS script hadn't loaded
+2. When `ready` was changed to `useState` that required `initialize()` success, `initialize()` threw on localhost (FedCM AbortError) and `ready` stayed `false` forever
+3. `cancel_on_tap_outside` + `itp_support` in `initialize()` triggered FedCM mediation during init, causing throws on localhost
+4. GIS `renderButton()` requires a numeric pixel width (not `100%`)
+5. GIS refuses to render into `display: none` elements (hidden div approach)
+6. Cross-Origin-Opener-Policy blocked popup postMessage on localhost
+7. `/gsi/status` endpoint returned 403 (origin not authorized in Google Cloud Console)
+
+### Fixes Applied
+| Commit | Fix |
+|--------|-----|
+| `239c886` | `ready` changed to `useState` — flips `true` only after init attempt completes (script load + init called). Previously static `typeof window !== "undefined"` |
+| `7425582` | Removed hidden div + programmatic click approach. GIS `renderButton()` now renders directly into a visible container |
+| `6c05b84` | `ready` fires after init attempt regardless of success/failure. Removed `cancel_on_tap_outside` + `itp_support` from `initialize()` |
+| `1d19bb3` | Explicit 350×40px container (was `width: 100%`). 500ms timeout checks `childElementCount` after render; falls back to `prompt()` (One Tap) if zero. All GIS errors logged to console with `[GIS]` prefix |
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `hooks/use-google-one-tap.ts` | Dynamic `ready` state; init error logging; `renderButton` logging; removed FedCM-specific init options |
+| `app/(main)/settings/page.tsx` | Explicit 350×40px container; `gisFailed` detection; fallback button with `prompt()` |
+| `components/GoogleLinkBanner.tsx` | Same pattern as settings: explicit dimensions, fallback detection, prompt fallback |
+
+### Build Verification
+- ✅ `npx tsc --noEmit`
+
+---
+
+## 16. Current Session — GIS FedCM Error Resolution & Avatar Fix (July 1)
+
+### Problem
+GIS `initialize()` throws `TypeError: Required member is undefined` on `navigator.credentials.get()` — FedCM detection fails because `providers` property is missing in the browser context. This error propagates out of `initialize()` and is caught by our try-catch.
+
+### What We Tried (and Why)
+1. **`ready` state from hook** — Settings/Banner JSX used `ready && !gisFailed` to conditionally render GIS container. FedCM error caused `initialized = false`, `ready` never fired → container never mounted → polling effect never ran.
+2. **Polling in Settings/Banner** — Switched from `ready` to polling every 200ms for `window.google?.accounts?.id`. But JSX still guarded by `ready` → circular dependency.
+3. **Removed `ready` from JSX** — Always render GIS container, polling drives rendering. Added 5s timeout fallback. This worked (console showed `children after render: 1`).
+
+### Final Approach
+- **Banner** → Simply navigates to `/settings?tab=security` — no GIS rendering at all. Clean amber notification with link.
+- **Settings** → Plain "Link Google Account" button that calls `prompt()` (One Tap via FedCM). No GIS `renderButton`, no polling, no fallback states. Works on production HTTPS.
+- **TopNav** → Replaced `<Image>` with `<img>` for Google avatars to fix 500 error from Next.js image optimization proxy.
+
+### Changed Files
+| File | Change |
+|------|--------|
+| `components/GoogleLinkBanner.tsx` | Stripped all GIS complexity — now just an info banner with link to `/settings?tab=security` |
+| `app/(main)/settings/page.tsx` | Removed GIS `renderButton`/polling/gisFailed — plain button calling `prompt()`. Reads `?tab=` query param via `useSearchParams` |
+| `components/layout/TopNav.tsx` | Replaced `<Image>` → `<img>` for Google avatar URLs to avoid `/_next/image` 500 errors |
+
+### Build Verification
+- ✅ `npx tsc --noEmit`
+
+---
+
+## 17. Known Issues & Next Steps
 
 - [ ] Run migration `012_add_google_auth.sql` against the database
 - [ ] Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
-- [ ] Test Google Sign-In end-to-end (login → onboarding → dashboard)
+- [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
+- [ ] Test Google Sign-In on production HTTPS URL (not localhost — FedCM/COOP issues are localhost-only)
 - [ ] Test account deletion end-to-end
