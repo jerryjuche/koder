@@ -127,7 +127,7 @@ func Load() (*Config, error) {
 
 	cfg.GroqModel = os.Getenv("GROQ_MODEL")
 	if cfg.GroqModel == "" {
-		cfg.GroqModel = "llama-3.1-70b-versatile"
+		cfg.GroqModel = "llama-3.3-70b-versatile"
 	}
 
 	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")

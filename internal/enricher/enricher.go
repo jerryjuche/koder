@@ -251,7 +251,7 @@ type groqResponse struct {
 
 func newGroqProvider(apiKey, model string) *groqProvider {
 	if model == "" {
-		model = "llama-3.1-70b-versatile"
+		model = "llama-3.3-70b-versatile"
 	}
 	return &groqProvider{
 		apiKey: apiKey,
