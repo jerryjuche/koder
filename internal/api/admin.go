@@ -159,19 +159,8 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 	problem.Tags = enriched.Tags
 	problem.Visible = true
 
-	if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save enriched problem", err.Error())
-		return
-	}
-
-	if !problem.ID.Valid {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Invalid problem id", nil)
-		return
-	}
-
-	problemID := uuid.UUID(problem.ID.Bytes)
-	if err := h.store.UpsertTestCasesForProblem(r.Context(), problemID, testCases); err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save test cases", err.Error())
+	if err := h.store.UpsertEnrichedProblem(r.Context(), problem, testCases); err != nil {
+		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save enriched problem with test cases", err.Error())
 		return
 	}
 
@@ -204,18 +193,7 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		problem.Tags = enriched.Tags
 		problem.Visible = true
 
-		if err := h.store.UpsertProblem(r.Context(), &problem); err != nil {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
-			continue
-		}
-
-		if !problem.ID.Valid {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": "invalid problem id"})
-			continue
-		}
-
-		problemID := uuid.UUID(problem.ID.Bytes)
-		if err := h.store.UpsertTestCasesForProblem(r.Context(), problemID, testCases); err != nil {
+		if err := h.store.UpsertEnrichedProblem(r.Context(), &problem, testCases); err != nil {
 			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
 			continue
 		}

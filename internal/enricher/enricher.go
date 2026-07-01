@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +59,8 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 		return nil, nil, err
 	}
 
+	slog.Debug("enricher: calling Gemini", "readme_len", len(rawReadme))
+
 	systemInstruction := genai.NewContentFromText(
 		`You are an expert Go curriculum author. Use only the Go standard library in examples. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r) while preserving semantics. Output only valid JSON that matches the requested schema, with no markdown fences, comments, or extra fields.`,
 		genai.RoleUser,
@@ -68,25 +71,41 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 README:
 %s`, strings.TrimSpace(rawReadme)), genai.RoleUser)
 
-	config := &genai.GenerateContentConfig{
+	cfg := &genai.GenerateContentConfig{
 		ResponseMIMEType: "application/json",
 		ResponseSchema:   enrichmentSchema(),
 		Temperature:      float32Ptr(0.0),
-		MaxOutputTokens:  2500,
+		MaxOutputTokens:  8192,
 	}
 
-	response, err := e.client.Models.GenerateContent(ctx, e.cfg.GeminiModel, []*genai.Content{systemInstruction, userPrompt}, config)
+	response, err := e.client.Models.GenerateContent(ctx, e.cfg.GeminiModel, []*genai.Content{systemInstruction, userPrompt}, cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("gemini generate content failed: %w", err)
 	}
 
+	if len(response.Candidates) == 0 {
+		return nil, nil, fmt.Errorf("gemini returned no candidates (prompt may have been blocked)")
+	}
+
+	candidate := response.Candidates[0]
+	if candidate.FinishReason != genai.FinishReasonStop {
+		slog.Warn("enricher: Gemini finish reason not Stop",
+			"finish_reason", candidate.FinishReason,
+			"index", candidate.Index,
+		)
+		return nil, nil, fmt.Errorf("gemini generation stopped early: finish_reason=%s", candidate.FinishReason)
+	}
+
 	payload := strings.TrimSpace(response.Text())
 	if payload == "" {
-		return nil, nil, fmt.Errorf("empty response from Gemini")
+		return nil, nil, fmt.Errorf("empty response from Gemini (finish_reason=%s)", candidate.FinishReason)
 	}
+
+	slog.Debug("enricher: Gemini raw response", "payload_len", len(payload), "payload_preview", truncate(payload, 500))
 
 	var parsed enrichedResponse
 	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
+		slog.Error("enricher: failed to parse Gemini JSON", "error", err, "payload", truncate(payload, 1000))
 		return nil, nil, fmt.Errorf("unable to parse Gemini JSON response: %w", err)
 	}
 
@@ -121,7 +140,21 @@ README:
 		return nil, nil, err
 	}
 
+	slog.Info("enricher: problem enriched successfully",
+		"title", problem.Title,
+		"func", problem.FuncName,
+		"test_cases", len(testCases),
+		"difficulty", problem.Difficulty,
+	)
+
 	return problem, testCases, nil
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 func (e *Enricher) waitForRateLimit(ctx context.Context) error {
@@ -173,7 +206,8 @@ func enrichmentSchema() *genai.Schema {
 					Type: genai.TypeObject,
 					Properties: map[string]*genai.Schema{
 						"input_json": {
-							AnyOf: []*genai.Schema{{Type: genai.TypeObject}, {Type: genai.TypeString}},
+							Type:        genai.TypeArray,
+							Description: "JSON array of function arguments in order. Example: [1, \"hello\", true]",
 						},
 						"expected":  {Type: genai.TypeString},
 						"is_hidden": {Type: genai.TypeBoolean},

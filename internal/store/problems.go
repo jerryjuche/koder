@@ -214,6 +214,85 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 
 	return nil
 }
+
+// UpsertEnrichedProblem atomically saves enriched problem metadata and test cases in a single transaction.
+func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Problem, testCases []TestCase) error {
+	if problem == nil {
+		return fmt.Errorf("problem cannot be nil")
+	}
+	if problem.Slug == "" {
+		return fmt.Errorf("problem slug is required")
+	}
+	if len(testCases) == 0 {
+		return fmt.Errorf("testCases cannot be empty")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	upsertQuery := `
+		INSERT INTO problems (
+		    slug, module, type, language, title, statement, func_name,
+		    return_type, param_types, hints, difficulty, xp_reward, tags,
+		    visible, source_hash, raw_readme, created_at, updated_at
+		)
+		VALUES (
+		    $1, $2, $3, $4, $5, $6, $7,
+		    $8, $9, $10, $11, $12, $13,
+		    $14, $15, $16, NOW(), NOW()
+		)
+		ON CONFLICT (slug) DO UPDATE SET
+		    module = EXCLUDED.module,
+		    type = EXCLUDED.type,
+		    language = EXCLUDED.language,
+		    title = EXCLUDED.title,
+		    statement = EXCLUDED.statement,
+		    func_name = EXCLUDED.func_name,
+		    return_type = EXCLUDED.return_type,
+		    param_types = EXCLUDED.param_types,
+		    hints = EXCLUDED.hints,
+		    difficulty = EXCLUDED.difficulty,
+		    xp_reward = EXCLUDED.xp_reward,
+		    tags = EXCLUDED.tags,
+		    visible = EXCLUDED.visible,
+		    source_hash = EXCLUDED.source_hash,
+		    raw_readme = EXCLUDED.raw_readme,
+		    updated_at = NOW()
+	`
+
+	if _, err := tx.Exec(ctx, upsertQuery,
+		problem.Slug, problem.Module, problem.Type, problem.Language,
+		problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
+		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward,
+		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme,
+	); err != nil {
+		return fmt.Errorf("failed to upsert enriched problem: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `DELETE FROM test_cases WHERE problem_id = (SELECT id FROM problems WHERE slug = $1)`, problem.Slug); err != nil {
+		return fmt.Errorf("failed to delete existing test cases: %w", err)
+	}
+
+	insertQuery := `
+		INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal)
+		VALUES ((SELECT id FROM problems WHERE slug = $1), $2, $3, $4, $5)
+	`
+	for _, tc := range testCases {
+		if _, err := tx.Exec(ctx, insertQuery, problem.Slug, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal); err != nil {
+			return fmt.Errorf("failed to insert test case ordinal %d: %w", tc.Ordinal, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit enrichment transaction: %w", err)
+	}
+
+	return nil
+}
+
 // GetProblemBySlugAny returns a problem by slug regardless of visibility.
 func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*Problem, error) {
 	if slug == "" {
