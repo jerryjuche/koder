@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -174,10 +175,14 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("admin: enrich-all started", "problem_count", len(problems))
+
 	results := make([]map[string]any, 0, len(problems))
+	enrichedCount := 0
 	for _, problem := range problems {
 		enriched, testCases, err := h.enricher.EnrichProblem(r.Context(), problem.RawReadme)
 		if err != nil {
+			slog.Warn("admin: enrich-all failed for problem", "slug", problem.Slug, "error", err)
 			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
 			continue
 		}
@@ -194,16 +199,25 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		problem.Visible = true
 
 		if err := h.store.UpsertEnrichedProblem(r.Context(), &problem, testCases); err != nil {
+			slog.Error("admin: enrich-all db save failed", "slug", problem.Slug, "error", err)
 			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
 			continue
 		}
 
+		enrichedCount++
 		results = append(results, map[string]any{"slug": problem.Slug, "status": "enriched"})
+		slog.Info("admin: enrich-all problem enriched", "slug", problem.Slug, "title", problem.Title)
 	}
 
 	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Batch enrichment completed. %d problems processed.", len(results)), "text-brand-success", "Wand2")
 
-	RespondSuccess(w, results)
+	if enrichedCount == 0 {
+		slog.Error("admin: enrich-all all problems failed")
+		RespondError(w, http.StatusInternalServerError, "ENRICH_ALL_FAILED", "All enrichment attempts failed", results)
+		return
+	}
+
+	RespondSuccess(w, map[string]any{"results": results, "enriched": enrichedCount, "total": len(results)})
 }
 
 func (h *AdminHandler) GetAdminStats(w http.ResponseWriter, r *http.Request) {
