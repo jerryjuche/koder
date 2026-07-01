@@ -741,7 +741,7 @@ Split-pane: left = problem statement (react-markdown), right = Monaco Editor. Be
 Two tabs: **Overview** | **My Contributions**
 
 Overview layout:
-1. **ProfileHeader** — Google avatar via `<Image>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@{username}` badge
+1. **ProfileHeader** — Google avatar via `<img>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@{username}` badge
 2. **StatsOverview** — 6-column grid: Level (XP progress bar), Global Rank, Solved, Success Rate, Streak, Best Runtime (all with tooltips)
 3. **ContributionGraphSection** — GitHub-style activity heatmap (recharts-based `kibo-ui` graph)
 4. Two-column grid:

@@ -66,9 +66,11 @@ koder/
 │   │   └── layout.tsx             # Root layout
 │   ├── components/                # Reusable React components
 │   │   ├── TestResultPanel.tsx    # Test output display
+│   │   ├── GoogleLinkBanner.tsx   # Google account linking banner (links to Settings)
 │   │   └── ...                    # UI components (shadcn/ui-based)
 │   ├── hooks/                     # Custom React hooks
-│   │   └── use-mobile.ts          # Mobile detection hook
+│   │   ├── use-mobile.ts          # Mobile detection hook
+│   │   └── use-google-one-tap.ts  # Shared GIS singleton (initialize once, prompt + renderButton)
 │   ├── lib/
 │   │   ├── api.ts                 # Backend API client
 │   │   ├── types.ts               # Shared TypeScript types
@@ -348,6 +350,8 @@ See `.env.example` for full template.
   - Fallback detection: 500ms timeout checks `childElementCount` after `renderButton()`; if zero, falls back to `prompt()` (One Tap)
   - All GIS errors now logged to console with `[GIS]` prefix (were silent — try-catch swallowed everything)
   - Removed hidden-div + programmatic-click approach (GIS refuses to render into `display: none`)
+- **GIS simplification (July 1 finale):** FedCM `initialize()` throws `Required member is undefined` in Chrome — `ready` state never fired due to React batching race. Removed GIS `renderButton` from Settings entirely (plain button calling `prompt()` instead). Stripped all GIS code from `GoogleLinkBanner` (now simple info banner linking to `/settings?tab=security`). Settings page reads `?tab=` query param via `useSearchParams`.
+- **Avatar 500 fix:** Replaced `<Image>` with native `<img>` for Google avatar URLs in `TopNav.tsx` — Next.js image optimization proxy was returning 500 on `lh3.googleusercontent.com` URLs.
 
 ---
 
