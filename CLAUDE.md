@@ -352,6 +352,12 @@ See `.env.example` for full template.
   - Removed hidden-div + programmatic-click approach (GIS refuses to render into `display: none`)
 - **GIS simplification (July 1 finale):** FedCM `initialize()` throws `Required member is undefined` in Chrome — `ready` state never fired due to React batching race. Removed GIS `renderButton` from Settings entirely (plain button calling `prompt()` instead). Stripped all GIS code from `GoogleLinkBanner` (now simple info banner linking to `/settings?tab=security`). Settings page reads `?tab=` query param via `useSearchParams`.
 - **Avatar 500 fix:** Replaced `<Image>` with native `<img>` for Google avatar URLs in `TopNav.tsx` — Next.js image optimization proxy was returning 500 on `lh3.googleusercontent.com` URLs.
+- **Settings Notifications tab:** New tab showing last 20 notifications with type-colored icons, unread indicators, "Mark all as read", relative timestamps via date-fns, and empty state
+- **Backend `GET /notifications/recent`:** Returns last 20 notifications (read + unread) for settings; new `GetRecentNotifications()` store method
+- **Admin approve notifies all users:** `ApproveUserProblem` now also calls `NotifyAllUsers()` — every user gets a "New problem available: X" notification when a community problem is approved
+- **Header notifications clickable:** Clicking a notification in the dropdown navigates to `/settings?tab=notifications` and marks it as read
+- **New `NotifyAllUsers()` store method:** Inserts a notification for every user in the database
+- **`ApproveUserProblem` returns new problem ID:** Changed signature from `(*UserProblem, error)` to `(*UserProblem, *uuid.UUID, error)` so the handler can reference the created problem in notifications
 
 ---
 

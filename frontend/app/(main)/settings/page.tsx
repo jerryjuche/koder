@@ -2,19 +2,20 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Code, Palette, LogOut, CheckCircle2, Chrome } from "lucide-react";
+import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount } from "@/lib/api";
-import { User, UserProfile } from "@/lib/types";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi } from "@/lib/api";
+import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
-type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
+type Tab = "profile" | "appearance" | "notifications" | "security";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs: Tab[] = ["profile", "editor", "appearance", "notifications", "security"];
+  const validTabs: Tab[] = ["profile", "appearance", "notifications", "security"];
   const [activeTab, setActiveTab] = useState<Tab>(
     tabParam && validTabs.includes(tabParam as Tab) ? (tabParam as Tab) : "profile"
   );
@@ -28,10 +29,10 @@ export default function SettingsPage() {
 
   // Preferences states (local storage)
   const [theme, setTheme] = useState("vs-dark");
-  const [fontSize, setFontSize] = useState("14");
-  const [autoSave, setAutoSave] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
+
+  // Notifications
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   // Google linking
   const [linkingGoogle, setLinkingGoogle] = useState(false);
@@ -94,10 +95,8 @@ export default function SettingsPage() {
     };
     loadProfile();
 
-    // Load local preferences
+    // Load local preference
     setTheme(localStorage.getItem("koder_theme") || "vs-dark");
-    setFontSize(localStorage.getItem("koder_font_size") || "14");
-    setAutoSave(localStorage.getItem("koder_auto_save") !== "false");
 
     const onUserUpdated = () => {
       fetchUser().then((res) => {
@@ -111,6 +110,18 @@ export default function SettingsPage() {
       window.removeEventListener("user-updated", onUserUpdated);
     };
   }, []);
+
+  // Fetch notifications when tab is active
+  useEffect(() => {
+    if (activeTab !== "notifications") return;
+    setNotifLoading(true);
+    fetchRecentNotifications().then((res) => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+      setNotifLoading(false);
+    });
+  }, [activeTab]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -133,16 +144,6 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleSavePreferences = () => {
-    localStorage.setItem("koder_theme", theme);
-    localStorage.setItem("koder_font_size", fontSize);
-    localStorage.setItem("koder_auto_save", autoSave ? "true" : "false");
-    toast.success({
-      title: "Preferences saved",
-      description: "Your editor preferences have been updated.",
-    });
   };
 
   const handleLogout = () => {
@@ -172,7 +173,6 @@ export default function SettingsPage() {
 
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
     { id: "profile", label: "Profile", icon: UserIcon },
-    { id: "editor", label: "Editor", icon: Code },
     { id: "appearance", label: "Appearance", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
@@ -296,71 +296,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Editor Tab */}
-            {activeTab === "editor" && (
-              <div className="space-y-6 animate-in fade-in">
-                <div>
-                  <h2 className="text-xl font-bold text-brand-offwhite mb-1">Editor Preferences</h2>
-                  <p className="text-sm text-brand-offwhite-muted mb-6">
-                    Customize your coding experience in the workspace.
-                  </p>
-                </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Font Size
-                    </label>
-                    <select
-                      value={fontSize}
-                      onChange={(e) => setFontSize(e.target.value)}
-                      className="w-full sm:w-64 appearance-none bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                    >
-                      <option value="12">12px (Small)</option>
-                      <option value="14">14px (Medium)</option>
-                      <option value="16">16px (Large)</option>
-                      <option value="18">18px (Extra Large)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Theme
-                    </label>
-                    <select
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value)}
-                      className="w-full sm:w-64 appearance-none bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                    >
-                      <option value="vs-dark">VS Dark (Default)</option>
-                      <option value="hc-black">High Contrast Dark</option>
-                      <option value="light">Light</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-t border-b border-brand-charcoal-border">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">Auto-Save</div>
-                      <div className="text-xs text-brand-offwhite-muted">Automatically save your code locally while typing</div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={autoSave} onChange={(e) => setAutoSave(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-base border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
-
-                  <div className="pt-4 flex justify-end">
-                    <button
-                      onClick={handleSavePreferences}
-                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-6 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2"
-                    >
-                      Save Preferences
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Appearance Tab */}
             {activeTab === "appearance" && (
               <div className="space-y-6 animate-in fade-in">
@@ -413,32 +348,91 @@ export default function SettingsPage() {
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Notifications</h2>
                   <p className="text-sm text-brand-offwhite-muted mb-6">
-                    Manage how we communicate with you.
+                    Recent activity and updates about your account.
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-brand-charcoal-border bg-brand-charcoal-base">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">Email Notifications</div>
-                      <div className="text-xs text-brand-offwhite-muted">Receive summaries of your weekly progress</div>
+                <div className="space-y-3">
+                  {notifLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-6 h-6 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={emailNotifs} onChange={(e) => setEmailNotifs(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-card border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-brand-charcoal-border bg-brand-charcoal-base">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">In-App Notifications</div>
-                      <div className="text-xs text-brand-offwhite-muted">Receive alerts for new problems and achievements</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Bell size={32} className="text-brand-offwhite-muted/40 mb-3" />
+                      <p className="text-sm text-brand-offwhite-muted font-medium">No recent notifications</p>
+                      <p className="text-xs text-brand-offwhite-muted/60 mt-1">
+                        When an admin reviews your contributions or you earn achievements, they'll appear here.
+                      </p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={pushNotifs} onChange={(e) => setPushNotifs(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-card border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-brand-offwhite-muted font-medium uppercase tracking-wider">
+                          Recent activity
+                        </span>
+                        {notifications.some((n) => !n.is_read) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetchApi("/notifications/read-all", { method: "POST" });
+                                if (res.success) {
+                                  setNotifications((prev) =>
+                                    prev.map((n) => ({ ...n, is_read: true }))
+                                  );
+                                }
+                              } catch {}
+                            }}
+                            className="text-xs text-brand-muted-gold hover:text-brand-muted-gold/80 font-semibold transition-colors flex items-center gap-1"
+                          >
+                            <CheckCheck size={14} /> Mark all as read
+                          </button>
+                        )}
+                      </div>
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={cn(
+                            "flex items-start gap-3 p-4 rounded-xl border transition-colors",
+                            n.is_read
+                              ? "border-brand-charcoal-border bg-brand-charcoal-base/50"
+                              : "border-brand-muted-gold/20 bg-brand-muted-gold/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                            n.type === "contribution_approved"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : n.type === "contribution_rejected"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-brand-muted-gold/10 text-brand-muted-gold"
+                          )}>
+                            {n.type === "contribution_approved" ? (
+                              <CheckCircle2 size={16} />
+                            ) : n.type === "contribution_rejected" ? (
+                              <XCircle size={16} />
+                            ) : (
+                              <GitPullRequest size={16} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={cn(
+                              "text-sm leading-relaxed",
+                              n.is_read ? "text-brand-offwhite-muted" : "text-brand-offwhite"
+                            )}>
+                              {n.message}
+                            </p>
+                            <span className="text-xs text-brand-offwhite-muted/60 mt-1.5 block">
+                              {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          {!n.is_read && (
+                            <div className="w-2 h-2 rounded-full bg-brand-muted-gold shrink-0 mt-2" />
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             )}

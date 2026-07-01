@@ -40,6 +40,29 @@ func (h *NotificationsHandler) GetUnreadNotifications(w http.ResponseWriter, r *
 	RespondSuccess(w, notifications)
 }
 
+// GetRecentNotifications returns recent notifications (read + unread) for the settings page.
+func (h *NotificationsHandler) GetRecentNotifications(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid user ID", nil)
+		return
+	}
+
+	notifications, err := h.store.GetRecentNotifications(r.Context(), userID, 20)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch notifications", err.Error())
+		return
+	}
+
+	RespondSuccess(w, notifications)
+}
+
 // MarkAsRead marks a specific notification as read.
 func (h *NotificationsHandler) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())

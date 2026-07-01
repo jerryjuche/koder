@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   LayoutDashboard,
@@ -30,6 +30,7 @@ import {
 
 export default function TopNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, loading } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
@@ -184,6 +185,8 @@ export default function TopNav() {
                           key={n.id}
                           onClick={() => {
                             if (!n.is_read) markAsRead(n.id);
+                            setNotifMenuOpen(false);
+                            router.push("/settings?tab=notifications");
                           }}
                           className={cn(
                             "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors",
