@@ -35,10 +35,10 @@ type enrichedResponse struct {
 }
 
 type enrichedTestCase struct {
-	Input    json.RawMessage `json:"input_json"`
-	Expected string          `json:"expected"`
-	IsHidden bool            `json:"is_hidden"`
-	Ordinal  int             `json:"ordinal"`
+	Input    any    `json:"input_json"`
+	Expected string `json:"expected"`
+	IsHidden bool   `json:"is_hidden"`
+	Ordinal  int    `json:"ordinal"`
 }
 
 func NewEnricher(ctx context.Context, cfg *config.Config) (*Enricher, error) {
@@ -66,7 +66,7 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 		genai.RoleUser,
 	)
 
-	userPrompt := genai.NewContentFromText(fmt.Sprintf(`Analyze the exercise README below and return exactly one JSON object that conforms to the requested schema. Use stringified Go literals for expected values.
+	userPrompt := genai.NewContentFromText(fmt.Sprintf(`Analyze the exercise README below and return exactly one JSON object that conforms to the requested schema. Use stringified Go literals for expected values. For input_json, output a JSON string containing a JSON array of function arguments (e.g. "[1, \"hello\"]").
 
 README:
 %s`, strings.TrimSpace(rawReadme)), genai.RoleUser)
@@ -205,10 +205,10 @@ func enrichmentSchema() *genai.Schema {
 				Items: &genai.Schema{
 					Type: genai.TypeObject,
 					Properties: map[string]*genai.Schema{
-						"input_json": {
-							Type:        genai.TypeArray,
-							Description: "JSON array of function arguments in order. Example: [1, \"hello\", true]",
-						},
+"input_json": {
+	Type:        genai.TypeString,
+	Description: "JSON array of function arguments as a string. Example: \"[1, \\\"hello\\\", true]\"",
+},
 						"expected":  {Type: genai.TypeString},
 						"is_hidden": {Type: genai.TypeBoolean},
 						"ordinal":   {Type: genai.TypeInteger},
