@@ -82,9 +82,46 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 
 	slog.Debug("enricher: calling provider", "provider", e.provider.Name(), "readme_len", len(rawReadme))
 
-	systemPrompt := `You are an expert Go curriculum author. Use only the Go standard library in examples. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r) while preserving semantics. Output only valid JSON that matches the requested schema, with no markdown fences, comments, or extra fields.`
+	systemPrompt := `You are an expert Go curriculum author. You output only valid JSON. No markdown fences, no comments, no extra text.
 
-	userPrompt := fmt.Sprintf(`Analyze the exercise README below and return exactly one JSON object that conforms to the requested schema. Use stringified Go literals for expected values. For input_json, output a JSON string containing a JSON array of function arguments (e.g. "[1, \"hello\"]").
+You MUST respond with exactly this JSON structure, filling in the values based on the exercise README:
+
+{
+  "title": "ShortExerciseName",
+  "statement": "Full problem description in markdown",
+  "func_name": "FunctionName",
+  "return_type": "string",
+  "param_types": ["int"],
+  "hints": ["First hint about approach", "More specific hint", "Very specific implementation hint"],
+  "difficulty": 1,
+  "xp_reward": 25,
+  "tags": ["tag1"],
+  "test_cases": [
+    {"input_json": "[4]", "expected": "\"fish\"", "is_hidden": false, "ordinal": 1}
+  ]
+}
+
+Rules:
+- title: short camel-case name from the exercise (e.g. "fishandchips")
+- statement: full problem description in markdown, preserving all details from the README
+- func_name: PascalCase function name exactly as defined in the exercise (e.g. "FishAndChips")
+- return_type: Go return type as a string (e.g. "string", "int", "bool", "error")
+- param_types: array of Go parameter type strings in order (e.g. ["int", "string"])
+- hints: exactly 3 hints, ordered from general approach to specific implementation
+- difficulty: integer 1 (easy) to 5 (expert)
+- xp_reward: positive integer — 10 for difficulty 1, 25 for 2, 50 for 3, 100 for 4, 200 for 5
+- tags: relevant topic tags like ["strings", "conditions", "loops", "recursion", "pointers"]
+- test_cases: at least 3 test cases covering normal cases AND edge cases
+  - input_json: JSON string array of arguments, e.g. "[4]" or "[4, \"hello\"]"
+  - expected: Go string literal of expected return value, e.g. "\"fish\"" or "\"non divisible\""
+  - is_hidden: false for basic visible tests, true for edge case tests
+  - ordinal: sequential integer starting at 1
+
+IMPORTANT: Every field above is REQUIRED. Do not omit any field. Do not add extra fields.
+
+Use only Go standard library. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r).`
+
+	userPrompt := fmt.Sprintf(`Read this exercise README and generate the JSON object following the schema above. Every field from the schema is required — do not omit 'title', 'statement', 'func_name', 'return_type', 'param_types', 'hints', 'difficulty', 'xp_reward', 'tags', or 'test_cases'. Include at least 3 test cases.
 
 README:
 %s`, strings.TrimSpace(rawReadme))
@@ -94,11 +131,16 @@ README:
 		return nil, nil, fmt.Errorf("%s generate content failed: %w", e.provider.Name(), err)
 	}
 
+	payload = cleanResponse(payload)
 	slog.Debug("enricher: provider raw response", "provider", e.provider.Name(), "payload_len", len(payload), "payload_preview", truncate(payload, 500))
 
 	var parsed enrichedResponse
 	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
-		slog.Error("enricher: failed to parse provider JSON", "provider", e.provider.Name(), "error", err, "payload", truncate(payload, 1000))
+		slog.Error("enricher: failed to parse JSON",
+			"provider", e.provider.Name(),
+			"error", err,
+			"payload", truncate(payload, 2000),
+		)
 		return nil, nil, fmt.Errorf("unable to parse %s JSON response: %w", e.provider.Name(), err)
 	}
 
@@ -130,7 +172,14 @@ README:
 	}
 
 	if err := validateEnrichedProblem(problem, testCases); err != nil {
-		return nil, nil, err
+		slog.Error("enricher: validation failed",
+			"provider", e.provider.Name(),
+			"error", err,
+			"title", problem.Title,
+			"func_name", problem.FuncName,
+			"payload_preview", truncate(payload, 500),
+		)
+		return nil, nil, fmt.Errorf("%s enrichment validation failed: %w", e.provider.Name(), err)
 	}
 
 	slog.Info("enricher: problem enriched successfully",
@@ -148,9 +197,14 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	delay := 1 * time.Second
-	if e.provider.Name() == "gemini" {
+	var delay time.Duration
+	switch e.provider.Name() {
+	case "gemini":
 		delay = 30 * time.Second
+	case "groq":
+		delay = 2 * time.Second
+	default:
+		delay = 1 * time.Second
 	}
 
 	if !e.lastRequest.IsZero() {
@@ -326,12 +380,22 @@ func (g *groqProvider) doRequest(ctx context.Context, payload []byte, attempt in
 	}
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("groq returned HTTP %d: %s", resp.StatusCode, truncate(string(respBody), 500))
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq HTTP error",
+			"status", resp.StatusCode,
+			"body", bodySnippet,
+		)
+		return "", fmt.Errorf("groq returned HTTP %d: %s", resp.StatusCode, bodySnippet)
 	}
 
 	var result groqResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", fmt.Errorf("groq parse response: %w", err)
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq parse response failed",
+			"error", err,
+			"body", bodySnippet,
+		)
+		return "", fmt.Errorf("groq parse response: %w (body: %s)", err, bodySnippet)
 	}
 
 	if result.Error != nil {
@@ -339,11 +403,15 @@ func (g *groqProvider) doRequest(ctx context.Context, payload []byte, attempt in
 	}
 
 	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("groq returned no choices")
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq returned no choices", "body", bodySnippet)
+		return "", fmt.Errorf("groq returned no choices (body: %s)", bodySnippet)
 	}
 
 	finishReason := result.Choices[0].FinishReason
-	if finishReason != "stop" && finishReason != "length" {
+	if finishReason == "length" {
+		slog.Warn("groq response truncated due to max_tokens", "finish_reason", finishReason)
+	} else if finishReason != "stop" {
 		return "", fmt.Errorf("groq generation stopped early: %s", finishReason)
 	}
 
@@ -360,6 +428,22 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "..."
+}
+
+func cleanResponse(s string) string {
+	s = strings.TrimSpace(s)
+
+	start := strings.Index(s, "{")
+	if start == -1 {
+		return s
+	}
+
+	end := strings.LastIndex(s, "}")
+	if end == -1 || end < start {
+		return s
+	}
+
+	return s[start : end+1]
 }
 
 func enrichmentSchema() *genai.Schema {
