@@ -19,6 +19,7 @@
     "@shikijs/transformers": "^4.3.0",
     "@tanstack/react-virtual": "^3.14.4",
     "@untitledui/icons": "^0.0.22",
+    "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.4.21",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
