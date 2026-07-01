@@ -102,6 +102,7 @@ type Store interface {
 	// Notifications
 	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error
 	GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
+	GetRecentNotifications(ctx context.Context, userID uuid.UUID, limit int) ([]Notification, error)
 	MarkNotificationAsRead(ctx context.Context, id, userID uuid.UUID) error
 	MarkAllNotificationsAsRead(ctx context.Context, userID uuid.UUID) error
 	NotifyAdmins(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error

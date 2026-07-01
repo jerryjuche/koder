@@ -146,6 +146,16 @@ export type CommunitySolution = {
   created_at: string;
 };
 
+export type NotificationItem = {
+  id: string;
+  user_id: string;
+  type: string;
+  message: string;
+  related_id?: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 export type LeaderboardEntry = {
   rank: number;
   user: User;

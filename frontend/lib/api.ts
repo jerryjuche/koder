@@ -10,6 +10,7 @@ import {
   UserProblem,
   CommunitySolution,
   ActivityEntry,
+  NotificationItem,
 } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -225,6 +226,10 @@ export async function testCode(
     method: "POST",
     body: JSON.stringify({ problem_slug: slug, code: code }),
   });
+}
+
+export async function fetchRecentNotifications(): Promise<ApiResponse<NotificationItem[]>> {
+  return fetchApi<NotificationItem[]>("/notifications/recent");
 }
 
 export async function fetchLeaderboard(
