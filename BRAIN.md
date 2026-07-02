@@ -2,7 +2,6 @@
 
 ## On Startup.
 
-
 When beginning a new session or resuming after compaction, execute the following:
 
 ### 1. Index the Codebase
