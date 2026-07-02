@@ -46,16 +46,10 @@ function ProfileSkeleton() {
           ))}
         </div>
 
-        {/* Two column skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <SkeletonBlock className="h-64" />
-            <SkeletonBlock className="h-48" />
-          </div>
-          <div className="space-y-6">
-            <SkeletonBlock className="h-64" />
-            <SkeletonBlock className="h-48" />
-          </div>
+        {/* Activity + Stats skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+          <SkeletonBlock className="lg:col-span-4 h-40" />
+          <SkeletonBlock className="lg:col-span-2 h-24" />
         </div>
       </div>
     </div>
@@ -187,8 +181,14 @@ export default function ProfileClient() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-6">
-              <StatsOverview profile={profile} user={user} />
-              <ContributionGraphSection activity={activity} />
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+                <div className="lg:col-span-4 min-w-0 overflow-x-auto">
+                  <ContributionGraphSection activity={activity} />
+                </div>
+                <div className="lg:col-span-2">
+                  <StatsOverview profile={profile} />
+                </div>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <ProgressMetrics profile={profile} />
