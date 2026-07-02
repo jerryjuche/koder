@@ -174,7 +174,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
           <Link
-            href="/"
+            href="/home"
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
           >
             <LayoutDashboard size={18} />
@@ -190,7 +190,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
             </Link>
           ) : (
             <Link
-              href="/"
+              href="/home"
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
             >
               Module Complete! Explore more

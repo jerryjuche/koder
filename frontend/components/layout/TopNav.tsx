@@ -69,7 +69,7 @@ export default function TopNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left section: Logo & Nav */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center group">
+          <Link href="/home" className="flex items-center group">
             <div className="relative w-12 h-12 overflow-hidden rounded-xl transition-transform group-hover:scale-105">
               <Image
                 src="/logo.png"
