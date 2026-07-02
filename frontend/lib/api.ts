@@ -155,6 +155,8 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         xp: res.data.xp || 0,
         level: res.data.level || 1,
         solvedCount: res.data.solved_count || 0,
+        attemptedCount: res.data.attempted_count || 0,
+        streak: res.data.current_streak_days || 0,
         google_avatar_url: res.data.google_avatar_url,
         google_linked: res.data.google_linked ?? false,
       },

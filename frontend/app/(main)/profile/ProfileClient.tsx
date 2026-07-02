@@ -3,8 +3,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { User, FileText, GitPullRequest } from "lucide-react";
-import { UserProfile, ActivityEntry } from "@/lib/types";
+import { User as UserType, UserProfile, ActivityEntry } from "@/lib/types";
 import { fetchUserProfile, fetchUserActivity } from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileHeader from "./components/ProfileHeader";
@@ -62,6 +63,7 @@ function ProfileSkeleton() {
 }
 
 export default function ProfileClient() {
+  const { user } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +169,7 @@ export default function ProfileClient() {
             </div>
           </motion.div>
 
-          <ProfileHeader profile={profile} />
+          <ProfileHeader profile={profile} user={user} />
 
           <Tabs defaultValue="overview" className="w-full">
             <TabsList variant="line" className="w-full justify-start">
@@ -185,7 +187,7 @@ export default function ProfileClient() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-6">
-              <StatsOverview profile={profile} />
+              <StatsOverview profile={profile} user={user} />
               <ContributionGraphSection activity={activity} />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">

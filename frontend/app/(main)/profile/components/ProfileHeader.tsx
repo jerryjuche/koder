@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserProfile } from "@/lib/types";
+import { User as UserType, UserProfile } from "@/lib/types";
 import { getUserColor, cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
+  user?: UserType | null;
 }
 
 function MiniStat({ value, label, icon: Icon, accent }: {
@@ -38,7 +39,7 @@ function MiniStat({ value, label, icon: Icon, accent }: {
   );
 }
 
-export default function ProfileHeader({ profile }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -68,11 +69,16 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
     .substring(0, 2)
     .toUpperCase();
 
-  const successRate = profile.stats.attempted_count > 0
-    ? ((profile.stats.solved_count / profile.stats.attempted_count) * 100).toFixed(0)
+  const solvedCount = user?.solvedCount ?? profile.stats.solved_count;
+  const attemptedCount = user?.attemptedCount ?? profile.stats.attempted_count;
+  const successRate = attemptedCount > 0
+    ? ((solvedCount / attemptedCount) * 100).toFixed(0)
     : "0";
+  const streakDays = user?.streak ?? profile.stats.current_streak_days;
+  const xp = user?.xp ?? profile.xp;
+  const level = user?.level ?? profile.level;
 
-  const xpInLevel = profile.xp % 1000;
+  const xpInLevel = xp % 1000;
   const xpPercent = Math.min(100, (xpInLevel / 1000) * 100);
 
   return (
@@ -169,7 +175,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                       </defs>
                     </svg>
                     <div className="text-center">
-                      <div className="text-lg font-black text-white leading-none tracking-tight">{profile.level}</div>
+                      <div className="text-lg font-black text-white leading-none tracking-tight">{level}</div>
                       <div className="text-[7px] text-amber-400/70 uppercase tracking-widest font-semibold">Level</div>
                     </div>
                   </div>
@@ -203,9 +209,9 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <MiniStat value={`#${profile.global_rank || "-"}`} label="Rank" icon={Trophy} accent="cool" />
-                <MiniStat value={profile.stats.solved_count} label="Solved" icon={Target} accent="warm" />
+                <MiniStat value={solvedCount} label="Solved" icon={Target} accent="warm" />
                 <MiniStat value={`${successRate}%`} label="Rate" icon={Zap} accent="warm" />
-                <MiniStat value={`${profile.stats.current_streak_days}d`} label="Streak" icon={Flame} accent="cool" />
+                <MiniStat value={`${streakDays}d`} label="Streak" icon={Flame} accent="cool" />
               </div>
 
               <div className="mt-5 flex items-center gap-3 flex-wrap">

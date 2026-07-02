@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { UserProfile } from "@/lib/types";
+import { User as UserType, UserProfile } from "@/lib/types";
 import { motion, useMotionValue, animate } from "motion/react";
 import {
   Trophy,
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 interface StatsOverviewProps {
   profile: UserProfile;
+  user?: UserType | null;
 }
 
 function AnimatedNumber({ from = 0, to, duration = 2 }: { from?: number; to: number; duration?: number }) {
@@ -49,9 +50,14 @@ function AnimatedNumber({ from = 0, to, duration = 2 }: { from?: number; to: num
   return <span className="tabular-nums">{displayValue}</span>;
 }
 
-export default function StatsOverview({ profile }: StatsOverviewProps) {
-  const successRate = profile.stats.attempted_count > 0
-    ? parseFloat(((profile.stats.solved_count / profile.stats.attempted_count) * 100).toFixed(1))
+export default function StatsOverview({ profile, user }: StatsOverviewProps) {
+  const solvedCount = user?.solvedCount ?? profile.stats.solved_count;
+  const attemptedCount = user?.attemptedCount ?? profile.stats.attempted_count;
+  const streakDays = user?.streak ?? profile.stats.current_streak_days;
+  const xp = user?.xp ?? profile.xp;
+  const level = user?.level ?? profile.level;
+  const successRate = attemptedCount > 0
+    ? parseFloat(((solvedCount / attemptedCount) * 100).toFixed(1))
     : 0;
 
   const formatRuntime = (ms: number) => {
@@ -69,11 +75,11 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
     sub?: string;
     accent?: "warm" | "cool";
   }[] = [
-    { label: "Level", icon: Trophy, tooltip: "Your current level is based on total XP earned. Each level requires 1,000 XP.", value: String(profile.level), num: profile.level, sub: `${profile.xp.toLocaleString()} Total XP`, accent: "cool" },
+    { label: "Level", icon: Trophy, tooltip: "Your current level is based on total XP earned. Each level requires 1,000 XP.", value: String(level), num: level, sub: `${xp.toLocaleString()} Total XP`, accent: "cool" },
     { label: "Global Rank", icon: Hash, tooltip: "Your position on the leaderboard among all students.", value: `#${profile.global_rank || "-"}`, accent: "cool" },
-    { label: "Solved", icon: CheckCircle2, tooltip: "Problems you've solved out of total attempted.", value: String(profile.stats.solved_count), num: profile.stats.solved_count, sub: `${profile.stats.attempted_count} attempted`, accent: "warm" },
+    { label: "Solved", icon: CheckCircle2, tooltip: "Problems you've solved out of total attempted.", value: String(solvedCount), num: solvedCount, sub: `${attemptedCount} attempted`, accent: "warm" },
     { label: "Success Rate", icon: Target, tooltip: "Percentage of attempted problems that you've successfully solved.", value: `${successRate}%`, accent: "warm" },
-    { label: "Streak", icon: Flame, tooltip: "Consecutive days with at least one passed submission.", value: `${profile.stats.current_streak_days}d`, num: profile.stats.current_streak_days, accent: "cool" },
+    { label: "Streak", icon: Flame, tooltip: "Consecutive days with at least one passed submission.", value: `${streakDays}d`, num: streakDays, accent: "cool" },
     { label: "Best Runtime", icon: Zap, tooltip: "Your fastest solution execution time across all problems.", value: formatRuntime(profile.stats.best_runtime_ms), accent: "warm" },
   ];
 

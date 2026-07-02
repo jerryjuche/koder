@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Flame,
   BarChart2,
   Code,
   Heart,
@@ -187,6 +188,21 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          {user && user.streak > 0 && (
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Flame size={16} className="text-orange-400" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
+                  {user.streak}
+                </div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  Day Streak
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
