@@ -161,41 +161,11 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
     };
   }
 
-  // Fallback: decode JWT locally
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join(""),
-    );
-    const payload = JSON.parse(jsonPayload);
-
-    return {
-      success: true,
-      data: {
-        id: payload.user_id || "u1",
-        name: payload.name || payload.student_id || "Student",
-        username: payload.username || payload.student_id || "",
-        studentId: payload.student_id || "s000000",
-        role: payload.role || "student",
-        colorIndex: 0,
-        xp: 0,
-        level: 1,
-        solvedCount: 0,
-      },
-    };
-  } catch (e) {
-    return {
-      success: false,
-      data: null,
-      error: { code: "INVALID_TOKEN", message: "Invalid token" },
-    };
-  }
+  return {
+    success: false,
+    data: null,
+    error: { code: "AUTH_FAILED", message: "Token rejected by server" },
+  };
 }
 
 export async function fetchProblems(): Promise<ApiResponse<Problem[]>> {
