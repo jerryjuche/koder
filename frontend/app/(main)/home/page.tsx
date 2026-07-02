@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Search,
   ChevronDown,
@@ -24,7 +23,6 @@ import {
   cn,
   getDifficultyColor,
   getDifficultyLabel,
-  getUserColor,
 } from "@/lib/utils";
 import {
   Card,
@@ -50,7 +48,7 @@ import ModuleCards from "@/components/dashboard/ModuleCards";
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [avatarError, setAvatarError] = useState(false);
+
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,11 +81,6 @@ export default function Dashboard() {
       window.removeEventListener("user-updated", loadData);
     };
   }, []);
-
-  // Reset avatarError when user data changes (e.g. after Google sync)
-  useEffect(() => {
-    setAvatarError(false);
-  }, [user?.google_avatar_url]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
@@ -161,88 +154,38 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {user && (
-            <div className="flex items-center gap-4 pr-4 border-r border-border/60">
-              {user.google_avatar_url && !avatarError ? (
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-0.5 bg-gradient-to-br from-primary/30 via-amber-400/20 to-transparent rounded-full blur-sm" />
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden ring-2 ring-border/80">
-                    <Image
-                      src={user.google_avatar_url}
-                      alt={user.username ?? "Avatar"}
-                      width={44}
-                      height={44}
-                      className="w-full h-full object-cover"
-                      onError={() => setAvatarError(true)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-border/80 shrink-0",
-                    getUserColor(user.colorIndex),
-                  )}
-                >
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .substring(0, 2)
-                    .toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-foreground truncate max-w-[140px] leading-tight">
-                  {user.name}
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    @{user.username || "student"}
-                  </span>
-                  <span className="size-1 rounded-full bg-muted-foreground/30" />
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    Lvl {user.level || Math.floor((user.xp || 0) / 1000) + 1}
-                  </span>
-                </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <CheckCircle2 size={16} className="text-emerald-400" />
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
+                {solvedCount}
+              </div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                Solved
               </div>
             </div>
-          )}
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle2 size={16} className="text-emerald-400" />
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                  {solvedCount}
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Solved
-                </div>
-              </div>
+          </div>
+          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <svg
+                width="14"
+                height="16"
+                viewBox="0 0 12 16"
+                className="text-primary"
+                fill="currentColor"
+              >
+                <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+              </svg>
             </div>
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <svg
-                  width="14"
-                  height="16"
-                  viewBox="0 0 12 16"
-                  className="text-primary"
-                  fill="currentColor"
-                >
-                  <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-                </svg>
+            <div className="text-right">
+              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
+                {user?.xp?.toLocaleString() || 0}
               </div>
-              <div className="text-right">
-                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                  {user?.xp?.toLocaleString() || 0}
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  XP Earned
-                </div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                XP Earned
               </div>
             </div>
           </div>
