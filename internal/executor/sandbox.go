@@ -45,7 +45,9 @@ func PrepareSandbox(baseDir string, uuidStr string, code string, renderData *Tem
 	}
 
 	// Prepare main_test.go from template
-	tmpl, err := template.New("main_test").Parse(mainTestTemplate)
+	tmpl, err := template.New("main_test").Funcs(template.FuncMap{
+		"IsPrimitiveType": IsPrimitiveType,
+	}).Parse(mainTestTemplate)
 	if err != nil {
 		_ = os.RemoveAll(sandboxPath)
 		return "", fmt.Errorf("failed to parse test template: %w", err)
