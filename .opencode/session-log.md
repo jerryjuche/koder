@@ -1,6 +1,25 @@
 # Session Log
 
-## 2026-07-02 — Initial Setup
+## 2026-07-03 — Full Codebase Re-index
+
+### Done
+- Read all 7 markdown files: BRAIN.md, README.md, CLAUDE.md, CODEBASE_ANALYSIS.md, SESSION_LOG.md, reference.md, frontend/README.md
+- Explored complete directory structure: 30+ directories across cmd/, internal/, frontend/, sandbox/, migrations/, scripts/, docs/
+- Read key source files: cmd/server/main.go (entry point), internal/api/router.go (route table), internal/store/store.go (106-method Store interface), internal/store/types.go (all data models)
+- Globbed and mapped: 36 frontend page/component files, 21 shadcn/ui components, 8 lib files, 2 hooks
+- Verified codebase state aligns with README.md and CLAUDE.md documentation
+
+### Mental Model Summary
+- **Architecture:** Go monolith (Oracle ARM64) + Next.js 14 frontend (Vercel) + Supabase Postgres
+- **3 Pipelines:** Ingest (GitHub YAML) → Enrich (Gemini/Groq AI) → Execute (Docker/sandbox)
+- **Store Interface:** 106 methods across users, problems, submissions, progress, admin, notifications, community
+- **Auth:** email/password (bcrypt) + Google OAuth (GIS), JWT HS256, onboarding flow
+- **Executor:** semaphore-based concurrency (default 6), dual-path (remote HTTP sandbox or local Docker)
+- **Frontend:** 36 page/component files, shadcn/ui, Monaco Editor, dark mode, motion animations
+- **Latest changes:** Google Sign-In migration, account deletion, GIS hook, profile redesign, leaderboard redesign
+
+### Next Steps
+- Awaiting user direction for development work
 
 ### Done
 - Created `BRAIN.md` — session primer for onboarding/resuming work
