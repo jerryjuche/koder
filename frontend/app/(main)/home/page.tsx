@@ -118,14 +118,16 @@ export default function Dashboard() {
 
   const difficulties = ["All", "Beginner", "Easy", "Medium", "Hard", "Expert"];
 
-  const filteredProblems = problems.filter((p) => {
-    if (selectedModule && p.module !== selectedModule) return false;
-    if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
-    if (difficultyFilter !== "All" && getDifficultyLabel(p.difficulty) !== difficultyFilter) return false;
-    if (statusFilter === "solved" && !p.solved) return false;
-    if (statusFilter === "unsolved" && p.solved) return false;
-    return true;
-  });
+  const filteredProblems = problems
+    .filter((p) => {
+      if (selectedModule && p.module !== selectedModule) return false;
+      if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
+      if (difficultyFilter !== "All" && getDifficultyLabel(p.difficulty) !== difficultyFilter) return false;
+      if (statusFilter === "solved" && !p.solved) return false;
+      if (statusFilter === "unsolved" && p.solved) return false;
+      return true;
+    })
+    .sort((a, b) => Number(a.solved) - Number(b.solved));
 
   const solvedCount = problems.filter((p) => p.solved).length;
 
