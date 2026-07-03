@@ -268,6 +268,32 @@ type NewFeedback struct {
 	IsAnonymous   bool    `json:"is_anonymous"`
 }
 
+// Broadcast represents an admin-created broadcast message sent to all users.
+type Broadcast struct {
+	ID         pgtype.UUID `db:"id" json:"id"`
+	Type       string      `db:"type" json:"type"`
+	Priority   string      `db:"priority" json:"priority"`
+	Title      string      `db:"title" json:"title"`
+	Message    string      `db:"message" json:"message"`
+	ActionLabel *string    `db:"action_label" json:"action_label,omitempty"`
+	ActionURL  *string    `db:"action_url" json:"action_url,omitempty"`
+	Active     bool        `db:"active" json:"active"`
+	CreatedBy  pgtype.UUID `db:"created_by" json:"created_by"`
+	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time   `db:"updated_at" json:"updated_at"`
+	UserName   *string     `db:"user_name" json:"user_name,omitempty"`
+}
+
+// NewBroadcast is the payload for creating a broadcast.
+type NewBroadcast struct {
+	Type        string  `json:"type"`
+	Priority    string  `json:"priority,omitempty"`
+	Title       string  `json:"title"`
+	Message     string  `json:"message,omitempty"`
+	ActionLabel *string `json:"action_label,omitempty"`
+	ActionURL   *string `json:"action_url,omitempty"`
+}
+
 // CommunitySolution represents a submission returned for the community solutions/best practices view.
 type CommunitySolution struct {
 	ID          pgtype.UUID `json:"id"`

@@ -115,6 +115,16 @@ type Store interface {
 	MarkAllNotificationsAsRead(ctx context.Context, userID uuid.UUID) error
 	NotifyAdmins(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error
 	NotifyAllUsers(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error
+
+	// Broadcasts
+	ReplaceBroadcastNotifications(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error
+	CreateBroadcast(ctx context.Context, adminID uuid.UUID, nb *NewBroadcast) (*Broadcast, error)
+	GetActiveBroadcasts(ctx context.Context, userID uuid.UUID) ([]Broadcast, error)
+	GetAllBroadcasts(ctx context.Context) ([]Broadcast, error)
+	GetBroadcastByID(ctx context.Context, id uuid.UUID) (*Broadcast, error)
+	DeactivateBroadcast(ctx context.Context, id uuid.UUID) error
+	DeleteBroadcast(ctx context.Context, id uuid.UUID) error
+	MarkBroadcastDismissed(ctx context.Context, userID, broadcastID uuid.UUID) error
 }
 
 // PostgresStore implements Store using pgx and Postgres.

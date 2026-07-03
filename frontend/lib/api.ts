@@ -12,6 +12,7 @@ import {
   ActivityEntry,
   NotificationItem,
   FeedbackItem,
+  Broadcast,
 } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -362,6 +363,42 @@ export async function deleteAccount(): Promise<ApiResponse<{ message: string }>>
   return fetchApi<{ message: string }>("/me/delete-account", {
     method: "POST",
   });
+}
+
+// Broadcasts
+
+export async function fetchActiveBroadcasts(): Promise<ApiResponse<Broadcast[]>> {
+  return fetchApi<Broadcast[]>("/me/broadcasts");
+}
+
+export async function dismissBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/me/broadcasts/${id}/dismiss`, { method: "POST" });
+}
+
+export async function fetchAllBroadcasts(): Promise<ApiResponse<Broadcast[]>> {
+  return fetchApi<Broadcast[]>("/admin/broadcasts");
+}
+
+export async function createBroadcast(data: {
+  type: string;
+  priority: string;
+  title: string;
+  message: string;
+  action_label?: string;
+  action_url?: string;
+}): Promise<ApiResponse<Broadcast>> {
+  return fetchApi<Broadcast>("/admin/broadcasts", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deactivateBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}/deactivate`, { method: "PATCH" });
+}
+
+export async function deleteBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}`, { method: "DELETE" });
 }
 
 

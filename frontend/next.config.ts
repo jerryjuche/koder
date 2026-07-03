@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: 'standalone',
+  // output: 'standalone',
   transpilePackages: ['motion'],
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns', 'react-markdown'],

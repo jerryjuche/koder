@@ -216,6 +216,21 @@ export type ActivityEntry = {
   level: number;
 };
 
+export type Broadcast = {
+  id: string;
+  type: "info" | "warning" | "update" | "new_feature" | "maintenance" | "announcement";
+  priority: "low" | "medium" | "high" | "critical";
+  title: string;
+  message: string;
+  action_label?: string;
+  action_url?: string;
+  active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  user_name?: string;
+};
+
 export type ApiResponse<T> = {
   success: boolean;
   data: T | null;
