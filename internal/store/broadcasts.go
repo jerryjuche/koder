@@ -40,10 +40,12 @@ func (s *PostgresStore) GetActiveBroadcasts(ctx context.Context, userID uuid.UUI
 		       b.active, b.created_by, b.created_at, b.updated_at, u.name AS user_name
 		FROM broadcasts b
 		LEFT JOIN users u ON b.created_by = u.id
-		LEFT JOIN user_broadcast_status ubs ON b.id = ubs.broadcast_id AND ubs.user_id = $1
-		WHERE b.active = TRUE AND (ubs.dismissed IS NULL OR ubs.dismissed = FALSE)
-		ORDER BY b.created_at DESC
-		LIMIT 1
+		WHERE b.active = TRUE
+		  AND b.id = (SELECT id FROM broadcasts WHERE active = TRUE ORDER BY created_at DESC LIMIT 1)
+		  AND NOT EXISTS (
+		    SELECT 1 FROM user_broadcast_status
+		    WHERE broadcast_id = b.id AND user_id = $1 AND dismissed = TRUE
+		  )
 	`
 	rows, err := s.pool.Query(ctx, query, userID)
 	if err != nil {

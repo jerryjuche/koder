@@ -412,7 +412,7 @@ See `.env.example` for full template.
   - `BroadcastPanel.tsx` — compact admin form with type/priority/title/CTA, history list with delete, shows "Admin" not user name
   - `message` field optional (defaults to title), `priority` optional (defaults to medium)
   - `ReplaceBroadcastNotifications()` — atomic transaction that deletes old broadcast notifications and inserts new one, preventing stacking
-  - `GetActiveBroadcasts` — `LIMIT 1` ensures only the latest broadcast shows as banner; old banners auto-disappear
+  - `GetActiveBroadcasts` — subquery ensures only the single latest broadcast shows; dismissed broadcasts never resurface older ones
   - `useNotifications.ts` — polling interval reduced to 5s for instant notification badge updates
   - Goroutine uses `context.Background()` instead of canceled request context
 
