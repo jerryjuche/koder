@@ -77,6 +77,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
 		r.Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
 
+		feedbackHandler := NewFeedbackHandler(store, cfg)
+		r.Post("/feedback", feedbackHandler.Submit)
+		r.Get("/feedback/mine", feedbackHandler.ListMine)
+
 		leaderboardHandler := NewLeaderboardHandler(store)
 		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
 
@@ -105,6 +109,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
 			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
 			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
+			r.Get("/admin/feedback", feedbackHandler.ListAdmin)
+			r.Get("/admin/feedback/counts", feedbackHandler.Counts)
+			r.Patch("/admin/feedback/{id}", feedbackHandler.UpdateStatus)
 		})
 	})
 

@@ -193,6 +193,21 @@ export type ExecutionResult = {
   test_results: BackendTestResult[];
 };
 
+export type FeedbackItem = {
+  id: string;
+  user_id: string;
+  type: "general" | "bug" | "feature";
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  screenshot_url?: string;
+  status: "new" | "in_progress" | "resolved";
+  admin_notes?: string;
+  is_anonymous: boolean;
+  created_at: string;
+  user_name?: string;
+};
+
 export type ActivityEntry = {
   date: string;
   submissions: number;

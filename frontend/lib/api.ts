@@ -11,6 +11,7 @@ import {
   CommunitySolution,
   ActivityEntry,
   NotificationItem,
+  FeedbackItem,
 } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -318,6 +319,42 @@ export async function toggleProblemVisibility(id: string, visible: boolean): Pro
 export async function publishAllDrafts(): Promise<ApiResponse<{ published: number }>> {
   return fetchApi<{ published: number }>("/admin/problems/publish-all", {
     method: "POST",
+  });
+}
+
+// Feedback
+
+export async function submitFeedback(data: {
+  type: string;
+  title: string;
+  description: string;
+  priority: string;
+  screenshot_url?: string;
+  is_anonymous: boolean;
+}): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchMyFeedback(): Promise<ApiResponse<FeedbackItem[]>> {
+  return fetchApi<FeedbackItem[]>("/feedback/mine");
+}
+
+export async function fetchAdminFeedback(status?: string): Promise<ApiResponse<FeedbackItem[]>> {
+  const params = status ? `?status=${status}` : "";
+  return fetchApi<FeedbackItem[]>(`/admin/feedback${params}`);
+}
+
+export async function fetchAdminFeedbackCounts(): Promise<ApiResponse<Record<string, number>>> {
+  return fetchApi<Record<string, number>>("/admin/feedback/counts");
+}
+
+export async function updateFeedbackStatus(id: string, status: string, adminNotes?: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/feedback/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, admin_notes: adminNotes }),
   });
 }
 
