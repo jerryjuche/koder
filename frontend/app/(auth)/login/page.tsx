@@ -4,7 +4,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -41,10 +41,10 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  const { renderButton, ready } = useGoogleOneTap(
+  const { prompt, ready } = useGoogleOneTap(
     useCallback((response: { credential: string }) => {
       handleGoogleResponse(response);
     }, []),
@@ -52,12 +52,6 @@ export default function LoginPage() {
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (mounted && ready && googleButtonRef.current) {
-      renderButton(googleButtonRef.current, { width: 350 });
-    }
-  }, [mounted, ready]);
 
   const {
     register,
@@ -69,7 +63,7 @@ export default function LoginPage() {
   });
 
   const handleGoogleResponse = async (response: { credential: string }) => {
-    setLoading(true);
+    setGoogleLoading(true);
     setErrorMsg('');
     try {
       const res = await googleLogin(response.credential);
@@ -84,7 +78,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setErrorMsg(err.message || 'Network error');
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -106,6 +100,10 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleClick = () => {
+    if (ready) prompt();
+  };
+
   return (
     <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-3xl p-7 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="flex justify-center mb-4">
@@ -124,92 +122,106 @@ export default function LoginPage() {
         <p className="text-brand-offwhite-muted text-sm">Sign in to your account to continue solving problems.</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-        {errorMsg && (
-          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-            {errorMsg}
-          </div>
+      <div className="space-y-6">
+        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+          <>
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={!mounted || !ready || googleLoading}
+              className="group relative w-full flex items-center justify-center gap-3 bg-[#1C1C28] hover:bg-[#252535] border border-[#2A2A3A] hover:border-brand-muted-gold/30 rounded-xl px-4 py-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {googleLoading ? (
+                <div className="w-5 h-5 border-2 border-brand-offwhite-muted/30 border-t-brand-offwhite-muted rounded-full animate-spin" />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 48 48" className="flex-shrink-0">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+                  <path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
+                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+                </svg>
+              )}
+              <span className="text-[15px] font-medium text-brand-offwhite group-hover:text-white transition-colors">
+                Continue with Google
+              </span>
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-brand-charcoal-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-brand-charcoal-card px-3 text-brand-offwhite-muted/60 tracking-wider font-medium">
+                  or sign in with email
+                </span>
+              </div>
+            </div>
+          </>
         )}
 
-        <div>
-          <label htmlFor="loginId" className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-            Username or Email
-          </label>
-          <input
-            {...register('loginId')}
-            id="loginId"
-            type="text"
-            autoComplete="username"
-            data-invalid={!!errors.loginId}
-            className="w-full bg-brand-charcoal-base border rounded-xl px-4 py-3 text-brand-offwhite outline-none transition-colors placeholder:text-brand-offwhite-muted/40 data-[invalid=true]:border-brand-error focus:border-brand-muted-gold"
-            style={{ borderColor: errors.loginId ? 'rgb(239 68 68 / 0.5)' : undefined }}
-            placeholder="username or email"
-          />
-          {errors.loginId && (
-            <p className="text-brand-error text-[11px] mt-1.5 font-medium">{errors.loginId.message}</p>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          {errorMsg && (
+            <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+              {errorMsg}
+            </div>
           )}
-        </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-              Password
+          <div>
+            <label htmlFor="loginId" className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+              Username or Email
             </label>
-            <Link href="#" className="text-xs text-brand-muted-gold/60 hover:text-brand-muted-gold transition-colors">
-              Forgot password?
-            </Link>
-          </div>
-          <input
-            {...register('password')}
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            data-invalid={!!errors.password}
-            className="w-full bg-brand-charcoal-base border rounded-xl px-4 py-3 text-brand-offwhite outline-none transition-colors placeholder:text-brand-offwhite-muted/40 data-[invalid=true]:border-brand-error focus:border-brand-muted-gold"
-            style={{ borderColor: errors.password ? 'rgb(239 68 68 / 0.5)' : undefined }}
-            placeholder="••••••••"
-          />
-          {errors.password && (
-            <p className="text-brand-error text-[11px] mt-1.5 font-medium">{errors.password.message}</p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex justify-center items-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-          ) : (
-            <>Sign In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
-          )}
-        </button>
-      </form>
-
-      {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-        <>
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-brand-charcoal-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-brand-charcoal-card px-2 text-brand-offwhite-muted">or</span>
-            </div>
-          </div>
-
-          <div className="w-full min-h-[45px]">
-            {mounted && ready ? (
-              <div ref={googleButtonRef} className="flex justify-center w-full [&>div]:w-full" />
-            ) : (
-              <div className="w-full h-[45px] bg-brand-charcoal-base/50 border border-brand-charcoal-border rounded-lg flex items-center justify-center gap-2">
-                <Loader2 size={14} className="animate-spin text-brand-offwhite-muted" />
-                <span className="text-[11px] text-brand-offwhite-muted/50">Loading Google Sign-In...</span>
-              </div>
+            <input
+              {...register('loginId')}
+              id="loginId"
+              type="text"
+              autoComplete="username"
+              data-invalid={!!errors.loginId}
+              className="w-full bg-brand-charcoal-base border rounded-xl px-4 py-3 text-brand-offwhite outline-none transition-colors placeholder:text-brand-offwhite-muted/40 data-[invalid=true]:border-brand-error focus:border-brand-muted-gold"
+              style={{ borderColor: errors.loginId ? 'rgb(239 68 68 / 0.5)' : undefined }}
+              placeholder="username or email"
+            />
+            {errors.loginId && (
+              <p className="text-brand-error text-[11px] mt-1.5 font-medium">{errors.loginId.message}</p>
             )}
           </div>
-        </>
-      )}
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
+                Password
+              </label>
+              <Link href="#" className="text-xs text-brand-muted-gold/60 hover:text-brand-muted-gold transition-colors">
+                Forgot password?
+              </Link>
+            </div>
+            <input
+              {...register('password')}
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              data-invalid={!!errors.password}
+              className="w-full bg-brand-charcoal-base border rounded-xl px-4 py-3 text-brand-offwhite outline-none transition-colors placeholder:text-brand-offwhite-muted/40 data-[invalid=true]:border-brand-error focus:border-brand-muted-gold"
+              style={{ borderColor: errors.password ? 'rgb(239 68 68 / 0.5)' : undefined }}
+              placeholder="••••••••"
+            />
+            {errors.password && (
+              <p className="text-brand-error text-[11px] mt-1.5 font-medium">{errors.password.message}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex justify-center items-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+            ) : (
+              <><Mail size={16} /> Sign In with Email <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+            )}
+          </button>
+        </form>
+      </div>
 
       <p className="text-center text-sm text-brand-offwhite-muted mt-6">
         Don&apos;t have an account?{' '}
