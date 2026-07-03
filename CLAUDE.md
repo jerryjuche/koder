@@ -415,6 +415,11 @@ See `.env.example` for full template.
   - `GetActiveBroadcasts` — subquery ensures only the single latest broadcast shows; dismissed broadcasts never resurface older ones
   - `useNotifications.ts` — polling interval reduced to 5s for instant notification badge updates
   - Goroutine uses `context.Background()` instead of canceled request context
+- **July 3 — Streak refactor:**
+  - Extracted `CalculateStreak()` shared helper on `PostgresStore` (single source of truth, replaces inline SQL in `GetUserStats`)
+  - New `migrations/016_add_streak_index.sql` — composite index `idx_submissions_user_status_date` for efficient streak queries
+  - Dashboard now shows streak card even when `0` (consistency with profile page)
+  - `api.ts` fallback uses `?? 0` instead of `|| 0`
 
 ---
 
@@ -423,7 +428,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 

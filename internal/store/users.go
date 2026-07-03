@@ -856,32 +856,11 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 		stats.ProgressByDiff["hard"] = DifficultyProgress{0, 0}
 	}
 
-	// Calculate current streak (number of consecutive days with submissions)
-	queryStreak := `
-		WITH daily_submissions AS (
-			SELECT DISTINCT DATE(created_at) AS sub_date
-			FROM submissions
-			WHERE user_id = $1 AND status = 'passed'
-		),
-		streak_groups AS (
-			SELECT sub_date,
-				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
-			FROM daily_submissions
-		)
-		SELECT COUNT(*)
-		FROM streak_groups
-		WHERE grp = (
-			SELECT grp 
-			FROM streak_groups 
-			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day' 
-			ORDER BY sub_date DESC 
-			LIMIT 1
-		)
-	`
-
-	err = s.pool.QueryRow(ctx, queryStreak, userID).Scan(&stats.CurrentStreakDays)
+	streakDays, err := s.CalculateStreak(ctx, userID)
 	if err != nil {
 		stats.CurrentStreakDays = 0
+	} else {
+		stats.CurrentStreakDays = streakDays
 	}
 
 	return stats, nil
@@ -1003,4 +982,35 @@ func (s *PostgresStore) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+// CalculateStreak returns the number of consecutive days the user has passed submissions.
+func (s *PostgresStore) CalculateStreak(ctx context.Context, userID uuid.UUID) (int, error) {
+	query := `
+		WITH daily_submissions AS (
+			SELECT DISTINCT DATE(created_at) AS sub_date
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		streak_groups AS (
+			SELECT sub_date,
+				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
+			FROM daily_submissions
+		)
+		SELECT COALESCE(COUNT(*), 0)
+		FROM streak_groups
+		WHERE grp = (
+			SELECT grp
+			FROM streak_groups
+			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day'
+			ORDER BY sub_date DESC
+			LIMIT 1
+		)
+	`
+	var days int
+	err := s.pool.QueryRow(ctx, query, userID).Scan(&days)
+	if err != nil {
+		return 0, fmt.Errorf("failed to calculate streak: %w", err)
+	}
+	return days, nil
 }
