@@ -784,26 +784,29 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 		ProgressByDiff: make(map[string]DifficultyProgress),
 	}
 
-	// Get attempted and solved counts, average stars, best runtime
+	// Get solved count, average stars, best runtime from progress (no JOIN needed)
 	query1 := `
 		SELECT 
-			COUNT(DISTINCT p.problem_id) FILTER (WHERE p.solved) as solved_count,
-			COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN s.id END) as attempted_count,
-			COALESCE(AVG(p.stars) FILTER (WHERE p.solved), 0.0) as avg_stars,
-			COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved AND p.best_runtime > 0), 0) as best_runtime
-		FROM progress p
-		LEFT JOIN submissions s ON p.user_id = s.user_id AND p.problem_id = s.problem_id
-		WHERE p.user_id = $1
+			COUNT(*) FILTER (WHERE solved) as solved_count,
+			COALESCE(AVG(stars) FILTER (WHERE solved), 0.0) as avg_stars,
+			COALESCE(MIN(best_runtime) FILTER (WHERE solved AND best_runtime > 0), 0) as best_runtime
+		FROM progress
+		WHERE user_id = $1
 	`
 
 	err := s.pool.QueryRow(ctx, query1, userID).Scan(
 		&stats.SolvedCount,
-		&stats.AttemptedCount,
 		&stats.AverageStars,
 		&stats.BestRuntimeMs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get basic stats: %w", err)
+	}
+
+	// Attempted count from submissions (separate query avoids row multiplication from JOIN)
+	err = s.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT problem_id) FROM submissions WHERE user_id = $1`, userID).Scan(&stats.AttemptedCount)
+	if err != nil {
+		stats.AttemptedCount = 0
 	}
 
 	// Get progress by difficulty
@@ -856,32 +859,11 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 		stats.ProgressByDiff["hard"] = DifficultyProgress{0, 0}
 	}
 
-	// Calculate current streak (number of consecutive days with submissions)
-	queryStreak := `
-		WITH daily_submissions AS (
-			SELECT DISTINCT DATE(created_at) AS sub_date
-			FROM submissions
-			WHERE user_id = $1 AND status = 'passed'
-		),
-		streak_groups AS (
-			SELECT sub_date,
-				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
-			FROM daily_submissions
-		)
-		SELECT COUNT(*)
-		FROM streak_groups
-		WHERE grp = (
-			SELECT grp 
-			FROM streak_groups 
-			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day' 
-			ORDER BY sub_date DESC 
-			LIMIT 1
-		)
-	`
-
-	err = s.pool.QueryRow(ctx, queryStreak, userID).Scan(&stats.CurrentStreakDays)
+	streakDays, err := s.CalculateStreak(ctx, userID)
 	if err != nil {
 		stats.CurrentStreakDays = 0
+	} else {
+		stats.CurrentStreakDays = streakDays
 	}
 
 	return stats, nil
@@ -1003,4 +985,35 @@ func (s *PostgresStore) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+// CalculateStreak returns the number of consecutive days the user has passed submissions.
+func (s *PostgresStore) CalculateStreak(ctx context.Context, userID uuid.UUID) (int, error) {
+	query := `
+		WITH daily_submissions AS (
+			SELECT DISTINCT DATE(created_at) AS sub_date
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		streak_groups AS (
+			SELECT sub_date,
+				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
+			FROM daily_submissions
+		)
+		SELECT COALESCE(COUNT(*), 0)
+		FROM streak_groups
+		WHERE grp = (
+			SELECT grp
+			FROM streak_groups
+			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day'
+			ORDER BY sub_date DESC
+			LIMIT 1
+		)
+	`
+	var days int
+	err := s.pool.QueryRow(ctx, query, userID).Scan(&days)
+	if err != nil {
+		return 0, fmt.Errorf("failed to calculate streak: %w", err)
+	}
+	return days, nil
 }

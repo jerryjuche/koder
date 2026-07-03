@@ -190,7 +190,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {user && user.streak > 0 && (
+          {user && (
             <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
                 <Flame size={16} className="text-orange-400" />
@@ -486,7 +486,7 @@ export default function Dashboard() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <BarChart2 size={12} className="shrink-0" />
-                                  {Math.round(problem.successRate || 0)}%
+                                  {Math.round(problem.success_rate || 0)}%
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock size={12} className="shrink-0" />

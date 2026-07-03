@@ -51,3 +51,4 @@ All documentation, code, and communication must be clear, precise, and professio
 
 - **Landing page redirect fix**: Removed JWT local-decode fallback in `frontend/lib/api.ts:fetchUser()` — was returning `success: true` for any localStorage token even when backend `/me` failed. Now only returns success when backend confirms the token.
 - **Loading guard on `/`**: Added `checking` state in `frontend/app/page.tsx` — renders `null` while checking auth, prevents flash of landing page for authenticated users before redirect to `/home`.
+- **Optimization sprint (Jul 3)**: Broadcast system polish (optional fields, atomic notifications, latest-only banner, slim redesign); LATERAL join query optimization (ListVisibleProblems, GetUserStats split, EXISTS over HAVING); bulk INSERTs (UpsertEnrichedProblem); LIMITs on all unbounded SELECTs; pgxpool tuning (MaxConns=10, MinConns=2); migration 017 (16 indexes). See `SESSION_LOG.md` session 11 for full details.

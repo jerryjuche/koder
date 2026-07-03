@@ -105,6 +105,7 @@ func (s *PostgresStore) ListUserProblemsByUser(ctx context.Context, userID uuid.
 		FROM user_problems
 		WHERE user_id = $1
 		ORDER BY created_at DESC
+		LIMIT 100
 	`
 	return s.listUserProblems(ctx, query, userID)
 }
@@ -116,6 +117,7 @@ func (s *PostgresStore) ListPendingUserProblems(ctx context.Context) ([]UserProb
 		FROM user_problems
 		WHERE status = 'pending'
 		ORDER BY created_at ASC
+		LIMIT 100
 	`
 	return s.listUserProblems(ctx, query)
 }

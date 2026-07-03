@@ -37,7 +37,7 @@ func (s *PostgresStore) GetAdminFeedback(ctx context.Context, statusFilter strin
 		query += " WHERE f.status = $1"
 		args = append(args, statusFilter)
 	}
-	query += " ORDER BY f.created_at DESC"
+	query += " ORDER BY f.created_at DESC LIMIT 100"
 
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -70,6 +70,7 @@ func (s *PostgresStore) GetUserFeedback(ctx context.Context, userID uuid.UUID) (
 		FROM feedback
 		WHERE user_id = $1
 		ORDER BY created_at DESC
+		LIMIT 50
 	`
 	rows, err := s.pool.Query(ctx, query, userID)
 	if err != nil {

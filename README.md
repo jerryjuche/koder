@@ -1146,6 +1146,7 @@ psql $DATABASE_URL -f migrations/010_add_gitea_auth.sql
 psql $DATABASE_URL -f migrations/011_add_gitea_token.sql
 psql $DATABASE_URL -f migrations/012_add_google_auth.sql
 psql $DATABASE_URL -f migrations/014_feedback.sql
+psql $DATABASE_URL -f migrations/018_seed_problems.sql
 
 # 4. Warm the Docker build cache
 chmod +x scripts/setup-docker-cache.sh
