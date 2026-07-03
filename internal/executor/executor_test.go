@@ -2,11 +2,61 @@ package executor
 
 import (
 	"bufio"
+	"bytes"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 )
+
+func TestTemplateReflectImport(t *testing.T) {
+	tests := []struct {
+		name       string
+		returnType string
+		wantReflect bool
+	}{
+		{"primitive int", "int", false},
+		{"primitive bool", "bool", false},
+		{"primitive string", "string", false},
+		{"slice []int", "[]int", true},
+		{"map map[string]int", "map[string]int", true},
+		{"pointer *TreeNode", "*TreeNode", true},
+		{"empty return type", "", false},
+	}
+
+	tmpl, err := template.New("main_test").Funcs(template.FuncMap{
+		"IsPrimitiveType": IsPrimitiveType,
+	}).Parse(mainTestTemplate)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := tmpl.Execute(&buf, &TemplateRenderData{
+				FuncName:    "TestFunc",
+				ReturnType:  tt.returnType,
+				IsPrimitive: IsPrimitiveType(tt.returnType),
+				TestCases:   []TestCaseRenderData{{Args: "1", Expected: "2", Ordinal: 1}},
+			})
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+
+			output := buf.String()
+			hasReflect := strings.Contains(output, `"reflect"`)
+
+			if hasReflect && !tt.wantReflect {
+				t.Errorf("template has reflect import but shouldn't\n%s", output)
+			}
+			if !hasReflect && tt.wantReflect {
+				t.Errorf("template missing reflect import but should have it\n%s", output)
+			}
+		})
+	}
+}
 
 func TestIsPrimitiveType(t *testing.T) {
 	tests := []struct {

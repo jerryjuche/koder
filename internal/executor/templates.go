@@ -24,7 +24,7 @@ const mainTestTemplate = `package piscine
 
 import (
 	"testing"
-{{- if .NeedsReflect}}
+{{- if and (ne .ReturnType "") (not (IsPrimitiveType .ReturnType))}}
 	"reflect"
 {{- end}}
 )
