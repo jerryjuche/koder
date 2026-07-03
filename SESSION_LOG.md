@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 3, 2026
+# Session Logbook — June 28 – July 3, 2026 (Sessions 1–11)
 
 ---
 
@@ -439,4 +439,71 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ### Build Verification
 - ✅ `go vet ./internal/api/ ./internal/store/`
+- ✅ `npx tsc --noEmit`
+
+---
+
+## 21. Session 11 (July 3, cont.) — Broadcast Polish + Performance Optimization Sprint
+
+### Changes
+
+#### Broadcast System Fixes & Polish
+| File | Change |
+|------|--------|
+| `internal/api/broadcasts.go` | `NewBroadcast.Message`/`Priority` made optional (`omitempty`); handler defaults priority→"medium", message→title; goroutine uses `context.Background()` (not canceled request ctx) |
+| `internal/store/notifications.go` | `ReplaceBroadcastNotifications()` — atomic DELETE+INSERT in single transaction, replaces old `ClearBroadcastNotifications` + `NotifyAllUsers` pattern |
+| `internal/store/broadcasts.go` | `GetActiveBroadcasts` — subquery ensures only latest broadcast shows; `NOT EXISTS` dismissal check prevents resurfacing older ones |
+| `frontend/components/BroadcastBanner.tsx` | Slim centered card: `px-4 py-2.5`, `size-8` icon, `w-fit mx-auto`, no message text, "Admin" label, 5s live polling |
+| `frontend/app/(main)/admin/BroadcastPanel.tsx` | Compact form (type/title/priority/CTA only), history list with delete button, shows "Admin" |
+| `frontend/lib/useNotifications.ts` | Polling interval reduced 30s → 5s |
+
+#### Query Optimization
+| File | Change |
+|------|--------|
+| `internal/store/problems.go` | `ListVisibleProblems`: replaced 3 correlated subqueries with single `LATERAL` join; dropped `statement`/`raw_readme` from listing query; `ListProblemsNeedingEnrichment`: added `LIMIT 100` |
+| `internal/store/users.go` | `GetUserStats`: split into two queries — no `LEFT JOIN submissions` (avoided 50× row multiplication); `CalculateStreak` extracted as shared helper |
+| `internal/store/submissions.go` | `GetBestPractices`: replaced `HAVING COUNT(sl.id) > 0` with `EXISTS (SELECT 1 FROM submission_likes ...)` |
+| `internal/store/broadcasts.go` | `GetAllBroadcasts`: added `LIMIT 200` |
+| `internal/store/testcases.go` | `GetTestCasesForProblem`/`GetVisibleTestCasesForProblem`: added `LIMIT 200` |
+| `internal/store/user_problems.go` | User problem lists: added `LIMIT 100` |
+
+#### Bulk INSERT Optimization
+| File | Change |
+|------|--------|
+| `internal/store/problems.go` | `UpsertEnrichedProblem`/`UpsertTestCasesForProblem`: resolve `problem_id` once, single multi-row `VALUES` INSERT instead of N round-trips |
+
+#### Infrastructure Hardening
+| File | Change |
+|------|--------|
+| `internal/store/store.go` | pgxpool tuned: `MaxConns=10`, `MinConns=2`, `MaxConnLifetime=30m`, `MaxConnIdleTime=5m` |
+| `internal/api/middleware.go` | Rate limiter periodic cleanup goroutine — evicts stale entries every 2× window duration |
+| `internal/api/cache.go` | `userCache` added `stopCh` for graceful goroutine shutdown |
+| `internal/api/feedback.go` | Feedback email uses `&http.Client{Timeout: 10 * time.Second}` (was no timeout) |
+
+#### Migration
+| File | Change |
+|------|--------|
+| `migrations/017_optimization_indexes.sql` | **NEW** — 16 performance indexes on all key query columns |
+
+### Build Verification
+- ✅ `go vet ./internal/...`
+- ✅ `npx tsc --noEmit`
+- ✅ `npx next build`
+
+---
+
+## 22. Session 11 fixup (July 3) — SQL Bug Fix + Frontend Field Mismatch
+
+### Bug 1: LATERAL Join SQL Error
+`ROUND(AVG(runtime_ms)) FILTER (WHERE status = 'passed')` — `FILTER` can only attach to aggregate functions, but `ROUND()` is scalar. PostgreSQL errored with `FILTER specified, but round is not an aggregate function`.
+
+**Fix:** Moved `FILTER` inside `AVG()`: `ROUND(AVG(runtime_ms) FILTER (WHERE status = 'passed'))`
+
+### Bug 2: Frontend successRate camelCase Mismatch
+`frontend/app/(main)/home/page.tsx:489` used `problem.successRate` (camelCase) but backend JSON key is `success_rate` (snake_case). Acceptance rate always showed `0%`.
+
+**Fix:** Changed to `problem.success_rate`.
+
+### Build Verification
+- ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`

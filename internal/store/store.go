@@ -4,6 +4,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -141,6 +142,12 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 
 	// Disable prepared statement cache for compatibility with PgBouncer / Supabase transaction poolers
 	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	// Connection pool limits — stay within Supabase free tier's 15-connection ceiling
+	config.MaxConns = 10
+	config.MinConns = 2
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 5 * time.Minute
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {

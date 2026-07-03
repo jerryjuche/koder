@@ -45,6 +45,7 @@ koder/
 │   │   ├── admin.go                # Admin operations
 │   │   ├── feedback.go             # Feedback/bug report CRUD
 │   │   ├── broadcasts.go           # Broadcast CRUD store methods
+│   │   ├── user_problems.go        # User-submitted problem staging & approval
 │   │   └── types.go                # Shared types
 │   ├── executor/                   # Code execution engine
 │   │   ├── executor.go             # Main execution orchestrator (Docker + HTTP sandbox)
@@ -352,6 +353,8 @@ See `.env.example` for full template.
 | **50 Gemini calls/day** | Idempotent enrichment with SHA256 change detection; cache results |
 | **2 req/min Gemini** | Enforced `time.Sleep(30s)` between calls; queued requests |
 | **6 concurrent executions** | Buffered channel semaphore (configurable via `EXECUTOR_MAX_CONCURRENCY`) |
+| **10 pool connections** | pgxpool `MaxConns=10`, `MinConns=2`, tuned for Supabase 15-conn free tier limit |
+| **Unbounded queries** | `LIMIT` added to all row-returning SELECTs (100–200 per table) |
 | **Rate limiting (submissions)** | Per-user sliding window: 5 req / 45s; admins exempt |
 | **500MB Postgres storage** | No JSONB bloat; normalized schema; archive old submissions quarterly |
 | **ARM64 only** | All Docker images multi-arch or explicitly ARM64; no `x86_64`-only binaries |
@@ -420,6 +423,18 @@ See `.env.example` for full template.
   - New `migrations/016_add_streak_index.sql` — composite index `idx_submissions_user_status_date` for efficient streak queries
   - Dashboard now shows streak card even when `0` (consistency with profile page)
   - `api.ts` fallback uses `?? 0` instead of `|| 0`
+- **July 3 — Performance optimization sprint:**
+  - **Broadcast fixes (post-launch):** `NewBroadcast.Message` and `Priority` made optional (`omitempty`); handler defaults priority→"medium", message→title; `ReplaceBroadcastNotifications` atomic (DELETE+INSERT in single transaction); **CRITICAL BUG FIXED** — was using `SELECT $1,$2,$3,$4 FROM users` instead of `SELECT id,$1,$2,$3 FROM users` (broadcast notifications now actually work)
+  - **Banner & Panel redesign:** `BroadcastBanner` — slim card (px-4 py-2.5, size-8 icon), `w-fit mx-auto` centered, no message text, "Admin" label, 5s polling; `BroadcastPanel` — compact form + history list with delete buttons, shows "Admin"
+  - **Query optimization:**
+    - `ListVisibleProblems`: replaced 3 correlated subqueries with single `LATERAL` join; dropped `statement`/`raw_readme` from listing query
+    - `GetUserStats`: split into two queries — no more `LEFT JOIN submissions` (avoided 50× row multiplication)
+    - `GetBestPractices`: replaced `HAVING COUNT(sl.id) > 0` with `EXISTS (SELECT 1 FROM submission_likes ...)`
+  - **Bulk INSERTs:** `UpsertEnrichedProblem` + `UpsertTestCasesForProblem` — resolve `problem_id` once, single multi-row `VALUES` INSERT instead of N round-trips
+  - **LIMITs added everywhere:** `GetAllBroadcasts` 200, `ListVisibleProblems` 200, `ListProblemsNeedingEnrichment` 100, `ListAllProblemsAdmin` 200, `GetAdminFeedback` 100, `GetUserFeedback` 50, `GetTestCasesForProblem` 200, `GetVisibleTestCasesForProblem` 200, user problem lists 100
+  - **pgxpool tuning:** `MaxConns=10`, `MinConns=2`, `MaxConnLifetime=30m`, `MaxConnIdleTime=5m` — tuned for Supabase 15-conn limit
+  - **Infrastructure hardening:** Rate limiter periodic cleanup goroutine (evicts stale entries every 2× window); cache `stopCh` for graceful goroutine shutdown; feedback email `&http.Client{Timeout: 10 * time.Second}` (was no timeout)
+  - **Migration 017** — `migrations/017_optimization_indexes.sql` — 16 performance indexes on all key query columns (users email UNIQUE, users xp DESC, submissions composites, notifications composites, problems visible+created, progress user WHERE solved, feedback, test_cases, broadcasts, problems author)
 
 ---
 
@@ -428,7 +443,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 

@@ -176,8 +176,8 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		JOIN problems p ON sub.problem_id = p.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.status = 'passed' AND p.visible = true
+		  AND EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)
 		GROUP BY sub.id, u.name, p.slug
-		HAVING COUNT(sl.id) > 0
 		ORDER BY likes DESC, sub.created_at DESC
 		LIMIT $2
 	`

@@ -27,11 +27,27 @@ type userRateLimit struct {
 
 // NewRateLimiter creates a new rate limiter allowing maxReqs requests per window duration.
 func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
-	return &RateLimiter{
+	rl := &RateLimiter{
 		limits:  make(map[string]*userRateLimit),
 		maxReqs: maxReqs,
 		window:  window,
 	}
+	// Periodic cleanup of stale entries (every 2x window duration)
+	go func() {
+		ticker := time.NewTicker(window * 2)
+		defer ticker.Stop()
+		for range ticker.C {
+			rl.mu.Lock()
+			now := time.Now()
+			for k, v := range rl.limits {
+				if now.Sub(v.windowStart) > rl.window*2 {
+					delete(rl.limits, k)
+				}
+			}
+			rl.mu.Unlock()
+		}
+	}()
+	return rl
 }
 
 // Allow checks if a user is allowed to proceed. Returns true + 0 if allowed,

@@ -15,26 +15,33 @@ type userCache[T any] struct {
 	mu       sync.RWMutex
 	entries  map[string]cacheEntry[T]
 	ttl      time.Duration
+	stopCh   chan struct{}
 }
 
 func newUserCache[T any](ttl time.Duration) *userCache[T] {
 	c := &userCache[T]{
 		entries: make(map[string]cacheEntry[T]),
 		ttl:     ttl,
+		stopCh:  make(chan struct{}),
 	}
 	// Start cleanup goroutine
 	go func() {
 		ticker := time.NewTicker(ttl)
 		defer ticker.Stop()
-		for range ticker.C {
-			c.mu.Lock()
-			now := time.Now()
-			for k, v := range c.entries {
-				if now.After(v.expires) {
-					delete(c.entries, k)
+		for {
+			select {
+			case <-ticker.C:
+				c.mu.Lock()
+				now := time.Now()
+				for k, v := range c.entries {
+					if now.After(v.expires) {
+						delete(c.entries, k)
+					}
 				}
+				c.mu.Unlock()
+			case <-c.stopCh:
+				return
 			}
-			c.mu.Unlock()
 		}
 	}()
 	return c

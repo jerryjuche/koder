@@ -486,7 +486,7 @@ export default function Dashboard() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <BarChart2 size={12} className="shrink-0" />
-                                  {Math.round(problem.successRate || 0)}%
+                                  {Math.round(problem.success_rate || 0)}%
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock size={12} className="shrink-0" />

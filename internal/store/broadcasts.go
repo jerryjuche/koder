@@ -80,6 +80,7 @@ func (s *PostgresStore) GetAllBroadcasts(ctx context.Context) ([]Broadcast, erro
 		FROM broadcasts b
 		LEFT JOIN users u ON b.created_by = u.id
 		ORDER BY b.created_at DESC
+		LIMIT 200
 	`
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {

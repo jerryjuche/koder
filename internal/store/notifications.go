@@ -157,7 +157,7 @@ func (s *PostgresStore) ReplaceBroadcastNotifications(ctx context.Context, notif
 		return fmt.Errorf("failed to delete old broadcast notifications: %w", err)
 	}
 
-	query := `INSERT INTO notifications (user_id, type, message, related_id) SELECT $1, $2, $3, $4 FROM users`
+	query := `INSERT INTO notifications (user_id, type, message, related_id) SELECT id, $1, $2, $3 FROM users`
 	var rID pgtype.UUID
 	if relatedID != nil {
 		rID = pgtype.UUID{Bytes: *relatedID, Valid: true}

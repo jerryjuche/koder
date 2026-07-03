@@ -828,6 +828,56 @@ Single source of truth for achievement types and `getAchievements(profile)` func
 
 ---
 
+## PERFORMANCE OPTIMIZATIONS (July 2026)
+
+### Query Optimization
+
+| Query | Problem | Fix |
+|-------|---------|-----|
+| `ListVisibleProblems` | 3 correlated subqueries per problem (N+1) | Single `LATERAL` join; trimmed `statement`/`raw_readme` from listing payload |
+| `GetUserStats` | `LEFT JOIN submissions` caused 50× row multiplication | Split into 2 queries; `COUNT(DISTINCT problem_id)` from submissions separately |
+| `GetBestPractices` | `HAVING COUNT(...) > 0` scanned all liked submissions | `EXISTS (SELECT 1 FROM submission_likes ...)` short-circuits on first match |
+| `CalculateStreak` | Inline SQL in `GetUserStats`, duplicated streak logic | Extracted shared `PostgresStore` method as single source of truth |
+
+### Bulk INSERTs
+
+- **`UpsertEnrichedProblem`** + **`UpsertTestCasesForProblem`**: Resolve `problem_id` once, then single `VALUES` multi-row INSERT instead of N round-trips.
+- Eliminates per-test-case `(SELECT id FROM problems WHERE slug = $1)` subquery repetition.
+
+### LIMIT Clauses
+
+Added to every row-returning SELECT that lacked one (200 or 100 per table):
+
+| Store Method | Table | LIMIT |
+|---|---|---|
+| `ListVisibleProblems` | `problems` | 200 |
+| `ListAllProblemsAdmin` | `problems` | 200 |
+| `ListProblemsNeedingEnrichment` | `problems` | 100 |
+| `GetAllBroadcasts` | `broadcasts` | 200 |
+| `GetAdminFeedback` | `feedback` | 100 |
+| `GetUserFeedback` | `feedback` | 50 |
+| `GetTestCasesForProblem` | `test_cases` | 200 |
+| `GetVisibleTestCasesForProblem` | `test_cases` | 200 |
+| `ListUserProblemsByUser` | `user_problems` | 100 |
+| `ListPendingUserProblems` | `user_problems` | 100 |
+
+### Connection Pool Tuning
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| `MaxConns` | 10 | Supabase free tier max: 15; leaves room for other connections |
+| `MinConns` | 2 | Keep warm connections to avoid cold-start latency |
+| `MaxConnLifetime` | 30m | Prevent stale connections behind PgBouncer |
+| `MaxConnIdleTime` | 5m | Free idle resources promptly |
+
+### Infrastructure Hardening
+
+- **Rate limiter cleanup**: Periodic goroutine evicts stale entries every 2× window duration (prevents memory leak from abandoned sessions).
+- **Cache graceful shutdown**: `userCache` has `stopCh` channel — ensures no goroutine leak on server restart.
+- **Timeout hygiene**: Feedback email notification uses `&http.Client{Timeout: 10 * time.Second}` (was `http.DefaultClient` with no timeout).
+
+---
+
 ## ERROR HANDLING PATTERNS
 
 - **API layer**: Standardized `APIResponse` envelope with `{success, data, error}`
