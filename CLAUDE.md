@@ -31,6 +31,7 @@ koder/
 │   │   ├── activity.go             # Activity feed
 │   │   ├── notifications.go        # Unread notifications
 │   │   ├── feedback.go             # Feedback & bug report handler
+│   │   ├── broadcasts.go           # Broadcast CRUD handlers
 │   │   ├── cache.go                # Response caching utility
 │   │   ├── middleware.go           # Auth checks, error handling
 │   │   └── responses.go            # Shared response structs
@@ -43,6 +44,7 @@ koder/
 │   │   ├── testcases.go            # Generated test cases from enricher
 │   │   ├── admin.go                # Admin operations
 │   │   ├── feedback.go             # Feedback/bug report CRUD
+│   │   ├── broadcasts.go           # Broadcast CRUD store methods
 │   │   └── types.go                # Shared types
 │   ├── executor/                   # Code execution engine
 │   │   ├── executor.go             # Main execution orchestrator (Docker + HTTP sandbox)
@@ -151,6 +153,8 @@ The system has **three sequential pipelines**:
 - `progress` — User ID + Problem ID (composite PK) → solved/stars/attempts/best_runtime/xp_awarded
 - `user_progress` — Cached: user ID → problems solved → last activity
 - `feedback` — User feedback & bug reports; type (general/bug/feature), priority, status, optional screenshot (base64), admin notes
+- `broadcasts` — Admin-created broadcast announcements (type, priority, title, message, optional CTA, active flag)
+- `user_broadcast_status` — Per-user broadcast dismissal tracking (user_id, broadcast_id, dismissed, dismissed_at)
 
 **Storage constraint:** 500MB total; no bloated JSONB or redundant columns.
 
@@ -213,6 +217,14 @@ The system has **three sequential pipelines**:
 - `GET /admin/feedback/counts` — Feedback counts by status
 - `PATCH /admin/feedback/{id}` — Update status and admin notes
 
+### Broadcasts
+- `POST /admin/broadcasts` — Create a broadcast (type, title, priority, optional CTA)
+- `GET /admin/broadcasts` — List all broadcasts (admin)
+- `PATCH /admin/broadcasts/{id}/deactivate` — Deactivate a broadcast
+- `DELETE /admin/broadcasts/{id}` — Permanently delete a broadcast
+- `GET /me/broadcasts` — List active (non-dismissed) broadcasts for current user
+- `POST /me/broadcasts/{id}/dismiss` — Dismiss a broadcast for current user
+
 ### Notifications
 - `GET /notifications` — Unread notifications
 - `POST /notifications/read-all` — Mark all as read
@@ -229,6 +241,8 @@ The system has **three sequential pipelines**:
 | `app/(main)/profile/page.tsx` | User stats, problem history, performance graphs |
 | `app/(main)/admin/page.tsx` | Admin panel for ingest/enrich/stats/approvals |
 | `app/(main)/admin/FeedbackPanel.tsx` | Admin feedback section with status filters, screenshot preview |
+| `components/BroadcastBanner.tsx` | Color-coded, dismissable broadcast banner (type icon, priority badge, title, CTA) |
+| `app/(main)/admin/BroadcastPanel.tsx` | Admin panel to create, list, and delete broadcasts |
 | `components/auth/google-button.tsx` | Custom dark Google Sign-In button with SVG logo + shadow-input |
 | `components/auth/bottom-gradient.tsx` | Amber gradient line animation on button hover |
 | `components/auth/label-input-container.tsx` | Input + label spacing wrapper (Aceternity pattern) |
@@ -390,6 +404,17 @@ See `.env.example` for full template.
   - Floating `FeedbackButton` component with 3-tab modal (General/Bug/Feature), priority selector, base64 screenshot upload, anonymous toggle
   - `FeedbackPanel` in admin dashboard with status tabs, search, expandable rows, screenshot preview, inline status change
   - `RESEND_API_KEY` env var for email notifications
+- **July 3 — Broadcast notification system:**
+  - New `migrations/015_broadcasts.sql` — `broadcasts` + `user_broadcast_status` tables
+  - Backend `internal/api/broadcasts.go` — 6 handlers for create/list-active/dismiss/list-all/deactivate/delete
+  - Backend `internal/store/broadcasts.go` — all CRUD + user-dismiss store methods; `NotifyAllUsers()` called on broadcast creation
+  - `BroadcastBanner.tsx` — compact, centered, color-coded banner per type (info/warning/update/new_feature/maintenance/announcement), fit-to-content width, per-user dismiss, live-polling every 5s
+  - `BroadcastPanel.tsx` — compact admin form with type/priority/title/CTA, history list with delete, shows "Admin" not user name
+  - `message` field optional (defaults to title), `priority` optional (defaults to medium)
+  - `ReplaceBroadcastNotifications()` — atomic transaction that deletes old broadcast notifications and inserts new one, preventing stacking
+  - `GetActiveBroadcasts` — subquery ensures only the single latest broadcast shows; dismissed broadcasts never resurface older ones
+  - `useNotifications.ts` — polling interval reduced to 5s for instant notification badge updates
+  - Goroutine uses `context.Background()` instead of canceled request context
 
 ---
 
@@ -398,7 +423,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migration `012_add_google_auth.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 

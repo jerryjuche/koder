@@ -144,6 +144,31 @@ func (s *PostgresStore) NotifyAdmins(ctx context.Context, notifType, message str
 	return nil
 }
 
+// ReplaceBroadcastNotifications atomically deletes all old broadcast notifications
+// and inserts a new one for every user, preventing stacking.
+func (s *PostgresStore) ReplaceBroadcastNotifications(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM notifications WHERE type LIKE 'broadcast_%'`); err != nil {
+		return fmt.Errorf("failed to delete old broadcast notifications: %w", err)
+	}
+
+	query := `INSERT INTO notifications (user_id, type, message, related_id) SELECT $1, $2, $3, $4 FROM users`
+	var rID pgtype.UUID
+	if relatedID != nil {
+		rID = pgtype.UUID{Bytes: *relatedID, Valid: true}
+	}
+	if _, err := tx.Exec(ctx, query, notifType, message, rID); err != nil {
+		return fmt.Errorf("failed to insert broadcast notifications: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
 // NotifyAllUsers sends a notification to every user.
 func (s *PostgresStore) NotifyAllUsers(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
 	query := `

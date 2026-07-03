@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
+import BroadcastPanel from './BroadcastPanel';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -268,6 +269,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Broadcasts */}
+          <BroadcastPanel compact />
 
           {/* Contributions + Feedback Row */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
