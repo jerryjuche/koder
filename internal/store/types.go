@@ -242,6 +242,32 @@ type NewUserProblem struct {
 	TestCases  []UserProblemTestCase `json:"test_cases"`
 }
 
+// Feedback represents a user-submitted feedback or bug report.
+type Feedback struct {
+	ID            pgtype.UUID `db:"id" json:"id"`
+	UserID        pgtype.UUID `db:"user_id" json:"user_id"`
+	Type          string      `db:"type" json:"type"`
+	Title         string      `db:"title" json:"title"`
+	Description   string      `db:"description" json:"description"`
+	Priority      string      `db:"priority" json:"priority"`
+	ScreenshotURL *string     `db:"screenshot_url" json:"screenshot_url,omitempty"`
+	Status        string      `db:"status" json:"status"`
+	AdminNotes    *string     `db:"admin_notes" json:"admin_notes,omitempty"`
+	IsAnonymous   bool        `db:"is_anonymous" json:"is_anonymous"`
+	CreatedAt     time.Time   `db:"created_at" json:"created_at"`
+	UserName      *string     `db:"user_name" json:"user_name,omitempty"`
+}
+
+// NewFeedback is the payload for creating a feedback entry.
+type NewFeedback struct {
+	Type          string  `json:"type"`
+	Title         string  `json:"title"`
+	Description   string  `json:"description"`
+	Priority      string  `json:"priority"`
+	ScreenshotURL *string `json:"screenshot_url,omitempty"`
+	IsAnonymous   bool    `json:"is_anonymous"`
+}
+
 // CommunitySolution represents a submission returned for the community solutions/best practices view.
 type CommunitySolution struct {
 	ID          pgtype.UUID `json:"id"`

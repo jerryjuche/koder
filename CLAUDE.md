@@ -30,6 +30,7 @@ koder/
 │   │   ├── contributions.go        # User-submitted problems
 │   │   ├── activity.go             # Activity feed
 │   │   ├── notifications.go        # Unread notifications
+│   │   ├── feedback.go             # Feedback & bug report handler
 │   │   ├── cache.go                # Response caching utility
 │   │   ├── middleware.go           # Auth checks, error handling
 │   │   └── responses.go            # Shared response structs
@@ -41,6 +42,7 @@ koder/
 │   │   ├── progress.go             # Submission results
 │   │   ├── testcases.go            # Generated test cases from enricher
 │   │   ├── admin.go                # Admin operations
+│   │   ├── feedback.go             # Feedback/bug report CRUD
 │   │   └── types.go                # Shared types
 │   ├── executor/                   # Code execution engine
 │   │   ├── executor.go             # Main execution orchestrator (Docker + HTTP sandbox)
@@ -68,6 +70,7 @@ koder/
 │   │   ├── auth/                  # Auth form components (GoogleButton, AuthDivider, LabelInputContainer, BottomGradient)
 │   │   ├── TestResultPanel.tsx    # Test output display
 │   │   ├── GoogleLinkBanner.tsx   # Google account linking banner (links to Settings)
+│   │   ├── FeedbackButton.tsx     # Floating feedback button + modal (all pages)
 │   │   └── ...                    # UI components (shadcn/ui-based)
 │   ├── hooks/                     # Custom React hooks
 │   │   ├── use-mobile.ts          # Mobile detection hook
@@ -147,6 +150,7 @@ The system has **three sequential pipelines**:
 - `submissions` — Student code + language + timestamp
 - `progress` — User ID + Problem ID (composite PK) → solved/stars/attempts/best_runtime/xp_awarded
 - `user_progress` — Cached: user ID → problems solved → last activity
+- `feedback` — User feedback & bug reports; type (general/bug/feature), priority, status, optional screenshot (base64), admin notes
 
 **Storage constraint:** 500MB total; no bloated JSONB or redundant columns.
 
@@ -202,6 +206,13 @@ The system has **three sequential pipelines**:
 - `POST /me/user-problems` — Submit a user-created problem
 - `GET /me/contributions` — User's submitted problems
 
+### Feedback
+- `POST /feedback` — Submit feedback/bug report
+- `GET /feedback/mine` — Current user's submitted feedback
+- `GET /admin/feedback?status=new` — Admin list with optional status filter
+- `GET /admin/feedback/counts` — Feedback counts by status
+- `PATCH /admin/feedback/{id}` — Update status and admin notes
+
 ### Notifications
 - `GET /notifications` — Unread notifications
 - `POST /notifications/read-all` — Mark all as read
@@ -217,6 +228,7 @@ The system has **three sequential pipelines**:
 | `app/(main)/leaderboard/page.tsx` | Leaderboard with sorting, filtering |
 | `app/(main)/profile/page.tsx` | User stats, problem history, performance graphs |
 | `app/(main)/admin/page.tsx` | Admin panel for ingest/enrich/stats/approvals |
+| `app/(main)/admin/FeedbackPanel.tsx` | Admin feedback section with status filters, screenshot preview |
 | `components/auth/google-button.tsx` | Custom dark Google Sign-In button with SVG logo + shadow-input |
 | `components/auth/bottom-gradient.tsx` | Amber gradient line animation on button hover |
 | `components/auth/label-input-container.tsx` | Input + label spacing wrapper (Aceternity pattern) |
@@ -235,8 +247,10 @@ DATABASE_URL=postgres://...        # Supabase connection string
 GEMINI_API_KEY=...                 # Google AI Studio key
 JWT_SECRET=...                     # For token signing
 GOOGLE_CLIENT_ID=...               # Google OAuth client ID (for Sign-In)
+ADMIN_EMAIL=...                    # Admin email for feedback notifications
 ADMIN_PASSWORD=...                 # Admin panel access
 SANDBOX_URL=...                    # Remote sandbox URL (optional; empty = local Docker)
+RESEND_API_KEY=...                 # Resend API key for feedback email notifications
 
 # Frontend (Next.js)
 NEXT_PUBLIC_API_URL=...            # Backend domain (used by fetch)
@@ -367,6 +381,15 @@ See `.env.example` for full template.
 - **July 3 — Unsolved-first problem sorting:** Home page problem grid now sorts unsolved problems before solved ones via `sort((a, b) => Number(a.solved) - Number(b.solved))`
 - **July 3 — Professional Google-first auth layout:** Both login and register pages redesigned with Google Sign-In as primary action, custom dark Google button with SVG logo + `shadow-input`, "or sign in with email" divider, framer-motion staggered entrance animations
 - **July 3 — Professional auth form components:** New reusable component library in `components/auth/` — `GoogleButton`, `BottomGradient` (amber gradient line on button hover), `LabelInputContainer`, `AuthDivider`; new `components/ui/label.tsx` (shadcn Label with Radix + CVA); `--shadow-input` CSS variable added to globals.css
+- **July 3 — Landing page polish:** Replaced "Go" text with official Go wordmark SVG from pkg.go.dev; removed editor mockup preview; simplified footer with real project links (Problems, Leaderboard, Contribute, GitHub, Privacy, Terms)
+- **July 3 — Feedback & bug report system:**
+  - New `migrations/014_feedback.sql` table with type/priority/status/screenshot support
+  - `POST /feedback` endpoint with validation and Resend email notification to admin
+  - `GET /admin/feedback` with status filtering, `PATCH /admin/feedback/{id}` for status/notes
+  - `GET /feedback/mine` for users to track their own submissions
+  - Floating `FeedbackButton` component with 3-tab modal (General/Bug/Feature), priority selector, base64 screenshot upload, anonymous toggle
+  - `FeedbackPanel` in admin dashboard with status tabs, search, expandable rows, screenshot preview, inline status change
+  - `RESEND_API_KEY` env var for email notifications
 
 ---
 
@@ -375,7 +398,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migration `012_add_google_auth.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
+- **Immediate:** Run migration `012_add_google_auth.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 

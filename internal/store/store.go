@@ -100,6 +100,13 @@ type Store interface {
 	RejectUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error)
 	ApproveUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, *uuid.UUID, error)
 
+	// Feedback
+	CreateFeedback(ctx context.Context, userID uuid.UUID, fb *NewFeedback) (*Feedback, error)
+	GetAdminFeedback(ctx context.Context, statusFilter string) ([]Feedback, error)
+	GetUserFeedback(ctx context.Context, userID uuid.UUID) ([]Feedback, error)
+	UpdateFeedbackStatus(ctx context.Context, id uuid.UUID, status, adminNotes string) (*Feedback, error)
+	CountFeedbackByStatus(ctx context.Context) (map[string]int, error)
+
 	// Notifications
 	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error
 	GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)

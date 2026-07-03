@@ -49,6 +49,9 @@ type Config struct {
 	// Google OAuth2
 	GoogleClientID string
 
+	// Notifications
+	ResendAPIKey string
+
 	// Admin
 	AdminEmail    string
 	AdminPassword string
@@ -231,6 +234,9 @@ func Load() (*Config, error) {
 
 	// Google OAuth2
 	cfg.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+
+	// Notifications
+	cfg.ResendAPIKey = os.Getenv("RESEND_API_KEY")
 
 	// Admin Credentials
 	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")

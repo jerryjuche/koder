@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 1, 2026
+# Session Logbook — June 28 – July 3, 2026
 
 ---
 
@@ -376,3 +376,67 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ### Build Verification
 - ✅ `npx tsc --noEmit` — zero errors
+
+---
+
+## 19. Session 9 (July 3) — Landing Page Polish + Feedback System
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `608c956` | Landing page: replace Go text with official wordmark SVG, simplify footer links, remove editor mockup |
+| `53a9ade` | Feedback & bug report system: floating button, modal, admin panel, email notifications |
+
+### Landing Page Changes
+| File | Change |
+|------|--------|
+| `frontend/components/LandingContent.tsx` | Replaced "Go" text with official Go wordmark SVG; removed editor mockup preview; removed "Zero-cost automated Go grading" badge; simplified footer links; removed "Oracle free tier" tagline |
+
+### Feedback System — Backend
+| File | Change |
+|------|--------|
+| `migrations/014_feedback.sql` | **NEW** — `feedback` table with type, priority, status, screenshot, admin_notes, is_anonymous |
+| `internal/store/feedback.go` | **NEW** — CRUD methods for feedback |
+| `internal/store/types.go` | Added `Feedback`, `NewFeedback` structs |
+| `internal/store/store.go` | Added 5 feedback methods to Store interface |
+| `internal/api/feedback.go` | **NEW** — handler with submit, admin list, status update, user list, counts; Resend email notification |
+| `internal/api/router.go` | Added `/feedback`, `/feedback/mine`, `/admin/feedback`, `/admin/feedback/counts`, `/admin/feedback/{id}` routes |
+| `internal/config/config.go` | Added `ResendAPIKey` config field |
+
+### Feedback System — Frontend
+| File | Change |
+|------|--------|
+| `frontend/components/FeedbackButton.tsx` | **NEW** — floating FAB, modal with 3 tabs, priority selector, screenshot upload, anonymous toggle |
+| `frontend/app/(main)/admin/FeedbackPanel.tsx` | **NEW** — admin feedback table with status tabs, search, expandable rows, inline status/admin notes |
+| `frontend/app/(main)/layout.tsx` | Added `<FeedbackButton />` |
+| `frontend/app/(main)/admin/page.tsx` | Added `<FeedbackPanel />` |
+| `frontend/lib/api.ts` | Added 5 feedback API functions |
+| `frontend/lib/types.ts` | Added `FeedbackItem` type |
+
+### Build Verification
+- ✅ `go vet ./internal/api/ ./internal/store/ ./internal/config/`
+- ✅ `npx tsc --noEmit`
+- ✅ `npx next build` — compiled, types checked, all 17 pages generated
+
+---
+
+## 20. Session 10 (July 3, cont.) — Admin Polish: Scrollable Problems, In-App Feedback Notification, Reordered Layout
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `d78f2ba` | docs: session log, codebase index, feedback endpoints in README |
+| *(next)* | admin polish: scrollable problems, in-app feedback notification, reordered layout |
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `internal/api/feedback.go` | Added `NotifyAdmins()` call after `CreateFeedback` — admins get in-app notification when feedback is submitted |
+| `frontend/app/(main)/admin/page.tsx` | Reordered layout (Contributions + Feedback panels below Ingest/Enrich, above Problem Catalog); changed grid to `lg:grid-cols-4` (3:1); made problem table scrollable (`max-h-[420px] overflow-y-auto` with sticky thead); professional card sections |
+| `frontend/app/(main)/admin/PendingContributions.tsx` | Added `compact` prop — removes outer heading/border when embedded |
+| `frontend/app/(main)/admin/FeedbackPanel.tsx` | Added `compact` prop — conditionally hides header/border, adds scrollable max-height |
+
+### Build Verification
+- ✅ `go vet ./internal/api/ ./internal/store/`
+- ✅ `npx tsc --noEmit`
