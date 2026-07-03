@@ -47,13 +47,25 @@
 - Email via direct HTTP POST to Resend API (no SDK dependency)
 - Anonymous mode is pseudonymous: user_id stored internally, displayed as "Anonymous" in admin view
 
+### Admin Panel Polish (second pass)
+- **Scrollable problem list:** Problem Catalog now `max-h-[420px] overflow-y-auto scrollbar-thin` with sticky thead — no more page-long table push
+- **In-app notification on feedback:** `internal/api/feedback.go` calls `NotifyAdmins()` after `CreateFeedback` — admins get real-time notification
+- **Reordered layout:** Contributions + Feedback panels moved up, sit side-by-side just below Ingest/Enrich, above Problem Catalog. Grid changed to `lg:grid-cols-4` (3:1 split)
+- **Compact variants:** `PendingContributions` and `FeedbackPanel` accept `compact` prop for embedded use — no duplicate headers/borders
+- **Professional polish:** Sectioned cards with icons, sticky activity log with max-height, shadow on problem table
+
+## Files Modified
+- `internal/api/feedback.go` — added `NotifyAdmins()` call after feedback creation
+- `frontend/app/(main)/admin/page.tsx` — reordered layout, scrollable table, 4-col grid, compact components
+- `frontend/app/(main)/admin/PendingContributions.tsx` — added `compact` prop
+- `frontend/app/(main)/admin/FeedbackPanel.tsx` — added `compact` prop
+
 ## Build Verification
-- ✅ `go vet ./internal/api/ ./internal/store/ ./internal/config/` — passes
+- ✅ `go vet ./internal/api/ ./internal/store/` — passes
 - ✅ `npx tsc --noEmit` — zero errors
-- ✅ `npx next build` — compiled, types checked, all 17 pages generated
 
 ## Next Steps
 - Run migration `014_feedback.sql` against the database
 - Set `RESEND_API_KEY` and `ADMIN_EMAIL` env vars
-- Test feedback submission end-to-end (frontend → backend → database → email)
-- Test admin feedback panel (status change, notes, screenshot preview)
+- Test feedback submission end-to-end (frontend → backend → database → in-app + email notification)
+- Test admin feedback/contributions panels in compact layout

@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 1, 2026
+# Session Logbook — June 28 – July 3, 2026
 
 ---
 
@@ -417,3 +417,26 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 - ✅ `go vet ./internal/api/ ./internal/store/ ./internal/config/`
 - ✅ `npx tsc --noEmit`
 - ✅ `npx next build` — compiled, types checked, all 17 pages generated
+
+---
+
+## 20. Session 10 (July 3, cont.) — Admin Polish: Scrollable Problems, In-App Feedback Notification, Reordered Layout
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `d78f2ba` | docs: session log, codebase index, feedback endpoints in README |
+| *(next)* | admin polish: scrollable problems, in-app feedback notification, reordered layout |
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `internal/api/feedback.go` | Added `NotifyAdmins()` call after `CreateFeedback` — admins get in-app notification when feedback is submitted |
+| `frontend/app/(main)/admin/page.tsx` | Reordered layout (Contributions + Feedback panels below Ingest/Enrich, above Problem Catalog); changed grid to `lg:grid-cols-4` (3:1); made problem table scrollable (`max-h-[420px] overflow-y-auto` with sticky thead); professional card sections |
+| `frontend/app/(main)/admin/PendingContributions.tsx` | Added `compact` prop — removes outer heading/border when embedded |
+| `frontend/app/(main)/admin/FeedbackPanel.tsx` | Added `compact` prop — conditionally hides header/border, adds scrollable max-height |
+
+### Build Verification
+- ✅ `go vet ./internal/api/ ./internal/store/`
+- ✅ `npx tsc --noEmit`

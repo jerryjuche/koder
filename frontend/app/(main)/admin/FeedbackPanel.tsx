@@ -32,7 +32,11 @@ const STATUS_COLORS: Record<string, string> = {
   resolved: "bg-brand-success/10 text-brand-success border-brand-success/20",
 };
 
-export default function FeedbackPanel() {
+interface Props {
+  compact?: boolean;
+}
+
+export default function FeedbackPanel({ compact }: Props) {
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [statusFilter, setStatusFilter] = useState("");
@@ -77,56 +81,58 @@ export default function FeedbackPanel() {
   };
 
   return (
-    <div className="rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card overflow-hidden">
+    <div className={cn("overflow-hidden", !compact && "rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card")}>
       {/* Header */}
-      <div className="border-b border-brand-charcoal-border p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-brand-offwhite flex items-center gap-2">
-            <MessageSquareText className="h-5 w-5 text-brand-muted-gold" />
-            Feedback
-            <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">
-              {feedbacks.length}
-            </span>
-          </h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" size={14} />
-            <input
-              type="text"
-              placeholder="Search feedback..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-56 text-brand-offwhite placeholder:text-brand-offwhite-muted/40"
-            />
+      {!compact && (
+        <div className="border-b border-brand-charcoal-border p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-brand-offwhite flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5 text-brand-muted-gold" />
+              Feedback
+              <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">
+                {feedbacks.length}
+              </span>
+            </h3>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" size={14} />
+              <input
+                type="text"
+                placeholder="Search feedback..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-56 text-brand-offwhite placeholder:text-brand-offwhite-muted/40"
+              />
+            </div>
+          </div>
+
+          {/* Status tabs */}
+          <div className="flex gap-1">
+            {STATUS_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const count = tab.id ? counts[tab.id] ?? 0 : Object.values(counts).reduce((a, b) => a + b, 0);
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    statusFilter === tab.id
+                      ? "bg-brand-muted-gold/10 text-brand-muted-gold"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                  <span className="ml-0.5 text-[10px] opacity-60">({count})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        {/* Status tabs */}
-        <div className="flex gap-1">
-          {STATUS_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const count = tab.id ? counts[tab.id] ?? 0 : Object.values(counts).reduce((a, b) => a + b, 0);
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  statusFilter === tab.id
-                    ? "bg-brand-muted-gold/10 text-brand-muted-gold"
-                    : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-                <span className="ml-0.5 text-[10px] opacity-60">({count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className={cn("overflow-x-auto", compact && "max-h-[300px] overflow-y-auto scrollbar-thin")}>
         <table className="w-full text-left text-sm">
           <thead className="text-xs text-brand-offwhite-muted uppercase tracking-wider border-b border-brand-charcoal-border">
             <tr>

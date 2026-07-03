@@ -72,6 +72,15 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userIdentifier := claims.UserID
+
+	// In-app notification for admins
+	notifType := "feedback"
+	notifMessage := fmt.Sprintf("New %s feedback: %s", fb.Type, fb.Title)
+	fbID := uuid.UUID(fb.ID.Bytes)
+	if err := h.store.NotifyAdmins(r.Context(), notifType, notifMessage, &fbID); err != nil {
+		slog.Error("feedback: failed to notify admins", "error", err)
+	}
+
 	go h.sendEmailNotification(fb, userIdentifier)
 
 	RespondCreated(w, fb)

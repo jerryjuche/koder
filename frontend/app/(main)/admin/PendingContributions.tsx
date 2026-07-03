@@ -10,7 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export default function PendingContributions() {
+interface Props {
+  compact?: boolean;
+}
+
+export default function PendingContributions({ compact }: Props) {
   const [pending, setPending] = useState<UserProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProblem, setSelectedProblem] = useState<UserProblem | null>(null);
@@ -60,12 +64,12 @@ export default function PendingContributions() {
   if (loading) return <div className="text-brand-offwhite-muted">Loading pending contributions...</div>;
 
   if (pending.length === 0) {
-    return <div className="text-brand-offwhite-muted py-8 text-center bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl">No pending contributions to review.</div>;
+    return <div className="text-brand-offwhite-muted py-6 text-center text-sm">No pending contributions to review.</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-brand-offwhite font-display">Pending Contributions</h2>
+    <div className={compact ? "" : "space-y-6"}>
+      {!compact && <h2 className="text-2xl font-bold text-brand-offwhite font-display">Pending Contributions</h2>}
       
       {/* Table View */}
       <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl overflow-hidden">
