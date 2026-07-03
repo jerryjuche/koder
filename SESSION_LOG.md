@@ -507,3 +507,20 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ### Build Verification
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
+
+---
+
+## 23. Session 12 (July 3, cont.) — Database Reset + 45 Problem Seed
+
+### Changes
+| File | Change |
+|------|--------|
+| `migrations/018_seed_problems.sql` | **NEW** — 45 professional Go problems across 3 modules (Math & Recursion, Arrays & Strings, Data Structures) |
+| *(cleaned)* | Removed `server`/`main` binaries, `senior_role.txt`, `reset.sql`, `reset_all.sql`, `tmp/` |
+| `SESSION_LOG.md` | Updated |
+| `UPDATE_LOG.txt` | Updated |
+| `CLAUDE.md` | Updated next steps with migration 018 |
+
+### Build Verification
+- ✅ `go vet ./internal/...`
+- ✅ `npx tsc --noEmit`

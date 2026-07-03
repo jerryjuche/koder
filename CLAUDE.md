@@ -443,7 +443,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`, `018_seed_problems.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 
