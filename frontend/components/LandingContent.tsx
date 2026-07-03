@@ -167,18 +167,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
             animate="visible"
             className="mx-auto max-w-5xl text-center"
           >
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.1 } },
-              }}
-              className="mb-8 inline-flex items-center gap-2 rounded-full border border-brand-muted-gold/20 bg-brand-muted-gold/8 px-4 py-1.5"
-            >
-              <Zap className="h-3.5 w-3.5 text-brand-muted-gold" />
-              <span className="text-xs font-medium text-brand-muted-gold/90 tracking-wide">
-                Zero-cost automated Go grading
-              </span>
-            </motion.div>
+
 
             <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               {"Learn Go through practice, not theory."
@@ -189,13 +178,26 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
                     custom={index}
                     variants={wordVariants}
                     className={cn(
-                      "mr-2 inline-block",
-                      word === "Go" ? "text-[#00ADD8]" : "",
+                      "mr-2 inline-block align-middle",
                       word === "practice," || word === "theory." ? "bg-gradient-to-r from-brand-offwhite via-[#f0e6c5] to-brand-offwhite bg-clip-text text-transparent" : "",
                       word !== "Go" && word !== "practice," && word !== "theory." ? "text-brand-offwhite" : "",
                     )}
                   >
-                    {word}
+                    {word === "Go" ? (
+                      <svg viewBox="0 0 207 78" className="inline-block h-[1.1em] w-[2.7em] align-text-bottom" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g fill="#00ADD8" fillRule="evenodd">
+                          <path d="m16.2 24.1c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h35.7c.4 0 .5.3.3.6l-1.7 2.6c-.2.3-.7.6-1 .6z" />
+                          <path d="m1.1 33.3c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h45.6c.4 0 .6.3.5.6l-.8 2.4c-.1.4-.5.6-.9.6z" />
+                          <path d="m25.3 42.5c-.4 0-.5-.3-.3-.6l1.4-2.5c.2-.3.6-.6 1-.6h20c.4 0 .6.3.6.7l-.2 2.4c0 .4-.4.7-.7.7z" />
+                          <g transform="translate(55)">
+                            <path d="m74.1 22.3c-6.3 1.6-10.6 2.8-16.8 4.4-1.5.4-1.6.5-2.9-1-1.5-1.7-2.6-2.8-4.7-3.8-6.3-3.1-12.4-2.2-18.1 1.5-6.8 4.4-10.3 10.9-10.2 19 .1 8 5.6 14.6 13.5 15.7 6.8.9 12.5-1.5 17-6.6.9-1.1 1.7-2.3 2.7-3.7-3.6 0-8.1 0-19.3 0-2.1 0-2.6-1.3-1.9-3 1.3-3.1 3.7-8.3 5.1-10.9.3-.6 1-1.6 2.5-1.6h36.4c-.2 2.7-.2 5.4-.6 8.1-1.1 7.2-3.8 13.8-8.2 19.6-7.2 9.5-16.6 15.4-28.5 17-9.8 1.3-18.9-.6-26.9-6.6-7.4-5.6-11.6-13-12.7-22.2-1.3-10.9 1.9-20.7 8.5-29.3 7.1-9.3 16.5-15.2 28-17.3 9.4-1.7 18.4-.6 26.5 4.9 5.3 3.5 9.1 8.3 11.6 14.1.6.9.2 1.4-1 1.7z" />
+                            <path d="m107.2 77.6c-9.1-.2-17.4-2.8-24.4-8.8-5.9-5.1-9.6-11.6-10.8-19.3-1.8-11.3 1.3-21.3 8.1-30.2 7.3-9.6 16.1-14.6 28-16.7 10.2-1.8 19.8-.8 28.5 5.1 7.9 5.4 12.8 12.7 14.1 22.3 1.7 13.5-2.2 24.5-11.5 33.9-6.6 6.7-14.7 10.9-24 12.8-2.7.5-5.4.6-8 .9zm23.8-40.4c-.1-1.3-.1-2.3-.3-3.3-1.8-9.9-10.9-15.5-20.4-13.3-9.3 2.1-15.3 8-17.5 17.4-1.8 7.8 2 15.7 9.2 18.9 5.5 2.4 11 2.1 16.3-.6 7.9-4.1 12.2-10.5 12.7-19.1z" fillRule="nonzero" />
+                          </g>
+                        </g>
+                      </svg>
+                    ) : (
+                      word
+                    )}
                   </motion.span>
                 ))}
             </h1>
@@ -233,72 +235,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
               </Link>
             </motion.div>
 
-            {/* Hero preview image */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.6 }}
-              className="relative mt-16 mx-auto max-w-5xl"
-            >
-              <div className="relative rounded-2xl border border-brand-charcoal-border/60 bg-brand-charcoal-card/40 p-2 backdrop-blur-sm shadow-2xl">
-                <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-brand-muted-gold/10 via-transparent to-brand-muted-gold/5 opacity-60 pointer-events-none" />
-                <div className="relative overflow-hidden rounded-xl border border-brand-charcoal-border/30 bg-brand-charcoal-base">
-                  <div className="flex items-center gap-1.5 border-b border-brand-charcoal-border/30 px-4 py-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
-                    <span className="ml-3 text-xs text-brand-offwhite-muted/50 font-mono">koder — ~/workspace</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_2fr] min-h-[320px] sm:min-h-[400px]">
-                    <div className="border-r border-brand-charcoal-border/30 p-4 space-y-3">
-                      {["variables.go", "loops.go", "functions.go", "structs.go", "pointers.go"].map((file, i) => (
-                        <div
-                          key={file}
-                          className={cn(
-                            "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono transition-colors",
-                            i === 0 ? "bg-brand-muted-gold/10 text-brand-muted-gold" : "text-brand-offwhite-muted/60 hover:text-brand-offwhite-muted/80",
-                          )}
-                        >
-                          <Code2 className="h-3 w-3 flex-shrink-0" />
-                          {file}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-5 font-mono text-xs leading-[22px]">
-                      <pre className="m-0 text-brand-offwhite-muted/70">
-                        <span className="text-[#c792ea]">package </span><span className="text-brand-offwhite-muted/80">piscine</span>
-                        {"\n"}
-                        <span className="text-[#c792ea]">import </span><span className="text-[#c3e88d]">"strconv"</span>
-                        {"\n\n"}
-                        <span className="text-[#c792ea]">func </span><span className="text-[#ffcb6b]">Itoa</span><span className="text-brand-offwhite-muted/50">(</span><span className="text-[#eeffff]">n</span><span className="text-[#ff5370]"> int</span><span className="text-brand-offwhite-muted/50">)</span><span className="text-[#ff5370]"> string</span><span className="text-brand-offwhite-muted/50"> {"{"}</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">  </span><span className="text-[#c792ea]">if</span><span className="text-brand-offwhite-muted/70"> n </span><span className="text-brand-offwhite-muted/70">&lt;</span><span className="text-[#f78c6c]"> 0</span><span className="text-brand-offwhite-muted/70"> {"{"}</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">    </span><span className="text-[#c792ea]">return</span><span className="text-brand-offwhite-muted/70"> </span><span className="text-[#89ddff]">"-"</span><span className="text-brand-offwhite-muted/70"> + </span><span className="text-[#ffcb6b]">Itoa</span><span className="text-brand-offwhite-muted/70">(-n)</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">  </span><span className="text-brand-offwhite-muted/70">{"}"}</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">  </span><span className="text-[#c792ea]">if</span><span className="text-brand-offwhite-muted/70"> n == </span><span className="text-[#f78c6c]">0</span><span className="text-brand-offwhite-muted/70"> {"{"}</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">    </span><span className="text-[#c792ea]">return</span><span className="text-brand-offwhite-muted/70"> </span><span className="text-[#89ddff]">"0"</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">  </span><span className="text-brand-offwhite-muted/70">{"}"}</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/30">  </span><span className="text-brand-offwhite-muted/50">// ...</span>
-                        {"\n"}
-                        <span className="text-brand-offwhite-muted/70">{"}"}</span>
-                      </pre>
-                      <div className="mt-3">
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2.5 py-1 text-green-400/80 text-[10px] font-semibold tracking-wide">
-                          <span>✓</span>
-                          <span>All tests passed (5/5)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+
           </motion.div>
         </div>
       </motion.section>
@@ -487,16 +424,16 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
             </div>
 
             {[
-              { title: "Product", links: ["Features", "Pricing", "Documentation", "Changelog"] },
-              { title: "Resources", links: ["API Reference", "Integrations", "Community", "Blog"] },
-              { title: "Company", links: ["About", "Privacy", "Terms", "Contact"] },
+              { title: "Practice", links: [{ label: "Problems", href: "/home" }, { label: "Leaderboard", href: "/leaderboard" }, { label: "Contribute", href: "/contribute" }] },
+              { title: "Community", links: [{ label: "Discord", href: "#" }, { label: "GitHub", href: "https://github.com/jerryjuche/koder" }, { label: "Report Issue", href: "https://github.com/jerryjuche/koder/issues" }] },
+              { title: "Legal", links: [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }] },
             ].map((group) => (
               <div key={group.title}>
                 <p className="mb-4 text-xs font-bold uppercase tracking-widest text-brand-offwhite-muted">{group.title}</p>
                 <ul className="space-y-3">
                   {group.links.map((link) => (
-                    <li key={link}>
-                      <Link href="/" className="text-sm text-brand-offwhite-muted/60 transition-colors hover:text-brand-offwhite">{link}</Link>
+                    <li key={link.label}>
+                      <Link href={link.href} className="text-sm text-brand-offwhite-muted/60 transition-colors hover:text-brand-offwhite">{link.label}</Link>
                     </li>
                   ))}
                 </ul>
@@ -508,8 +445,6 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
             <p className="text-xs text-brand-offwhite-muted/50">&copy; {new Date().getFullYear()} Koder. All rights reserved.</p>
             <div className="flex items-center gap-4 text-xs text-brand-offwhite-muted/50">
               <span>Built with Go + Next.js</span>
-              <span className="hidden sm:inline">&middot;</span>
-              <span className="hidden sm:inline">Oracle free tier</span>
             </div>
           </div>
         </div>
