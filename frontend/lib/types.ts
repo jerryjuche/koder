@@ -8,6 +8,8 @@ export type User = {
   xp: number;
   level: number;
   solvedCount: number;
+  attemptedCount: number;
+  streak: number;
   verified?: boolean;
   google_avatar_url?: string;
   google_linked?: boolean;

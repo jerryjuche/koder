@@ -1,57 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { UserProfile } from "@/lib/types";
-import { motion, useMotionValue, animate } from "motion/react";
-import {
-  Trophy,
-  Hash,
-  CheckCircle2,
-  Target,
-  Flame,
-  Zap,
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { Hash, Target, Zap } from "lucide-react";
 
 interface StatsOverviewProps {
   profile: UserProfile;
 }
 
-function AnimatedNumber({ from = 0, to, duration = 2 }: { from?: number; to: number; duration?: number }) {
-  const motionValue = useMotionValue(from);
-  const [displayValue, setDisplayValue] = useState(from);
-  const [hasAnimated, setHasAnimated] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = motionValue.on("change", (v) => {
-      setDisplayValue(Math.round(v));
-    });
-    return unsubscribe;
-  }, [motionValue]);
-
-  useEffect(() => {
-    if (!hasAnimated) {
-      setHasAnimated(true);
-      const controls = animate(motionValue, to, {
-        duration,
-        ease: [0.16, 1, 0.3, 1],
-      });
-      return controls.stop;
-    }
-  }, [to, duration, motionValue, hasAnimated]);
-
-  return <span className="tabular-nums">{displayValue}</span>;
-}
-
 export default function StatsOverview({ profile }: StatsOverviewProps) {
-  const successRate = profile.stats.attempted_count > 0
-    ? parseFloat(((profile.stats.solved_count / profile.stats.attempted_count) * 100).toFixed(1))
+  const attemptedCount = profile.stats.attempted_count;
+  const solvedCount = profile.stats.solved_count;
+  const successRate = attemptedCount > 0
+    ? parseFloat(((solvedCount / attemptedCount) * 100).toFixed(1))
     : 0;
 
   const formatRuntime = (ms: number) => {
@@ -60,102 +20,31 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
-  const items: {
-    label: string;
-    icon: React.ElementType;
-    tooltip: string;
-    value: string;
-    num?: number;
-    sub?: string;
-    accent?: "warm" | "cool";
-  }[] = [
-    { label: "Level", icon: Trophy, tooltip: "Your current level is based on total XP earned. Each level requires 1,000 XP.", value: String(profile.level), num: profile.level, sub: `${profile.xp.toLocaleString()} Total XP`, accent: "cool" },
-    { label: "Global Rank", icon: Hash, tooltip: "Your position on the leaderboard among all students.", value: `#${profile.global_rank || "-"}`, accent: "cool" },
-    { label: "Solved", icon: CheckCircle2, tooltip: "Problems you've solved out of total attempted.", value: String(profile.stats.solved_count), num: profile.stats.solved_count, sub: `${profile.stats.attempted_count} attempted`, accent: "warm" },
-    { label: "Success Rate", icon: Target, tooltip: "Percentage of attempted problems that you've successfully solved.", value: `${successRate}%`, accent: "warm" },
-    { label: "Streak", icon: Flame, tooltip: "Consecutive days with at least one passed submission.", value: `${profile.stats.current_streak_days}d`, num: profile.stats.current_streak_days, accent: "cool" },
-    { label: "Best Runtime", icon: Zap, tooltip: "Your fastest solution execution time across all problems.", value: formatRuntime(profile.stats.best_runtime_ms), accent: "warm" },
-  ];
-
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: {},
-        visible: { transition: { staggerChildren: 0.07 } },
-      }}
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-    >
-      {items.map(({ label, icon: Icon, tooltip, value, num, sub, accent }) => {
-        const isWarm = accent !== "cool";
-        const accentColor = isWarm ? "amber" : "[#7B8CBB]";
-        const accentHex = isWarm ? "amber" : "7B8CBB";
-        return (
-        <motion.div
-          key={label}
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
-          }}
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <motion.div
-                whileHover={{ y: -3, scale: 1.01 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <Card className={cn(
-                  "p-5 relative overflow-hidden cursor-default",
-                  "bg-[#242430]/60 backdrop-blur-sm border border-white/6",
-                  "transition-shadow duration-300",
-                  isWarm
-                    ? "hover:shadow-xl hover:shadow-black/20 hover:border-amber-500/30"
-                    : "hover:shadow-xl hover:shadow-black/20 hover:border-[#7B8CBB]/30"
-                )}>
-                  <div className={cn(
-                    "absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none",
-                    isWarm
-                      ? "bg-gradient-to-br from-amber-500/10 to-amber-600/5"
-                      : "bg-gradient-to-br from-[#7B8CBB]/10 to-[#5A6A94]/5"
-                  )} />
-
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={cn(
-                        "p-2 rounded-lg",
-                        isWarm ? "bg-amber-500/10" : "bg-[#7B8CBB]/10"
-                      )}>
-                        <Icon size={15} className={isWarm ? "text-amber-400" : "text-[#7B8CBB]"} />
-                      </div>
-                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                        {label}
-                      </span>
-                    </div>
-                    <div className={cn(
-                      "text-2xl font-bold font-mono",
-                      isWarm ? "text-amber-400" : "text-[#7B8CBB]"
-                    )}>
-                      {num !== undefined ? (
-                        <AnimatedNumber to={num} duration={1.5} />
-                      ) : (
-                        <span className="tabular-nums">{value}</span>
-                      )}
-                    </div>
-                    {sub && (
-                      <p className="text-xs text-white/40 mt-1">{sub}</p>
-                    )}
-                  </div>
-                </Card>
-              </motion.div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[200px] text-xs bg-[#1A1A24]/95 border border-white/8 text-white/80 backdrop-blur-md">
-              {tooltip}
-            </TooltipContent>
-          </Tooltip>
-        </motion.div>
-        );
-      })}
-    </motion.div>
+    <div className="rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6 overflow-hidden">
+      <div className="flex items-stretch divide-x divide-white/10">
+        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Rank</span>
+          <div className="flex items-center gap-1.5">
+            <Hash size={13} className="text-[#7B8CBB]" />
+            <span className="text-lg font-extrabold font-mono text-[#7B8CBB]">#{profile.global_rank || "-"}</span>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Success Rate</span>
+          <div className="flex items-center gap-1.5">
+            <Target size={13} className="text-amber-400" />
+            <span className="text-lg font-extrabold font-mono text-amber-400">{successRate}%</span>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Best Runtime</span>
+          <div className="flex items-center gap-1.5">
+            <Zap size={13} className="text-amber-400" />
+            <span className="text-lg font-extrabold font-mono text-amber-400">{formatRuntime(profile.stats.best_runtime_ms)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

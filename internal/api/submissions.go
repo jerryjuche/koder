@@ -94,6 +94,7 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	if res.Status == "passed" {
 		h.store.LogActivity(r.Context(), "success", fmt.Sprintf("User %s successfully solved '%s'", claims.StudentID, problem.Slug), "text-brand-success", "CheckCircle2")
+		InvalidateUserCache(userID.String())
 	} else if res.Status == "timeout" {
 		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
 	}

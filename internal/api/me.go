@@ -19,15 +19,17 @@ func NewMeHandler(s store.Store) *MeHandler {
 
 // meResponse is the safe, password-free user profile response.
 type meResponse struct {
-	ID             string  `json:"id"`
-	StudentID      string  `json:"student_id"`
-	Username       string  `json:"username"`
-	Name           string  `json:"name"`
-	Role           string  `json:"role"`
-	ColorIndex     int     `json:"color_index"`
-	XP             int     `json:"xp"`
-	Level          int     `json:"level"`
-	SolvedCount    int     `json:"solved_count"`
+	ID              string  `json:"id"`
+	StudentID       string  `json:"student_id"`
+	Username        string  `json:"username"`
+	Name            string  `json:"name"`
+	Role            string  `json:"role"`
+	ColorIndex      int     `json:"color_index"`
+	XP              int     `json:"xp"`
+	Level           int     `json:"level"`
+	SolvedCount     int     `json:"solved_count"`
+	AttemptedCount  int     `json:"attempted_count"`
+	StreakDays      int     `json:"current_streak_days"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 	GoogleLinked    bool    `json:"google_linked"`
 }
@@ -68,6 +70,11 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stats, err := h.store.GetUserStats(r.Context(), userUUID)
+	if err != nil {
+		stats = nil
+	}
+
 	idStr, err := uuidStringFromPGType(user.ID)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
@@ -76,8 +83,14 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 
 	level := (user.XP / 1000) + 1
 	googleLinked := user.GoogleID != nil && *user.GoogleID != ""
+	attemptedCount := 0
+	streakDays := 0
+	if stats != nil {
+		attemptedCount = stats.AttemptedCount
+		streakDays = stats.CurrentStreakDays
+	}
 
-	cacheUser(r.Context(), userUUID.String(), meResponse{
+	resp := meResponse{
 		ID:              idStr,
 		StudentID:       user.StudentID,
 		Username:        user.Username,
@@ -87,23 +100,14 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		XP:              user.XP,
 		Level:           level,
 		SolvedCount:     solvedCount,
+		AttemptedCount:  attemptedCount,
+		StreakDays:      streakDays,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
-	})
+	}
 
-	RespondSuccess(w, meResponse{
-		ID:              idStr,
-		StudentID:       user.StudentID,
-		Username:        user.Username,
-		Name:            user.Name,
-		Role:            user.Role,
-		ColorIndex:      clampColorIndex(user.ColorIndex),
-		XP:              user.XP,
-		Level:           level,
-		SolvedCount:     solvedCount,
-		GoogleAvatarURL: user.GoogleAvatarURL,
-		GoogleLinked:    googleLinked,
-	})
+	cacheUser(r.Context(), userUUID.String(), resp)
+	RespondSuccess(w, resp)
 }
 
 // DeleteAccount permanently removes the authenticated user and all their data.
