@@ -247,6 +247,6 @@ Description:
 	if resp.StatusCode >= 400 {
 		slog.Error("feedback: email API returned error", "status", resp.StatusCode)
 	} else {
-		slog.Info("feedback: email notification sent", "id", fb.ID.String())
+		slog.Info("feedback: email notification sent", "id", uuid.UUID(fb.ID.Bytes).String())
 	}
 }

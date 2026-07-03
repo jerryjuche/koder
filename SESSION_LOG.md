@@ -376,3 +376,44 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ### Build Verification
 - ✅ `npx tsc --noEmit` — zero errors
+
+---
+
+## 19. Session 9 (July 3) — Landing Page Polish + Feedback System
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `608c956` | Landing page: replace Go text with official wordmark SVG, simplify footer links, remove editor mockup |
+| `53a9ade` | Feedback & bug report system: floating button, modal, admin panel, email notifications |
+
+### Landing Page Changes
+| File | Change |
+|------|--------|
+| `frontend/components/LandingContent.tsx` | Replaced "Go" text with official Go wordmark SVG; removed editor mockup preview; removed "Zero-cost automated Go grading" badge; simplified footer links; removed "Oracle free tier" tagline |
+
+### Feedback System — Backend
+| File | Change |
+|------|--------|
+| `migrations/014_feedback.sql` | **NEW** — `feedback` table with type, priority, status, screenshot, admin_notes, is_anonymous |
+| `internal/store/feedback.go` | **NEW** — CRUD methods for feedback |
+| `internal/store/types.go` | Added `Feedback`, `NewFeedback` structs |
+| `internal/store/store.go` | Added 5 feedback methods to Store interface |
+| `internal/api/feedback.go` | **NEW** — handler with submit, admin list, status update, user list, counts; Resend email notification |
+| `internal/api/router.go` | Added `/feedback`, `/feedback/mine`, `/admin/feedback`, `/admin/feedback/counts`, `/admin/feedback/{id}` routes |
+| `internal/config/config.go` | Added `ResendAPIKey` config field |
+
+### Feedback System — Frontend
+| File | Change |
+|------|--------|
+| `frontend/components/FeedbackButton.tsx` | **NEW** — floating FAB, modal with 3 tabs, priority selector, screenshot upload, anonymous toggle |
+| `frontend/app/(main)/admin/FeedbackPanel.tsx` | **NEW** — admin feedback table with status tabs, search, expandable rows, inline status/admin notes |
+| `frontend/app/(main)/layout.tsx` | Added `<FeedbackButton />` |
+| `frontend/app/(main)/admin/page.tsx` | Added `<FeedbackPanel />` |
+| `frontend/lib/api.ts` | Added 5 feedback API functions |
+| `frontend/lib/types.ts` | Added `FeedbackItem` type |
+
+### Build Verification
+- ✅ `go vet ./internal/api/ ./internal/store/ ./internal/config/`
+- ✅ `npx tsc --noEmit`
+- ✅ `npx next build` — compiled, types checked, all 17 pages generated

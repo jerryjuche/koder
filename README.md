@@ -348,6 +348,21 @@ CREATE TABLE progress (
     PRIMARY KEY (user_id, problem_id)
 );
 
+-- Feedback & bug reports
+CREATE TABLE feedback (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID REFERENCES users(id) ON DELETE SET NULL,
+    type            TEXT NOT NULL DEFAULT 'general',    -- 'general'|'bug'|'feature'
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    priority        TEXT NOT NULL DEFAULT 'medium',     -- 'low'|'medium'|'high'|'critical'
+    screenshot_url  TEXT,                               -- base64 encoded image
+    status          TEXT NOT NULL DEFAULT 'new',        -- 'new'|'in_progress'|'resolved'
+    admin_notes     TEXT,
+    is_anonymous    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Performance indexes
 CREATE INDEX idx_submissions_user    ON submissions(user_id);
 CREATE INDEX idx_submissions_problem ON submissions(problem_id);
@@ -658,6 +673,16 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | POST | `/me/user-problems` | Student | Submit a user-created problem |
 | GET | `/me/contributions` | Student | User's submitted problems |
 
+### Feedback
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/feedback` | Student | Submit feedback/bug report |
+| GET | `/feedback/mine` | Student | Current user's submitted feedback |
+| GET | `/admin/feedback` | Admin | List feedback with optional `?status=` filter |
+| GET | `/admin/feedback/counts` | Admin | Feedback counts by status |
+| PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
+
 ### Notifications
 
 | Method | Path | Auth | Description |
@@ -966,6 +991,10 @@ SANDBOX_URL=https://koder-production.up.railway.app
 # Google OAuth2 (required for Google Sign-In button)
 GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
 # Frontend also needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (same value)
+
+# Feedback emails (optional — empty = no email notifications)
+ADMIN_EMAIL=admin@example.com # Notified when new feedback is submitted
+RESEND_API_KEY=               # Resend.com API key for transactional emails
 ```
 
 ---
@@ -1116,6 +1145,7 @@ psql $DATABASE_URL -f migrations/009_get_full_profile.sql
 psql $DATABASE_URL -f migrations/010_add_gitea_auth.sql
 psql $DATABASE_URL -f migrations/011_add_gitea_token.sql
 psql $DATABASE_URL -f migrations/012_add_google_auth.sql
+psql $DATABASE_URL -f migrations/014_feedback.sql
 
 # 4. Warm the Docker build cache
 chmod +x scripts/setup-docker-cache.sh
