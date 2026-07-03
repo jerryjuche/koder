@@ -65,6 +65,7 @@ koder/
 │   │   ├── problems/[slug]/       # Problem workspace (Monaco editor)
 │   │   └── layout.tsx             # Root layout
 │   ├── components/                # Reusable React components
+│   │   ├── auth/                  # Auth form components (GoogleButton, AuthDivider, LabelInputContainer, BottomGradient)
 │   │   ├── TestResultPanel.tsx    # Test output display
 │   │   ├── GoogleLinkBanner.tsx   # Google account linking banner (links to Settings)
 │   │   └── ...                    # UI components (shadcn/ui-based)
@@ -211,11 +212,16 @@ The system has **three sequential pipelines**:
 ## Frontend Key Files
 
 | File | Purpose |
-|---|---|
+|---|---|---|
 | `app/problems/[slug]/ProblemWorkspaceClient.tsx` | Monaco editor, code submission, real-time feedback |
 | `app/(main)/leaderboard/page.tsx` | Leaderboard with sorting, filtering |
 | `app/(main)/profile/page.tsx` | User stats, problem history, performance graphs |
 | `app/(main)/admin/page.tsx` | Admin panel for ingest/enrich/stats/approvals |
+| `components/auth/google-button.tsx` | Custom dark Google Sign-In button with SVG logo + shadow-input |
+| `components/auth/bottom-gradient.tsx` | Amber gradient line animation on button hover |
+| `components/auth/label-input-container.tsx` | Input + label spacing wrapper (Aceternity pattern) |
+| `components/auth/auth-divider.tsx` | "or" divider with border and muted text |
+| `components/ui/label.tsx` | shadcn Label component with Radix + CVA |
 | `lib/api.ts` | Fetch wrapper for backend endpoints |
 | `lib/types.ts` | TypeScript interfaces (shared with backend via documentation) |
 
@@ -358,6 +364,9 @@ See `.env.example` for full template.
 - **Header notifications clickable:** Clicking a notification in the dropdown navigates to `/settings?tab=notifications` and marks it as read
 - **New `NotifyAllUsers()` store method:** Inserts a notification for every user in the database
 - **`ApproveUserProblem` returns new problem ID:** Changed signature from `(*UserProblem, error)` to `(*UserProblem, *uuid.UUID, error)` so the handler can reference the created problem in notifications
+- **July 3 — Unsolved-first problem sorting:** Home page problem grid now sorts unsolved problems before solved ones via `sort((a, b) => Number(a.solved) - Number(b.solved))`
+- **July 3 — Professional Google-first auth layout:** Both login and register pages redesigned with Google Sign-In as primary action, custom dark Google button with SVG logo + `shadow-input`, "or sign in with email" divider, framer-motion staggered entrance animations
+- **July 3 — Professional auth form components:** New reusable component library in `components/auth/` — `GoogleButton`, `BottomGradient` (amber gradient line on button hover), `LabelInputContainer`, `AuthDivider`; new `components/ui/label.tsx` (shadcn Label with Radix + CVA); `--shadow-input` CSS variable added to globals.css
 
 ---
 

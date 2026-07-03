@@ -317,3 +317,62 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 - [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
 - [ ] Test Google Sign-In on production HTTPS URL (not localhost — FedCM/COOP issues are localhost-only)
 - [ ] Test account deletion end-to-end
+
+---
+
+## 18. Session 8 (July 3) — MultiStepLoader, Problem Sorting, Auth Form Redesign
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `e9cd9e8` | feat: add MultiStepLoader to root page, remove Module Proficiency from profile |
+| `3488e09` | professional google sign-in layout + sort unsolved problems first |
+
+### MultiStepLoader (Root Page)
+
+| File | Change |
+|------|--------|
+| `components/ui/multi-step-loader.tsx` | **NEW** — full-screen overlay with animated check icons, backdrop blur, gradient mask, 5-state progress (7000ms total), `loop{false}` |
+| `components/multi-step-loader-demo.tsx` | **NEW** — standalone demo page |
+| `app/page.tsx` | RootPage shows MultiStepLoader with 5 states → navigates to `/home` (authenticated) or fades to `/landing` (unauthenticated) |
+| `app/(main)/home/page.tsx` | Restored skeleton-card loading (no double-loader flash) |
+
+- Uses project theme colors: `bg-background/95`, `text-primary` (amber), `text-foreground font-semibold` (active)
+- `lucide-react` `X` icon (avoiding `@tabler/icons-react` TS7016 type declaration issues)
+- `loop{false}` + `duration={1400}` × 5 states = 7000ms; auth check elapsed subtracted so navigation aligns with last step
+
+### Unsolved-First Problem Sorting
+- `app/(main)/home/page.tsx` — Added `.sort((a, b) => Number(a.solved) - Number(b.solved))` to `filteredProblems` so unsolved problems appear at top of dashboard grid
+
+### Professional Google-First Auth Layout
+
+| File | Change |
+|------|--------|
+| `app/(auth)/login/page.tsx` | Google as primary action (top), custom dark button with Google SVG, `shadow-input` card, framer-motion staggered entrance, `BottomGradient` on submit, shadcn `Input`+`Label`, `AuthDivider` |
+| `app/(auth)/register/page.tsx` | Same treatment: Google-first, professional form with two-column name layout, framer-motion |
+
+### New Auth Components (`components/auth/`)
+
+| File | Purpose |
+|------|---------|
+| `google-button.tsx` | Custom dark Google button with SVG logo, `shadow-input`, `group/btn` hover states, calls `prompt()` on click |
+| `bottom-gradient.tsx` | Amber gradient line on button hover (`group-hover/btn:opacity-100`) |
+| `label-input-container.tsx` | Wrapper for input + label vertical spacing |
+| `auth-divider.tsx` | "or" divider with border line and muted centered text |
+| `index.ts` | Barrel exports |
+
+### Other New/Updated Files
+
+| File | Change |
+|------|--------|
+| `components/ui/label.tsx` | **NEW** — shadcn Label with `@radix-ui/react-label` + CVA |
+| `app/globals.css` | Added `--shadow-input` custom shadow to `@theme inline` block |
+
+### Design Decisions
+- GIS `renderButton` replaced with custom button + `prompt()` for full visual control
+- `shadow-input` gives card a refined inset-like shadow matching Aceternity pattern
+- Framer-motion staggered entrance: card → logo → Google button → divider → form → footer
+- Amber gold `BottomGradient` (not cyan/indigo from Aceternity demo) — matches Koder's `brand-muted-gold`
+
+### Build Verification
+- ✅ `npx tsc --noEmit` — zero errors
