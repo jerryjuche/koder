@@ -182,7 +182,7 @@ func (h *PasswordResetHandler) sendResetEmail(email, rawToken, name string) {
 		return
 	}
 
-	resetLink := fmt.Sprintf("%s/auth/reset-password?token=%s", strings.TrimRight(h.cfg.FrontendURL, "/"), rawToken)
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", strings.TrimRight(h.cfg.FrontendURL, "/"), rawToken)
 
 	subject := "Koder — Reset Your Password"
 	textBody := fmt.Sprintf(`Hi %s,
