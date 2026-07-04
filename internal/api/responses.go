@@ -45,12 +45,13 @@ func RespondCreated(w http.ResponseWriter, data interface{}) {
 
 // SetAuthCookie sets a secure httpOnly cookie with the JWT token.
 func SetAuthCookie(w http.ResponseWriter, token string, cfg *config.Config) {
+	secure := cfg.Environment == "production"
 	http.SetCookie(w, &http.Cookie{
 		Name:     "koder_token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(cfg.JWTExpiry().Seconds()),
 	})
