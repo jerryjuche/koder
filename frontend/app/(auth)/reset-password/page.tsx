@@ -82,7 +82,7 @@ function ResetPasswordForm() {
           This reset link is missing or invalid. Please request a new one.
         </p>
         <Link
-          href="/auth/forgot-password"
+          href="/forgot-password"
           className="inline-flex items-center gap-2 text-sm text-brand-muted-gold/70 hover:text-brand-muted-gold transition-colors font-medium"
         >
           <ArrowLeft size={14} />
