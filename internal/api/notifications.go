@@ -33,7 +33,7 @@ func (h *NotificationsHandler) GetUnreadNotifications(w http.ResponseWriter, r *
 
 	notifications, err := h.store.GetUnreadNotifications(r.Context(), userID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch notifications", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch notifications", nil)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *NotificationsHandler) GetRecentNotifications(w http.ResponseWriter, r *
 
 	notifications, err := h.store.GetRecentNotifications(r.Context(), userID, 20)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch notifications", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch notifications", nil)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *NotificationsHandler) MarkAsRead(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.store.MarkNotificationAsRead(r.Context(), notifID, userID); err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to mark notification as read", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to mark notification as read", nil)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *NotificationsHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.store.MarkAllNotificationsAsRead(r.Context(), userID); err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to mark all notifications as read", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to mark all notifications as read", nil)
 		return
 	}
 

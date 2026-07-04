@@ -442,16 +442,14 @@ export default function Dashboard() {
                             {/* Statement excerpt */}
                             <p className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 mb-3.5 min-h-[2.5em]">
                               {problem.statement ? (
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: problem.statement
-                                      .replace(/<[^>]*>/g, "")
-                                      .split("\n")
-                                      .slice(0, 2)
-                                      .join(" ")
-                                      .substring(0, 120),
-                                  }}
-                                />
+                                <span>
+                                  {problem.statement
+                                    .replace(/<[^>]*>/g, "")
+                                    .split("\n")
+                                    .slice(0, 2)
+                                    .join(" ")
+                                    .substring(0, 120)}
+                                </span>
                               ) : (
                                 <span className="italic">No description</span>
                               )}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import {
   ChevronLeft,
   Play,
@@ -451,7 +452,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
                 <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
-                  <Markdown remarkPlugins={[remarkGfm]}>
+                  <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                     {problem?.statement ||
                       problem?.descriptionMarkdown ||
                       "No problem statement available yet. This exercise is pending enrichment."}

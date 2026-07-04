@@ -126,6 +126,18 @@ type Store interface {
 	DeactivateBroadcast(ctx context.Context, id uuid.UUID) error
 	DeleteBroadcast(ctx context.Context, id uuid.UUID) error
 	MarkBroadcastDismissed(ctx context.Context, userID, broadcastID uuid.UUID) error
+
+	// Token blacklist (JWT revocation)
+	BlacklistToken(ctx context.Context, jti string, expiresAt time.Time) error
+	IsTokenBlacklisted(ctx context.Context, jti string) (bool, error)
+	CleanupExpiredBlacklistedTokens(ctx context.Context) error
+
+	// Password reset
+	CreatePasswordResetToken(ctx context.Context, email, tokenHash string, expiresAt time.Time) error
+	GetPasswordResetToken(ctx context.Context, tokenHash string) (string, time.Time, bool, error)
+	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
+	UpdateUserPassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
+	CleanupExpiredPasswordResetTokens(ctx context.Context) error
 }
 
 // PostgresStore implements Store using pgx and Postgres.

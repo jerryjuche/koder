@@ -52,6 +52,9 @@ type Config struct {
 	// Notifications
 	ResendAPIKey string
 
+	// Frontend URL for reset links
+	FrontendURL string
+
 	// Admin
 	AdminEmail    string
 	AdminPassword string
@@ -237,6 +240,12 @@ func Load() (*Config, error) {
 
 	// Notifications
 	cfg.ResendAPIKey = os.Getenv("RESEND_API_KEY")
+
+	// Frontend URL
+	cfg.FrontendURL = os.Getenv("FRONTEND_URL")
+	if cfg.FrontendURL == "" {
+		cfg.FrontendURL = "http://localhost:3000"
+	}
 
 	// Admin Credentials
 	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")

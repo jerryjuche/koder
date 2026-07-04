@@ -2,8 +2,10 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -35,7 +37,7 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -50,6 +52,20 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(req.Description) == "" {
 		RespondError(w, http.StatusBadRequest, "INVALID_DESCRIPTION", "Description is required", nil)
 		return
+	}
+	if len(req.Title) > 200 {
+		RespondError(w, http.StatusBadRequest, "TITLE_TOO_LONG", "Title must be at most 200 characters", nil)
+		return
+	}
+	if len(req.Description) > 5000 {
+		RespondError(w, http.StatusBadRequest, "DESCRIPTION_TOO_LONG", "Description must be at most 5000 characters", nil)
+		return
+	}
+	if req.ScreenshotURL != nil && *req.ScreenshotURL != "" {
+		if err := validateScreenshot(*req.ScreenshotURL); err != nil {
+			RespondError(w, http.StatusBadRequest, "INVALID_SCREENSHOT", "Screenshot is invalid or too large", nil)
+			return
+		}
 	}
 	if req.Priority == "" {
 		req.Priority = "medium"
@@ -115,7 +131,7 @@ func (h *FeedbackHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -207,6 +223,12 @@ Description:
 %s
 `, typeLabel, priority, fb.Title, userID, description)
 
+	safeTypeLabel := html.EscapeString(typeLabel)
+	safePriority := html.EscapeString(priority)
+	safeTitle := html.EscapeString(fb.Title)
+	safeUserID := html.EscapeString(userID)
+	safeDesc := html.EscapeString(description)
+
 	htmlBody := fmt.Sprintf(`<h2>New Feedback Submitted</h2>
 <table style="border-collapse:collapse;width:100%%;max-width:600px;">
 <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Type</td><td style="padding:8px;border:1px solid #ddd;">%s</td></tr>
@@ -214,7 +236,7 @@ Description:
 <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Title</td><td style="padding:8px;border:1px solid #ddd;">%s</td></tr>
 <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">User ID</td><td style="padding:8px;border:1px solid #ddd;">%s</td></tr>
 <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Description</td><td style="padding:8px;border:1px solid #ddd;">%s</td></tr>
-</table>`, typeLabel, priority, fb.Title, userID, description)
+</table>`, safeTypeLabel, safePriority, safeTitle, safeUserID, safeDesc)
 
 	payload := map[string]interface{}{
 		"from":    "Koder Feedback <feedback@koder.app>",
@@ -260,4 +282,40 @@ Description:
 	} else {
 		slog.Info("feedback: email notification sent", "id", uuid.UUID(fb.ID.Bytes).String())
 	}
+}
+
+func validateScreenshot(s string) error {
+	// Check the base64 decoded size (5MB max)
+	var rawData string
+	if strings.HasPrefix(s, "data:image/") {
+		// data:image/png;base64,XXXXX
+		commaIdx := strings.Index(s, ",")
+		if commaIdx == -1 {
+			return fmt.Errorf("invalid data URI format")
+		}
+		mimeType := s[5:commaIdx]
+		if !strings.HasPrefix(mimeType, "image/jpeg") &&
+			!strings.HasPrefix(mimeType, "image/png") &&
+			!strings.HasPrefix(mimeType, "image/gif") &&
+			!strings.HasPrefix(mimeType, "image/webp") {
+			return fmt.Errorf("unsupported image format; use JPEG, PNG, GIF, or WebP")
+		}
+		rawData = s[commaIdx+1:]
+	} else {
+		// Assume plain base64
+		rawData = s
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(rawData)
+	if err != nil {
+		// Try URL-safe encoding
+		decoded, err = base64.URLEncoding.DecodeString(rawData)
+		if err != nil {
+			return fmt.Errorf("invalid base64 encoding")
+		}
+	}
+	if len(decoded) > 5*1024*1024 {
+		return fmt.Errorf("screenshot must be under 5MB")
+	}
+	return nil
 }
