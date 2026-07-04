@@ -43,12 +43,13 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	// Insert into database with parameterized query
 	email := user.Email
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NOW())
+		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, NOW())
 		RETURNING id, created_at
 	`
 
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), user.Role, colorIndex).
+	pinHash := user.PINHash
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -60,6 +61,7 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		Username:   user.Username,
 		Name:       user.Name,
 		Password:   string(hashedPassword),
+		PINHash:    &pinHash,
 		Role:       user.Role,
 		ColorIndex: colorIndex,
 		XP:         0,
@@ -202,7 +204,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
 		       google_id, google_email, google_avatar_url, created_at
 		FROM users
 		WHERE email = $1
@@ -216,6 +218,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 		&user.Bio,
 		&user.Email,
 		&user.Password,
+		&user.PINHash,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
@@ -654,6 +657,28 @@ func (s *PostgresStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, pa
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+// UpdateUserPINHash updates the bcrypt-hashed PIN for a user.
+func (s *PostgresStore) UpdateUserPINHash(ctx context.Context, id uuid.UUID, pinHash string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if pinHash == "" {
+		return fmt.Errorf("pin hash cannot be empty")
+	}
+
+	cmdTag, err := s.pool.Exec(ctx,
+		`UPDATE users SET pin_hash = $1 WHERE id = $2`,
+		pinHash, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update pin hash: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
 		return fmt.Errorf("user not found")
