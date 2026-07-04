@@ -15,11 +15,6 @@ export default function OnboardingPage() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
     fetchUser().then((res) => {
       if (res.success && res.data) {
         setUserName(res.data.name);
@@ -56,7 +51,6 @@ export default function OnboardingPage() {
     try {
       const res = await completeOnboarding(username);
       if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
         router.push('/');
       } else {
         setErrorMsg(res.error?.message || 'Failed to set username');

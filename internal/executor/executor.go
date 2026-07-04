@@ -51,6 +51,12 @@ func (e *Executor) Warmup(ctx context.Context) error {
 	}
 
 	cmdRun := exec.CommandContext(ctx, "docker", "run", "--rm",
+		"--user=65534:65534",
+		"--cap-drop=ALL",
+		"--security-opt=no-new-privileges",
+		"--network=none",
+		"--read-only",
+		"--env", "CGO_ENABLED=0",
 		"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
 		e.cfg.DockerImage, "go", "build", "std")
 
@@ -137,9 +143,19 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare sandbox: %w", err)
 	}
+
+	// Per-execution build cache to prevent cache poisoning across users
+	cachePath := filepath.Join(e.cfg.BuildCacheDir, uuidStr)
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create per-exec cache dir: %w", err)
+	}
+
 	defer func() {
 		if err := os.RemoveAll(sandboxPath); err != nil {
 			slog.Error("executor: failed to clean up sandbox directory", "path", sandboxPath, "error", err)
+		}
+		if err := os.RemoveAll(cachePath); err != nil {
+			slog.Error("executor: failed to clean up cache directory", "path", cachePath, "error", err)
 		}
 	}()
 
@@ -178,17 +194,22 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 		cmd := exec.CommandContext(runCtx, "docker", "run",
 			"--rm",
+			"--user=65534:65534",
+			"--cap-drop=ALL",
+			"--security-opt=no-new-privileges",
 			"--network=none",
 			"--memory=256m",
 			"--cpus=1.0",
 			"--pids-limit=512",
 			"--read-only",
+			"--env", "CGO_ENABLED=0",
 			"--env", "GOPROXY=off",
 			"--env", "GOSUMDB=off",
 			"--env", "GOTOOLCHAIN=local",
 			"--env", "GOFLAGS=-buildvcs=false",
-			"-v", fmt.Sprintf("%s:/app", sandboxPath),
-			"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
+			"-v", fmt.Sprintf("%s:/app:ro", sandboxPath),
+			"-v", fmt.Sprintf("%s:/root/.cache/go-build", cachePath),
+			"--tmpfs", "/tmp:size=64m,noexec,nosuid",
 			"-w", "/app",
 			e.cfg.DockerImage,
 			"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
@@ -199,6 +220,11 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		outputBytes, cmdErr = cmd.CombinedOutput()
 		runtimeMs = int(time.Since(startTime).Milliseconds())
 		output = string(outputBytes)
+
+		// Cap output to 100KB to prevent OOM
+		if len(output) > 100*1024 {
+			output = output[:100*1024]
+		}
 	}
 
 	// 6. Parse go test output
@@ -497,9 +523,19 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare sandbox: %w", err)
 	}
+
+	// Per-execution build cache to prevent cache poisoning across users
+	cachePath := filepath.Join(e.cfg.BuildCacheDir, uuidStr)
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create per-exec cache dir: %w", err)
+	}
+
 	defer func() {
 		if err := os.RemoveAll(sandboxPath); err != nil {
 			slog.Error("executor: failed to clean up sandbox directory", "path", sandboxPath, "error", err)
+		}
+		if err := os.RemoveAll(cachePath); err != nil {
+			slog.Error("executor: failed to clean up cache directory", "path", cachePath, "error", err)
 		}
 	}()
 
@@ -538,17 +574,22 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 
 		cmd := exec.CommandContext(runCtx, "docker", "run",
 			"--rm",
+			"--user=65534:65534",
+			"--cap-drop=ALL",
+			"--security-opt=no-new-privileges",
 			"--network=none",
 			"--memory=256m",
 			"--cpus=1.0",
 			"--pids-limit=512",
 			"--read-only",
+			"--env", "CGO_ENABLED=0",
 			"--env", "GOPROXY=off",
 			"--env", "GOSUMDB=off",
 			"--env", "GOTOOLCHAIN=local",
 			"--env", "GOFLAGS=-buildvcs=false",
-			"-v", fmt.Sprintf("%s:/app", sandboxPath),
-			"-v", fmt.Sprintf("%s:/root/.cache/go-build", e.cfg.BuildCacheDir),
+			"-v", fmt.Sprintf("%s:/app:ro", sandboxPath),
+			"-v", fmt.Sprintf("%s:/root/.cache/go-build", cachePath),
+			"--tmpfs", "/tmp:size=64m,noexec,nosuid",
 			"-w", "/app",
 			e.cfg.DockerImage,
 			"go", "test", "-v", "-count=1", "-gcflags=-l", "./...",
@@ -559,6 +600,11 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		outputBytes, cmdErr = cmd.CombinedOutput()
 		runtimeMs = int(time.Since(startTime).Milliseconds())
 		output = string(outputBytes)
+
+		// Cap output to 100KB to prevent OOM
+		if len(output) > 100*1024 {
+			output = output[:100*1024]
+		}
 	}
 
 	// 7. Parse go test output

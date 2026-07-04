@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/jerryjuche/koder/internal/config"
 )
 
 // APIError represents an error returned by the API.
@@ -39,6 +41,32 @@ func RespondSuccess(w http.ResponseWriter, data interface{}) {
 // RespondCreated writes a 201 response.
 func RespondCreated(w http.ResponseWriter, data interface{}) {
 	respondJSON(w, http.StatusCreated, data, nil)
+}
+
+// SetAuthCookie sets a secure httpOnly cookie with the JWT token.
+func SetAuthCookie(w http.ResponseWriter, token string, cfg *config.Config) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "koder_token",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(cfg.JWTExpiry().Seconds()),
+	})
+}
+
+// ClearAuthCookie unsets the JWT cookie (used on logout).
+func ClearAuthCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "koder_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
 }
 
 // RespondError writes an error response with a structured APIError.

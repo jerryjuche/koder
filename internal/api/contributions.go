@@ -51,7 +51,7 @@ func (h *ContributionsHandler) PostContribution(w http.ResponseWriter, r *http.R
 
 	up, err := h.store.CreateUserProblem(r.Context(), userID, &payload)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to submit contribution", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to submit contribution", nil)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *ContributionsHandler) GetMyContributions(w http.ResponseWriter, r *http
 
 	problems, err := h.store.ListUserProblemsByUser(r.Context(), userID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list contributions", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list contributions", nil)
 		return
 	}
 

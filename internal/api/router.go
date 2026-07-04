@@ -16,8 +16,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	r := chi.NewRouter()
 
 	r.Use(CORSMiddleware(cfg))
+	r.Use(SecurityHeadersMiddleware)
 
 	authHandler := NewAuthHandler(store, cfg)
+	passwordResetHandler := NewPasswordResetHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
@@ -38,22 +40,28 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		})
 	})
 
+	// Auth endpoints: IP-based rate limiting (10 req/min)
+	authRateLimiter := NewIPRateLimiter(10, 1*time.Minute)
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.Register)
-		r.Post("/login", authHandler.Login)
-		r.Post("/google", authHandler.GoogleAuth)
+		r.Use(authRateLimiter.Middleware)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/register", authHandler.Register)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/login", authHandler.Login)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/google", authHandler.GoogleAuth)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(AuthMiddleware(cfg))
+		r.Use(AuthMiddleware(cfg, store))
 
 		meHandler := NewMeHandler(store)
 		r.Get("/me", meHandler.GetMe)
-		r.Post("/me/delete-account", meHandler.DeleteAccount)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/me/delete-account", meHandler.DeleteAccount)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/logout", authHandler.Logout)
 
 		profileHandler := NewProfileHandler(store)
 		r.Get("/me/profile", profileHandler.GetProfile)
-		r.Put("/me/profile", profileHandler.UpdateProfile)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/me/profile", profileHandler.UpdateProfile)
 
 		activityHandler := NewActivityHandler(store)
 		r.Get("/me/activity", activityHandler.GetActivity)
@@ -61,28 +69,28 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		contributionsHandler := NewContributionsHandler(store)
 		r.Group(func(r chi.Router) {
 			r.Use(VerifiedContributorOnly)
-			r.Post("/user-problems", contributionsHandler.PostContribution)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/user-problems", contributionsHandler.PostContribution)
 		})
 		r.Get("/me/contributions", contributionsHandler.GetMyContributions)
 
 		// Onboarding routes
-		r.Post("/auth/complete-google", authHandler.CompleteOnboarding)
-		r.Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-google", authHandler.CompleteOnboarding)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
 		r.Get("/auth/check-username", authHandler.CheckUsername)
-		r.Post("/auth/link-google", authHandler.LinkGoogle)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
 		r.Get("/notifications/recent", notificationsHandler.GetRecentNotifications)
-		r.Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
-		r.Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
 
 		broadcastsHandler := NewBroadcastsHandler(store)
 		r.Get("/me/broadcasts", broadcastsHandler.ListActive)
-		r.Post("/me/broadcasts/{id}/dismiss", broadcastsHandler.Dismiss)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/me/broadcasts/{id}/dismiss", broadcastsHandler.Dismiss)
 
 		feedbackHandler := NewFeedbackHandler(store, cfg)
-		r.Post("/feedback", feedbackHandler.Submit)
+		r.With(BodySizeLimitMiddleware(10 * 1024 * 1024)).Post("/feedback", feedbackHandler.Submit)
 		r.Get("/feedback/mine", feedbackHandler.ListMine)
 
 		leaderboardHandler := NewLeaderboardHandler(store)
@@ -94,33 +102,33 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		communityHandler := NewCommunityHandler(store)
 		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)
 		r.Get("/best-practices", communityHandler.GetBestPractices)
-		r.Post("/submissions/{id}/like", communityHandler.LikeSubmission)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/submissions/{id}/like", communityHandler.LikeSubmission)
 		r.Delete("/submissions/{id}/like", communityHandler.UnlikeSubmission)
 
-		r.With(RateLimitMiddleware(rateLimiter)).Post("/submit", submissionHandler.Submit)
-		r.With(RateLimitMiddleware(rateLimiter)).Post("/test", testHandler.Test)
+		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/submit", submissionHandler.Submit)
+		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/test", testHandler.Test)
 
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)
-			r.Post("/admin/ingest", adminHandler.Ingest)
-			r.Post("/admin/enrich", adminHandler.Enrich)
-			r.Post("/admin/enrich-all", adminHandler.EnrichAll)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/ingest", adminHandler.Ingest)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/enrich", adminHandler.Enrich)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/enrich-all", adminHandler.EnrichAll)
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
-			r.Patch("/admin/problems/{id}/visibility", adminHandler.ToggleVisibility)
-			r.Post("/admin/problems/publish-all", adminHandler.PublishAllDrafts)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/problems/{id}/visibility", adminHandler.ToggleVisibility)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/problems/publish-all", adminHandler.PublishAllDrafts)
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
-			r.Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
-			r.Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)
 			r.Get("/admin/broadcasts", broadcastsHandler.ListAll)
-			r.Post("/admin/broadcasts", broadcastsHandler.Create)
-			r.Patch("/admin/broadcasts/{id}/deactivate", broadcastsHandler.Deactivate)
-			r.Delete("/admin/broadcasts/{id}", broadcastsHandler.Delete)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/broadcasts", broadcastsHandler.Create)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/broadcasts/{id}/deactivate", broadcastsHandler.Deactivate)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/broadcasts/{id}", broadcastsHandler.Delete)
 
 			r.Get("/admin/feedback", feedbackHandler.ListAdmin)
 			r.Get("/admin/feedback/counts", feedbackHandler.Counts)
-			r.Patch("/admin/feedback/{id}", feedbackHandler.UpdateStatus)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/feedback/{id}", feedbackHandler.UpdateStatus)
 		})
 	})
 

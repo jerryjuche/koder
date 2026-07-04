@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // Claims represents the JWT claims.
@@ -45,6 +46,7 @@ func SignToken(userID, studentID, username, role, secret string, expiryDuration 
 		Role:       role,
 		Onboarding: onboarding,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.New().String(), // jti — unique token ID for revocation
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiryTime),
 			NotBefore: jwt.NewNumericDate(now),

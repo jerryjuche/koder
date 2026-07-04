@@ -36,7 +36,7 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", nil)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body", nil)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusNotFound, "PROBLEM_NOT_FOUND", "Problem not found", "")
 			return
 		}
-		RespondError(w, http.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch problem", err.Error())
+		RespondError(w, http.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch problem", nil)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.executor.ExecuteVisibleOnly(r.Context(), execReq)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to test code", err.Error())
+		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to test code", nil)
 		return
 	}
 

@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 
 export default function MyContributions() {
   const [contributions, setContributions] = useState<UserProblem[]>([]);
@@ -277,7 +278,7 @@ export default function MyContributions() {
                   Problem Statement
                 </h4>
                 <div className="prose prose-invert prose-sm max-w-none text-muted-foreground">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                     {selected.statement}
                   </ReactMarkdown>
                 </div>
