@@ -22,7 +22,7 @@ func (h *LeaderboardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Reque
 
 	entries, err := h.store.GetLeaderboard(r.Context(), period)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", "Failed to fetch leaderboard", err.Error())
+		RespondError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", "Failed to fetch leaderboard", nil)
 		return
 	}
 

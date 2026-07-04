@@ -165,10 +165,20 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	goModule := req.GoModule
 	if goModule == "" {
 		goModule = defaultGoModule
+	} else {
+		// Validate module name: only safe characters, no newlines
+		if strings.ContainsAny(goModule, "\n\r") || !regexp.MustCompile(`^[a-zA-Z0-9_./-]+$`).MatchString(goModule) {
+			return errorResponse("security_error", "invalid go_module")
+		}
 	}
 	goVersion := req.GoVersion
 	if goVersion == "" {
 		goVersion = defaultGoVersion
+	} else {
+		// Validate version format
+		if !regexp.MustCompile(`^1\.\d+$`).MatchString(goVersion) {
+			return errorResponse("security_error", "invalid go_version")
+		}
 	}
 
 	// Create an isolated temp directory.
@@ -218,12 +228,29 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		"./...",
 	)
 	cmd.Dir = tmpDir
+	// Disable CGO and network access at build/run time
+	// Use whitelist: only inherit PATH and HOME, set all others explicitly
+	cmd.Env = []string{
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=" + os.Getenv("HOME"),
+		"CGO_ENABLED=0",
+		"GOPROXY=off",
+		"GOSUMDB=off",
+		"GOTOOLCHAIN=local",
+		"GOFLAGS=-buildvcs=false",
+	}
 
 	// Apply OS-level resource limits (memory, processes, fds, cpu)
 	// These are enforced by the kernel and cannot be bypassed by the child.
 	setProcessAttributes(cmd, timeoutSec)
 
-	output, err := cmd.CombinedOutput()
+	outputBytes, err := cmd.CombinedOutput()
+
+	// Cap output to 100KB to prevent OOM from stdout flooding
+	if len(outputBytes) > 100*1024 {
+		outputBytes = outputBytes[:100*1024]
+	}
+	output := string(outputBytes)
 
 	// If timed out, forcefully kill the entire process group to ensure no
 	// zombie children survive (fork bombs, runaway goroutines, etc.)
@@ -233,11 +260,10 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	}
 
 	runtimeMs := int(time.Since(start).Milliseconds())
-	stdout := string(output)
 
 	// Classify result
 	timedOut := runCtx.Err() == context.DeadlineExceeded
-	result := classifyOutput(stdout, timedOut, err)
+	result := classifyOutput(output, timedOut, err)
 
 	// Resource monitoring log
 	log.Printf("execution: status=%s passed=%d total=%d runtime=%dms timeout=%ds",
@@ -245,12 +271,12 @@ func runTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 
 	return ExecuteResponse{
 		Status:      result.status,
-		Stdout:      stdout,
+		Stdout:      output,
 		Stderr:      "",
 		PassedCount: result.passedCount,
 		TotalCount:  result.totalCount,
 		RuntimeMs:   runtimeMs,
-		Error:       compileErrorMessage(result.status, stdout),
+		Error:       compileErrorMessage(result.status, output),
 	}
 }
 
@@ -323,18 +349,18 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ExecuteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid_request_body")
-		return
-	}
-
 	if r.Header.Get("Content-Type") != "application/json" {
 		respondError(w, http.StatusUnsupportedMediaType, "content_type_required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
+
+	var req ExecuteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_request_body")
+		return
+	}
 
 	if req.Code == "" {
 		respondError(w, http.StatusBadRequest, "code_required")

@@ -3,8 +3,11 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,6 +15,8 @@ import (
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+var validUsername = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type AuthHandler struct {
 	store  store.Store
@@ -61,7 +66,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -70,13 +75,22 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Name) > 100 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "name must be at most 100 characters", nil)
+		return
+	}
+
+	if len(req.Password) < 8 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "password must be at least 8 characters", nil)
+		return
+	}
+	if len(req.Password) > 128 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "password must be at most 128 characters", nil)
+		return
+	}
+
 	// Generate temporary username and student_id
 	tempUsername := "u_" + uuid.New().String()[:8]
-
-	role := "student"
-	if h.config.AdminEmail != "" && req.Email != nil && *req.Email == h.config.AdminEmail && req.Password == h.config.AdminPassword {
-		role = "admin"
-	}
 
 	newUser := &store.NewUser{
 		StudentID: tempUsername,
@@ -84,28 +98,29 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Name:      req.Name,
 		Email:     req.Email,
 		Password:  req.Password,
-		Role:      role,
+		Role:      "student",
 	}
 
 	user, err := h.store.CreateUser(r.Context(), newUser)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "USER_CREATION_FAILED", "Unable to create user", err.Error())
+		RespondError(w, http.StatusBadRequest, "USER_CREATION_FAILED", "Unable to create user", nil)
 		return
 	}
 
 	userID, err := uuidStringFromPGType(user.ID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", err.Error())
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
 		return
 	}
 
 	// Issue JWT with onboarding flag — user must set their username
 	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), true)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
 	}
 
+	SetAuthCookie(w, token, h.config)
 	RespondCreated(w, authResponse{Token: token, Onboarding: true})
 }
 
@@ -114,7 +129,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -136,25 +151,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := uuidStringFromPGType(user.ID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", err.Error())
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
 		return
-	}
-
-	// Dynamic admin upgrade if environment variables changed after user creation
-	if user.Role != "admin" && h.config.AdminEmail != "" && (req.Login == h.config.AdminEmail || req.Login == user.Username) && req.Password == h.config.AdminPassword {
-		uID, _ := uuid.Parse(userID)
-		if err := h.store.UpdateUserRole(r.Context(), uID, "admin"); err == nil {
-			user.Role = "admin"
-		}
 	}
 
 	needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
 	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
 	}
 
+	SetAuthCookie(w, token, h.config)
 	RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 }
 
@@ -165,7 +173,7 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -176,7 +184,7 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 	info, err := auth.VerifyGoogleToken(req.IDToken, h.config.GoogleClientID)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", nil)
 		return
 	}
 
@@ -197,10 +205,11 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
 		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 			return
 		}
 
+		SetAuthCookie(w, token, h.config)
 		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
@@ -221,10 +230,11 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		needsOnboarding := strings.HasPrefix(existingUser.Username, "u_") || strings.HasPrefix(existingUser.Username, "g_")
 		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 			return
 		}
 
+		SetAuthCookie(w, token, h.config)
 		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
@@ -250,7 +260,7 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -261,6 +271,14 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 
 	if len(req.Username) < 3 {
 		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username must be at least 3 characters", nil)
+		return
+	}
+	if len(req.Username) > 30 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username must be at most 30 characters", nil)
+		return
+	}
+	if !validUsername.MatchString(req.Username) {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "username can only contain letters, numbers, underscores, and hyphens", nil)
 		return
 	}
 
@@ -284,11 +302,11 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 
 	// Update both username and student_id to the chosen value
 	if err := h.store.UpdateUserUsername(r.Context(), userUUID, req.Username); err != nil {
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", err.Error())
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", nil)
 		return
 	}
 	if err := h.store.UpdateUserStudentID(r.Context(), userUUID, req.Username); err != nil {
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set student ID", err.Error())
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set student ID", nil)
 		return
 	}
 
@@ -304,10 +322,11 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
 	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
 	}
 
+	SetAuthCookie(w, token, h.config)
 	RespondSuccess(w, authResponse{Token: token})
 }
 
@@ -324,7 +343,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -335,7 +354,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 
 	info, err := auth.VerifyGoogleToken(req.IDToken, h.config.GoogleClientID)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "GOOGLE_AUTH_FAILED", "Failed to verify Google token", nil)
 		return
 	}
 
@@ -369,7 +388,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	// Link Google to the authenticated user
 	userUUID := uuid.MustParse(claims.UserID)
 	if err := h.store.LinkGoogleToUser(r.Context(), userUUID, info); err != nil {
-		RespondError(w, http.StatusInternalServerError, "LINK_FAILED", "Failed to link Google account", err.Error())
+		RespondError(w, http.StatusInternalServerError, "LINK_FAILED", "Failed to link Google account", nil)
 		return
 	}
 
@@ -385,14 +404,17 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
 	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", err.Error())
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
 	}
 
+	SetAuthCookie(w, token, h.config)
 	RespondSuccess(w, authResponse{Token: token})
 }
 
 // CheckUsername checks if a username is available.
+// Always returns available: true to prevent username enumeration.
+// Actual uniqueness validation happens on submission during onboarding.
 // GET /auth/check-username?username=xxx
 func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("username")
@@ -401,11 +423,39 @@ func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetUserByUsername(r.Context(), username)
-	available := err != nil
-
 	RespondSuccess(w, map[string]interface{}{
-		"username":   username,
-		"available":  available,
+		"username":  username,
+		"available": true,
 	})
+}
+
+// Logout revokes the current JWT token by adding it to the blacklist.
+// POST /auth/logout
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	if claims.ID == "" {
+		// Token without jti — can't blacklist, just acknowledge logout
+		RespondSuccess(w, map[string]string{"message": "Logged out"})
+		return
+	}
+
+	expiresAt := time.Time{}
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
+	}
+
+	if err := h.store.BlacklistToken(r.Context(), claims.ID, expiresAt); err != nil {
+		slog.Error("auth: failed to blacklist token", "error", err)
+		RespondError(w, http.StatusInternalServerError, "LOGOUT_FAILED", "Failed to complete logout", nil)
+		return
+	}
+
+	ClearAuthCookie(w)
+	slog.Info("auth: token revoked", "user_id", claims.UserID)
+	RespondSuccess(w, map[string]string{"message": "Logged out"})
 }

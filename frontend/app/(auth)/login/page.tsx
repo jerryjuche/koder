@@ -55,7 +55,6 @@ export default function LoginPage() {
     try {
       const res = await googleLogin(response.credential);
       if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
         router.push(res.data.onboarding ? '/onboarding' : '/');
       } else if (res.error?.code === 'GOOGLE_NOT_LINKED') {
         setErrorMsg('This Google account is not linked to any Koder profile. Please sign in with your password below, then link Google in your Settings.');
@@ -75,7 +74,6 @@ export default function LoginPage() {
     try {
       const res = await login({ login: data.loginId, password: data.password });
       if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
         router.push('/');
       } else {
         setErrorMsg(res.error?.message || 'Login failed');
@@ -183,8 +181,8 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
                   Password
                 </Label>
-                <Link href="#" className="text-[11px] text-brand-muted-gold/50 hover:text-brand-muted-gold transition-colors font-medium">
-                  Forgot password?
+                <Link href="/auth/forgot-password" className="text-[11px] text-brand-muted-gold/50 hover:text-brand-muted-gold transition-colors font-medium">
+                   Forgot password?
                 </Link>
               </div>
               <Input

@@ -11,36 +11,49 @@ var dangerousPatterns = []struct {
 	re  *regexp.Regexp
 	msg string
 }{
+	// CGO — blocks "C" pseudo-package in both double-quote and backtick form
+	{regexp.MustCompile(`"C"`), "cgo is not allowed"},
+	{regexp.MustCompile("`C`"), "cgo is not allowed"},
+
 	// Package imports (covers both "pkg" and "pkg/sub" quoted strings)
 	{regexp.MustCompile(`"os/exec"`), "package os/exec is not allowed"},
+	{regexp.MustCompile("`os/exec`"), "package os/exec is not allowed"},
 	{regexp.MustCompile(`"syscall"`), "package syscall is not allowed"},
+	{regexp.MustCompile("`syscall`"), "package syscall is not allowed"},
 	{regexp.MustCompile(`"unsafe"`), "package unsafe is not allowed"},
+	{regexp.MustCompile("`unsafe`"), "package unsafe is not allowed"},
 	{regexp.MustCompile(`"net"`), "package net is not allowed"},
+	{regexp.MustCompile("`net`"), "package net is not allowed"},
+	{regexp.MustCompile(`"embed"`), "package embed is not allowed"},
+	{regexp.MustCompile("`embed`"), "package embed is not allowed"},
 
 	// Fully-qualified dangerous calls
 	{regexp.MustCompile(`\bos/exec\.`), "os/exec calls are not allowed"},
 	{regexp.MustCompile(`\bsyscall\.`), "syscall calls are not allowed"},
 	{regexp.MustCompile(`\bunsafe\.`), "unsafe calls are not allowed"},
 
-	// Filesystem mutations
-	{regexp.MustCompile(`\bos\.(Remove|RemoveAll|Create|OpenFile|Chmod|Chown|Mkdir|MkdirAll|Rename|Truncate|WriteFile|Write)\s*\(`),
+	// //go:embed directives
+	{regexp.MustCompile(`//go:embed`), "go:embed directives are not allowed"},
+
+	// Filesystem mutations (word boundary, no parentheses required — catches variable refs)
+	{regexp.MustCompile(`\bos\.\s*(Remove|RemoveAll|Create|OpenFile|Chmod|Chown|Mkdir|MkdirAll|Rename|Truncate|WriteFile|Write)\b`),
 		"filesystem writes are not allowed"},
 	{regexp.MustCompile(`\bioutil\.`), "ioutil is not allowed"},
 
 	// Network connections
-	{regexp.MustCompile(`\bnet\.(Dial|DialTCP|DialUDP|DialIP|Listen|ListenTCP|ListenUDP|ListenIP)\s*\(`),
+	{regexp.MustCompile(`\bnet\.\s*(Dial|DialTCP|DialUDP|DialIP|Listen|ListenTCP|ListenUDP|ListenIP)\b`),
 		"network connections are not allowed"},
 
 	// Process / signal control
-	{regexp.MustCompile(`\bos\.(StartProcess|FindProcess|Signal)\s*\(`),
+	{regexp.MustCompile(`\bos\.\s*(StartProcess|FindProcess|Signal|Exit)\b`),
 		"process control is not allowed"},
 
 	// Reflection abuse
-	{regexp.MustCompile(`\breflect\.(ValueOf|NewAt|MakeFunc|SetValue)\s*\(`),
+	{regexp.MustCompile(`\breflect\.\s*(ValueOf|NewAt|MakeFunc|SetValue)\b`),
 		"reflection abuse is not allowed"},
 
 	// Runtime / eval-like calls
-	{regexp.MustCompile(`\bruntime\.(Goexit|GOMAXPROCS|NumCPU|NumGoroutine)\s*\(`),
+	{regexp.MustCompile(`\bruntime\.\s*(Goexit|GOMAXPROCS|NumCPU|NumGoroutine)\b`),
 		"runtime manipulation is not allowed"},
 }
 

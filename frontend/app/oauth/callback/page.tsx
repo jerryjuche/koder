@@ -12,7 +12,6 @@ function OAuthCallbackInner() {
     const error = searchParams.get('error');
 
     if (token) {
-      localStorage.setItem('token', token);
       // Scrub token from URL bar and browser history immediately
       window.history.replaceState({}, document.title, '/');
       router.push('/');

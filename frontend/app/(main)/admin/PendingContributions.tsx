@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 
 interface Props {
   compact?: boolean;
@@ -163,7 +164,7 @@ export default function PendingContributions({ compact }: Props) {
                       <span className="px-2 py-1 bg-brand-charcoal-panel rounded-full border border-brand-charcoal-border">Difficulty: {selectedProblem.difficulty}/5</span>
                     </div>
                     <div className="prose prose-invert prose-brand max-w-none prose-sm">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                         {selectedProblem.statement}
                       </ReactMarkdown>
                     </div>
@@ -190,7 +191,7 @@ export default function PendingContributions({ compact }: Props) {
                   <div>
                     <h4 className="text-sm font-semibold text-brand-offwhite-muted uppercase tracking-wider mb-4 border-b border-brand-charcoal-border pb-2">Problem Statement</h4>
                     <div className="prose prose-invert prose-brand max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                         {selectedProblem.statement}
                       </ReactMarkdown>
                     </div>

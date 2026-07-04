@@ -639,6 +639,28 @@ func (s *PostgresStore) UpdateUserStudentID(ctx context.Context, id uuid.UUID, s
 	return nil
 }
 
+// UpdateUserPassword updates the password hash for a user.
+func (s *PostgresStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if passwordHash == "" {
+		return fmt.Errorf("password hash cannot be empty")
+	}
+
+	cmdTag, err := s.pool.Exec(ctx,
+		`UPDATE users SET password = $1 WHERE id = $2`,
+		passwordHash, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
 // UpdateUserGoogleAvatar updates the Google avatar URL for a user.
 func (s *PostgresStore) UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error {
 	if id == uuid.Nil {

@@ -125,7 +125,7 @@ func (h *MeHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.DeleteUser(r.Context(), userUUID); err != nil {
-		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete account: "+err.Error(), nil)
+		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete account", nil)
 		return
 	}
 

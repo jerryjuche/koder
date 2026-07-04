@@ -22,14 +22,11 @@ export async function fetchApi<T>(
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : "";
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });
@@ -99,6 +96,25 @@ export async function googleLogin(
   });
 }
 
+export async function forgotPassword(
+  email: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function completeGoogleOnboarding(
   username: string,
 ): Promise<ApiResponse<{ token: string }>> {
@@ -123,6 +139,12 @@ export async function linkGoogle(
   });
 }
 
+export async function logout(): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/logout", {
+    method: "POST",
+  });
+}
+
 export async function checkUsername(
   username: string,
 ): Promise<ApiResponse<{ username: string; available: boolean }>> {
@@ -132,17 +154,6 @@ export async function checkUsername(
 }
 
 export async function fetchUser(): Promise<ApiResponse<User>> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (!token) {
-    return {
-      success: false,
-      data: null,
-      error: { code: "UNAUTHORIZED", message: "No token" },
-    };
-  }
-
-  // Try the real /me endpoint first
   const res = await fetchApi<any>("/me");
   if (res.success && res.data) {
     return {

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi } from "@/lib/api";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout } from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
@@ -48,9 +48,6 @@ function SettingsPageContent() {
       try {
         const res = await linkGoogle(response.credential);
         if (res.success) {
-          if (res.data?.token) {
-            localStorage.setItem("token", res.data.token);
-          }
           window.dispatchEvent(new Event("user-updated"));
           toast.success({
             title: "Google account linked",
@@ -146,8 +143,8 @@ function SettingsPageContent() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    await logout();
     window.location.href = "/auth/login";
   };
 
@@ -156,7 +153,6 @@ function SettingsPageContent() {
     try {
       const res = await deleteAccount();
       if (res.success) {
-        localStorage.removeItem("token");
         window.location.href = "/auth/login";
       } else {
         throw new Error(res.error?.message || "Failed to delete account");

@@ -64,7 +64,6 @@ export default function RegisterPage() {
     try {
       const res = await googleLogin(response.credential);
       if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
         router.push(res.data.onboarding ? '/onboarding' : '/');
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
@@ -86,7 +85,6 @@ export default function RegisterPage() {
         password: data.password,
       });
       if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
         router.push(res.data.onboarding ? '/onboarding' : '/');
       } else {
         setErrorMsg(res.error?.message || 'Registration failed');

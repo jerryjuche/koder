@@ -18,6 +18,7 @@ import {
 import { cn, getUserColor } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
 import { useNotifications } from "@/lib/useNotifications";
+import { logout } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import {
   DropdownMenu,
@@ -308,8 +309,8 @@ export default function TopNav() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => {
-                    localStorage.removeItem("token");
+                  onClick={async () => {
+                    await logout();
                     window.location.href = "/login";
                   }}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
