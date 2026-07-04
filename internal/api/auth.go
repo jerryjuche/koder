@@ -138,7 +138,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetAuthCookie(w, token, h.config)
+	SetAuthCookie(w, r, token, h.config)
 	RespondCreated(w, authResponse{Token: token, Onboarding: true})
 }
 
@@ -180,7 +180,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetAuthCookie(w, token, h.config)
+	SetAuthCookie(w, r, token, h.config)
 	RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 }
 
@@ -227,7 +227,7 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		SetAuthCookie(w, token, h.config)
+		SetAuthCookie(w, r, token, h.config)
 		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
@@ -252,7 +252,7 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		SetAuthCookie(w, token, h.config)
+		SetAuthCookie(w, r, token, h.config)
 		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
 		return
 	}
@@ -344,7 +344,7 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	SetAuthCookie(w, token, h.config)
+	SetAuthCookie(w, r, token, h.config)
 	RespondSuccess(w, authResponse{Token: token})
 }
 
@@ -426,7 +426,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetAuthCookie(w, token, h.config)
+	SetAuthCookie(w, r, token, h.config)
 	RespondSuccess(w, authResponse{Token: token})
 }
 
@@ -473,7 +473,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ClearAuthCookie(w)
+	ClearAuthCookie(w, r)
 	slog.Info("auth: token revoked", "user_id", claims.UserID)
 	RespondSuccess(w, map[string]string{"message": "Logged out"})
 }
