@@ -1,38 +1,99 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { User } from "lucide-react";
-import { UserProfile } from "@/lib/types";
-import { fetchUserProfile } from "@/lib/api";
+import { useEffect, useState, useMemo } from "react";
+import { motion } from "motion/react";
+import { User, FileText, GitPullRequest } from "lucide-react";
+import { User as UserType, UserProfile, ActivityEntry } from "@/lib/types";
+import { fetchUserProfile, fetchUserActivity } from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileHeader from "./components/ProfileHeader";
 import ProgressMetrics from "./components/ProgressMetrics";
 import StatsOverview from "./components/StatsOverview";
 import MyContributions from "./components/MyContributions";
 import Achievements from "./components/Achievements";
+import ActivityFeed from "./components/ActivityFeed";
+import ContributionGraphSection from "./components/ContributionGraphSection";
 import { useNotifications } from "@/lib/useNotifications";
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return (
+    <div className={`overflow-hidden rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-white/[0.03] bg-[length:200%_100%] animate-shimmer ${className}`} />
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header skeleton */}
+        <div className="rounded-2xl bg-[#242430]/40 backdrop-blur-sm border border-white/6 p-8">
+          <div className="flex gap-6 items-start">
+            <SkeletonBlock className="w-24 h-24 rounded-full" />
+            <div className="flex-1 space-y-3">
+              <SkeletonBlock className="h-8 w-48" />
+              <SkeletonBlock className="h-4 w-32" />
+              <SkeletonBlock className="h-4 w-3/4" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <SkeletonBlock key={i} className="h-28" />
+          ))}
+        </div>
+
+        {/* Activity + Stats skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+          <SkeletonBlock className="lg:col-span-4 h-40" />
+          <SkeletonBlock className="lg:col-span-2 h-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileClient() {
+  const { user } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { notifications } = useNotifications();
 
-  // Check if we have unread contribution notifications
-  const hasContributionNotif = notifications.some(
-    (n) => !n.is_read && (n.type === "contribution_approved" || n.type === "contribution_rejected")
+  const hasContributionNotif = useMemo(
+    () => notifications.some(
+      (n) =>
+        !n.is_read &&
+        (n.type === "contribution_approved" ||
+          n.type === "contribution_rejected")
+    ),
+    [notifications]
   );
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "contributions">("overview");
+
   useEffect(() => {
     let mounted = true;
 
     const loadData = async () => {
       try {
-        const response = await fetchUserProfile();
+        const [profileRes, activityRes] = await Promise.all([
+          fetchUserProfile(),
+          fetchUserActivity(),
+        ]);
         if (!mounted) return;
-        if (response.success && response.data) {
-          setProfile(response.data);
+
+        if (profileRes.success && profileRes.data) {
+          setProfile(profileRes.data);
         } else {
-          setError(response.error?.message || "Failed to load profile");
+          setError(profileRes.error?.message || "Failed to load profile");
+          return;
+        }
+
+        if (activityRes.success && activityRes.data) {
+          setActivity(activityRes.data);
         }
       } catch (err) {
         if (!mounted) return;
@@ -44,9 +105,7 @@ export default function ProfileClient() {
 
     loadData();
 
-    const onUserUpdated = () => {
-      loadData();
-    };
+    const onUserUpdated = () => loadData();
     window.addEventListener("user-updated", onUserUpdated);
     return () => {
       mounted = false;
@@ -54,114 +113,109 @@ export default function ProfileClient() {
     };
   }, []);
 
-
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-charcoal-base py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
-          {/* Header Skeleton */}
-          <div className="space-y-3">
-            <div className="h-10 w-48 bg-brand-charcoal-card rounded-xl border border-brand-charcoal-border"></div>
-            <div className="h-5 w-64 bg-brand-charcoal-card rounded-md border border-brand-charcoal-border"></div>
-          </div>
-          
-          <div className="space-y-6">
-            {/* Stats Bar Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                 <div key={i} className="h-32 bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              ))}
-            </div>
-            {/* Two-column skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-              <div className="h-[400px] bg-brand-charcoal-card rounded-2xl border border-brand-charcoal-border"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-brand-error text-lg">
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-4"
+        >
+          <p className="text-red-400 text-lg">
             {error || "Failed to load profile"}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base rounded-lg transition font-medium"
+            className="px-5 py-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition font-medium"
           >
             Try Again
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-charcoal-base py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <User size={32} className="text-brand-muted-gold" />
-            <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite">
-              My Profile
-            </h1>
-          </div>
-          <p className="text-brand-offwhite-muted">
-            View your progress, rank, and problem-solving statistics
-          </p>
-        </div>
+    <TooltipProvider>
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Page title */}
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 mb-2"
+          >
+            <div className="p-2.5 rounded-xl bg-[#7B8CBB]/10 border border-[#7B8CBB]/20">
+              <User size={22} className="text-[#7B8CBB]" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                My Profile
+              </h1>
+              <p className="text-white/40 text-sm">
+                View your progress, rank, and problem-solving statistics
+              </p>
+            </div>
+          </motion.div>
 
-        {/* Horizontal Profile Header */}
-        <ProfileHeader profile={profile} />
+          <ProfileHeader profile={profile} user={user} />
 
-        {/* Main Content Area */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4 border-b border-brand-charcoal-border w-full">
-              <button 
-                onClick={() => setActiveTab("overview")}
-                className={`pb-4 px-2 font-semibold transition ${activeTab === "overview" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
-              >
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList variant="line" className="w-full justify-start">
+              <TabsTrigger value="overview" className="gap-2">
+                <FileText size={16} />
                 Overview
-              </button>
-              {/* Verified Contributor Tab */}
-              <button 
-                onClick={() => setActiveTab("contributions")}
-                className={`pb-4 px-2 font-semibold transition flex items-center gap-2 ${activeTab === "contributions" ? "text-brand-muted-gold border-b-2 border-brand-muted-gold" : "text-slate-400 hover:text-slate-200"}`}
-              >
+              </TabsTrigger>
+              <TabsTrigger value="contributions" className="relative gap-2">
+                <GitPullRequest size={16} />
                 My Contributions
                 {hasContributionNotif && (
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse absolute -top-0.5 -right-1" />
                 )}
-              </button>
-            </div>
-          </div>
+              </TabsTrigger>
+            </TabsList>
 
-          {activeTab === "overview" ? (
-            <div className="space-y-6">
-              {/* Full-width Stats Bar */}
-              <StatsOverview profile={profile} />
-              
-              {/* Two-column: Module Proficiency + Achievements */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ProgressMetrics profile={profile} />
-                <Achievements profile={profile} />
+            <TabsContent value="overview" className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+                <div className="lg:col-span-4 min-w-0 overflow-x-auto">
+                  <ContributionGraphSection activity={activity} />
+                </div>
+                <div className="lg:col-span-2">
+                  <StatsOverview profile={profile} />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="pt-4">
-              <MyContributions />
-            </div>
-          )}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <ProgressMetrics profile={profile} />
+                </div>
+                <div className="lg:col-span-1">
+                  <Achievements profile={profile} />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="contributions" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <MyContributions />
+                </div>
+                <div>
+                  <ActivityFeed
+                    profile={profile}
+                    activity={activity}
+                    contributionCount={0}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

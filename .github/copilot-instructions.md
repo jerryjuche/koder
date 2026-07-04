@@ -45,3 +45,6 @@ You are an elite, hard-nosed systems engineer writing code for a hyper-frugal, h
 - Interactivity Minimization: Default to React Server Components (RSC). Apply the `"use client"` directive only when building components with interactive browser hooks or DOM state requirements (e.g., Monaco configuration).
 - Security Boundaries: Store authentication JWT credentials cleanly inside an `httpOnly` secure cookie wrapper. Do not store sensitive access payloads in `localStorage`.
 - Stability Assurance: Wrap the Monaco Editor code workspace and test panel components with robust error boundaries to isolate client component execution failures.
+- Auth: Google Sign-In via `POST /auth/google` with ID token; JWT contains `Username` + `Onboarding` claims.
+- Google OAuth: IdP token verified server-side via `https://oauth2.googleapis.com/tokeninfo?id_token=...` (zero extra deps).
+- No Gitea code exists in the codebase. All Gitea handlers, store methods, types, and migration files have been removed.

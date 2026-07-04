@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -9,23 +10,55 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID         pgtype.UUID `db:"id" json:"id"`
-	StudentID  string      `db:"student_id" json:"student_id"`
-	Name       string      `db:"name" json:"name"`
-	Bio        *string     `db:"bio" json:"bio,omitempty"`
-	Password   string      `db:"password" json:"-"` // bcrypt hash
-	Role       string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
-	ColorIndex int         `db:"color_index" json:"color_index"`
-	XP         int         `db:"xp" json:"xp"`
-	Verified   bool        `db:"verified" json:"verified"`
-	VerifiedAt *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
-	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
+	ID             pgtype.UUID `db:"id" json:"id"`
+	StudentID      string      `db:"student_id" json:"student_id"`
+	Username       string      `db:"username" json:"username"`
+	Name           string      `db:"name" json:"name"`
+	Bio            *string     `db:"bio" json:"bio,omitempty"`
+	Email          *string     `db:"email" json:"email,omitempty"`
+	Password       string      `db:"password" json:"-"` // bcrypt hash (or placeholder for OAuth users)
+	Role           string      `db:"role" json:"role"`  // "student" | "verified_contributor" | "admin"
+	ColorIndex     int         `db:"color_index" json:"color_index"`
+	XP             int         `db:"xp" json:"xp"`
+	Verified       bool        `db:"verified" json:"verified"`
+	VerifiedAt     *time.Time  `db:"verified_at" json:"verified_at,omitempty"`
+	GoogleID       *string     `db:"google_id" json:"-"`
+	GoogleEmail    *string     `db:"google_email" json:"-"`
+	GoogleAvatarURL *string   `db:"google_avatar_url" json:"google_avatar_url,omitempty"`
+	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
+}
+
+// FlexibleBool accepts both JSON boolean and string ("true"/"false").
+type FlexibleBool bool
+
+func (b *FlexibleBool) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "true", `"true"`:
+		*b = true
+	case "false", `"false"`:
+		*b = false
+	default:
+		return fmt.Errorf("FlexibleBool: cannot unmarshal %s", string(data))
+	}
+	return nil
+}
+
+// GoogleUserInfo represents the user info from Google's ID token.
+type GoogleUserInfo struct {
+	Sub           string       `json:"sub"`
+	Email         string       `json:"email"`
+	Name          string       `json:"name"`
+	Picture       string       `json:"picture"`
+	EmailVerified FlexibleBool `json:"email_verified"`
+	Audience      string       `json:"aud"`
 }
 
 // NewUser represents a user creation request.
 type NewUser struct {
 	StudentID string
+	Username  string
 	Name      string
+	Email     *string
 	Password  string // plaintext, will be hashed
 	Role      string // "student" | "admin"
 }
@@ -67,7 +100,7 @@ type Problem struct {
 type TestCase struct {
 	ID        pgtype.UUID `db:"id" json:"id"`
 	ProblemID pgtype.UUID `db:"problem_id" json:"problem_id"`
-	Input     []byte      `db:"input" json:"input"`
+	Input     json.RawMessage `db:"input" json:"input"`
 	Expected  string      `db:"expected" json:"expected"`
 	IsHidden  bool        `db:"is_hidden" json:"is_hidden"`
 	Ordinal   int         `db:"ordinal" json:"ordinal"`
@@ -118,14 +151,16 @@ type AdminStats struct {
 
 // LeaderboardUser represents the embedded user in a leaderboard entry.
 type LeaderboardUser struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	StudentID   string `json:"studentId"`
-	Role        string `json:"role"`
-	ColorIndex  int    `json:"colorIndex"`
-	XP          int    `json:"xp"`
-	Level       int    `json:"level"`
-	SolvedCount int    `json:"solvedCount"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	StudentID      string  `json:"studentId"`
+	Username       string  `json:"username"`
+	Role           string  `json:"role"`
+	ColorIndex     int     `json:"colorIndex"`
+	XP             int     `json:"xp"`
+	Level          int     `json:"level"`
+	SolvedCount    int     `json:"solvedCount"`
+	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 }
 
 // LeaderboardEntry represents a single row on the leaderboard.
@@ -205,6 +240,58 @@ type NewUserProblem struct {
 	XPReward   int                   `json:"xp_reward"`
 	Tags       []string              `json:"tags"`
 	TestCases  []UserProblemTestCase `json:"test_cases"`
+}
+
+// Feedback represents a user-submitted feedback or bug report.
+type Feedback struct {
+	ID            pgtype.UUID `db:"id" json:"id"`
+	UserID        pgtype.UUID `db:"user_id" json:"user_id"`
+	Type          string      `db:"type" json:"type"`
+	Title         string      `db:"title" json:"title"`
+	Description   string      `db:"description" json:"description"`
+	Priority      string      `db:"priority" json:"priority"`
+	ScreenshotURL *string     `db:"screenshot_url" json:"screenshot_url,omitempty"`
+	Status        string      `db:"status" json:"status"`
+	AdminNotes    *string     `db:"admin_notes" json:"admin_notes,omitempty"`
+	IsAnonymous   bool        `db:"is_anonymous" json:"is_anonymous"`
+	CreatedAt     time.Time   `db:"created_at" json:"created_at"`
+	UserName      *string     `db:"user_name" json:"user_name,omitempty"`
+}
+
+// NewFeedback is the payload for creating a feedback entry.
+type NewFeedback struct {
+	Type          string  `json:"type"`
+	Title         string  `json:"title"`
+	Description   string  `json:"description"`
+	Priority      string  `json:"priority"`
+	ScreenshotURL *string `json:"screenshot_url,omitempty"`
+	IsAnonymous   bool    `json:"is_anonymous"`
+}
+
+// Broadcast represents an admin-created broadcast message sent to all users.
+type Broadcast struct {
+	ID         pgtype.UUID `db:"id" json:"id"`
+	Type       string      `db:"type" json:"type"`
+	Priority   string      `db:"priority" json:"priority"`
+	Title      string      `db:"title" json:"title"`
+	Message    string      `db:"message" json:"message"`
+	ActionLabel *string    `db:"action_label" json:"action_label,omitempty"`
+	ActionURL  *string    `db:"action_url" json:"action_url,omitempty"`
+	Active     bool        `db:"active" json:"active"`
+	CreatedBy  pgtype.UUID `db:"created_by" json:"created_by"`
+	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time   `db:"updated_at" json:"updated_at"`
+	UserName   *string     `db:"user_name" json:"user_name,omitempty"`
+}
+
+// NewBroadcast is the payload for creating a broadcast.
+type NewBroadcast struct {
+	Type        string  `json:"type"`
+	Priority    string  `json:"priority,omitempty"`
+	Title       string  `json:"title"`
+	Message     string  `json:"message,omitempty"`
+	ActionLabel *string `json:"action_label,omitempty"`
+	ActionURL   *string `json:"action_url,omitempty"`
 }
 
 // CommunitySolution represents a submission returned for the community solutions/best practices view.

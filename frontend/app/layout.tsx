@@ -1,10 +1,14 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: 'Koder — Code. Learn. Master Go.',
   description: 'A zero-cost, production-grade automated code-grading platform for Go programming.',
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
@@ -12,6 +16,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
         {children}
+        <Analytics />
         <Toaster
           theme="dark"
           position="top-right"

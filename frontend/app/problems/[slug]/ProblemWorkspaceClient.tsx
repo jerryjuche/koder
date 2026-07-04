@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   ChevronLeft,
   Play,
@@ -36,13 +37,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState(DEFAULT_CODE);
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
-  const [hintsOpen, setHintsOpen] = useState([false, false, false]);
+  const [hintsOpen, setHintsOpen] = useState<boolean[]>(Array(10).fill(false));
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<TestResult[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -60,6 +62,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       }
     });
   }, [slug]);
+
+  // Cooldown countdown for rate limiting
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   // Auto-save to localStorage with 2s debounce
   useEffect(() => {
@@ -114,7 +125,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setResults(null);
     setErrorMsg(null);
     setLastExecution(null);
-    setHintsOpen([false, false, false]);
+    setHintsOpen(Array(10).fill(false));
     localStorage.removeItem(STORE_KEY(slug));
     toast.success("Reset to original scaffold");
   };
@@ -187,6 +198,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.error("Some test cases failed.");
         }
       }
+    } else if (res.error?.code === "RATE_LIMITED") {
+      setErrorMsg(null);
+      setResults(null);
+      setLastExecution(null);
+      const match = res.error.message.match(/(\d+)/);
+      const seconds = match ? parseInt(match[1]) : 10;
+      setCooldown(seconds);
+      toast.error(res.error.message);
     } else {
       setErrorMsg(res.error?.message || "Submission failed");
       setResults(null);
@@ -239,6 +258,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.error("Some test cases failed.");
         }
       }
+    } else if (res.error?.code === "RATE_LIMITED") {
+      setErrorMsg(null);
+      setResults(null);
+      setLastExecution(null);
+      const match = res.error.message.match(/(\d+)/);
+      const seconds = match ? parseInt(match[1]) : 10;
+      setCooldown(seconds);
+      toast.error(res.error.message);
     } else {
       setErrorMsg(res.error?.message || "Test failed");
       setResults(null);
@@ -263,7 +290,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link
-            href="/"
+            href="/home"
             className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
           >
             <ChevronLeft size={16} /> Problems
@@ -318,27 +345,31 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </button>
           <button
             onClick={handleTest}
-            disabled={submitting}
+            disabled={submitting || cooldown > 0}
             className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
           >
-            {submitting ? (
+            {cooldown > 0 ? (
+              <span className="text-brand-muted-gold font-mono">{cooldown}s</span>
+            ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
             ) : (
               <Play size={16} fill="currentColor" />
             )}
-            Test
+            {cooldown > 0 ? "Wait" : "Test"}
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || cooldown > 0}
             className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md shadow-brand-muted-gold/10 transition-all disabled:opacity-70"
           >
-            {submitting ? (
+            {cooldown > 0 ? (
+              <span className="text-brand-charcoal-base font-mono">{cooldown}s</span>
+            ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
             ) : (
               <Play size={16} fill="currentColor" />
             )}
-            Submit
+            {cooldown > 0 ? "Wait" : "Submit"}
           </button>
         </div>
       </header>
@@ -412,13 +443,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             </div>
 
             {/* Problem Description */}
-            <div className="mb-6">
-              <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+            <div className="mb-8">
+              <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-muted-gold shadow-[0_0_8px_rgba(238,197,126,0.8)]"></span>
                 Description
               </div>
-              <div className="prose prose-invert prose-brand max-w-none text-sm text-brand-offwhite-muted leading-relaxed">
-                <div className="markdown-body">
-                  <Markdown>
+              <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
+                <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
+                  <Markdown remarkPlugins={[remarkGfm]}>
                     {problem?.statement ||
                       problem?.descriptionMarkdown ||
                       "No problem statement available yet. This exercise is pending enrichment."}
@@ -429,35 +462,36 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
             {/* Examples Section */}
             {problem.examples && problem.examples.length > 0 && (
-              <div className="mb-6">
-                <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+              <div className="mb-8">
+                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-success shadow-[0_0_8px_rgba(62,207,142,0.8)]"></span>
                   Examples
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {problem.examples.map((ex, idx) => (
                     <div
                       key={ex.id}
-                      className="rounded-lg border border-brand-charcoal-border bg-brand-charcoal-card overflow-hidden"
+                      className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-[#0F1115] to-[#0A0C0F] overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
                     >
-                      <div className="px-4 py-2 bg-brand-charcoal-hover/50 border-b border-brand-charcoal-border/50">
-                        <div className="text-xs font-semibold text-brand-offwhite-muted">
+                      <div className="px-5 py-2.5 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50 flex items-center justify-between">
+                        <div className="text-xs font-bold tracking-wide text-brand-offwhite/80 uppercase">
                           Example {idx + 1}
                         </div>
                       </div>
-                      <div className="p-4 space-y-3">
+                      <div className="p-5 space-y-4">
                         <div>
-                          <div className="text-xs font-bold text-brand-offwhite-muted mb-2">
-                            Input:
+                          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
+                            Input
                           </div>
-                          <div className="font-mono text-xs text-brand-offwhite break-words whitespace-pre-wrap bg-[#0B0B0B] p-3 rounded border border-brand-charcoal-border">
+                          <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
                             {ex.input}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-brand-offwhite-muted mb-2">
-                            Output:
+                          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
+                            Expected Output
                           </div>
-                          <div className="font-mono text-xs text-brand-success break-words whitespace-pre-wrap bg-[#0B0B0B] p-3 rounded border border-brand-charcoal-border">
+                          <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
                             {ex.expected}
                           </div>
                         </div>
@@ -469,17 +503,18 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             )}
 
             {/* Constraints Section */}
-            <div className="mb-6">
-              <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+            <div className="mb-8">
+              <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border shadow-[0_0_8px_rgba(255,255,255,0.2)]"></span>
                 Constraints
               </div>
-              <div className="rounded-lg border border-brand-charcoal-border bg-brand-charcoal-card/50 p-4">
-                <ul className="space-y-2 text-sm text-brand-offwhite-muted">
+              <div className="rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-card/80 to-transparent p-5 backdrop-blur-sm">
+                <ul className="space-y-3 text-sm text-brand-offwhite-muted">
                   {problem.param_types && problem.param_types.length > 0 && (
-                    <li className="flex items-start gap-2">
-                      <span className="text-brand-muted-gold mt-0.5">•</span>
+                    <li className="flex items-start gap-3">
+                      <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
                       <span>
-                        <span className="font-mono text-brand-offwhite">
+                        <span className="font-mono text-brand-offwhite/90">
                           Parameters:
                         </span>{" "}
                         {problem.param_types.map((t) => `${t}`).join(", ")}
@@ -487,29 +522,29 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     </li>
                   )}
                   {problem.return_type && (
-                    <li className="flex items-start gap-2">
-                      <span className="text-brand-muted-gold mt-0.5">•</span>
+                    <li className="flex items-start gap-3">
+                      <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
                       <span>
-                        <span className="font-mono text-brand-offwhite">
+                        <span className="font-mono text-brand-offwhite/90">
                           Return Type:
                         </span>{" "}
                         {problem.return_type}
                       </span>
                     </li>
                   )}
-                  <li className="flex items-start gap-2">
-                    <span className="text-brand-muted-gold mt-0.5">•</span>
+                  <li className="flex items-start gap-3">
+                    <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
                     <span>
-                      <span className="font-mono text-brand-offwhite">
+                      <span className="font-mono text-brand-offwhite/90">
                         Difficulty:
                       </span>{" "}
                       {getDifficultyLabel(problem.difficulty)}
                     </span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-brand-muted-gold mt-0.5">•</span>
+                  <li className="flex items-start gap-3">
+                    <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
                     <span>
-                      <span className="font-mono text-brand-offwhite">
+                      <span className="font-mono text-brand-offwhite/90">
                         Time Limit:
                       </span>{" "}
                       {problem.estTimeMinutes ||
@@ -527,15 +562,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
             {/* Tags Section */}
             {problem.tags && problem.tags.length > 0 && (
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-brand-offwhite mb-3">
+              <div className="mb-8">
+                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-offwhite/50 shadow-[0_0_8px_rgba(255,255,255,0.4)]"></span>
                   Topics
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {problem.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-xs bg-brand-muted-gold/10 text-brand-muted-gold px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 font-medium"
+                      className="text-[11px] uppercase tracking-wider bg-brand-muted-gold/5 text-brand-muted-gold px-3.5 py-1.5 rounded-full border border-brand-muted-gold/20 font-bold hover:bg-brand-muted-gold/10 hover:border-brand-muted-gold/40 transition-colors cursor-default"
                     >
                       {tag}
                     </span>
@@ -828,15 +864,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 <Lightbulb size={18} /> Progressive Hints
               </div>
               <span className="text-xs text-brand-offwhite-muted bg-brand-charcoal-base px-2 py-1 rounded">
-                ({hintsOpen.filter(Boolean).length}/3 viewed)
+                ({hintsOpen.filter(Boolean).length}/{problem.hints?.length || 3} viewed)
               </span>
             </div>
             <div className="p-5 space-y-4">
-              {[
+              {(problem.hints && problem.hints.length > 0 ? problem.hints : [
                 "Think about using the standard fmt package in Go. Which function prints with a newline?",
                 "You don't need to return a value from main(), simply call the print function.",
                 'The exact syntax is `fmt.Println("Hello, World!")` inside the main function.',
-              ].map((hintText, idx) => {
+              ]).map((hintText, idx) => {
                 const isOpen = hintsOpen[idx];
                 const isLocked = idx > 0 && !hintsOpen[idx - 1];
                 return (

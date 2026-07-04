@@ -24,6 +24,7 @@
       "@/app/*": ["./app/*"],
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
+      "@/lib": ["./lib/index.ts"],
       "@/hooks/*": ["./hooks/*"],
       "@/assets/*": ["./assets/*"]
     }

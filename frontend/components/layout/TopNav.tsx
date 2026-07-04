@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Code2,
   Bell,
   LayoutDashboard,
   Trophy,
@@ -13,47 +13,50 @@ import {
   User as UserIcon,
   PlusCircle,
   CheckCheck,
+  ChevronDown,
 } from "lucide-react";
 import { cn, getUserColor } from "@/lib/utils";
-import { fetchUser } from "@/lib/api";
-import { User } from "@/lib/types";
+import { useUser } from "@/lib/UserContext";
 import { useNotifications } from "@/lib/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 export default function TopNav() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const router = useRouter();
+  const { user, loading } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const notifRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
+  const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
+  const [avatarError, setAvatarError] = React.useState(false);
+  const notifRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Reset avatarError when user data changes (e.g. after Google sync)
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [user?.google_avatar_url]);
+
+  // Close notification menu on outside click
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setNotifMenuOpen(false);
-      }
-      if (userRef.current && !userRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const loadUser = () => {
-      fetchUser().then((res) => {
-        if (res.success) setUser(res.data);
-        setLoading(false);
-      });
-    };
-    loadUser();
-    window.addEventListener("user-updated", loadUser);
-    return () => window.removeEventListener("user-updated", loadUser);
-  }, []);
+  // Close notification menu on route change
+  React.useEffect(() => {
+    setNotifMenuOpen(false);
+  }, [pathname]);
 
   const navLinks = [
     { name: "Problems", href: "/", icon: LayoutDashboard },
@@ -62,17 +65,21 @@ export default function TopNav() {
   ];
 
   return (
-    <header className="border-b border-brand-charcoal-border bg-brand-charcoal-base">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left section: Logo & Nav */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-brand-muted-gold p-1.5 rounded-md text-brand-charcoal-base transition-transform group-hover:scale-105">
-              <Code2 size={20} className="stroke-[2.5]" />
+          <Link href="/home" className="flex items-center group">
+            <div className="relative w-12 h-12 overflow-hidden rounded-xl transition-transform group-hover:scale-105">
+              <Image
+                src="/logo.png"
+                alt="Koder"
+                width={48}
+                height={48}
+                priority
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="font-bold text-xl tracking-tight text-brand-offwhite">
-              Zero<span className="text-brand-muted-gold">Judge</span>
-            </span>
           </Link>
 
           <nav className="hidden md:flex gap-1.5">
@@ -92,8 +99,8 @@ export default function TopNav() {
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
                       isActive
-                        ? "bg-brand-charcoal-hover text-brand-offwhite border border-brand-charcoal-border/50"
-                        : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover/50",
+                        ? "bg-muted text-foreground border border-border/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                     )}
                   >
                     <Icon size={16} />
@@ -107,14 +114,14 @@ export default function TopNav() {
         {/* Right section: User Status */}
         {loading ? (
           <div className="flex items-center gap-4 opacity-50">
-            <div className="w-24 h-4 bg-brand-charcoal-hover rounded animate-pulse"></div>
-            <div className="w-8 h-8 rounded-full bg-brand-charcoal-hover animate-pulse"></div>
+            <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           </div>
         ) : user ? (
           <div className="flex items-center gap-5">
-            {/* XP Bar */}
+            {/* XP Level */}
             <div className="hidden lg:flex items-center gap-3">
-              <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold">
+              <div className="flex items-center gap-1 text-primary text-sm font-bold">
                 <svg
                   width="12"
                   height="16"
@@ -126,65 +133,68 @@ export default function TopNav() {
                 </svg>
                 <span>Lv.{user.level}</span>
               </div>
-              <div className="w-32 h-1.5 bg-brand-charcoal-hover rounded-full overflow-hidden">
+              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="bg-brand-muted-gold h-full rounded-full transition-all duration-1000 ease-out"
+                  className="bg-primary h-full rounded-full transition-all duration-1000 ease-out"
                   style={{ width: (user.xp % 1000) / 10 + "%" }}
                 />
               </div>
-              <span className="text-xs text-brand-offwhite-muted font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {user.xp.toLocaleString()} XP
               </span>
             </div>
 
-            {/* Add New Problem Button */}
+            {/* Add Problem Button */}
             {(user.role === "verified_contributor" || user.role === "admin") && (
-              <Link 
+              <Link
                 href="/contribute"
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-charcoal-base bg-brand-muted-gold hover:bg-brand-muted-gold-dark rounded-md transition-colors mr-2"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-background bg-primary hover:bg-primary/90 rounded-md transition-colors mr-2"
               >
                 <PlusCircle size={16} />
                 <span>Add Problem</span>
               </Link>
             )}
 
+            {/* Notifications */}
             <div className="relative" ref={notifRef}>
-              <button 
+              <button
                 onClick={() => setNotifMenuOpen(!notifMenuOpen)}
-                className="relative p-2 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+                className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-brand-charcoal-base">
+                  <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-destructive rounded-full ring-2 ring-background">
                     {unreadCount}
                   </span>
                 )}
               </button>
 
               {notifMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-4 py-2 border-b border-brand-charcoal-border">
-                    <h3 className="font-semibold text-brand-offwhite">Notifications</h3>
+                <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-2 border-b border-border">
+                    <h3 className="font-semibold text-foreground">Notifications</h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-brand-offwhite-muted text-sm">
+                      <div className="px-4 py-6 text-center text-muted-foreground text-sm">
                         No new notifications.
                       </div>
                     ) : (
                       notifications.map((n) => (
-                        <div 
-                          key={n.id} 
+                        <div
+                          key={n.id}
                           onClick={() => {
                             if (!n.is_read) markAsRead(n.id);
+                            setNotifMenuOpen(false);
+                            router.push("/settings?tab=notifications");
                           }}
                           className={cn(
-                            "px-4 py-3 border-b border-brand-charcoal-border/50 cursor-pointer transition-colors",
-                            n.is_read ? "opacity-60" : "bg-brand-charcoal-hover/30"
+                            "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors",
+                            n.is_read ? "opacity-60" : "bg-muted/30"
                           )}
                         >
-                          <p className="text-sm text-brand-offwhite">{n.message}</p>
-                          <span className="text-xs text-brand-offwhite-muted mt-1 block">
+                          <p className="text-sm text-foreground">{n.message}</p>
+                          <span className="text-xs text-muted-foreground mt-1 block">
                             {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                           </span>
                         </div>
@@ -192,13 +202,13 @@ export default function TopNav() {
                     )}
                   </div>
                   {notifications.length > 0 && unreadCount > 0 && (
-                    <div className="px-4 py-2 border-t border-brand-charcoal-border bg-brand-charcoal-panel/50">
-                      <button 
+                    <div className="px-4 py-2 border-t border-border bg-muted/50">
+                      <button
                         onClick={() => {
                           markAllAsRead();
                           setNotifMenuOpen(false);
                         }}
-                        className="flex items-center justify-center gap-2 w-full py-1.5 text-sm text-brand-muted-gold hover:text-brand-muted-gold-dark transition-colors font-medium"
+                        className="flex items-center justify-center gap-2 w-full py-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
                       >
                         <CheckCheck size={16} /> Mark all as read
                       </button>
@@ -208,65 +218,111 @@ export default function TopNav() {
               )}
             </div>
 
-            {/* Profile Dropdown */}
-            <div className="relative" ref={userRef}>
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-              >
-                <div
-                  className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-inner",
-                    getUserColor(user.colorIndex),
-                  )}
-                >
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium text-brand-offwhite leading-tight">
-                    {user.name}
-                  </div>
-                  <div className="text-xs text-brand-offwhite-muted font-mono">
-                    {user.studentId}
-                  </div>
-                </div>
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl shadow-xl py-1 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
-                  >
+            {/* Profile Dropdown (shadcn DropdownMenu) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    {user.google_avatar_url && !avatarError ? (
+                      <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-border shadow-inner flex-shrink-0">
+                        <img
+                          src={user.google_avatar_url}
+                          alt={user.username ?? "Avatar"}
+                          width={36}
+                          height={36}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-inner flex-shrink-0",
+                          getUserColor(user.colorIndex),
+                        )}
+                      >
+                        {user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                    )}
+                      <div className="hidden sm:flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-sm font-medium text-foreground leading-tight">
+                          {user.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {user.username || user.studentId}
+                        </div>
+                      </div>
+                      <ChevronDown size={14} className="text-muted-foreground" />
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-3 py-1">
+                      {user.google_avatar_url && !avatarError ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
+                          <img
+                            src={user.google_avatar_url}
+                            alt={user.username ?? "Avatar"}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0",
+                            getUserColor(user.colorIndex),
+                          )}
+                        >
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-amber-400 font-mono text-xs">
+                            {user.username || user.studentId}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
                     <UserIcon size={16} /> Profile
                   </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
-                  >
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">
                     <Settings size={16} /> Settings
                   </Link>
-                  <div className="h-px bg-brand-charcoal-border my-1"></div>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem("token");
-                      window.location.href = "/login";
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-brand-error hover:bg-brand-error/10 transition-colors"
-                  >
-                    <LogOut size={16} /> Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    window.location.href = "/login";
+                  }}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <LogOut size={16} /> Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ) : (
           <Link
             href="/login"
-            className="text-sm font-bold text-brand-offwhite hover:text-brand-muted-gold transition-colors"
+            className="text-sm font-bold text-foreground hover:text-primary transition-colors"
           >
             Log In
           </Link>

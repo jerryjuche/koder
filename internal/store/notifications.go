@@ -61,6 +61,38 @@ func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.
 	return notifications, nil
 }
 
+// GetRecentNotifications retrieves the most recent notifications for a user (read + unread).
+func (s *PostgresStore) GetRecentNotifications(ctx context.Context, userID uuid.UUID, limit int) ([]Notification, error) {
+	query := `
+		SELECT id, user_id, type, message, related_id, is_read, created_at
+		FROM notifications
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+	rows, err := s.pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query recent notifications: %w", err)
+	}
+	defer rows.Close()
+
+	var notifications []Notification
+	for rows.Next() {
+		var n Notification
+		if err := rows.Scan(
+			&n.ID, &n.UserID, &n.Type, &n.Message, &n.RelatedID, &n.IsRead, &n.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan notification: %w", err)
+		}
+		notifications = append(notifications, n)
+	}
+
+	if notifications == nil {
+		notifications = []Notification{}
+	}
+	return notifications, nil
+}
+
 // MarkNotificationAsRead marks a specific notification as read.
 func (s *PostgresStore) MarkNotificationAsRead(ctx context.Context, id, userID uuid.UUID) error {
 	query := `
@@ -108,6 +140,51 @@ func (s *PostgresStore) NotifyAdmins(ctx context.Context, notifType, message str
 	_, err := s.pool.Exec(ctx, query, notifType, message, rID)
 	if err != nil {
 		return fmt.Errorf("failed to notify admins: %w", err)
+	}
+	return nil
+}
+
+// ReplaceBroadcastNotifications atomically deletes all old broadcast notifications
+// and inserts a new one for every user, preventing stacking.
+func (s *PostgresStore) ReplaceBroadcastNotifications(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM notifications WHERE type LIKE 'broadcast_%'`); err != nil {
+		return fmt.Errorf("failed to delete old broadcast notifications: %w", err)
+	}
+
+	query := `INSERT INTO notifications (user_id, type, message, related_id) SELECT id, $1, $2, $3 FROM users`
+	var rID pgtype.UUID
+	if relatedID != nil {
+		rID = pgtype.UUID{Bytes: *relatedID, Valid: true}
+	}
+	if _, err := tx.Exec(ctx, query, notifType, message, rID); err != nil {
+		return fmt.Errorf("failed to insert broadcast notifications: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+// NotifyAllUsers sends a notification to every user.
+func (s *PostgresStore) NotifyAllUsers(ctx context.Context, notifType, message string, relatedID *uuid.UUID) error {
+	query := `
+		INSERT INTO notifications (user_id, type, message, related_id)
+		SELECT id, $1, $2, $3 FROM users
+	`
+	var rID pgtype.UUID
+	if relatedID != nil {
+		rID = pgtype.UUID{Bytes: *relatedID, Valid: true}
+	} else {
+		rID = pgtype.UUID{Valid: false}
+	}
+
+	_, err := s.pool.Exec(ctx, query, notifType, message, rID)
+	if err != nil {
+		return fmt.Errorf("failed to notify all users: %w", err)
 	}
 	return nil
 }

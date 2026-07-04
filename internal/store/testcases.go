@@ -18,6 +18,7 @@ func (s *PostgresStore) GetTestCasesForProblem(ctx context.Context, problemID uu
 		FROM test_cases
 		WHERE problem_id = $1
 		ORDER BY ordinal ASC
+		LIMIT 200
 	`
 
 	rows, err := s.pool.Query(ctx, query, problemID)
@@ -60,6 +61,7 @@ func (s *PostgresStore) GetVisibleTestCasesForProblem(ctx context.Context, probl
 		FROM test_cases
 		WHERE problem_id = $1 AND is_hidden = false
 		ORDER BY ordinal ASC
+		LIMIT 200
 	`
 
 	rows, err := s.pool.Query(ctx, query, problemID)

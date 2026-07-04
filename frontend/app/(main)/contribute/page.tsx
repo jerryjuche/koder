@@ -123,7 +123,7 @@ function ContributeContent() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-brand-offwhite font-display">Submit a Contribution</h1>
         <p className="text-brand-offwhite-muted mt-2">
-          Create a new problem to be reviewed by the ZeroJudge administrators. 
+          Create a new problem to be reviewed by the Koder administrators. 
           Once approved, it will be visible to all students.
         </p>
       </div>

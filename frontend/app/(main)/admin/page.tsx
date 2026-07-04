@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem } from '@/lib/types';
 import PendingContributions from './PendingContributions';
+import FeedbackPanel from './FeedbackPanel';
+import BroadcastPanel from './BroadcastPanel';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -23,6 +25,7 @@ export default function AdminDashboard() {
   const [ingestUrl, setIngestUrl] = useState('https://github.com/cs3100/go-assignments');
   const [ingesting, setIngesting] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -121,6 +124,30 @@ export default function AdminDashboard() {
     setEnriching(false);
   };
 
+  const handlePublishAll = async () => {
+    setPublishing(true);
+    const res = await publishAllDrafts();
+    if (res.success) {
+      toast.success(`Published ${res.data?.published ?? 0} draft(s)!`);
+      loadData();
+    } else {
+      toast.error(res.error?.message || "Publish failed");
+    }
+    setPublishing(false);
+  };
+
+  const handleToggleVisibility = async (problem: Problem) => {
+    const next = !problem.visible;
+    const res = await toggleProblemVisibility(problem.id, next);
+    if (res.success) {
+      toast.success(`"${problem.title}" is now ${next ? 'visible' : 'hidden'}`);
+      loadData();
+    } else {
+      const detail = (res.error as any)?.details;
+      toast.error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Toggle failed"));
+    }
+  };
+
   const filteredProblems = problems.filter(p => 
     p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.slug.toLowerCase().includes(searchTerm.toLowerCase())
@@ -168,8 +195,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           {/* Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-brand-charcoal-card border border-brand-charcoal-border hover:border-brand-muted-gold/30 transition-colors rounded-2xl p-6 relative overflow-hidden group">
@@ -228,15 +255,51 @@ export default function AdminDashboard() {
                   {enriching ? <Activity className="animate-spin" size={18} /> : <Wand2 size={18} />} 
                   {enriching ? 'Enriching...' : 'Enrich All Problems'}
                 </button>
+
+                {draftsCount > 0 && (
+                  <button
+                    onClick={handlePublishAll}
+                    disabled={publishing}
+                    className="w-full bg-brand-success/10 border border-brand-success/30 text-brand-success hover:bg-brand-success/20 py-2.5 rounded-lg flex justify-center items-center gap-2 font-medium transition-colors disabled:opacity-50 mt-3"
+                  >
+                    {publishing ? <Activity className="animate-spin" size={18} /> : <Send size={18} />}
+                    {publishing ? 'Publishing...' : `Publish All Drafts (${draftsCount})`}
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-brand-charcoal-border flex justify-between items-center">
+          {/* Broadcasts */}
+          <BroadcastPanel compact />
+
+          {/* Contributions + Feedback Row */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center gap-2">
+                <Code size={18} className="text-brand-muted-gold" />
+                <h3 className="font-bold text-brand-offwhite">Pending Contributions</h3>
+              </div>
+              <div className="p-4">
+                <PendingContributions compact />
+              </div>
+            </div>
+            <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center gap-2">
+                <MessageSquare size={18} className="text-brand-muted-gold" />
+                <h3 className="font-bold text-brand-offwhite">Feedback & Reports</h3>
+              </div>
+              <div className="p-4">
+                <FeedbackPanel compact />
+              </div>
+            </div>
+          </div>
+
+          {/* Problems (scrollable) */}
+          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden shadow-lg shadow-black/10">
+            <div className="p-4 border-b border-brand-charcoal-border flex justify-between items-center bg-brand-charcoal-panel/50 sticky top-0 z-10">
               <div className="font-bold flex items-center gap-2 text-brand-offwhite">
-                <FileText size={18} className="text-brand-offwhite" /> Problems <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">{problems.length}</span>
+                <FileText size={18} className="text-brand-offwhite" /> Problem Catalog <span className="text-xs bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded-full">{problems.length}</span>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted" size={14} />
@@ -250,72 +313,78 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-brand-offwhite-muted uppercase tracking-wider border-b border-brand-charcoal-border">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Problem</th>
-                  <th className="px-6 py-4 font-medium">Module</th>
-                  <th className="px-6 py-4 font-medium">Diff.</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Visible</th>
-                  <th className="px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-charcoal-border/50">
-                {filteredProblems.map((p, i) => {
-                  const isActive = p.visible;
-                  const diffLabel = p.difficulty === 1 ? 'Easy' : p.difficulty === 2 ? 'Medium' : p.difficulty === 3 ? 'Hard' : 'Expert';
-                  const diffColor = p.difficulty === 1 ? 'text-[#8DB4B9]' : p.difficulty === 2 ? 'text-brand-muted-gold' : 'text-brand-error';
-                  
-                  return (
-                    <tr key={i} className="hover:bg-brand-charcoal-hover/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-brand-offwhite">{p.title}</div>
-                        <div className="text-xs text-brand-offwhite-muted font-mono">{p.slug}</div>
-                      </td>
-                      <td className="px-6 py-4 text-brand-offwhite-muted">{p.module}</td>
-                      <td className={cn("px-6 py-4 font-medium", diffColor)}>{diffLabel}</td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "text-xs px-2 py-1 rounded font-medium",
-                          isActive
-                            ? "bg-brand-success/10 text-brand-success border border-brand-success/20"
-                            : "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
-                        )}>
-                          {isActive ? 'active' : 'draft'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", isActive ? 'bg-brand-success' : 'bg-brand-charcoal-border')}>
-                          <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", isActive ? 'right-1' : 'left-1')}></div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="text-brand-offwhite-muted hover:text-brand-offwhite"><MoreHorizontal size={18} /></button>
+            <div className="overflow-y-auto max-h-[420px] scrollbar-thin">
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs text-brand-offwhite-muted uppercase tracking-wider border-b border-brand-charcoal-border bg-brand-charcoal-card sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">Problem</th>
+                    <th className="px-6 py-4 font-medium">Module</th>
+                    <th className="px-6 py-4 font-medium">Diff.</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Visible</th>
+                    <th className="px-6 py-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-charcoal-border/50">
+                  {filteredProblems.map((p, i) => {
+                    const isActive = p.visible;
+                    const diffLabel = p.difficulty === 1 ? 'Easy' : p.difficulty === 2 ? 'Medium' : p.difficulty === 3 ? 'Hard' : 'Expert';
+                    const diffColor = p.difficulty === 1 ? 'text-[#8DB4B9]' : p.difficulty === 2 ? 'text-brand-muted-gold' : 'text-brand-error';
+                    
+                    return (
+                      <tr key={i} className="hover:bg-brand-charcoal-hover/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-brand-offwhite">{p.title}</div>
+                          <div className="text-xs text-brand-offwhite-muted font-mono">{p.slug}</div>
+                        </td>
+                        <td className="px-6 py-4 text-brand-offwhite-muted">{p.module}</td>
+                        <td className={cn("px-6 py-4 font-medium", diffColor)}>{diffLabel}</td>
+                        <td className="px-6 py-4">
+                          <span className={cn(
+                            "text-xs px-2 py-1 rounded font-medium",
+                            isActive
+                              ? "bg-brand-success/10 text-brand-success border border-brand-success/20"
+                              : p.statement?.includes("Pending enrichment")
+                                ? "bg-brand-warning/10 text-brand-warning border border-brand-warning/20"
+                                : "bg-brand-offwhite-muted/10 text-brand-offwhite-muted border border-brand-offwhite-muted/20"
+                          )}>
+                            {isActive ? 'published' : p.statement?.includes("Pending enrichment") ? 'pending enrich' : 'draft'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div
+                            onClick={() => handleToggleVisibility(p)}
+                            className={cn("w-10 h-5 rounded-full relative cursor-pointer opacity-80 hover:opacity-100 transition-opacity", isActive ? 'bg-brand-success' : 'bg-brand-charcoal-border')}
+                          >
+                            <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", isActive ? 'right-1' : 'left-1')}></div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="text-brand-offwhite-muted hover:text-brand-offwhite"><MoreHorizontal size={18} /></button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {filteredProblems.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-brand-offwhite-muted">
+                        No problems found.
                       </td>
                     </tr>
-                  )
-                })}
-                {filteredProblems.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-brand-offwhite-muted">
-                      No problems found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <PendingContributions />
         </div>
 
         {/* Activity Log */}
-        <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden flex flex-col h-[700px]">
+        <div className="lg:col-span-1 bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden flex flex-col h-fit lg:sticky lg:top-6">
           <div className="p-5 border-b border-brand-charcoal-border flex justify-between items-center shrink-0">
             <h3 className="font-bold text-brand-offwhite flex items-center gap-2"><Activity size={18} className="text-brand-offwhite-muted" /> Activity Log</h3>
             <div className="text-xs font-bold text-brand-success flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-brand-success"></div> Live</div>
           </div>
-          <div className="p-5 space-y-6 overflow-y-auto overflow-x-hidden flex-1 scrollbar-hide">
+          <div className="p-5 space-y-6 overflow-y-auto max-h-[600px] scrollbar-thin">
              {activityLogs.map((log, i) => {
                const Icon = ICON_MAP[log.icon] || Activity;
                return (
@@ -339,20 +408,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
-// Two fixes were applied:
-
-// **1. TypeScript: dead `'error'` branch in `cn()` ternary**
-// Replaced the `status` string variable with a plain boolean 
-// `isActive = p.visible`. This eliminated the need for a union 
-// type and removed the unreachable `status === 'error'` branch 
-// that TypeScript was correctly rejecting.
-
-// **2. React: setState called synchronously inside `useEffect`**
-// Moved the async fetch logic inline into the effect as a scoped `
-// load` function, rather than calling the external `loadData` 
-// directly. Added a `cancelled` flag to guard against stale 
-// state updates on unmount. `loadData` is kept as a standalone 
-// function for `handleIngest` and `handleEnrich` to call after 
-// mutations.

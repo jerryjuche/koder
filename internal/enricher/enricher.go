@@ -1,9 +1,14 @@
 package enricher
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -13,10 +18,15 @@ import (
 	"google.golang.org/genai"
 )
 
+type enrichmentProvider interface {
+	Name() string
+	GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error)
+}
+
 type Enricher struct {
-	cfg         *config.Config
-	client      *genai.Client
-	mu          sync.Mutex
+	cfg      *config.Config
+	provider enrichmentProvider
+	mu       sync.Mutex
 	lastRequest time.Time
 }
 
@@ -34,19 +44,31 @@ type enrichedResponse struct {
 }
 
 type enrichedTestCase struct {
-	Input    json.RawMessage `json:"input_json"`
-	Expected string          `json:"expected"`
-	IsHidden bool            `json:"is_hidden"`
-	Ordinal  int             `json:"ordinal"`
+	Input    any    `json:"input_json"`
+	Expected string `json:"expected"`
+	IsHidden bool   `json:"is_hidden"`
+	Ordinal  int    `json:"ordinal"`
 }
 
 func NewEnricher(ctx context.Context, cfg *config.Config) (*Enricher, error) {
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.GeminiAPIKey})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Gemini client: %w", err)
+	var provider enrichmentProvider
+
+	switch cfg.EnrichmentProvider {
+	case "gemini":
+		client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.GeminiAPIKey})
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize Gemini client: %w", err)
+		}
+		provider = &geminiProvider{client: client, model: cfg.GeminiModel}
+		slog.Info("enricher: using Gemini provider", "model", cfg.GeminiModel)
+	case "groq":
+		provider = newGroqProvider(cfg.GroqAPIKey, cfg.GroqModel)
+		slog.Info("enricher: using Groq provider", "model", cfg.GroqModel)
+	default:
+		return nil, fmt.Errorf("unknown enrichment provider: %s", cfg.EnrichmentProvider)
 	}
 
-	return &Enricher{cfg: cfg, client: client}, nil
+	return &Enricher{cfg: cfg, provider: provider}, nil
 }
 
 func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.Problem, []store.TestCase, error) {
@@ -58,36 +80,85 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 		return nil, nil, err
 	}
 
-	systemInstruction := genai.NewContentFromText(
-		`You are an expert Go curriculum author. Use only the Go standard library in examples. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r) while preserving semantics. Output only valid JSON that matches the requested schema, with no markdown fences, comments, or extra fields.`,
-		genai.RoleUser,
-	)
+	slog.Debug("enricher: calling provider", "provider", e.provider.Name(), "readme_len", len(rawReadme))
 
-	userPrompt := genai.NewContentFromText(fmt.Sprintf(`Analyze the exercise README below and return exactly one JSON object that conforms to the requested schema. Use stringified Go literals for expected values.
+	code := "```"
+
+	systemPrompt := `You are an expert Go curriculum author. You output only valid JSON. No markdown fences, no comments, no extra text.
+
+You generate professional, educational programming exercises. Respond with exactly this JSON structure:
+
+{
+  "title": "fishandchips",
+  "statement": "## FishAndChips\n\n### Instructions\n\nWrite a function **FishAndChips()** that takes an **int** and returns a **string**.\n\nThe function should return:\n- \"fish and chips\" if the number is divisible by both **2 and 3**\n- \"fish\" if the number is divisible by **2**\n- \"chips\" if the number is divisible by **3**\n- \"number is negative\" if the number is **negative**\n- \"non divisible\" if the number is **not divisible** by 2 or 3\n\n### Expected function\n\n` + code + `go\nfunc FishAndChips(n int) string {\n\n}\n` + code + `\n\n### Usage\n\n` + code + `go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"piscine\"\n)\n\nfunc main() {\n\tfmt.Println(piscine.FishAndChips(4))\n\tfmt.Println(piscine.FishAndChips(9))\n\tfmt.Println(piscine.FishAndChips(6))\n}\n` + code + `\n\nAnd its output:\n\n` + code + `\n$ go run . | cat -e\nfish$\nchips$\nfish and chips$\n` + code + `\n",
+  "func_name": "FishAndChips",
+  "return_type": "string",
+  "param_types": ["int"],
+  "hints": ["Check the modulo operator (%) to test divisibility — n%2==0 means divisible by 2", "Handle the negative case first with an early return before checking divisibility", "Remember that a number divisible by both 2 and 3 (i.e. divisible by 6) should return \"fish and chips\" before the individual fish/chips checks"],
+  "difficulty": 1,
+  "xp_reward": 10,
+  "tags": ["conditions", "modulo", "branching"],
+  "test_cases": [
+    {"input_json": "[4]", "expected": "\"fish\"", "is_hidden": false, "ordinal": 1},
+    {"input_json": "[9]", "expected": "\"chips\"", "is_hidden": false, "ordinal": 2},
+    {"input_json": "[6]", "expected": "\"fish and chips\"", "is_hidden": false, "ordinal": 3},
+    {"input_json": "[-1]", "expected": "\"number is negative\"", "is_hidden": true, "ordinal": 4},
+    {"input_json": "[7]", "expected": "\"non divisible\"", "is_hidden": true, "ordinal": 5}
+  ]
+}
+
+PRODUCTION RULES — follow these exactly for every exercise:
+
+1. **title**: lowercase-kebab exercise name from the README (e.g. "fishandchips", "printdigits")
+2. **statement**: A COMPREHENSIVE, PROFESSIONAL markdown document. Must include:
+   - A clear heading with the exercise name
+   - Full instructions restated in a clear, structured format with bullet points
+   - The expected function signature in a Go code block
+   - A usage example with a complete main() function in a Go code block
+   - The expected output in a code block
+   - Do NOT truncate or summarize — write the FULL statement that a student can read and implement from
+3. **func_name**: Exact PascalCase function name from the README (e.g. "FishAndChips")
+4. **return_type**: Exact Go return type as a string (e.g. "string", "int", "bool", "error", "int, error")
+5. **param_types**: Array of Go parameter type strings in order, e.g. ["int"], ["int", "string"]
+6. **hints**: Exactly 3 hints, ordered general to specific. Each should be a complete sentence. First hint describes the concept/approach, second hint gives a concrete suggestion, third hint is very implementation-specific.
+7. **difficulty**: 1 (easy, basic syntax) to 5 (expert, advanced algorithms)
+8. **xp_reward**: 10/25/50/100/200 for difficulty 1/2/3/4/5
+9. **tags**: Array of 2-5 relevant tags from: arrays, strings, conditions, loops, recursion, pointers, structs, interfaces, maps, slices, sorting, math, modulo, ascii, bitwise, concurrency, errors, generics, files, parsing, branching, searching, runes
+10. **test_cases**: At least 5 test cases:
+    - 2-3 basic visible cases (is_hidden: false) covering main functionality
+    - 2-3 edge case/hidden cases (is_hidden: true) covering error conditions, boundaries, special inputs
+    - input_json: JSON string of arguments as array, e.g. "[4]" or "[4, \"hello\"]"
+    - expected: Go string literal. Wrap strings in escaped quotes: "\"fish\"". For non-string types: raw value like "42" or "true"
+    - ordinal: sequential starting at 1
+
+IMPORTANT: Every field is REQUIRED. Do not omit any field. Do not add extra fields.
+Use only Go standard library. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r).`
+
+	userPrompt := fmt.Sprintf(`Generate a complete, professional exercise from this README. Follow the schema and production rules exactly.
+
+Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, and at least 5 test_cases.
+
+The statement must be a full markdown document with instructions, function signature, usage example, and expected output. Do not abbreviate.
 
 README:
-%s`, strings.TrimSpace(rawReadme)), genai.RoleUser)
+%s`, strings.TrimSpace(rawReadme))
 
-	config := &genai.GenerateContentConfig{
-		ResponseMIMEType: "application/json",
-		ResponseSchema:   enrichmentSchema(),
-		Temperature:      float32Ptr(0.0),
-		MaxOutputTokens:  2500,
-	}
-
-	response, err := e.client.Models.GenerateContent(ctx, e.cfg.GeminiModel, []*genai.Content{systemInstruction, userPrompt}, config)
+	payload, err := e.provider.GenerateContent(ctx, systemPrompt, userPrompt)
 	if err != nil {
-		return nil, nil, fmt.Errorf("gemini generate content failed: %w", err)
+		return nil, nil, fmt.Errorf("%s generate content failed: %w", e.provider.Name(), err)
 	}
 
-	payload := strings.TrimSpace(response.Text())
-	if payload == "" {
-		return nil, nil, fmt.Errorf("empty response from Gemini")
-	}
+	payload = cleanResponse(payload)
+	slog.Debug("enricher: provider raw response", "provider", e.provider.Name(), "payload_len", len(payload), "payload_preview", truncate(payload, 500))
 
 	var parsed enrichedResponse
 	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
-		return nil, nil, fmt.Errorf("unable to parse Gemini JSON response: %w", err)
+		slog.Error("enricher: failed to parse JSON",
+			"provider", e.provider.Name(),
+			"error", err,
+			"payload", truncate(payload, 2000),
+		)
+		return nil, nil, fmt.Errorf("unable to parse %s JSON response: %w", e.provider.Name(), err)
 	}
 
 	problem := &store.Problem{
@@ -118,8 +189,23 @@ README:
 	}
 
 	if err := validateEnrichedProblem(problem, testCases); err != nil {
-		return nil, nil, err
+		slog.Error("enricher: validation failed",
+			"provider", e.provider.Name(),
+			"error", err,
+			"title", problem.Title,
+			"func_name", problem.FuncName,
+			"payload_preview", truncate(payload, 500),
+		)
+		return nil, nil, fmt.Errorf("%s enrichment validation failed: %w", e.provider.Name(), err)
 	}
+
+	slog.Info("enricher: problem enriched successfully",
+		"provider", e.provider.Name(),
+		"title", problem.Title,
+		"func", problem.FuncName,
+		"test_cases", len(testCases),
+		"difficulty", problem.Difficulty,
+	)
 
 	return problem, testCases, nil
 }
@@ -128,11 +214,21 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
+	var delay time.Duration
+	switch e.provider.Name() {
+	case "gemini":
+		delay = 30 * time.Second
+	case "groq":
+		delay = 2 * time.Second
+	default:
+		delay = 1 * time.Second
+	}
+
 	if !e.lastRequest.IsZero() {
-		next := e.lastRequest.Add(30 * time.Second)
-		if delay := time.Until(next); delay > 0 {
+		next := e.lastRequest.Add(delay)
+		if wait := time.Until(next); wait > 0 {
 			select {
-			case <-time.After(delay):
+			case <-time.After(wait):
 			case <-ctx.Done():
 				return ctx.Err()
 			}
@@ -141,6 +237,230 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 
 	e.lastRequest = time.Now()
 	return nil
+}
+
+type geminiProvider struct {
+	client *genai.Client
+	model  string
+}
+
+func (g *geminiProvider) Name() string { return "gemini" }
+
+func (g *geminiProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	cfg := &genai.GenerateContentConfig{
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   enrichmentSchema(),
+		Temperature:      float32Ptr(0.0),
+		MaxOutputTokens:  8192,
+	}
+
+	response, err := g.client.Models.GenerateContent(ctx, g.model, []*genai.Content{
+		genai.NewContentFromText(systemPrompt, genai.RoleUser),
+		genai.NewContentFromText(userPrompt, genai.RoleUser),
+	}, cfg)
+	if err != nil {
+		return "", fmt.Errorf("gemini generate content failed: %w", err)
+	}
+
+	if len(response.Candidates) == 0 {
+		return "", fmt.Errorf("gemini returned no candidates (prompt may have been blocked)")
+	}
+
+	candidate := response.Candidates[0]
+	if candidate.FinishReason != genai.FinishReasonStop {
+		slog.Warn("enricher: Gemini finish reason not Stop",
+			"finish_reason", candidate.FinishReason,
+			"index", candidate.Index,
+		)
+		return "", fmt.Errorf("gemini generation stopped early: finish_reason=%s", candidate.FinishReason)
+	}
+
+	payload := strings.TrimSpace(response.Text())
+	if payload == "" {
+		return "", fmt.Errorf("empty response from Gemini (finish_reason=%s)", candidate.FinishReason)
+	}
+
+	return payload, nil
+}
+
+type groqProvider struct {
+	apiKey     string
+	model      string
+	httpClient *http.Client
+}
+
+type groqMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type groqRequest struct {
+	Model          string              `json:"model"`
+	Messages       []groqMessage       `json:"messages"`
+	ResponseFormat *groqResponseFormat `json:"response_format,omitempty"`
+	Temperature    float64             `json:"temperature"`
+	MaxTokens      int                 `json:"max_tokens"`
+}
+
+type groqResponseFormat struct {
+	Type string `json:"type"`
+}
+
+type groqResponse struct {
+	Choices []struct {
+		Index         int    `json:"index"`
+		Message       struct {
+			Content string `json:"content"`
+		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	} `json:"error,omitempty"`
+}
+
+func newGroqProvider(apiKey, model string) *groqProvider {
+	if model == "" {
+		model = "llama-3.3-70b-versatile"
+	}
+	return &groqProvider{
+		apiKey: apiKey,
+		model:  model,
+		httpClient: &http.Client{
+			Timeout: 120 * time.Second,
+		},
+	}
+}
+
+func (g *groqProvider) Name() string { return "groq" }
+
+func (g *groqProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	body := groqRequest{
+		Model: g.model,
+		Messages: []groqMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		ResponseFormat: &groqResponseFormat{Type: "json_object"},
+		Temperature:    0.0,
+		MaxTokens:      8192,
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("groq marshal request: %w", err)
+	}
+
+	return g.doRequest(ctx, payload, 0)
+}
+
+func (g *groqProvider) doRequest(ctx context.Context, payload []byte, attempt int) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewReader(payload))
+	if err != nil {
+		return "", fmt.Errorf("groq create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+g.apiKey)
+
+	resp, err := g.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("groq request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("groq read response: %w", err)
+	}
+
+	if resp.StatusCode == 429 && attempt < 2 {
+		retryAfter := resp.Header.Get("Retry-After")
+		var wait time.Duration
+		if seconds, err := strconv.Atoi(retryAfter); err == nil {
+			wait = time.Duration(seconds) * time.Second
+		} else {
+			wait = 5 * time.Second
+		}
+
+		slog.Warn("groq rate limited, retrying",
+			"retry_after_sec", wait.Seconds(),
+			"attempt", attempt+1,
+		)
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+		return g.doRequest(ctx, payload, attempt+1)
+	}
+
+	if resp.StatusCode != 200 {
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq HTTP error",
+			"status", resp.StatusCode,
+			"body", bodySnippet,
+		)
+		return "", fmt.Errorf("groq returned HTTP %d: %s", resp.StatusCode, bodySnippet)
+	}
+
+	var result groqResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq parse response failed",
+			"error", err,
+			"body", bodySnippet,
+		)
+		return "", fmt.Errorf("groq parse response: %w (body: %s)", err, bodySnippet)
+	}
+
+	if result.Error != nil {
+		return "", fmt.Errorf("groq API error: %s - %s", result.Error.Type, result.Error.Message)
+	}
+
+	if len(result.Choices) == 0 {
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("groq returned no choices", "body", bodySnippet)
+		return "", fmt.Errorf("groq returned no choices (body: %s)", bodySnippet)
+	}
+
+	finishReason := result.Choices[0].FinishReason
+	if finishReason == "length" {
+		slog.Warn("groq response truncated due to max_tokens", "finish_reason", finishReason)
+	} else if finishReason != "stop" {
+		return "", fmt.Errorf("groq generation stopped early: %s", finishReason)
+	}
+
+	content := strings.TrimSpace(result.Choices[0].Message.Content)
+	if content == "" {
+		return "", fmt.Errorf("groq returned empty content (finish_reason=%s)", finishReason)
+	}
+
+	return content, nil
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
+
+func cleanResponse(s string) string {
+	s = strings.TrimSpace(s)
+
+	start := strings.Index(s, "{")
+	if start == -1 {
+		return s
+	}
+
+	end := strings.LastIndex(s, "}")
+	if end == -1 || end < start {
+		return s
+	}
+
+	return s[start : end+1]
 }
 
 func enrichmentSchema() *genai.Schema {
@@ -172,9 +492,10 @@ func enrichmentSchema() *genai.Schema {
 				Items: &genai.Schema{
 					Type: genai.TypeObject,
 					Properties: map[string]*genai.Schema{
-						"input_json": {
-							AnyOf: []*genai.Schema{{Type: genai.TypeObject}, {Type: genai.TypeString}},
-						},
+"input_json": {
+	Type:        genai.TypeString,
+	Description: "JSON array of function arguments as a string. Example: \"[1, \\\"hello\\\", true]\"",
+},
 						"expected":  {Type: genai.TypeString},
 						"is_hidden": {Type: genai.TypeBoolean},
 						"ordinal":   {Type: genai.TypeInteger},
