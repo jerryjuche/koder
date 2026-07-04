@@ -115,6 +115,26 @@ export async function resetPassword(
   });
 }
 
+export async function forgotPasswordPin(
+  email: string,
+  pin: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/forgot-password-pin", {
+    method: "POST",
+    body: JSON.stringify({ email, pin }),
+  });
+}
+
+export async function resetPasswordPin(
+  token: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/reset-password-pin", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function completeGoogleOnboarding(
   username: string,
 ): Promise<ApiResponse<{ token: string }>> {

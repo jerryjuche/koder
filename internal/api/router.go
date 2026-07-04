@@ -20,6 +20,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
+	pinResetHandler := NewPINResetHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
@@ -49,6 +50,8 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/google", authHandler.GoogleAuth)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password-pin", pinResetHandler.ForgotPasswordPin)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password-pin", pinResetHandler.ResetPasswordPin)
 	})
 
 	r.Group(func(r chi.Router) {
