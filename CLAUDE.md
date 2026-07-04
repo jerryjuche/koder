@@ -363,6 +363,11 @@ See `.env.example` for full template.
 
 ## Recent Changes
 
+- **July 4 — Data reset + professional seed (45 problems):**
+  - `scripts/reset_data.sql` — Safe DELETE-order reset script (clears 128 problems, 234 test cases, submissions, progress, activity, broadcasts, feedback, notifications; resets all user XP to 0; keeps user accounts intact)
+  - `migrations/019_seed_problems1.sql` — 45 hand-crafted Go problems across 3 modules (math-recursion, arrays-strings, data-structures), 15 problems each, 5 test cases per problem, `ON CONFLICT (slug) DO NOTHING` safe
+  - `migrations/019_seed_problems2.sql` — 45 additional Go problems across 3 modules (bit-manipulation, sorting-searching, pointers), 15 problems each, 5 test cases per problem
+  - Removed `migrations/018_seed_problems.sql` (old/replaced seed)
 - **Account deletion:** `POST /me/delete-account` endpoint with transactional cascade cleanup (submissions → progress → user); Settings page two-step confirmation dialog; `deleteAccount()` API function
 - **Go version configurable:** `GO_VERSION` env var (default `"1.23"`) wired through `PrepareSandbox`, sandbox client, and `.env.example`
 - **Dead code removal:** Removed `cmd/sandbox/main.go` placeholder; removed Gitea proxy handler from `sandbox/main.go`; replaced deprecated `strings.Title` with `cases.Title`
@@ -443,7 +448,7 @@ See `.env.example` for full template.
 - **Phase 2:** Multi-language support (Python, Rust)
 - **Phase 3:** Plagiarism detection via AST diffing
 - **Phase 4:** Student peer review system
-- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`, `018_seed_problems.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`, `019_seed_problems1.sql`, `019_seed_problems2.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
 
 ---
 
