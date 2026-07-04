@@ -52,6 +52,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password-pin", pinResetHandler.ForgotPasswordPin)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password-pin", pinResetHandler.ResetPasswordPin)
+		r.Get("/check-username", authHandler.CheckUsername)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -79,7 +80,6 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		// Onboarding routes
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-google", authHandler.CompleteOnboarding)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
-		r.Get("/auth/check-username", authHandler.CheckUsername)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
 
 		notificationsHandler := NewNotificationsHandler(store)
