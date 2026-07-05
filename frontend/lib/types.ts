@@ -36,6 +36,8 @@ export type Problem = {
   estTimeMinutes: number;
   tags: string[];
   statement?: string;
+  constraints?: string;
+  learningObjective?: string;
   descriptionMarkdown?: string;
   examples?: { id: string; input: string; expected: string; ordinal: number }[];
   func_name?: string;
