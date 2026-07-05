@@ -468,4 +468,11 @@ export async function verifyPin(pin: string): Promise<ApiResponse<{ valid: boole
   });
 }
 
+export async function setPin(pin: string, confirmPin: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/auth/set-pin", {
+    method: "POST",
+    body: JSON.stringify({ pin, confirm_pin: confirmPin }),
+  });
+}
+
 
