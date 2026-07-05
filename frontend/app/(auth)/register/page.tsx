@@ -421,8 +421,14 @@ export default function RegisterPage() {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <form onSubmit={handleStep2Next} noValidate className="space-y-5">
-              <PinInput size="md">
+            <form onSubmit={handleStep2Next} noValidate className="space-y-6">
+              {errorMsg && (
+                <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                  {errorMsg}
+                </div>
+              )}
+
+              <PinInput size="md" mask>
                 <PinInput.Label>Recovery PIN</PinInput.Label>
                 <PinInput.Group
                   maxLength={6}
@@ -442,7 +448,7 @@ export default function RegisterPage() {
                 <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
               </PinInput>
 
-              <PinInput size="md">
+              <PinInput size="md" mask>
                 <PinInput.Label>Confirm PIN</PinInput.Label>
                 <PinInput.Group
                   maxLength={6}
@@ -468,25 +474,23 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="group/btn relative flex-1 border border-brand-charcoal-border text-brand-offwhite h-12 rounded-xl font-bold transition-all hover:bg-brand-charcoal-base flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft size={16} />
-                  Back
-                  <BottomGradient />
-                </button>
-                <button
-                  type="submit"
-                  className="group/btn relative flex-1 bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 overflow-hidden"
-                >
-                  Continue
-                  <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-                  <BottomGradient />
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 overflow-hidden"
+              >
+                Continue
+                <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                <BottomGradient />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="w-full text-center text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors flex items-center justify-center gap-1.5"
+              >
+                <ArrowLeft size={14} />
+                Back to details
+              </button>
             </form>
           </motion.div>
         )}
