@@ -432,4 +432,11 @@ export async function deleteBroadcast(id: string): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/broadcasts/${id}`, { method: "DELETE" });
 }
 
+export async function changePassword(pin: string, newPassword: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ pin, new_password: newPassword }),
+  });
+}
+
 
