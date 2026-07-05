@@ -2,13 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Ban } from 'lucide-react';
 import { PinInput } from '@/components/base/input/pin-input';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { motion, AnimatePresence } from 'framer-motion';
-import { forgotPassword, forgotPasswordPin, resetPasswordPin } from '@/lib/api';
+import { forgotPasswordPin, resetPasswordPin } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LabelInputContainer } from '@/components/auth/label-input-container';
@@ -17,14 +16,7 @@ import { BottomGradient } from '@/components/auth/bottom-gradient';
 type Tab = 'email' | 'pin';
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
-  const [tab, setTab] = useState<Tab>('email');
-
-  // Email reset state
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [tab, setTab] = useState<Tab>('pin');
 
   // PIN reset state
   const [pinEmail, setPinEmail] = useState('');
@@ -34,24 +26,7 @@ export default function ForgotPasswordPage() {
   const [pinToken, setPinToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await forgotPassword(email);
-      if (res.success) {
-        setSent(true);
-      } else {
-        setErrorMsg(res.error?.message || 'Something went wrong. Please try again.');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handlePinVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,8 +53,8 @@ export default function ForgotPasswordPage() {
 
   const handlePinReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 8) {
-      setErrorMsg('Password must be at least 8 characters');
+    if (newPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters');
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -91,7 +66,12 @@ export default function ForgotPasswordPage() {
     try {
       const res = await resetPasswordPin(pinToken, newPassword);
       if (res.success) {
-        setSent(true);
+        setPinVerified(false);
+        setPinToken('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setPinEmail('');
+        setPin('');
       } else {
         setErrorMsg(res.error?.message || 'Failed to reset password');
       }
@@ -102,6 +82,8 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  const [sent, setSent] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -109,7 +91,7 @@ export default function ForgotPasswordPage() {
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-3xl p-8 shadow-2xl shadow-input max-w-md mx-auto"
     >
-      <div className="flex flex-col items-center text-center mb-8">
+      <div className="flex flex-col items-center text-center mb-6">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -152,7 +134,7 @@ export default function ForgotPasswordPage() {
           <>
             <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Forgot password?</h1>
             <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-              No worries. Recover your account using your email or recovery PIN.
+              No worries. Recover your account using your recovery PIN.
             </p>
           </>
         )}
@@ -160,20 +142,7 @@ export default function ForgotPasswordPage() {
 
       {!sent && !pinVerified && (
         <>
-          {/* Tab switcher */}
           <div className="flex bg-brand-charcoal-base rounded-xl p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => { setTab('email'); setErrorMsg(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                tab === 'email'
-                  ? 'bg-brand-muted-gold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20'
-                  : 'text-brand-offwhite-muted hover:text-brand-offwhite'
-              }`}
-            >
-              <Mail size={14} />
-              Email Reset
-            </button>
             <button
               type="button"
               onClick={() => { setTab('pin'); setErrorMsg(''); }}
@@ -184,61 +153,37 @@ export default function ForgotPasswordPage() {
               }`}
             >
               <KeyRound size={14} />
-              Use PIN Instead
+              Recovery PIN
+            </button>
+            <button
+              type="button"
+              disabled
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all cursor-not-allowed ${
+                tab === 'email'
+                  ? 'bg-brand-muted-gold/50 text-brand-charcoal-base'
+                  : 'text-brand-offwhite-muted/40'
+              }`}
+              title="Email reset is currently unavailable"
+            >
+              <Mail size={14} />
+              Email Reset
             </button>
           </div>
 
+          {tab === 'email' && (
+            <div className="bg-brand-charcoal-base/50 border border-brand-charcoal-border rounded-xl p-5 text-center space-y-3">
+              <div className="mx-auto w-10 h-10 rounded-full bg-brand-charcoal-hover flex items-center justify-center">
+                <Ban size={18} className="text-brand-offwhite-muted/50" />
+              </div>
+              <p className="text-sm text-brand-offwhite-muted font-medium">Email reset unavailable</p>
+              <p className="text-xs text-brand-offwhite-muted/60 leading-relaxed">
+                Email-based password reset is temporarily disabled. Please use your 6-digit recovery PIN instead.
+                If you haven&apos;t set up a PIN, contact support for assistance.
+              </p>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
-            {tab === 'email' && (
-              <motion.form
-                key="email-form"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handleEmailSubmit}
-                noValidate
-                className="space-y-5"
-              >
-                {errorMsg && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                    {errorMsg}
-                  </div>
-                )}
-
-                <LabelInputContainer>
-                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-                    Email address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                    placeholder="you@example.com"
-                  />
-                </LabelInputContainer>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Mail size={16} />
-                      Send reset link
-                    </>
-                  )}
-                  <BottomGradient />
-                </button>
-              </motion.form>
-            )}
-
             {tab === 'pin' && (
               <motion.form
                 key="pin-form"
@@ -271,7 +216,7 @@ export default function ForgotPasswordPage() {
                   />
                 </LabelInputContainer>
 
-                <PinInput size="md">
+                <PinInput size="md" mask>
                   <PinInput.Label>6-digit recovery PIN</PinInput.Label>
                   <PinInput.Group
                     maxLength={6}
@@ -330,7 +275,7 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
               className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-              placeholder="At least 8 characters"
+              placeholder="At least 6 characters"
             />
           </LabelInputContainer>
 
