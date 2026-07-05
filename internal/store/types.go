@@ -74,6 +74,8 @@ type Problem struct {
 	Language         string      `db:"language" json:"language"`
 	Title            string      `db:"title" json:"title"`
 	Statement        string      `db:"statement" json:"statement"`
+	Constraints      string      `db:"constraints" json:"constraints"`
+	LearningObjective string    `db:"learning_objective" json:"learningObjective"`
 	FuncName         string      `db:"func_name" json:"func_name"`
 	ReturnType       string      `db:"return_type" json:"return_type"`
 	ParamTypes       []string    `db:"param_types" json:"param_types"`
