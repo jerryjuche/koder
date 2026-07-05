@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername } from "@/lib/api";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername, verifyPin } from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
@@ -561,10 +561,16 @@ function SettingsPageContent() {
                         setCpLoading(true);
                         setCpError('');
                         try {
-                          // Just verify PIN format — actual verification happens with password change
-                          setCpStep('password');
+                          const res = await verifyPin(cpPin);
+                          if (res.success) {
+                            setCpStep('password');
+                          } else if (res.error?.code === 'PIN_MISMATCH') {
+                            setCpError('Incorrect PIN. Please try again.');
+                          } else {
+                            setCpError(res.error?.message || 'PIN verification failed');
+                          }
                         } catch {
-                          setCpError('Verification failed');
+                          setCpError('Network error. Please try again.');
                         } finally {
                           setCpLoading(false);
                         }
@@ -595,10 +601,14 @@ function SettingsPageContent() {
                         </div>
                         <button
                           type="submit"
-                          disabled={cpPin.length !== 6}
-                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={cpPin.length !== 6 || cpLoading}
+                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          Continue
+                          {cpLoading ? (
+                            <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                          ) : (
+                            'Continue'
+                          )}
                         </button>
                       </form>
                     )}
