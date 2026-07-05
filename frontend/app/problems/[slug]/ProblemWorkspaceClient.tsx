@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+
+// Load Monaco from the local public/vs directory instead of CDN
+// This eliminates network dependency — faster load, works offline after first visit
+loader.config({ paths: { vs: "/vs" } });
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -628,6 +632,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               height="100%"
               defaultLanguage="go"
               theme="vs-dark"
+              loading={
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
+                    <p className="text-sm text-brand-offwhite-muted">Loading editor...</p>
+                  </div>
+                </div>
+              }
               value={code}
               onChange={(v) => {
                 setCode(v || "");
