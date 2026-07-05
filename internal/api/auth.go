@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -121,7 +120,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.store.CreateUser(r.Context(), newUser)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "USER_CREATION_FAILED", "Unable to create user", nil)
+		msg := "Unable to create user"
+		if code, friendly, ok := store.IsFriendlyError(err); ok {
+			RespondError(w, http.StatusConflict, code, friendly, nil)
+			return
+		}
+		RespondError(w, http.StatusBadRequest, "USER_CREATION_FAILED", msg, nil)
 		return
 	}
 
@@ -173,15 +177,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
 	}
 
 	SetAuthCookie(w, r, token, h.config)
-	RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
+	RespondSuccess(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
 }
 
 // GoogleAuth handles Google Sign-In.
@@ -220,15 +223,14 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(user.ID)
-		needsOnboarding := strings.HasPrefix(user.Username, "u_") || strings.HasPrefix(user.Username, "g_")
-		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
+		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 			return
 		}
 
 		SetAuthCookie(w, r, token, h.config)
-		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
+		RespondSuccess(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
 		return
 	}
 
@@ -245,15 +247,14 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(existingUser.ID)
-		needsOnboarding := strings.HasPrefix(existingUser.Username, "u_") || strings.HasPrefix(existingUser.Username, "g_")
-		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), needsOnboarding)
+		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !existingUser.UsernameSet)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 			return
 		}
 
 		SetAuthCookie(w, r, token, h.config)
-		RespondSuccess(w, authResponse{Token: token, Onboarding: needsOnboarding})
+		RespondSuccess(w, authResponse{Token: token, Onboarding: !existingUser.UsernameSet})
 		return
 	}
 
@@ -328,6 +329,11 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if err := h.store.UpdateUserUsernameSet(r.Context(), userUUID, true); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username flag", nil)
+		return
+	}
+
 	InvalidateUserCache(claims.UserID)
 
 	// Fetch updated user to get fresh data
@@ -338,7 +344,7 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 	}
 
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
-	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !updatedUser.UsernameSet)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return
@@ -420,7 +426,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
-	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), false)
+	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !updatedUser.UsernameSet)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
 		return

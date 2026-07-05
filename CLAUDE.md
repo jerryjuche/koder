@@ -39,6 +39,7 @@ koder/
 │   │   └── responses.go            # Shared response structs
 │   ├── store/                      # Database access (raw pgx/v5)
 │   │   ├── store.go                # DB pool initialization
+│   │   ├── errors.go               # FriendlyError type + unique constraint violation detection
 │   │   ├── users.go                # User CRUD
 │   │   ├── problems.go             # Problem definitions, metadata
 │   │   ├── submissions.go          # Student code submissions
@@ -206,6 +207,7 @@ The system has **three sequential pipelines**:
 ### Profile & Activity
 - `GET /me/profile` — Full user profile with stats, module proficiency, achievements
 - `PUT /me/profile` — Update name and bio
+- `PUT /me/username` — Set username (one-time, only when `username_set` is false)
 - `GET /me/activity?year=2026` — Contribution graph data
 - `GET /me/contributions` — User's problem contribution submissions
 
@@ -467,6 +469,48 @@ See `.env.example` for full template.
   - Fixes login on cross-origin setups (Vercel frontend → Render backend)
 - **CSP fix:** Added `https://accounts.google.com` to `style-src` in `next.config.ts` (was blocking Google Sign-In stylesheet)
 - **Route fix:** `GET /auth/check-username` moved outside `AuthMiddleware` group — was returning 401 during registration (user has no JWT yet)
+- **July 5 — Problem field split:**
+  - **Migration `023_split_problem_fields.sql`**: Adds `constraints TEXT` and `learning_objective TEXT` columns to `problems` table
+  - `Problem.Constraints`/`Problem.LearningObjective` in Go struct, all 5 SELECT queries updated
+  - Frontend: workspace shows Learning Objective callout + Constraints section
+  - Seed files 1–4 (180 problems): `statement` is clean description, structured fields populated
+- **July 5 — Monaco Editor local workers:**
+  - Monaco served from `public/vs/` (local npm workers) instead of jsDelivr CDN
+  - `scripts/copy-monaco.mjs` — copies Monaco web workers to `public/vs/` before `next build`
+  - `DynamicWorkspace.tsx` — Client Component wrapper for `next/dynamic` (Next.js 15 constraint)
+  - CSP `worker-src 'self' blob:` added for Monaco blob-based workers
+- **July 5 — Card excerpt markdown stripping:**
+  - Home page problem cards strip markdown syntax (`#`, `**`, code fences) from statement excerpts
+- **July 5 — Confetti overhaul:**
+  - Split confetti into its own `useEffect([])` with try-catch, `setInterval` bursts
+  - 60 particles per side (was 12), spread 90, startVelocity 45, interval 150ms, duration 3.5s
+  - Fires when data is ready (not on mount); toast duration reduced to 2s
+- **July 5 — Pagination (home page):**
+  - 18 items per page, first/prev/next/last buttons with smart page numbers and ellipsis
+  - Resets to page 1 on module filter change
+- **July 5 — Back button module context:**
+  - Workspace/success links use `/home?module=<module>`; home page reads `?module=` from URL on mount
+- **July 5 — SessionStorage caching:**
+  - `lib/cache.ts` — generic sessionStorage cache with 30s TTL
+  - `fetchApi` caches GET responses; `user-updated` handler debounced (300ms) clears stale keys
+  - Dashboard stores all problems in `koder_all_problems`; workspace stores slug in `koder_problem_{slug}`
+- **July 5 — Performance optimization pass:**
+  - `filteredProblems` wrapped in `useMemo`; `ModuleCards` wrapped in `React.memo`
+  - `handleSelectModule` wrapped in `useCallback`; `<link rel="preconnect">` for API domain in root layout
+- **July 6 — Error handling overhaul:**
+  - **New `internal/store/errors.go`**: `FriendlyError` type with `DUPLICATE_RESOURCE`/`NOT_FOUND`/`VALIDATION_ERROR` codes
+  - `IsUniqueViolation()` helper maps PG constraint names to human-readable messages (e.g. `idx_users_email_unique` → "An account with this email already exists")
+  - `CreateUser` and `CreateUserFromGoogle` return friendly errors instead of raw PG errors
+  - Register handler propagates `DUPLICATE_RESOURCE` with proper HTTP 409
+- **July 6 — username_set column (registration race condition fix):**
+  - **Migration `024_add_username_set.sql`**: `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false`
+  - `User.UsernameSet` / `NewUser.UsernameSet` in struct; all 7 SELECT queries include `username_set`
+  - `UpdateUserUsernameSet()` store method; `CompleteOnboarding` sets `username_set = true`
+  - Login/Google auth uses `!user.UsernameSet` instead of old `strings.HasPrefix` heuristic
+  - `/me` endpoint returns `username_set`; frontend `User` type includes `usernameSet`
+- **July 6 — Settings username editing:**
+  - **Backend `PUT /me/username`**: Validates username, checks uniqueness, updates username + student_id, sets `username_set = true`. Returns 403 if already set
+  - **Settings page**: Conditionally shows editable username field when `usernameSet === false` with inline validation and save button; read-only view with "Contact support" when already set
 
 ---
 

@@ -26,6 +26,7 @@ type User struct {
 	GoogleEmail    *string     `db:"google_email" json:"-"`
 	GoogleAvatarURL *string   `db:"google_avatar_url" json:"google_avatar_url,omitempty"`
 	PINHash        *string     `db:"pin_hash" json:"-"`
+	UsernameSet    bool        `db:"username_set" json:"username_set"`
 	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
 }
 
@@ -56,13 +57,14 @@ type GoogleUserInfo struct {
 
 // NewUser represents a user creation request.
 type NewUser struct {
-	StudentID string
-	Username  string
-	Name      string
-	Email     *string
-	Password  string // plaintext, will be hashed
-	PINHash   string // bcrypt hash of 6-digit PIN
-	Role      string // "student" | "admin"
+	StudentID   string
+	Username    string
+	Name        string
+	Email       *string
+	Password    string // plaintext, will be hashed
+	PINHash     string // bcrypt hash of 6-digit PIN
+	Role        string // "student" | "admin"
+	UsernameSet bool
 }
 
 // Problem represents an exercise definition stored in the database.

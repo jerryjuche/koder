@@ -188,3 +188,60 @@ Bug fixes (post-optimization sprint):
    - Was causing "FILTER specified, but round is not an aggregate function" error
 2. Frontend field fix: problem.successRate → problem.success_rate in home/page.tsx
    - Backend returns snake_case success_rate, frontend was reading camelCase
+
+Date: 2026-07-05
+
+Professional PIN-based Password Management:
+1. POST /auth/change-password — authenticated endpoint verifies 6-digit PIN (bcrypt) + sets new password
+2. Settings: 3-step change-password dialog (masked PIN → new password → success)
+3. Forgot password: Recovery PIN tab as default; Email reset tab disabled
+4. PinInput mask prop: displays • for password-style PIN entry
+5. Migration 022: adds pin_hash TEXT to users table
+6. PIN rate limiting: 5 attempts / 15 min per email (in-memory map)
+
+Auth Cookie Fix for Cross-Origin:
+1. isHTTPS() checks X-Forwarded-Proto (Render proxy) + r.TLS
+2. SetAuthCookie/ClearAuthCookie: Secure + SameSite=None when HTTPS; Secure=false + SameSite=Lax when HTTP
+3. Fixes Vercel→Render login on cross-origin setups
+
+Date: 2026-07-05
+
+Problem Field Split (Migration 023):
+1. Adds constraints TEXT + learning_objective TEXT to problems table
+2. Go Problem struct: Constraints + LearningObjective fields; all 5 SELECT queries updated
+3. Frontend workspace: Learning Objective callout + Constraints section
+4. Seed files 1-4 (180 problems): statement = clean description, structured fields populated
+
+Monaco Editor Local Workers:
+1. Monaco served from public/vs/ (npm workers) instead of jsDelivr CDN
+2. scripts/copy-monaco.mjs — copies web workers to public/vs/ before next build
+3. DynamicWorkspace.tsx — Client Component wrapper for next/dynamic (Next.js 15)
+4. CSP: worker-src 'self' blob: for Monaco blob-based workers
+
+UI Polish:
+1. Card excerpts strip markdown syntax (#, **, code fences)
+2. Confetti: 60 particles/side, spread 90, interval 150ms, 3.5s duration, fires when data ready
+3. Toast duration reduced to 2s
+4. Pagination: 18 items/page, page nav with smart ellipsis, resets on filter change
+5. Back button: workspace/success links use ?module= query param
+
+SessionStorage Caching:
+1. lib/cache.ts — generic cache with 30s TTL
+2. fetchApi caches GET responses; user-updated handler debounced (300ms)
+3. Dashboard stores all problems in koder_all_problems
+4. Performance: useMemo, React.memo, useCallback, preconnect
+
+Date: 2026-07-06
+
+Error Handling Overhaul:
+1. NEW internal/store/errors.go — FriendlyError type with DUPLICATE_RESOURCE codes
+2. IsUniqueViolation() maps PG constraints to human-readable messages
+3. CreateUser/CreateUserFromGoogle return friendly errors instead of raw PG errors
+4. Register handler returns HTTP 409 DUPLICATE_RESOURCE
+
+Registration Race Condition Fix:
+1. Migration 024: username_set BOOLEAN NOT NULL DEFAULT false
+2. User.UsernameSet in struct; all 7 SELECT queries include it
+3. Login/auth uses !user.UsernameSet instead of strings.HasPrefix heuristic
+4. Settings: editable username field when usernameSet === false; read-only when already set
+5. PUT /me/username: validates + sets username one time; returns 403 if already set
