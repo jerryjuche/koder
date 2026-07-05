@@ -14,6 +14,7 @@ import {
   FeedbackItem,
   Broadcast,
 } from "./types";
+import { getCache, setCache } from "./cache";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -21,6 +22,12 @@ export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
+  // Return cached GET response if fresh
+  if (!options?.method || options.method === "GET") {
+    const cached = getCache<T>(endpoint);
+    if (cached) return { success: true, data: cached };
+  }
+
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
@@ -50,6 +57,11 @@ export async function fetchApi<T>(
       const err = data.error as any;
       const msg = err.details ? `${err.message}: ${err.details}` : err.message;
       throw new Error(msg);
+    }
+
+    // Cache successful GET responses
+    if (!options?.method || options.method === "GET") {
+      setCache(endpoint, data.data);
     }
 
     return data;

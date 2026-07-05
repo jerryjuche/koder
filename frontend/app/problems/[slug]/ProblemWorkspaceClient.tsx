@@ -199,6 +199,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.success("Solution accepted!");
           window.dispatchEvent(new Event("user-updated"));
           sessionStorage.setItem(`koder_solution_${slug}`, code);
+          if (problem) sessionStorage.setItem(`koder_problem_${slug}`, JSON.stringify(problem));
           router.push(`/problems/${slug}/success`);
         } else {
           toast.error("Some test cases failed.");

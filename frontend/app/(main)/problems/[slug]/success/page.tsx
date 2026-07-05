@@ -45,9 +45,11 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     CommunitySolution[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Trigger confetti on mount — fire immediately, then interval bursts
+    if (!ready) return;
+
     const burst = () => {
       try {
         confetti({
@@ -80,44 +82,65 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
-    // Get code from session storage
     const savedCode = sessionStorage.getItem(`koder_solution_${slug}`);
-    if (savedCode) {
-      setCode(savedCode);
-    }
+    if (savedCode) setCode(savedCode);
 
-    // Fetch data
     const loadData = async () => {
       try {
-        const [probRes, allProbRes, solutionsRes] = await Promise.all([
-          fetchProblem(slug),
-          fetchProblems(),
-          fetchCommunitySolutions(slug),
-        ]);
+        // Read cached data to avoid wasteful API calls
+        const cachedProblem = sessionStorage.getItem(`koder_problem_${slug}`);
+        const cachedAll = sessionStorage.getItem("koder_all_problems");
 
-        if (probRes.success && probRes.data) {
-          setProblem(probRes.data);
-          const currentProb = probRes.data;
+        let currentProb: Problem | null = null;
+        let allProblems: Problem[] | null = null;
 
-          if (allProbRes.success && allProbRes.data) {
-            const moduleProblems = allProbRes.data.filter(
-              (p) => p.module === currentProb.module && p.id !== currentProb.id,
-            );
-            const unsolved = moduleProblems.find((p) => !p.solved);
-            setNextProblem(unsolved || moduleProblems[0] || null);
-          }
+        if (cachedProblem) {
+          try { currentProb = JSON.parse(cachedProblem); setProblem(currentProb); } catch {}
+        }
+        if (cachedAll) {
+          try { allProblems = JSON.parse(cachedAll); } catch {}
         }
 
+        // Only fetch what's not cached
+        const fetches: Promise<any>[] = [];
+        if (!currentProb) fetches.push(fetchProblem(slug));
+        if (!allProblems) fetches.push(fetchProblems());
+        fetches.push(fetchCommunitySolutions(slug));
+
+        const results = await Promise.all(fetches);
+        let idx = 0;
+
+        if (!currentProb) {
+          const r = results[idx++];
+          if (r.success && r.data) { currentProb = r.data; setProblem(currentProb); }
+        }
+        if (!allProblems) {
+          const r = results[idx++];
+          if (r.success && r.data) {
+            allProblems = r.data;
+            sessionStorage.setItem("koder_all_problems", JSON.stringify(allProblems));
+          }
+        }
+        const solutionsRes = results[idx];
         if (solutionsRes.success && solutionsRes.data) {
           setCommunitySolutions(solutionsRes.data);
+        }
+
+        if (currentProb && allProblems) {
+          const moduleProblems = allProblems.filter(
+            (p) => p.module === currentProb!.module && p.id !== currentProb!.id,
+          );
+          const unsolved = moduleProblems.find((p) => !p.solved);
+          setNextProblem(unsolved || moduleProblems[0] || null);
         }
       } catch (err) {
         console.error("Failed to load success page data", err);
       } finally {
         setLoading(false);
+        setReady(true);
       }
     };
 

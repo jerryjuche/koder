@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -21,7 +21,8 @@ import {
   BookOpen,
 } from "lucide-react";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, API_BASE } from "@/lib/api";
+import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
   cn,
@@ -70,7 +71,10 @@ export default function Dashboard() {
       Promise.all([fetchProblems(), fetchUser(), fetchBestPractices(20)]).then(
         ([probRes, userRes, bpRes]) => {
           if (!mounted) return;
-          if (probRes.success) setProblems(probRes.data || []);
+          if (probRes.success) {
+            setProblems(probRes.data || []);
+            sessionStorage.setItem("koder_all_problems", JSON.stringify(probRes.data));
+          }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
           setLoading(false);
@@ -85,10 +89,23 @@ export default function Dashboard() {
     const moduleParam = params.get("module");
     if (moduleParam) setSelectedModule(moduleParam);
 
-    window.addEventListener("user-updated", loadData);
+    // Debounced reload on user-updated — clear stale cache, then fetch fresh data
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const handleUserUpdated = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        clearCache("/problems");
+        clearCache("/me");
+        clearCache("/best-practices");
+        loadData();
+      }, 300);
+    };
+
+    window.addEventListener("user-updated", handleUserUpdated);
     return () => {
       mounted = false;
-      window.removeEventListener("user-updated", loadData);
+      window.removeEventListener("user-updated", handleUserUpdated);
+      clearTimeout(debounceTimer);
     };
   }, []);
 
@@ -129,7 +146,7 @@ export default function Dashboard() {
 
   const difficulties = ["All", "Beginner", "Easy", "Medium", "Hard", "Expert"];
 
-  const filteredProblems = problems
+  const filteredProblems = useMemo(() => problems
     .filter((p) => {
       if (selectedModule && p.module !== selectedModule) return false;
       if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
@@ -138,7 +155,7 @@ export default function Dashboard() {
       if (statusFilter === "unsolved" && p.solved) return false;
       return true;
     })
-    .sort((a, b) => Number(a.solved) - Number(b.solved));
+    .sort((a, b) => Number(a.solved) - Number(b.solved)), [problems, selectedModule, searchQuery, difficultyFilter, statusFilter]);
 
   const totalPages = Math.ceil(filteredProblems.length / ITEMS_PER_PAGE);
   const safePage = Math.min(currentPage, Math.max(totalPages, 1));
@@ -153,12 +170,12 @@ export default function Dashboard() {
     setCurrentPage(1);
   }, [selectedModule, searchQuery, difficultyFilter, statusFilter]);
 
-  const handleSelectModule = (mod: string) => {
+  const handleSelectModule = useCallback((mod: string) => {
     setSelectedModule(mod);
     setSearchQuery("");
     setDifficultyFilter("All");
     setStatusFilter("all");
-  };
+  }, []);
 
   const showTopicCards = !selectedModule;
 
