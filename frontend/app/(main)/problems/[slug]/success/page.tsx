@@ -51,20 +51,20 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     const burst = () => {
       try {
         confetti({
-          particleCount: 12,
+          particleCount: 60,
           angle: 60,
-          spread: 70,
+          spread: 90,
           origin: { x: 0, y: 0.6 },
           colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-          startVelocity: 35,
+          startVelocity: 45,
         });
         confetti({
-          particleCount: 12,
+          particleCount: 60,
           angle: 120,
-          spread: 70,
+          spread: 90,
           origin: { x: 1, y: 0.6 },
           colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-          startVelocity: 35,
+          startVelocity: 45,
         });
       } catch (e) {
         console.error("Confetti failed", e);
@@ -73,8 +73,8 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
 
     burst();
 
-    const interval = setInterval(burst, 200);
-    const timeout = setTimeout(() => clearInterval(interval), 3000);
+    const interval = setInterval(burst, 150);
+    const timeout = setTimeout(() => clearInterval(interval), 3500);
 
     return () => {
       clearInterval(interval);
