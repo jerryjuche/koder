@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername, verifyPin } from "@/lib/api";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername, verifyPin, setPin } from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
@@ -53,9 +53,11 @@ function SettingsPageContent() {
   // Change password
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [cpPin, setCpPin] = useState('');
-  const [cpStep, setCpStep] = useState<'pin' | 'password' | 'done'>('pin');
+  const [cpStep, setCpStep] = useState<'pin' | 'set-pin' | 'password' | 'done'>('pin');
   const [cpNewPassword, setCpNewPassword] = useState('');
   const [cpConfirmPassword, setCpConfirmPassword] = useState('');
+  const [cpNewPin, setCpNewPin] = useState('');
+  const [cpConfirmNewPin, setCpConfirmNewPin] = useState('');
   const [cpLoading, setCpLoading] = useState(false);
   const [cpError, setCpError] = useState('');
 
@@ -528,7 +530,7 @@ function SettingsPageContent() {
                     Change your password using your 6-digit recovery PIN.
                   </p>
                   <button
-                    onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpError(''); }}
+                    onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpNewPin(''); setCpConfirmNewPin(''); setCpError(''); }}
                     className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel hover:border-brand-muted-gold/50 text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors"
                   >
                     Change Password
@@ -540,11 +542,13 @@ function SettingsPageContent() {
                     <DialogHeader>
                       <DialogTitle className="text-brand-offwhite text-lg flex items-center gap-2">
                         <Shield size={18} className="text-brand-muted-gold" />
-                        {cpStep === 'pin' ? 'Verify your PIN' : cpStep === 'password' ? 'Set new password' : 'Password changed'}
+                        {cpStep === 'pin' ? 'Verify your PIN' : cpStep === 'set-pin' ? 'Set up recovery PIN' : cpStep === 'password' ? 'Set new password' : 'Password changed'}
                       </DialogTitle>
                       <DialogDescription className="text-brand-offwhite-muted text-sm">
                         {cpStep === 'pin'
                           ? 'Enter your 6-digit recovery PIN to proceed.'
+                          : cpStep === 'set-pin'
+                          ? 'Create a 6-digit PIN for account recovery and password changes.'
                           : cpStep === 'password'
                           ? 'Choose a new password for your account.'
                           : 'Your password has been updated.'}
@@ -566,6 +570,9 @@ function SettingsPageContent() {
                             setCpStep('password');
                           } else if (res.error?.code === 'PIN_MISMATCH') {
                             setCpError('Incorrect PIN. Please try again.');
+                          } else if (res.error?.code === 'PIN_NOT_SET') {
+                            setCpStep('set-pin');
+                            setCpError('');
                           } else {
                             setCpError(res.error?.message || 'PIN verification failed');
                           }
@@ -609,6 +616,107 @@ function SettingsPageContent() {
                           ) : (
                             'Continue'
                           )}
+                        </button>
+                      </form>
+                    )}
+
+                    {cpStep === 'set-pin' && (
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!/^\d{6}$/.test(cpNewPin)) {
+                          setCpError('PIN must be exactly 6 digits');
+                          return;
+                        }
+                        if (cpNewPin !== cpConfirmNewPin) {
+                          setCpError('PINs do not match');
+                          return;
+                        }
+                        setCpLoading(true);
+                        setCpError('');
+                        try {
+                          const res = await setPin(cpNewPin, cpConfirmNewPin);
+                          if (res.success) {
+                            setCpPin(cpNewPin);
+                            setCpStep('password');
+                          } else {
+                            setCpError(res.error?.message || 'Failed to set PIN');
+                          }
+                        } catch {
+                          setCpError('Network error');
+                        } finally {
+                          setCpLoading(false);
+                        }
+                      }} className="space-y-4">
+                        {cpError && (
+                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                            {cpError}
+                          </div>
+                        )}
+                        <div className="bg-brand-muted-gold/5 border border-brand-muted-gold/20 rounded-xl px-4 py-3">
+                          <p className="text-xs text-brand-offwhite-muted">
+                            No recovery PIN is set on your account. Create a 6-digit PIN to enable password changes and account recovery.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+                            New recovery PIN
+                          </label>
+                          <PinInput size="lg" mask>
+                            <PinInput.Group
+                              maxLength={6}
+                              pattern={REGEXP_ONLY_DIGITS}
+                              value={cpNewPin}
+                              onChange={(v) => { setCpNewPin(v); setCpError(''); }}
+                              autoFocus
+                            >
+                              <PinInput.Slot index={0} />
+                              <PinInput.Slot index={1} />
+                              <PinInput.Slot index={2} />
+                              <PinInput.Separator />
+                              <PinInput.Slot index={3} />
+                              <PinInput.Slot index={4} />
+                              <PinInput.Slot index={5} />
+                            </PinInput.Group>
+                          </PinInput>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+                            Confirm recovery PIN
+                          </label>
+                          <PinInput size="lg" mask>
+                            <PinInput.Group
+                              maxLength={6}
+                              pattern={REGEXP_ONLY_DIGITS}
+                              value={cpConfirmNewPin}
+                              onChange={(v) => { setCpConfirmNewPin(v); setCpError(''); }}
+                            >
+                              <PinInput.Slot index={0} />
+                              <PinInput.Slot index={1} />
+                              <PinInput.Slot index={2} />
+                              <PinInput.Separator />
+                              <PinInput.Slot index={3} />
+                              <PinInput.Slot index={4} />
+                              <PinInput.Slot index={5} />
+                            </PinInput.Group>
+                          </PinInput>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={cpNewPin.length !== 6 || cpConfirmNewPin.length !== 6 || cpLoading}
+                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {cpLoading ? (
+                            <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                          ) : (
+                            'Set PIN & continue'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setCpStep('pin'); setCpError(''); }}
+                          className="w-full text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+                        >
+                          Go back
                         </button>
                       </form>
                     )}
