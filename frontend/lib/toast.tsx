@@ -46,7 +46,7 @@ const ICONS = {
 function createToast(type: "success" | "error" | "info" | "warning", options: ToastOptions | string) {
   const title = typeof options === "string" ? options : options.title;
   const description = typeof options === "string" ? undefined : options.description;
-  const duration = typeof options === "string" ? 4000 : (options.duration ?? 4000);
+  const duration = typeof options === "string" ? 2000 : (options.duration ?? 2000);
   const Icon = ICONS[type];
   const c = COLORS[type];
 
