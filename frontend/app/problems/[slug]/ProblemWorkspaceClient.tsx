@@ -296,7 +296,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link
-            href="/home"
+            href={`/home?module=${encodeURIComponent(problem.module)}`}
             className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
           >
             <ChevronLeft size={16} /> Problems

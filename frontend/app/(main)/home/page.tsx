@@ -80,6 +80,11 @@ export default function Dashboard() {
 
     loadData();
 
+    // Restore module from query param on initial load
+    const params = new URLSearchParams(window.location.search);
+    const moduleParam = params.get("module");
+    if (moduleParam) setSelectedModule(moduleParam);
+
     window.addEventListener("user-updated", loadData);
     return () => {
       mounted = false;
