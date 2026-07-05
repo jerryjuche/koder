@@ -5,6 +5,10 @@ import Link from "next/link";
 import {
   Search,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   CheckCircle2,
   Circle,
   Clock,
@@ -57,6 +61,8 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "solved" | "unsolved">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 18;
 
   useEffect(() => {
     let mounted = true;
@@ -73,6 +79,11 @@ export default function Dashboard() {
     };
 
     loadData();
+
+    // Restore module from query param on initial load
+    const params = new URLSearchParams(window.location.search);
+    const moduleParam = params.get("module");
+    if (moduleParam) setSelectedModule(moduleParam);
 
     window.addEventListener("user-updated", loadData);
     return () => {
@@ -129,7 +140,18 @@ export default function Dashboard() {
     })
     .sort((a, b) => Number(a.solved) - Number(b.solved));
 
+  const totalPages = Math.ceil(filteredProblems.length / ITEMS_PER_PAGE);
+  const safePage = Math.min(currentPage, Math.max(totalPages, 1));
+  const paginatedProblems = filteredProblems.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
+  );
+
   const solvedCount = problems.filter((p) => p.solved).length;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedModule, searchQuery, difficultyFilter, statusFilter]);
 
   const handleSelectModule = (mod: string) => {
     setSelectedModule(mod);
@@ -342,7 +364,10 @@ export default function Dashboard() {
               </Card>
 
               <p className="text-sm text-muted-foreground font-medium">
-                Showing {filteredProblems.length} of {problems.length} problems
+                Showing {paginatedProblems.length} of {filteredProblems.length} problems
+                {totalPages > 1 && (
+                  <span className="text-muted-foreground/50"> &middot; Page {safePage} of {totalPages}</span>
+                )}
               </p>
 
               {/* Problem Grid */}
@@ -361,7 +386,7 @@ export default function Dashboard() {
                       </Card>
                     </div>
                   ) : (
-                    filteredProblems.map((problem, i) => {
+                    paginatedProblems.map((problem, i) => {
                       const diffGradients: Record<number, { from: string; to: string }> = {
                         1: { from: "from-emerald-500", to: "to-teal-400" },
                         2: { from: "from-sky-500", to: "to-blue-400" },
@@ -522,6 +547,72 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
+
+              {/* Pagination */}
+              <div className="flex items-center justify-center gap-2 pt-4 pb-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={safePage <= 1}
+                  className="p-2 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="First page"
+                >
+                  <ChevronsLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(safePage - 1)}
+                  disabled={safePage <= 1}
+                  className="p-2 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => {
+                    const distance = Math.abs(p - safePage);
+                    return distance === 0 || distance === 1 || distance === 2 || p === 1 || p === totalPages;
+                  })
+                  .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span key={`ellipsis-${i}`} className="px-1 text-muted-foreground/40 text-sm">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={cn(
+                          "min-w-[36px] h-9 rounded-lg border text-sm font-medium transition-all",
+                          p === safePage
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+
+                <button
+                  onClick={() => setCurrentPage(safePage + 1)}
+                  disabled={safePage >= totalPages}
+                  className="p-2 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={safePage >= totalPages}
+                  className="p-2 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="Last page"
+                >
+                  <ChevronsRight size={16} />
+                </button>
+              </div>
             </div>
           )}
         </>
