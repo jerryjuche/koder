@@ -5,3 +5,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Monaco Editor workers (copied from node_modules at build time)
+/public/vs/
