@@ -125,7 +125,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
 		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE id = $1
@@ -139,6 +139,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.Bio,
 		&user.Email,
 		&user.Password,
+		&user.PINHash,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,

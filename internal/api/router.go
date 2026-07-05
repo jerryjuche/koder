@@ -85,6 +85,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/change-password", changePasswordHandler.ChangePassword)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/verify-pin", changePasswordHandler.VerifyPin)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/set-pin", changePasswordHandler.SetPin)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
