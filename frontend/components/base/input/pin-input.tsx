@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 interface PinInputContextValue {
   size: 'sm' | 'md' | 'lg';
   mask: boolean;
+  hasError: boolean;
+  disabled: boolean;
 }
 
-const PinInputContext = React.createContext<PinInputContextValue>({ size: 'md', mask: false });
+const PinInputContext = React.createContext<PinInputContextValue>({ size: 'md', mask: false, hasError: false, disabled: false });
 
 interface PinInputRootProps {
   size?: 'sm' | 'md' | 'lg';
@@ -21,7 +23,7 @@ interface PinInputRootProps {
 
 function PinInputRoot({ size = 'md', mask = false, children, className }: PinInputRootProps) {
   return (
-    <PinInputContext.Provider value={{ size, mask }}>
+    <PinInputContext.Provider value={{ size, mask, hasError: false, disabled: false }}>
       <div className={cn('flex flex-col gap-2', className)}>
         {children}
       </div>
@@ -53,12 +55,13 @@ interface PinInputGroupProps {
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
+  hasError?: boolean;
 }
 
 const sizeConfig = {
-  sm: { slot: 'w-8 h-10 text-base', gap: 'gap-1.5', fontSize: 'text-base' },
-  md: { slot: 'w-10 h-12 text-lg', gap: 'gap-2', fontSize: 'text-lg' },
-  lg: { slot: 'w-12 h-14 text-xl', gap: 'gap-3', fontSize: 'text-xl' },
+  sm: { slot: 'w-8 h-10 text-sm', gap: 'gap-1.5', fontSize: 'text-sm' },
+  md: { slot: 'w-10 h-12 text-base', gap: 'gap-2', fontSize: 'text-base' },
+  lg: { slot: 'w-12 h-14 text-lg', gap: 'gap-3', fontSize: 'text-lg' },
 };
 
 function PinInputGroup({
@@ -71,24 +74,27 @@ function PinInputGroup({
   disabled,
   className,
   autoFocus,
+  hasError,
 }: PinInputGroupProps) {
   const ctx = React.useContext(PinInputContext);
   const cfg = sizeConfig[ctx.size];
 
   return (
-    <OTPInput
-      maxLength={maxLength}
-      value={value}
-      onChange={onChange}
-      onComplete={onComplete}
-      disabled={disabled}
-      autoFocus={autoFocus}
-      containerClassName={cn('flex items-center', cfg.gap, className)}
-      pattern={pattern}
-      textAlign="center"
-    >
-      {children}
-    </OTPInput>
+    <PinInputContext.Provider value={{ ...ctx, hasError: hasError ?? false, disabled: disabled ?? false }}>
+      <OTPInput
+        maxLength={maxLength}
+        value={value}
+        onChange={onChange}
+        onComplete={onComplete}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        containerClassName={cn('flex items-center', cfg.gap, className)}
+        pattern={pattern}
+        textAlign="center"
+      >
+        {children}
+      </OTPInput>
+    </PinInputContext.Provider>
   );
 }
 
@@ -98,25 +104,33 @@ function PinInputSlot({ index, className }: { index: number; className?: string 
   const inputOTPContext = React.useContext(OTPInputContext);
   const slot: SlotProps = inputOTPContext.slots[index];
 
+  const isEmpty = slot.char === null;
+  const showError = ctx.hasError && isEmpty;
+
   return (
     <div
       className={cn(
         'relative flex items-center justify-center',
-        'rounded-xl border bg-brand-charcoal-base',
-        'text-brand-offwhite font-mono font-bold',
-        'transition-all duration-150',
-        'border-brand-charcoal-border',
+        'rounded-xl border font-mono font-bold',
+        'transition-all duration-200',
         cfg.slot,
-        slot.isActive && 'border-brand-muted-gold ring-1 ring-brand-muted-gold/30 shadow-lg shadow-brand-muted-gold/10',
-        slot.char && 'border-brand-muted-gold/50',
+        !ctx.disabled && 'bg-brand-charcoal-base',
+        ctx.disabled && 'bg-brand-charcoal-base/50 opacity-60',
+        !showError && !slot.isActive && !slot.char && 'border-brand-charcoal-border',
+        !showError && !slot.isActive && slot.char && 'border-brand-muted-gold/60',
+        !showError && slot.isActive && 'border-brand-muted-gold ring-2 ring-brand-muted-gold/25 shadow-lg shadow-brand-muted-gold/15',
+        showError && 'border-brand-error ring-2 ring-brand-error/20 animate-shake',
+        ctx.hasError && isEmpty && !slot.isActive && 'border-brand-error/60',
         className,
       )}
     >
       {slot.char !== null ? (
-        <span className={cfg.fontSize}>{ctx.mask ? '•' : slot.char}</span>
+        <span className={cn(cfg.fontSize, 'text-brand-offwhite select-none')}>
+          {ctx.mask ? '\u2022' : slot.char}
+        </span>
       ) : (
-        <span className={cn('text-brand-offwhite-muted/20', cfg.fontSize)}>
-          {slot.placeholderChar ?? '○'}
+        <span className={cn(cfg.fontSize, 'text-brand-offwhite-muted/15 select-none')}>
+          {slot.placeholderChar ?? '\u25CB'}
         </span>
       )}
 
@@ -131,9 +145,9 @@ function PinInputSlot({ index, className }: { index: number; className?: string 
 
 function PinInputSeparator({ className }: { className?: string }) {
   return (
-    <div className={cn('text-brand-offwhite-muted/30', className)} aria-hidden>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+    <div className={cn('flex items-center justify-center text-brand-offwhite-muted/20', className)} aria-hidden>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <circle cx="5" cy="5" r="1.5" fill="currentColor" />
       </svg>
     </div>
   );
@@ -141,7 +155,7 @@ function PinInputSeparator({ className }: { className?: string }) {
 
 function PinInputDescription({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={cn('text-xs text-brand-offwhite-muted/60', className)}>
+    <p className={cn('text-xs text-brand-offwhite-muted/50', className)}>
       {children}
     </p>
   );
