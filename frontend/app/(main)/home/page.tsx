@@ -445,9 +445,14 @@ export default function Dashboard() {
                                 <span>
                                   {problem.statement
                                     .replace(/<[^>]*>/g, "")
+                                    .replace(/^#+\s+/gm, "")
+                                    .replace(/\*\*/g, "")
+                                    .replace(/```[\s\S]*?```/g, "")
                                     .split("\n")
+                                    .filter(Boolean)
                                     .slice(0, 2)
                                     .join(" ")
+                                    .trim()
                                     .substring(0, 120)}
                                 </span>
                               ) : (

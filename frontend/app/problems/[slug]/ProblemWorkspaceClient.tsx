@@ -16,6 +16,7 @@ import {
   Play,
   RotateCcw,
   Lightbulb,
+  Target,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -564,6 +565,27 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </ul>
               </div>
             </div>
+
+            {/* Learning Objective */}
+            {problem.learningObjective && (
+              <div className="mb-8">
+                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
+                  Learning Objective
+                </div>
+                <div className="relative rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-5 shadow-lg backdrop-blur-sm overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-transparent opacity-60"></div>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <Target size={16} className="text-emerald-400" />
+                    </div>
+                    <p className="text-sm text-brand-offwhite-muted leading-relaxed pt-1">
+                      {problem.learningObjective}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Tags Section */}
             {problem.tags && problem.tags.length > 0 && (
