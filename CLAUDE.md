@@ -19,6 +19,8 @@ koder/
 │   ├── api/                        # HTTP handlers (chi router endpoints)
 │   │   ├── router.go               # Route registration
 │   │   ├── auth.go                 # Login, register, JWT middleware
+│   │   ├── change_password.go      # POST /auth/change-password (PIN-verified)
+│   │   ├── pin_reset.go            # PIN-based forgot-password flow
 │   │   ├── problems.go             # GET /problems, GET /problems/:slug
 │   │   ├── admin.go                # Admin endpoints (ingest, enrich, stats, publish)
 │   │   ├── leaderboard.go          # Leaderboard rankings
@@ -71,6 +73,7 @@ koder/
 │   │   └── layout.tsx             # Root layout
 │   ├── components/                # Reusable React components
 │   │   ├── auth/                  # Auth form components (GoogleButton, AuthDivider, LabelInputContainer, BottomGradient)
+│   │   ├── base/input/            # PinInput component (input-otp based, mask support)
 │   │   ├── TestResultPanel.tsx    # Test output display
 │   │   ├── GoogleLinkBanner.tsx   # Google account linking banner (links to Settings)
 │   │   ├── FeedbackButton.tsx     # Floating feedback button + modal (all pages)
@@ -164,13 +167,18 @@ The system has **three sequential pipelines**:
 ## API Endpoints
 
 ### Auth
-- `POST /auth/register` — Create account (name, email, password); issues JWT with `onboarding: true`
+- `POST /auth/register` — Create account (name, email, password, 6-digit PIN); issues JWT with `onboarding: true`
 - `POST /auth/login` — JWT token (accepts username/email/student_id)
 - `POST /auth/google` — Google Sign-In with ID token
 - `POST /auth/complete-google` — Set username after Google onboarding (legacy alias)
 - `POST /auth/complete-onboarding` — Set username + student_id after onboarding (for all auth methods)
 - `POST /auth/link-google` — Link Google account to existing authenticated user
-- `GET /auth/check-username?username=xxx` — Username availability check
+- `POST /auth/forgot-password` — Email-based reset link (Resend API; currently disabled in frontend)
+- `POST /auth/reset-password` — Complete email-based reset with token
+- `POST /auth/forgot-password-pin` — PIN-based: email + 6-digit PIN → short-lived JWT (5 min)
+- `POST /auth/reset-password-pin` — PIN-based: JWT + new password → update
+- `POST /auth/change-password` — Authenticated: verify PIN + set new password
+- `GET /auth/check-username?username=xxx` — Username availability check (public)
 - `GET /me` — Current user + stats
 
 ### Problems
@@ -248,7 +256,9 @@ The system has **three sequential pipelines**:
 | `components/auth/bottom-gradient.tsx` | Amber gradient line animation on button hover |
 | `components/auth/label-input-container.tsx` | Input + label spacing wrapper (Aceternity pattern) |
 | `components/auth/auth-divider.tsx` | "or" divider with border and muted text |
+| `components/base/input/pin-input.tsx` | PinInput component with mask support, size variants, shadcn/input-otp-based |
 | `components/ui/label.tsx` | shadcn Label component with Radix + CVA |
+| `components/ui/input-otp.tsx` | shadcn InputOTP component (used by PinInput) |
 | `lib/api.ts` | Fetch wrapper for backend endpoints |
 | `lib/types.ts` | TypeScript interfaces (shared with backend via documentation) |
 
@@ -443,12 +453,20 @@ See `.env.example` for full template.
 
 ---
 
-## Next Steps & Future Work
-
-- **Phase 2:** Multi-language support (Python, Rust)
-- **Phase 3:** Plagiarism detection via AST diffing
-- **Phase 4:** Student peer review system
-- **Immediate:** Run migrations `012_add_google_auth.sql`, `014_feedback.sql`, `015_broadcasts.sql`, `016_add_streak_index.sql`, `017_optimization_indexes.sql`, `019_seed_problems1.sql`, `019_seed_problems2.sql`; set `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars; set `ADMIN_EMAIL`/`RESEND_API_KEY` env vars for feedback emails
+- **July 5 — PIN-based password management (professional flow):**
+  - **Backend `POST /auth/change-password`:** New authenticated endpoint that accepts `{ pin, new_password }`, verifies 6-digit PIN against bcrypt `pin_hash`, and updates password
+  - **Settings change password:** 3-step dialog modal (masked PIN entry → new password + confirm → success checkmark) with inline error handling
+  - **Forgot password redesign:** Email reset tab disabled with `Ban` icon + "Email reset unavailable" message; default tab is Recovery PIN; PIN digits masked via new `mask` prop
+  - **PinInput `mask` prop:** When `true`, displays `•` instead of digits (password-style input)
+  - **Migration `022_add_pin_hash.sql`:** Adds `pin_hash TEXT` column to users table
+  - **PIN rate limiting:** 5 attempts per 15 minutes per email (in-memory map) on forgot-password-pin
+  - **shadcn InputOTP installed** as foundation for PinInput component
+- **July 5 — Auth cookie fix for cross-origin dev server:**
+  - Render proxy terminates TLS internally, so `r.TLS` is `nil` in the Go app — added `isHTTPS()` helper that checks both `r.TLS` and `X-Forwarded-Proto` header
+  - `SetAuthCookie` and `ClearAuthCookie` now dynamically set `Secure` and `SameSite: None` when HTTPS, `Secure: false` and `SameSite: Lax` when HTTP
+  - Fixes login on cross-origin setups (Vercel frontend → Render backend)
+- **CSP fix:** Added `https://accounts.google.com` to `style-src` in `next.config.ts` (was blocking Google Sign-In stylesheet)
+- **Route fix:** `GET /auth/check-username` moved outside `AuthMiddleware` group — was returning 401 during registration (user has no JWT yet)
 
 ---
 
