@@ -39,7 +39,7 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", nil)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found or not visible", nil)
 			return
 		}
-		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem details", err.Error())
+		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem details", nil)
 		return
 	}
 
@@ -88,12 +88,13 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.executor.Execute(r.Context(), execReq)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to grade solution attempt", err.Error())
+		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to grade solution attempt", nil)
 		return
 	}
 
 	if res.Status == "passed" {
 		h.store.LogActivity(r.Context(), "success", fmt.Sprintf("User %s successfully solved '%s'", claims.StudentID, problem.Slug), "text-brand-success", "CheckCircle2")
+		InvalidateUserCache(userID.String())
 	} else if res.Status == "timeout" {
 		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
 	}

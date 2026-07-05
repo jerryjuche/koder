@@ -28,7 +28,7 @@ func (s *PostgresStore) UpsertProgress(ctx context.Context, prog *Progress) erro
 		return fmt.Errorf("failed to get problem xp_reward: %w", err)
 	}
 
-	// 2. Check current progress
+	// 2. Check current progress (with row lock to prevent XP double-award race)
 	var currentSolved bool
 	var currentStars int
 	var currentBestRuntime *int
@@ -39,6 +39,7 @@ func (s *PostgresStore) UpsertProgress(ctx context.Context, prog *Progress) erro
 		SELECT solved, stars, best_runtime, attempts
 		FROM progress
 		WHERE user_id = $1 AND problem_id = $2
+		FOR UPDATE
 	`, prog.UserID, prog.ProblemID).Scan(&currentSolved, &currentStars, &currentBestRuntime, &currentAttempts)
 
 	if err != nil {

@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -18,9 +19,16 @@ type Config struct {
 	JWTSecret      string
 	JWTExpiryHours int
 
+	// AI Provider (gemini or groq)
+	EnrichmentProvider string
+
 	// Gemini
 	GeminiAPIKey string
 	GeminiModel  string
+
+	// Groq
+	GroqAPIKey string
+	GroqModel  string
 
 	// Execution
 	ExecutorMaxConcurrency int
@@ -28,6 +36,8 @@ type Config struct {
 	DockerImage            string
 	SandboxBaseDir         string
 	BuildCacheDir          string
+	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
+	GoVersion              string // Go version directive for generated go.mod (default "1.23")
 
 	// Server
 	Port        int
@@ -35,6 +45,15 @@ type Config struct {
 
 	// CORS
 	AllowedOrigin string
+
+	// Google OAuth2
+	GoogleClientID string
+
+	// Notifications
+	ResendAPIKey string
+
+	// Frontend URL for reset links
+	FrontendURL string
 
 	// Admin
 	AdminEmail    string
@@ -100,21 +119,48 @@ func Load() (*Config, error) {
 	}
 	cfg.JWTExpiryHours = jwtExpiry
 
-	// Gemini
-	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
-	if cfg.GeminiAPIKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY is required")
+	// AI Provider Selection
+	cfg.EnrichmentProvider = os.Getenv("ENRICHMENT_PROVIDER")
+	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
+
+	if cfg.EnrichmentProvider == "" {
+		if cfg.GroqAPIKey != "" {
+			cfg.EnrichmentProvider = "groq"
+		} else {
+			cfg.EnrichmentProvider = "gemini"
+		}
 	}
 
+	cfg.GroqModel = os.Getenv("GROQ_MODEL")
+	if cfg.GroqModel == "" {
+		cfg.GroqModel = "llama-3.3-70b-versatile"
+	}
+
+	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
 	cfg.GeminiModel = os.Getenv("GEMINI_MODEL")
 	if cfg.GeminiModel == "" {
 		cfg.GeminiModel = "gemini-2.5-pro"
 	}
 
+	switch cfg.EnrichmentProvider {
+	case "gemini":
+		if cfg.GeminiAPIKey == "" {
+			return nil, fmt.Errorf("GEMINI_API_KEY is required when ENRICHMENT_PROVIDER is gemini")
+		}
+		slog.Info("config: using Gemini for problem enrichment", "model", cfg.GeminiModel)
+	case "groq":
+		if cfg.GroqAPIKey == "" {
+			return nil, fmt.Errorf("GROQ_API_KEY is required when ENRICHMENT_PROVIDER is groq")
+		}
+		slog.Info("config: using Groq for problem enrichment", "model", cfg.GroqModel)
+	default:
+		return nil, fmt.Errorf("ENRICHMENT_PROVIDER must be 'gemini' or 'groq', got %q", cfg.EnrichmentProvider)
+	}
+
 	// Execution
 	executorMaxConcurrencyStr := os.Getenv("EXECUTOR_MAX_CONCURRENCY")
 	if executorMaxConcurrencyStr == "" {
-		executorMaxConcurrencyStr = "2"
+		executorMaxConcurrencyStr = "6"
 	}
 	executorMaxConcurrency, err := strconv.Atoi(executorMaxConcurrencyStr)
 	if err != nil {
@@ -140,7 +186,7 @@ func Load() (*Config, error) {
 
 	cfg.DockerImage = os.Getenv("DOCKER_IMAGE")
 	if cfg.DockerImage == "" {
-		cfg.DockerImage = "golang:1.22-alpine"
+		cfg.DockerImage = "golang:1.23-alpine"
 	}
 
 	cfg.SandboxBaseDir = os.Getenv("SANDBOX_BASE_DIR")
@@ -151,6 +197,14 @@ func Load() (*Config, error) {
 	cfg.BuildCacheDir = os.Getenv("BUILD_CACHE_DIR")
 	if cfg.BuildCacheDir == "" {
 		cfg.BuildCacheDir = "/tmp/go-build-cache"
+	}
+
+	cfg.SandboxURL = os.Getenv("SANDBOX_URL")
+	// Empty SANDBOX_URL means use local Docker (default behavior)
+
+	cfg.GoVersion = os.Getenv("GO_VERSION")
+	if cfg.GoVersion == "" {
+		cfg.GoVersion = "1.23"
 	}
 
 	// Server
@@ -179,6 +233,18 @@ func Load() (*Config, error) {
 	cfg.AllowedOrigin = os.Getenv("ALLOWED_ORIGIN")
 	if cfg.AllowedOrigin == "" {
 		cfg.AllowedOrigin = "http://localhost:3000"
+	}
+
+	// Google OAuth2
+	cfg.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+
+	// Notifications
+	cfg.ResendAPIKey = os.Getenv("RESEND_API_KEY")
+
+	// Frontend URL
+	cfg.FrontendURL = os.Getenv("FRONTEND_URL")
+	if cfg.FrontendURL == "" {
+		cfg.FrontendURL = "http://localhost:3000"
 	}
 
 	// Admin Credentials

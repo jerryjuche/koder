@@ -9,8 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 
-export default function PendingContributions() {
+interface Props {
+  compact?: boolean;
+}
+
+export default function PendingContributions({ compact }: Props) {
   const [pending, setPending] = useState<UserProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProblem, setSelectedProblem] = useState<UserProblem | null>(null);
@@ -60,12 +65,12 @@ export default function PendingContributions() {
   if (loading) return <div className="text-brand-offwhite-muted">Loading pending contributions...</div>;
 
   if (pending.length === 0) {
-    return <div className="text-brand-offwhite-muted py-8 text-center bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl">No pending contributions to review.</div>;
+    return <div className="text-brand-offwhite-muted py-6 text-center text-sm">No pending contributions to review.</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-brand-offwhite font-display">Pending Contributions</h2>
+    <div className={compact ? "" : "space-y-6"}>
+      {!compact && <h2 className="text-2xl font-bold text-brand-offwhite font-display">Pending Contributions</h2>}
       
       {/* Table View */}
       <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl overflow-hidden">
@@ -159,7 +164,7 @@ export default function PendingContributions() {
                       <span className="px-2 py-1 bg-brand-charcoal-panel rounded-full border border-brand-charcoal-border">Difficulty: {selectedProblem.difficulty}/5</span>
                     </div>
                     <div className="prose prose-invert prose-brand max-w-none prose-sm">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                         {selectedProblem.statement}
                       </ReactMarkdown>
                     </div>
@@ -169,13 +174,13 @@ export default function PendingContributions() {
                     <div className="bg-[#161b22] px-4 py-2 border-b border-brand-charcoal-border flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
                       <span className="text-xs text-brand-offwhite-muted ml-2 font-mono">solution.go</span>
                     </div>
                     <div className="p-4 font-mono text-sm">
                       <span className="text-purple-400">package</span> main<br/><br/>
                       <span className="text-purple-400">func</span> <span className="text-blue-400">{selectedProblem.func_name}</span>({selectedProblem.param_types.join(", ")}) {selectedProblem.return_type} {"{"}<br/>
-                      <span className="text-green-600 ml-4">{"// Write your code here"}</span><br/>
+                                             <span className="text-amber-600 ml-4">{"// Write your code here"}</span><br/>
                       {"}"}
                     </div>
                   </div>
@@ -186,7 +191,7 @@ export default function PendingContributions() {
                   <div>
                     <h4 className="text-sm font-semibold text-brand-offwhite-muted uppercase tracking-wider mb-4 border-b border-brand-charcoal-border pb-2">Problem Statement</h4>
                     <div className="prose prose-invert prose-brand max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                         {selectedProblem.statement}
                       </ReactMarkdown>
                     </div>
@@ -250,7 +255,7 @@ export default function PendingContributions() {
                 <Button variant="destructive" className="bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/50" onClick={() => handleReject(selectedProblem.id)}>
                   <X className="w-4 h-4 mr-2" /> Reject
                 </Button>
-                <Button className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50" onClick={() => handleApprove(selectedProblem.id)}>
+                <Button className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50" onClick={() => handleApprove(selectedProblem.id)}>
                   <Check className="w-4 h-4 mr-2" /> Approve & Publish
                 </Button>
               </div>

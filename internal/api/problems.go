@@ -27,13 +27,13 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", err.Error())
+		RespondError(w, http.StatusUnauthorized, "AUTH_INVALID", "Invalid user identifier in token", nil)
 		return
 	}
 
 	problems, err := h.store.ListVisibleProblems(r.Context(), userID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "PROBLEM_LIST_FAILED", "Unable to list problems", err.Error())
+		RespondError(w, http.StatusInternalServerError, "PROBLEM_LIST_FAILED", "Unable to list problems", nil)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
 			return
 		}
-		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem", err.Error())
+		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem", nil)
 		return
 	}
 
@@ -77,6 +77,8 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		"language": problem.Language,
 		"title": problem.Title,
 		"statement": problem.Statement,
+		"constraints": problem.Constraints,
+		"learningObjective": problem.LearningObjective,
 		"func_name": problem.FuncName,
 		"return_type": problem.ReturnType,
 		"param_types": problem.ParamTypes,

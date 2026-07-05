@@ -2,10 +2,21 @@
 .env.local
 .env.*.local
 frontend/.env
+frontend/.env.*.local
 frontend/.env.local
 
 # Binary
 koder
+koder-sandbox
+main
+server
+sandbox/sandbox
+*.exe
+*.test
+*.out
+
+# Sandbox temp
+sandbox/tmp/
 
 # IDE
 .vscode/
@@ -21,8 +32,15 @@ node_modules/
 frontend/node_modules/
 frontend/.next/
 frontend/coverage/
+frontend/tsconfig.tsbuildinfo
 
 # Temp
 /tmp/koder/
+*.log
+*.txt
 
+# Project docs (auto-generated)
 CODEBASE_ANALYSIS.md
+
+# Windows reserved device name
+nul

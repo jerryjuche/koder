@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/parser"
 	"github.com/jerryjuche/koder/internal/store"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type AdminHandler struct {
@@ -53,7 +56,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -64,7 +67,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 
 	rawProblems, err := h.parser.IngestGitHubRepo(r.Context(), req.RepoURL)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INGEST_FAILED", "Unable to ingest GitHub repository", err.Error())
+		RespondError(w, http.StatusBadRequest, "INGEST_FAILED", "Unable to ingest GitHub repository", nil)
 		return
 	}
 
@@ -72,7 +75,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 	for _, rawProblem := range rawProblems {
 		existingProblem, err := h.store.GetProblemBySlugAny(r.Context(), rawProblem.Slug)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to check existing problem", err.Error())
+			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to check existing problem", nil)
 			return
 		}
 		if err == nil && existingProblem.SourceHash == rawProblem.SourceHash {
@@ -85,7 +88,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 			Module:     rawProblem.Module,
 			Type:       rawProblem.Type,
 			Language:   "go",
-			Title:      fmt.Sprintf("%s exercise", strings.Title(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
+			Title:      fmt.Sprintf("%s exercise", cases.Title(language.English).String(strings.ReplaceAll(rawProblem.Slug, "-", " "))),
 			Statement:  "Problem ingestion pending AI enrichment.",
 			FuncName:   "",
 			ReturnType: "",
@@ -100,7 +103,7 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
-			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to save ingested problem", err.Error())
+			RespondError(w, http.StatusInternalServerError, "INGEST_FAILED", "Unable to save ingested problem", nil)
 			return
 		}
 
@@ -121,7 +124,7 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
 		return
 	}
 
@@ -136,13 +139,13 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
 			return
 		}
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to load problem", err.Error())
+		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to load problem", nil)
 		return
 	}
 
 	enriched, testCases, err := h.enricher.EnrichProblem(r.Context(), problem.RawReadme)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "ENRICH_FAILED", "Unable to enrich problem", err.Error())
+		RespondError(w, http.StatusBadRequest, "ENRICH_FAILED", "Unable to enrich problem", nil)
 		return
 	}
 
@@ -155,21 +158,10 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 	problem.Difficulty = enriched.Difficulty
 	problem.XPReward = enriched.XPReward
 	problem.Tags = enriched.Tags
-	problem.Visible = false
+	problem.Visible = true
 
-	if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save enriched problem", err.Error())
-		return
-	}
-
-	if !problem.ID.Valid {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Invalid problem id", nil)
-		return
-	}
-
-	problemID := uuid.UUID(problem.ID.Bytes)
-	if err := h.store.UpsertTestCasesForProblem(r.Context(), problemID, testCases); err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save test cases", err.Error())
+	if err := h.store.UpsertEnrichedProblem(r.Context(), problem, testCases); err != nil {
+		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to save enriched problem with test cases", nil)
 		return
 	}
 
@@ -179,15 +171,19 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListProblemsNeedingEnrichment(r.Context())
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to list problems for enrichment", err.Error())
+		RespondError(w, http.StatusInternalServerError, "ENRICH_FAILED", "Unable to list problems for enrichment", nil)
 		return
 	}
 
+	slog.Info("admin: enrich-all started", "problem_count", len(problems))
+
 	results := make([]map[string]any, 0, len(problems))
+	enrichedCount := 0
 	for _, problem := range problems {
 		enriched, testCases, err := h.enricher.EnrichProblem(r.Context(), problem.RawReadme)
 		if err != nil {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
+			slog.Warn("admin: enrich-all failed for problem", "slug", problem.Slug, "error", err)
+			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": nil})
 			continue
 		}
 
@@ -200,36 +196,34 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		problem.Difficulty = enriched.Difficulty
 		problem.XPReward = enriched.XPReward
 		problem.Tags = enriched.Tags
-		problem.Visible = false
+		problem.Visible = true
 
-		if err := h.store.UpsertProblem(r.Context(), &problem); err != nil {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
+		if err := h.store.UpsertEnrichedProblem(r.Context(), &problem, testCases); err != nil {
+			slog.Error("admin: enrich-all db save failed", "slug", problem.Slug, "error", err)
+			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": nil})
 			continue
 		}
 
-		if !problem.ID.Valid {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": "invalid problem id"})
-			continue
-		}
-
-		problemID := uuid.UUID(problem.ID.Bytes)
-		if err := h.store.UpsertTestCasesForProblem(r.Context(), problemID, testCases); err != nil {
-			results = append(results, map[string]any{"slug": problem.Slug, "status": "failed", "error": err.Error()})
-			continue
-		}
-
+		enrichedCount++
 		results = append(results, map[string]any{"slug": problem.Slug, "status": "enriched"})
+		slog.Info("admin: enrich-all problem enriched", "slug", problem.Slug, "title", problem.Title)
 	}
 
 	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Batch enrichment completed. %d problems processed.", len(results)), "text-brand-success", "Wand2")
 
-	RespondSuccess(w, results)
+	if enrichedCount == 0 {
+		slog.Error("admin: enrich-all all problems failed")
+		RespondError(w, http.StatusInternalServerError, "ENRICH_ALL_FAILED", "All enrichment attempts failed", results)
+		return
+	}
+
+	RespondSuccess(w, map[string]any{"results": results, "enriched": enrichedCount, "total": len(results)})
 }
 
 func (h *AdminHandler) GetAdminStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.store.GetAdminStats(r.Context())
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "STATS_FAILED", "Unable to get admin stats", err.Error())
+		RespondError(w, http.StatusInternalServerError, "STATS_FAILED", "Unable to get admin stats", nil)
 		return
 	}
 	RespondSuccess(w, stats)
@@ -238,7 +232,7 @@ func (h *AdminHandler) GetAdminStats(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) GetAdminActivity(w http.ResponseWriter, r *http.Request) {
 	logs, err := h.store.GetRecentActivity(r.Context(), 50)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "ACTIVITY_FAILED", "Unable to get activity logs", err.Error())
+		RespondError(w, http.StatusInternalServerError, "ACTIVITY_FAILED", "Unable to get activity logs", nil)
 		return
 	}
 	RespondSuccess(w, logs)
@@ -247,17 +241,73 @@ func (h *AdminHandler) GetAdminActivity(w http.ResponseWriter, r *http.Request) 
 func (h *AdminHandler) ListAllProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListAllProblemsAdmin(r.Context())
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "PROBLEMS_FAILED", "Unable to list problems", err.Error())
+		RespondError(w, http.StatusInternalServerError, "PROBLEMS_FAILED", "Unable to list problems", nil)
 		return
 	}
 	RespondSuccess(w, problems)
+}
+
+// ToggleVisibility sets the visible flag for a problem.
+// PATCH /admin/problems/{id}/visibility
+func (h *AdminHandler) ToggleVisibility(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "id")
+	problemID, err := uuid.Parse(slug)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
+		return
+	}
+
+	var req struct {
+		Visible bool `json:"visible"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if err := h.store.UpdateProblemVisibility(r.Context(), problemID, req.Visible); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update problem visibility", nil)
+		return
+	}
+
+	status := "hidden"
+	if req.Visible {
+		status = "visible"
+	}
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Problem %s set to %s", problemID.String(), status), "text-brand-muted-gold", "Eye")
+
+	RespondSuccess(w, map[string]any{"id": problemID.String(), "visible": req.Visible})
+}
+
+// PublishAllDrafts sets all draft (invisible) problems to visible.
+// POST /admin/problems/publish-all
+func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) {
+	problems, err := h.store.ListAllProblemsAdmin(r.Context())
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list problems", nil)
+		return
+	}
+
+	published := 0
+	for _, p := range problems {
+		if !p.Visible && p.ID.Valid {
+			problemID := uuid.UUID(p.ID.Bytes)
+			if err := h.store.UpdateProblemVisibility(r.Context(), problemID, true); err == nil {
+				published++
+			}
+		}
+	}
+
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Published %d draft problems", published), "text-brand-muted-gold", "Eye")
+
+	RespondSuccess(w, map[string]any{"published": published})
 }
 
 // ListPendingUserProblems returns all pending community contributions.
 func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListPendingUserProblems(r.Context())
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch pending problems", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch pending problems", nil)
 		return
 	}
 	RespondSuccess(w, problems)
@@ -268,7 +318,7 @@ func (h *AdminHandler) ApproveUserProblem(w http.ResponseWriter, r *http.Request
 	slug := chi.URLParam(r, "id")
 	id, err := uuid.Parse(slug)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
 		return
 	}
 
@@ -279,15 +329,18 @@ func (h *AdminHandler) ApproveUserProblem(w http.ResponseWriter, r *http.Request
 		// allow empty payload
 	}
 
-	up, err := h.store.ApproveUserProblem(r.Context(), id, payload.AdminNotes)
+	up, newProblemID, err := h.store.ApproveUserProblem(r.Context(), id, payload.AdminNotes)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to approve problem", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to approve problem", nil)
 		return
 	}
 
 	upID := uuid.UUID(up.ID.Bytes)
 	submitterID := uuid.UUID(up.UserID.Bytes)
+	// Notify the submitter that their contribution was approved
 	h.store.CreateNotification(r.Context(), submitterID, "contribution_approved", fmt.Sprintf("Your contribution '%s' has been approved!", up.Title), &upID)
+	// Notify all users about the new problem
+	h.store.NotifyAllUsers(r.Context(), "new_problem", fmt.Sprintf("New problem available: %s", up.Title), newProblemID)
 
 	h.store.LogActivity(r.Context(), "success", fmt.Sprintf("Approved community contribution %s", id.String()), "brand-muted-gold", "check")
 	RespondSuccess(w, map[string]string{"status": "approved"})
@@ -298,7 +351,7 @@ func (h *AdminHandler) RejectUserProblem(w http.ResponseWriter, r *http.Request)
 	slug := chi.URLParam(r, "id")
 	id, err := uuid.Parse(slug)
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
 		return
 	}
 
@@ -306,7 +359,7 @@ func (h *AdminHandler) RejectUserProblem(w http.ResponseWriter, r *http.Request)
 		AdminNotes string `json:"admin_notes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Invalid payload", err.Error())
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Invalid payload", nil)
 		return
 	}
 
@@ -317,7 +370,7 @@ func (h *AdminHandler) RejectUserProblem(w http.ResponseWriter, r *http.Request)
 
 	up, err := h.store.RejectUserProblem(r.Context(), id, payload.AdminNotes)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to reject problem", err.Error())
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to reject problem", nil)
 		return
 	}
 

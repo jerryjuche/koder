@@ -151,3 +151,40 @@ Phase 6 Functional Fixes (Execution Engine & Sync):
 - parser.go: Fortified ingest discovery with cross-platform `filepath.ToSlash` and exact directory-segment matching for `exercises`.
 - ProblemWorkspaceClient.tsx: Added `whitespace-pre-wrap` for multiline output legibility and wired a global `user-updated` event upon successful completion.
 - page.tsx & leaderboard/page.tsx: Attached global listeners to dynamically re-fetch data on `user-updated`, enabling live XP/Level tracking.
+
+Date: 2026-07-03
+
+Performance Optimization Sprint (Session 11):
+1. Broadcast System Fixes:
+   - `NewBroadcast.Message`/`Priority` made optional; defaults: medium, title
+   - `ReplaceBroadcastNotifications` — atomic DELETE+INSERT, fixed critical bug (wrong SELECT columns)
+   - `GetActiveBroadcasts` — subquery for latest-only; dismissed never resurface older
+   - BroadcastBanner: slim centered fit-to-content, no message, "Admin" label, 5s polling
+   - BroadcastPanel: compact form + deletable history, "Admin" label
+
+2. Query Optimization:
+   - `ListVisibleProblems`: LATERAL join replaces 3 correlated subqueries; trimmed columns
+   - `GetUserStats`: split into 2 queries to avoid row explosion
+   - `GetBestPractices`: EXISTS replaces HAVING COUNT
+   - `CalculateStreak`: extracted as shared helper
+   - LIMIT added to all unbounded SELECTs (100–200 per table)
+
+3. Bulk INSERTs:
+   - `UpsertEnrichedProblem` + `UpsertTestCasesForProblem`: resolve ID once, multi-row VALUES
+
+4. Infrastructure Hardening:
+   - pgxpool: MaxConns=10, MinConns=2, MaxConnLifetime=30m
+   - Rate limiter: periodic cleanup goroutine
+   - Cache: stopCh for graceful shutdown
+   - Feedback email: 10s HTTP client timeout
+
+5. Migration 017: 16 performance indexes
+
+Date: 2026-07-03
+
+Bug fixes (post-optimization sprint):
+1. LATERAL join SQL fix: Moved FILTER inside AVG() in ListVisibleProblems
+   - ROUND(AVG(runtime_ms)) FILTER (WHERE ...) → ROUND(AVG(runtime_ms) FILTER (WHERE ...))
+   - Was causing "FILTER specified, but round is not an aggregate function" error
+2. Frontend field fix: problem.successRate → problem.success_rate in home/page.tsx
+   - Backend returns snake_case success_rate, frontend was reading camelCase

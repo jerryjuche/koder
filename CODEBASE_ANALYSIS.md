@@ -1,770 +1,935 @@
-# Koder Codebase - Complete Analysis
+# Koder Codebase — Complete Analysis
 
 ## Project Overview
-Koder is a zero-cost, production-grade automated code-grading platform for Go programming curricula. It runs on Oracle Cloud ARM64 free tier with a $0/month budget.
+
+**Koder** is a zero-cost, production-grade automated code-grading platform for Go programming curricula. It runs on Oracle Cloud's free ARM64 tier and uses Gemini (default) or Groq for AI-powered test enrichment.
+
+- **Stack:** Go 1.26 backend (chi router, pgx/v5 PostgreSQL) + Next.js 14 frontend (Vercel free tier)
+- **Infrastructure:** Go monolith on Oracle Ampere A1 (ARM64) + standalone Go sandbox on Railway (ARM64) + Supabase Postgres + Vercel frontend
+- **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, 50 Gemini API calls/day, 6 concurrent executions max)
 
 ---
 
-## BACKEND (Go) - Complete Analysis
+## BACKEND (Go) — Complete Analysis
 
-### 1. ENTRY POINT: cmd/server/main.go
+### 1. ENTRY POINT: `cmd/server/main.go`
+
 **Initialization Flow:**
-- Sets up structured logging via `slog` (output to stdout)
-- Loads config from environment via `config.Load()`
-- Creates PostgreSQL connection pool via `store.NewPostgresStore(ctx, cfg.DatabaseURL)`
-- Initializes `executor.NewExecutor(cfg, storeInstance)` with concurrency semaphore
-- Spawns warmup goroutine: pulls Docker image and pre-populates Go build cache
-- Creates HTTP router via `api.NewRouter(cfg, storeInstance, execInstance)`
-- Starts HTTP server on `cfg.Port` (default 8080) with timeouts: ReadTimeout, WriteTimeout, IdleTimeout all 60s
-- Gracefully shuts down on SIGINT/SIGTERM with 10s timeout
-
-**Key Variables:**
-- `logger` - structured logger instance
-- `cfg` - Config struct with all env vars
-- `storeInstance` - PostgreSQL store for DB operations
-- `execInstance` - Executor for sandboxed code execution
-- `router` - HTTP request router
-- `server` - HTTP server instance
-
-### 2. CONFIG: internal/config/config.go
-**Config Struct Fields:**
-- **Database**: `DatabaseURL` (required, Supabase connection string)
-- **Auth**: 
-  - `JWTSecret` (required, min 32 chars, used for HS256 signing)
-  - `JWTExpiryHours` (default 24)
-- **Gemini**: 
-  - `GeminiAPIKey` (required)
-  - `GeminiModel` (default "gemini-2.5-pro")
-- **Execution**:
-  - `ExecutorMaxConcurrency` (default 2, via buffered channel semaphore)
-  - `ExecutorTimeoutSeconds` (default 30, context timeout for each execution)
-  - `DockerImage` (default "golang:1.22-alpine")
-  - `SandboxBaseDir` (default "/tmp/koder", unique UUID per submission)
-  - `BuildCacheDir` (default "/tmp/go-build-cache", pre-warmed Go cache)
-- **Server**:
-  - `Port` (default 8080, validated 1-65535)
-  - `Environment` ("development" or "production")
-- **CORS**:
-  - `AllowedOrigin` (default "http://localhost:3000")
-- **Admin**:
-  - `AdminEmail`, `AdminPassword` (env-based credentials)
-
-**Load() Function:**
-1. Attempts to load `.env` file (non-blocking if missing)
-2. Reads all env vars with defaults
-3. Validates required fields and ranges
-4. Provides `ExecutorTimeout()` and `JWTExpiry()` helper methods returning `time.Duration`
-
-### 3. DATA STORE: internal/store/
-
-#### types.go - Data Models
-**User**:
-- `ID` (UUID, primary key)
-- `StudentID` (string, unique, email or identifier)
-- `Name`, `Password` (bcrypt hash), `Role` ("student"|"admin")
-- `ColorIndex` (0-5 for avatar colors), `XP`, `CreatedAt`
-
-**Problem**:
-- `ID`, `Slug` (unique), `Module`, `Type`, `Language` ("go")
-- `Title`, `Statement` (markdown), `FuncName`, `ReturnType`, `ParamTypes` ([]string)
-- `Hints` ([]string, exactly 3 from AI), `Difficulty` (1-5), `XPReward`, `Tags` ([]string)
-- `Visible` (false = draft, pending enrichment), `SourceHash` (SHA256 of README for dedup)
-- `RawReadme` (original GitHub README), `CreatedAt`, `UpdatedAt`
-- **UI Fields**: `Solved`, `Stars` (1-3 based on attempts), `Attempts`, `TotalSubmissions`, `SuccessRate`
-
-**TestCase**:
-- `ID`, `ProblemID`, `Input` ([]byte = JSON array), `Expected` (string)
-- `IsHidden` (true = not shown on fail), `Ordinal` (1-indexed position)
-
-**Submission**:
-- `ID`, `UserID`, `ProblemID`, `Language`, `Code`, `Status` ("passed"|"failed"|"compiler_error"|"timeout")
-- `PassedCount`, `TotalCount`, `OutputLogs`, `RuntimeMs`, `CreatedAt`
-
-**Progress**:
-- `UserID`, `ProblemID` (composite PK)
-- `Solved`, `Stars`, `Attempts`, `BestRuntime` (int), `XPAwarded`
-
-**ActivityLog**:
-- `ID`, `Type`, `Message`, `Color`, `Icon`, `CreatedAt`
-- Used for admin dashboard real-time activity feed
-
-**LeaderboardEntry**:
-- `Rank`, `User` (embedded LeaderboardUser), `BestTimeMs`, `RankDelta`
-
-#### store.go - Interface & Connection
-**Store Interface**: Defines all database operations contract
-- User ops, Problem ops, Submission ops, Admin ops
-- All methods take `context.Context` as first arg
-
-**PostgresStore**:
-- `pool *pgxpool.Pool` - pgx v5 connection pool (no prepared statement cache for Supabase compatibility)
-- `NewPostgresStore()` - parses DB URL, pings connection, returns store
-- `Close()` - closes pool
-
-#### users.go - User Operations
-**CreateUser()**:
-- Hashes password with `bcrypt.GenerateFromPassword(password, 12)`
-- Validates role ("student"|"admin"), returns generated UUID
-- Query: INSERT with RETURNING id, created_at
-
-**GetUserByStudentID()** / **GetUserByID()**:
-- Explicit field scanning (11 fields scanned manually)
-- Returns pgx.ErrNoRows wrapped in formatted error
-
-**UpdateUserRole()**:
-- Simple UPDATE with role validation
-- Checks RowsAffected() to detect "user not found"
-
-**GetLeaderboard()**:
-- Complex SQL: LEFT JOIN users with progress
-- Filters out admin role, groups by user, orders by xp DESC, solved_count DESC
-- Calculates level = (XP / 1000) + 1
-- Returns top 100 entries with ranks
-
-**GetSolvedCount()**:
-- COUNT(*) WHERE user_id AND solved = true
-
-#### problems.go - Problem Operations
-**ListVisibleProblems()**:
-- LEFT JOIN problems with progress ON user_id
-- Filters `visible = true`, orders by `created_at DESC`
-- Returns 22 fields including progress overlay (solved, stars, attempts)
-
-**GetProblemBySlug()** / **GetProblemBySlugAny()**:
-- Similar structure, one filters `visible = true`, other doesn't
-- Calculates `success_rate = COUNT(successful_subs) / COUNT(total_subs) * 100`
-- **GetProblemBySlugAny** used by admin for enrichment
-
-**UpsertProblem()**:
-- INSERT ON CONFLICT (slug) DO UPDATE
-- Upserts all 16 fields including visible, source_hash, raw_readme
-- Updates timestamps to NOW()
-
-**ListProblemsNeedingEnrichment()**:
-- Filters `visible = false`, orders by `created_at ASC`
-- Used by admin to batch-enrich unpublished problems
-
-#### submissions.go - Submission Operations
-**CreateSubmission()**:
-- Inserts submission with RETURNING id, created_at
-- 9 fields: user_id, problem_id, language, code, status, passed_count, total_count, output_logs, runtime_ms
-
-**GetProblemWithTestCases()**:
-- Fetches problem by ID, then calls `GetTestCasesForProblem()`
-- Returns tuple (*Problem, []TestCase, error)
-
-#### testcases.go - Test Case Operations
-**GetTestCasesForProblem()**:
-- SELECT * ORDER BY ordinal ASC
-- Returns all 6 fields (id, problem_id, input, expected, is_hidden, ordinal)
-
-#### progress.go - Progress Tracking (Complex)
-**UpsertProgress()**:
-- **Transaction-based atomic operation**
-1. Gets problem's `xp_reward`
-2. Queries existing progress (if none, creates new)
-3. Calculates:
-   - `newAttempts = currentAttempts + 1`
-   - `newSolved = currentSolved OR prog.Solved` (once solved, stays solved)
-   - **Stars logic**: 
-     - If solved: 1st attempt = 3 stars, 2nd = 2 stars, 3rd+ = 1 star
-     - Only increase stars, never decrease
-   - `newBestRuntime = MIN(current, prog.BestRuntime)`
-   - `xpToAward = xpReward` if `newSolved && !currentSolved` (only award on first solve)
-4. Upserts progress row (INSERT or UPDATE)
-5. Updates user's total XP if xpToAward > 0
-6. Commits transaction
-7. Updates caller's Progress struct with actual DB state
-
-#### admin.go - Admin Operations
-**LogActivity()**:
-- Simple INSERT into activity_logs table (4 fields)
-
-**GetRecentActivity()**:
-- SELECT * ORDER BY created_at DESC LIMIT $1
-- Ensures returns empty array, not nil
-
-**GetAdminStats()**:
-- Single query with 3 COUNT subqueries:
-  - Total problems
-  - Active problems (visible = true)
-  - Total submissions
-
-### 4. API HANDLERS: internal/api/
-
-#### router.go - HTTP Routing
-**NewRouter()**:
-- Creates chi router with CORS middleware
-- Handlers: Auth, Problem, Submission, Admin, Me, Leaderboard
-- Routes:
-  - `GET /health` - health check
-  - `POST /auth/register`, `POST /auth/login` - public
-  - Protected routes (via AuthMiddleware):
-    - `GET /me` - user profile
-    - `GET /leaderboard` - leaderboard
-    - `GET /problems` - list visible problems
-    - `GET /problems/{slug}` - get problem details
-    - `POST /submit` - submit solution
-    - Admin only (via AdminOnly):
-      - `POST /admin/ingest` - ingest GitHub repo
-      - `POST /admin/enrich` - enrich single problem
-      - `POST /admin/enrich-all` - batch enrichment
-      - `GET /admin/stats`, `/admin/activity`, `/admin/problems`
-
-#### middleware.go - Request Processing
-**CORSMiddleware()**:
-- Sets headers: Access-Control-Allow-Origin, Methods (GET, POST, OPTIONS), Headers (Authorization, Content-Type)
-- Handles preflight OPTIONS requests
-- Uses `cfg.AllowedOrigin`
-
-**AuthMiddleware()**:
-- Checks Authorization header (Bearer token format)
-- Verifies JWT via `auth.VerifyToken()`
-- Attaches claims to request context via `claimsContextKey`
-- Returns 401 if missing/invalid
-
-**AdminOnly()**:
-- Checks `claims.Role == "admin"`
-- Returns 403 Forbidden if not admin
-
-**GetClaims()**:
-- Extracts Claims from context
-
-#### responses.go - HTTP Envelope
-**APIResponse**:
-- `Success` (bool), `Data` (any), `Error` (APIError or nil)
-- All responses use this envelope structure
-
-**RespondSuccess()** / **RespondCreated()** / **RespondError()**:
-- Write JSON with status code
-- RespondSuccess = 200, RespondCreated = 201
-- RespondError = custom status + structured APIError
-
-#### auth.go - Authentication Handler
-**RegisterRequest**: `student_id`, `name`, `password`
-**LoginRequest**: `student_id`, `password`
-
-**Register()**:
-- Parses JSON, validates fields
-- **Admin detection**: if `ADMIN_EMAIL` env set and studentId/password match, role="admin"
-- Creates user via store.CreateUser()
-- Signs JWT token via `auth.SignToken(userID, studentID, role, secret, expiry)`
-- Returns token in authResponse
-
-**Login()**:
-- Gets user by studentId
-- Compares password via `auth.ComparePassword(hashedPassword, plainPassword)`
-- **Dynamic admin upgrade**: if credentials match ADMIN_EMAIL/ADMIN_PASSWORD, promotes to admin
-- Signs and returns token
-
-#### problems.go - Problem Handler
-**ListVisibleProblems()**:
-- Gets claims, parses userID
-- Calls `store.ListVisibleProblems(ctx, userID)` with progress overlay
-- Returns []Problem
-
-**GetProblemBySlug()**:
-- Gets problem from slug (visible only)
-- Returns single Problem with metadata
-
-#### submissions.go - Submission Handler (Core Grading)
-**SubmitRequest**: `problem_slug`, `code`
-
-**Submit()**:
-1. Gets claims, validates auth
-2. Parses request JSON, validates code (50KB limit for security)
-3. Fetches problem by slug
-4. Creates ExecutionRequest struct
-5. Calls `executor.Execute(ctx, execReq)` - **blocks on semaphore**
-6. Logs activity on success/timeout
-7. Creates Submission record in DB
-8. Calls `store.UpsertProgress()` to update user progress atomically
-9. Returns ExecutionResult with test results
-
-#### leaderboard.go - Leaderboard Handler
-**GetLeaderboard()**:
-- Calls `store.GetLeaderboard()`
-- Returns []LeaderboardEntry ordered by XP DESC
-
-#### me.go - User Profile Handler
-**meResponse**: ID, StudentID, Name, Role, ColorIndex, XP, Level, SolvedCount
-**GetMe()**:
-- Gets user from JWT claims
-- Fetches user from DB by UUID
-- Calculates solved count, level = (XP/1000)+1
-- Returns safe response (no password)
-
-#### admin.go - Admin Operations Handler
-**Ingest()**:
-1. Parses repo_url from request
-2. Calls `parser.IngestGitHubRepo(ctx, repoURL)` - clones repo, extracts READMEs
-3. For each raw problem:
-   - Checks if exists via `GetProblemBySlugAny()` with SHA256 hash comparison
-   - If unchanged (same hash), returns "unchanged" status
-   - Otherwise creates Problem with `visible=false`, stores raw_readme
-   - Upserts to DB
-4. Logs activity
-5. Returns ingestion responses
-
-**Enrich()**:
-1. Gets problem by slug
-2. Calls `enricher.EnrichProblem(ctx, problem.RawReadme)` - **calls Gemini API**
-3. Updates problem with enriched data (title, statement, FuncName, ParamTypes, Hints, Difficulty, XPReward, Tags)
-4. Upserts problem
-5. Calls `UpsertTestCasesForProblem()` to save test cases
-6. Returns slug
-
-**EnrichAll()**:
-- Gets all hidden (unenriched) problems
-- Iterates through each, enriches sequentially (respects 30s rate limit)
-- Logs batch completion with count
-
-**GetAdminStats()**, **GetAdminActivity()**, **ListAllProblems()**:
-- Simple store queries, return JSON responses
-
-### 5. AUTHENTICATION: internal/auth/
-
-#### jwt.go - JWT Operations
-**Claims Struct**:
-- `UserID` (string), `StudentID` (string), `Role` (string)
-- Embeds `jwt.RegisteredClaims` (IssuedAt, ExpiresAt, NotBefore)
-
-**SignToken()**:
-- Validates all inputs (non-empty, positive expiry)
-- Creates Claims with current time + expiryDuration
-- Signs with HS256 (HMAC-SHA256)
-- Returns signed token string
-
-**VerifyToken()**:
-- Parses JWT with `jwt.ParseWithClaims()`
-- Validates signing method is HMAC
-- Checks token.Valid
-- Explicitly checks expiry via claims.ExpiresAt.Before(now)
-- Returns Claims or error
-
-#### password.go - Password Hashing
-**HashPassword()**:
-- Uses `bcrypt.GenerateFromPassword(password, 12)` - cost=12
-- Returns hash string
-
-**ComparePassword()**:
-- Uses `bcrypt.CompareHashAndPassword()`
-- Returns true/false, suppresses error
-
-### 6. EXECUTOR: internal/executor/ - Core Grading Engine
-
-#### types.go - Execution Types
-**ExecutionRequest**:
-- `UserID`, `ProblemID` (UUIDs), `Code` (student submission), `Language` ("go")
-
-**TestResult**:
-- `TestCaseID`, `Ordinal`, `Passed`, `Got`, `Expected`, `IsHidden`
-
-**ExecutionResult**:
-- `Status` ("passed"|"failed"|"compiler_error"|"timeout")
-- `PassedCount`, `TotalCount`, `RuntimeMs`, `OutputLogs`, `TestResults` ([]TestResult)
-
-#### executor.go - Main Execution Logic
-**Executor Struct**:
-- `cfg *config.Config`
-- `store store.Store`
-- `semaphore chan struct{}` - **buffered to MaxConcurrency (default 2)**
-
-**Warmup()**:
-1. Pulls Docker image via `docker pull`
-2. Creates build cache directory
-3. Runs dummy container to populate Go build cache
-
-**Execute()**:
-1. **Acquires semaphore** - blocks if at capacity (max 2 concurrent)
-2. Fetches problem + test cases from DB
-3. Determines if `reflect` needed (non-primitive return types)
-4. For each test case:
-   - Parses JSON input ([]json.RawMessage)
-   - Validates param count matches problem ParamTypes
-   - Formats each arg to Go literal via `formatGoLiteral()`
-5. Calls `PrepareSandbox()` to create temp directory structure with:
-   - `solution.go` (student code, forces package piscine)
-   - `go.mod` (module sandbox, go 1.22)
-   - `main_test.go` (generated from template with test cases)
-6. **Runs Docker**:
-   ```
-   docker run --rm --network=none --memory=256m --cpus=1.0 \
-     -v /sandbox:/app \
-     -v /build-cache:/root/.cache/go-build \
-     golang:1.22-alpine \
-     go test ./... -v
-   ```
-   - Timeout: `cfg.ExecutorTimeout()` (default 30s)
-   - **Isolation**: no network, 256MB memory, 1 CPU
-7. Parses `go test` output:
-   - Regex: `=== RUN TestSolution/case_X` (track current test)
-   - Regex: `KODER_FAILED_START||got||expected||KODER_FAILED_END` (capture failure details)
-   - Regex: `--- PASS: TestSolution/case_X` (mark as passed)
-   - Regex: `--- FAIL: TestSolution/case_X` (mark as failed)
-8. **Classifies status**:
-   - `context.DeadlineExceeded` = "timeout"
-   - `cmdErr != nil && len(passedMap) == 0` = "compiler_error"
-   - `passedCount == totalCount` = "passed"
-   - else = "failed"
-9. Records Submission in DB
-10. Updates Progress atomically via `UpsertProgress()`
-11. Returns ExecutionResult with test results
-
-**IsPrimitiveType()**:
-- Checks if type is int, uint, float, string, bool, rune, byte
-- Used to decide between `==` comparison vs `reflect.DeepEqual()`
-
-**formatGoLiteral()**:
-- Converts JSON to Go literal:
-  - Integer types → `strconv.FormatInt(val, 10)` (NOT `fmt.Sprintf` to avoid scientific notation)
-  - Float types → `strconv.FormatFloat(val, 'f', -1, 64)`
-  - String types → `strconv.Quote(val)`
-  - Slice types → formatted as `[]T{...}`
-  - Struct/Map types → JSON marshaled as string
-
-#### sandbox.go - Sandbox Preparation
-**PrepareSandbox()**:
-1. Creates `/tmp/koder/{uuid}` directory
-2. Writes `solution.go`:
-   - Forces `package piscine` (regex replaces any package declaration)
-   - If no package, prepends `package piscine\n\n`
-3. Writes `go.mod`: `module sandbox\ngo 1.22\n`
-4. Renders `main_test.go` from template with test cases
-5. Returns sandboxPath (caller must clean via os.RemoveAll())
-
-#### templates.go - Test Generation Template
-**TemplateRenderData**:
-- `FuncName`, `ParamTypes`, `ReturnType`, `IsPrimitive`, `NeedsReflect`, `TestCases`
-
-**mainTestTemplate**:
+1. Sets up structured logging via `slog` (text handler → stdout)
+2. Loads config from environment via `config.Load()` — also reads `.env` file if present
+3. Creates PostgreSQL connection pool via `store.NewPostgresStore(ctx, cfg.DatabaseURL)`
+   - Uses `pgxpool` with `QueryExecModeSimpleProtocol` (for Supabase/PgBouncer compatibility)
+   - Pings DB immediately to fail fast
+4. Initializes `executor.NewExecutor(cfg, storeInstance)` — sets up buffered semaphore channel of capacity `cfg.ExecutorMaxConcurrency` (default 6)
+5. Optional warmup goroutine (only when no `SANDBOX_URL`): pulls `golang:1.23-alpine` Docker image + pre-populates Go build cache under `BUILD_CACHE_DIR`
+6. Creates HTTP router via `api.NewRouter(cfg, storeInstance, execInstance)`
+7. Starts HTTP server on `cfg.Port` (default 8080) with timeouts: Read=60s, Write=60s, Idle=60s
+8. Graceful shutdown on SIGINT/SIGTERM with 10s timeout
+
+---
+
+### 2. CONFIG: `internal/config/config.go`
+
+**Config struct fields:**
+
+| Category | Field | Default | Required | Notes |
+|----------|-------|---------|----------|-------|
+| **Database** | `DatabaseURL` | — | Yes | Supabase connection string |
+| **Auth** | `JWTSecret` | — | Yes | Min 32 chars, HS256 |
+| | `JWTExpiryHours` | 24 | No | |
+| | `GoogleClientID` | — | No | OAuth audience verification |
+| **Enrichment** | `EnrichmentProvider` | `"gemini"` | No | `"gemini"` or `"groq"`; auto-detected if `GROQ_API_KEY` set |
+| | `GeminiAPIKey` | — | Yes* | Required if provider=gemini |
+| | `GeminiModel` | `gemini-2.5-pro` | No | |
+| | `GroqAPIKey` | — | Yes* | Required if provider=groq |
+| | `GroqModel` | `llama-3.3-70b-versatile` | No | |
+| **Execution** | `ExecutorMaxConcurrency` | 6 | No | Buffered semaphore capacity |
+| | `ExecutorTimeoutSeconds` | 30 | No | Per-execution context timeout |
+| | `DockerImage` | `golang:1.23-alpine` | No | ARM64-compatible |
+| | `SandboxBaseDir` | `/tmp/koder` | No | Per-submission UUID directory |
+| | `BuildCacheDir` | `/tmp/go-build-cache` | No | Pre-warmed Go module cache |
+| | `SandboxURL` | `""` | No | Empty = use local Docker |
+| | `GoVersion` | `"1.23"` | No | Go directive in generated `go.mod` |
+| **Server** | `Port` | 8080 | No | Validated 1–65535 |
+| | `Environment` | `development` | No | `development` or `production` |
+| **CORS** | `AllowedOrigin` | `http://localhost:3000` | No | |
+| **Admin** | `AdminEmail` | — | No | For role detection |
+| | `AdminPassword` | — | No | For role detection |
+
+**`Load()` function:**
+1. Tries to read `.env` file (non-fatal if missing) — sets env vars that aren't already set
+2. Reads all env vars with defaults shown above
+3. Validates required fields (empty check) and ranges (port, concurrency)
+4. Provides `ExecutorTimeout()` and `JWTExpiry()` as `time.Duration` helpers
+
+---
+
+### 3. DATA STORE: `internal/store/`
+
+#### `types.go` — All Data Models
+
+**User** (id, student_id, username, name, bio?, email?, password hash, role, color_index, xp, verified?, verified_at?, google_id?, google_email?, google_avatar_url?, created_at)
+- `role`: `"student"`, `"verified_contributor"`, or `"admin"`
+- `color_index`: 0–5, randomly assigned on creation, used for avatar color
+- `FlexibleBool`: custom JSON unmarshaler that accepts both boolean `true` and string `"true"` (fixes Google tokeninfo inconsistency)
+
+**GoogleUserInfo** (sub, email, name, picture, email_verified FlexibleBool, aud)
+- Parsed from Google tokeninfo endpoint
+
+**Problem** (id, slug, module, type, language, title, statement, func_name, return_type, param_types[], hints[], difficulty, xp_reward, tags[], visible, source_hash, raw_readme, author_id?, author_name?, created_at, updated_at)
+- **Runtime-computed fields**: solved, stars, attempts, total_submissions, success_rate, avg_runtime_ms, est_time_minutes, examples (first 3 visible test cases)
+
+**TestCase** (id, problem_id, input JSONB, expected string, is_hidden bool, ordinal int)
+- `input`: JSON array of arguments (e.g. `[5, 3]` for a two-param function)
+- `expected`: stringified Go literal (e.g. `"8"` for int, `"hello"` for string)
+
+**Submission** (id, user_id, problem_id, language, code, status, passed_count, total_count, output_logs, runtime_ms, created_at)
+- `status`: `"passed"` | `"failed"` | `"compiler_error"` | `"timeout"`
+
+**Progress** (user_id, problem_id) — composite PK
+- solved, stars (1–3), attempts, best_runtime, xp_awarded
+- Stars: 1st attempt = 3 stars, 2nd = 2, 3rd+ = 1 (never decreases)
+
+**ActivityLog** (id, type, message, color, icon, created_at) — admin feed
+
+**Notification** (id, user_id, type, message, related_id?, is_read, created_at)
+
+**UserProblem** — staging table for community contributions (status: pending | approved | rejected)
+
+**LeaderboardEntry** — rank, user (LeaderboardUser), best_time_ms, rank_delta
+
+#### `store.go` — Interface & Connection
+
+- **Store interface**: Contract for ALL database operations (106 methods)
+- **PostgresStore**: Wraps `*pgxpool.Pool`
+- `NewPostgresStore()`: Parses URL with `pgxpool.ParseConfig`, disables prepared statement cache (Supabase transaction pooler compatibility), pings, returns store
+- `Close()`: Closes pool
+
+#### `users.go` — User CRUD (972 lines)
+
+**Key methods:**
+
+| Method | SQL Pattern | Notes |
+|--------|------------|-------|
+| `CreateUser` | INSERT ... RETURNING id, created_at | bcrypt hash cost=12, random color_index 0–5 |
+| `GetUserByLogin` | WHERE username=$1 OR email=$1 OR student_id=$1 | Unified login lookup |
+| `GetUserByGoogleID` | WHERE google_id=$1 | |
+| `CreateUserFromGoogle` | INSERT with temp username `g_<sub[:8]>` | Placeholder bcrypt hash, student_id = Google email |
+| `LinkGoogleToUser` | UPDATE user google fields | Links existing account to Google |
+| `UpdateUserUsername` | UPDATE SET username=$1 | |
+| `UpdateUserStudentID` | UPDATE SET student_id=$1 | Called during onboarding |
+| `UpdateUserProfileWithReturn` | UPDATE name, bio ... RETURNING * | Returns updated User |
+| `LinkGoogleToUser` | UPDATE SET google_id, google_email, google_avatar_url | Links existing account to Google |
+| `GetUserWithSolvedCount` | LEFT JOIN subquery | Single-query user + solved count |
+| `UpdateUserGoogleAvatar` | UPDATE google_avatar_url=$1 | |
+| `GetLeaderboard` | Complex GROUP BY with period filtering | Top 100, excludes admins, rank 1-indexed |
+| `GetUserStats` | Multi-query: solved/attempted, progress by difficulty, streak | |
+| `GetModuleProficiency` | GROUP BY module, LEFT JOIN progress | |
+| `GetRecentSubmissions` | ORDER BY created_at DESC LIMIT $1 | |
+
+#### `problems.go` — Problem CRUD (455 lines)
+
+| Method | SQL Pattern | Notes |
+|--------|------------|-------|
+| `ListVisibleProblems` | WHERE visible=true, LEFT JOIN progress | 22-field scan, success_rate calculated |
+| `GetProblemBySlug` | WHERE slug=$1 AND visible=true | Loads first 3 visible test cases as examples |
+| `GetProblemBySlugAny` | WHERE slug=$1 (no visible filter) | For admin enrichment |
+| `UpsertProblem` | INSERT ... ON CONFLICT (slug) DO UPDATE | Full upsert of 16 problem fields |
+| `ListProblemsNeedingEnrichment` | WHERE visible=false ORDER BY created_at | |
+| `UpdateProblemVisibility` | UPDATE SET visible=$1 | |
+| `ListAllProblemsAdmin` | ORDER BY module, difficulty | All problems including drafts |
+
+#### `submissions.go` — Submission & Community (210 lines)
+
+| Method | SQL Pattern | Notes |
+|--------|------------|-------|
+| `CreateSubmission` | INSERT ... RETURNING id, created_at | 9 fields |
+| `GetProblemWithTestCases` | Two queries: problem + test_cases | Used by executor |
+| `LikeSubmission` | INSERT ... ON CONFLICT DO NOTHING | Prevents duplicates |
+| `UnlikeSubmission` | DELETE WHERE submission_id=$1 AND user_id=$2 | |
+| `GetTopCommunitySolutionsForProblem` | JOIN with submission_likes, GROUP BY, HAVING | Ordered by likes DESC, runtime ASC |
+| `GetBestPractices` | Cross-problem, only visible, HAVING likes > 0 | |
+
+#### `progress.go` — Atomic Progress Tracking (130 lines)
+
+**`UpsertProgress`** (transaction):
+1. Get problem `xp_reward`
+2. Query existing progress row
+3. Calculate: new_attempts, new_solved (stays true forever), new_stars (max of old/calculated), new_best_runtime (MIN)
+4. `xpToAward = xpReward` only on first solve
+5. Upsert progress row (INSERT or UPDATE)
+6. `UPDATE users SET xp = xp + $1` if XP awarded
+7. COMMIT
+
+#### `admin.go` — Admin Operations (71 lines)
+
+- `LogActivity`: INSERT into activity_logs
+- `GetRecentActivity`: SELECT ORDER BY created_at DESC LIMIT $1
+- `GetAdminStats`: Single query with 3 COUNT subqueries
+
+#### `testcases.go` — Test Case Queries (92 lines)
+
+- `GetTestCasesForProblem`: All cases ORDER BY ordinal
+- `GetVisibleTestCasesForProblem`: WHERE is_hidden = false
+
+#### `profile.go` — Full Profile Query (112 lines)
+
+- `GetFullProfile`: Calls PostgreSQL function `get_full_profile($1)` which returns a JSON aggregate — single round trip for all profile data
+- `GetUserActivity`: Calls `get_user_activity($1, $2)` — contribution graph data
+
+#### `notifications.go` — Notification System (113 lines)
+
+- `CreateNotification`: INSERT for single user
+- `NotifyAdmins`: INSERT ... SELECT id FROM users WHERE role='admin'
+- `NotifyAllUsers`: INSERT ... SELECT id FROM users (no WHERE) — broadcast to every user
+- `GetUnreadNotifications`: WHERE is_read=FALSE LIMIT 50
+- `GetRecentNotifications`: Same as unread but without is_read filter — returns last N (read + unread)
+- `MarkAsRead`, `MarkAllAsRead`: UPDATE SET is_read=TRUE
+
+#### `user_problems.go` — Community Contribution Pipeline (249 lines)
+
+- `CreateUserProblem`: INSERT with JSONB[] test_cases, ON CONFLICT (slug) DO UPDATE (same author only)
+- `ApproveUserProblem` (transaction):
+  1. Fetch user problem FOR UPDATE (row lock)
+  2. Get author name
+  3. INSERT into main problems table with `source_hash = "COMMUNITY:{uuid}"`
+  4. INSERT all test cases into test_cases table
+  5. UPDATE user_problems status = 'approved'
+  6. COMMIT
+- `RejectUserProblem`: UPDATE status = 'rejected'
+
+---
+
+### 4. API HANDLERS: `internal/api/`
+
+#### `router.go` — Route Registration (110 lines)
+
+Uses `chi` router with:
+- CORS middleware (configurable origin, GET/POST/PUT/PATCH/DELETE/OPTIONS)
+- Auth middleware (Bearer JWT)
+- AdminOnly middleware
+- Rate limit middleware on `/submit` and `/test`
+
+**Route table:**
+
+| Method | Path | Handler | Middleware |
+|--------|------|---------|------------|
+| GET | `/health` | inline | None |
+| POST | `/auth/register` | `authHandler.Register` | None |
+| POST | `/auth/login` | `authHandler.Login` | None |
+| POST | `/auth/google` | `authHandler.GoogleAuth` | None |
+| GET | `/me` | `meHandler.GetMe` | Auth |
+| GET | `/me/profile` | `profileHandler.GetProfile` | Auth |
+| PUT | `/me/profile` | `profileHandler.UpdateProfile` | Auth |
+| GET | `/me/activity` | `activityHandler.GetActivity` | Auth |
+| GET | `/me/contributions` | `contributionsHandler.GetMyContributions` | Auth |
+| POST | `/user-problems` | `contributionsHandler.PostContribution` | Auth + VerifiedContributor |
+| POST | `/auth/complete-onboarding` | `authHandler.CompleteOnboarding` | Auth |
+| POST | `/auth/link-google` | `authHandler.LinkGoogle` | Auth |
+| GET | `/auth/check-username?username=xxx` | `authHandler.CheckUsername` | Auth |
+| GET | `/notifications` | `notificationsHandler.GetUnreadNotifications` | Auth |
+| GET | `/notifications/recent` | `notificationsHandler.GetRecentNotifications` | Auth |
+| POST | `/notifications/read-all` | `notificationsHandler.MarkAllAsRead` | Auth |
+| POST | `/notifications/{id}/read` | `notificationsHandler.MarkAsRead` | Auth |
+| POST | `/me/delete-account` | `meHandler.DeleteAccount` | Auth |
+| GET | `/leaderboard` | `leaderboardHandler.GetLeaderboard` | Auth |
+| GET | `/problems` | `problemHandler.ListVisibleProblems` | Auth |
+| GET | `/problems/{slug}` | `problemHandler.GetProblemBySlug` | Auth |
+| GET | `/problems/{slug}/community-solutions` | `communityHandler.GetCommunitySolutions` | Auth |
+| GET | `/best-practices` | `communityHandler.GetBestPractices` | Auth |
+| POST | `/submit` | `submissionHandler.Submit` | Auth + RateLimit |
+| POST | `/test` | `testHandler.Test` | Auth + RateLimit |
+| POST | `/submissions/{id}/like` | `communityHandler.LikeSubmission` | Auth |
+| DELETE | `/submissions/{id}/like` | `communityHandler.UnlikeSubmission` | Auth |
+| POST | `/admin/ingest` | `adminHandler.Ingest` | Auth + AdminOnly |
+| POST | `/admin/enrich` | `adminHandler.Enrich` | Auth + AdminOnly |
+| POST | `/admin/enrich-all` | `adminHandler.EnrichAll` | Auth + AdminOnly |
+| GET | `/admin/stats` | `adminHandler.GetAdminStats` | Auth + AdminOnly |
+| GET | `/admin/activity` | `adminHandler.GetAdminActivity` | Auth + AdminOnly |
+| GET | `/admin/problems` | `adminHandler.ListAllProblems` | Auth + AdminOnly |
+| PATCH | `/admin/problems/{id}/visibility` | `adminHandler.ToggleVisibility` | Auth + AdminOnly |
+| POST | `/admin/problems/publish-all` | `adminHandler.PublishAllDrafts` | Auth + AdminOnly |
+| GET | `/admin/user-problems/pending` | `adminHandler.ListPendingUserProblems` | Auth + AdminOnly |
+| PATCH | `/admin/user-problems/{id}/approve` | `adminHandler.ApproveUserProblem` | Auth + AdminOnly |
+| PATCH | `/admin/user-problems/{id}/reject` | `adminHandler.RejectUserProblem` | Auth + AdminOnly |
+
+#### `middleware.go` — Request Middleware (173 lines)
+
+**`CORSMiddleware(cfg)`**: Sets `Access-Control-Allow-Origin` from config, handles OPTIONS preflight
+
+**`AuthMiddleware(cfg)`**: Extracts Bearer token, calls `auth.VerifyToken()`, stores Claims in context via `context.WithValue`
+
+**`AdminOnly`**: Checks `claims.Role == "admin"`, returns 403
+
+**`VerifiedContributorOnly`**: Checks `claims.Role == "admin" || claims.Role == "verified_contributor"`
+
+**`RateLimitMiddleware(rl)`**: Per-user sliding window rate limiter. Admin users are exempt. Default: 5 requests per 45 seconds. Returns `Retry-After` header + 429 on throttle.
+
+**`RateLimiter`**: In-memory `map[string]*userRateLimit` with `{count, windowStart}`. Sliding window resets when `now - windowStart >= window`.
+
+#### `responses.go` — Response Envelope (51 lines)
+
+Standardized `APIResponse` envelope: `{success: bool, data: any, error: {code, message, details?}}`
+
+Helper functions: `RespondSuccess(w, data)` → 200, `RespondCreated(w, data)` → 201, `RespondError(w, status, code, message, details)`
+
+#### `auth.go` — Authentication Handler (422 lines)
+
+**Registration flow:**
+1. Validate `name` and `password` required
+2. Generate temp username `u_<uuid[:8]>`
+3. Admin detection: if email matches `ADMIN_EMAIL` and password matches `ADMIN_PASSWORD`, role = `"admin"`
+4. Create user with `student_id = username`, `username = tempUsername`
+5. Issue JWT with `onboarding: true`
+
+**Login flow:**
+1. Get user by login (checks username, email, student_id)
+2. bcrypt password comparison
+3. Dynamic admin upgrade (if env vars changed after user creation)
+4. Issue JWT with `onboarding: false`
+
+**GoogleAuth flow:**
+1. Verify Google ID token against `oauth2.googleapis.com/tokeninfo` (with audience validation)
+2. If existing Google user → sync avatar, issue token
+3. If email matches existing user → link Google, issue token
+4. New user → create with temp username `g_<sub[:8]>`, issue token with `onboarding: true`
+
+**CompleteOnboarding** (canonical endpoint for all auth methods):
+1. Requires valid JWT with any claims
+2. Validates username (min 3 chars, uniqueness check)
+3. Sets both `username` and `student_id` to the chosen value
+4. Returns fresh JWT without `onboarding` flag
+
+**LinkGoogle**: Links Google account to already-authenticated user (prevents double-linking, conflicts)
+
+**CheckUsername**: GET query parameter → `{username, available: bool}`
+
+#### `problems.go` — Problem Handler (103 lines)
+
+- `ListVisibleProblems`: Returns problems with `visible=true`, includes user's progress overlay
+- `GetProblemBySlug`: Returns single problem with examples (first 3 visible test cases as formatted JSON)
+
+#### `submissions.go` — Submission Handler (102 lines)
+
+**Submit flow:**
+1. Authenticate, parse `{problem_slug, code}`
+2. Validate code ≤ 50KB (HTTP 413)
+3. Fetch problem by slug
+4. Build `ExecutionRequest{UserID, ProblemID, Code, Language}`
+5. Call `executor.Execute()` (blocks on semaphore if at capacity)
+6. Log activity (success/timeout)
+7. Return `ExecutionResult`
+
+#### `test.go` — No-Scoring Test Handler (87 lines)
+
+Same flow as Submit but calls `executor.ExecuteVisibleOnly()` instead — runs tests against visible test cases only, no DB writes (no submission record, no progress update)
+
+#### `admin.go` — Admin Operations (386 lines)
+
+**Ingest**: Clones GitHub repo, walks directory tree for README files, creates Problem records with `visible=false`, SHA256 dedup
+
+**Enrich**: Calls `enricher.EnrichProblem()` with problem's `raw_readme`, updates problem fields + test cases, sets `visible=true`
+
+**EnrichAll**: Iterates all unenriched problems, enriches each sequentially (respects 30s Gemini rate limit)
+
+**PublishAllDrafts**: Sets `visible=true` for all hidden problems
+
+**ToggleVisibility**: PATCH to flip `visible` boolean on a problem
+
+**ApproveUserProblem / RejectUserProblem**: Community contribution moderation with admin notes + notification to submitter
+
+#### `me.go` — Current User Handler (129 lines)
+
+Returns `{id, student_id, username, name, role, color_index, xp, level, solved_count, google_avatar_url?, google_linked}`. `google_linked` is derived from `user.GoogleID != nil`. `color_index` is persisted per-user (0–5). Uses in-memory cache (30s TTL) with `cacheUser`/`getCachedUser`. Level = `(XP / 1000) + 1`.
+
+**`DeleteAccount(w, r)`**: Calls `store.DeleteUser()` — transactional cascade cleanup of submissions, progress, and user record. Returns `{"message": "Account permanently deleted"}`.
+
+#### `profile.go` — Full Profile Handler (257 lines)
+
+Calls `store.GetFullProfile()` (single DB round trip via `get_full_profile()` PostgreSQL function). Returns detailed profile with stats, progress by difficulty, module proficiency, recent submissions. Also uses 30s cache.
+
+#### `leaderboard.go` — Leaderboard Handler (34 lines)
+
+Simple delegation to `store.GetLeaderboard(period)`. Period filter: `all`, `weekly`, `monthly`.
+
+#### `community.go` — Community Solutions (139 lines)
+
+- `GetCommunitySolutions`: Top 3 liked + best runtime solutions for a problem (configurable limit)
+- `GetBestPractices`: Cross-problem top solutions with likes > 0
+- `LikeSubmission` / `UnlikeSubmission`: INSERT/DELETE on `submission_likes` table
+
+#### `contributions.go` — User-Submitted Problems (85 lines)
+
+- `PostContribution`: Creates `UserProblem` in staging table with status `pending`, notifies admins
+- `GetMyContributions`: Returns user's submitted problems with their review status
+
+#### `activity.go` — Contribution Graph (54 lines)
+
+Returns daily activity (`ActivityEntry[]`: date, submissions, solved, tests_run, level) for the contribution heatmap. Defaults to current year, configurable via `?year=` query param.
+
+#### `notifications.go` — Notification Handler (115 lines)
+
+- `GetUnreadNotifications`: Returns unread notifications for current user
+- `GetRecentNotifications`: Returns last 20 notifications (read + unread) for settings page
+- `MarkAsRead`: Marks single notification
+- `MarkAllAsRead`: Marks all unread as read
+
+#### `cache.go` — In-Memory Response Cache (98 lines)
+
+Generic typed cache with TTL + background cleanup goroutine. Two caches:
+- `profileCache`: 30s TTL for profile responses
+- `userCacheMap`: 30s TTL for me responses
+
+`InvalidateUserCache(userID)` called on profile/username updates.
+
+---
+
+### 5. AUTHENTICATION: `internal/auth/`
+
+#### `jwt.go` — JWT Operations (97 lines)
+
+**Claims**: `{user_id, student_id, username, role, onboarding}` + `jwt.RegisteredClaims` (iat, exp, nbf)
+
+**SignToken**: Validates all inputs → creates Claims → signs with HS256 → returns token string
+
+**VerifyToken**: Parses with `jwt.ParseWithClaims` → validates HMAC signing method → checks `token.Valid` → explicit expiry check → returns Claims
+
+#### `password.go` — Password Hashing (28 lines)
+
+- `HashPassword`: bcrypt cost=12
+- `ComparePassword`: bcrypt.CompareHashAndPassword, returns bool
+
+#### `oauth.go` — Google Token Verification
+
+- `VerifyGoogleToken(idToken, clientID)`: Fetches `https://oauth2.googleapis.com/tokeninfo?id_token={token}`, validates `aud` matches `clientID`, parses into `GoogleUserInfo` (with `FlexibleBool` for `email_verified`)
+
+---
+
+### 6. EXECUTOR: `internal/executor/` — Core Grading Engine
+
+#### `types.go` — Execution Types (34 lines)
+
+```go
+ExecutionRequest { UserID, ProblemID uuid.UUID, Code, Language string }
+TestResult       { TestCaseID, Ordinal, Passed bool, Got, Expected string, IsHidden bool }
+ExecutionResult  { Status, FriendlyMessage, PassedCount, TotalCount, OutputLogs string, RuntimeMs int, TestResults }
+```
+
+#### `executor.go` — Main Execution Logic (820 lines)
+
+**`Executor` struct**: `cfg`, `store`, `semaphore chan struct{}` (buffered, size = `ExecutorMaxConcurrency`, default 6)
+
+**`Warmup()`**: Pulls Docker image → runs dummy container to populate Go build cache → reduces cold-start latency
+
+**`Execute()`** (the primary grading pipeline):
+
+1. **Semaphore acquire** — blocks if at capacity (select on ctx.Done() for cancellation)
+2. **Fetch problem + test cases** from DB
+3. **Format test cases**:
+   - Parse each `tc.Input` as JSON array of `json.RawMessage`
+   - Validate arg count matches `problem.ParamTypes`
+   - Call `formatGoLiteral(type, rawArg)` for each arg
+   - Format expected value similarly
+   - Determine if `reflect.DeepEqual` needed (non-primitive return type)
+4. **Prepare sandbox** via `PrepareSandbox()` — writes `solution.go`, `go.mod`, `main_test.go`
+5. **Execute** (two paths):
+   - **Remote sandbox** (if `SANDBOX_URL` set): HTTP POST with code + test_code → parse response
+   - **Local Docker** (default): `docker run --rm --network=none --memory=256m --cpus=1.0 --pids-limit=512 --read-only -v sandbox:/app golang:1.23-alpine go test -v -count=1 -gcflags=-l ./...`
+6. **Parse output**: Regex-based parsing of `go test -v` output:
+   - `=== RUN TestSolution/case_X` → track current ordinal
+   - `--- PASS: TestSolution/case_X` → mark passed
+   - `--- FAIL: TestSolution/case_X` → mark failed
+   - `=== FAIL: Case X` → alternative fail marker
+   - `GOT: ...` / `WANT: ...` → capture got/want values
+7. **Classify status**:
+   - Sandbox returned `status` → use it directly (timeout, compiler_error, security_error)
+   - `context.DeadlineExceeded` → `"timeout"`
+   - Exit status 137 (OOM) → `"timeout"`
+   - `cmdErr != nil && len(passedMap) == 0` → `"compiler_error"`
+   - `passedCount == totalCount && totalCount > 0` → `"passed"`
+   - Else → `"failed"`
+8. **Record submission** in DB
+9. **Update progress** atomically via `UpsertProgress()`
+10. **Map results** → `ExecutionResult` with per-test-case details (hidden cases masked on fail)
+
+**`ExecuteVisibleOnly()`**: Same as above but filters to only visible (`is_hidden = false`) test cases, no DB writes
+
+**`IsPrimitiveType(t)`**: Returns true for int/uint/float/string/bool/rune/byte
+
+**`formatGoLiteral(paramType, data)`**: Converts JSON bytes → Go literal:
+- Integer types → `strconv.FormatInt/FormatUint`
+- Float types → `strconv.FormatFloat`
+- String → `fmt.Sprintf("%q", val)` (quoted)
+- Bool → `"true"` / `"false"`
+- Slice `[]T` → `[]T{...}` (recursive)
+- Map `map[K]V` → `map[K]V{key: val, ...}` (recursive)
+
+#### `sandbox.go` — Sandbox Preparation (70 lines)
+
+**`PrepareSandbox(baseDir, uuidStr, code, renderData)`**:
+
+1. Creates `{baseDir}/{uuidStr}/` directory
+2. Writes `solution.go`: forces `package piscine` (regex replaces any existing package decl)
+3. Writes `go.mod`: `module sandbox\n\ngo 1.23\n`
+4. Renders `main_test.go` from Go template
+5. Returns sandbox path (caller must `os.RemoveAll()`)
+
+#### `templates.go` — Test Generation Template (53 lines)
+
+**`mainTestTemplate`**: Go `text/template` that generates:
 ```go
 package piscine
 
 import (
-  "testing"
-  {{if .NeedsReflect}}"reflect"{{end}}
+    "testing"
+    {{if .NeedsReflect}}"reflect"{{end}}
 )
 
 func TestSolution(t *testing.T) {
-  {{range $i, $tc := .TestCases}}
-  t.Run("case_{{$tc.Ordinal}}", func(t *testing.T) {
-    {{if $.ReturnType}}
-    got := {{$.FuncName}}({{$tc.Args}})
-    want := {{$tc.Expected}}
-    {{if $.IsPrimitive}}
-    if got != want {
-      t.Errorf("KODER_FAILED_START||%#v||%#v||KODER_FAILED_END", got, want)
-    }
-    {{else}}
-    if !reflect.DeepEqual(got, want) {
-      t.Errorf("KODER_FAILED_START||%#v||%#v||KODER_FAILED_END", got, want)
-    }
+    {{range $i, $tc := .TestCases}}
+    t.Run("case_{{$tc.Ordinal}}", func(t *testing.T) {
+        {{if $.ReturnType}}
+        got := {{$.FuncName}}({{$tc.Args}})
+        want := {{$tc.Expected}}
+        {{if $.IsPrimitive}}
+        if got != want { t.Errorf("=== FAIL: Case %d\nGOT: %#v\nWANT: %#v\n", ...) }
+        {{else}}
+        if !reflect.DeepEqual(got, want) { ... }
+        {{end}}
+        {{else}}
+        {{$.FuncName}}({{$tc.Args}}) // void function
+        {{end}}
+    })
     {{end}}
-    {{else}}
-    {{$.FuncName}}({{$tc.Args}})
-    {{end}}
-  })
-  {{end}}
 }
 ```
-- Uses conditional template logic for optional imports/comparisons
-- Generates unique subtest per case for parallel execution & fine-grained failure reporting
 
-### 7. ENRICHER: internal/enricher/enricher.go - AI Pipeline
+#### `sandbox_client.go` — Remote Sandbox HTTP Client (133 lines)
 
-**Enricher Struct**:
-- `cfg *config.Config`
-- `client *genai.Client` (Gemini SDK)
-- `mu sync.Mutex`, `lastRequest time.Time` (rate limiting state)
-
-**EnrichProblem()**:
-1. **Rate limiting**: enforces 30s sleep between API calls (2 req/min = max 50/day)
-2. Prepares system instruction (rewrite z01.PrintRune → fmt.Printf, etc.)
-3. Prepares user prompt with raw README
-4. **Calls Gemini API** with:
-   - `ResponseMIMEType: "application/json"`
-   - `ResponseSchema: enrichmentSchema()` - validates structured output
-   - `Temperature: 0.0` (deterministic)
-   - `MaxOutputTokens: 2500`
-5. Parses JSON response into `enrichedResponse`
-6. Maps to `store.Problem` and `[]store.TestCase`
-7. Normalizes test case inputs via `normalizeTestCaseInput()` (handles string or JSON)
-8. Validates all fields via `validateEnrichedProblem()`
-
-**enrichmentSchema()**:
-- Defines JSON schema with all required fields:
-  - title, statement, func_name, return_type, param_types (array of strings)
-  - hints (array, min 3, max 3), difficulty, xp_reward, tags (array)
-  - test_cases (array of objects with input_json, expected, is_hidden, ordinal)
-
-**normalizeTestCaseInput()**:
-- If string: tries to parse as JSON, else wraps as quoted string
-- If object/null: marshals to JSON
-
-**validateEnrichedProblem()**:
-- Checks all required fields are non-empty
-- Validates difficulty 1-5, xp_reward > 0
-- Ensures exactly 3 hints, at least 1 tag, at least 1 test case
-- Validates each test case has input, expected, positive ordinal
-
-### 8. PARSER: internal/parser/parser.go - Repository Ingestion
-
-**RawProblem Struct**:
-- `Slug`, `Module`, `SourceHash` (SHA256), `RawReadme`, `RepoURL`, `Type`
-
-**Parser.IngestGitHubRepo()**:
-1. Parses repo metadata via `parseRepoMetadata()` → (slug, module)
-2. Clones repo to temp directory via `cloneRepository()` (git clone --depth 1)
-3. Walks directory tree collecting README files via `collectExerciseReadmes()`
-4. If no exercises found, uses root README
-5. Returns array of RawProblems
-
-**collectExerciseReadmes()**:
-- Walks file tree, finds README* files
-- Filters for paths containing "exercises/" folder
-- Generates slug from repo + relative path
-- Computes SHA256 hash of content
-- Detects problem type (function vs program)
-
-**computeSourceHash()**:
-- `SHA256(rawReadme)` → hex string
-- Used for deduplication (unchanged = skip)
-
-**parseRepoMetadata()**:
-- Handles git SSH URLs (git@github.com:user/repo.git)
-- Handles HTTPS URLs
-- Extracts repository name as slug, path as module
-- Normalizes to lowercase with `-` separators
-
-**normalizeSlug()** / **normalizeModule()**:
-- Removes `.git`, special chars, converts to lowercase
+- `SandboxRequest`: `{code, test_code, timeout_sec}`
+- `SandboxResponse`: `{status, stdout, stderr, passed_count, total_count, runtime_ms, error}`
+- Retry: up to 2 retries with exponential backoff (500ms → 1s)
+- Timeout: `timeoutSec + 10s` (buffer for network latency)
 
 ---
 
-## FRONTEND (TypeScript/React) - Complete Analysis
+### 7. ENRICHER: `internal/enricher/enricher.go` — Dual-Provider AI Pipeline
 
-### 1. LAYOUT STRUCTURE
+**Architecture**: Abstracted behind `enrichmentProvider` interface:
+
+```go
+type enrichmentProvider interface {
+    Name() string
+    GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error)
+}
+```
+
+Two implementations:
+- **`geminiProvider`** — uses `google.golang.org/genai` SDK, Gemini API with `ResponseMIMEType: "application/json"`, structured `ResponseSchema`, `Temperature: 0.0`, `MaxOutputTokens: 8192`
+- **`groqProvider`** — REST POST to `https://api.groq.com/openai/v1/chat/completions` with `{"type": "json_object"}` format, `Temperature: 0.0`, `MaxTokens: 8192`, automatic retry on HTTP 429 (reads `Retry-After` header)
+
+Provider selection: `config.EnrichmentProvider` (default `"gemini"`); auto-detected as `"groq"` if `GROQ_API_KEY` env var is set.
+
+**`Enricher` struct**: `cfg`, `enrichmentProvider`, `sync.Mutex` + `lastRequest time.Time` for rate limiting
+
+**`EnrichProblem(rawReadme)`**:
+1. **Provider-adaptive rate limiting**:
+   - Gemini: 30s between calls (2 req/min, ≤ 50/day)
+   - Groq: 2s between calls
+2. System instruction: "Expert Go curriculum author, output valid JSON, rewrite z01.PrintRune → fmt.Printf"
+3. User prompt: includes full README
+4. Calls selected provider's `GenerateContent()`
+5. Cleans response via `cleanResponse()` (strips non-JSON text by finding first `{` and last `}`)
+6. Parses JSON into `enrichedResponse{title, statement, func_name, return_type, param_types[], hints[3], difficulty, xp_reward, tags[], test_cases[]}`
+7. Normalizes test case inputs via `normalizeTestCaseInput()`
+8. Validates all required fields via `validateEnrichedProblem()`
+9. Returns `(*Problem, []TestCase)`
+
+**`enrichmentSchema()`**: JSON Schema for Gemini `ResponseSchema` — defines all required fields with types, constraints (min/max items)
+
+**`normalizeTestCaseInput(raw)`**: If raw is string, try to parse as JSON; if already object, marshal to JSON
+
+**`validateEnrichedProblem()`**: Ensures:
+- Title, statement, func_name, return_type non-empty
+- param_types non-empty, exactly 3 hints
+- difficulty 1–5, xp_reward > 0, at least 1 tag
+- At least 1 test case, each with input, expected, positive ordinal
+
+---
+
+### 8. PARSER: `internal/parser/parser.go` — Repository Ingestion (371 lines)
+
+**`Parser`**: Wraps `baseDir` for temp clones
+
+**`IngestGitHubRepo(inputURL)`**:
+1. Parse GitHub URL → extract repo URL + optional subpath (supports `/tree/branch/subpath`)
+2. Parse repo metadata → slug, module name
+3. Clone repo (sparse if subpath, depth=1)
+4. Walk directory tree, collect README files
+5. For each: compute SHA256 hash, extract content, detect problem type
+6. Return `[]*RawProblem`
+
+**Key functions:**
+- `parseGitHubURL`: Handles `https://github.com/user/repo`, `git@github.com:user/repo.git`, subpath extraction
+- `cloneRepository`: `git clone --depth 1` with optional `--filter=blob:none --sparse` + `git sparse-checkout set`
+- `collectExerciseReadmes`: `filepath.WalkDir`, filters README* files, generates slugs
+- `computeSourceHash`: SHA256 → hex
+- `normalizeSlug`: lowercase, replace non-alphanumeric with `-`
+- `detectProblemType`: `"function"` if README contains "expected function", else `"program"`
+
+---
+
+### 9. SANDBOX SERVICE: `sandbox/` — Standalone Execution Service
+
+**Purpose**: Default execution path that avoids Docker-in-Docker. Deployed separately on Railway (ARM64). When `SANDBOX_URL` is set, the backend sends code via HTTP instead of spawning Docker locally.
+
+#### `main.go` — HTTP Server (460 lines)
+
+**Endpoints:**
+- `GET /health` → `{"status":"ok"}` (bypasses rate limiter)
+- `GET /version` → `{"commit":"..."}` (set via -ldflags, bypasses rate limiter)
+- `POST /execute` → Run `go test`, return result (rate limited: 10 req/min per IP)
+- `POST /gitea-proxy` → Legacy proxy endpoint (bypasses rate limiter)
+
+**Execution flow (`runTests`)**:
+1. Validate code for dangerous patterns via `validateCode()` (from `secure.go`)
+2. Create temp directory, write `go.mod`, `solution.go` (force `package piscine`), `main_test.go`
+3. `go test -v -count=1 -gcflags=-l ./...` with context timeout
+4. Apply OS-level resource limits via `setProcessAttributes()` (rlimit, process group)
+5. Kill process group + reap on timeout
+6. Parse output and classify status (passed/failed/compiler_error/timeout)
+7. Return `ExecuteResponse{status, stdout, stderr, passed_count, total_count, runtime_ms, error}`
+
+#### `secure.go` — Pre-execution Code Validation
+
+Blocks dangerous patterns:
+- `os/exec`, `os/Remove`, `os/RemoveAll`, `os/Chmod`, `os/Chown`, `os/Chtimes`, `os/Truncate`, `os/Mkdir`, `os/MkdirAll`, `os/Rename`, `os/Symlink`, `os/Readlink`, `os/Link`, `os/Setenv`, `os/Unsetenv`, `os/Clearenv`, `os/Exit`
+- `syscall` package (all)
+- `net` package (all)
+- `unsafe` package
+- Filesystem writes: `ioutil.WriteFile`, `os.WriteFile`, file creation in Go
+
+Returns `security_error` if any blocked pattern detected.
+
+#### `secure_unix.go` — Unix Resource Limits
+
+- `setProcessAttributes(cmd, timeoutSec)`: Sets `Setpgid=true` (process group), applies `setrlimit`: NPROC=6, NOFILE=1024, FSIZE=64MB
+- `killProcessGroup(cmd)`: Sends SIGKILL to process group
+- `reapProcess(cmd)`: Waits for process to avoid zombies
+
+#### `secure_other.go` — Noop for non-Unix (Windows dev)
+
+#### `ratelimit.go` — Per-IP Rate Limiter
+
+- Sliding window per IP address
+- Default: 10 requests per minute
+- Purges stale entries every 5 minutes
+- Returns HTTP 429 with `Retry-After` header
+
+---
+
+### 10. FRONTEND: `frontend/` — Next.js 14 App
+
+#### Architecture
+
+- **Next.js 14** with App Router
+- **Dark mode** by default (`<html className="dark">`)
+- **shadcn/ui** component system (Radix UI primitives + Tailwind)
+- **Monaco Editor** for code editing (Go syntax highlighting)
+- **framer-motion** for animations
+- **sonner** for toast notifications
+
+#### Route Structure
+
 ```
 app/
-├── layout.tsx - Root RSC
-├── (auth)/
+├── layout.tsx              # Root layout: dark mode, Toaster
+├── globals.css             # Global styles + custom keyframes
+├── (auth)/                 # Auth group (no sidebar)
 │   ├── layout.tsx
-│   ├── login/page.tsx
-│   └── register/page.tsx
-├── (main)/
-│   ├── layout.tsx
-│   ├── page.tsx (dashboard)
-│   ├── leaderboard/page.tsx
-│   └── admin/page.tsx
-└── problems/
-    └── [slug]/
-        ├── page.tsx (SSR wrapper)
-        └── ProblemWorkspaceClient.tsx (use client)
+│   ├── login/page.tsx      # Login with email/password + Google
+│   └── register/page.tsx   # Registration form
+├── (legal)/                # Legal pages
+│   ├── privacy/page.tsx    # Privacy policy
+│   └── terms/page.tsx      # Terms of service
+├── (main)/                 # Authenticated routes (with sidebar)
+│   ├── layout.tsx          # TopNav + sidebar
+│   ├── page.tsx            # Dashboard: problem grid with filters
+│   ├── leaderboard/page.tsx # Leaderboard with podium + table
+│   └── admin/page.tsx      # Admin panel: ingest, enrich, stats
+├── problems/[slug]/
+│   ├── page.tsx            # SSR wrapper
+│   └── ProblemWorkspaceClient.tsx  # Monaco editor + test results
+├── landing/page.tsx        # Landing page
+└── onboarding/page.tsx     # Username selection for new users
 ```
 
-### 2. TYPES: frontend/lib/types.ts
-**User**: id, name, studentId, role, avatarIndex, xp, level, solvedCount
-**Problem**: id, slug, title, module, difficulty, xpReward, solved, status, visible, successRate, estTimeMinutes, tags, statement, descriptionMarkdown, func_name, return_type, param_types, total_submissions, success_rate
-**ExecutionResult**: status, passed_count, total_count, runtime_ms, output_logs, test_results (array of BackendTestResult)
-**LeaderboardEntry**: rank, user (User), bestTimeMs, rankDelta
+#### `hooks/use-google-one-tap.ts` — Shared GIS Singleton Hook (122 lines)
 
-### 3. API: frontend/lib/api.ts
-**fetchApi<T>()**:
-- Generic wrapper around fetch()
-- Gets token from localStorage, adds Bearer header
-- Parses ApiResponse envelope
-- Returns typed response
+Module-level singleton Google Identity Services (GIS) hook:
+- **`loadGsiScript()`**: Creates `<script>` tag for `https://accounts.google.com/gsi/client`, fires registered load listeners
+- **`ensureInitialized(clientId)`**: Calls `google.accounts.id.initialize()` with client ID, wrapped in try-catch (FedCM throws on localhost); always fires init listeners even on throw (popup `renderButton` works without successful init)
+- **Returns**: `{ prompt, renderButton, ready }` — `ready` is a dynamic `useState` that flips `true` after script load + init attempt
+- **`prompt()`**: Calls `google.accounts.id.prompt()` (One Tap), wrapped in try-catch
+- **`renderButton(element, options?)`**: Calls `google.accounts.id.renderButton()` with explicit numeric width (350px), standard theme/size/text options
+- All errors logged with `[GIS]` prefix; clean `useEffect` cleanup
 
-**All Endpoints**:
-- `login(data)`, `register(data)` - POST
-- `fetchUser()` - GET /me (with JWT fallback decode)
-- `fetchProblems()` - GET /problems
-- `fetchProblem(slug)` - GET /problems/{slug}
-- `submitSolution(slug, code)` - POST /submit
-- `fetchLeaderboard()` - GET /leaderboard
-- `ingestGitHubRepo(url)` - POST /admin/ingest
-- `enrichAllProblems()` - POST /admin/enrich-all
-- `fetchAdminStats()` - GET /admin/stats
-- `fetchAdminActivity()` - GET /admin/activity
-- `fetchAllProblemsAdmin()` - GET /admin/problems
+#### `lib/api.ts` — API Client (346 lines)
 
-### 4. UTILITIES: frontend/lib/utils.ts
-**cn()**: Tailwind className merge (clsx + tailwind-merge)
-**getUserColor(index)**: Maps avatar index (0-5) to bg color (gold, terracotta, silver, green, grey, bronze)
-**getDifficultyColor(difficulty)**: Maps 1-5 to text colors (green, blue, gold, orange, red)
-**getDifficultyLabel(difficulty)**: Maps 1-5 to labels ("Beginner", "Easy", "Medium", "Hard", "Expert")
+Generic `fetchApi<T>()` wrapper:
+- Reads JWT from `localStorage`
+- Adds `Authorization: Bearer` header
+- Parses `ApiResponse` envelope
+- Falls back to JWT decode for `/me` if API call fails
 
-### 5. AUTHENTICATION PAGES
-**LoginPage** (app/(auth)/login/page.tsx):
-- Form: studentId, password
-- Calls `login()`, stores token in localStorage
-- Redirects to `/` on success
+All endpoint functions return `Promise<ApiResponse<T>>`
 
-**RegisterPage** (app/(auth)/register/page.tsx):
-- Form: firstName, lastName, studentId (optional), email, password
-- Creates user with name = `${firstName} ${lastName}`
-- Uses email or studentId for student_id field
-- Stores token, redirects to `/`
+#### `lib/types.ts` — TypeScript Types (199 lines)
 
-### 6. MAIN DASHBOARD: app/(main)/page.tsx
-**State**:
-- `problems` - all visible problems
-- `user` - current user profile
-- `loading` - initial load state
+Mirrors backend types: User, Problem, Submission, ExecutionResult, TestResult, LeaderboardEntry, UserProfile, CommunitySolution, ActivityEntry, UserProblem, AdminStats, ActivityLog
 
-**Features**:
-- Header stats: solved count, XP earned, streak (hardcoded 7 days)
-- Filters: search, modules dropdown, levels dropdown, all/solved/unsolved tabs
-- Problem grid (3 columns):
-  - Problem number, module badge, solved check mark
-  - Title, difficulty (flame icons), tags
-  - Success rate, submission count (metadata)
-- Animated stagger on load (100ms delay per card)
+#### `lib/utils.ts` — Utility Functions
 
-### 7. PROBLEM WORKSPACE: app/problems/[slug]/ProblemWorkspaceClient.tsx
-**State**:
-- `problem` - current problem details
-- `code` - editor content (default scaffold with function signature)
-- `panelMode` - "tests" or "hints"
-- `hintsOpen` - array of 3 booleans for hint accordion
-- `submitting` - submission in progress
-- `results` - test results from last submission
-- `errorMsg` - compiler/timeout error message
+- `cn()`: Tailwind class merge (clsx + tailwind-merge)
+- `getUserColor(index)`: Maps 0–5 to background colors (gold, terracotta, silver, green, grey, bronze)
+- `getDifficultyColor(difficulty)`: Maps 1–5 to text colors
+- `getDifficultyLabel(difficulty)`: Maps 1–5 to labels (Beginner → Expert)
 
-**Three-panel layout**:
-1. **Left panel** (1/3 width):
-   - Problem statement (Markdown)
-   - Metadata: tags, submissions count, success rate, estimated time
-2. **Middle panel** (flex-1):
-   - Monaco Editor for Go code
-   - Scaffold provided with function signature
-3. **Right panel** (collapsible):
-   - Hints with accordion (3 hints from Gemini)
-   - Collapsible bottom panel with test results
+#### `lib/achievements.ts` — Shared Achievement Definitions
 
-**Submit Flow**:
-1. Calls `submitSolution(slug, code)`
-2. On success:
-   - Maps `test_results` to local `TestResult` format
-   - Hides output for hidden test cases that failed
-   - Shows pass/fail icons, execution times
-   - Dispatches 'user-updated' event to refresh leaderboard/profile
-3. On failure:
-   - Shows error message (compiler error, timeout, or failed tests)
-   - Toast notification
+Single source of truth for achievement types and `getAchievements(profile)` function. Used by both Achievements.tsx and ActivityFeed.tsx.
 
-### 8. LEADERBOARD: app/(main)/leaderboard/page.tsx
-**State**:
-- `leaderboard` - sorted entries from API
-- `user` - current user profile
+#### Key UI Components
 
-**Sections**:
-1. **Podium** (top 3):
-   - Center: 1st place (larger, gold border)
-   - Left: 2nd place, Right: 3rd place
-   - Avatar (initials), name, XP, rank badge
-2. **Current user stats bar**:
-   - Avatar, rank position, name
-   - XP, solved count, best time
-3. **Full leaderboard table**:
-   - Search filter, time period buttons (weekly, monthly, all-time)
-   - Columns: rank, rank delta (trending icon), student (avatar + name), XP, solved, best time
-   - Highlights current user with gold left border
+**ProblemWorkspaceClient.tsx** — Three-panel layout:
+1. Left: Problem statement (rendered markdown) + metadata
+2. Center: Monaco Editor with Go scaffold, function signature
+3. Right: Hints accordion (3 hints) + collapsible test results panel
 
-### 9. ADMIN DASHBOARD: app/(main)/admin/page.tsx
-**Authorization**:
-- Checks `fetchUser()` for role="admin"
-- Redirects to `/` if not authorized
+**Dashboard (main/page.tsx)** — Problem grid with:
+- Header stats (solved, XP)
+- Search + module/difficulty filters
+- Solved/unsolved tabs
+- Animated stagger load
 
-**State**:
-- `stats` - AdminStats (total, active, submissions)
-- `activityLogs` - real-time activity feed
-- `problems` - all problems including drafts
-- `searchTerm` - filter problems
-- Reloads data every 15 seconds
+**Leaderboard** — Three sections:
+1. Podium (1st/2nd/3rd with gold/silver/bronze)
+2. Current user stats bar
+3. Full table with search, period filters (weekly/monthly/all), rank deltas
 
-**Two-column layout**:
-1. **Left column**:
-   - Top 3 stat cards (total problems, active problems, total submissions)
-   - Two action cards:
-     - **Ingest GitHub Repo**: text input, clones repo and ingests problems
-     - **Enrich All Problems**: triggers Gemini enrichment on drafts
-2. **Right column**:
-   - **Problems table**:
-     - Search, filters by title/slug
-     - Columns: problem, module, difficulty, status, visible
-     - Shows draft/enriched status
+**Settings (main/settings/page.tsx)** — Tabbed layout with four tabs:
+1. **Profile**: Edit name/bio, username display, account info
+2. **Appearance**: Theme preferences
+3. **Notifications**: Last 20 notifications with type-colored icons, unread indicators, "Mark all as read", relative timestamps
+4. **Security**: Account deletion (two-step confirmation dialog), Google account linking via GIS prompt
 
-### 10. COMPONENTS: frontend/components/layout/TopNav.tsx
-**State**:
-- `user` - fetched via `fetchUser()` on mount
-- `loading` - initial load state
-- `userMenuOpen` - user menu dropdown
+**GoogleLinkBanner** — Amber-gradient banner at top of layout:
+- `AlertTriangle` icon with "Secure your account" + "Recommended" badge
+- Description explaining Google linking benefits
+- Action button links to `/settings?tab=security` (notifications clickable too)
+- Dismissable with state persisted in localStorage
+- Auto-hides when `user.google_linked` is true
 
-**Features**:
-- Logo/brand (ZeroJudge)
-- Navigation links: Problems, Leaderboard, Admin (admin only)
-- XP bar: shows level + % progress to next level
-- Notifications bell with red dot
-- User menu dropdown (profile, settings, logout)
-- Listens for 'user-updated' event to refresh profile
-
-### 11. UTILITIES
-**toast.ts**: Wrapper around `sonner` toast library (success, error, info, default)
-**hooks/use-mobile.ts**: React hook to detect mobile viewport
+**Admin Panel** — Two-column layout:
+1. Stats cards + action buttons (ingest, enrich, publish)
+2. Problems table with visibility toggles + community contribution moderation
 
 ---
 
 ## DATABASE SCHEMA (PostgreSQL)
 
-### Tables & Indexes
-1. **users** (PK: id)
-   - Indexes: student_id, role
-2. **problems** (PK: id)
-   - Indexes: slug (unique), visible, module, language
-3. **test_cases** (PK: id, FK: problem_id)
-   - Indexes: problem_id (unique per ordinal)
-4. **submissions** (PK: id, FK: user_id, problem_id)
-   - Indexes: user_id, problem_id, status, created_at
-5. **progress** (PK: user_id+problem_id)
-   - Indexes: user_id, problem_id, solved
-6. **activity_logs** (PK: id)
-   - Indexes: created_at (DESC)
+### Tables
+
+| Table | PK | FKs | Key Columns |
+|-------|----|-----|-------------|
+| `users` | id (uuid) | — | student_id, username, email, password, role, color_index, xp, google_id, google_email, google_avatar_url |
+| `problems` | id (uuid) | author_id → users | slug (unique), module, title, statement, func_name, param_types[], hints[], difficulty, xp_reward, tags[], visible, source_hash, raw_readme |
+| `test_cases` | id (uuid) | problem_id → problems | input JSONB, expected, is_hidden, ordinal |
+| `submissions` | id (uuid) | user_id, problem_id | code, status, passed_count, total_count, output_logs, runtime_ms |
+| `progress` | (user_id, problem_id) | user_id, problem_id | solved, stars, attempts, best_runtime, xp_awarded |
+| `activity_logs` | id (uuid) | — | type, message, color, icon |
+| `submission_likes` | (submission_id, user_id) | submission_id, user_id | — |
+| `notifications` | id (uuid) | user_id | type, message, related_id, is_read |
+| `user_problems` | id (uuid) | user_id | slug, title, statement, test_cases JSONB[], status, admin_notes |
+
+### Key Migrations
+
+- `001_init.sql`: Core schema (users, problems, test_cases, submissions, progress)
+- `002_indexes.sql`: Performance indexes on foreign keys + lookup columns
+- `003_activity_logs.sql`: Admin activity feed
+- `005_community_contributions.sql`: submission_likes table
+- `006_notifications.sql`: Notification system
+- `007_submission_likes.sql`: Community likes
+- `008_user_profile.sql`: Profile-related function
+- `009_get_full_profile.sql`: `get_full_profile()` PostgreSQL function (JSON aggregation)
+- `010_add_gitea_auth.sql` → deprecated
+- `011_add_gitea_token.sql` → deprecated
+- `012_add_google_auth.sql`: Google Sign-In columns (google_id, google_email, google_avatar_url, username, email)
+- `013_fix_rank_tiebreaker.sql`: Updated `get_full_profile()` function — rank ordering now `xp DESC, solved_count DESC, id` (was arbitrary, prevented rank jumping)
 
 ---
 
-## CRITICAL CONSTRAINTS (Hard Limits)
+## CORE PIPELINES (Three Sequential Stages)
 
-| Constraint | Enforcement |
-|-----------|------------|
-| **Max 2 concurrent executions** | Buffered channel semaphore (capacity=2) |
-| **Max 30 seconds per execution** | `context.WithTimeout()` on `exec.CommandContext()` |
-| **Max 50 Gemini API calls/day** | 30-second enforced sleep between calls |
-| **Max 50KB code submission** | HTTP 413 if exceeded |
-| **Docker isolation** | `--network=none --memory=256m --cpus=1.0` |
-| **1 bcrypt round cost** | 12 (industry standard) |
+### 1. Ingest (`admin.go` → `parser.go`)
+1. Admin provides GitHub repo URL
+2. Clone repo (shallow, sparse if subpath)
+3. Walk directory tree for README files
+4. SHA256 hash for dedup/idempotency
+5. Create Problem records with `visible=false`
 
----
+### 2. Enrich (`admin.go` → `enricher.go` → Gemini/Groq API)
+1. Fetch problem with `raw_readme`
+2. Call configured AI provider (Gemini with ResponseSchema, or Groq with `json_object` format)
+3. Parse response → problem fields + test cases
+4. Upsert enriched problem + test cases
+5. Set `visible=true` (auto-publish)
+6. Rate limited: 30s between calls (Gemini) or 2s (Groq)
 
-## CODE QUALITY PATTERNS
-
-1. **Raw SQL** - No ORM, all queries hand-written with explicit field scanning
-2. **No reflection** - Manual type conversions, avoids `reflect.DeepEqual` where possible
-3. **Template-based code generation** - `text/template` for test files (type-safe, not string concat)
-4. **Structured AI outputs** - Gemini ResponseSchema enforces shape, no markdown parsing
-5. **Atomic transactions** - Progress updates wrapped in SQL transactions
-6. **Error wrapping** - All errors wrapped with context via `fmt.Errorf("%w")`
+### 3. Execute (`submissions.go` → `executor.go` → sandbox)
+1. Student submits code
+2. Executor renders `solution.go` + `main_test.go` from template
+3. **Primary path**: Send to remote sandbox via HTTP (`SANDBOX_URL`)
+4. **Fallback path**: Spawn local Docker container with resource limits
+5. Parse `go test` output
+6. Classify status (passed/failed/compiler_error/timeout)
+7. Record submission + update progress atomically
+8. Return per-test-case results
 
 ---
 
 ## KEY ARCHITECTURAL DECISIONS
 
-1. **No ORM**: All SQL hand-written for control + minimal memory footprint
-2. **Raw string types**: Using strings for return_type, param_types, hints (not ENUM) for flexibility
-3. **JSONB for inputs**: Test case inputs stored as JSONB for flexibility
-4. **Explicit scanning**: Every field scanned manually to avoid reflection overhead
-5. **Template-based test generation**: Type-safe Go code generation, not string concatenation
-6. **Structured Gemini outputs**: ResponseSchema enforces shape, no parsing markdown
-7. **Monolithic binary**: Single process on single host, no queue abstraction
-8. **Direct Docker subprocess**: No gVisor, simpler isolation with `--network=none --memory=256m`
+| Decision | Implementation | Why |
+|----------|---------------|-----|
+| **No ORM** | Handwritten pgx/v5 queries | Full control, predictable performance, minimal footprint |
+| **No Reflection in tests** | Template generates type-specific comparisons | `==` for primitives, `reflect.DeepEqual` for complex types |
+| **Template-based code gen** | Go `text/template` for `main_test.go` | Injection-proof, type-safe, deterministic |
+| **Structured AI outputs** | Gemini ResponseSchema | Guaranteed JSON shape, no markdown parsing |
+| **Remote sandbox first** | HTTP sandbox service on Railway | Avoids Docker-in-Docker on Oracle OCI, ~800ms cold start |
+| **In-memory rate limiter** | Sliding window per user | No Redis dependency, fine for single-process |
+| **In-memory cache** | Generic typed cache with TTL | Reduces DB load for frequently accessed profile/me |
+| **Atomic progress** | SQL transaction | Prevents race conditions on XP/stars/attempts |
+
+---
+
+## HARD CONSTRAINTS & LIMITS
+
+| Constraint | Enforcement | Location |
+|-----------|-------------|----------|
+| **6 concurrent executions** | Buffered channel semaphore (configurable) | `executor.go:26` |
+| **30s per execution** | `context.WithTimeout` | `executor.go:177` |
+| **50 Gemini calls/day** | 30s enforced sleep (Gemini) or 2s (Groq) | `enricher.go` |
+| **50KB code size** | HTTP 413 check | `submissions.go:65` |
+| **Docker isolation** | `--network=none --memory=256m --cpus=1.0` | `executor.go:181-184` |
+| **5 req/45s submissions** | Per-user sliding window | `middleware.go:26` |
+| **10 req/min sandbox** | Per-IP sliding window | `sandbox/ratelimit.go` |
+| **Security block** | Pre-exec regex validation | `sandbox/secure.go` |
+
+---
+
+## PERFORMANCE OPTIMIZATIONS (July 2026)
+
+### Query Optimization
+
+| Query | Problem | Fix |
+|-------|---------|-----|
+| `ListVisibleProblems` | 3 correlated subqueries per problem (N+1) | Single `LATERAL` join; trimmed `statement`/`raw_readme` from listing payload |
+| `GetUserStats` | `LEFT JOIN submissions` caused 50× row multiplication | Split into 2 queries; `COUNT(DISTINCT problem_id)` from submissions separately |
+| `GetBestPractices` | `HAVING COUNT(...) > 0` scanned all liked submissions | `EXISTS (SELECT 1 FROM submission_likes ...)` short-circuits on first match |
+| `CalculateStreak` | Inline SQL in `GetUserStats`, duplicated streak logic | Extracted shared `PostgresStore` method as single source of truth |
+
+### Bulk INSERTs
+
+- **`UpsertEnrichedProblem`** + **`UpsertTestCasesForProblem`**: Resolve `problem_id` once, then single `VALUES` multi-row INSERT instead of N round-trips.
+- Eliminates per-test-case `(SELECT id FROM problems WHERE slug = $1)` subquery repetition.
+
+### LIMIT Clauses
+
+Added to every row-returning SELECT that lacked one (200 or 100 per table):
+
+| Store Method | Table | LIMIT |
+|---|---|---|
+| `ListVisibleProblems` | `problems` | 200 |
+| `ListAllProblemsAdmin` | `problems` | 200 |
+| `ListProblemsNeedingEnrichment` | `problems` | 100 |
+| `GetAllBroadcasts` | `broadcasts` | 200 |
+| `GetAdminFeedback` | `feedback` | 100 |
+| `GetUserFeedback` | `feedback` | 50 |
+| `GetTestCasesForProblem` | `test_cases` | 200 |
+| `GetVisibleTestCasesForProblem` | `test_cases` | 200 |
+| `ListUserProblemsByUser` | `user_problems` | 100 |
+| `ListPendingUserProblems` | `user_problems` | 100 |
+
+### Connection Pool Tuning
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| `MaxConns` | 10 | Supabase free tier max: 15; leaves room for other connections |
+| `MinConns` | 2 | Keep warm connections to avoid cold-start latency |
+| `MaxConnLifetime` | 30m | Prevent stale connections behind PgBouncer |
+| `MaxConnIdleTime` | 5m | Free idle resources promptly |
+
+### Infrastructure Hardening
+
+- **Rate limiter cleanup**: Periodic goroutine evicts stale entries every 2× window duration (prevents memory leak from abandoned sessions).
+- **Cache graceful shutdown**: `userCache` has `stopCh` channel — ensures no goroutine leak on server restart.
+- **Timeout hygiene**: Feedback email notification uses `&http.Client{Timeout: 10 * time.Second}` (was `http.DefaultClient` with no timeout).
+
+---
+
+## ERROR HANDLING PATTERNS
+
+- **API layer**: Standardized `APIResponse` envelope with `{success, data, error}`
+- **Store layer**: All errors wrapped with `fmt.Errorf("context: %w", err)`
+- **Executor**: Friendly messages for common failures (timeout, OOM, compiler errors)
+- **Docker**: Exit status 137 = OOM, `context.DeadlineExceeded` = timeout
+- **Sandbox**: Returns structured `ExecuteResponse` with status + optional error message
+
+---
+
+## TESTING
+
+- **Backend unit tests**: `go test ./internal/...`
+- **Auth tests**: `internal/auth/auth_test.go`
+- **Config tests**: `internal/config/config_test.go`
+- **Store tests**: `internal/store/users_test.go`
+- **Executor tests**: `internal/executor/executor_test.go` (spawns real Docker containers)
+- **Frontend**: No test files found in current codebase
+
+---
+
+## ENVIRONMENT VARIABLES
+
+```bash
+# Required
+DATABASE_URL=postgres://...        # Supabase connection string
+JWT_SECRET=...                     # Min 32 chars
+GEMINI_API_KEY=...                 # Google AI Studio (required if provider=gemini)
+
+# Optional (with defaults)
+PORT=8080
+ENVIRONMENT=development
+ALLOWED_ORIGIN=http://localhost:3000
+JWT_EXPIRY_HOURS=24
+
+# AI Enrichment (dual provider)
+ENRICHMENT_PROVIDER=gemini         # "gemini" or "groq"
+GEMINI_MODEL=gemini-2.5-pro
+GROQ_API_KEY=                      # Required if provider=groq
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# Execution
+EXECUTOR_MAX_CONCURRENCY=6
+EXECUTOR_TIMEOUT_SECONDS=30
+DOCKER_IMAGE=golang:1.23-alpine
+SANDBOX_BASE_DIR=/tmp/koder
+BUILD_CACHE_DIR=/tmp/go-build-cache
+SANDBOX_URL=                       # Empty = use local Docker
+GO_VERSION=1.23
+
+# Auth
+GOOGLE_CLIENT_ID=                  # For Google Sign-In
+ADMIN_EMAIL=                       # For admin role detection
+ADMIN_PASSWORD=                    # For admin role detection
+```

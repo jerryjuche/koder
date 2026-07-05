@@ -1,13 +1,18 @@
 export type User = {
   id: string;
   name: string;
+  username: string;
   studentId: string;
   role: string;
   colorIndex: number;
   xp: number;
   level: number;
   solvedCount: number;
+  attemptedCount: number;
+  streak: number;
   verified?: boolean;
+  google_avatar_url?: string;
+  google_linked?: boolean;
 };
 
 export type ProblemDifficulty =
@@ -31,11 +36,14 @@ export type Problem = {
   estTimeMinutes: number;
   tags: string[];
   statement?: string;
+  constraints?: string;
+  learningObjective?: string;
   descriptionMarkdown?: string;
   examples?: { id: string; input: string; expected: string; ordinal: number }[];
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  hints?: string[];
   total_submissions?: number;
   success_rate?: number;
   author_id?: string;
@@ -107,6 +115,7 @@ export type ProgressByDifficulty = {
 export type UserProfile = {
   id: string;
   student_id: string;
+  username: string;
   name: string;
   bio?: string;
   color_index: number;
@@ -114,6 +123,7 @@ export type UserProfile = {
   level: number;
   global_rank: number;
   created_at: string;
+  google_avatar_url?: string;
   stats: {
     solved_count: number;
     attempted_count: number;
@@ -137,6 +147,16 @@ export type CommunitySolution = {
   runtime_ms: number;
   likes: number;
   has_liked: boolean;
+  created_at: string;
+};
+
+export type NotificationItem = {
+  id: string;
+  user_id: string;
+  type: string;
+  message: string;
+  related_id?: string;
+  is_read: boolean;
   created_at: string;
 };
 
@@ -173,6 +193,44 @@ export type ExecutionResult = {
   runtime_ms: number;
   output_logs: string;
   test_results: BackendTestResult[];
+};
+
+export type FeedbackItem = {
+  id: string;
+  user_id: string;
+  type: "general" | "bug" | "feature";
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  screenshot_url?: string;
+  status: "new" | "in_progress" | "resolved";
+  admin_notes?: string;
+  is_anonymous: boolean;
+  created_at: string;
+  user_name?: string;
+};
+
+export type ActivityEntry = {
+  date: string;
+  submissions: number;
+  solved: number;
+  tests_run: number;
+  level: number;
+};
+
+export type Broadcast = {
+  id: string;
+  type: "info" | "warning" | "update" | "new_feature" | "maintenance" | "announcement";
+  priority: "low" | "medium" | "high" | "critical";
+  title: string;
+  message: string;
+  action_label?: string;
+  action_url?: string;
+  active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  user_name?: string;
 };
 
 export type ApiResponse<T> = {

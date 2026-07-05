@@ -3,25 +3,37 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // ListVisibleProblems returns problems visible to students with optional progress overlay.
+// Uses LATERAL join instead of correlated subqueries.
 func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error) {
 	query := `
-		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
+		       p.statement, p.constraints, p.learning_objective, p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at,
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) AS total_subs,
-		       (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') AS successful_subs,
-		       COALESCE((SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0)::int AS avg_runtime_ms
+		       COALESCE(s.total_subs, 0)::int,
+		       COALESCE(s.passed_subs, 0)::int,
+		       COALESCE(s.avg_runtime, 0)::int
 		FROM problems p
 		LEFT JOIN progress pr ON pr.problem_id = p.id AND pr.user_id = $1
+		LEFT JOIN LATERAL (
+			SELECT
+				COUNT(*) AS total_subs,
+				COUNT(*) FILTER (WHERE status = 'passed') AS passed_subs,
+				ROUND(AVG(runtime_ms) FILTER (WHERE status = 'passed')) AS avg_runtime
+			FROM submissions
+			WHERE problem_id = p.id
+		) s ON true
 		WHERE p.visible = true
 		ORDER BY p.created_at DESC
+		LIMIT 200
 	`
 
 	rows, err := s.pool.Query(ctx, query, userID)
@@ -42,6 +54,8 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.Language,
 			&problem.Title,
 			&problem.Statement,
+			&problem.Constraints,
+			&problem.LearningObjective,
 			&problem.FuncName,
 			&problem.ReturnType,
 			&problem.ParamTypes,
@@ -51,7 +65,6 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.Tags,
 			&problem.Visible,
 			&problem.SourceHash,
-			&problem.RawReadme,
 			&problem.CreatedAt,
 			&problem.UpdatedAt,
 			&problem.Solved,
@@ -67,7 +80,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
 		}
 		if problem.AvgRuntimeMs > 0 {
-			problem.EstTimeMinutes = int((problem.AvgRuntimeMs + 59999) / 60000) // ceil to minutes
+			problem.EstTimeMinutes = int((problem.AvgRuntimeMs + 59999) / 60000)
 		}
 		problems = append(problems, problem)
 	}
@@ -87,6 +100,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		       p.constraints, p.learning_objective,
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 			   p.created_at, p.updated_at,
@@ -107,6 +121,8 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 		&problem.Language,
 		&problem.Title,
 		&problem.Statement,
+		&problem.Constraints,
+		&problem.LearningObjective,
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
@@ -214,6 +230,95 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 
 	return nil
 }
+
+// UpsertEnrichedProblem atomically saves enriched problem metadata and test cases in a single transaction.
+func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Problem, testCases []TestCase) error {
+	if problem == nil {
+		return fmt.Errorf("problem cannot be nil")
+	}
+	if problem.Slug == "" {
+		return fmt.Errorf("problem slug is required")
+	}
+	if len(testCases) == 0 {
+		return fmt.Errorf("testCases cannot be empty")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	upsertQuery := `
+		INSERT INTO problems (
+		    slug, module, type, language, title, statement, func_name,
+		    return_type, param_types, hints, difficulty, xp_reward, tags,
+		    visible, source_hash, raw_readme, created_at, updated_at
+		)
+		VALUES (
+		    $1, $2, $3, $4, $5, $6, $7,
+		    $8, $9, $10, $11, $12, $13,
+		    $14, $15, $16, NOW(), NOW()
+		)
+		ON CONFLICT (slug) DO UPDATE SET
+		    module = EXCLUDED.module,
+		    type = EXCLUDED.type,
+		    language = EXCLUDED.language,
+		    title = EXCLUDED.title,
+		    statement = EXCLUDED.statement,
+		    func_name = EXCLUDED.func_name,
+		    return_type = EXCLUDED.return_type,
+		    param_types = EXCLUDED.param_types,
+		    hints = EXCLUDED.hints,
+		    difficulty = EXCLUDED.difficulty,
+		    xp_reward = EXCLUDED.xp_reward,
+		    tags = EXCLUDED.tags,
+		    visible = EXCLUDED.visible,
+		    source_hash = EXCLUDED.source_hash,
+		    raw_readme = EXCLUDED.raw_readme,
+		    updated_at = NOW()
+	`
+
+	if _, err := tx.Exec(ctx, upsertQuery,
+		problem.Slug, problem.Module, problem.Type, problem.Language,
+		problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
+		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward,
+		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme,
+	); err != nil {
+		return fmt.Errorf("failed to upsert enriched problem: %w", err)
+	}
+
+	var problemID pgtype.UUID
+	if err := tx.QueryRow(ctx, `SELECT id FROM problems WHERE slug = $1`, problem.Slug).Scan(&problemID); err != nil {
+		return fmt.Errorf("failed to resolve problem ID: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `DELETE FROM test_cases WHERE problem_id = $1`, problemID); err != nil {
+		return fmt.Errorf("failed to delete existing test cases: %w", err)
+	}
+
+	if len(testCases) > 0 {
+		valueStrings := make([]string, 0, len(testCases))
+		args := make([]interface{}, 0, 1+len(testCases)*4)
+		args = append(args, problemID)
+		for i, tc := range testCases {
+			base := 1 + i*4
+			valueStrings = append(valueStrings, fmt.Sprintf("($1, $%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4))
+			args = append(args, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal)
+		}
+		insertQuery := `INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES ` + strings.Join(valueStrings, ", ")
+		if _, err := tx.Exec(ctx, insertQuery, args...); err != nil {
+			return fmt.Errorf("failed to bulk insert test cases: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit enrichment transaction: %w", err)
+	}
+
+	return nil
+}
+
 // GetProblemBySlugAny returns a problem by slug regardless of visibility.
 func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*Problem, error) {
 	if slug == "" {
@@ -222,6 +327,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		       p.constraints, p.learning_objective,
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 			   p.created_at, p.updated_at,
@@ -242,6 +348,8 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.Language,
 		&problem.Title,
 		&problem.Statement,
+		&problem.Constraints,
+		&problem.LearningObjective,
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
@@ -290,12 +398,14 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		       p.constraints, p.learning_objective,
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 		       p.created_at, p.updated_at
 		FROM problems p
 		WHERE p.visible = false
 		ORDER BY p.created_at ASC
+		LIMIT 100
 	`
 
 	rows, err := s.pool.Query(ctx, query)
@@ -315,6 +425,8 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 			&problem.Language,
 			&problem.Title,
 			&problem.Statement,
+			&problem.Constraints,
+			&problem.LearningObjective,
 			&problem.FuncName,
 			&problem.ReturnType,
 			&problem.ParamTypes,
@@ -340,6 +452,23 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 	return problems, nil
 }
 
+// UpdateProblemVisibility sets the visible flag for a problem by ID.
+func (s *PostgresStore) UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error {
+	if problemID == uuid.Nil {
+		return fmt.Errorf("problemID cannot be nil")
+	}
+
+	query := `UPDATE problems SET visible = $1, updated_at = NOW() WHERE id = $2`
+	tag, err := s.pool.Exec(ctx, query, visible, problemID)
+	if err != nil {
+		return fmt.Errorf("failed to update problem visibility: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("problem not found: %s", problemID.String())
+	}
+	return nil
+}
+
 // UpsertTestCasesForProblem deletes existing case rows for a problem and inserts the current set.
 func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error {
 	if problemID == uuid.Nil {
@@ -362,14 +491,18 @@ func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID
 		return fmt.Errorf("failed to delete existing test cases: %w", err)
 	}
 
-	query := `
-		INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-
-	for _, tc := range testCases {
-		if _, err := tx.Exec(ctx, query, problemID, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal); err != nil {
-			return fmt.Errorf("failed to insert test case ordinal %d: %w", tc.Ordinal, err)
+	if len(testCases) > 0 {
+		valueStrings := make([]string, 0, len(testCases))
+		args := make([]interface{}, 0, 1+len(testCases)*4)
+		args = append(args, problemID)
+		for i, tc := range testCases {
+			base := 1 + i*4
+			valueStrings = append(valueStrings, fmt.Sprintf("($1, $%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4))
+			args = append(args, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal)
+		}
+		insertQuery := `INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal) VALUES ` + strings.Join(valueStrings, ", ")
+		if _, err := tx.Exec(ctx, insertQuery, args...); err != nil {
+			return fmt.Errorf("failed to bulk insert test cases: %w", err)
 		}
 	}
 
@@ -383,12 +516,14 @@ func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID
 // ListAllProblemsAdmin returns all problems (visible and non-visible) for the admin dashboard.
 func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, error) {
 	query := `
-		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
+		       p.constraints, p.learning_objective,
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at
 		FROM problems p
 		ORDER BY p.module, p.difficulty ASC
+		LIMIT 200
 	`
 
 	rows, err := s.pool.Query(ctx, query)
@@ -407,7 +542,8 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 			&problem.Type,
 			&problem.Language,
 			&problem.Title,
-			&problem.Statement,
+			&problem.Constraints,
+			&problem.LearningObjective,
 			&problem.FuncName,
 			&problem.ReturnType,
 			&problem.ParamTypes,
@@ -417,7 +553,6 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 			&problem.Tags,
 			&problem.Visible,
 			&problem.SourceHash,
-			&problem.RawReadme,
 			&problem.CreatedAt,
 			&problem.UpdatedAt,
 		); err != nil {

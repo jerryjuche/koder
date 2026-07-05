@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+var (
+	testUsername   = "testuser"
+	testOnboarding = false
+)
+
 func TestHashPassword_Success(t *testing.T) {
 	plainPassword := "mySecurePassword123!"
 	hash, err := HashPassword(plainPassword)
@@ -62,7 +67,7 @@ func TestSignToken_Success(t *testing.T) {
 	secret := "this-is-a-very-long-secret-string-of-at-least-32-chars"
 	expiry := 24 * time.Hour
 
-	token, err := SignToken(userID, studentID, role, secret, expiry)
+	token, err := SignToken(userID, studentID, testUsername, role, secret, expiry, testOnboarding)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -73,35 +78,35 @@ func TestSignToken_Success(t *testing.T) {
 }
 
 func TestSignToken_EmptyUserID(t *testing.T) {
-	_, err := SignToken("", "student-001", "student", "secret", 24*time.Hour)
+	_, err := SignToken("", "student-001", testUsername, "student", "secret", 24*time.Hour, testOnboarding)
 	if err == nil {
 		t.Fatal("expected error for empty userID")
 	}
 }
 
 func TestSignToken_EmptyStudentID(t *testing.T) {
-	_, err := SignToken("user-id", "", "student", "secret", 24*time.Hour)
+	_, err := SignToken("user-id", "", testUsername, "student", "secret", 24*time.Hour, testOnboarding)
 	if err == nil {
 		t.Fatal("expected error for empty studentID")
 	}
 }
 
 func TestSignToken_EmptyRole(t *testing.T) {
-	_, err := SignToken("user-id", "student-001", "", "secret", 24*time.Hour)
+	_, err := SignToken("user-id", "student-001", testUsername, "", "secret", 24*time.Hour, testOnboarding)
 	if err == nil {
 		t.Fatal("expected error for empty role")
 	}
 }
 
 func TestSignToken_EmptySecret(t *testing.T) {
-	_, err := SignToken("user-id", "student-001", "student", "", 24*time.Hour)
+	_, err := SignToken("user-id", "student-001", testUsername, "student", "", 24*time.Hour, testOnboarding)
 	if err == nil {
 		t.Fatal("expected error for empty secret")
 	}
 }
 
 func TestSignToken_InvalidExpiry(t *testing.T) {
-	_, err := SignToken("user-id", "student-001", "student", "secret", -1*time.Hour)
+	_, err := SignToken("user-id", "student-001", testUsername, "student", "secret", -1*time.Hour, testOnboarding)
 	if err == nil {
 		t.Fatal("expected error for negative expiry")
 	}
@@ -114,7 +119,7 @@ func TestVerifyToken_Success(t *testing.T) {
 	secret := "this-is-a-very-long-secret-string-of-at-least-32-chars"
 	expiry := 24 * time.Hour
 
-	token, err := SignToken(userID, studentID, role, secret, expiry)
+	token, err := SignToken(userID, studentID, testUsername, role, secret, expiry, testOnboarding)
 	if err != nil {
 		t.Fatalf("failed to sign token: %v", err)
 	}
@@ -143,7 +148,7 @@ func TestVerifyToken_InvalidSecret(t *testing.T) {
 	wrongSecret := "this-is-a-different-secret-string-longer-than-32"
 	expiry := 24 * time.Hour
 
-	token, err := SignToken(userID, studentID, role, secret, expiry)
+	token, err := SignToken(userID, studentID, testUsername, role, secret, expiry, testOnboarding)
 	if err != nil {
 		t.Fatalf("failed to sign token: %v", err)
 	}
@@ -162,7 +167,7 @@ func TestVerifyToken_ExpiredToken(t *testing.T) {
 	// Use a very short expiry so token expires quickly
 	expiry := 1 * time.Millisecond
 
-	token, err := SignToken(userID, studentID, role, secret, expiry)
+	token, err := SignToken(userID, studentID, testUsername, role, secret, expiry, testOnboarding)
 	if err != nil {
 		t.Fatalf("failed to sign token: %v", err)
 	}
@@ -192,7 +197,7 @@ func TestVerifyToken_EmptySecret(t *testing.T) {
 	secret := "this-is-a-very-long-secret-string-of-at-least-32-chars"
 	expiry := 24 * time.Hour
 
-	token, err := SignToken(userID, studentID, role, secret, expiry)
+	token, err := SignToken(userID, studentID, testUsername, role, secret, expiry, testOnboarding)
 	if err != nil {
 		t.Fatalf("failed to sign token: %v", err)
 	}

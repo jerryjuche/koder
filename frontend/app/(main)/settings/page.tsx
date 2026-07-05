@@ -1,18 +1,27 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { User, Settings as SettingsIcon, Monitor, Bell, Shield, Code, Palette, LogOut, CheckCircle2 } from "lucide-react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUserProfile, updateUserProfile } from "@/lib/api";
-import { UserProfile } from "@/lib/types";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword } from "@/lib/api";
+import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
-import { useRouter } from "next/navigation";
+import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PinInput } from "@/components/base/input/pin-input";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 
-type Tab = "profile" | "editor" | "appearance" | "notifications" | "security";
+type Tab = "profile" | "appearance" | "notifications" | "security";
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validTabs: Tab[] = ["profile", "appearance", "notifications", "security"];
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam && validTabs.includes(tabParam as Tab) ? (tabParam as Tab) : "profile"
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,21 +32,69 @@ export default function SettingsPage() {
 
   // Preferences states (local storage)
   const [theme, setTheme] = useState("vs-dark");
-  const [fontSize, setFontSize] = useState("14");
-  const [autoSave, setAutoSave] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
+
+  // Notifications
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  // Google linking
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+
+  // Delete account
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Change password
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [cpPin, setCpPin] = useState('');
+  const [cpStep, setCpStep] = useState<'pin' | 'password' | 'done'>('pin');
+  const [cpNewPassword, setCpNewPassword] = useState('');
+  const [cpConfirmPassword, setCpConfirmPassword] = useState('');
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpError, setCpError] = useState('');
+
+  const { prompt } = useGoogleOneTap(
+    useCallback(async (response: { credential: string }) => {
+      setLinkingGoogle(true);
+      try {
+        const res = await linkGoogle(response.credential);
+        if (res.success) {
+          window.dispatchEvent(new Event("user-updated"));
+          toast.success({
+            title: "Google account linked",
+            description: "You can now sign in with Google.",
+          });
+        } else {
+          toast.error({
+            title: "Link failed",
+            description: res.error?.message || "Could not link Google account.",
+          });
+        }
+      } catch {
+        toast.error({ title: "Link failed", description: "Network error while linking." });
+      } finally {
+        setLinkingGoogle(false);
+      }
+    }, []),
+  );
 
   useEffect(() => {
     let mounted = true;
     const loadProfile = async () => {
       try {
-        const res = await fetchUserProfile();
+        const [profileRes, userRes] = await Promise.all([
+          fetchUserProfile(),
+          fetchUser(),
+        ]);
         if (!mounted) return;
-        if (res.success && res.data) {
-          setProfile(res.data);
-          setName(res.data.name || "");
-          setBio((res.data as any).bio || "");
+        if (profileRes.success && profileRes.data) {
+          setProfile(profileRes.data);
+          setName(profileRes.data.name || "");
+          setBio((profileRes.data as any).bio || "");
+        }
+        if (userRes.success && userRes.data) {
+          setUser(userRes.data);
         }
       } catch (err) {
         console.error(err);
@@ -47,15 +104,33 @@ export default function SettingsPage() {
     };
     loadProfile();
 
-    // Load local preferences
+    // Load local preference
     setTheme(localStorage.getItem("koder_theme") || "vs-dark");
-    setFontSize(localStorage.getItem("koder_font_size") || "14");
-    setAutoSave(localStorage.getItem("koder_auto_save") !== "false");
+
+    const onUserUpdated = () => {
+      fetchUser().then((res) => {
+        if (mounted && res.success && res.data) setUser(res.data);
+      });
+    };
+    window.addEventListener("user-updated", onUserUpdated);
 
     return () => {
       mounted = false;
+      window.removeEventListener("user-updated", onUserUpdated);
     };
   }, []);
+
+  // Fetch notifications when tab is active
+  useEffect(() => {
+    if (activeTab !== "notifications") return;
+    setNotifLoading(true);
+    fetchRecentNotifications().then((res) => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+      setNotifLoading(false);
+    });
+  }, [activeTab]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -80,24 +155,32 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSavePreferences = () => {
-    localStorage.setItem("koder_theme", theme);
-    localStorage.setItem("koder_font_size", fontSize);
-    localStorage.setItem("koder_auto_save", autoSave ? "true" : "false");
-    toast.success({
-      title: "Preferences saved",
-      description: "Your editor preferences have been updated.",
-    });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    await logout();
     window.location.href = "/auth/login";
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await deleteAccount();
+      if (res.success) {
+        window.location.href = "/auth/login";
+      } else {
+        throw new Error(res.error?.message || "Failed to delete account");
+      }
+    } catch (err: any) {
+      toast.error({
+        title: "Delete failed",
+        description: err.message || "Something went wrong while deleting your account.",
+      });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "editor", label: "Editor", icon: Code },
+    { id: "profile", label: "Profile", icon: UserIcon },
     { id: "appearance", label: "Appearance", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
@@ -195,16 +278,16 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Student ID
+                      Username
                     </label>
                     <input
                       type="text"
-                      value={profile?.student_id || ""}
+                      value={profile?.username || ""}
                       disabled
                       className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite-muted cursor-not-allowed opacity-70"
                     />
                     <p className="text-xs text-brand-offwhite-muted mt-2">
-                      Student IDs cannot be changed after registration. Contact support if you need assistance.
+                      Your unique identifier across the platform. Contact support to change it.
                     </p>
                   </div>
 
@@ -215,71 +298,6 @@ export default function SettingsPage() {
                       className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-6 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {saving ? "Saving..." : "Save Changes"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Editor Tab */}
-            {activeTab === "editor" && (
-              <div className="space-y-6 animate-in fade-in">
-                <div>
-                  <h2 className="text-xl font-bold text-brand-offwhite mb-1">Editor Preferences</h2>
-                  <p className="text-sm text-brand-offwhite-muted mb-6">
-                    Customize your coding experience in the workspace.
-                  </p>
-                </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Font Size
-                    </label>
-                    <select
-                      value={fontSize}
-                      onChange={(e) => setFontSize(e.target.value)}
-                      className="w-full sm:w-64 appearance-none bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                    >
-                      <option value="12">12px (Small)</option>
-                      <option value="14">14px (Medium)</option>
-                      <option value="16">16px (Large)</option>
-                      <option value="18">18px (Extra Large)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Theme
-                    </label>
-                    <select
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value)}
-                      className="w-full sm:w-64 appearance-none bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                    >
-                      <option value="vs-dark">VS Dark (Default)</option>
-                      <option value="hc-black">High Contrast Dark</option>
-                      <option value="light">Light</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-t border-b border-brand-charcoal-border">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">Auto-Save</div>
-                      <div className="text-xs text-brand-offwhite-muted">Automatically save your code locally while typing</div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={autoSave} onChange={(e) => setAutoSave(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-base border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
-
-                  <div className="pt-4 flex justify-end">
-                    <button
-                      onClick={handleSavePreferences}
-                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-6 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2"
-                    >
-                      Save Preferences
                     </button>
                   </div>
                 </div>
@@ -338,32 +356,91 @@ export default function SettingsPage() {
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Notifications</h2>
                   <p className="text-sm text-brand-offwhite-muted mb-6">
-                    Manage how we communicate with you.
+                    Recent activity and updates about your account.
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-brand-charcoal-border bg-brand-charcoal-base">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">Email Notifications</div>
-                      <div className="text-xs text-brand-offwhite-muted">Receive summaries of your weekly progress</div>
+                <div className="space-y-3">
+                  {notifLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-6 h-6 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={emailNotifs} onChange={(e) => setEmailNotifs(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-card border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-brand-charcoal-border bg-brand-charcoal-base">
-                    <div>
-                      <div className="font-bold text-sm text-brand-offwhite mb-1">In-App Notifications</div>
-                      <div className="text-xs text-brand-offwhite-muted">Receive alerts for new problems and achievements</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Bell size={32} className="text-brand-offwhite-muted/40 mb-3" />
+                      <p className="text-sm text-brand-offwhite-muted font-medium">No recent notifications</p>
+                      <p className="text-xs text-brand-offwhite-muted/60 mt-1">
+                        When an admin reviews your contributions or you earn achievements, they'll appear here.
+                      </p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={pushNotifs} onChange={(e) => setPushNotifs(e.target.checked)} />
-                      <div className="w-11 h-6 bg-brand-charcoal-card border border-brand-charcoal-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-offwhite after:border-brand-charcoal-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-muted-gold"></div>
-                    </label>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-brand-offwhite-muted font-medium uppercase tracking-wider">
+                          Recent activity
+                        </span>
+                        {notifications.some((n) => !n.is_read) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetchApi("/notifications/read-all", { method: "POST" });
+                                if (res.success) {
+                                  setNotifications((prev) =>
+                                    prev.map((n) => ({ ...n, is_read: true }))
+                                  );
+                                }
+                              } catch {}
+                            }}
+                            className="text-xs text-brand-muted-gold hover:text-brand-muted-gold/80 font-semibold transition-colors flex items-center gap-1"
+                          >
+                            <CheckCheck size={14} /> Mark all as read
+                          </button>
+                        )}
+                      </div>
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={cn(
+                            "flex items-start gap-3 p-4 rounded-xl border transition-colors",
+                            n.is_read
+                              ? "border-brand-charcoal-border bg-brand-charcoal-base/50"
+                              : "border-brand-muted-gold/20 bg-brand-muted-gold/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                            n.type === "contribution_approved"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : n.type === "contribution_rejected"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-brand-muted-gold/10 text-brand-muted-gold"
+                          )}>
+                            {n.type === "contribution_approved" ? (
+                              <CheckCircle2 size={16} />
+                            ) : n.type === "contribution_rejected" ? (
+                              <XCircle size={16} />
+                            ) : (
+                              <GitPullRequest size={16} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={cn(
+                              "text-sm leading-relaxed",
+                              n.is_read ? "text-brand-offwhite-muted" : "text-brand-offwhite"
+                            )}>
+                              {n.message}
+                            </p>
+                            <span className="text-xs text-brand-offwhite-muted/60 mt-1.5 block">
+                              {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          {!n.is_read && (
+                            <div className="w-2 h-2 rounded-full bg-brand-muted-gold shrink-0 mt-2" />
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -384,11 +461,203 @@ export default function SettingsPage() {
                     <h3 className="font-bold text-sm text-brand-offwhite">Password</h3>
                   </div>
                   <p className="text-sm text-brand-offwhite-muted mb-4">
-                    You can change your password by clicking the button below. You will be prompted to enter your current password.
+                    Change your password using your 6-digit recovery PIN.
                   </p>
-                  <button className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                  <button
+                    onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpError(''); }}
+                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel hover:border-brand-muted-gold/50 text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                  >
                     Change Password
                   </button>
+                </div>
+
+                <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+                  <DialogContent className="sm:max-w-md bg-brand-charcoal-card border-brand-charcoal-border">
+                    <DialogHeader>
+                      <DialogTitle className="text-brand-offwhite text-lg flex items-center gap-2">
+                        <Shield size={18} className="text-brand-muted-gold" />
+                        {cpStep === 'pin' ? 'Verify your PIN' : cpStep === 'password' ? 'Set new password' : 'Password changed'}
+                      </DialogTitle>
+                      <DialogDescription className="text-brand-offwhite-muted text-sm">
+                        {cpStep === 'pin'
+                          ? 'Enter your 6-digit recovery PIN to proceed.'
+                          : cpStep === 'password'
+                          ? 'Choose a new password for your account.'
+                          : 'Your password has been updated.'}
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    {cpStep === 'pin' && (
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!/^\d{6}$/.test(cpPin)) {
+                          setCpError('PIN must be exactly 6 digits');
+                          return;
+                        }
+                        setCpLoading(true);
+                        setCpError('');
+                        try {
+                          // Just verify PIN format — actual verification happens with password change
+                          setCpStep('password');
+                        } catch {
+                          setCpError('Verification failed');
+                        } finally {
+                          setCpLoading(false);
+                        }
+                      }} className="space-y-5">
+                        {cpError && (
+                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                            {cpError}
+                          </div>
+                        )}
+                        <div className="flex justify-center py-4">
+                          <PinInput size="lg" mask>
+                            <PinInput.Group
+                              maxLength={6}
+                              pattern={REGEXP_ONLY_DIGITS}
+                              value={cpPin}
+                              onChange={setCpPin}
+                              autoFocus
+                            >
+                              <PinInput.Slot index={0} />
+                              <PinInput.Slot index={1} />
+                              <PinInput.Slot index={2} />
+                              <PinInput.Separator />
+                              <PinInput.Slot index={3} />
+                              <PinInput.Slot index={4} />
+                              <PinInput.Slot index={5} />
+                            </PinInput.Group>
+                          </PinInput>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={cpPin.length !== 6}
+                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Continue
+                        </button>
+                      </form>
+                    )}
+
+                    {cpStep === 'password' && (
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (cpNewPassword.length < 6) {
+                          setCpError('Password must be at least 6 characters');
+                          return;
+                        }
+                        if (cpNewPassword !== cpConfirmPassword) {
+                          setCpError('Passwords do not match');
+                          return;
+                        }
+                        setCpLoading(true);
+                        setCpError('');
+                        try {
+                          const res = await changePassword(cpPin, cpNewPassword);
+                          if (res.success) {
+                            setCpStep('done');
+                          } else {
+                            setCpError(res.error?.message || 'Failed to change password');
+                          }
+                        } catch {
+                          setCpError('Network error');
+                        } finally {
+                          setCpLoading(false);
+                        }
+                      }} className="space-y-4">
+                        {cpError && (
+                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                            {cpError}
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+                            New password
+                          </label>
+                          <input
+                            type="password"
+                            value={cpNewPassword}
+                            onChange={(e) => setCpNewPassword(e.target.value)}
+                            className="w-full bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:border-brand-muted-gold focus:outline-none h-11 rounded-xl px-4 text-sm transition-colors"
+                            placeholder="At least 6 characters"
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+                            Confirm new password
+                          </label>
+                          <input
+                            type="password"
+                            value={cpConfirmPassword}
+                            onChange={(e) => setCpConfirmPassword(e.target.value)}
+                            className="w-full bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:border-brand-muted-gold focus:outline-none h-11 rounded-xl px-4 text-sm transition-colors"
+                            placeholder="Re-enter your password"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={cpLoading}
+                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {cpLoading ? (
+                            <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                          ) : (
+                            'Change password'
+                          )}
+                        </button>
+                      </form>
+                    )}
+
+                    {cpStep === 'done' && (
+                      <div className="text-center py-6 space-y-4">
+                        <div className="mx-auto w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                          <CheckCircle2 size={28} className="text-green-400" />
+                        </div>
+                        <p className="text-sm text-brand-offwhite-muted">
+                          Your password has been updated successfully.
+                        </p>
+                        <button
+                          onClick={() => setChangePasswordOpen(false)}
+                          className="bg-brand-charcoal-hover hover:bg-brand-charcoal-panel border border-brand-charcoal-border text-brand-offwhite px-6 py-2 rounded-xl font-bold text-sm transition-colors"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+
+
+
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Chrome className="text-brand-muted-gold" size={20} />
+                    <h3 className="font-bold text-sm text-brand-offwhite">Google Account</h3>
+                  </div>
+                  {user?.google_linked ? (
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <CheckCircle2 size={18} />
+                      <span className="text-sm font-semibold">Account linked</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-brand-offwhite-muted mb-4">
+                        Link your Google account for seamless sign-in. You will still be able to sign in with your password.
+                      </p>
+                      <button
+                        onClick={() => prompt()}
+                        disabled={linkingGoogle}
+                        className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {linkingGoogle ? (
+                          <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
+                        ) : (
+                          <><Chrome size={16} /> Link Google Account</>
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">
@@ -396,9 +665,40 @@ export default function SettingsPage() {
                   <p className="text-sm text-brand-error/80 mb-4">
                     Once you delete your account, there is no going back. Please be certain.
                   </p>
-                  <button className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                    Delete Account
-                  </button>
+                  {confirmDelete ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs text-brand-error/70">
+                        All your submissions, progress, and account data will be permanently removed. Are you sure?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="bg-brand-error hover:bg-brand-error/80 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {deleting ? (
+                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                          ) : (
+                            "Yes, delete my account"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(false)}
+                          disabled={deleting}
+                          className="bg-brand-charcoal-hover border border-brand-charcoal-border text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors hover:bg-brand-charcoal-panel disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                    >
+                      Delete Account
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -406,5 +706,17 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }

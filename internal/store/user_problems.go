@@ -105,6 +105,7 @@ func (s *PostgresStore) ListUserProblemsByUser(ctx context.Context, userID uuid.
 		FROM user_problems
 		WHERE user_id = $1
 		ORDER BY created_at DESC
+		LIMIT 100
 	`
 	return s.listUserProblems(ctx, query, userID)
 }
@@ -116,6 +117,7 @@ func (s *PostgresStore) ListPendingUserProblems(ctx context.Context) ([]UserProb
 		FROM user_problems
 		WHERE status = 'pending'
 		ORDER BY created_at ASC
+		LIMIT 100
 	`
 	return s.listUserProblems(ctx, query)
 }
@@ -159,10 +161,10 @@ func (s *PostgresStore) RejectUserProblem(ctx context.Context, id uuid.UUID, adm
 }
 
 // ApproveUserProblem is a transaction that approves the contribution, moves it to the problems table, and saves the test cases.
-func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, error) {
+func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, adminNotes string) (*UserProblem, *uuid.UUID, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -181,16 +183,16 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("user problem not found or already processed")
+			return nil, nil, fmt.Errorf("user problem not found or already processed")
 		}
-		return nil, fmt.Errorf("failed to fetch user problem: %w", err)
+		return nil, nil, fmt.Errorf("failed to fetch user problem: %w", err)
 	}
 
 	// 2. Fetch author's name
 	var authorName string
 	err = tx.QueryRow(ctx, "SELECT name FROM users WHERE id = $1", up.UserID).Scan(&authorName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch author name: %w", err)
+		return nil, nil, fmt.Errorf("failed to fetch author name: %w", err)
 	}
 
 	// 3. Insert into main problems table
@@ -209,14 +211,14 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 		"Community Contribution", up.UserID, authorName,
 	).Scan(&newProblemID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to insert problem: %w", err)
+		return nil, nil, fmt.Errorf("failed to insert problem: %w", err)
 	}
 
 	// 4. Insert test cases
 	for _, tcJSON := range testCasesJSON {
 		var tc UserProblemTestCase
 		if err := json.Unmarshal(tcJSON, &tc); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal test case JSON: %w", err)
+			return nil, nil, fmt.Errorf("failed to unmarshal test case JSON: %w", err)
 		}
 
 		insertTCQuery := `
@@ -225,7 +227,7 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 		`
 		_, err = tx.Exec(ctx, insertTCQuery, newProblemID, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal)
 		if err != nil {
-			return nil, fmt.Errorf("failed to insert test case: %w", err)
+			return nil, nil, fmt.Errorf("failed to insert test case: %w", err)
 		}
 	}
 
@@ -237,13 +239,13 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	`
 	_, err = tx.Exec(ctx, updateQuery, id, adminNotes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update user problem status: %w", err)
+		return nil, nil, fmt.Errorf("failed to update user problem status: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	up.Status = "approved"
 	up.AdminNotes = &adminNotes
-	return &up, nil
+	return &up, &newProblemID, nil
 }

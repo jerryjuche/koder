@@ -19,14 +19,19 @@ func NewMeHandler(s store.Store) *MeHandler {
 
 // meResponse is the safe, password-free user profile response.
 type meResponse struct {
-	ID          string `json:"id"`
-	StudentID   string `json:"student_id"`
-	Name        string `json:"name"`
-	Role        string `json:"role"`
-	ColorIndex  int    `json:"color_index"`
-	XP          int    `json:"xp"`
-	Level       int    `json:"level"`
-	SolvedCount int    `json:"solved_count"`
+	ID              string  `json:"id"`
+	StudentID       string  `json:"student_id"`
+	Username        string  `json:"username"`
+	Name            string  `json:"name"`
+	Role            string  `json:"role"`
+	ColorIndex      int     `json:"color_index"`
+	XP              int     `json:"xp"`
+	Level           int     `json:"level"`
+	SolvedCount     int     `json:"solved_count"`
+	AttemptedCount  int     `json:"attempted_count"`
+	StreakDays      int     `json:"current_streak_days"`
+	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
+	GoogleLinked    bool    `json:"google_linked"`
 }
 
 func clampColorIndex(index int) int {
@@ -53,10 +58,21 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	// Check cache first
+	if cached, ok := getCachedUser(r.Context(), userUUID.String()); ok {
+		RespondSuccess(w, cached)
+		return
+	}
+
+	user, solvedCount, err := h.store.GetUserWithSolvedCount(r.Context(), userUUID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
 		return
+	}
+
+	stats, err := h.store.GetUserStats(r.Context(), userUUID)
+	if err != nil {
+		stats = nil
 	}
 
 	idStr, err := uuidStringFromPGType(user.ID)
@@ -65,19 +81,53 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query solved count from progress table
-	solvedCount, _ := h.store.GetSolvedCount(r.Context(), userUUID)
-
 	level := (user.XP / 1000) + 1
+	googleLinked := user.GoogleID != nil && *user.GoogleID != ""
+	attemptedCount := 0
+	streakDays := 0
+	if stats != nil {
+		attemptedCount = stats.AttemptedCount
+		streakDays = stats.CurrentStreakDays
+	}
 
-	RespondSuccess(w, meResponse{
-		ID:          idStr,
-		StudentID:   user.StudentID,
-		Name:        user.Name,
-		Role:        user.Role,
-		ColorIndex:  clampColorIndex(user.ColorIndex),
-		XP:          user.XP,
-		Level:       level,
-		SolvedCount: solvedCount,
-	})
+	resp := meResponse{
+		ID:              idStr,
+		StudentID:       user.StudentID,
+		Username:        user.Username,
+		Name:            user.Name,
+		Role:            user.Role,
+		ColorIndex:      clampColorIndex(user.ColorIndex),
+		XP:              user.XP,
+		Level:           level,
+		SolvedCount:     solvedCount,
+		AttemptedCount:  attemptedCount,
+		StreakDays:      streakDays,
+		GoogleAvatarURL: user.GoogleAvatarURL,
+		GoogleLinked:    googleLinked,
+	}
+
+	cacheUser(r.Context(), userUUID.String(), resp)
+	RespondSuccess(w, resp)
+}
+
+// DeleteAccount permanently removes the authenticated user and all their data.
+func (h *MeHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	if err := h.store.DeleteUser(r.Context(), userUUID); err != nil {
+		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete account", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"message": "Account permanently deleted"})
 }

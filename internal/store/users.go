@@ -41,13 +41,15 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	colorIndex := int(colorIndexBig.Int64())
 
 	// Insert into database with parameterized query
+	email := user.Email
 	query := `
-		INSERT INTO users (student_id, name, password, role, color_index, xp, created_at)
-		VALUES ($1, $2, $3, $4, $5, 0, NOW())
+		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, NOW())
 		RETURNING id, created_at
 	`
 
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Name, string(hashedPassword), user.Role, colorIndex).
+	pinHash := user.PINHash
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -56,8 +58,10 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	return &User{
 		ID:         userID,
 		StudentID:  user.StudentID,
+		Username:   user.Username,
 		Name:       user.Name,
 		Password:   string(hashedPassword),
+		PINHash:    &pinHash,
 		Role:       user.Role,
 		ColorIndex: colorIndex,
 		XP:         0,
@@ -74,7 +78,8 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
 		FROM users
 		WHERE student_id = $1
 	`
@@ -82,12 +87,17 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 	err := s.pool.QueryRow(ctx, query, studentID).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
+		&user.Email,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 	)
 
@@ -110,7 +120,8 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, name, bio, password, role, color_index, xp, created_at
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
 		FROM users
 		WHERE id = $1
 	`
@@ -118,12 +129,17 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.StudentID,
+		&user.Username,
 		&user.Name,
 		&user.Bio,
+		&user.Email,
 		&user.Password,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 	)
 
@@ -132,6 +148,176 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 			return nil, fmt.Errorf("user not found: %w", err)
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByUsername retrieves a user by their username.
+func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	if username == "" {
+		return nil, fmt.Errorf("username cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE username = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, username).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByEmail retrieves a user by their email.
+func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	if email == "" {
+		return nil, fmt.Errorf("email cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE email = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.PINHash,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByLogin retrieves a user by checking username, email, or student_id.
+func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User, error) {
+	if login == "" {
+		return nil, fmt.Errorf("login cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE username = $1 OR email = $1 OR student_id = $1
+		LIMIT 1
+	`
+
+	err := s.pool.QueryRow(ctx, query, login).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by login: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByGoogleID retrieves a user by their Google ID.
+func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) (*User, error) {
+	if googleID == "" {
+		return nil, fmt.Errorf("googleID cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
+		       google_id, google_email, google_avatar_url, created_at
+		FROM users
+		WHERE google_id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, googleID).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found by google_id: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user by google_id: %w", err)
 	}
 
 	return user, nil
@@ -175,10 +361,11 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		}
 		query = fmt.Sprintf(`
 			SELECT 
-				u.id, u.name, u.student_id, u.role, u.color_index,
+				u.id, u.name, u.student_id, u.username, u.role, u.color_index,
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
-				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms
+				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -189,21 +376,23 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			LEFT JOIN problems pr ON sub.problem_id = pr.id
 			WHERE u.role != 'admin'
 			GROUP BY u.id
-			ORDER BY xp DESC, solved_count DESC
+			HAVING COALESCE(SUM(pr.xp_reward), 0) > 0
+			ORDER BY xp DESC, solved_count DESC, u.id
 			LIMIT 100
 		`, interval)
 	} else {
 		// All time
 		query = `
 			SELECT 
-				u.id, u.name, u.student_id, u.role, u.color_index, u.xp,
+				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
-				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms
+				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
-			WHERE u.role != 'admin'
+			WHERE u.role != 'admin' AND u.xp > 0
 			GROUP BY u.id
-			ORDER BY u.xp DESC, solved_count DESC
+			ORDER BY u.xp DESC, solved_count DESC, u.id
 			LIMIT 100
 		`
 	}
@@ -222,8 +411,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		var bestTime int
 
 		err := rows.Scan(
-			&uID, &u.Name, &u.StudentID, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime,
+			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
@@ -261,6 +450,51 @@ func (s *PostgresStore) GetSolvedCount(ctx context.Context, userID uuid.UUID) (i
 		return 0, fmt.Errorf("failed to get solved count: %w", err)
 	}
 	return count, nil
+}
+
+// GetUserWithSolvedCount returns a user with their solved count in one query.
+func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error) {
+	if id == uuid.Nil {
+		return nil, 0, fmt.Errorf("id cannot be nil")
+	}
+
+	user := &User{}
+	var solvedCount int
+
+	query := `
+		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
+		       u.google_id, u.google_email, u.google_avatar_url, u.created_at,
+		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
+		FROM users u
+		WHERE u.id = $1
+	`
+
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.GoogleID,
+		&user.GoogleEmail,
+		&user.GoogleAvatarURL,
+		&user.CreatedAt,
+		&solvedCount,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, 0, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, 0, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, solvedCount, nil
 }
 
 // UpdateUserName updates the user's name by ID.
@@ -317,6 +551,257 @@ func (s *PostgresStore) UpdateUserProfile(ctx context.Context, id uuid.UUID, nam
 	return nil
 }
 
+// UpdateUserProfileWithReturn updates the user's name and bio and returns the updated user.
+func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("id cannot be nil")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("name cannot be empty")
+	}
+
+	user := &User{}
+
+	query := `
+		UPDATE users
+		SET name = $1, bio = $2
+		WHERE id = $3
+		RETURNING id, student_id, username, name, bio, role, color_index, xp, created_at
+	`
+
+	err := s.pool.QueryRow(ctx, query, name, bio, id).Scan(
+		&user.ID,
+		&user.StudentID,
+		&user.Username,
+		&user.Name,
+		&user.Bio,
+		&user.Role,
+		&user.ColorIndex,
+		&user.XP,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	return user, nil
+}
+
+// UpdateUserUsername updates the username for a user.
+func (s *PostgresStore) UpdateUserUsername(ctx context.Context, id uuid.UUID, username string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET username = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, username, id)
+	if err != nil {
+		return fmt.Errorf("failed to update username: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UpdateUserStudentID updates the student_id for a user.
+func (s *PostgresStore) UpdateUserStudentID(ctx context.Context, id uuid.UUID, studentID string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if studentID == "" {
+		return fmt.Errorf("studentID cannot be empty")
+	}
+
+	query := `
+		UPDATE users
+		SET student_id = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, studentID, id)
+	if err != nil {
+		return fmt.Errorf("failed to update student_id: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UpdateUserPassword updates the password hash for a user.
+func (s *PostgresStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if passwordHash == "" {
+		return fmt.Errorf("password hash cannot be empty")
+	}
+
+	cmdTag, err := s.pool.Exec(ctx,
+		`UPDATE users SET password = $1 WHERE id = $2`,
+		passwordHash, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+// UpdateUserPINHash updates the bcrypt-hashed PIN for a user.
+func (s *PostgresStore) UpdateUserPINHash(ctx context.Context, id uuid.UUID, pinHash string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if pinHash == "" {
+		return fmt.Errorf("pin hash cannot be empty")
+	}
+
+	cmdTag, err := s.pool.Exec(ctx,
+		`UPDATE users SET pin_hash = $1 WHERE id = $2`,
+		pinHash, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update pin hash: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+// UpdateUserGoogleAvatar updates the Google avatar URL for a user.
+func (s *PostgresStore) UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET google_avatar_url = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, avatarURL, id)
+	if err != nil {
+		return fmt.Errorf("failed to update google avatar: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// CreateUserFromGoogle creates a new user from a Google OAuth profile.
+func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error) {
+	if info == nil {
+		return nil, fmt.Errorf("google user info cannot be nil")
+	}
+
+	// Generate a random placeholder password (OAuth users don't use password login)
+	placeholderPW, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 12)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash placeholder password: %w", err)
+	}
+
+	colorIndexBig, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to assign color index: %w", err)
+	}
+	colorIndex := int(colorIndexBig.Int64())
+
+	// Generate a temporary student_id and username from Google metadata
+	tempUsername := "g_" + info.Sub[:8]
+
+	var userID pgtype.UUID
+	var createdAt pgtype.Timestamp
+
+	query := `
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, created_at)
+		VALUES ($1, $2, $3, $4, $5, 'student', $6, 0, $7, $8, $9, NOW())
+		RETURNING id, created_at
+	`
+
+	err = s.pool.QueryRow(ctx, query,
+		info.Email,       // student_id = Google email (internal)
+		tempUsername,     // username (temporary, user will set it on onboarding)
+		info.Name,        // name from Google
+		info.Email,       // email
+		string(placeholderPW),
+		colorIndex,
+		info.Sub,         // google_id
+		info.Email,       // google_email
+		info.Picture,     // google_avatar_url
+	).Scan(&userID, &createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user from google: %w", err)
+	}
+
+	return &User{
+		ID:             userID,
+		StudentID:      info.Email,
+		Username:       tempUsername,
+		Name:           info.Name,
+		Email:          &info.Email,
+		Password:       string(placeholderPW),
+		Role:           "student",
+		ColorIndex:     colorIndex,
+		XP:             0,
+		GoogleID:       &info.Sub,
+		GoogleEmail:    &info.Email,
+		GoogleAvatarURL: &info.Picture,
+		CreatedAt:      createdAt.Time,
+	}, nil
+}
+
+// LinkGoogleToUser links an existing user to a Google account.
+func (s *PostgresStore) LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error {
+	if userID == uuid.Nil {
+		return fmt.Errorf("userID cannot be nil")
+	}
+	if info == nil {
+		return fmt.Errorf("google user info cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET google_id = $1, google_email = $2, google_avatar_url = $3, email = COALESCE(email, $2)
+		WHERE id = $4
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query,
+		info.Sub,
+		info.Email,
+		info.Picture,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to link google to user: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 // GetUserRank returns the user's rank (1-indexed position) in the leaderboard.
 func (s *PostgresStore) GetUserRank(ctx context.Context, userID uuid.UUID) (int, error) {
 	var rank int
@@ -346,26 +831,29 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 		ProgressByDiff: make(map[string]DifficultyProgress),
 	}
 
-	// Get attempted and solved counts, average stars, best runtime
+	// Get solved count, average stars, best runtime from progress (no JOIN needed)
 	query1 := `
 		SELECT 
-			COUNT(DISTINCT p.problem_id) FILTER (WHERE p.solved) as solved_count,
-			COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN s.id END) as attempted_count,
-			COALESCE(AVG(p.stars) FILTER (WHERE p.solved), 0.0) as avg_stars,
-			COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved AND p.best_runtime > 0), 0) as best_runtime
-		FROM progress p
-		LEFT JOIN submissions s ON p.user_id = s.user_id AND p.problem_id = s.problem_id
-		WHERE p.user_id = $1
+			COUNT(*) FILTER (WHERE solved) as solved_count,
+			COALESCE(AVG(stars) FILTER (WHERE solved), 0.0) as avg_stars,
+			COALESCE(MIN(best_runtime) FILTER (WHERE solved AND best_runtime > 0), 0) as best_runtime
+		FROM progress
+		WHERE user_id = $1
 	`
 
 	err := s.pool.QueryRow(ctx, query1, userID).Scan(
 		&stats.SolvedCount,
-		&stats.AttemptedCount,
 		&stats.AverageStars,
 		&stats.BestRuntimeMs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get basic stats: %w", err)
+	}
+
+	// Attempted count from submissions (separate query avoids row multiplication from JOIN)
+	err = s.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT problem_id) FROM submissions WHERE user_id = $1`, userID).Scan(&stats.AttemptedCount)
+	if err != nil {
+		stats.AttemptedCount = 0
 	}
 
 	// Get progress by difficulty
@@ -418,32 +906,11 @@ func (s *PostgresStore) GetUserStats(ctx context.Context, userID uuid.UUID) (*Us
 		stats.ProgressByDiff["hard"] = DifficultyProgress{0, 0}
 	}
 
-	// Calculate current streak (number of consecutive days with submissions)
-	queryStreak := `
-		WITH daily_submissions AS (
-			SELECT DISTINCT DATE(created_at) AS sub_date
-			FROM submissions
-			WHERE user_id = $1 AND status = 'passed'
-		),
-		streak_groups AS (
-			SELECT sub_date,
-				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
-			FROM daily_submissions
-		)
-		SELECT COUNT(*)
-		FROM streak_groups
-		WHERE grp = (
-			SELECT grp 
-			FROM streak_groups 
-			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day' 
-			ORDER BY sub_date DESC 
-			LIMIT 1
-		)
-	`
-
-	err = s.pool.QueryRow(ctx, queryStreak, userID).Scan(&stats.CurrentStreakDays)
+	streakDays, err := s.CalculateStreak(ctx, userID)
 	if err != nil {
 		stats.CurrentStreakDays = 0
+	} else {
+		stats.CurrentStreakDays = streakDays
 	}
 
 	return stats, nil
@@ -532,4 +999,68 @@ func (s *PostgresStore) GetRecentSubmissions(ctx context.Context, userID uuid.UU
 	}
 
 	return submissions, nil
+}
+
+// DeleteUser permanently removes a user and all associated data.
+func (s *PostgresStore) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Delete submissions (no ON DELETE CASCADE)
+	if _, err := tx.Exec(ctx, `DELETE FROM submissions WHERE user_id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete submissions: %w", err)
+	}
+
+	// Delete progress (no ON DELETE CASCADE)
+	if _, err := tx.Exec(ctx, `DELETE FROM progress WHERE user_id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete progress: %w", err)
+	}
+
+	// Delete the user (cascades to user_problems, notifications, submission_likes,
+	// and sets author_id = NULL on authored problems)
+	if tag, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	} else if tag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return tx.Commit(ctx)
+}
+
+// CalculateStreak returns the number of consecutive days the user has passed submissions.
+func (s *PostgresStore) CalculateStreak(ctx context.Context, userID uuid.UUID) (int, error) {
+	query := `
+		WITH daily_submissions AS (
+			SELECT DISTINCT DATE(created_at) AS sub_date
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		streak_groups AS (
+			SELECT sub_date,
+				   sub_date - (DENSE_RANK() OVER (ORDER BY sub_date ASC))::integer AS grp
+			FROM daily_submissions
+		)
+		SELECT COALESCE(COUNT(*), 0)
+		FROM streak_groups
+		WHERE grp = (
+			SELECT grp
+			FROM streak_groups
+			WHERE sub_date >= CURRENT_DATE - INTERVAL '1 day'
+			ORDER BY sub_date DESC
+			LIMIT 1
+		)
+	`
+	var days int
+	err := s.pool.QueryRow(ctx, query, userID).Scan(&days)
+	if err != nil {
+		return 0, fmt.Errorf("failed to calculate streak: %w", err)
+	}
+	return days, nil
 }

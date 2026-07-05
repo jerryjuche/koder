@@ -9,35 +9,47 @@ import {
   UserProfile,
   UserProblem,
   CommunitySolution,
+  ActivityEntry,
+  NotificationItem,
+  FeedbackItem,
+  Broadcast,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : "";
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    let data: ApiResponse<T>;
+    try {
+      data = await response.json();
+    } catch {
+      data = { success: false, data: null, error: { code: "PARSE_ERROR", message: `Server returned ${response.status}` } };
     }
 
-    const data: ApiResponse<T> = await response.json();
+    if (!response.ok) {
+      const serverError = data?.error as { message?: string; details?: string } | undefined;
+      if (serverError?.details) {
+        (data.error as any).message = `${serverError.message}: ${serverError.details}`;
+      }
+      return data;
+    }
 
     if (!data.success && data.error) {
-      throw new Error(data.error.message);
+      const err = data.error as any;
+      const msg = err.details ? `${err.message}: ${err.details}` : err.message;
+      throw new Error(msg);
     }
 
     return data;
@@ -59,8 +71,8 @@ export async function fetchApi<T>(
 
 export async function login(
   data: any,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/login", {
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/login", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -68,25 +80,100 @@ export async function login(
 
 export async function register(
   data: any,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/register", {
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function fetchUser(): Promise<ApiResponse<User>> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (!token) {
-    return {
-      success: false,
-      data: null,
-      error: { code: "UNAUTHORIZED", message: "No token" },
-    };
-  }
+export async function googleLogin(
+  idToken: string,
+): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
+  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
 
-  // Try the real /me endpoint first
+export async function forgotPassword(
+  email: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
+export async function forgotPasswordPin(
+  email: string,
+  pin: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/forgot-password-pin", {
+    method: "POST",
+    body: JSON.stringify({ email, pin }),
+  });
+}
+
+export async function resetPasswordPin(
+  token: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/reset-password-pin", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
+export async function completeGoogleOnboarding(
+  username: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return completeOnboarding(username);
+}
+
+export async function completeOnboarding(
+  username: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/complete-onboarding", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export async function linkGoogle(
+  idToken: string,
+): Promise<ApiResponse<{ token: string }>> {
+  return fetchApi<{ token: string }>("/auth/link-google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
+export async function logout(): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/logout", {
+    method: "POST",
+  });
+}
+
+export async function checkUsername(
+  username: string,
+): Promise<ApiResponse<{ username: string; available: boolean }>> {
+  return fetchApi<{ username: string; available: boolean }>(
+    `/auth/check-username?username=${encodeURIComponent(username)}`,
+  );
+}
+
+export async function fetchUser(): Promise<ApiResponse<User>> {
   const res = await fetchApi<any>("/me");
   if (res.success && res.data) {
     return {
@@ -94,50 +181,26 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
       data: {
         id: res.data.id,
         name: res.data.name || res.data.student_id || "Student",
+        username: res.data.username || res.data.student_id || "",
         studentId: res.data.student_id,
         role: res.data.role || "student",
         colorIndex: res.data.color_index ?? 0,
         xp: res.data.xp || 0,
         level: res.data.level || 1,
         solvedCount: res.data.solved_count || 0,
+        attemptedCount: res.data.attempted_count || 0,
+        streak: res.data.current_streak_days ?? 0,
+        google_avatar_url: res.data.google_avatar_url,
+        google_linked: res.data.google_linked ?? false,
       },
     };
   }
 
-  // Fallback: decode JWT locally
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join(""),
-    );
-    const payload = JSON.parse(jsonPayload);
-
-    return {
-      success: true,
-      data: {
-        id: payload.user_id || "u1",
-        name: payload.name || payload.student_id || "Student",
-        studentId: payload.student_id || "s000000",
-        role: payload.role || "student",
-        colorIndex: 0,
-        xp: 0,
-        level: 1,
-        solvedCount: 0,
-      },
-    };
-  } catch (e) {
-    return {
-      success: false,
-      data: null,
-      error: { code: "INVALID_TOKEN", message: "Invalid token" },
-    };
-  }
+  return {
+    success: false,
+    data: null,
+    error: { code: "AUTH_FAILED", message: "Token rejected by server" },
+  };
 }
 
 export async function fetchProblems(): Promise<ApiResponse<Problem[]>> {
@@ -168,6 +231,10 @@ export async function testCode(
     method: "POST",
     body: JSON.stringify({ problem_slug: slug, code: code }),
   });
+}
+
+export async function fetchRecentNotifications(): Promise<ApiResponse<NotificationItem[]>> {
+  return fetchApi<NotificationItem[]>("/notifications/recent");
 }
 
 export async function fetchLeaderboard(
@@ -247,6 +314,11 @@ export async function submitContribution(data: any): Promise<ApiResponse<any>> {
   });
 }
 
+export async function fetchUserActivity(year?: number): Promise<ApiResponse<ActivityEntry[]>> {
+  const params = year ? `?year=${year}` : "";
+  return fetchApi<ActivityEntry[]>(`/me/activity${params}`);
+}
+
 export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {
   return fetchApi<UserProblem[]>("/me/contributions");
 }
@@ -268,3 +340,103 @@ export async function rejectContribution(id: string, notes: string): Promise<Api
     body: JSON.stringify({ admin_notes: notes }),
   });
 }
+
+export async function toggleProblemVisibility(id: string, visible: boolean): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/problems/${id}/visibility`, {
+    method: "PATCH",
+    body: JSON.stringify({ visible }),
+  });
+}
+
+export async function publishAllDrafts(): Promise<ApiResponse<{ published: number }>> {
+  return fetchApi<{ published: number }>("/admin/problems/publish-all", {
+    method: "POST",
+  });
+}
+
+// Feedback
+
+export async function submitFeedback(data: {
+  type: string;
+  title: string;
+  description: string;
+  priority: string;
+  screenshot_url?: string;
+  is_anonymous: boolean;
+}): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchMyFeedback(): Promise<ApiResponse<FeedbackItem[]>> {
+  return fetchApi<FeedbackItem[]>("/feedback/mine");
+}
+
+export async function fetchAdminFeedback(status?: string): Promise<ApiResponse<FeedbackItem[]>> {
+  const params = status ? `?status=${status}` : "";
+  return fetchApi<FeedbackItem[]>(`/admin/feedback${params}`);
+}
+
+export async function fetchAdminFeedbackCounts(): Promise<ApiResponse<Record<string, number>>> {
+  return fetchApi<Record<string, number>>("/admin/feedback/counts");
+}
+
+export async function updateFeedbackStatus(id: string, status: string, adminNotes?: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/feedback/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, admin_notes: adminNotes }),
+  });
+}
+
+export async function deleteAccount(): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/me/delete-account", {
+    method: "POST",
+  });
+}
+
+// Broadcasts
+
+export async function fetchActiveBroadcasts(): Promise<ApiResponse<Broadcast[]>> {
+  return fetchApi<Broadcast[]>("/me/broadcasts");
+}
+
+export async function dismissBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/me/broadcasts/${id}/dismiss`, { method: "POST" });
+}
+
+export async function fetchAllBroadcasts(): Promise<ApiResponse<Broadcast[]>> {
+  return fetchApi<Broadcast[]>("/admin/broadcasts");
+}
+
+export async function createBroadcast(data: {
+  type: string;
+  priority: string;
+  title: string;
+  message: string;
+  action_label?: string;
+  action_url?: string;
+}): Promise<ApiResponse<Broadcast>> {
+  return fetchApi<Broadcast>("/admin/broadcasts", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deactivateBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}/deactivate`, { method: "PATCH" });
+}
+
+export async function deleteBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}`, { method: "DELETE" });
+}
+
+export async function changePassword(pin: string, newPassword: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ pin, new_password: newPassword }),
+  });
+}
+
+
