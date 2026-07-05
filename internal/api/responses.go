@@ -44,28 +44,37 @@ func RespondCreated(w http.ResponseWriter, data interface{}) {
 }
 
 // SetAuthCookie sets a secure httpOnly cookie with the JWT token.
-func SetAuthCookie(w http.ResponseWriter, token string, cfg *config.Config) {
-	secure := cfg.Environment == "production"
+func SetAuthCookie(w http.ResponseWriter, r *http.Request, token string, cfg *config.Config) {
+	secure := r.TLS != nil
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "koder_token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		MaxAge:   int(cfg.JWTExpiry().Seconds()),
 	})
 }
 
 // ClearAuthCookie unsets the JWT cookie (used on logout).
-func ClearAuthCookie(w http.ResponseWriter) {
+func ClearAuthCookie(w http.ResponseWriter, r *http.Request) {
+	secure := r.TLS != nil
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "koder_token",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		SameSite: sameSite,
 		MaxAge:   -1,
 	})
 }
