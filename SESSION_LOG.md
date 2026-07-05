@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 3, 2026 (Sessions 1–11)
+# Session Logbook — June 28 – July 6, 2026 (Sessions 1–18)
 
 ---
 
@@ -18,6 +18,17 @@
 | 10 | `b61597c` | Add aud claim validation to Google token verification |
 | 11 | `f8177bf` | Fix Google token email_verified parsing + full profile page redesign |
 | 12 | `b9d06df` | Professional review: color reduction, onboarding flow, google sync, leaderboard username display |
+| 13 | `842ea60` | Add mandatory 6-digit PIN recovery during registration + PIN-based forgot-password flow |
+| 14 | `5a251b3` | Professional change password + PIN UX overhaul |
+| 15 | `d4fc76d` | Fix auth cookie for cross-origin dev server + CSP |
+| 16 | `d03af87` | Split monolithic problem statement into structured fields |
+| 17 | `972dfd0` | Fix Monaco Editor: local npm workers, CSP blob, Next.js 15 dynamic |
+| 18 | `98edab3` | Add pagination to problem listing (18 per page, page nav controls) |
+| 19 | `28f8334` | Back button preserves module via ?module= query param |
+| 20 | `6b864f2` | Boost confetti (60 particles, faster bursts) 2s toast duration |
+| 21 | `11526ba` | Sync confetti with page load — fire when data is ready |
+| 22 | `741d305` | Cache problems in sessionStorage — skip fetch when cached |
+| 23 | `ab6e195` | Performance optimization pass: API cache, useMemo, React.memo, preconnect |
 
 ---
 
@@ -517,10 +528,144 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 |------|--------|
 | `migrations/018_seed_problems.sql` | **NEW** — 45 professional Go problems across 3 modules (Math & Recursion, Arrays & Strings, Data Structures) |
 | *(cleaned)* | Removed `server`/`main` binaries, `senior_role.txt`, `reset.sql`, `reset_all.sql`, `tmp/` |
-| `SESSION_LOG.md` | Updated |
-| `UPDATE_LOG.txt` | Updated |
-| `CLAUDE.md` | Updated next steps with migration 018 |
 
 ### Build Verification
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
+
+---
+
+## 24. Session 13 (July 5) — PinInput, Change Password, Auth Cookie Fix
+
+### Backend
+| File | Change |
+|------|--------|
+| `internal/api/change_password.go` | **NEW** — `POST /auth/change-password`: verifies 6-digit PIN via bcrypt + updates password |
+| `internal/api/pin_reset.go` | PIN-based forgot-password flow with 5-attempt/15-min rate limiter |
+| `internal/api/responses.go` | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS` |
+| `internal/api/router.go` | Added change-password route; reset-password-pin route |
+| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users |
+
+### Frontend
+| File | Change |
+|------|--------|
+| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop |
+| `components/ui/input-otp.tsx` | **NEW** — shadcn InputOTP component |
+| `app/(main)/settings/page.tsx` | 3-step change-password dialog (PIN → new password → success checkmark) |
+| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon |
+
+### Auth Cookie Fix
+| File | Change |
+|------|--------|
+| `internal/api/responses.go` | `SetAuthCookie`/`ClearAuthCookie` — dynamic `Secure` + `SameSite: None` when HTTPS |
+| `internal/config/config.go` | Added `isHTTPS()` check |
+
+
+## 25. Session 14 (July 5) — Problem Field Split, Monaco, CSP
+
+### Problem Field Split
+| File | Change |
+|------|--------|
+| `migrations/023_split_problem_fields.sql` | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
+| `internal/store/types.go` | `Problem.Constraints`, `Problem.LearningObjective` |
+| `internal/store/problems.go` | All 5 SELECT queries include new fields |
+| `internal/api/responses.go` | API response includes `constraints`/`learningObjective` |
+| `frontend/lib/types.ts` | `constraints?`, `learningObjective?` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section |
+| Seed files 1–4 (180 problems) | `statement` cleaned, structured fields populated |
+
+### Monaco Editor Local Workers
+| File | Change |
+|------|--------|
+| `scripts/copy-monaco.mjs` | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
+| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic` |
+| `frontend/app/problems/[slug]/page.tsx` | Server component wraps `DynamicWorkspace` in `Suspense` |
+| `frontend/next.config.ts` | CSP: `worker-src 'self' blob:` for Monaco workers |
+
+### UI Polish
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | Card excerpts strip markdown (`#`, `**`, code fences) |
+| `frontend/app/problems/[slug]/success/page.tsx` | Confetti: 60 particles/side, 150ms interval, 3.5s duration, fires on data ready |
+| `frontend/lib/toast.tsx` | Default duration 2s (was 4s) |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/...`
+
+
+## 26. Session 15 (July 5) — Pagination, Back Button, Cache, Performance
+
+### Pagination
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | 18 items/page, first/prev/next/last nav, smart ellipsis, resets on filter |
+
+### Back Button Module Context
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | Reads `?module=` from URL on mount |
+| `frontend/app/(main)/problems/[slug]/success/page.tsx` | Links use `/home?module=...` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Navigation preserves module context |
+
+### SessionStorage Caching
+| File | Change |
+|------|--------|
+| `frontend/lib/cache.ts` | **NEW** — generic sessionStorage cache with 30s TTL |
+| `frontend/lib/api.ts` | `fetchApi` cached GET responses; `user-updated` handler debounced 300ms |
+| `frontend/app/(main)/home/page.tsx` | Stores all problems in `koder_all_problems` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}` |
+
+### Performance
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | `filteredProblems` wrapped in `useMemo`; `handleSelectModule` in `useCallback` |
+| `frontend/components/dashboard/ModuleCards.tsx` | Wrapped in `React.memo` |
+| `frontend/app/layout.tsx` | `<link rel="preconnect">` for API domain |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+
+
+## 27. Session 16 (July 6) — Error Handling Overhaul
+
+### Friendly Errors
+| File | Change |
+|------|--------|
+| `internal/store/errors.go` | **NEW** — `FriendlyError` type with `DUPLICATE_RESOURCE`/`NOT_FOUND`/`VALIDATION_ERROR` codes |
+| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages |
+| `internal/store/users.go` | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations |
+| `internal/api/auth.go` | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409 |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/api/... ./internal/store/...`
+
+
+## 28. Session 17 (July 6) — username_set Column + Registration Race Condition Fix
+
+### Migration & Store
+| File | Change |
+|------|--------|
+| `migrations/024_add_username_set.sql` | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false` |
+| `internal/store/types.go` | `User.UsernameSet bool`, `NewUser.UsernameSet bool` |
+| `internal/store/store.go` | `UpdateUserUsernameSet()` added to Store interface |
+| `internal/store/users.go` | All 7 SELECT queries include `username_set`; `UpdateUserUsernameSet()` implementation; `CreateUser`/`CreateUserFromGoogle` return `UsernameSet` value |
+
+### Auth Flow
+| File | Change |
+|------|--------|
+| `internal/api/auth.go` | Login/Google auth uses `!user.UsernameSet` instead of `strings.HasPrefix` heuristic; `CompleteOnboarding` sets `username_set = true` |
+| `internal/api/me.go` | `PUT /me/username` — validates username, checks uniqueness, sets `username_set = true`; returns 403 if already set |
+| `internal/api/router.go` | `PUT /me/username` route added |
+
+### Frontend
+| File | Change |
+|------|--------|
+| `frontend/lib/types.ts` | `usernameSet?: boolean` added to `User` type |
+| `frontend/lib/api.ts` | `fetchUser` maps `username_set`; `updateUsername()` function |
+| `frontend/app/(main)/settings/page.tsx` | Editable username field when `usernameSet === false`; read-only when set |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/...`

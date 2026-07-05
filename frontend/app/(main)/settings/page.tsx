@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword } from "@/lib/api";
+import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername } from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
@@ -44,6 +44,11 @@ function SettingsPageContent() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // Username change
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
 
   // Change password
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -92,6 +97,7 @@ function SettingsPageContent() {
           setProfile(profileRes.data);
           setName(profileRes.data.name || "");
           setBio((profileRes.data as any).bio || "");
+          setNewUsername(profileRes.data.username || "");
         }
         if (userRes.success && userRes.data) {
           setUser(userRes.data);
@@ -109,7 +115,10 @@ function SettingsPageContent() {
 
     const onUserUpdated = () => {
       fetchUser().then((res) => {
-        if (mounted && res.success && res.data) setUser(res.data);
+        if (mounted && res.success && res.data) {
+          setUser(res.data);
+          setNewUsername(res.data.username || "");
+        }
       });
     };
     window.addEventListener("user-updated", onUserUpdated);
@@ -152,6 +161,32 @@ function SettingsPageContent() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSetUsername = async () => {
+    setUsernameSaving(true);
+    setUsernameError("");
+    try {
+      const res = await updateUsername(newUsername);
+      if (res.success) {
+        toast.success({
+          title: "Username set!",
+          description: "Your username has been configured successfully.",
+        });
+        window.dispatchEvent(new Event("user-updated"));
+        // Refresh user data
+        const userRes = await fetchUser();
+        if (userRes.success && userRes.data) {
+          setUser(userRes.data);
+        }
+      } else {
+        setUsernameError(res.error?.message || "Failed to set username");
+      }
+    } catch (err: any) {
+      setUsernameError(err.message || "Network error");
+    } finally {
+      setUsernameSaving(false);
     }
   };
 
@@ -280,15 +315,44 @@ function SettingsPageContent() {
                     <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
                       Username
                     </label>
-                    <input
-                      type="text"
-                      value={profile?.username || ""}
-                      disabled
-                      className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite-muted cursor-not-allowed opacity-70"
-                    />
-                    <p className="text-xs text-brand-offwhite-muted mt-2">
-                      Your unique identifier across the platform. Contact support to change it.
-                    </p>
+                    {user?.usernameSet === false ? (
+                      <>
+                        <input
+                          type="text"
+                          value={newUsername}
+                          onChange={(e) => { setNewUsername(e.target.value); setUsernameError(""); }}
+                          className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
+                          placeholder="Choose a unique username"
+                        />
+                        {usernameError && (
+                          <p className="text-xs text-red-400 mt-1.5">{usernameError}</p>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-brand-muted-gold">
+                            This will be your public identifier. Cannot be changed later.
+                          </p>
+                          <button
+                            onClick={handleSetUsername}
+                            disabled={usernameSaving || !newUsername || newUsername.length < 3}
+                            className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-4 py-1.5 rounded-lg font-bold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {usernameSaving ? "Saving..." : "Set Username"}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={profile?.username || ""}
+                          disabled
+                          className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite-muted cursor-not-allowed opacity-70"
+                        />
+                        <p className="text-xs text-brand-offwhite-muted mt-2">
+                          Your unique identifier across the platform. Contact support to change it.
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-brand-charcoal-border flex justify-end">

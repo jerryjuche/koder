@@ -204,6 +204,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         streak: res.data.current_streak_days ?? 0,
         google_avatar_url: res.data.google_avatar_url,
         google_linked: res.data.google_linked ?? false,
+        usernameSet: res.data.username_set ?? true,
       },
     };
   }
@@ -213,6 +214,15 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
     data: null,
     error: { code: "AUTH_FAILED", message: "Token rejected by server" },
   };
+}
+
+export async function updateUsername(
+  username: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/me/username", {
+    method: "PUT",
+    body: JSON.stringify({ username }),
+  });
 }
 
 export async function fetchProblems(): Promise<ApiResponse<Problem[]>> {

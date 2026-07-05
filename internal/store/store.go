@@ -50,6 +50,7 @@ type Store interface {
 	UpdateUserProfile(ctx context.Context, id uuid.UUID, name, bio string) error
 	UpdateUserUsername(ctx context.Context, id uuid.UUID, username string) error
 	UpdateUserStudentID(ctx context.Context, id uuid.UUID, studentID string) error
+	UpdateUserUsernameSet(ctx context.Context, id uuid.UUID, usernameSet bool) error
 	UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)

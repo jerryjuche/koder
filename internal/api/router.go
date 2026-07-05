@@ -61,6 +61,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 		meHandler := NewMeHandler(store)
 		r.Get("/me", meHandler.GetMe)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/me/username", meHandler.SetUsername)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/me/delete-account", meHandler.DeleteAccount)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/logout", authHandler.Logout)
 
