@@ -461,4 +461,11 @@ export async function changePassword(pin: string, newPassword: string): Promise<
   });
 }
 
+export async function verifyPin(pin: string): Promise<ApiResponse<{ valid: boolean }>> {
+  return fetchApi<{ valid: boolean }>("/auth/verify-pin", {
+    method: "POST",
+    body: JSON.stringify({ pin }),
+  });
+}
+
 

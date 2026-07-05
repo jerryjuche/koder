@@ -29,6 +29,58 @@ type changePasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
+type verifyPinRequest struct {
+	Pin string `json:"pin"`
+}
+
+// VerifyPin validates the user's 6-digit recovery PIN without changing the password.
+// POST /auth/verify-pin
+func (h *ChangePasswordHandler) VerifyPin(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	var req verifyPinRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if matched, _ := regexp.MatchString(`^\d{6}$`, req.Pin); !matched {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN must be exactly 6 digits", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER", "Invalid user ID", nil)
+		return
+	}
+
+	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	if user.PINHash == nil || *user.PINHash == "" {
+		RespondError(w, http.StatusBadRequest, "PIN_NOT_SET", "No PIN is set on this account", nil)
+		return
+	}
+
+	if !auth.ComparePassword(*user.PINHash, req.Pin) {
+		slog.Warn("verify_pin: incorrect PIN", "user_id", claims.UserID)
+		RespondError(w, http.StatusUnauthorized, "PIN_MISMATCH", "Incorrect PIN", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]bool{"valid": true})
+}
+
 func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
 	if claims == nil {
