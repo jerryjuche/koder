@@ -5,33 +5,29 @@ import { OTPInput, OTPInputContext, type SlotProps } from 'input-otp';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
-// ─── Context ───────────────────────────────────────────────────────────────
-
 interface PinInputContextValue {
   size: 'sm' | 'md' | 'lg';
+  mask: boolean;
 }
 
-const PinInputContext = React.createContext<PinInputContextValue>({ size: 'md' });
-
-// ─── Root ──────────────────────────────────────────────────────────────────
+const PinInputContext = React.createContext<PinInputContextValue>({ size: 'md', mask: false });
 
 interface PinInputRootProps {
   size?: 'sm' | 'md' | 'lg';
+  mask?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
-function PinInputRoot({ size = 'md', children, className }: PinInputRootProps) {
+function PinInputRoot({ size = 'md', mask = false, children, className }: PinInputRootProps) {
   return (
-    <PinInputContext.Provider value={{ size }}>
+    <PinInputContext.Provider value={{ size, mask }}>
       <div className={cn('flex flex-col gap-2', className)}>
         {children}
       </div>
     </PinInputContext.Provider>
   );
 }
-
-// ─── Label ─────────────────────────────────────────────────────────────────
 
 function PinInputLabel({ children, className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
@@ -47,8 +43,6 @@ function PinInputLabel({ children, className, ...props }: React.LabelHTMLAttribu
   );
 }
 
-// ─── Group ─────────────────────────────────────────────────────────────────
-
 interface PinInputGroupProps {
   children: React.ReactNode;
   maxLength: number;
@@ -62,21 +56,9 @@ interface PinInputGroupProps {
 }
 
 const sizeConfig = {
-  sm: {
-    slot: 'w-8 h-10 text-base',
-    gap: 'gap-1.5',
-    fontSize: 'text-base',
-  },
-  md: {
-    slot: 'w-10 h-12 text-lg',
-    gap: 'gap-2',
-    fontSize: 'text-lg',
-  },
-  lg: {
-    slot: 'w-12 h-14 text-xl',
-    gap: 'gap-3',
-    fontSize: 'text-xl',
-  },
+  sm: { slot: 'w-8 h-10 text-base', gap: 'gap-1.5', fontSize: 'text-base' },
+  md: { slot: 'w-10 h-12 text-lg', gap: 'gap-2', fontSize: 'text-lg' },
+  lg: { slot: 'w-12 h-14 text-xl', gap: 'gap-3', fontSize: 'text-xl' },
 };
 
 function PinInputGroup({
@@ -110,14 +92,7 @@ function PinInputGroup({
   );
 }
 
-// ─── Slot ──────────────────────────────────────────────────────────────────
-
-interface PinInputSlotProps {
-  index: number;
-  className?: string;
-}
-
-function PinInputSlot({ index, className }: PinInputSlotProps) {
+function PinInputSlot({ index, className }: { index: number; className?: string }) {
   const ctx = React.useContext(PinInputContext);
   const cfg = sizeConfig[ctx.size];
   const inputOTPContext = React.useContext(OTPInputContext);
@@ -138,7 +113,7 @@ function PinInputSlot({ index, className }: PinInputSlotProps) {
       )}
     >
       {slot.char !== null ? (
-        <span className={cfg.fontSize}>{slot.char}</span>
+        <span className={cfg.fontSize}>{ctx.mask ? '•' : slot.char}</span>
       ) : (
         <span className={cn('text-brand-offwhite-muted/20', cfg.fontSize)}>
           {slot.placeholderChar ?? '○'}
@@ -154,44 +129,23 @@ function PinInputSlot({ index, className }: PinInputSlotProps) {
   );
 }
 
-// ─── Separator ─────────────────────────────────────────────────────────────
-
-interface PinInputSeparatorProps {
-  className?: string;
-}
-
-function PinInputSeparator({ className }: PinInputSeparatorProps) {
+function PinInputSeparator({ className }: { className?: string }) {
   return (
     <div className={cn('text-brand-offwhite-muted/30', className)} aria-hidden>
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <circle cx="6" cy="6" r="1.5" fill="currentColor" />
       </svg>
     </div>
   );
 }
 
-// ─── Description ───────────────────────────────────────────────────────────
-
-interface PinInputDescriptionProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-function PinInputDescription({ children, className }: PinInputDescriptionProps) {
+function PinInputDescription({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <p className={cn('text-xs text-brand-offwhite-muted/60', className)}>
       {children}
     </p>
   );
 }
-
-// ─── Compose ───────────────────────────────────────────────────────────────
 
 const PinInput = Object.assign(PinInputRoot, {
   Label: PinInputLabel,
@@ -202,10 +156,3 @@ const PinInput = Object.assign(PinInputRoot, {
 });
 
 export { PinInput };
-export type {
-  PinInputRootProps,
-  PinInputGroupProps,
-  PinInputSlotProps,
-  PinInputSeparatorProps,
-  PinInputDescriptionProps,
-};

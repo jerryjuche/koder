@@ -21,6 +21,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
 	pinResetHandler := NewPINResetHandler(store, cfg)
+	changePasswordHandler := NewChangePasswordHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec)
@@ -81,6 +82,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-google", authHandler.CompleteOnboarding)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/change-password", changePasswordHandler.ChangePassword)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
