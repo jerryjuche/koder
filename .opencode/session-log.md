@@ -238,3 +238,91 @@
 
 ### Build Verification
 - ✅ `npx tsc --noEmit` — zero errors
+
+---
+
+# Session Log — July 5, 2026 — PIN Auth, Monaco Local, Problem Restructure
+
+## Branch
+`update` (commit `d03af87`)
+
+## What Was Done
+
+### PIN-Based Password Management
+- **Backend `POST /auth/change-password`:** Authenticated endpoint accepting `{ pin, new_password }` — verifies 6-digit PIN against bcrypt `pin_hash`, updates password
+- **Settings change password:** 3-step dialog (masked PIN → new password + confirm → success checkmark)
+- **Forgot password redesign:** Email tab disabled with `Ban` icon; Recovery PIN tab default; PIN digits masked via `mask` prop
+- **PinInput `mask` prop:** When `true`, displays `•` instead of digits
+- **Migration `022_add_pin_hash.sql`:** Adds `pin_hash TEXT` column to users table
+- **PIN rate limiting:** 5 attempts per 15 minutes per email on forgot-password-pin
+- **shadcn InputOTP installed** as foundation for PinInput component
+
+### Auth Cookie Fix for Cross-Origin Dev Server
+- `isHTTPS()` helper checks both `r.TLS` and `X-Forwarded-Proto` header (Render proxy terminates TLS)
+- `SetAuthCookie`/`ClearAuthCookie` dynamically set `Secure`/`SameSite` based on protocol
+
+### CSP Fix
+- Added `https://accounts.google.com` to `style-src` in `next.config.ts`
+
+### Route Fix
+- `GET /auth/check-username` moved outside `AuthMiddleware` group — user has no JWT during registration
+
+### Monaco Editor Local Workers
+- Installed `monaco-editor` as direct dependency
+- `@monaco-editor/loader` configured with `paths: { vs: "/vs" }` for local npm workers
+- `frontend/scripts/copy-monaco.mjs` — copies `node_modules/monaco-editor/min/vs` → `public/vs/` at build time
+- `DynamicWorkspace.tsx` — Client Component wrapper using `next/dynamic` with `ssr: false` + loading skeleton
+- `page.tsx` — wraps `DynamicWorkspace` in `Suspense` boundary
+
+### Problem Statement Restructure
+- **Migration `023_split_problem_fields.sql`:** Adds `constraints TEXT`, `learning_objective TEXT` to problems
+- **Go types:** `Problem.Constraints string`, `Problem.LearningObjective string` with proper JSON tags
+- **Store queries:** All 5 SELECT queries include new columns with matching Scan in positional order
+- **API response:** Includes `constraints` and `learningObjective` in problem payload
+- **Frontend types:** `Problem.constraints?: string`, `Problem.learningObjective?: string`
+- **Workspace:** Learning Objective callout (emerald, `Target` icon) renders `learningObjective`; Constraints section
+- **Home card excerpt:** Strips `#` headings, `**` bold, ``` code fences, empty lines before first 120 chars
+- **Seed files 1-4:** Transformed via `scripts/transform-seeds.mjs` — `statement` is clean description, `constraints`/`learning_objective` populated, `raw_readme` preserves full markdown
+
+### Confetti Fix (Success Page)
+- Split monolithic `useEffect` into confetti effect (empty deps) + data loading effect (`[slug]`)
+- Replaced `requestAnimationFrame` loop with `setInterval` for cleaner lifecycle
+- Increased `particleCount` 5→12 per side, wider `spread` 70, `startVelocity: 35`
+- Added `try/catch` error handling around confetti calls
+- Proper cleanup on unmount (`clearInterval`/`clearTimeout`)
+
+## Files Created
+- `migrations/022_add_pin_hash.sql`
+- `migrations/023_split_problem_fields.sql`
+- `frontend/app/problems/[slug]/DynamicWorkspace.tsx`
+- `frontend/scripts/copy-monaco.mjs`
+- `frontend/components/base/input/pin-input.tsx`
+- `frontend/components/ui/input-otp.tsx`
+- `frontend/components/ui/label.tsx`
+- `scripts/transform-seeds.mjs`
+
+## Files Modified
+- `internal/store/types.go` — `Constraints`, `LearningObjective` fields
+- `internal/store/problems.go` — All 5 SELECTs + Scans updated
+- `internal/api/problems.go` — Response payload includes new fields
+- `internal/api/change_password.go` — **NEW** change-password handler
+- `internal/api/pin_reset.go` — **NEW** PIN-based forgot/reset handlers
+- `internal/api/responses.go` — `isHTTPS()`, dynamic `SetAuthCookie`/`ClearAuthCookie`
+- `internal/api/router.go` — PIN reset + change-password routes; check-username outside middleware
+- `frontend/next.config.ts` — CSP `style-src` includes `https://accounts.google.com`
+- `frontend/lib/api.ts` — PIN-related API functions
+- `frontend/lib/types.ts` — `constraints`, `learningObjective` in Problem type
+- `frontend/app/(auth)/register/page.tsx` — Step 2 redesigned with masked PinInputs
+- `frontend/app/(auth)/forgot-password/page.tsx` — Email tab disabled; PIN tab default with mask
+- `frontend/app/(main)/settings/page.tsx` — 3-step change-password dialog
+- `frontend/app/(main)/home/page.tsx` — Card excerpt strips markdown headers/bold/code fences
+- `frontend/app/problems/[slug]/page.tsx` — Wraps DynamicWorkspace in Suspense
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Learning Objective callout, Constraints section
+- `frontend/app/(main)/problems/[slug]/success/page.tsx` — Confetti fix (separate effect, setInterval, try/catch)
+- `migrations/019_seed_problems1-4.sql` — Transformed with structured fields
+
+## Build Verification
+- ✅ `go vet ./internal/...` — passes
+- ✅ `go build ./...` — passes
+- ✅ `npx tsc --noEmit` — zero errors
+- ✅ `go clean -cache` — performed
