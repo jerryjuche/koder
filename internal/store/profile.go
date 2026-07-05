@@ -22,7 +22,7 @@ type fullProfileSQLResult struct {
 		XP         int         `json:"xp"`
 		CreatedAt  time.Time   `json:"created_at"`
 	} `json:"user"`
-	Rank int `json:"rank"`
+	Rank  int `json:"rank"`
 	Stats struct {
 		SolvedCount       int     `json:"solved_count"`
 		AttemptedCount    int     `json:"attempted_count"`

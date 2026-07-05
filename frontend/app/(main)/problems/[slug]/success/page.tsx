@@ -47,32 +47,42 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Trigger confetti on mount
-    const duration = 3000;
-    const end = Date.now() + duration;
-
-    const frame = () => {
-      confetti({
-        particleCount: 5,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-      });
-      confetti({
-        particleCount: 5,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
+    // Trigger confetti on mount — fire immediately, then interval bursts
+    const burst = () => {
+      try {
+        confetti({
+          particleCount: 12,
+          angle: 60,
+          spread: 70,
+          origin: { x: 0, y: 0.6 },
+          colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+          startVelocity: 35,
+        });
+        confetti({
+          particleCount: 12,
+          angle: 120,
+          spread: 70,
+          origin: { x: 1, y: 0.6 },
+          colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+          startVelocity: 35,
+        });
+      } catch (e) {
+        console.error("Confetti failed", e);
       }
     };
-    frame();
 
+    burst();
+
+    const interval = setInterval(burst, 200);
+    const timeout = setTimeout(() => clearInterval(interval), 3000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  useEffect(() => {
     // Get code from session storage
     const savedCode = sessionStorage.getItem(`koder_solution_${slug}`);
     if (savedCode) {
