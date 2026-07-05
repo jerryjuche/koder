@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   LayoutList,
   Type,
@@ -182,7 +183,7 @@ interface ModuleCardsProps {
   onSelect: (module: string) => void;
 }
 
-export default function ModuleCards({ modules, moduleProgress, onSelect }: ModuleCardsProps) {
+export default React.memo(function ModuleCards({ modules, moduleProgress, onSelect }: ModuleCardsProps) {
   if (modules.length === 0) {
     return (
       <Card className="p-12 text-center border-dashed border-border/50 bg-card/50">
@@ -336,4 +337,4 @@ export default function ModuleCards({ modules, moduleProgress, onSelect }: Modul
       })}
     </div>
   );
-}
+});

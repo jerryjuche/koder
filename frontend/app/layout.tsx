@@ -15,6 +15,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"} />
         {children}
         <Analytics />
         <Toaster
