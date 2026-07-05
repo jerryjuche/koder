@@ -77,6 +77,8 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		"language": problem.Language,
 		"title": problem.Title,
 		"statement": problem.Statement,
+		"constraints": problem.Constraints,
+		"learningObjective": problem.LearningObjective,
 		"func_name": problem.FuncName,
 		"return_type": problem.ReturnType,
 		"param_types": problem.ParamTypes,
