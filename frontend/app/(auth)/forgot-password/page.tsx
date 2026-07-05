@@ -222,8 +222,9 @@ export default function ForgotPasswordPage() {
                     maxLength={6}
                     pattern={REGEXP_ONLY_DIGITS}
                     value={pin}
-                    onChange={setPin}
+                    onChange={(v) => { setPin(v); if (errorMsg) setErrorMsg(''); }}
                     autoFocus
+                    hasError={!!errorMsg}
                   >
                     <PinInput.Slot index={0} />
                     <PinInput.Slot index={1} />

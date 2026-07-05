@@ -593,8 +593,13 @@ function SettingsPageContent() {
                               maxLength={6}
                               pattern={REGEXP_ONLY_DIGITS}
                               value={cpPin}
-                              onChange={setCpPin}
+                              onChange={(v) => { setCpPin(v); if (cpError) setCpError(''); }}
+                              onComplete={(v) => {
+                                setCpPin(v);
+                                document.getElementById('cp-pin-submit')?.click();
+                              }}
                               autoFocus
+                              hasError={cpError.includes('Incorrect PIN')}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />
@@ -607,6 +612,7 @@ function SettingsPageContent() {
                           </PinInput>
                         </div>
                         <button
+                          id="cp-pin-submit"
                           type="submit"
                           disabled={cpPin.length !== 6 || cpLoading}
                           className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -668,6 +674,7 @@ function SettingsPageContent() {
                               value={cpNewPin}
                               onChange={(v) => { setCpNewPin(v); setCpError(''); }}
                               autoFocus
+                              hasError={!!cpError}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />
@@ -689,6 +696,7 @@ function SettingsPageContent() {
                               pattern={REGEXP_ONLY_DIGITS}
                               value={cpConfirmNewPin}
                               onChange={(v) => { setCpConfirmNewPin(v); setCpError(''); }}
+                              hasError={!!cpError}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />

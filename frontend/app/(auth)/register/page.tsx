@@ -428,43 +428,45 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <PinInput size="md" mask>
-                <PinInput.Label>Recovery PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={pin}
-                  onChange={setPin}
-                  autoFocus
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-                <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
-              </PinInput>
+                  <PinInput size="md" mask>
+                    <PinInput.Label>Recovery PIN</PinInput.Label>
+                    <PinInput.Group
+                      maxLength={6}
+                      pattern={REGEXP_ONLY_DIGITS}
+                      value={pin}
+                      onChange={setPin}
+                      autoFocus
+                      hasError={step2Errors.length > 0}
+                    >
+                      <PinInput.Slot index={0} />
+                      <PinInput.Slot index={1} />
+                      <PinInput.Slot index={2} />
+                      <PinInput.Separator />
+                      <PinInput.Slot index={3} />
+                      <PinInput.Slot index={4} />
+                      <PinInput.Slot index={5} />
+                    </PinInput.Group>
+                    <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
+                  </PinInput>
 
-              <PinInput size="md" mask>
-                <PinInput.Label>Confirm PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={confirmPin}
-                  onChange={setConfirmPin}
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-              </PinInput>
+                  <PinInput size="md" mask>
+                    <PinInput.Label>Confirm PIN</PinInput.Label>
+                    <PinInput.Group
+                      maxLength={6}
+                      pattern={REGEXP_ONLY_DIGITS}
+                      value={confirmPin}
+                      onChange={setConfirmPin}
+                      hasError={step2Errors.length > 0}
+                    >
+                      <PinInput.Slot index={0} />
+                      <PinInput.Slot index={1} />
+                      <PinInput.Slot index={2} />
+                      <PinInput.Separator />
+                      <PinInput.Slot index={3} />
+                      <PinInput.Slot index={4} />
+                      <PinInput.Slot index={5} />
+                    </PinInput.Group>
+                  </PinInput>
 
               {step2Errors.length > 0 && (
                 <div className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
