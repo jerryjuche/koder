@@ -10,11 +10,11 @@ import (
 )
 
 // ListVisibleProblems returns problems visible to students with optional progress overlay.
-// Trimmed to listing fields only (no statement/raw_readme); uses LATERAL join instead of correlated subqueries.
+// Uses LATERAL join instead of correlated subqueries.
 func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
-		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.statement, p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at,
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
@@ -53,6 +53,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.Type,
 			&problem.Language,
 			&problem.Title,
+			&problem.Statement,
 			&problem.FuncName,
 			&problem.ReturnType,
 			&problem.ParamTypes,

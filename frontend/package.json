@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/copy-monaco.mjs && next build",
     "start": "next start",
     "lint": "eslint .",
     "clean": "next clean"
@@ -28,7 +28,8 @@
     "dompurify": "^3.4.10",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.553.0",
-    "motion": "^12.23.24",
+    "monaco-editor": "^0.55.1",
+"motion": "^12.23.24",
     "next": "^15.5.19",
     "postcss": "^8.5.6",
     "radix-ui": "^1.6.0",
