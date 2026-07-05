@@ -70,7 +70,10 @@ export default function Dashboard() {
       Promise.all([fetchProblems(), fetchUser(), fetchBestPractices(20)]).then(
         ([probRes, userRes, bpRes]) => {
           if (!mounted) return;
-          if (probRes.success) setProblems(probRes.data || []);
+          if (probRes.success) {
+            setProblems(probRes.data || []);
+            sessionStorage.setItem("koder_all_problems", JSON.stringify(probRes.data));
+          }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
           setLoading(false);
