@@ -45,9 +45,11 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     CommunitySolution[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Trigger confetti on mount — fire immediately, then interval bursts
+    if (!ready) return;
+
     const burst = () => {
       try {
         confetti({
@@ -80,7 +82,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
     // Get code from session storage
@@ -118,6 +120,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         console.error("Failed to load success page data", err);
       } finally {
         setLoading(false);
+        setReady(true);
       }
     };
 
