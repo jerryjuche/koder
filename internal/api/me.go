@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -32,6 +33,7 @@ type meResponse struct {
 	StreakDays      int     `json:"current_streak_days"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 	GoogleLinked    bool    `json:"google_linked"`
+	UsernameSet     bool    `json:"username_set"`
 }
 
 func clampColorIndex(index int) int {
@@ -104,10 +106,97 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		StreakDays:      streakDays,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
+		UsernameSet:     user.UsernameSet,
 	}
 
 	cacheUser(r.Context(), userUUID.String(), resp)
 	RespondSuccess(w, resp)
+}
+
+// setUsernameRequest is the payload for setting/changing the username when username_set=false.
+type setUsernameRequest struct {
+	Username string `json:"username"`
+}
+
+// SetUsername sets the username for a user who hasn't completed onboarding.
+// PUT /me/username
+func (h *MeHandler) SetUsername(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	// Only allow if username_set is false
+	if user.UsernameSet {
+		RespondError(w, http.StatusForbidden, "USERNAME_ALREADY_SET", "Your username has already been set and cannot be changed. Contact an admin for assistance.", nil)
+		return
+	}
+
+	var req setUsernameRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if req.Username == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username is required", nil)
+		return
+	}
+	if len(req.Username) < 3 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username must be at least 3 characters", nil)
+		return
+	}
+	if len(req.Username) > 30 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username must be at most 30 characters", nil)
+		return
+	}
+	if !validUsername.MatchString(req.Username) {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username can only contain letters, numbers, underscores, and hyphens", nil)
+		return
+	}
+
+	// Check uniqueness
+	existingUser, err := h.store.GetUserByUsername(r.Context(), req.Username)
+	if err == nil && existingUser != nil {
+		existingID, _ := uuidStringFromPGType(existingUser.ID)
+		if existingID != claims.UserID {
+			RespondError(w, http.StatusConflict, "USERNAME_TAKEN", "This username is already taken", nil)
+			return
+		}
+	}
+
+	// Update username and student_id
+	if err := h.store.UpdateUserUsername(r.Context(), userUUID, req.Username); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", nil)
+		return
+	}
+	if err := h.store.UpdateUserStudentID(r.Context(), userUUID, req.Username); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set student ID", nil)
+		return
+	}
+	if err := h.store.UpdateUserUsernameSet(r.Context(), userUUID, true); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to finalize username", nil)
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	RespondSuccess(w, map[string]string{"message": "Username set successfully"})
 }
 
 // DeleteAccount permanently removes the authenticated user and all their data.

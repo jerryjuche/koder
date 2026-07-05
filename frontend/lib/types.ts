@@ -13,6 +13,7 @@ export type User = {
   verified?: boolean;
   google_avatar_url?: string;
   google_linked?: boolean;
+  usernameSet?: boolean;
 };
 
 export type ProblemDifficulty =

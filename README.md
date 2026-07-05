@@ -142,6 +142,7 @@ koder/
 │   │
 │   ├── store/                       # DATABASE LAYER — pure pgx/v5, no ORM
 │   │   ├── store.go                 # Store interface + postgres implementation
+│   │   ├── errors.go                # FriendlyError type + unique constraint violation detection
 │   │   ├── users.go                 # User CRUD, bcrypt auth, Google linking
 │   │   ├── problems.go              # Problem queries + visibility management
 │   │   ├── testcases.go             # Test case queries with JSONB handling
@@ -284,6 +285,8 @@ CREATE TABLE users (
     role         TEXT NOT NULL DEFAULT 'student', -- 'student' | 'admin'
     color_index  INT NOT NULL DEFAULT 0,           -- Avatar color slot 0-7
     xp           INT NOT NULL DEFAULT 0,
+    pin_hash     TEXT,                    -- bcrypt of 6-digit recovery PIN
+    username_set BOOLEAN NOT NULL DEFAULT false,
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -303,8 +306,10 @@ CREATE TABLE problems (
     difficulty   INT NOT NULL,           -- 1 (trivial) to 5 (hard)
     xp_reward    INT NOT NULL,
     tags         TEXT[],
-    visible      BOOLEAN DEFAULT FALSE,  -- Admin must approve before students see it
-    source_hash  TEXT NOT NULL,          -- SHA256 of raw README.md — change detection
+    visible              BOOLEAN DEFAULT FALSE,  -- Admin must approve before students see it
+    source_hash          TEXT NOT NULL,          -- SHA256 of raw README.md — change detection
+    constraints          TEXT,                   -- Dedicated constraints section (split from statement)
+    learning_objective   TEXT,                   -- Learning objective (split from statement)
     raw_readme   TEXT NOT NULL,          -- Original markdown preserved
     created_at   TIMESTAMPTZ DEFAULT NOW(),
     updated_at   TIMESTAMPTZ DEFAULT NOW()
@@ -621,13 +626,18 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | None | Create account (name + email + password); JWT with `onboarding: true` |
+| POST | `/auth/register` | None | Create account (name + email + password + 6-digit PIN); JWT with `onboarding: true` |
 | POST | `/auth/login` | None | Returns JWT (accepts username/email/student_id) |
 | POST | `/auth/google` | None | Google Sign-In with ID token |
 | POST | `/auth/complete-google` | Student | Set username after Google onboarding (legacy, delegates to complete-onboarding) |
 | POST | `/auth/complete-onboarding` | Student | Set username + student_id after any auth method |
 | POST | `/auth/link-google` | Student | Link Google account to existing authenticated user |
-| GET | `/auth/check-username?username=xxx` | Student | Username availability check |
+| POST | `/auth/change-password` | Student | Verify PIN + set new password (authenticated) |
+| POST | `/auth/forgot-password` | None | Email-based reset link (Resend API) |
+| POST | `/auth/reset-password` | None | Complete email-based reset with token |
+| POST | `/auth/forgot-password-pin` | None | PIN-based: email + 6-digit PIN → short-lived JWT (5 min, rate limited) |
+| POST | `/auth/reset-password-pin` | None | PIN-based: JWT + new password → update |
+| GET | `/auth/check-username?username=xxx` | None | Username availability check (public) |
 
 ### Problems
 
@@ -642,9 +652,10 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/me` | Student | User profile + XP (cached 30s) |
+| GET | `/me` | Student | User profile + XP + username_set (cached 30s) |
 | GET | `/me/profile` | Student | Full profile (stats, modules, achievements, difficulty, contributions) |
 | PUT | `/me/profile` | Student | Update name and bio |
+| PUT | `/me/username` | Student | Set username (one-time, only when `username_set` is false) |
 | POST | `/me/delete-account` | Student | Permanently delete account and all data |
 | GET | `/me/activity?year=2026` | Student | Daily activity entries for contribution graph |
 | GET | `/me/contributions` | Student | User's problem contribution submissions |
@@ -706,6 +717,10 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/admin/user-problems/pending` | Admin | List pending user submissions |
 | PATCH | `/admin/user-problems/{id}/approve` | Admin | Approve user problem submission |
 | PATCH | `/admin/user-problems/{id}/reject` | Admin | Reject user problem submission |
+| POST | `/admin/broadcasts` | Admin | Create broadcast (type, title, priority, CTA) |
+| GET | `/admin/broadcasts` | Admin | List all broadcasts |
+| PATCH | `/admin/broadcasts/{id}/deactivate` | Admin | Deactivate a broadcast |
+| DELETE | `/admin/broadcasts/{id}` | Admin | Permanently delete a broadcast |
 
 ### Response Envelope
 

@@ -43,15 +43,18 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	// Insert into database with parameterized query
 	email := user.Email
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, NOW())
+		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, NOW())
 		RETURNING id, created_at
 	`
 
 	pinHash := user.PINHash
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex).
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex, user.UsernameSet).
 		Scan(&userID, &createdAt)
 	if err != nil {
+		if msg, ok := IsUniqueViolation(err); ok {
+			return nil, NewDuplicateError(msg)
+		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
@@ -64,8 +67,9 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		PINHash:    &pinHash,
 		Role:       user.Role,
 		ColorIndex: colorIndex,
-		XP:         0,
-		CreatedAt:  createdAt.Time,
+		XP:          0,
+		CreatedAt:   createdAt.Time,
+		UsernameSet: user.UsernameSet,
 	}, nil
 }
 
@@ -79,7 +83,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE student_id = $1
 	`
@@ -99,6 +103,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
@@ -121,7 +126,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE id = $1
 	`
@@ -163,7 +168,7 @@ func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) 
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE username = $1
 	`
@@ -183,6 +188,7 @@ func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) 
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
@@ -205,7 +211,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE email = $1
 	`
@@ -226,6 +232,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
@@ -248,7 +255,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE username = $1 OR email = $1 OR student_id = $1
 		LIMIT 1
@@ -269,6 +276,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
@@ -291,7 +299,7 @@ func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) 
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at
+		       google_id, google_email, google_avatar_url, created_at, username_set
 		FROM users
 		WHERE google_id = $1
 	`
@@ -311,6 +319,7 @@ func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) 
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
@@ -463,7 +472,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 
 	query := `
 		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
-		       u.google_id, u.google_email, u.google_avatar_url, u.created_at,
+		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -484,6 +493,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 		&solvedCount,
 	)
 
@@ -579,10 +589,11 @@ func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid
 		&user.ColorIndex,
 		&user.XP,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
+			return nil, fmt.Errorf("user not found: %w", err)
 		}
 		return nil, fmt.Errorf("failed to update user profile: %w", err)
 	}
@@ -634,6 +645,29 @@ func (s *PostgresStore) UpdateUserStudentID(ctx context.Context, id uuid.UUID, s
 	cmdTag, err := s.pool.Exec(ctx, query, studentID, id)
 	if err != nil {
 		return fmt.Errorf("failed to update student_id: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UpdateUserUsernameSet updates the username_set flag for a user.
+func (s *PostgresStore) UpdateUserUsernameSet(ctx context.Context, id uuid.UUID, usernameSet bool) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+
+	query := `
+		UPDATE users
+		SET username_set = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, usernameSet, id)
+	if err != nil {
+		return fmt.Errorf("failed to update username_set: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
 		return fmt.Errorf("user not found")
@@ -734,8 +768,8 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 	var createdAt pgtype.Timestamp
 
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, created_at)
-		VALUES ($1, $2, $3, $4, $5, 'student', $6, 0, $7, $8, $9, NOW())
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, username_set, created_at)
+		VALUES ($1, $2, $3, $4, $5, 'student', $6, 0, $7, $8, $9, false, NOW())
 		RETURNING id, created_at
 	`
 
@@ -751,6 +785,9 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 		info.Picture,     // google_avatar_url
 	).Scan(&userID, &createdAt)
 	if err != nil {
+		if msg, ok := IsUniqueViolation(err); ok {
+			return nil, NewDuplicateError(msg)
+		}
 		return nil, fmt.Errorf("failed to create user from google: %w", err)
 	}
 
@@ -768,6 +805,7 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 		GoogleEmail:    &info.Email,
 		GoogleAvatarURL: &info.Picture,
 		CreatedAt:      createdAt.Time,
+		UsernameSet:    false,
 	}, nil
 }
 
