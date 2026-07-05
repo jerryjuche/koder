@@ -146,6 +146,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.GoogleEmail,
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
+		&user.UsernameSet,
 	)
 
 	if err != nil {
