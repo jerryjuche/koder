@@ -67,7 +67,7 @@ type Store interface {
 
 	// Problem operations
 	ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error)
-	GetProblemBySlug(ctx context.Context, slug string) (*Problem, error)
+	GetProblemBySlug(ctx context.Context, slug string, userID uuid.UUID) (*Problem, error)
 	GetProblemBySlugAny(ctx context.Context, slug string) (*Problem, error)
 	ListProblemsNeedingEnrichment(ctx context.Context) ([]Problem, error)
 	UpsertProblem(ctx context.Context, problem *Problem) error

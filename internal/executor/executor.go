@@ -232,9 +232,9 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		runRegex      = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
 		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
 		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		caseFailRegex = regexp.MustCompile(`=== FAIL: Case (\d+)`)
-		gotRegex      = regexp.MustCompile(`^GOT: (.*)$`)
-		wantRegex     = regexp.MustCompile(`^WANT: (.*)$`)
+		caseFailRegex = regexp.MustCompile(`(?:\s|^)=== FAIL: Case (\d+)`)
+		gotRegex      = regexp.MustCompile(`(?:\s|^)GOT:\s+(.*)$`)
+		wantRegex     = regexp.MustCompile(`(?:\s|^)WANT:\s+(.*)$`)
 
 		passedMap = make(map[int]bool)
 		gotMap    = make(map[int]string)
@@ -282,11 +282,17 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			currentState = "want"
 			wantBuffer = []string{matches[1]}
 		} else if currentState == "got" && trimmed != "" {
-			// Continue accumulating GOT line (remove leading tab indentation from output)
+			// Continue accumulating GOT line
 			gotBuffer = append(gotBuffer, strings.TrimLeft(line, "\t"))
 		} else if currentState == "want" && trimmed != "" {
 			// Continue accumulating WANT line
 			wantBuffer = append(wantBuffer, strings.TrimLeft(line, "\t"))
+		} else if currentState == "got" {
+			// Preserve empty lines within multi-line GOT values
+			gotBuffer = append(gotBuffer, "")
+		} else if currentState == "want" {
+			// Preserve empty lines within multi-line WANT values
+			wantBuffer = append(wantBuffer, "")
 		}
 	}
 
@@ -612,9 +618,9 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		runRegex      = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
 		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
 		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		caseFailRegex = regexp.MustCompile(`=== FAIL: Case (\d+)`)
-		gotRegex      = regexp.MustCompile(`^GOT: (.*)$`)
-		wantRegex     = regexp.MustCompile(`^WANT: (.*)$`)
+		caseFailRegex = regexp.MustCompile(`(?:\s|^)=== FAIL: Case (\d+)`)
+		gotRegex      = regexp.MustCompile(`(?:\s|^)GOT:\s+(.*)$`)
+		wantRegex     = regexp.MustCompile(`(?:\s|^)WANT:\s+(.*)$`)
 
 		passedMap = make(map[int]bool)
 		gotMap    = make(map[int]string)
@@ -662,6 +668,10 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			gotBuffer = append(gotBuffer, strings.TrimLeft(line, "\t"))
 		} else if currentState == "want" && trimmed != "" {
 			wantBuffer = append(wantBuffer, strings.TrimLeft(line, "\t"))
+		} else if currentState == "got" {
+			gotBuffer = append(gotBuffer, "")
+		} else if currentState == "want" {
+			wantBuffer = append(wantBuffer, "")
 		}
 	}
 

@@ -80,7 +80,7 @@ function SettingsPageContent() {
           });
         }
       } catch {
-        toast.error({ title: "Link failed", description: "Network error while linking." });
+        toast.error({ title: "Link failed", description: "Unable to connect. Please try again." });
       } finally {
         setLinkingGoogle(false);
       }
@@ -203,7 +203,7 @@ function SettingsPageContent() {
         setUsernameError(res.error?.message || "Failed to set username");
       }
     } catch (err: any) {
-      setUsernameError(err.message || "Network error");
+      setUsernameError(err.message || "Unable to connect. Please try again.");
     } finally {
       setUsernameSaving(false);
     }
@@ -594,7 +594,7 @@ function SettingsPageContent() {
                             setCpError(res.error?.message || 'PIN verification failed');
                           }
                         } catch {
-                          setCpError('Network error. Please try again.');
+                          setCpError('Unable to connect. Please try again.');
                         } finally {
                           setCpLoading(false);
                         }
@@ -665,7 +665,7 @@ function SettingsPageContent() {
                             setCpError(res.error?.message || 'Failed to set PIN');
                           }
                         } catch {
-                          setCpError('Network error');
+                          setCpError('Unable to connect. Please try again.');
                         } finally {
                           setCpLoading(false);
                         }
@@ -767,7 +767,7 @@ function SettingsPageContent() {
                             setCpError(res.error?.message || 'Failed to change password');
                           }
                         } catch {
-                          setCpError('Network error');
+                          setCpError('Unable to connect. Please try again.');
                         } finally {
                           setCpLoading(false);
                         }

@@ -68,13 +68,19 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the problem by slug
-	problem, err := h.store.GetProblemBySlug(r.Context(), req.ProblemSlug)
+	problem, err := h.store.GetProblemBySlug(r.Context(), req.ProblemSlug, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found or not visible", nil)
 			return
 		}
 		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem details", nil)
+		return
+	}
+
+	// Block resubmission if the user has already solved this problem
+	if problem.Solved {
+		RespondError(w, http.StatusConflict, "ALREADY_SOLVED", "You have already solved this problem. Submissions are disabled for completed problems.", nil)
 		return
 	}
 

@@ -90,7 +90,7 @@ func (h *CommunityHandler) GetCommunitySolutions(w http.ResponseWriter, r *http.
 		userUUID, _ = uuid.Parse(claims.UserID)
 	}
 
-	problem, err := h.store.GetProblemBySlug(r.Context(), slug)
+	problem, err := h.store.GetProblemBySlug(r.Context(), slug, uuid.Nil)
 	if err != nil || problem == nil {
 		RespondError(w, http.StatusNotFound, "PROBLEM_NOT_FOUND", "Problem not found", nil)
 		return

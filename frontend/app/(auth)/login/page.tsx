@@ -62,7 +62,7 @@ export default function LoginPage() {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
@@ -79,7 +79,7 @@ export default function LoginPage() {
         setErrorMsg(res.error?.message || 'Login failed');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setLoading(false);
     }

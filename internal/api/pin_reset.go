@@ -132,7 +132,7 @@ func (h *PINResetHandler) ForgotPasswordPin(w http.ResponseWriter, r *http.Reque
 	allowed, retryAfter := h.pinLimiter.allow(req.Email)
 	if !allowed {
 		w.Header().Set("Retry-After", fmt.Sprintf("%.0f", retryAfter.Seconds()))
-		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Try again later.", nil)
+		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
 		return
 	}
 

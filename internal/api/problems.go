@@ -47,7 +47,14 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	problem, err := h.store.GetProblemBySlug(r.Context(), slug)
+	claims := GetClaims(r.Context())
+	var userID uuid.UUID
+	if claims != nil {
+		if parsed, err := uuid.Parse(claims.UserID); err == nil {
+			userID = parsed
+		}
+	}
+	problem, err := h.store.GetProblemBySlug(r.Context(), slug, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)

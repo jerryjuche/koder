@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
         setErrorMsg(res.error?.message || 'Invalid email or PIN');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setPinLoading(false);
     }
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
         setErrorMsg(res.error?.message || 'Failed to reset password');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setPinLoading(false);
     }
