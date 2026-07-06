@@ -19,104 +19,106 @@ type ModuleMeta = {
   barColor: string;
 };
 
+const MODULE_IMAGE = "/modules/arrays-strings.png";
+
 const MODULE_META: Record<string, ModuleMeta> = {
   "arrays-strings": {
-    image: "/modules/arrays-strings.png",
+    image: MODULE_IMAGE,
     description: "Array operations, slice manipulation, capacity & len",
     barColor: "bg-gradient-to-r from-blue-500 to-cyan-400",
   },
   "strings-runes": {
-    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "String manipulation, Unicode, runes, concatenation",
     barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
   },
   "math-recursion": {
-    image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Mathematical operations, recursive algorithms, number theory",
     barColor: "bg-gradient-to-r from-purple-500 to-violet-400",
   },
   "data-structures": {
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&h=338&fit=crop&auto=format",
-    description: "Stacks, queues, linked lists, trees, heaps, graphs",
+    image: MODULE_IMAGE,
+    description: "Data structures: stacks, queues, linked lists, trees, heaps, graphs",
     barColor: "bg-gradient-to-r from-amber-500 to-yellow-400",
   },
   "sorting-searching": {
-    image: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Sorting algorithms, binary search, two-pointer techniques",
     barColor: "bg-gradient-to-r from-rose-500 to-pink-400",
   },
   "hashmaps-sets": {
-    image: "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Key-value stores, set operations, frequency counting",
     barColor: "bg-gradient-to-r from-violet-500 to-purple-400",
   },
   concurrency: {
-    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Goroutines, channels, mutexes, sync primitives",
     barColor: "bg-gradient-to-r from-cyan-500 to-sky-400",
   },
   "dynamic-programming": {
-    image: "https://images.unsplash.com/photo-1512758017271-d7b84c2113f1?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Memoization, tabulation, optimization, subsequence problems",
     barColor: "bg-gradient-to-r from-fuchsia-500 to-pink-400",
   },
   "bit-manipulation": {
-    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Bitwise operations, flags, XOR tricks, bit masking",
     barColor: "bg-gradient-to-r from-slate-500 to-gray-400",
   },
   "trees-graphs": {
-    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Binary trees, BST, graph traversals, shortest path",
     barColor: "bg-gradient-to-r from-green-500 to-emerald-400",
   },
   "error-handling": {
-    image: "https://images.unsplash.com/photo-1550433905-8c3a1e5f8d6e?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Error types, custom errors, panics, recover",
     barColor: "bg-gradient-to-r from-red-500 to-rose-400",
   },
   testing: {
-    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Table-driven tests, benchmarks, mocking, coverage",
     barColor: "bg-gradient-to-r from-teal-500 to-cyan-400",
   },
   "file-io": {
-    image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Reading/writing files, formats, buffered I/O",
     barColor: "bg-gradient-to-r from-orange-500 to-amber-400",
   },
   networking: {
-    image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "HTTP clients/servers, TCP, WebSockets, APIs",
     barColor: "bg-gradient-to-r from-indigo-500 to-blue-400",
   },
   "interfaces-generics": {
-    image: "https://images.unsplash.com/photo-1611996575749-79a3a250f1f0?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Interface patterns, type parameters, constraints",
     barColor: "bg-gradient-to-r from-pink-500 to-rose-400",
   },
   pointers: {
-    image: "https://images.unsplash.com/photo-1513829593944-44d6b1f8f4e0?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Pointer arithmetic, memory management, references",
     barColor: "bg-gradient-to-r from-stone-500 to-neutral-400",
   },
   "oop-composition": {
-    image: "https://images.unsplash.com/photo-1523240804260-45f9b0b6f8b0?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Struct embedding, methods, composition over inheritance",
     barColor: "bg-gradient-to-r from-lime-500 to-green-400",
   },
   "design-patterns": {
-    image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Common Go idioms, factory, singleton, observer patterns",
     barColor: "bg-gradient-to-r from-yellow-500 to-amber-400",
   },
   "encoding-serialization": {
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "JSON, XML, Gob, protobuf, binary encoding",
     barColor: "bg-gradient-to-r from-sky-500 to-blue-400",
   },
   "linked-lists": {
-    image: "https://images.unsplash.com/photo-1477959850042-67f8c58e3cb3?w=600&h=338&fit=crop&auto=format",
+    image: MODULE_IMAGE,
     description: "Singly/doubly linked lists, cycle detection, mergers",
     barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
   },
@@ -146,7 +148,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const FALLBACK: ModuleMeta = {
-  image: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=600&h=338&fit=crop&auto=format",
+  image: MODULE_IMAGE,
   description: "Programming fundamentals",
   barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
 };
