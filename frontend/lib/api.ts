@@ -13,6 +13,7 @@ import {
   NotificationItem,
   FeedbackItem,
   Broadcast,
+  UpdateProblemPayload,
 } from "./types";
 import { getCache, setCache } from "./cache";
 
@@ -364,6 +365,13 @@ export async function toggleProblemVisibility(id: string, visible: boolean): Pro
 export async function publishAllDrafts(): Promise<ApiResponse<{ published: number }>> {
   return fetchApi<{ published: number }>("/admin/problems/publish-all", {
     method: "POST",
+  });
+}
+
+export async function updateProblem(id: string, data: UpdateProblemPayload): Promise<ApiResponse<Problem>> {
+  return fetchApi<Problem>(`/admin/problems/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
   });
 }
 

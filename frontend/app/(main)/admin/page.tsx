@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, MoreHorizontal, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { AdminStats, ActivityLog, Problem } from '@/lib/types';
+import { AdminStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
 import BroadcastPanel from './BroadcastPanel';
+import ProblemEditPanel from './ProblemEditPanel';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -32,6 +33,7 @@ export default function AdminDashboard() {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
 
   const loadData = async () => {
     const [statsRes, logsRes, problemsRes] = await Promise.all([
@@ -145,6 +147,22 @@ export default function AdminDashboard() {
     } else {
       const detail = (res.error as any)?.details;
       toast.error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Toggle failed"));
+    }
+  };
+
+  const handleEditProblem = (problem: Problem) => {
+    setEditingProblem(problem);
+  };
+
+  const handleSaveProblem = async (data: UpdateProblemPayload) => {
+    if (!editingProblem) return;
+    const res = await updateProblem(editingProblem.id, data);
+    if (res.success) {
+      toast.success(`"${res.data?.title || editingProblem.title}" updated`);
+      setEditingProblem(null);
+      loadData();
+    } else {
+      toast.error(res.error?.message || "Failed to update problem");
     }
   };
 
@@ -360,7 +378,9 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="text-brand-offwhite-muted hover:text-brand-offwhite"><MoreHorizontal size={18} /></button>
+                          <button onClick={() => handleEditProblem(p)} className="text-brand-offwhite-muted hover:text-brand-muted-gold transition-colors" title="Edit problem">
+                            <Pencil size={16} />
+                          </button>
                         </td>
                       </tr>
                     )
@@ -405,6 +425,14 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {editingProblem && (
+        <ProblemEditPanel
+          problem={editingProblem}
+          onSave={handleSaveProblem}
+          onClose={() => setEditingProblem(null)}
+        />
+      )}
     </div>
   );
 }
