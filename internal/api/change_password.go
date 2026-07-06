@@ -5,12 +5,46 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+type pinRateLimiter struct {
+	mu       sync.Mutex
+	attempts map[string]int
+	lastSeen map[string]time.Time
+}
+
+var globalPinLimiter = &pinRateLimiter{
+	attempts: make(map[string]int),
+	lastSeen: make(map[string]time.Time),
+}
+
+func (rl *pinRateLimiter) Allow(userID string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	// Cleanup stale entries (older than 15 min)
+	now := time.Now()
+	for k, t := range rl.lastSeen {
+		if now.Sub(t) > 15*time.Minute {
+			delete(rl.attempts, k)
+			delete(rl.lastSeen, k)
+		}
+	}
+
+	rl.lastSeen[userID] = now
+	rl.attempts[userID]++
+	if rl.attempts[userID] > 5 {
+		return false
+	}
+	return true
+}
 
 type ChangePasswordHandler struct {
 	store  store.Store
@@ -138,6 +172,11 @@ func (h *ChangePasswordHandler) VerifyPin(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if !globalPinLimiter.Allow(claims.UserID) {
+		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
+		return
+	}
+
 	if user.PINHash == nil || *user.PINHash == "" {
 		RespondError(w, http.StatusBadRequest, "PIN_NOT_SET", "No PIN is set on this account", nil)
 		return
@@ -179,8 +218,8 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password is required", nil)
 		return
 	}
-	if len(req.NewPassword) < 6 {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password must be at least 6 characters", nil)
+	if len(req.NewPassword) < 8 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password must be at least 8 characters", nil)
 		return
 	}
 
@@ -193,6 +232,11 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 	user, err := h.store.GetUserByID(r.Context(), userUUID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	if !globalPinLimiter.Allow(claims.UserID) {
+		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
 		return
 	}
 

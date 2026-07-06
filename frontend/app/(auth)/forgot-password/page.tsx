@@ -53,8 +53,8 @@ export default function ForgotPasswordPage() {
 
   const handlePinReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setErrorMsg('Password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -72,6 +72,7 @@ export default function ForgotPasswordPage() {
         setConfirmNewPassword('');
         setPinEmail('');
         setPin('');
+        setSent(true);
       } else {
         setErrorMsg(res.error?.message || 'Failed to reset password');
       }
@@ -196,7 +197,7 @@ export default function ForgotPasswordPage() {
                 className="space-y-5"
               >
                 {errorMsg && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                     {errorMsg}
                   </div>
                 )}
@@ -260,7 +261,7 @@ export default function ForgotPasswordPage() {
       {pinVerified && !sent && (
         <form onSubmit={handlePinReset} noValidate className="space-y-5">
           {errorMsg && (
-            <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+            <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
               {errorMsg}
             </div>
           )}
@@ -276,7 +277,7 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
               className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
             />
           </LabelInputContainer>
 
