@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 6, 2026 (Sessions 1–29)
+# Session Logbook — June 28 – July 6, 2026 (Sessions 1–37)
 
 ---
 
@@ -37,6 +37,10 @@
 | 29 | `eb58ecf` | Restore resetPassword export — used by reset-password landing page |
 | 30 | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
 | 31 | `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
+| 32 | `f2605dc` | Fix Google auth 502: remove nil pem.Encode in jwksKeyToPublicKey, add RecoveryMiddleware |
+| 33 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
+| 34 | `c093540` | Replace arrays-strings module image with professional version |
+| 35 | `0ecd5ef` | Use local image for all module cards |
 
 ---
 
@@ -961,6 +965,52 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ---
 
+## 36. Session 25 (July 6) — Google Auth 502 Fix + RecoveryMiddleware
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `f2605dc` | Fix Google auth 502: remove nil pem.Encode in jwksKeyToPublicKey, add RecoveryMiddleware |
+
+### Problem
+`POST /auth/google` returned HTTP 502 when Google's JWKS endpoint returned multiple keys. `jwksKeyToPublicKey` called `pem.Encode(nil, ...)` which panics because Go's `pem` package cannot write to a nil writer. The panic crashed the goroutine, causing a 502.
+
+### Fixes
+| File | Change |
+|------|--------|
+| `internal/auth/oauth.go` | Removed `pem.Encode(nil, ...)` panic; removed unused `crypto/x509` and `encoding/pem` imports; replaced with raw `x509.ParsePKIXPublicKey` |
+| `internal/api/middleware.go` | Added `RecoveryMiddleware` that catches panics and returns JSON 500 with `PANIC` error code |
+| `internal/api/router.go` | Registered `RecoveryMiddleware` as first middleware |
+
+### Build Verification
+- ✅ `go build ./...`
+- ✅ Google Sign-In works in production (confirmed)
+
+---
+
+## 37. Session 26 (July 6) — Module Card Images: Key Alignment, Local Image, All Modules
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
+| `c093540` | Replace arrays-strings module image with professional version |
+| `0ecd5ef` | Use local image for all module cards |
+
+### Root Cause
+`MODULE_META` keys were display names (`"Arrays & Slices"`) but the API returns lowercase hypenated slugs (`"arrays-strings"`). Every module fell through to the Unsplash fallback — module images never showed for any module.
+
+### Fixes
+| File | Change |
+|------|--------|
+| `frontend/components/dashboard/ModuleCards.tsx` | Changed all `MODULE_META` keys from display names to lowercase-hyphenated slugs; added `MODULE_DISPLAY_NAMES` mapping for card titles; replaced all Unsplash URLs with `MODULE_IMAGE` constant pointing to `/modules/arrays-strings.png`; updated fallback to use same local image |
+| `frontend/public/modules/arrays-strings.png` | Replaced with professional ChatGPT-generated image |
+
+### Build Verification
+- ✅ Pushed to `update` branch (`0ecd5ef`)
+
+---
+
 ## Known Issues & Next Steps
 
 - [ ] Run migration `022_add_pin_hash.sql` against the database
@@ -971,3 +1021,6 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 - [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
 - [ ] Test Google Sign-In on production HTTPS URL
 - [ ] Test account deletion end-to-end
+- [ ] Merge `update` branch into `main` to deploy to production
+
+---
