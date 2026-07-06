@@ -302,6 +302,20 @@ func BodySizeLimitMiddleware(maxBytes int64) func(http.Handler) http.Handler {
 	}
 }
 
+// RecoveryMiddleware catches panics in handlers and returns a 500 JSON error
+// instead of crashing the goroutine.
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				slog.Error("http: handler panic", "error", rec, "path", r.URL.Path, "method", r.Method)
+				RespondError(w, http.StatusInternalServerError, "PANIC", "Internal server error", nil)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 // SecurityHeadersMiddleware sets standard security headers on every response.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
