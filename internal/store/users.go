@@ -591,7 +591,6 @@ func (s *PostgresStore) UpdateUserProfileWithReturn(ctx context.Context, id uuid
 		&user.ColorIndex,
 		&user.XP,
 		&user.CreatedAt,
-		&user.UsernameSet,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -678,6 +677,39 @@ func (s *PostgresStore) UpdateUserUsernameSet(ctx context.Context, id uuid.UUID,
 	return nil
 }
 
+// CompleteUserOnboarding atomically sets username, student_id, and username_set.
+func (s *PostgresStore) CompleteUserOnboarding(ctx context.Context, id uuid.UUID, username string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `UPDATE users SET username = $1 WHERE id = $2`, username, id)
+	if err != nil {
+		return fmt.Errorf("failed to update username: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE users SET student_id = $1 WHERE id = $2`, username, id)
+	if err != nil {
+		return fmt.Errorf("failed to update student_id: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE users SET username_set = true WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("failed to set username_set: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
 // UpdateUserPassword updates the password hash for a user.
 func (s *PostgresStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
 	if id == uuid.Nil {
@@ -743,72 +775,6 @@ func (s *PostgresStore) UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID
 	}
 
 	return nil
-}
-
-// CreateUserFromGoogle creates a new user from a Google OAuth profile.
-func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error) {
-	if info == nil {
-		return nil, fmt.Errorf("google user info cannot be nil")
-	}
-
-	// Generate a random placeholder password (OAuth users don't use password login)
-	placeholderPW, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 12)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash placeholder password: %w", err)
-	}
-
-	colorIndexBig, err := rand.Int(rand.Reader, big.NewInt(6))
-	if err != nil {
-		return nil, fmt.Errorf("failed to assign color index: %w", err)
-	}
-	colorIndex := int(colorIndexBig.Int64())
-
-	// Generate a temporary student_id and username from Google metadata
-	tempUsername := "g_" + info.Sub[:8]
-
-	var userID pgtype.UUID
-	var createdAt pgtype.Timestamp
-
-	query := `
-		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, google_id, google_email, google_avatar_url, username_set, created_at)
-		VALUES ($1, $2, $3, $4, $5, 'student', $6, 0, $7, $8, $9, false, NOW())
-		RETURNING id, created_at
-	`
-
-	err = s.pool.QueryRow(ctx, query,
-		info.Email,       // student_id = Google email (internal)
-		tempUsername,     // username (temporary, user will set it on onboarding)
-		info.Name,        // name from Google
-		info.Email,       // email
-		string(placeholderPW),
-		colorIndex,
-		info.Sub,         // google_id
-		info.Email,       // google_email
-		info.Picture,     // google_avatar_url
-	).Scan(&userID, &createdAt)
-	if err != nil {
-		if msg, ok := IsUniqueViolation(err); ok {
-			return nil, NewDuplicateError(msg)
-		}
-		return nil, fmt.Errorf("failed to create user from google: %w", err)
-	}
-
-	return &User{
-		ID:             userID,
-		StudentID:      info.Email,
-		Username:       tempUsername,
-		Name:           info.Name,
-		Email:          &info.Email,
-		Password:       string(placeholderPW),
-		Role:           "student",
-		ColorIndex:     colorIndex,
-		XP:             0,
-		GoogleID:       &info.Sub,
-		GoogleEmail:    &info.Email,
-		GoogleAvatarURL: &info.Picture,
-		CreatedAt:      createdAt.Time,
-		UsernameSet:    false,
-	}, nil
 }
 
 // LinkGoogleToUser links an existing user to a Google account.

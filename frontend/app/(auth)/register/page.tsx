@@ -164,6 +164,7 @@ export default function RegisterPage() {
         return;
       }
 
+      setLoading(false);
       setStep(4);
     } catch (err: any) {
       setErrorMsg(err.message || 'Network error');
@@ -309,7 +310,7 @@ export default function RegisterPage() {
 
               <form onSubmit={handleStep1Next} noValidate className="space-y-5">
                 {errorMsg && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                     {errorMsg}
                   </div>
                 )}
@@ -391,7 +392,7 @@ export default function RegisterPage() {
                 </LabelInputContainer>
 
                 {step1Errors.length > 0 && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
+                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
                     {step1Errors.map((err, i) => (
                       <p key={i} className="text-brand-error text-xs">{err}</p>
                     ))}
@@ -423,7 +424,7 @@ export default function RegisterPage() {
           >
             <form onSubmit={handleStep2Next} noValidate className="space-y-6">
               {errorMsg && (
-                <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                   {errorMsg}
                 </div>
               )}
@@ -469,8 +470,8 @@ export default function RegisterPage() {
                   </PinInput>
 
               {step2Errors.length > 0 && (
-                <div className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
-                  {step2Errors.map((err, i) => (
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
+                    {step2Errors.map((err, i) => (
                     <p key={i} className="text-brand-error text-xs">{err}</p>
                   ))}
                 </div>
@@ -508,7 +509,7 @@ export default function RegisterPage() {
           >
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {errorMsg && (
-                <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                   {errorMsg}
                 </div>
               )}

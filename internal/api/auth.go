@@ -241,7 +241,9 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		existingID, _ := uuidStringFromPGType(existingUser.ID)
 		if existingID != "" {
 			existingUUID, _ := uuid.Parse(existingID)
-			if err := h.store.LinkGoogleToUser(r.Context(), existingUUID, info); err == nil {
+			if err := h.store.LinkGoogleToUser(r.Context(), existingUUID, info); err != nil {
+				slog.Error("google_auth: failed to auto-link Google to existing user", "error", err, "email", info.Email)
+			} else {
 				InvalidateUserCache(existingID)
 			}
 		}
@@ -319,18 +321,9 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// Update both username and student_id to the chosen value
-	if err := h.store.UpdateUserUsername(r.Context(), userUUID, req.Username); err != nil {
+	// Atomically set username, student_id, and username_set
+	if err := h.store.CompleteUserOnboarding(r.Context(), userUUID, req.Username); err != nil {
 		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", nil)
-		return
-	}
-	if err := h.store.UpdateUserStudentID(r.Context(), userUUID, req.Username); err != nil {
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set student ID", nil)
-		return
-	}
-
-	if err := h.store.UpdateUserUsernameSet(r.Context(), userUUID, true); err != nil {
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username flag", nil)
 		return
 	}
 
@@ -447,9 +440,12 @@ func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err := h.store.GetUserByUsername(r.Context(), username)
+	available := err != nil
+
 	RespondSuccess(w, map[string]interface{}{
 		"username":  username,
-		"available": true,
+		"available": available,
 	})
 }
 

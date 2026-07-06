@@ -266,10 +266,15 @@ func (rl *IPRateLimiter) Allow(ip string) (bool, time.Duration) {
 // Middleware returns an HTTP middleware that enforces per-IP rate limits.
 func (rl *IPRateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		// Strip port if present
-		if idx := strings.LastIndex(ip, ":"); idx != -1 {
-			ip = ip[:idx]
+		ip := r.Header.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = r.Header.Get("X-Real-IP")
+		}
+		if ip == "" {
+			ip = r.RemoteAddr
+			if idx := strings.LastIndex(ip, ":"); idx != -1 {
+				ip = ip[:idx]
+			}
 		}
 
 		allowed, retryAfter := rl.Allow(ip)

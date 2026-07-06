@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -14,6 +17,14 @@ import (
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+// pinResetKey derives a separate signing key from the JWT secret
+// for domain separation: PIN reset tokens cannot be confused with auth tokens.
+func pinResetKey(secret string) []byte {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte("koder-pin-reset-v1"))
+	return []byte(hex.EncodeToString(mac.Sum(nil)))
+}
 
 type PINResetHandler struct {
 	store      store.Store
@@ -136,7 +147,7 @@ func (h *PINResetHandler) ForgotPasswordPin(w http.ResponseWriter, r *http.Reque
 
 	if user.PINHash == nil || *user.PINHash == "" {
 		slog.Info("pin_reset: no PIN set", "email", maskEmail(req.Email))
-		RespondError(w, http.StatusUnauthorized, "NO_PIN", "No recovery PIN set for this account", nil)
+		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid email or PIN", nil)
 		return
 	}
 
@@ -160,7 +171,7 @@ func (h *PINResetHandler) ForgotPasswordPin(w http.ResponseWriter, r *http.Reque
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(h.cfg.JWTSecret))
+	tokenString, err := token.SignedString(pinResetKey(h.cfg.JWTSecret))
 	if err != nil {
 		slog.Error("pin_reset: failed to sign token", "error", err)
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate reset token", nil)
@@ -205,7 +216,7 @@ func (h *PINResetHandler) ResetPasswordPin(w http.ResponseWriter, r *http.Reques
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(h.cfg.JWTSecret), nil
+		return pinResetKey(h.cfg.JWTSecret), nil
 	})
 	if err != nil || !token.Valid {
 		slog.Info("pin_reset: invalid reset token")

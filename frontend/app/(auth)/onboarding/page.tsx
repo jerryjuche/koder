@@ -51,6 +51,7 @@ export default function OnboardingPage() {
     try {
       const res = await completeOnboarding(username);
       if (res.success && res.data) {
+        window.dispatchEvent(new Event("user-updated"));
         router.push('/');
       } else {
         setErrorMsg(res.error?.message || 'Failed to set username');
@@ -82,7 +83,7 @@ export default function OnboardingPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {errorMsg && (
-            <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+            <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
               {errorMsg}
             </div>
           )}
@@ -97,7 +98,7 @@ export default function OnboardingPage() {
                 required
                 minLength={3}
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                 className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors pr-10"
                 placeholder="your-unique-username"
               />

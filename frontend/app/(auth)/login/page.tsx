@@ -74,7 +74,7 @@ export default function LoginPage() {
     try {
       const res = await login({ login: data.loginId, password: data.password });
       if (res.success && res.data) {
-        router.push('/');
+        router.push(res.data.onboarding ? '/onboarding' : '/');
       } else {
         setErrorMsg(res.error?.message || 'Login failed');
       }
@@ -152,7 +152,7 @@ export default function LoginPage() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm overflow-hidden"
+                role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm overflow-hidden"
               >
                 {errorMsg}
               </motion.div>
