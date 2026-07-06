@@ -35,6 +35,7 @@ koder/
 │   │   ├── feedback.go             # Feedback & bug report handler
 │   │   ├── broadcasts.go           # Broadcast CRUD handlers
 │   │   ├── cache.go                # Response caching utility
+│   │   ├── ws.go                   # WebSocket upgrade handler
 │   │   ├── middleware.go           # Auth checks, error handling
 │   │   └── responses.go            # Shared response structs
 │   ├── store/                      # Database access (raw pgx/v5)
@@ -57,6 +58,7 @@ koder/
 │   │   ├── templates.go            # Go test file generation
 │   │   └── types.go                # Test & result structs
 │   ├── enricher/enricher.go        # Gemini API integration for test generation
+│   ├── broker/broker.go            # In-memory pub/sub for WebSocket events
 │   ├── parser/parser.go            # Parse GitHub curriculum YAML
 │   ├── auth/                       # JWT & password hashing
 │   │   ├── jwt.go
@@ -84,6 +86,7 @@ koder/
 │   │   └── use-google-one-tap.ts  # Shared GIS singleton (initialize once, prompt + renderButton)
 │   ├── lib/
 │   │   ├── api.ts                 # Backend API client
+│   │   ├── event.ts               # WebSocket hook with typed subscriptions
 │   │   ├── types.ts               # Shared TypeScript types
 │   │   ├── utils.ts               # cn(), getUserColor(), etc.
 │   │   ├── achievements.ts        # Shared achievement definitions
@@ -192,7 +195,8 @@ The system has **three sequential pipelines**:
 - `POST /admin/ingest` — Trigger GitHub ingest pipeline
 - `POST /admin/enrich` — Trigger Gemini enrichment pipeline
 - `POST /admin/enrich-all` — Batch enrich all pending problems
-- `POST /admin/problems/publish-all` — Publish all draft problems
+- `POST /admin/problems/publish-all` — Publish all draft problems (single UPDATE)
+- `PUT /admin/problems/{id}` — Update a problem's editable fields
 - `GET /admin/stats` — Admin dashboard stats
 - `GET /admin/activity` — Recent activity log
 - `GET /admin/problems` — List all problems (including invisible)
@@ -227,11 +231,13 @@ The system has **three sequential pipelines**:
 - `GET /admin/feedback?status=new` — Admin list with optional status filter
 - `GET /admin/feedback/counts` — Feedback counts by status
 - `PATCH /admin/feedback/{id}` — Update status and admin notes
+- `GET /admin/problem-reports` — Bug reports grouped by problem slug
 
 ### Broadcasts
 - `POST /admin/broadcasts` — Create a broadcast (type, title, priority, optional CTA)
 - `GET /admin/broadcasts` — List all broadcasts (admin)
 - `PATCH /admin/broadcasts/{id}/deactivate` — Deactivate a broadcast
+- `PATCH /admin/broadcasts/{id}/activate` — Activate a broadcast
 - `DELETE /admin/broadcasts/{id}` — Permanently delete a broadcast
 - `GET /me/broadcasts` — List active (non-dismissed) broadcasts for current user
 - `POST /me/broadcasts/{id}/dismiss` — Dismiss a broadcast for current user
@@ -253,7 +259,9 @@ The system has **three sequential pipelines**:
 | `app/(main)/admin/page.tsx` | Admin panel for ingest/enrich/stats/approvals |
 | `app/(main)/admin/FeedbackPanel.tsx` | Admin feedback section with status filters, screenshot preview |
 | `components/BroadcastBanner.tsx` | Color-coded, dismissable broadcast banner (type icon, priority badge, title, CTA) |
-| `app/(main)/admin/BroadcastPanel.tsx` | Admin panel to create, list, and delete broadcasts |
+| `app/(main)/admin/BroadcastPanel.tsx` | Admin panel to create, list, toggle, and delete broadcasts |
+| `app/(main)/admin/ProblemEditPanel.tsx` | Full problem editor dialog with live preview toggle |
+| `app/(main)/admin/ProblemReports.tsx` | Admin panel for workspace bug reports (grouped by slug) |
 | `components/auth/google-button.tsx` | Custom dark Google Sign-In button with SVG logo + shadow-input |
 | `components/auth/bottom-gradient.tsx` | Amber gradient line animation on button hover |
 | `components/auth/label-input-container.tsx` | Input + label spacing wrapper (Aceternity pattern) |
@@ -532,6 +540,29 @@ See `.env.example` for full template.
   - All `'Network error'` fallbacks changed to `'Unable to connect. Please try again.'` across 7 files (login, register, onboarding, forgot-password, reset-password, settings)
 - **July 6 — PIN rate limit message:**
   - `internal/api/pin_reset.go`: Changed "Try again later" → "Please wait 15 minutes"
+- **July 6 — Admin inline problem editor:**
+  - `UpdateProblem` store method + handler (pointer-optional partial merge); `GetProblemByID` store method
+  - `ProblemEditPanel.tsx` — full dialog with Basic Info, Description, Func Signature, Hints, Visibility, live preview toggle
+  - Pencil edit button in admin problem catalog wired to ProblemEditPanel
+- **July 6 — Problem report issue system:**
+  - `migrations/025_report_issue_fields.sql` — adds `problem_slug`, `code_snippet`, `error_message` to feedback table
+  - `GetProblemReports` store method (bug-type filtered by slug); `ListProblemReports` handler + route
+  - `ProblemReports.tsx` admin component — grouped by slug, status filters, expandable rows, inline code/error display
+  - Workspace "Report Bug" button always visible in toolbar + dialog with pre-filled slug/code/error
+- **July 6 — Broadcast Activate endpoint:**
+  - `ActivateBroadcast` store method + handler + `PATCH /admin/broadcasts/{id}/activate` route
+  - BroadcastPanel redesigned with per-broadcast toggle switch, type icon, priority badge, date/admin metadata
+- **July 6 — WebSocket live updates:**
+  - `internal/broker/broker.go` — in-memory pub/sub with Subscribe/Unsubscribe/Publish (non-blocking sends)
+  - `internal/api/ws.go` — WebSocket upgrade handler using gorilla/websocket (auth-protected)
+  - `NewRouter` accepts broker, wires `GET /ws`, passes broker to Admin, Broadcasts, and Feedback handlers
+  - Handlers publish events on mutation: `admin.problem.updated`, `admin.broadcast.created/updated/deleted`, `admin.feedback.submitted`
+  - `frontend/lib/event.ts` — typed `useWebSocket` hook with auto-reconnect and exponential backoff
+  - Admin page uses WebSocket subscriptions instead of 15s polling (reduced to 60s fallback)
+  - Optimistic UI: visibility/broadcast toggles update local state immediately, revert on API error
+- **July 6 — PublishAllDrafts optimization:**
+  - New `PublishAllDrafts` store method: single `UPDATE SET visible = true WHERE NOT visible` instead of fetch-all + N round trips
+  - Handler publishes `admin.publish-all` event
 
 ---
 
