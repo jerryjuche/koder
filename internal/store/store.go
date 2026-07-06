@@ -128,6 +128,7 @@ type Store interface {
 	GetAllBroadcasts(ctx context.Context) ([]Broadcast, error)
 	GetBroadcastByID(ctx context.Context, id uuid.UUID) (*Broadcast, error)
 	DeactivateBroadcast(ctx context.Context, id uuid.UUID) error
+	ActivateBroadcast(ctx context.Context, id uuid.UUID) error
 	DeleteBroadcast(ctx context.Context, id uuid.UUID) error
 	MarkBroadcastDismissed(ctx context.Context, userID, broadcastID uuid.UUID) error
 
