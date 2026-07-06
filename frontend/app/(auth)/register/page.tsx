@@ -476,6 +476,7 @@ export default function RegisterPage() {
                   onChange={setPin}
                   autoFocus
                   hasError={step2Errors.length > 0}
+                  className="mx-auto"
                 >
                   <PinInput.Slot index={0} />
                   <PinInput.Slot index={1} />
@@ -496,6 +497,7 @@ export default function RegisterPage() {
                   value={confirmPin}
                   onChange={setConfirmPin}
                   hasError={(confirmPin.length > 0 && !pinsMatch) || step2Errors.length > 0}
+                  className="mx-auto"
                 >
                   <PinInput.Slot index={0} />
                   <PinInput.Slot index={1} />
