@@ -180,6 +180,23 @@ func (h *BroadcastsHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, map[string]string{"status": "deactivated"})
 }
 
+func (h *BroadcastsHandler) Activate(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid broadcast ID", nil)
+		return
+	}
+
+	if err := h.store.ActivateBroadcast(r.Context(), id); err != nil {
+		slog.Error("broadcasts: failed to activate", "error", err)
+		RespondError(w, http.StatusInternalServerError, "ACTIVATE_FAILED", "Failed to activate broadcast", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"status": "activated"})
+}
+
 func (h *BroadcastsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
