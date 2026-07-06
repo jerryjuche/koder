@@ -260,6 +260,10 @@ type Feedback struct {
 	Status        string      `db:"status" json:"status"`
 	AdminNotes    *string     `db:"admin_notes" json:"admin_notes,omitempty"`
 	IsAnonymous   bool        `db:"is_anonymous" json:"is_anonymous"`
+	ProblemSlug   *string     `db:"problem_slug" json:"problem_slug,omitempty"`
+	CodeSnippet   *string     `db:"code_snippet" json:"code_snippet,omitempty"`
+	ErrorMessage  *string     `db:"error_message" json:"error_message,omitempty"`
+	ProblemTitle  *string     `db:"problem_title" json:"problem_title,omitempty"`
 	CreatedAt     time.Time   `db:"created_at" json:"created_at"`
 	UserName      *string     `db:"user_name" json:"user_name,omitempty"`
 }
@@ -272,6 +276,9 @@ type NewFeedback struct {
 	Priority      string  `json:"priority"`
 	ScreenshotURL *string `json:"screenshot_url,omitempty"`
 	IsAnonymous   bool    `json:"is_anonymous"`
+	ProblemSlug   *string `json:"problem_slug,omitempty"`
+	CodeSnippet   *string `json:"code_snippet,omitempty"`
+	ErrorMessage  *string `json:"error_message,omitempty"`
 }
 
 // Broadcast represents an admin-created broadcast message sent to all users.

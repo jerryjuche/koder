@@ -11,6 +11,7 @@ import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
 import BroadcastPanel from './BroadcastPanel';
 import ProblemEditPanel from './ProblemEditPanel';
+import ProblemReports from './ProblemReports';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -290,6 +291,9 @@ export default function AdminDashboard() {
 
           {/* Broadcasts */}
           <BroadcastPanel compact />
+
+          {/* Problem Reports */}
+          <ProblemReports compact />
 
           {/* Contributions + Feedback Row */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
