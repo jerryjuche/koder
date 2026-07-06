@@ -108,15 +108,6 @@ export async function googleLogin(
   });
 }
 
-export async function forgotPassword(
-  email: string,
-): Promise<ApiResponse<{ message: string }>> {
-  return fetchApi<{ message: string }>("/auth/forgot-password", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-}
-
 export async function resetPassword(
   token: string,
   password: string,

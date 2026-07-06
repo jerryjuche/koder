@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -61,6 +61,7 @@ function SettingsPageContent() {
   const [cpLoading, setCpLoading] = useState(false);
   const [cpError, setCpError] = useState('');
 
+  const cpPinSubmitRef = useRef<HTMLButtonElement>(null);
   const { prompt } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
       setLinkingGoogle(true);
@@ -167,10 +168,26 @@ function SettingsPageContent() {
   };
 
   const handleSetUsername = async () => {
+    const sanitized = newUsername.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (sanitized !== newUsername) {
+      setUsernameError("Username can only contain letters, numbers, hyphens, and underscores");
+      setUsernameSaving(false);
+      return;
+    }
+    if (sanitized.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      setUsernameSaving(false);
+      return;
+    }
+    if (sanitized.length > 30) {
+      setUsernameError("Username must be 30 characters or fewer");
+      setUsernameSaving(false);
+      return;
+    }
     setUsernameSaving(true);
     setUsernameError("");
     try {
-      const res = await updateUsername(newUsername);
+      const res = await updateUsername(sanitized);
       if (res.success) {
         toast.success({
           title: "Username set!",
@@ -583,7 +600,7 @@ function SettingsPageContent() {
                         }
                       }} className="space-y-5">
                         {cpError && (
-                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                          <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                             {cpError}
                           </div>
                         )}
@@ -593,8 +610,13 @@ function SettingsPageContent() {
                               maxLength={6}
                               pattern={REGEXP_ONLY_DIGITS}
                               value={cpPin}
-                              onChange={setCpPin}
+                              onChange={(v) => { setCpPin(v); if (cpError) setCpError(''); }}
+                              onComplete={(v) => {
+                                setCpPin(v);
+                                cpPinSubmitRef.current?.click();
+                              }}
                               autoFocus
+                              hasError={cpError.includes('Incorrect PIN')}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />
@@ -607,6 +629,7 @@ function SettingsPageContent() {
                           </PinInput>
                         </div>
                         <button
+                          ref={cpPinSubmitRef}
                           type="submit"
                           disabled={cpPin.length !== 6 || cpLoading}
                           className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -648,7 +671,7 @@ function SettingsPageContent() {
                         }
                       }} className="space-y-4">
                         {cpError && (
-                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                          <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                             {cpError}
                           </div>
                         )}
@@ -668,6 +691,7 @@ function SettingsPageContent() {
                               value={cpNewPin}
                               onChange={(v) => { setCpNewPin(v); setCpError(''); }}
                               autoFocus
+                              hasError={!!cpError}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />
@@ -689,6 +713,7 @@ function SettingsPageContent() {
                               pattern={REGEXP_ONLY_DIGITS}
                               value={cpConfirmNewPin}
                               onChange={(v) => { setCpConfirmNewPin(v); setCpError(''); }}
+                              hasError={!!cpError}
                             >
                               <PinInput.Slot index={0} />
                               <PinInput.Slot index={1} />
@@ -748,7 +773,7 @@ function SettingsPageContent() {
                         }
                       }} className="space-y-4">
                         {cpError && (
-                          <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                          <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                             {cpError}
                           </div>
                         )}

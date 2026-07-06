@@ -51,6 +51,7 @@ type Store interface {
 	UpdateUserUsername(ctx context.Context, id uuid.UUID, username string) error
 	UpdateUserStudentID(ctx context.Context, id uuid.UUID, studentID string) error
 	UpdateUserUsernameSet(ctx context.Context, id uuid.UUID, usernameSet bool) error
+	CompleteUserOnboarding(ctx context.Context, id uuid.UUID, username string) error
 	UpdateUserGoogleAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error)
 	GetSolvedCount(ctx context.Context, userID uuid.UUID) (int, error)
@@ -61,7 +62,6 @@ type Store interface {
 	GetFullProfile(ctx context.Context, userID uuid.UUID) (*FullProfileResult, error)
 	GetUserActivity(ctx context.Context, userID uuid.UUID, year int) ([]ActivityEntry, error)
 	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
-	CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error)
 	LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 

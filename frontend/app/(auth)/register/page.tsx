@@ -164,6 +164,7 @@ export default function RegisterPage() {
         return;
       }
 
+      setLoading(false);
       setStep(4);
     } catch (err: any) {
       setErrorMsg(err.message || 'Network error');
@@ -309,7 +310,7 @@ export default function RegisterPage() {
 
               <form onSubmit={handleStep1Next} noValidate className="space-y-5">
                 {errorMsg && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                     {errorMsg}
                   </div>
                 )}
@@ -391,7 +392,7 @@ export default function RegisterPage() {
                 </LabelInputContainer>
 
                 {step1Errors.length > 0 && (
-                  <div className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
+                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
                     {step1Errors.map((err, i) => (
                       <p key={i} className="text-brand-error text-xs">{err}</p>
                     ))}
@@ -423,52 +424,54 @@ export default function RegisterPage() {
           >
             <form onSubmit={handleStep2Next} noValidate className="space-y-6">
               {errorMsg && (
-                <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                   {errorMsg}
                 </div>
               )}
 
-              <PinInput size="md" mask>
-                <PinInput.Label>Recovery PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={pin}
-                  onChange={setPin}
-                  autoFocus
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-                <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
-              </PinInput>
+                  <PinInput size="md" mask>
+                    <PinInput.Label>Recovery PIN</PinInput.Label>
+                    <PinInput.Group
+                      maxLength={6}
+                      pattern={REGEXP_ONLY_DIGITS}
+                      value={pin}
+                      onChange={setPin}
+                      autoFocus
+                      hasError={step2Errors.length > 0}
+                    >
+                      <PinInput.Slot index={0} />
+                      <PinInput.Slot index={1} />
+                      <PinInput.Slot index={2} />
+                      <PinInput.Separator />
+                      <PinInput.Slot index={3} />
+                      <PinInput.Slot index={4} />
+                      <PinInput.Slot index={5} />
+                    </PinInput.Group>
+                    <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
+                  </PinInput>
 
-              <PinInput size="md" mask>
-                <PinInput.Label>Confirm PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={confirmPin}
-                  onChange={setConfirmPin}
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-              </PinInput>
+                  <PinInput size="md" mask>
+                    <PinInput.Label>Confirm PIN</PinInput.Label>
+                    <PinInput.Group
+                      maxLength={6}
+                      pattern={REGEXP_ONLY_DIGITS}
+                      value={confirmPin}
+                      onChange={setConfirmPin}
+                      hasError={step2Errors.length > 0}
+                    >
+                      <PinInput.Slot index={0} />
+                      <PinInput.Slot index={1} />
+                      <PinInput.Slot index={2} />
+                      <PinInput.Separator />
+                      <PinInput.Slot index={3} />
+                      <PinInput.Slot index={4} />
+                      <PinInput.Slot index={5} />
+                    </PinInput.Group>
+                  </PinInput>
 
               {step2Errors.length > 0 && (
-                <div className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
-                  {step2Errors.map((err, i) => (
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
+                    {step2Errors.map((err, i) => (
                     <p key={i} className="text-brand-error text-xs">{err}</p>
                   ))}
                 </div>
@@ -506,7 +509,7 @@ export default function RegisterPage() {
           >
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {errorMsg && (
-                <div className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
                   {errorMsg}
                 </div>
               )}
