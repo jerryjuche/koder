@@ -16,6 +16,7 @@ import (
 func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (http.Handler, error) {
 	r := chi.NewRouter()
 
+	r.Use(RecoveryMiddleware)
 	r.Use(CORSMiddleware(cfg))
 	r.Use(SecurityHeadersMiddleware)
 

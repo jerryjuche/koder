@@ -2,10 +2,8 @@ package auth
 
 import (
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -198,10 +196,6 @@ func jwksKeyToPublicKey(k jwksKey) (*rsa.PublicKey, error) {
 		N: new(big.Int).SetBytes(nBytes),
 		E: int(new(big.Int).SetBytes(eBytes).Int64()),
 	}
-
-	// Validate the key by encoding it back to DER
-	derBytes := x509.MarshalPKCS1PublicKey(pub)
-	pem.Encode(nil, &pem.Block{Type: "RSA PUBLIC KEY", Bytes: derBytes})
 
 	return pub, nil
 }
