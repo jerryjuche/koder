@@ -9,15 +9,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
 type BroadcastsHandler struct {
-	store store.Store
+	store  store.Store
+	broker *broker.Broker
 }
 
-func NewBroadcastsHandler(store store.Store) *BroadcastsHandler {
-	return &BroadcastsHandler{store: store}
+func NewBroadcastsHandler(store store.Store, b *broker.Broker) *BroadcastsHandler {
+	return &BroadcastsHandler{store: store, broker: b}
 }
 
 func (h *BroadcastsHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -96,6 +98,12 @@ func (h *BroadcastsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	h.store.LogActivity(r.Context(), "info", "Broadcast sent: "+req.Title, "text-brand-muted-gold", "Send")
+
+	h.broker.PublishEvent("broadcast.created", map[string]interface{}{
+		"id":    uuid.UUID(broadcast.ID.Bytes).String(),
+		"title": broadcast.Title,
+		"type":  broadcast.Type,
+	})
 
 	RespondCreated(w, broadcast)
 }
@@ -177,6 +185,11 @@ func (h *BroadcastsHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.broker.PublishEvent("broadcast.updated", map[string]interface{}{
+		"id":     idStr,
+		"active": false,
+	})
+
 	RespondSuccess(w, map[string]string{"status": "deactivated"})
 }
 
@@ -194,6 +207,11 @@ func (h *BroadcastsHandler) Activate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.broker.PublishEvent("broadcast.updated", map[string]interface{}{
+		"id":     idStr,
+		"active": true,
+	})
+
 	RespondSuccess(w, map[string]string{"status": "activated"})
 }
 
@@ -210,6 +228,10 @@ func (h *BroadcastsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete broadcast", nil)
 		return
 	}
+
+	h.broker.PublishEvent("broadcast.deleted", map[string]interface{}{
+		"id": idStr,
+	})
 
 	RespondSuccess(w, map[string]string{"status": "deleted"})
 }
