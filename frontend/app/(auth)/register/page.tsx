@@ -4,7 +4,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Mail, ArrowLeft, Shield, CheckCircle, KeyRound } from 'lucide-react';
+import { ArrowRight, Mail, ArrowLeft, Shield, CheckCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { register as registerUser, completeOnboarding, googleLogin, checkUsername } from '@/lib/api';
 import { useGoogleOneTap } from '@/hooks/use-google-one-tap';
@@ -51,6 +51,14 @@ export default function RegisterPage() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [step2Errors, setStep2Errors] = useState<string[]>([]);
+
+  const [showPin, setShowPin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const pinComplete = /^\d{6}$/.test(pin);
+  const confirmComplete = /^\d{6}$/.test(confirmPin);
+  const pinsMatch = pin === confirmPin;
+  const pinReady = pinComplete && confirmComplete && pinsMatch;
 
   // Step 3 fields
   const [username, setUsername] = useState('');
@@ -237,6 +245,14 @@ export default function RegisterPage() {
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Shield size={20} className="text-brand-muted-gold" />
                 <h1 className="text-2xl font-bold text-brand-offwhite">Set recovery PIN</h1>
+                <button
+                  type="button"
+                  onClick={() => setShowPin((p) => !p)}
+                  className="ml-1 p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
+                  aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
+                >
+                  {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
               <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
                 This 6-digit PIN is used to recover your account if you forget your password.
@@ -365,30 +381,52 @@ export default function RegisterPage() {
                   <Label htmlFor="reg-password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
                     Password
                   </Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                    placeholder="Create a strong password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reg-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4 pr-12"
+                      placeholder="Create a strong password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </LabelInputContainer>
 
                 <LabelInputContainer>
                   <Label htmlFor="reg-confirm-password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
                     Confirm Password
                   </Label>
-                  <Input
-                    id="reg-confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                    placeholder="Re-enter your password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reg-confirm-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4 pr-12"
+                      placeholder="Re-enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </LabelInputContainer>
 
                 {step1Errors.length > 0 && (
@@ -429,49 +467,60 @@ export default function RegisterPage() {
                 </div>
               )}
 
-                  <PinInput size="md" mask>
-                    <PinInput.Label>Recovery PIN</PinInput.Label>
-                    <PinInput.Group
-                      maxLength={6}
-                      pattern={REGEXP_ONLY_DIGITS}
-                      value={pin}
-                      onChange={setPin}
-                      autoFocus
-                      hasError={step2Errors.length > 0}
-                    >
-                      <PinInput.Slot index={0} />
-                      <PinInput.Slot index={1} />
-                      <PinInput.Slot index={2} />
-                      <PinInput.Separator />
-                      <PinInput.Slot index={3} />
-                      <PinInput.Slot index={4} />
-                      <PinInput.Slot index={5} />
-                    </PinInput.Group>
-                    <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
-                  </PinInput>
+              <PinInput size="md" mask={!showPin}>
+                <PinInput.Label>Recovery PIN</PinInput.Label>
+                <PinInput.Group
+                  maxLength={6}
+                  pattern={REGEXP_ONLY_DIGITS}
+                  value={pin}
+                  onChange={setPin}
+                  autoFocus
+                  hasError={step2Errors.length > 0}
+                >
+                  <PinInput.Slot index={0} />
+                  <PinInput.Slot index={1} />
+                  <PinInput.Slot index={2} />
+                  <PinInput.Separator />
+                  <PinInput.Slot index={3} />
+                  <PinInput.Slot index={4} />
+                  <PinInput.Slot index={5} />
+                </PinInput.Group>
+                <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
+              </PinInput>
 
-                  <PinInput size="md" mask>
-                    <PinInput.Label>Confirm PIN</PinInput.Label>
-                    <PinInput.Group
-                      maxLength={6}
-                      pattern={REGEXP_ONLY_DIGITS}
-                      value={confirmPin}
-                      onChange={setConfirmPin}
-                      hasError={step2Errors.length > 0}
-                    >
-                      <PinInput.Slot index={0} />
-                      <PinInput.Slot index={1} />
-                      <PinInput.Slot index={2} />
-                      <PinInput.Separator />
-                      <PinInput.Slot index={3} />
-                      <PinInput.Slot index={4} />
-                      <PinInput.Slot index={5} />
-                    </PinInput.Group>
-                  </PinInput>
+              <PinInput size="md" mask={!showPin}>
+                <PinInput.Label>Confirm PIN</PinInput.Label>
+                <PinInput.Group
+                  maxLength={6}
+                  pattern={REGEXP_ONLY_DIGITS}
+                  value={confirmPin}
+                  onChange={setConfirmPin}
+                  hasError={(confirmPin.length > 0 && !pinsMatch) || step2Errors.length > 0}
+                >
+                  <PinInput.Slot index={0} />
+                  <PinInput.Slot index={1} />
+                  <PinInput.Slot index={2} />
+                  <PinInput.Separator />
+                  <PinInput.Slot index={3} />
+                  <PinInput.Slot index={4} />
+                  <PinInput.Slot index={5} />
+                </PinInput.Group>
+                {confirmPin.length > 0 && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {pinsMatch && confirmComplete ? (
+                      <span className="text-green-400 text-xs font-medium flex items-center gap-1">
+                        <CheckCircle size={12} /> PINs match
+                      </span>
+                    ) : !pinsMatch ? (
+                      <span className="text-brand-error text-xs font-medium">PINs do not match</span>
+                    ) : null}
+                  </div>
+                )}
+              </PinInput>
 
               {step2Errors.length > 0 && (
                 <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
-                    {step2Errors.map((err, i) => (
+                  {step2Errors.map((err, i) => (
                     <p key={i} className="text-brand-error text-xs">{err}</p>
                   ))}
                 </div>
@@ -479,7 +528,8 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 overflow-hidden"
+                disabled={!pinReady}
+                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
               >
                 Continue
                 <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
