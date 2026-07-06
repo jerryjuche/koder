@@ -202,13 +202,33 @@ koder/
 │   ├── Dockerfile                   # Two-stage arm64 build with GIT_COMMIT
 │   └── go.mod                       # Standalone module, zero external deps
 │
-├── migrations/
-│   ├── 001_init.sql                 # Full schema from spec
-│   ├── 002_indexes.sql              # All performance indexes
-│   ├── 009_get_full_profile.sql     # Collapsed 7 queries into get_full_profile()
-│   ├── 010_add_gitea_auth.sql       # (archived) Gitea OAuth identity fields
-│   ├── 011_add_gitea_token.sql      # (archived) Gitea PAT encrypted token storage
-│   └── 012_add_google_auth.sql      # Google OAuth fields + username + email columns
+├── migrations/                     # SQL schema (Supabase migrations)
+│   ├── 001_init.sql                # Core schema: users, problems, test_cases, submissions, progress
+│   ├── 002_indexes.sql             # Performance indexes
+│   ├── 003_activity_logs.sql       # Activity logging
+│   ├── 005_community_contributions.sql  # User-submitted problems
+│   ├── 006_notifications.sql       # In-app notifications
+│   ├── 007_submission_likes.sql    # Community solution likes
+│   ├── 008_user_profile.sql        # Profile bio, avatar fields
+│   ├── 009_get_full_profile.sql    # Collapsed 7 queries into get_full_profile()
+│   ├── 010_add_gitea_auth.sql      # (archived) Gitea OAuth identity fields
+│   ├── 011_add_gitea_token.sql     # (archived) Gitea PAT encrypted token storage
+│   ├── 012_add_google_auth.sql     # Google OAuth fields + username + email
+│   ├── 013_fix_rank_tiebreaker.sql # Leaderboard rank tiebreaker fix
+│   ├── 014_feedback.sql            # Feedback & bug report table
+│   ├── 015_broadcasts.sql          # Broadcast announcements + user dismissal
+│   ├── 016_add_streak_index.sql    # Composite index for streak queries
+│   ├── 017_optimization_indexes.sql # 16 performance indexes
+│   ├── 019_seed_problems1.sql      # 45 Go problems (math, arrays, data-structures)
+│   ├── 019_seed_problems2.sql      # 45 Go problems (bit-manipulation, sorting, pointers)
+│   ├── 019_seed_problems3.sql      # 45 Go problems
+│   ├── 019_seed_problems4.sql      # 45 Go problems
+│   ├── 020_token_blacklist.sql     # JWT blacklist for logout
+│   ├── 021_password_reset.sql      # Password reset tokens
+│   ├── 022_add_pin_hash.sql        # PIN hash column for recovery
+│   ├── 023_split_problem_fields.sql # constraints + learning_objective columns
+│   ├── 024_add_username_set.sql    # username_set boolean column
+│   └── 025_report_issue_fields.sql # problem_slug, code_snippet, error_message on feedback
 │
 ├── frontend/                        # Next.js App Router project
 │   ├── app/
