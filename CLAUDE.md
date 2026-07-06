@@ -511,6 +511,27 @@ See `.env.example` for full template.
 - **July 6 — Settings username editing:**
   - **Backend `PUT /me/username`**: Validates username, checks uniqueness, updates username + student_id, sets `username_set = true`. Returns 403 if already set
   - **Settings page**: Conditionally shows editable username field when `usernameSet === false` with inline validation and save button; read-only view with "Contact support" when already set
+- **July 6 — Professional 404 page:**
+  - `frontend/app/not-found.tsx` — layered visual hierarchy with Terminal icon, gradient text, shadcn semantic tokens, Home + Go Back actions
+- **July 6 — GOT/WANT parser fix (broken since inception):**
+  - `internal/executor/executor.go`: GOT/WANT regex changed from `^GOT:\s+(.*)$` to `(?:\s|^)GOT:\s+(.*)$` — Go's `t.Errorf` prefixes every line with `\tfile:line: `, so the start-of-string anchor never matched. `gotMap`/`wantMap` were always empty, making got/want identical and the diff invisible
+  - Multi-line accumulation: empty lines within multi-line GOT/WANT values are now preserved instead of skipped
+- **July 6 — Solved status guard:**
+  - `GetProblemBySlug(..., userID)` now accepts `userID uuid.UUID`, does `LEFT JOIN progress`, returns `Solved`/`Stars`/`Attempts`
+  - Submit handler returns `409 ALREADY_SOLVED` when `problem.Solved` is true
+  - Test handler stays active (no solved guard on `/test`)
+  - Frontend: Submit button disabled with `CheckCircle2` + "Solved" badge; test button stays clickable
+  - `community.go` fixed to pass `uuid.Nil` to updated `GetProblemBySlug` signature
+- **July 6 — Professional TerminalDiff component:**
+  - `frontend/components/TestResultPanel.tsx`: LCS-based unified diff for multi-line got/want; side-by-side grid for single-line values
+  - Git-style `-/+` gutter markers with red/green backgrounds and line numbers
+  - Replaced old word-level diff (`computeWordDiff`) and side-by-side line comparison
+- **July 6 — Error message standardization:**
+  - `setError(err.message)` → `setError(err.message || "Failed to submit contribution")` in contribute page (P0 fix)
+  - `toast.error(res.error.message)` → `toast.error(res.error?.message || "...")` with optional chaining in workspace (P1 fix)
+  - All `'Network error'` fallbacks changed to `'Unable to connect. Please try again.'` across 7 files (login, register, onboarding, forgot-password, reset-password, settings)
+- **July 6 — PIN rate limit message:**
+  - `internal/api/pin_reset.go`: Changed "Try again later" → "Please wait 15 minutes"
 
 ---
 
