@@ -48,32 +48,32 @@ const MODULE_META: Record<string, ModuleMeta> = {
     barColor: "bg-gradient-to-r from-rose-500 to-pink-400",
   },
   "hashmaps-sets": {
-    image: MODULE_IMAGE,
+    image: "/modules/hashmaps-sets.png",
     description: "Key-value stores, set operations, frequency counting",
     barColor: "bg-gradient-to-r from-violet-500 to-purple-400",
   },
   concurrency: {
-    image: MODULE_IMAGE,
+    image: "/modules/concurrency.png",
     description: "Goroutines, channels, mutexes, sync primitives",
     barColor: "bg-gradient-to-r from-cyan-500 to-sky-400",
   },
   "dynamic-programming": {
-    image: MODULE_IMAGE,
+    image: "/modules/dynamic-programming.png",
     description: "Memoization, tabulation, optimization, subsequence problems",
     barColor: "bg-gradient-to-r from-fuchsia-500 to-pink-400",
   },
   "bit-manipulation": {
-    image: MODULE_IMAGE,
+    image: "/modules/bit-manipulation.png",
     description: "Bitwise operations, flags, XOR tricks, bit masking",
     barColor: "bg-gradient-to-r from-slate-500 to-gray-400",
   },
   "trees-graphs": {
-    image: MODULE_IMAGE,
+    image: "/modules/trees-graphs.png",
     description: "Binary trees, BST, graph traversals, shortest path",
     barColor: "bg-gradient-to-r from-green-500 to-emerald-400",
   },
   "error-handling": {
-    image: MODULE_IMAGE,
+    image: "/modules/error-handling.png",
     description: "Error types, custom errors, panics, recover",
     barColor: "bg-gradient-to-r from-red-500 to-rose-400",
   },
@@ -98,7 +98,7 @@ const MODULE_META: Record<string, ModuleMeta> = {
     barColor: "bg-gradient-to-r from-pink-500 to-rose-400",
   },
   pointers: {
-    image: MODULE_IMAGE,
+    image: "/modules/pointers.png",
     description: "Pointer arithmetic, memory management, references",
     barColor: "bg-gradient-to-r from-stone-500 to-neutral-400",
   },
@@ -118,7 +118,7 @@ const MODULE_META: Record<string, ModuleMeta> = {
     barColor: "bg-gradient-to-r from-sky-500 to-blue-400",
   },
   "linked-lists": {
-    image: MODULE_IMAGE,
+    image: "/modules/linked-lists.png",
     description: "Singly/doubly linked lists, cycle detection, mergers",
     barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
   },
