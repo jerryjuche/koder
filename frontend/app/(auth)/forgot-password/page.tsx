@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Ban } from 'lucide-react';
+import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Ban, Eye, EyeOff } from 'lucide-react';
 import { PinInput } from '@/components/base/input/pin-input';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,6 +84,7 @@ export default function ForgotPasswordPage() {
   };
 
   const [sent, setSent] = useState(false);
+  const [showPin, setShowPin] = useState(false);
 
   return (
     <motion.div
@@ -133,7 +134,17 @@ export default function ForgotPasswordPage() {
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Forgot password?</h1>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold text-brand-offwhite">Forgot password?</h1>
+              <button
+                type="button"
+                onClick={() => setShowPin((p) => !p)}
+                className="p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
+                aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
+              >
+                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
               No worries. Recover your account using your recovery PIN.
             </p>
@@ -217,7 +228,7 @@ export default function ForgotPasswordPage() {
                   />
                 </LabelInputContainer>
 
-                <PinInput size="md" mask>
+                <PinInput size="md" mask={!showPin}>
                   <PinInput.Label>6-digit recovery PIN</PinInput.Label>
                   <PinInput.Group
                     maxLength={6}

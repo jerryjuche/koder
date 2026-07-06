@@ -149,7 +149,13 @@ koder/
 │   │   ├── submissions.go           # Submission insert + history queries
 │   │   ├── progress.go              # Upsert progress, XP logic
 │   │   ├── admin.go                 # Admin-level DB operations
+│   │   ├── feedback.go              # Feedback/bug report CRUD
+│   │   ├── broadcasts.go            # Broadcast CRUD store methods
+│   │   ├── user_problems.go         # User-submitted problem staging & approval
 │   │   └── types.go                 # FullProfile, ActivityEntry, LeaderboardUser, shared types
+│   │
+│   ├── broker/                      # WebSocket event pub/sub
+│   │   └── broker.go                # In-memory pub/sub with Subscribe/Unsubscribe/Publish
 │   │
 │   ├── parser/                      # PIPELINE 1: Ingest
 │   │   ├── parser.go                # Git clone/pull, directory walk
@@ -177,6 +183,9 @@ koder/
 │   │   ├── leaderboard.go           # GET /leaderboard
 │   │   ├── profile.go               # GET /me/profile (single get_full_profile() call)
 │   │   ├── me.go                    # GET /me, GET /me/activity (cached)
+│   │   ├── feedback.go              # Feedback & bug report handlers
+│   │   ├── broadcasts.go            # Broadcast CRUD handlers
+│   │   ├── ws.go                    # WebSocket upgrade handler
 │   │   └── responses.go             # Standardized JSON response helpers
 │   │
 │   └── auth/
@@ -227,6 +236,12 @@ koder/
 │   │   │   │   ├── loading.tsx
 │   │   │   │   └── error.tsx
 │   │   │   └── admin/              # Admin panel
+│   │   │       ├── page.tsx         # Main dashboard with WebSocket live updates
+│   │   │       ├── BroadcastPanel.tsx    # Broadcast CRUD with toggle switch
+│   │   │       ├── FeedbackPanel.tsx     # Feedback management
+│   │   │       ├── PendingContributions.tsx
+│   │   │       ├── ProblemEditPanel.tsx  # Inline problem editor with preview
+│   │   │       └── ProblemReports.tsx    # Bug reports grouped by problem slug
 │   │   ├── problems/[slug]/         # Monaco Editor workspace
 │   │   ├── not-found.tsx            # Professional 404 page
 │   │   └── layout.tsx
@@ -253,6 +268,7 @@ koder/
 │   │   └── ...                      # Custom React hooks
 │   ├── lib/
 │   │   ├── api.ts                   # Typed fetch wrappers for backend
+│   │   ├── event.ts                 # WebSocket hook with typed subscriptions
 │   │   ├── types.ts                 # Shared TypeScript types
 │   │   ├── utils.ts                 # cn(), getUserColor(), etc.
 │   │   └── UserContext.tsx          # Auth/user context provider
@@ -698,13 +714,14 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/admin/feedback/counts` | Admin | Feedback counts by status |
 | PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 
-### Notifications
+### Notifications & WebSocket
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/notifications` | Student | Unread notifications |
 | POST | `/notifications/read-all` | Student | Mark all as read |
 | POST | `/notifications/{id}/read` | Student | Mark single as read |
+| GET | `/ws` | Student | WebSocket connection for live events |
 
 ### Admin
 
@@ -724,7 +741,11 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | POST | `/admin/broadcasts` | Admin | Create broadcast (type, title, priority, CTA) |
 | GET | `/admin/broadcasts` | Admin | List all broadcasts |
 | PATCH | `/admin/broadcasts/{id}/deactivate` | Admin | Deactivate a broadcast |
+| PATCH | `/admin/broadcasts/{id}/activate` | Admin | Activate a broadcast |
 | DELETE | `/admin/broadcasts/{id}` | Admin | Permanently delete a broadcast |
+| GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
+| PUT | `/admin/problems/{id}` | Admin | Update a problem's editable fields |
+| POST | `/admin/problems/publish-all` | Admin | Publish all draft problems (single UPDATE) |
 
 ### Response Envelope
 
@@ -799,7 +820,7 @@ My Contributions layout:
 Single Profile tab with name, bio, and read-only username fields
 
 **`/admin` — Admin Dashboard**  
-Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Only accessible if JWT role = `admin`.
+Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Broadcast management with toggle switch. Inline problem editor with live preview. Bug reports grouped by problem slug. Only accessible if JWT role = `admin`. Real-time updates via WebSocket.
 
 ### Key Components
 

@@ -735,10 +735,238 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ---
 
-## 30. Known Issues & Next Steps
+## 30. Session 19 (July 5) — PIN-based Password Management (Professional Flow)
+
+### Backend
+| File | Change |
+|------|--------|
+| `internal/api/change_password.go` | **NEW** — `POST /auth/change-password`: verifies 6-digit PIN via bcrypt + updates password |
+| `internal/api/pin_reset.go` | PIN-based forgot-password flow with 5-attempt/15-min rate limiter |
+| `internal/api/responses.go` | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS` |
+| `internal/api/router.go` | Added change-password route; reset-password-pin route |
+| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users |
+
+### Frontend
+| File | Change |
+|------|--------|
+| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop |
+| `components/ui/input-otp.tsx` | **NEW** — shadcn InputOTP component |
+| `app/(main)/settings/page.tsx` | 3-step change-password dialog (PIN → new password → success checkmark) |
+| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon |
+
+### Auth Cookie Fix
+| File | Change |
+|------|--------|
+| `internal/api/responses.go` | `SetAuthCookie`/`ClearAuthCookie` — dynamic `Secure` + `SameSite: None` when HTTPS |
+| `internal/config/config.go` | Added `isHTTPS()` check |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/...`
+
+---
+
+## 31. Session 20 (July 5) — Problem Field Split, Monaco Local, CSP, Confetti, Pagination
+
+### Problem Field Split
+| File | Change |
+|------|--------|
+| `migrations/023_split_problem_fields.sql` | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
+| `internal/store/types.go` | `Problem.Constraints`, `Problem.LearningObjective` |
+| `internal/store/problems.go` | All 5 SELECT queries include new fields |
+| `internal/api/responses.go` | API response includes `constraints`/`learningObjective` |
+| `frontend/lib/types.ts` | `constraints?`, `learningObjective?` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section |
+| Seed files 1–4 (180 problems) | `statement` cleaned, structured fields populated |
+
+### Monaco Editor Local Workers
+| File | Change |
+|------|--------|
+| `scripts/copy-monaco.mjs` | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
+| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic` |
+| `frontend/app/problems/[slug]/page.tsx` | Server component wraps `DynamicWorkspace` in `Suspense` |
+| `frontend/next.config.ts` | CSP: `worker-src 'self' blob:` for Monaco workers |
+
+### UI Polish
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | Card excerpts strip markdown (`#`, `**`, code fences) |
+| `frontend/app/problems/[slug]/success/page.tsx` | Confetti: 60 particles/side, 150ms interval, 3.5s duration, fires on data ready |
+| `frontend/lib/toast.tsx` | Default duration 2s (was 4s) |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/...`
+
+---
+
+## 32. Session 21 (July 5) — Pagination, Back Button, Cache, Performance
+
+### Pagination
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | 18 items/page, first/prev/next/last nav, smart ellipsis, resets on filter |
+
+### Back Button Module Context
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | Reads `?module=` from URL on mount |
+| `frontend/app/(main)/problems/[slug]/success/page.tsx` | Links use `/home?module=...` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Navigation preserves module context |
+
+### SessionStorage Caching
+| File | Change |
+|------|--------|
+| `frontend/lib/cache.ts` | **NEW** — generic sessionStorage cache with 30s TTL |
+| `frontend/lib/api.ts` | `fetchApi` caches GET responses; `user-updated` handler debounced 300ms |
+| `frontend/app/(main)/home/page.tsx` | Stores all problems in `koder_all_problems` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}` |
+
+### Performance
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/home/page.tsx` | `filteredProblems` in `useMemo`; `handleSelectModule` in `useCallback` |
+| `frontend/components/dashboard/ModuleCards.tsx` | `React.memo` wrapper |
+| `frontend/app/layout.tsx` | `<link rel="preconnect">` for API domain |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+
+---
+
+## 33. Session 22 (July 6) — Error Handling Overhaul + Registration Race Condition Fix
+
+### Friendly Errors
+| File | Change |
+|------|--------|
+| `internal/store/errors.go` | **NEW** — `FriendlyError` type with `DUPLICATE_RESOURCE`/`NOT_FOUND`/`VALIDATION_ERROR` codes |
+| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages |
+| `internal/store/users.go` | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations |
+| `internal/api/auth.go` | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409 |
+
+### username_set Column
+| File | Change |
+|------|--------|
+| `migrations/024_add_username_set.sql` | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false` |
+| `internal/store/types.go` | `User.UsernameSet`, `NewUser.UsernameSet` |
+| `internal/store/store.go` | `UpdateUserUsernameSet()` added to Store interface |
+| `internal/store/users.go` | All 7 SELECT queries include `username_set` |
+| `internal/api/auth.go` | Login uses `!user.UsernameSet` instead of `strings.HasPrefix` |
+| `internal/api/me.go` | `PUT /me/username` — sets username_set = true; 403 if already set |
+| `frontend/lib/types.ts` | `usernameSet?: boolean` |
+| `frontend/app/(main)/settings/page.tsx` | Editable username when `usernameSet === false` |
+
+### Build Verification
+- ✅ `go build ./cmd/server/`
+- ✅ `go vet ./internal/...`
+
+---
+
+## 34. Session 23 (July 6) — 404 Page, GOT/WANT Fix, Solved Guard, TerminalDiff, Error Standardization
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
+| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
+
+### Professional 404 Page
+| File | Change |
+|------|--------|
+| `frontend/app/not-found.tsx` | **NEW** — Terminal icon, gradient "404" heading, HelpCircle subtitle, Home + Go Back buttons, shadcn Card |
+
+### GOT/WANT Parser Fix (Broken Since Inception)
+| File | Change |
+|------|--------|
+| `internal/executor/executor.go` | `^GOT:` → `(?:\s\|^)GOT:\s+`; same for `WANT:` and `=== FAIL: Case`; multi-line accumulation fixed |
+
+### Solved Status Guard
+| File | Change |
+|------|--------|
+| `internal/store/store.go` | `GetProblemBySlug(ctx, slug, userID)` signature updated |
+| `internal/store/problems.go` | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)` |
+| `internal/api/submissions.go` | Returns `409 ALREADY_SOLVED` when solved |
+| `frontend/.../ProblemWorkspaceClient.tsx` | Submit `disabled` when solved, `CheckCircle2` + "Solved" badge |
+
+### TerminalDiff Component
+| File | Change |
+|------|--------|
+| `frontend/components/TestResultPanel.tsx` | LCS `computeLineDiff()` + `TerminalDiff`: git-style `-/+` unified diff with line numbers |
+
+### Error Message Standardization
+| File | Change |
+|------|--------|
+| All auth pages | `'Network error'` → `'Unable to connect. Please try again.'` |
+| `internal/api/pin_reset.go` | `"Try again later"` → `"Please wait 15 minutes"` |
+
+### Build Verification
+- ✅ `go vet ./internal/...`
+- ✅ `npx tsc --noEmit`
+- ✅ `git push` (commit `59f805f`)
+
+---
+
+## 35. Session 24 (July 6, cont.) — Admin Problem Editor, Report Issues, Broadcast Toggle, WebSocket Live Updates
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `bcf84ea` | Professional WebSocket live updates + optimized publish-all |
+
+### Admin Problem Editor
+| File | Change |
+|------|--------|
+| `internal/api/admin.go` | `UpdateProblem` handler — partial merge via pointer-optional fields; publishes `problem.updated` event |
+| `internal/store/store.go` | Added `UpdateProblem(ctx, *Problem) (*Problem, error)` to Store interface |
+| `internal/store/problems.go` | `UpdateProblem` implementation + `PublishAllDrafts` (single UPDATE, no N round-trips) |
+| `internal/store/problems.go` | `GetProblemByID` implementation |
+| `frontend/app/(main)/admin/ProblemEditPanel.tsx` | **NEW** — full dialog (Basic Info, Description, Func Signature, Hints, Visibility, live preview toggle) |
+| `frontend/app/(main)/admin/page.tsx` | Pencil edit button per problem; WebSocket subscriptions replace 15s polling |
+
+### Problem Reporting System
+| File | Change |
+|------|--------|
+| `migrations/025_report_issue_fields.sql` | **NEW** — adds `problem_slug`, `code_snippet`, `error_message` to feedback table |
+| `internal/store/feedback.go` | `GetProblemReports` — filters bug-type feedback by problem slug |
+| `internal/api/feedback.go` | `ListProblemReports` handler + `feedback.submitted` event publishing |
+| `frontend/app/(main)/admin/ProblemReports.tsx` | **NEW** — grouped by problem slug, status filters, expandable rows, inline code/error |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | "Report Bug" button always visible in toolbar + dialog with pre-filled context |
+
+### Broadcast Toggle System
+| File | Change |
+|------|--------|
+| `internal/store/broadcasts.go` | `ActivateBroadcast` store method |
+| `internal/api/broadcasts.go` | `Activate` handler + `PATCH /admin/broadcasts/{id}/activate` route |
+| `frontend/app/(main)/admin/BroadcastPanel.tsx` | Redesigned with per-broadcast toggle switch, WebSocket subscriptions, optimistic UI |
+
+### WebSocket Live Updates
+| File | Change |
+|------|--------|
+| `internal/broker/broker.go` | **NEW** — in-memory pub/sub with Subscribe/Unsubscribe/Publish, non-blocking sends |
+| `internal/api/ws.go` | **NEW** — WebSocket upgrade handler using gorilla/websocket (auth-protected) |
+| `internal/api/router.go` | Registers `GET /ws` + passes broker to AdminHandler, BroadcastsHandler, FeedbackHandler |
+| `cmd/server/main.go` | Creates broker, passes to `NewRouter` |
+| `frontend/lib/event.ts` | **NEW** — typed `useWebSocket` hook with auto-reconnect and exponential backoff |
+| `frontend/app/(main)/admin/page.tsx` | Uses `useWebSocket` subscriptions; optimistic visibility toggles (update local state immediately, revert on error) |
+
+### Performance
+| File | Change |
+|------|--------|
+| `internal/store/problems.go` | `PublishAllDrafts` — single `UPDATE SET visible = true WHERE NOT visible` instead of fetch-all + N round trips |
+| `frontend/app/(main)/admin/page.tsx` | Polling reduced from 15s to 60s (WebSocket handles real-time); `loadData` wrapped in `useCallback` |
+
+### Build Verification
+- ✅ `go build ./...`
+- ✅ `npx tsc --noEmit`
+
+---
+
+## Known Issues & Next Steps
 
 - [ ] Run migration `022_add_pin_hash.sql` against the database
 - [ ] Run migration `023_split_problem_fields.sql` against the database
+- [ ] Run migration `024_add_username_set.sql`
+- [ ] Run migration `025_report_issue_fields.sql`
 - [ ] Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
 - [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
 - [ ] Test Google Sign-In on production HTTPS URL
