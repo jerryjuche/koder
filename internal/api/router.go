@@ -138,6 +138,8 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/feedback", feedbackHandler.ListAdmin)
 			r.Get("/admin/feedback/counts", feedbackHandler.Counts)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/feedback/{id}", feedbackHandler.UpdateStatus)
+
+			r.Get("/admin/problem-reports", feedbackHandler.ListProblemReports)
 		})
 	})
 

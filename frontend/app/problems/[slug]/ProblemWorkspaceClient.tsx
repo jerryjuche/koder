@@ -22,9 +22,15 @@ import {
   Copy,
   Expand,
   CheckCircle2,
+  Bug,
+  Send,
+  X,
+  Code2,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
-import { fetchProblem, submitSolution, testCode } from "@/lib/api";
+import { fetchProblem, submitSolution, testCode, submitFeedback } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Problem, TestResult, ExecutionResult } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
@@ -52,6 +58,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
   const [cooldown, setCooldown] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportSending, setReportSending] = useState(false);
+  const [reportDescription, setReportDescription] = useState("");
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -287,6 +297,29 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
 
     setSubmitting(false);
+  };
+
+  const handleReportSubmit = async () => {
+    if (!problem) return;
+    setReportSending(true);
+    const baseDesc = `Error encountered while solving "${problem.title}" (${problem.slug}).\n\nError: ${errorMsg || lastExecution?.friendly_message || "Unknown error"}\n\nCode:\n\`\`\`go\n${code}\n\`\`\``;
+    const fullDesc = reportDescription.trim() ? `${baseDesc}\n\nAdditional notes:\n${reportDescription.trim()}` : baseDesc;
+    const res = await submitFeedback({
+      type: "bug",
+      title: `Problem: ${problem.title}`,
+      description: fullDesc,
+      priority: "medium",
+      is_anonymous: false,
+      problem_slug: problem.slug,
+      code_snippet: code,
+      error_message: errorMsg || lastExecution?.friendly_message || "",
+    });
+    setReportSending(false);
+    if (res.success) {
+      setReportSubmitted(true);
+    } else {
+      toast.error(res.error?.message || "Failed to submit report");
+    }
   };
 
   if (!problem) {
@@ -912,6 +945,19 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             expanded={testsExpanded}
             onToggle={() => setTestsExpanded(!testsExpanded)}
           />
+
+          {/* Report Issue — shown when there's an error or failed tests */}
+          {(errorMsg || (results && results.some(r => !r.passed)) || (lastExecution && lastExecution.status !== "passed")) && (
+            <div className="px-4 pb-3 flex justify-end">
+              <button
+                onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
+                className="inline-flex items-center gap-1.5 text-xs text-brand-offwhite-muted hover:text-brand-muted-gold transition-colors group"
+              >
+                <Bug size={13} className="group-hover:rotate-12 transition-transform" />
+                Report Issue
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Hints Panel (Collapsible) */}
@@ -999,6 +1045,100 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         )}
       </div>
+
+      {/* Report Issue Dialog */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setReportOpen(false); setReportDescription(""); }} />
+          <div className="relative w-full max-w-lg rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+            {reportSubmitted ? (
+              <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-success/10 border border-brand-success/20">
+                  <CheckCircle2 className="h-8 w-8 text-brand-success" />
+                </div>
+                <h3 className="text-xl font-bold text-brand-offwhite mb-2">Thank You</h3>
+                <p className="text-sm text-brand-offwhite-muted max-w-sm leading-relaxed">
+                  Your report has been submitted. The admin will review the issue and fix it as soon as possible.
+                </p>
+                <button
+                  onClick={() => setReportOpen(false)}
+                  className="mt-6 rounded-lg border border-brand-charcoal-border px-5 py-2 text-sm font-medium text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-brand-error/10 border border-brand-error/20 flex items-center justify-center">
+                      <Bug size={18} className="text-brand-error" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-brand-offwhite">Report Issue</h2>
+                      <p className="text-xs text-brand-offwhite-muted">Help us fix this problem</p>
+                    </div>
+                  </div>
+                  <button onClick={() => { setReportOpen(false); setReportDescription(""); }} className="rounded-lg p-1.5 text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="px-5 py-5 space-y-4">
+                  <div className="rounded-lg bg-brand-charcoal-base border border-brand-charcoal-border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
+                      <Target size={12} />
+                      <span>Problem: <span className="text-brand-offwhite font-medium">{problem.title}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
+                      <Code2 size={12} />
+                      <span>Slug: <span className="font-mono text-brand-offwhite">{problem.slug}</span></span>
+                    </div>
+                    {(errorMsg || lastExecution?.friendly_message) && (
+                      <div className="flex items-start gap-2 text-xs text-brand-offwhite-muted">
+                        <AlertTriangle size={12} className="mt-0.5 shrink-0 text-brand-warning" />
+                        <span className="text-brand-warning font-mono text-[11px] leading-relaxed break-all">{errorMsg || lastExecution?.friendly_message}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">
+                      Additional Details <span className="text-brand-offwhite-muted/50">(optional)</span>
+                    </label>
+                    <textarea
+                      id="report-description"
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      placeholder="Describe what you expected vs what happened..."
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-4 py-2.5 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:outline-none focus:border-brand-muted-gold transition-colors"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-brand-charcoal-border px-5 py-4">
+                  <button
+                    onClick={() => { setReportOpen(false); setReportDescription(""); }}
+                    className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReportSubmit}
+                    disabled={reportSending}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-error px-5 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-error/90 disabled:opacity-50"
+                  >
+                    {reportSending ? (
+                      <Activity size={16} className="animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
+                    {reportSending ? "Submitting..." : "Submit Report"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

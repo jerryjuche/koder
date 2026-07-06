@@ -207,6 +207,10 @@ export type FeedbackItem = {
   status: "new" | "in_progress" | "resolved";
   admin_notes?: string;
   is_anonymous: boolean;
+  problem_slug?: string;
+  code_snippet?: string;
+  error_message?: string;
+  problem_title?: string;
   created_at: string;
   user_name?: string;
 };

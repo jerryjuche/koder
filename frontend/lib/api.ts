@@ -384,6 +384,9 @@ export async function submitFeedback(data: {
   priority: string;
   screenshot_url?: string;
   is_anonymous: boolean;
+  problem_slug?: string;
+  code_snippet?: string;
+  error_message?: string;
 }): Promise<ApiResponse<any>> {
   return fetchApi<any>("/feedback", {
     method: "POST",
@@ -402,6 +405,10 @@ export async function fetchAdminFeedback(status?: string): Promise<ApiResponse<F
 
 export async function fetchAdminFeedbackCounts(): Promise<ApiResponse<Record<string, number>>> {
   return fetchApi<Record<string, number>>("/admin/feedback/counts");
+}
+
+export async function fetchProblemReports(): Promise<ApiResponse<FeedbackItem[]>> {
+  return fetchApi<FeedbackItem[]>("/admin/problem-reports");
 }
 
 export async function updateFeedbackStatus(id: string, status: string, adminNotes?: string): Promise<ApiResponse<any>> {

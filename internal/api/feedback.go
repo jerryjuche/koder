@@ -93,6 +93,9 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	// In-app notification for admins
 	notifType := "feedback"
 	notifMessage := fmt.Sprintf("New %s feedback: %s", fb.Type, fb.Title)
+	if fb.ProblemSlug != nil && *fb.ProblemSlug != "" {
+		notifMessage = fmt.Sprintf("Bug report for %s: %s", *fb.ProblemSlug, fb.Title)
+	}
 	fbID := uuid.UUID(fb.ID.Bytes)
 	if err := h.store.NotifyAdmins(r.Context(), notifType, notifMessage, &fbID); err != nil {
 		slog.Error("feedback: failed to notify admins", "error", err)
@@ -176,6 +179,19 @@ func (h *FeedbackHandler) ListMine(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondSuccess(w, feedbacks)
+}
+
+func (h *FeedbackHandler) ListProblemReports(w http.ResponseWriter, r *http.Request) {
+	problemSlug := r.URL.Query().Get("problem_slug")
+
+	reports, err := h.store.GetProblemReports(r.Context(), problemSlug)
+	if err != nil {
+		slog.Error("feedback: failed to list problem reports", "error", err)
+		RespondError(w, http.StatusInternalServerError, "QUERY_FAILED", "Failed to list problem reports", nil)
+		return
+	}
+
+	RespondSuccess(w, reports)
 }
 
 func (h *FeedbackHandler) Counts(w http.ResponseWriter, r *http.Request) {
