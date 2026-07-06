@@ -133,6 +133,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/broadcasts", broadcastsHandler.ListAll)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/broadcasts", broadcastsHandler.Create)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/broadcasts/{id}/deactivate", broadcastsHandler.Deactivate)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/broadcasts/{id}/activate", broadcastsHandler.Activate)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/broadcasts/{id}", broadcastsHandler.Delete)
 
 			r.Get("/admin/feedback", feedbackHandler.ListAdmin)

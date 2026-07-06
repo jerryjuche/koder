@@ -136,6 +136,15 @@ func (s *PostgresStore) DeactivateBroadcast(ctx context.Context, id uuid.UUID) e
 	return nil
 }
 
+func (s *PostgresStore) ActivateBroadcast(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE broadcasts SET active = TRUE, updated_at = $2 WHERE id = $1`
+	_, err := s.pool.Exec(ctx, query, id, time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to activate broadcast: %w", err)
+	}
+	return nil
+}
+
 func (s *PostgresStore) DeleteBroadcast(ctx context.Context, id uuid.UUID) error {
 	_, err := s.pool.Exec(ctx, `DELETE FROM broadcasts WHERE id = $1`, id)
 	if err != nil {

@@ -456,6 +456,10 @@ export async function deactivateBroadcast(id: string): Promise<ApiResponse<any>>
   return fetchApi<any>(`/admin/broadcasts/${id}/deactivate`, { method: "PATCH" });
 }
 
+export async function activateBroadcast(id: string): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}/activate`, { method: "PATCH" });
+}
+
 export async function deleteBroadcast(id: string): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/broadcasts/${id}`, { method: "DELETE" });
 }
