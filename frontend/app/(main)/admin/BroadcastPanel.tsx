@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { fetchAllBroadcasts, createBroadcast, deleteBroadcast, deactivateBroadcast, activateBroadcast } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Broadcast } from "@/lib/types";
+import { useWebSocket } from "@/lib/event";
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bg: string }> = {
   info:         { icon: Info,          label: "Info",         color: "text-blue-400",  bg: "bg-blue-500/10" },
@@ -55,6 +56,25 @@ export default function BroadcastPanel({ compact }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Live WebSocket updates
+  useWebSocket({
+    'broadcast.created': useCallback(() => { load(); }, [load]),
+    'broadcast.updated': useCallback((data: any) => {
+      if (data?.id) {
+        setBroadcasts((prev) =>
+          prev.map((b) =>
+            b.id === data.id ? { ...b, active: data.active } : b,
+          ),
+        );
+      }
+    }, []),
+    'broadcast.deleted': useCallback((data: any) => {
+      if (data?.id) {
+        setBroadcasts((prev) => prev.filter((b) => b.id !== data.id));
+      }
+    }, []),
+  }, [load]);
+
   const resetForm = () => {
     setType("info");
     setPriority("medium");
@@ -80,7 +100,7 @@ export default function BroadcastPanel({ compact }: Props) {
     if (res.success) {
       toast.success("Broadcast sent!");
       resetForm();
-      load();
+      // WebSocket will update the list
     } else {
       toast.error(res.error?.message || "Failed to send");
     }
@@ -88,25 +108,32 @@ export default function BroadcastPanel({ compact }: Props) {
   };
 
   const handleToggle = async (b: Broadcast) => {
-    setToggling(b.id);
+    // Optimistic update
+    setBroadcasts((prev) =>
+      prev.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)),
+    );
     const res = b.active ? await deactivateBroadcast(b.id) : await activateBroadcast(b.id);
-    setToggling(null);
     if (res.success) {
       toast.success(b.active ? "Broadcast deactivated" : "Broadcast activated");
-      load();
     } else {
+      // Revert on failure
+      setBroadcasts((prev) =>
+        prev.map((x) => (x.id === b.id ? { ...x, active: b.active } : x)),
+      );
       toast.error("Failed to toggle");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this broadcast permanently? Users will no longer see it.")) return;
+    // Optimistic removal
+    setBroadcasts((prev) => prev.filter((b) => b.id !== id));
     const res = await deleteBroadcast(id);
     if (res.success) {
       toast.success("Broadcast deleted");
-      load();
     } else {
       toast.error("Failed to delete");
+      load();
     }
   };
 

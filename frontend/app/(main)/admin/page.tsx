@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
+import { useWebSocket } from '@/lib/event';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
 import BroadcastPanel from './BroadcastPanel';
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const [statsRes, logsRes, problemsRes] = await Promise.all([
       fetchAdminStats(),
       fetchAdminActivity(),
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
     if (statsRes.success && statsRes.data) setStats(statsRes.data);
     if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
     if (problemsRes.success && problemsRes.data) setProblems(problemsRes.data);
-  };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,27 +61,31 @@ export default function AdminDashboard() {
         return;
       }
       setIsAuthorized(true);
-
-      const [statsRes, logsRes, problemsRes] = await Promise.all([
-        fetchAdminStats(),
-        fetchAdminActivity(),
-        fetchAllProblemsAdmin()
-      ]);
-
-      if (cancelled) return;
-
-      if (statsRes.success && statsRes.data) setStats(statsRes.data);
-      if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
-      if (problemsRes.success && problemsRes.data) setProblems(problemsRes.data);
+      await loadData();
     };
 
     load();
-    const interval = setInterval(load, 15000);
+
+    const interval = setInterval(loadData, 60000);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [router]);
+  }, [router, loadData]);
+
+  // WebSocket live updates
+  useWebSocket({
+    'problem.updated': useCallback((data: any) => {
+      setProblems((prev) =>
+        prev.map((p) =>
+          p.id === data.id ? { ...p, ...data } : p,
+        ),
+      );
+    }, []),
+    'problem.publish-all': useCallback(() => {
+      loadData();
+    }, [loadData]),
+  }, [loadData]);
 
   const handleIngest = async () => {
     if (!ingestUrl.trim()) {
@@ -141,11 +146,18 @@ export default function AdminDashboard() {
 
   const handleToggleVisibility = async (problem: Problem) => {
     const next = !problem.visible;
+    // Optimistic update
+    setProblems((prev) =>
+      prev.map((p) => (p.id === problem.id ? { ...p, visible: next } : p)),
+    );
     const res = await toggleProblemVisibility(problem.id, next);
     if (res.success) {
       toast.success(`"${problem.title}" is now ${next ? 'visible' : 'hidden'}`);
-      loadData();
     } else {
+      // Revert on failure
+      setProblems((prev) =>
+        prev.map((p) => (p.id === problem.id ? { ...p, visible: !next } : p)),
+      );
       const detail = (res.error as any)?.details;
       toast.error(detail ? `${res.error?.message}: ${detail}` : (res.error?.message || "Toggle failed"));
     }

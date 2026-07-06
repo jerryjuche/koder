@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/parser"
@@ -24,16 +25,17 @@ type AdminHandler struct {
 	store    store.Store
 	parser   *parser.Parser
 	enricher *enricher.Enricher
+	broker   *broker.Broker
 }
 
-func NewAdminHandler(store store.Store, cfg *config.Config) (*AdminHandler, error) {
+func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker) (*AdminHandler, error) {
 	parser := parser.NewParser(cfg.SandboxBaseDir)
 	enricher, err := enricher.NewEnricher(context.Background(), cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &AdminHandler{store: store, parser: parser, enricher: enricher}, nil
+	return &AdminHandler{store: store, parser: parser, enricher: enricher, broker: b}, nil
 }
 
 type ingestRequest struct {
@@ -276,29 +278,28 @@ func (h *AdminHandler) ToggleVisibility(w http.ResponseWriter, r *http.Request) 
 	}
 	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Problem %s set to %s", problemID.String(), status), "text-brand-muted-gold", "Eye")
 
+	h.broker.PublishEvent("problem.updated", map[string]interface{}{
+		"id":      problemID.String(),
+		"visible": req.Visible,
+	})
+
 	RespondSuccess(w, map[string]any{"id": problemID.String(), "visible": req.Visible})
 }
 
 // PublishAllDrafts sets all draft (invisible) problems to visible.
 // POST /admin/problems/publish-all
 func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) {
-	problems, err := h.store.ListAllProblemsAdmin(r.Context())
+	published, err := h.store.PublishAllDrafts(r.Context())
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list problems", nil)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to publish drafts", nil)
 		return
 	}
 
-	published := 0
-	for _, p := range problems {
-		if !p.Visible && p.ID.Valid {
-			problemID := uuid.UUID(p.ID.Bytes)
-			if err := h.store.UpdateProblemVisibility(r.Context(), problemID, true); err == nil {
-				published++
-			}
-		}
-	}
-
 	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Published %d draft problems", published), "text-brand-muted-gold", "Eye")
+
+	h.broker.PublishEvent("problem.publish-all", map[string]interface{}{
+		"count": published,
+	})
 
 	RespondSuccess(w, map[string]any{"published": published})
 }
@@ -478,6 +479,12 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Updated problem '%s' (%s)", updated.Title, updated.Slug), "text-brand-muted-gold", "Edit3")
+
+	h.broker.PublishEvent("problem.updated", map[string]interface{}{
+		"id":    uuid.UUID(updated.ID.Bytes).String(),
+		"title": updated.Title,
+		"slug":  updated.Slug,
+	})
 
 	RespondSuccess(w, updated)
 }

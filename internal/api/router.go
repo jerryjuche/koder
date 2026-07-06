@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
 // NewRouter builds the application router for Koder.
-func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (http.Handler, error) {
+func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	r.Use(CORSMiddleware(cfg))
@@ -30,7 +31,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 	rateLimiter := NewRateLimiter(5, 45*time.Second)
 	slog.Info("rate_limiter: enabled", "max_requests", 5, "window_seconds", 45)
 
-	adminHandler, err := NewAdminHandler(store, cfg)
+	adminHandler, err := NewAdminHandler(store, cfg, b)
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +94,11 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/notifications/read-all", notificationsHandler.MarkAllAsRead)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/notifications/{id}/read", notificationsHandler.MarkAsRead)
 
-		broadcastsHandler := NewBroadcastsHandler(store)
+		broadcastsHandler := NewBroadcastsHandler(store, b)
 		r.Get("/me/broadcasts", broadcastsHandler.ListActive)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/me/broadcasts/{id}/dismiss", broadcastsHandler.Dismiss)
 
-		feedbackHandler := NewFeedbackHandler(store, cfg)
+		feedbackHandler := NewFeedbackHandler(store, cfg, b)
 		r.With(BodySizeLimitMiddleware(10 * 1024 * 1024)).Post("/feedback", feedbackHandler.Submit)
 		r.Get("/feedback/mine", feedbackHandler.ListMine)
 
@@ -142,6 +143,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 
 			r.Get("/admin/problem-reports", feedbackHandler.ListProblemReports)
 		})
+
+		wsHandler := NewWSHandler(b)
+		r.Get("/ws", wsHandler.ServeHTTP)
 	})
 
 	return r, nil

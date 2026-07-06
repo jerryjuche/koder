@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jerryjuche/koder/internal/api"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
@@ -62,7 +63,10 @@ func main() {
 	}
 
 	// Create HTTP router
-	router, err := api.NewRouter(cfg, storeInstance, execInstance)
+	b := broker.New()
+	slog.Info("broker: initialized")
+
+	router, err := api.NewRouter(cfg, storeInstance, execInstance, b)
 	if err != nil {
 		slog.Error("failed to initialize router", "error", err)
 		os.Exit(1)

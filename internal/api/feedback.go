@@ -13,17 +13,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
 type FeedbackHandler struct {
-	store store.Store
-	cfg   *config.Config
+	store  store.Store
+	cfg    *config.Config
+	broker *broker.Broker
 }
 
-func NewFeedbackHandler(store store.Store, cfg *config.Config) *FeedbackHandler {
-	return &FeedbackHandler{store: store, cfg: cfg}
+func NewFeedbackHandler(store store.Store, cfg *config.Config, b *broker.Broker) *FeedbackHandler {
+	return &FeedbackHandler{store: store, cfg: cfg, broker: b}
 }
 
 func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +104,12 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go h.sendEmailNotification(fb, userIdentifier)
+
+	h.broker.PublishEvent("feedback.submitted", map[string]interface{}{
+		"id":    uuid.UUID(fb.ID.Bytes).String(),
+		"type":  fb.Type,
+		"title": fb.Title,
+	})
 
 	RespondCreated(w, fb)
 }
