@@ -19,61 +19,61 @@ type ModuleMeta = {
   barColor: string;
 };
 
-const MODULE_IMAGE = "/modules/arrays-strings.png";
+const MODULE_IMAGE = "/modules/arrays-strings.webp";
 
 const MODULE_META: Record<string, ModuleMeta> = {
   "arrays-strings": {
-    image: "/modules/arrays-strings.png",
+    image: "/modules/arrays-strings.webp",
     description: "Array operations, slice manipulation, capacity & len",
     barColor: "bg-gradient-to-r from-blue-500 to-cyan-400",
   },
   "strings-runes": {
-    image: "/modules/strings-runes.png",
+    image: "/modules/strings-runes.webp",
     description: "String manipulation, Unicode, runes, concatenation",
     barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
   },
   "math-recursion": {
-    image: "/modules/math-recursion.png",
+    image: "/modules/math-recursion.webp",
     description: "Mathematical operations, recursive algorithms, number theory",
     barColor: "bg-gradient-to-r from-purple-500 to-violet-400",
   },
   "data-structures": {
-    image: "/modules/data-structures.png",
+    image: "/modules/data-structures.webp",
     description: "Data structures: stacks, queues, linked lists, trees, heaps, graphs",
     barColor: "bg-gradient-to-r from-amber-500 to-yellow-400",
   },
   "sorting-searching": {
-    image: "/modules/sorting-searching.png",
+    image: "/modules/sorting-searching.webp",
     description: "Sorting algorithms, binary search, two-pointer techniques",
     barColor: "bg-gradient-to-r from-rose-500 to-pink-400",
   },
   "hashmaps-sets": {
-    image: "/modules/hashmaps-sets.png",
+    image: "/modules/hashmaps-sets.webp",
     description: "Key-value stores, set operations, frequency counting",
     barColor: "bg-gradient-to-r from-violet-500 to-purple-400",
   },
   concurrency: {
-    image: "/modules/concurrency.png",
+    image: "/modules/concurrency.webp",
     description: "Goroutines, channels, mutexes, sync primitives",
     barColor: "bg-gradient-to-r from-cyan-500 to-sky-400",
   },
   "dynamic-programming": {
-    image: "/modules/dynamic-programming.png",
+    image: "/modules/dynamic-programming.webp",
     description: "Memoization, tabulation, optimization, subsequence problems",
     barColor: "bg-gradient-to-r from-fuchsia-500 to-pink-400",
   },
   "bit-manipulation": {
-    image: "/modules/bit-manipulation.png",
+    image: "/modules/bit-manipulation.webp",
     description: "Bitwise operations, flags, XOR tricks, bit masking",
     barColor: "bg-gradient-to-r from-slate-500 to-gray-400",
   },
   "trees-graphs": {
-    image: "/modules/trees-graphs.png",
+    image: "/modules/trees-graphs.webp",
     description: "Binary trees, BST, graph traversals, shortest path",
     barColor: "bg-gradient-to-r from-green-500 to-emerald-400",
   },
   "error-handling": {
-    image: "/modules/error-handling.png",
+    image: "/modules/error-handling.webp",
     description: "Error types, custom errors, panics, recover",
     barColor: "bg-gradient-to-r from-red-500 to-rose-400",
   },
@@ -98,7 +98,7 @@ const MODULE_META: Record<string, ModuleMeta> = {
     barColor: "bg-gradient-to-r from-pink-500 to-rose-400",
   },
   pointers: {
-    image: "/modules/pointers.png",
+    image: "/modules/pointers.webp",
     description: "Pointer arithmetic, memory management, references",
     barColor: "bg-gradient-to-r from-stone-500 to-neutral-400",
   },
@@ -118,7 +118,7 @@ const MODULE_META: Record<string, ModuleMeta> = {
     barColor: "bg-gradient-to-r from-sky-500 to-blue-400",
   },
   "linked-lists": {
-    image: "/modules/linked-lists.png",
+    image: "/modules/linked-lists.webp",
     description: "Singly/doubly linked lists, cycle detection, mergers",
     barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
   },
@@ -180,9 +180,10 @@ const FALLBACK_COLOR = { bg: "bg-gray-500/20", text: "text-gray-400" };
 
 function ModuleImage({ src, alt, initial }: { src: string; alt: string; initial: string }) {
   const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const color = MODULE_COLORS[alt] || FALLBACK_COLOR;
 
   if (error) {
-    const color = MODULE_COLORS[alt] || FALLBACK_COLOR;
     return (
       <div className={cn("aspect-video flex items-center justify-center", color.bg)}>
         <span className={cn("text-3xl font-bold", color.text)}>
@@ -193,13 +194,28 @@ function ModuleImage({ src, alt, initial }: { src: string; alt: string; initial:
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setError(true)}
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-    />
+    <div className="relative aspect-video overflow-hidden">
+      {!loaded && (
+        <div className={cn("absolute inset-0 flex items-center justify-center animate-pulse", color.bg)}>
+          <span className={cn("text-3xl font-bold", color.text)}>
+            {initial}
+          </span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        width={400}
+        height={225}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        className={cn(
+          "h-full w-full object-cover transition-all duration-500 group-hover:scale-105",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
+      />
+    </div>
   );
 }
 
@@ -252,9 +268,9 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
                 isComplete && "ring-1 ring-emerald-500/20",
               )}
             >
-              <div className="relative overflow-hidden aspect-video">
+              <div className="relative">
                 <ModuleImage src={meta.image} alt={name} initial={name[0]} />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
               </div>
 
               <CardHeader className="p-5 pb-2 relative z-10">
