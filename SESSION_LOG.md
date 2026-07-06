@@ -1,4 +1,4 @@
-# Session Logbook — June 28 – July 6, 2026 (Sessions 1–18)
+# Session Logbook — June 28 – July 6, 2026 (Sessions 1–29)
 
 ---
 
@@ -29,6 +29,14 @@
 | 21 | `11526ba` | Sync confetti with page load — fire when data is ready |
 | 22 | `741d305` | Cache problems in sessionStorage — skip fetch when cached |
 | 23 | `ab6e195` | Performance optimization pass: API cache, useMemo, React.memo, preconnect |
+| 24 | `1a0d235` | July 6 — Error handling overhaul + registration race condition fix |
+| 25 | `9e25ac9` | Fix GetUserByID scan mismatch — missing UsernameSet in Scan targets |
+| 26 | `8c69707` | Add POST /auth/verify-pin endpoint + fix change-password PIN flow |
+| 27 | `a04dcc9` | Fix PIN change flow: add pin_hash to GetUserByID + add /auth/set-pin endpoint |
+| 28 | `b3663db` | Polish PIN input UI: professional design with error states and shake animation |
+| 29 | `eb58ecf` | Restore resetPassword export — used by reset-password landing page |
+| 30 | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
+| 31 | `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
 
 ---
 
@@ -669,3 +677,69 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ### Build Verification
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
+
+---
+
+## 29. Session 18 (July 6) — 404 Page, GOT/WANT Fix, Solved Guard, TerminalDiff, Error Standardization
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
+| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
+
+### Professional 404 Page
+| File | Change |
+|------|--------|
+| `frontend/app/not-found.tsx` | **NEW** — Terminal icon, gradient "404" heading, HelpCircle subtitle, Home + Go Back buttons, shadcn Card |
+
+### GOT/WANT Parser Fix (Broken Since Inception)
+**Problem:** `t.Errorf` prefixes each output line with `\tfile:line: `. The anchor `^GOT:` never matched these prefixed lines. `gotMap`/`wantMap` were always empty.
+
+| File | Change |
+|------|--------|
+| `internal/executor/executor.go` | `^GOT:` → `(?:\s|^)GOT:\s+` in both `Execute` and `ExecuteVisibleOnly`; same for `WANT:` and `=== FAIL: Case` |
+| `internal/executor/executor.go` | Multi-line got/want: empty lines preserved instead of skipped |
+| `internal/executor/executor.go` | `friendly_message` for compiler errors and timeouts added |
+
+### Solved Status Guard
+| File | Change |
+|------|--------|
+| `internal/store/store.go` | `GetProblemBySlug(ctx, slug, userID)` signature updated |
+| `internal/store/problems.go` | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)` |
+| `internal/api/submissions.go` | Returns `409 ALREADY_SOLVED` when solved |
+| `internal/api/test.go` | Passes userID but no solved guard |
+| `internal/api/community.go` | Passes `uuid.Nil` to updated signature |
+| `frontend/.../ProblemWorkspaceClient.tsx` | Submit `disabled` when solved, `CheckCircle2` + "Solved" badge; Test stays active |
+
+### TerminalDiff Component
+| File | Change |
+|------|--------|
+| `frontend/components/TestResultPanel.tsx` | LCS `computeLineDiff()` + `TerminalDiff`: git-style `-/+` unified diff with line numbers |
+| | Single-line: side-by-side `Got → Expected` grid |
+| | Multi-line: unified diff with dual line numbering |
+| | Removed `computeWordDiff()`, `ArrowRight` SVG, `AlertTriangle` import |
+
+### Error Message Standardization
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/contribute/page.tsx` | P0: `setError(err.message)` → `setError(err.message \|\| "Failed to submit contribution")` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | P1: `toast.error(res.error.message)` → `toast.error(res.error?.message \|\| "...")` |
+| All 6 auth/settings pages | `'Network error'` → `'Unable to connect. Please try again.'` |
+| `internal/api/pin_reset.go` | `"Try again later"` → `"Please wait 15 minutes"` |
+
+### Build Verification
+- ✅ `go vet ./internal/...`
+- ✅ `npx tsc --noEmit`
+- ✅ `git push` (commit `59f805f`)
+
+---
+
+## 30. Known Issues & Next Steps
+
+- [ ] Run migration `022_add_pin_hash.sql` against the database
+- [ ] Run migration `023_split_problem_fields.sql` against the database
+- [ ] Set `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env vars
+- [ ] Add `http://localhost:3000` and Vercel domain to Authorized JavaScript origins in Google Cloud Console
+- [ ] Test Google Sign-In on production HTTPS URL
+- [ ] Test account deletion end-to-end
