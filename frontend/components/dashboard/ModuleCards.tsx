@@ -23,27 +23,27 @@ const MODULE_IMAGE = "/modules/arrays-strings.png";
 
 const MODULE_META: Record<string, ModuleMeta> = {
   "arrays-strings": {
-    image: MODULE_IMAGE,
+    image: "/modules/arrays-strings.png",
     description: "Array operations, slice manipulation, capacity & len",
     barColor: "bg-gradient-to-r from-blue-500 to-cyan-400",
   },
   "strings-runes": {
-    image: MODULE_IMAGE,
+    image: "/modules/strings-runes.png",
     description: "String manipulation, Unicode, runes, concatenation",
     barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
   },
   "math-recursion": {
-    image: MODULE_IMAGE,
+    image: "/modules/math-recursion.png",
     description: "Mathematical operations, recursive algorithms, number theory",
     barColor: "bg-gradient-to-r from-purple-500 to-violet-400",
   },
   "data-structures": {
-    image: MODULE_IMAGE,
+    image: "/modules/data-structures.png",
     description: "Data structures: stacks, queues, linked lists, trees, heaps, graphs",
     barColor: "bg-gradient-to-r from-amber-500 to-yellow-400",
   },
   "sorting-searching": {
-    image: MODULE_IMAGE,
+    image: "/modules/sorting-searching.png",
     description: "Sorting algorithms, binary search, two-pointer techniques",
     barColor: "bg-gradient-to-r from-rose-500 to-pink-400",
   },
