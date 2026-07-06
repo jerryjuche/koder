@@ -383,6 +383,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Lightbulb size={16} /> Hints
           </button>
           <button
+            onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
+            className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
+            title="Report a problem with this exercise"
+          >
+            <Bug size={15} /> Report Bug
+          </button>
+          <button
             onClick={handleReset}
             className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover"
             title="Reset code to original"
@@ -946,18 +953,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             onToggle={() => setTestsExpanded(!testsExpanded)}
           />
 
-          {/* Report Issue — shown when there's an error or failed tests */}
-          {(errorMsg || (results && results.some(r => !r.passed)) || (lastExecution && lastExecution.status !== "passed")) && (
+          {/* Report Issue — always visible */}
             <div className="px-4 pb-3 flex justify-end">
               <button
                 onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
-                className="inline-flex items-center gap-1.5 text-xs text-brand-offwhite-muted hover:text-brand-muted-gold transition-colors group"
+                className="inline-flex items-center gap-1.5 text-xs text-brand-offwhite-muted hover:text-brand-error transition-colors group"
               >
-                <Bug size={13} className="group-hover:rotate-12 transition-transform" />
+                <Bug size={12} className="group-hover:rotate-12 transition-transform" />
                 Report Issue
               </button>
             </div>
-          )}
         </div>
 
         {/* Right: Hints Panel (Collapsible) */}
