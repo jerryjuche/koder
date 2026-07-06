@@ -9,14 +9,15 @@ import (
 
 func (s *PostgresStore) CreateFeedback(ctx context.Context, userID uuid.UUID, fb *NewFeedback) (*Feedback, error) {
 	query := `
-		INSERT INTO feedback (user_id, type, title, description, priority, screenshot_url, is_anonymous)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, user_id, type, title, description, priority, screenshot_url, status, admin_notes, is_anonymous, created_at
+		INSERT INTO feedback (user_id, type, title, description, priority, screenshot_url, is_anonymous, problem_slug, code_snippet, error_message)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, user_id, type, title, description, priority, screenshot_url, status, admin_notes, is_anonymous, problem_slug, code_snippet, error_message, created_at
 	`
 	var f Feedback
 	err := s.pool.QueryRow(ctx, query,
 		userID, fb.Type, fb.Title, fb.Description, fb.Priority, fb.ScreenshotURL, fb.IsAnonymous,
-	).Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority, &f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.CreatedAt)
+		fb.ProblemSlug, fb.CodeSnippet, fb.ErrorMessage,
+	).Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority, &f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.ProblemSlug, &f.CodeSnippet, &f.ErrorMessage, &f.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create feedback: %w", err)
 	}
@@ -26,10 +27,13 @@ func (s *PostgresStore) CreateFeedback(ctx context.Context, userID uuid.UUID, fb
 func (s *PostgresStore) GetAdminFeedback(ctx context.Context, statusFilter string) ([]Feedback, error) {
 	query := `
 		SELECT f.id, f.user_id, f.type, f.title, f.description, f.priority,
-		       f.screenshot_url, f.status, f.admin_notes, f.is_anonymous, f.created_at,
-		       u.name AS user_name
+		       f.screenshot_url, f.status, f.admin_notes, f.is_anonymous,
+		       f.problem_slug, f.code_snippet, f.error_message, f.created_at,
+		       u.name AS user_name,
+		       p.title AS problem_title
 		FROM feedback f
 		LEFT JOIN users u ON f.user_id = u.id
+		LEFT JOIN problems p ON p.slug = f.problem_slug
 	`
 	var args []interface{}
 
@@ -49,7 +53,8 @@ func (s *PostgresStore) GetAdminFeedback(ctx context.Context, statusFilter strin
 	for rows.Next() {
 		var f Feedback
 		if err := rows.Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority,
-			&f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.CreatedAt, &f.UserName); err != nil {
+			&f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous,
+			&f.ProblemSlug, &f.CodeSnippet, &f.ErrorMessage, &f.CreatedAt, &f.UserName, &f.ProblemTitle); err != nil {
 			return nil, fmt.Errorf("failed to scan feedback: %w", err)
 		}
 		feedbacks = append(feedbacks, f)
@@ -66,7 +71,8 @@ func (s *PostgresStore) GetAdminFeedback(ctx context.Context, statusFilter strin
 func (s *PostgresStore) GetUserFeedback(ctx context.Context, userID uuid.UUID) ([]Feedback, error) {
 	query := `
 		SELECT id, user_id, type, title, description, priority,
-		       screenshot_url, status, admin_notes, is_anonymous, created_at
+		       screenshot_url, status, admin_notes, is_anonymous,
+		       problem_slug, code_snippet, error_message, created_at
 		FROM feedback
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -82,7 +88,8 @@ func (s *PostgresStore) GetUserFeedback(ctx context.Context, userID uuid.UUID) (
 	for rows.Next() {
 		var f Feedback
 		if err := rows.Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority,
-			&f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.CreatedAt); err != nil {
+			&f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous,
+			&f.ProblemSlug, &f.CodeSnippet, &f.ErrorMessage, &f.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan feedback: %w", err)
 		}
 		feedbacks = append(feedbacks, f)
@@ -96,16 +103,63 @@ func (s *PostgresStore) GetUserFeedback(ctx context.Context, userID uuid.UUID) (
 	return feedbacks, nil
 }
 
+func (s *PostgresStore) GetProblemReports(ctx context.Context, problemSlug string) ([]Feedback, error) {
+	query := `
+		SELECT f.id, f.user_id, f.type, f.title, f.description, f.priority,
+		       f.screenshot_url, f.status, f.admin_notes, f.is_anonymous,
+		       f.problem_slug, f.code_snippet, f.error_message, f.created_at,
+		       u.name AS user_name,
+		       p.title AS problem_title
+		FROM feedback f
+		LEFT JOIN users u ON f.user_id = u.id
+		LEFT JOIN problems p ON p.slug = f.problem_slug
+		WHERE f.type = 'bug' AND f.problem_slug IS NOT NULL
+	`
+	var args []interface{}
+	argIdx := 1
+
+	if problemSlug != "" {
+		query += fmt.Sprintf(" AND f.problem_slug = $%d", argIdx)
+		args = append(args, problemSlug)
+		argIdx++
+	}
+	query += " ORDER BY f.created_at DESC LIMIT 100"
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query problem reports: %w", err)
+	}
+	defer rows.Close()
+
+	var feedbacks []Feedback
+	for rows.Next() {
+		var f Feedback
+		if err := rows.Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority,
+			&f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous,
+			&f.ProblemSlug, &f.CodeSnippet, &f.ErrorMessage, &f.CreatedAt, &f.UserName, &f.ProblemTitle); err != nil {
+			return nil, fmt.Errorf("failed to scan problem report: %w", err)
+		}
+		feedbacks = append(feedbacks, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("problem report rows error: %w", err)
+	}
+	if feedbacks == nil {
+		feedbacks = make([]Feedback, 0)
+	}
+	return feedbacks, nil
+}
+
 func (s *PostgresStore) UpdateFeedbackStatus(ctx context.Context, id uuid.UUID, status, adminNotes string) (*Feedback, error) {
 	query := `
 		UPDATE feedback
 		SET status = $2, admin_notes = $3
 		WHERE id = $1
-		RETURNING id, user_id, type, title, description, priority, screenshot_url, status, admin_notes, is_anonymous, created_at
+		RETURNING id, user_id, type, title, description, priority, screenshot_url, status, admin_notes, is_anonymous, problem_slug, code_snippet, error_message, created_at
 	`
 	var f Feedback
 	err := s.pool.QueryRow(ctx, query, id, status, adminNotes).
-		Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority, &f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.CreatedAt)
+		Scan(&f.ID, &f.UserID, &f.Type, &f.Title, &f.Description, &f.Priority, &f.ScreenshotURL, &f.Status, &f.AdminNotes, &f.IsAnonymous, &f.ProblemSlug, &f.CodeSnippet, &f.ErrorMessage, &f.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update feedback: %w", err)
 	}

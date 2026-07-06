@@ -108,6 +108,7 @@ type Store interface {
 	CreateFeedback(ctx context.Context, userID uuid.UUID, fb *NewFeedback) (*Feedback, error)
 	GetAdminFeedback(ctx context.Context, statusFilter string) ([]Feedback, error)
 	GetUserFeedback(ctx context.Context, userID uuid.UUID) ([]Feedback, error)
+	GetProblemReports(ctx context.Context, problemSlug string) ([]Feedback, error)
 	UpdateFeedbackStatus(ctx context.Context, id uuid.UUID, status, adminNotes string) (*Feedback, error)
 	CountFeedbackByStatus(ctx context.Context) (map[string]int, error)
 
