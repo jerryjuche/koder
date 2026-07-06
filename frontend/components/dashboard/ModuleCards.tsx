@@ -21,7 +21,7 @@ type ModuleMeta = {
 
 const MODULE_META: Record<string, ModuleMeta> = {
   "Arrays & Slices": {
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&h=338&fit=crop&auto=format",
+    image: "/modules/arrays-strings.png",
     description: "Array operations, slice manipulation, capacity & len",
     barColor: "bg-gradient-to-r from-blue-500 to-cyan-400",
   },
