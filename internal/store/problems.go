@@ -324,6 +324,52 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 	return nil
 }
 
+// GetProblemByID returns a problem by its UUID regardless of visibility.
+func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Problem, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("problem ID cannot be nil")
+	}
+
+	query := `
+		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
+		       p.constraints, p.learning_objective,
+		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		       p.created_at, p.updated_at
+		FROM problems p
+		WHERE p.id = $1
+	`
+
+	var problem Problem
+	if err := s.pool.QueryRow(ctx, query, id).Scan(
+		&problem.ID,
+		&problem.Slug,
+		&problem.Module,
+		&problem.Type,
+		&problem.Language,
+		&problem.Title,
+		&problem.Statement,
+		&problem.Constraints,
+		&problem.LearningObjective,
+		&problem.FuncName,
+		&problem.ReturnType,
+		&problem.ParamTypes,
+		&problem.Hints,
+		&problem.Difficulty,
+		&problem.XPReward,
+		&problem.Tags,
+		&problem.Visible,
+		&problem.SourceHash,
+		&problem.RawReadme,
+		&problem.CreatedAt,
+		&problem.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to get problem by ID: %w", err)
+	}
+
+	return &problem, nil
+}
+
 // GetProblemBySlugAny returns a problem by slug regardless of visibility.
 func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*Problem, error) {
 	if slug == "" {
@@ -522,7 +568,7 @@ func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID
 func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
-		       p.constraints, p.learning_objective,
+		       p.statement, p.constraints, p.learning_objective,
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at
@@ -547,6 +593,7 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 			&problem.Type,
 			&problem.Language,
 			&problem.Title,
+			&problem.Statement,
 			&problem.Constraints,
 			&problem.LearningObjective,
 			&problem.FuncName,
@@ -575,4 +622,72 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 	}
 
 	return problems, nil
+}
+
+// UpdateProblem updates all editable fields for a problem by ID.
+func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*Problem, error) {
+	if problem == nil {
+		return nil, fmt.Errorf("problem cannot be nil")
+	}
+
+	query := `
+		UPDATE problems SET
+		    title = $1, statement = $2, constraints = $3,
+		    learning_objective = $4, module = $5, type = $6,
+		    language = $7, func_name = $8, return_type = $9,
+		    param_types = $10, hints = $11, difficulty = $12,
+		    xp_reward = $13, tags = $14, visible = $15,
+		    updated_at = NOW()
+		WHERE id = $16
+		RETURNING id, slug, module, type, language, title, statement,
+		          constraints, learning_objective,
+		          func_name, return_type, param_types, hints, difficulty,
+		          xp_reward, tags, visible, source_hash,
+		          created_at, updated_at
+	`
+
+	var updated Problem
+	if err := s.pool.QueryRow(ctx, query,
+		problem.Title,
+		problem.Statement,
+		problem.Constraints,
+		problem.LearningObjective,
+		problem.Module,
+		problem.Type,
+		problem.Language,
+		problem.FuncName,
+		problem.ReturnType,
+		problem.ParamTypes,
+		problem.Hints,
+		problem.Difficulty,
+		problem.XPReward,
+		problem.Tags,
+		problem.Visible,
+		problem.ID,
+	).Scan(
+		&updated.ID,
+		&updated.Slug,
+		&updated.Module,
+		&updated.Type,
+		&updated.Language,
+		&updated.Title,
+		&updated.Statement,
+		&updated.Constraints,
+		&updated.LearningObjective,
+		&updated.FuncName,
+		&updated.ReturnType,
+		&updated.ParamTypes,
+		&updated.Hints,
+		&updated.Difficulty,
+		&updated.XPReward,
+		&updated.Tags,
+		&updated.Visible,
+		&updated.SourceHash,
+		&updated.CreatedAt,
+		&updated.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to update problem: %w", err)
+	}
+
+	return &updated, nil
 }

@@ -125,6 +125,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor) (
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/problems/{id}/visibility", adminHandler.ToggleVisibility)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/problems/{id}", adminHandler.UpdateProblem)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/problems/publish-all", adminHandler.PublishAllDrafts)
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)

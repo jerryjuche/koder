@@ -381,3 +381,103 @@ func (h *AdminHandler) RejectUserProblem(w http.ResponseWriter, r *http.Request)
 	h.store.LogActivity(r.Context(), "error", fmt.Sprintf("Rejected community contribution %s", id.String()), "red-500", "x")
 	RespondSuccess(w, map[string]string{"status": "rejected"})
 }
+
+// UpdateProblem handles updating a problem's editable fields.
+// PUT /admin/problems/{id}
+func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "id")
+	problemID, err := uuid.Parse(slug)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
+		return
+	}
+
+	var req struct {
+		Title             *string  `json:"title,omitempty"`
+		Statement         *string  `json:"statement,omitempty"`
+		Constraints       *string  `json:"constraints,omitempty"`
+		LearningObjective *string  `json:"learning_objective,omitempty"`
+		Module            *string  `json:"module,omitempty"`
+		Type              *string  `json:"type,omitempty"`
+		Language          *string  `json:"language,omitempty"`
+		FuncName          *string  `json:"func_name,omitempty"`
+		ReturnType        *string  `json:"return_type,omitempty"`
+		ParamTypes        []string `json:"param_types,omitempty"`
+		Hints             []string `json:"hints,omitempty"`
+		Difficulty        *int     `json:"difficulty,omitempty"`
+		XPReward          *int     `json:"xp_reward,omitempty"`
+		Tags              []string `json:"tags,omitempty"`
+		Visible           *bool    `json:"visible,omitempty"`
+	}
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	// Fetch existing problem to preserve unchanged fields
+	existing, err := h.store.GetProblemByID(r.Context(), problemID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
+		return
+	}
+
+	// Merge request values into existing problem
+	if req.Title != nil {
+		existing.Title = *req.Title
+	}
+	if req.Statement != nil {
+		existing.Statement = *req.Statement
+	}
+	if req.Constraints != nil {
+		existing.Constraints = *req.Constraints
+	}
+	if req.LearningObjective != nil {
+		existing.LearningObjective = *req.LearningObjective
+	}
+	if req.Module != nil {
+		existing.Module = *req.Module
+	}
+	if req.Type != nil {
+		existing.Type = *req.Type
+	}
+	if req.Language != nil {
+		existing.Language = *req.Language
+	}
+	if req.FuncName != nil {
+		existing.FuncName = *req.FuncName
+	}
+	if req.ReturnType != nil {
+		existing.ReturnType = *req.ReturnType
+	}
+	if req.ParamTypes != nil {
+		existing.ParamTypes = req.ParamTypes
+	}
+	if req.Hints != nil {
+		existing.Hints = req.Hints
+	}
+	if req.Difficulty != nil {
+		existing.Difficulty = *req.Difficulty
+	}
+	if req.XPReward != nil {
+		existing.XPReward = *req.XPReward
+	}
+	if req.Tags != nil {
+		existing.Tags = req.Tags
+	}
+	if req.Visible != nil {
+		existing.Visible = *req.Visible
+	}
+
+	updated, err := h.store.UpdateProblem(r.Context(), existing)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update problem", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "info", fmt.Sprintf("Updated problem '%s' (%s)", updated.Title, updated.Slug), "text-brand-muted-gold", "Edit3")
+
+	RespondSuccess(w, updated)
+}

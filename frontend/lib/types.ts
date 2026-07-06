@@ -234,6 +234,23 @@ export type Broadcast = {
   user_name?: string;
 };
 
+export type UpdateProblemPayload = {
+  title?: string;
+  statement?: string;
+  constraints?: string;
+  learning_objective?: string;
+  module?: string;
+  type?: string;
+  func_name?: string;
+  return_type?: string;
+  param_types?: string[];
+  hints?: string[];
+  difficulty?: number;
+  xp_reward?: number;
+  tags?: string[];
+  visible?: boolean;
+};
+
 export type ApiResponse<T> = {
   success: boolean;
   data: T | null;
