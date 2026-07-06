@@ -57,7 +57,7 @@ function ResetPasswordForm() {
         setErrorMsg(res.error?.message || 'Reset failed. The link may be invalid or expired.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setLoading(false);
     }

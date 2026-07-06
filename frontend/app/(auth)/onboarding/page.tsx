@@ -57,7 +57,7 @@ export default function OnboardingPage() {
         setErrorMsg(res.error?.message || 'Failed to set username');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error');
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setLoading(false);
     }

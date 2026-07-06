@@ -58,7 +58,7 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Fetch problem by slug
-	problem, err := h.store.GetProblemBySlug(r.Context(), req.ProblemSlug)
+	problem, err := h.store.GetProblemBySlug(r.Context(), req.ProblemSlug, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			RespondError(w, http.StatusNotFound, "PROBLEM_NOT_FOUND", "Problem not found", "")

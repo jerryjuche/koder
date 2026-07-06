@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   XCircle,
   Lock,
-  AlertTriangle,
   Terminal,
   Copy,
   Lightbulb,
@@ -44,18 +43,118 @@ type Props = {
   onToggle: () => void;
 };
 
-function computeWordDiff(got: string, want: string) {
-  if (got === want) return null;
-  const gotWords = got.split(/(\s+)/);
-  const wantWords = want.split(/(\s+)/);
-  const maxLen = Math.max(gotWords.length, wantWords.length);
-  const diff: { got: string; want: string; changed: boolean }[] = [];
-  for (let i = 0; i < maxLen; i++) {
-    const gw = gotWords[i] ?? "";
-    const ww = wantWords[i] ?? "";
-    diff.push({ got: gw, want: ww, changed: gw !== ww });
+function computeLineDiff(got: string, want: string): { type: "equal" | "delete" | "insert"; line: string }[] {
+  const gotLines = got.split("\n");
+  const wantLines = want.split("\n");
+
+  const m = gotLines.length;
+  const n = wantLines.length;
+
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (gotLines[i - 1] === wantLines[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
   }
-  return diff;
+
+  const result: { type: "equal" | "delete" | "insert"; line: string }[] = [];
+  let i = m, j = n;
+  const temp: typeof result = [];
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && gotLines[i - 1] === wantLines[j - 1]) {
+      temp.push({ type: "equal", line: gotLines[i - 1] });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      temp.push({ type: "insert", line: wantLines[j - 1] });
+      j--;
+    } else {
+      temp.push({ type: "delete", line: gotLines[i - 1] });
+      i--;
+    }
+  }
+
+  for (let k = temp.length - 1; k >= 0; k--) {
+    result.push(temp[k]);
+  }
+
+  return result;
+}
+
+function TerminalDiff({ got, want }: { got: string; want: string }) {
+  if (got === want) {
+    return (
+      <div className="bg-brand-success/10 border border-brand-success/20 rounded-lg p-3 flex items-center gap-2">
+        <CheckCircle2 size={14} className="text-brand-success shrink-0" />
+        <span className="text-xs text-brand-success font-medium">Output matches expected value</span>
+      </div>
+    );
+  }
+
+  const isMultiLine = got.includes("\n") || want.includes("\n") || got.length > 60 || want.length > 60;
+
+  if (!isMultiLine) {
+    return (
+      <div className="bg-[#0D0D0D] rounded-lg border border-brand-charcoal-border overflow-hidden font-mono text-xs">
+        <div className="flex items-center gap-3 px-3 py-1.5 bg-brand-charcoal-hover/30 border-b border-brand-charcoal-border/50">
+          <span className="text-brand-error/80 font-bold text-[10px] uppercase tracking-wider">Got</span>
+          <span className="text-brand-offwhite-muted/30">|</span>
+          <span className="text-brand-success/80 font-bold text-[10px] uppercase tracking-wider">Expected</span>
+        </div>
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-0 p-0">
+          <div className="px-3 py-2 bg-brand-error/5 text-brand-error whitespace-pre-wrap break-all leading-relaxed">
+            {got || <span className="italic opacity-50">no output</span>}
+          </div>
+          <div className="px-2 py-2 flex items-center text-brand-offwhite-muted/30 bg-[#0D0D0D] select-none">→</div>
+          <div className="px-3 py-2 bg-brand-success/5 text-brand-success whitespace-pre-wrap break-all leading-relaxed">
+            {want || <span className="italic opacity-50">empty</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const diff = computeLineDiff(got, want);
+  let gotLine = 1, wantLine = 1;
+
+  return (
+    <div className="bg-[#0D0D0D] rounded-lg border border-brand-charcoal-border overflow-hidden font-mono text-xs">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-charcoal-hover/30 border-b border-brand-charcoal-border/50 text-[10px] text-brand-offwhite-muted/60">
+        <span className="text-brand-error/70">━</span> Got vs Expected
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-0">
+          {diff.map((d, i) => {
+            let prefix = " ";
+            let bg = "";
+            let fg = "text-brand-offwhite/80";
+            if (d.type === "delete") { prefix = "-"; bg = "bg-brand-error/8"; fg = "text-brand-error"; }
+            else if (d.type === "insert") { prefix = "+"; bg = "bg-brand-success/8"; fg = "text-brand-success"; }
+
+            const gotNum = d.type === "insert" ? "" : String(gotLine++);
+            const wantNum = d.type === "delete" ? "" : String(wantLine++);
+
+            return (
+              <div key={i} className={`flex ${bg}`}>
+                <span className="w-[3ch] shrink-0 text-right pr-1.5 text-brand-offwhite-muted/25 select-none text-[10px]">{gotNum}</span>
+                <span className="w-[3ch] shrink-0 text-right pr-1.5 text-brand-offwhite-muted/25 select-none text-[10px]">{wantNum}</span>
+                <span className="w-[1ch] shrink-0 select-none font-bold text-[11px] leading-relaxed pt-px">{prefix}</span>
+                <span className={`flex-1 px-1 py-0 leading-relaxed whitespace-pre-wrap break-all text-[11px] ${fg}`}>
+                  {d.line || " "}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function formatRuntime(ms: number) {
@@ -105,113 +204,8 @@ export default function TestResultPanel({ results, execution, errorMsg, expanded
   const isTimeout = execution?.status === "timeout";
 
   function renderGotWantDiff(got: string, want: string) {
-    const diff = computeWordDiff(got, want);
-    if (!diff) return null;
-
-    const isMultiLine = got.includes("\n") || want.includes("\n") || got.length > 60 || want.length > 60;
-
-    if (isMultiLine) {
-      const gotLines = got.split("\n");
-      const wantLines = want.split("\n");
-      const maxLines = Math.max(gotLines.length, wantLines.length);
-
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-error shrink-0" />
-              <span className="text-[10px] uppercase tracking-wider font-bold text-brand-error/80">Your Result</span>
-            </div>
-            <div className="bg-[#1A1A1A] rounded-lg border border-brand-error/20 overflow-hidden">
-              {gotLines.map((line, i) => {
-                const wantLine = wantLines[i] ?? "";
-                const changed = line !== wantLine;
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "px-3 py-0.5 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all",
-                      changed ? "bg-brand-error/10 text-brand-error" : "text-brand-offwhite/80",
-                    )}
-                  >
-                    {line || "\u00A0"}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-success shrink-0" />
-              <span className="text-[10px] uppercase tracking-wider font-bold text-brand-success/80">Expected</span>
-            </div>
-            <div className="bg-[#1A1A1A] rounded-lg border border-brand-success/20 overflow-hidden">
-              {wantLines.map((line, i) => {
-                const gotLine = gotLines[i] ?? "";
-                const changed = line !== gotLine;
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "px-3 py-0.5 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all",
-                      changed ? "bg-brand-success/10 text-brand-success" : "text-brand-offwhite/80",
-                    )}
-                  >
-                    {line || "\u00A0"}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const detailRows = [];
-    const maxWords = Math.max(diff.length, 1);
-    const A = diff.map((d) => d.got);
-    const B = diff.map((d) => d.want);
-
-    for (let row = 0; row < maxWords; row++) {
-      detailRows.push(
-        <div key={row} className="flex items-start gap-2 py-0.5">
-          <span className="flex-1 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">
-            {A[row] !== undefined ? (
-              <span className={diff[row]?.changed ? "text-brand-error" : "text-brand-offwhite/80"}>
-                {A[row]}
-              </span>
-            ) : (
-              <span className="text-brand-charcoal-border">&nbsp;</span>
-            )}
-          </span>
-          <ArrowRight size={10} className="text-brand-offwhite-muted mt-1 shrink-0" />
-          <span className="flex-1 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">
-            {B[row] !== undefined ? (
-              <span className={diff[row]?.changed ? "text-brand-success" : "text-brand-offwhite/80"}>
-                {B[row]}
-              </span>
-            ) : (
-              <span className="text-brand-charcoal-border">&nbsp;</span>
-            )}
-          </span>
-        </div>,
-      );
-    }
-
-    return (
-      <div>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[10px] uppercase tracking-wider font-bold text-brand-offwhite-muted">Comparison</span>
-        </div>
-        <div className="bg-[#1A1A1A] rounded-lg border border-brand-charcoal-border p-3 font-mono text-xs">
-          <div className="flex items-center justify-between pb-1 mb-1 border-b border-brand-charcoal-border/50">
-            <span className="text-brand-error/70 text-[10px] font-bold uppercase tracking-wider">Got</span>
-            <span className="text-brand-success/70 text-[10px] font-bold uppercase tracking-wider">Want</span>
-          </div>
-          {detailRows}
-        </div>
-      </div>
-    );
+    if (!got && !want) return null;
+    return <TerminalDiff got={got} want={want} />;
   }
 
   return (
@@ -519,11 +513,3 @@ export default function TestResultPanel({ results, execution, errorMsg, expanded
   );
 }
 
-function ArrowRight({ size, className }: { size: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
-  );
-}

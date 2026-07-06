@@ -112,7 +112,7 @@ function ContributeContent() {
         }, 1500);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Failed to submit contribution");
     } finally {
       setLoading(false);
     }
