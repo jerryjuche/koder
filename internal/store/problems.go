@@ -92,8 +92,8 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 	return problems, nil
 }
 
-// GetProblemBySlug returns a visible problem by slug.
-func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Problem, error) {
+// GetProblemBySlug returns a visible problem by slug, with user progress overlay.
+func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userID uuid.UUID) (*Problem, error) {
 	if slug == "" {
 		return nil, fmt.Errorf("slug cannot be empty")
 	}
@@ -106,14 +106,16 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 			   p.created_at, p.updated_at,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs,
-			   COALESCE( (SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0 )::int AS avg_runtime_ms
+			   COALESCE( (SELECT ROUND(AVG(runtime_ms)) FROM submissions s WHERE s.problem_id = p.id AND s.status = 'passed'), 0 )::int AS avg_runtime_ms,
+			   COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0)
 		FROM problems p
+		LEFT JOIN progress pr ON pr.problem_id = p.id AND pr.user_id = $2
 		WHERE p.slug = $1 AND p.visible = true
 	`
 
 	var problem Problem
 	var successfulSubs int
-	if err := s.pool.QueryRow(ctx, query, slug).Scan(
+	if err := s.pool.QueryRow(ctx, query, slug, userID).Scan(
 		&problem.ID,
 		&problem.Slug,
 		&problem.Module,
@@ -138,6 +140,9 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string) (*Pro
 		&problem.TotalSubmissions,
 		&successfulSubs,
 		&problem.AvgRuntimeMs,
+		&problem.Solved,
+		&problem.Stars,
+		&problem.Attempts,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
 	}

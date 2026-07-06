@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Copy,
   Expand,
+  CheckCircle2,
 } from "lucide-react";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
 import { fetchProblem, submitSolution, testCode } from "@/lib/api";
@@ -212,7 +213,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       const match = res.error.message.match(/(\d+)/);
       const seconds = match ? parseInt(match[1]) : 10;
       setCooldown(seconds);
-      toast.error(res.error.message);
+      toast.error(res.error?.message || "Too many attempts. Please wait.");
+    } else if (res.error?.code === "ALREADY_SOLVED") {
+      setErrorMsg(null);
+      setResults(null);
+      setLastExecution(null);
+      toast.success("You already solved this problem!");
     } else {
       setErrorMsg(res.error?.message || "Submission failed");
       setResults(null);
@@ -272,7 +278,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       const match = res.error.message.match(/(\d+)/);
       const seconds = match ? parseInt(match[1]) : 10;
       setCooldown(seconds);
-      toast.error(res.error.message);
+      toast.error(res.error?.message || "Too many attempts. Please wait.");
     } else {
       setErrorMsg(res.error?.message || "Test failed");
       setResults(null);
@@ -366,17 +372,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || cooldown > 0}
-            className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md shadow-brand-muted-gold/10 transition-all disabled:opacity-70"
+            disabled={submitting || cooldown > 0 || problem.solved}
+            className={cn(
+              "px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all",
+              problem.solved
+                ? "bg-brand-success/10 text-brand-success border border-brand-success/30 cursor-not-allowed"
+                : "bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base shadow-brand-muted-gold/10",
+              (submitting || cooldown > 0) && "opacity-70",
+            )}
           >
-            {cooldown > 0 ? (
-              <span className="text-brand-charcoal-base font-mono">{cooldown}s</span>
+            {problem.solved ? (
+              <CheckCircle2 size={16} />
+            ) : cooldown > 0 ? (
+              <span className="font-mono">{cooldown}s</span>
             ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
             ) : (
               <Play size={16} fill="currentColor" />
             )}
-            {cooldown > 0 ? "Wait" : "Submit"}
+            {problem.solved ? "Solved" : cooldown > 0 ? "Wait" : "Submit"}
           </button>
         </div>
       </header>
