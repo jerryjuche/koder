@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -127,39 +128,39 @@ const FALLBACK: ModuleMeta = {
   barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
 };
 
-const MODULE_COLORS: Record<string, string> = {
-  "Arrays & Slices": "bg-blue-500/20 text-blue-400",
-  "Strings & Runes": "bg-emerald-500/20 text-emerald-400",
-  "Math & Recursion": "bg-purple-500/20 text-purple-400",
-  "Data Structures": "bg-amber-500/20 text-amber-400",
-  "Sorting & Searching": "bg-rose-500/20 text-rose-400",
-  "Hash Maps & Sets": "bg-violet-500/20 text-violet-400",
-  "Concurrency": "bg-cyan-500/20 text-cyan-400",
-  "Dynamic Programming": "bg-fuchsia-500/20 text-fuchsia-400",
-  "Bit Manipulation": "bg-slate-500/20 text-slate-400",
-  "Trees & Graphs": "bg-green-500/20 text-green-400",
-  "Error Handling": "bg-red-500/20 text-red-400",
-  "Testing": "bg-teal-500/20 text-teal-400",
-  "File I/O": "bg-orange-500/20 text-orange-400",
-  "Networking": "bg-indigo-500/20 text-indigo-400",
-  "Interfaces & Generics": "bg-pink-500/20 text-pink-400",
-  "Pointers": "bg-stone-500/20 text-stone-400",
-  "OOP & Composition": "bg-lime-500/20 text-lime-400",
-  "Design Patterns": "bg-yellow-500/20 text-yellow-400",
-  "Encoding & Serialization": "bg-sky-500/20 text-sky-400",
-  "Linked Lists": "bg-gray-500/20 text-gray-400",
+const MODULE_COLORS: Record<string, { bg: string; text: string }> = {
+  "Arrays & Slices": { bg: "bg-blue-500/20", text: "text-blue-400" },
+  "Strings & Runes": { bg: "bg-emerald-500/20", text: "text-emerald-400" },
+  "Math & Recursion": { bg: "bg-purple-500/20", text: "text-purple-400" },
+  "Data Structures": { bg: "bg-amber-500/20", text: "text-amber-400" },
+  "Sorting & Searching": { bg: "bg-rose-500/20", text: "text-rose-400" },
+  "Hash Maps & Sets": { bg: "bg-violet-500/20", text: "text-violet-400" },
+  "Concurrency": { bg: "bg-cyan-500/20", text: "text-cyan-400" },
+  "Dynamic Programming": { bg: "bg-fuchsia-500/20", text: "text-fuchsia-400" },
+  "Bit Manipulation": { bg: "bg-slate-500/20", text: "text-slate-400" },
+  "Trees & Graphs": { bg: "bg-green-500/20", text: "text-green-400" },
+  "Error Handling": { bg: "bg-red-500/20", text: "text-red-400" },
+  "Testing": { bg: "bg-teal-500/20", text: "text-teal-400" },
+  "File I/O": { bg: "bg-orange-500/20", text: "text-orange-400" },
+  "Networking": { bg: "bg-indigo-500/20", text: "text-indigo-400" },
+  "Interfaces & Generics": { bg: "bg-pink-500/20", text: "text-pink-400" },
+  "Pointers": { bg: "bg-stone-500/20", text: "text-stone-400" },
+  "OOP & Composition": { bg: "bg-lime-500/20", text: "text-lime-400" },
+  "Design Patterns": { bg: "bg-yellow-500/20", text: "text-yellow-400" },
+  "Encoding & Serialization": { bg: "bg-sky-500/20", text: "text-sky-400" },
+  "Linked Lists": { bg: "bg-gray-500/20", text: "text-gray-400" },
 };
 
-const FALLBACK_COLOR = "bg-gray-500/20 text-gray-400";
+const FALLBACK_COLOR = { bg: "bg-gray-500/20", text: "text-gray-400" };
 
 function ModuleImage({ src, alt, initial }: { src: string; alt: string; initial: string }) {
   const [error, setError] = useState(false);
 
   if (error) {
-    const colorClass = MODULE_COLORS[alt] || FALLBACK_COLOR;
+    const color = MODULE_COLORS[alt] || FALLBACK_COLOR;
     return (
-      <div className={cn("aspect-video flex items-center justify-center", colorClass.split(" ")[0])}>
-        <span className={cn("text-3xl font-bold", colorClass.split(" ")[1])}>
+      <div className={cn("aspect-video flex items-center justify-center", color.bg)}>
+        <span className={cn("text-3xl font-bold", color.text)}>
           {initial}
         </span>
       </div>
@@ -237,9 +238,9 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground/70 mt-1 leading-relaxed line-clamp-2">
+                <CardDescription className="text-xs mt-1 leading-relaxed line-clamp-2">
                   {meta.description}
-                </p>
+                </CardDescription>
               </CardHeader>
 
               <CardContent className="px-5 pb-0 relative z-10 flex-1">
