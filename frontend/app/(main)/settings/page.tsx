@@ -61,6 +61,7 @@ function SettingsPageContent() {
   const [cpLoading, setCpLoading] = useState(false);
   const [cpError, setCpError] = useState('');
 
+  const [cpShowPin, setCpShowPin] = useState(false);
   const cpPinSubmitRef = useRef<HTMLButtonElement>(null);
   const { prompt } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
@@ -560,6 +561,16 @@ function SettingsPageContent() {
                       <DialogTitle className="text-brand-offwhite text-lg flex items-center gap-2">
                         <Shield size={18} className="text-brand-muted-gold" />
                         {cpStep === 'pin' ? 'Verify your PIN' : cpStep === 'set-pin' ? 'Set up recovery PIN' : cpStep === 'password' ? 'Set new password' : 'Password changed'}
+                        {(cpStep === 'pin' || cpStep === 'set-pin') && (
+                          <button
+                            type="button"
+                            onClick={() => setCpShowPin((p) => !p)}
+                            className="ml-auto p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
+                            aria-label={cpShowPin ? 'Hide PIN' : 'Show PIN'}
+                          >
+                            {cpShowPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        )}
                       </DialogTitle>
                       <DialogDescription className="text-brand-offwhite-muted text-sm">
                         {cpStep === 'pin'
@@ -605,7 +616,7 @@ function SettingsPageContent() {
                           </div>
                         )}
                         <div className="flex justify-center py-4">
-                          <PinInput size="lg" mask>
+                          <PinInput size="lg" mask={!cpShowPin}>
                             <PinInput.Group
                               maxLength={6}
                               pattern={REGEXP_ONLY_DIGITS}
@@ -684,7 +695,7 @@ function SettingsPageContent() {
                           <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
                             New recovery PIN
                           </label>
-                          <PinInput size="lg" mask>
+                          <PinInput size="lg" mask={!cpShowPin}>
                             <PinInput.Group
                               maxLength={6}
                               pattern={REGEXP_ONLY_DIGITS}
@@ -707,7 +718,7 @@ function SettingsPageContent() {
                           <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
                             Confirm recovery PIN
                           </label>
-                          <PinInput size="lg" mask>
+                          <PinInput size="lg" mask={!cpShowPin}>
                             <PinInput.Group
                               maxLength={6}
                               pattern={REGEXP_ONLY_DIGITS}
