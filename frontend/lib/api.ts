@@ -108,6 +108,16 @@ export async function googleLogin(
   });
 }
 
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function forgotPasswordPin(
   email: string,
   pin: string,
