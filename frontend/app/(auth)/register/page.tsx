@@ -468,7 +468,7 @@ export default function RegisterPage() {
               )}
 
               <PinInput size="md" mask={!showPin}>
-                <PinInput.Label>Recovery PIN</PinInput.Label>
+                <PinInput.Label className="text-sm font-semibold not-uppercase tracking-normal text-center w-full text-brand-offwhite-muted">Recovery PIN</PinInput.Label>
                 <PinInput.Group
                   maxLength={6}
                   pattern={REGEXP_ONLY_DIGITS}
@@ -486,11 +486,10 @@ export default function RegisterPage() {
                   <PinInput.Slot index={4} />
                   <PinInput.Slot index={5} />
                 </PinInput.Group>
-                <PinInput.Description>Used to recover your account if you forget your password.</PinInput.Description>
               </PinInput>
 
               <PinInput size="md" mask={!showPin}>
-                <PinInput.Label>Confirm PIN</PinInput.Label>
+                <PinInput.Label className="text-sm font-semibold not-uppercase tracking-normal text-center w-full text-brand-offwhite-muted">Confirm PIN</PinInput.Label>
                 <PinInput.Group
                   maxLength={6}
                   pattern={REGEXP_ONLY_DIGITS}
@@ -508,7 +507,7 @@ export default function RegisterPage() {
                   <PinInput.Slot index={5} />
                 </PinInput.Group>
                 {confirmPin.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
                     {pinsMatch && confirmComplete ? (
                       <span className="text-green-400 text-xs font-medium flex items-center gap-1">
                         <CheckCircle size={12} /> PINs match
