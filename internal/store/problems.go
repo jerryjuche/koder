@@ -520,6 +520,15 @@ func (s *PostgresStore) UpdateProblemVisibility(ctx context.Context, problemID u
 	return nil
 }
 
+func (s *PostgresStore) PublishAllDrafts(ctx context.Context) (int, error) {
+	query := `UPDATE problems SET visible = true, updated_at = NOW() WHERE NOT visible`
+	tag, err := s.pool.Exec(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to publish all drafts: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 // UpsertTestCasesForProblem deletes existing case rows for a problem and inserts the current set.
 func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error {
 	if problemID == uuid.Nil {
