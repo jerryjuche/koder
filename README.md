@@ -228,6 +228,7 @@ koder/
 │   │   │   │   └── error.tsx
 │   │   │   └── admin/              # Admin panel
 │   │   ├── problems/[slug]/         # Monaco Editor workspace
+│   │   ├── not-found.tsx            # Professional 404 page
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── ui/                     # shadcn/ui primitives
@@ -465,6 +466,9 @@ DELETE + INSERT test_cases for this problem_id
 
 ```
 POST /submit {problem_slug, code, language}
+      │
+      ▼
+Solved guard: if problem.Solved → 409 ALREADY_SOLVED (submit only; test endpoint skips guard)
       │
       ▼
 Acquire semaphore (buffered channel cap=6) — blocks if 6 workers active
@@ -798,6 +802,12 @@ Single Profile tab with name, bio, and read-only username fields
 Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Only accessible if JWT role = `admin`.
 
 ### Key Components
+
+#### TestResultPanel (`components/TestResultPanel.tsx`)
+- LCS-based unified diff (`TerminalDiff`) for multi-line got/want values with git-style `-/+` gutter markers and line numbers
+- Side-by-side grid for single-line values (Got → Expected)
+- System error, compiler error (with friendly_message), and timeout states with debugging tips
+- Circular progress indicator per test suite, per-test-case pass/fail cards
 
 #### Activity Gauge (`components/ui/activity-gauge.tsx`)
 - `recharts` `RadialBarChart` with single gold color (`fill-primary`)
@@ -1153,15 +1163,10 @@ cd koder
 cp .env.example .env
 # Edit .env with your Supabase URL, Gemini key, JWT secret
 
-# 3. Apply database migrations
-psql $DATABASE_URL -f migrations/001_init.sql
-psql $DATABASE_URL -f migrations/002_indexes.sql
-psql $DATABASE_URL -f migrations/009_get_full_profile.sql
-psql $DATABASE_URL -f migrations/010_add_gitea_auth.sql
-psql $DATABASE_URL -f migrations/011_add_gitea_token.sql
-psql $DATABASE_URL -f migrations/012_add_google_auth.sql
-psql $DATABASE_URL -f migrations/014_feedback.sql
-psql $DATABASE_URL -f migrations/018_seed_problems.sql
+# 3. Apply database migrations (in order)
+for f in migrations/*.sql; do
+  psql $DATABASE_URL -f "$f"
+done
 
 # 4. Warm the Docker build cache
 chmod +x scripts/setup-docker-cache.sh
