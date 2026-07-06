@@ -953,16 +953,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             onToggle={() => setTestsExpanded(!testsExpanded)}
           />
 
-          {/* Report Issue — always visible */}
-            <div className="px-4 pb-3 flex justify-end">
-              <button
-                onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
-                className="inline-flex items-center gap-1.5 text-xs text-brand-offwhite-muted hover:text-brand-error transition-colors group"
-              >
-                <Bug size={12} className="group-hover:rotate-12 transition-transform" />
-                Report Issue
-              </button>
-            </div>
         </div>
 
         {/* Right: Hints Panel (Collapsible) */}
