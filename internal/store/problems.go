@@ -14,7 +14,7 @@ import (
 func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
-		       p.statement, p.constraints, p.learning_objective, p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''), p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at,
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
@@ -100,7 +100,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.constraints, p.learning_objective,
+		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 			   p.created_at, p.updated_at,
@@ -332,7 +332,7 @@ func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Prob
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.constraints, p.learning_objective,
+		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 		       p.created_at, p.updated_at
@@ -378,7 +378,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.constraints, p.learning_objective,
+		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 			   p.created_at, p.updated_at,
@@ -449,7 +449,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
-		       p.constraints, p.learning_objective,
+		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
 		       p.created_at, p.updated_at
@@ -577,7 +577,7 @@ func (s *PostgresStore) UpsertTestCasesForProblem(ctx context.Context, problemID
 func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
-		       p.statement, p.constraints, p.learning_objective,
+		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash,
 		       p.created_at, p.updated_at

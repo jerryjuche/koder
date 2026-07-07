@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
+  const [problemsError, setProblemsError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [statsRes, logsRes, problemsRes] = await Promise.all([
@@ -46,7 +47,13 @@ export default function AdminDashboard() {
 
     if (statsRes.success && statsRes.data) setStats(statsRes.data);
     if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
-    if (problemsRes.success && problemsRes.data) setProblems(problemsRes.data);
+    if (problemsRes.success && problemsRes.data) {
+      setProblems(problemsRes.data);
+      setProblemsError(null);
+    } else if (problemsRes.error) {
+      setProblemsError(problemsRes.error.message || 'Failed to load problems');
+      toast.error(problemsRes.error.message || 'Failed to load problems');
+    }
   }, []);
 
   useEffect(() => {
@@ -401,7 +408,15 @@ export default function AdminDashboard() {
                       </tr>
                     )
                   })}
-                  {filteredProblems.length === 0 && (
+                  {problemsError && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center">
+                        <div className="text-brand-error mb-1">Failed to load problems</div>
+                        <div className="text-brand-offwhite-muted text-xs">{problemsError}</div>
+                      </td>
+                    </tr>
+                  )}
+                  {!problemsError && filteredProblems.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-6 py-8 text-center text-brand-offwhite-muted">
                         No problems found.
