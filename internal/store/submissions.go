@@ -3,21 +3,24 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-// CreateSubmission inserts a new submission record.
+// CreateSubmission inserts a new submission record with a 90-day TTL on output logs.
 func (s *PostgresStore) CreateSubmission(ctx context.Context, sub *Submission) error {
 	if sub == nil {
 		return fmt.Errorf("submission cannot be nil")
 	}
 
 	query := `
-		INSERT INTO submissions (user_id, problem_id, language, code, status, passed_count, total_count, output_logs, runtime_ms, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+		INSERT INTO submissions (user_id, problem_id, language, code, status, passed_count, total_count, output_logs, runtime_ms, created_at, output_logs_expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
 		RETURNING id, created_at
 	`
+
+	expiresAt := time.Now().Add(90 * 24 * time.Hour)
 
 	err := s.pool.QueryRow(ctx, query,
 		sub.UserID,
@@ -29,6 +32,7 @@ func (s *PostgresStore) CreateSubmission(ctx context.Context, sub *Submission) e
 		sub.TotalCount,
 		sub.OutputLogs,
 		sub.RuntimeMs,
+		expiresAt,
 	).Scan(&sub.ID, &sub.CreatedAt)
 
 	if err != nil {

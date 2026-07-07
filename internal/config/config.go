@@ -229,7 +229,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("ENVIRONMENT must be 'development' or 'production'")
 	}
 
-	// CORS
+	// CORS (comma-separated for multiple origins, e.g. "http://localhost:3000,https://koder.app")
 	cfg.AllowedOrigin = os.Getenv("ALLOWED_ORIGIN")
 	if cfg.AllowedOrigin == "" {
 		cfg.AllowedOrigin = "http://localhost:3000"

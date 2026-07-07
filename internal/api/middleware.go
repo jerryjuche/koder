@@ -20,6 +20,8 @@ type RateLimiter struct {
 	limits   map[string]*userRateLimit
 	maxReqs  int
 	window   time.Duration
+	stopCh   chan struct{}
+	stopped  bool
 }
 
 type userRateLimit struct {
@@ -33,23 +35,39 @@ func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
 		limits:  make(map[string]*userRateLimit),
 		maxReqs: maxReqs,
 		window:  window,
+		stopCh:  make(chan struct{}),
 	}
 	// Periodic cleanup of stale entries (every 2x window duration)
 	go func() {
 		ticker := time.NewTicker(window * 2)
 		defer ticker.Stop()
-		for range ticker.C {
-			rl.mu.Lock()
-			now := time.Now()
-			for k, v := range rl.limits {
-				if now.Sub(v.windowStart) > rl.window*2 {
-					delete(rl.limits, k)
+		for {
+			select {
+			case <-ticker.C:
+				rl.mu.Lock()
+				now := time.Now()
+				for k, v := range rl.limits {
+					if now.Sub(v.windowStart) > rl.window*2 {
+						delete(rl.limits, k)
+					}
 				}
+				rl.mu.Unlock()
+			case <-rl.stopCh:
+				return
 			}
-			rl.mu.Unlock()
 		}
 	}()
 	return rl
+}
+
+// Stop terminates the cleanup goroutine and prevents goroutine leak on shutdown.
+func (rl *RateLimiter) Stop() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	if !rl.stopped {
+		close(rl.stopCh)
+		rl.stopped = true
+	}
 }
 
 // Allow checks if a user is allowed to proceed. Returns true + 0 if allowed,
@@ -114,11 +132,34 @@ type contextKey string
 
 const claimsContextKey contextKey = "claims"
 
-// CORSMiddleware returns a middleware that applies simple CORS headers.
+// CORSMiddleware returns a middleware that applies CORS headers from config.
+// Supports a single origin, comma-separated origins, or "*".
 func CORSMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	origins := strings.Split(cfg.AllowedOrigin, ",")
+	for i := range origins {
+		origins[i] = strings.TrimSpace(origins[i])
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", cfg.AllowedOrigin)
+			origin := r.Header.Get("Origin")
+			allowed := origin == "" || origin == "null"
+
+			if !allowed {
+				for _, o := range origins {
+					if o == "*" || o == origin {
+						allowed = true
+						break
+					}
+				}
+			}
+
+			if allowed {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			} else if len(origins) == 1 {
+				w.Header().Set("Access-Control-Allow-Origin", origins[0])
+			}
+
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -210,6 +251,8 @@ type IPRateLimiter struct {
 	limits   map[string]*userRateLimit
 	maxReqs  int
 	window   time.Duration
+	stopCh   chan struct{}
+	stopped  bool
 }
 
 // NewIPRateLimiter creates a new IP-based rate limiter allowing maxReqs per window.
@@ -218,22 +261,38 @@ func NewIPRateLimiter(maxReqs int, window time.Duration) *IPRateLimiter {
 		limits:  make(map[string]*userRateLimit),
 		maxReqs: maxReqs,
 		window:  window,
+		stopCh:  make(chan struct{}),
 	}
 	go func() {
 		ticker := time.NewTicker(window * 2)
 		defer ticker.Stop()
-		for range ticker.C {
-			rl.mu.Lock()
-			now := time.Now()
-			for k, v := range rl.limits {
-				if now.Sub(v.windowStart) > rl.window*2 {
-					delete(rl.limits, k)
+		for {
+			select {
+			case <-ticker.C:
+				rl.mu.Lock()
+				now := time.Now()
+				for k, v := range rl.limits {
+					if now.Sub(v.windowStart) > rl.window*2 {
+						delete(rl.limits, k)
+					}
 				}
+				rl.mu.Unlock()
+			case <-rl.stopCh:
+				return
 			}
-			rl.mu.Unlock()
 		}
 	}()
 	return rl
+}
+
+// Stop terminates the cleanup goroutine and prevents goroutine leak on shutdown.
+func (rl *IPRateLimiter) Stop() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	if !rl.stopped {
+		close(rl.stopCh)
+		rl.stopped = true
+	}
 }
 
 // Allow checks if an IP is allowed to proceed. Returns true + 0 if allowed,

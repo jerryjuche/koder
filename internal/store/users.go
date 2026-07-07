@@ -678,6 +678,7 @@ func (s *PostgresStore) UpdateUserUsernameSet(ctx context.Context, id uuid.UUID,
 }
 
 // CompleteUserOnboarding atomically sets username, student_id, and username_set.
+// Returns FriendlyError(DUPLICATE_RESOURCE, 409) if the username or student_id is already taken.
 func (s *PostgresStore) CompleteUserOnboarding(ctx context.Context, id uuid.UUID, username string) error {
 	if id == uuid.Nil {
 		return fmt.Errorf("id cannot be nil")
@@ -691,6 +692,18 @@ func (s *PostgresStore) CompleteUserOnboarding(ctx context.Context, id uuid.UUID
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	// Check uniqueness before updating — the PG unique constraint would catch
+	// this too, but returning a FriendlyError is much cleaner than exposing
+	// a raw pgconn.PgError to the API layer.
+	var exists bool
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE (username = $1 OR student_id = $1) AND id != $2)`, username, id).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check username uniqueness: %w", err)
+	}
+	if exists {
+		return NewDuplicateError("This username is already taken. Please choose another one.")
+	}
 
 	_, err = tx.Exec(ctx, `UPDATE users SET username = $1 WHERE id = $2`, username, id)
 	if err != nil {
