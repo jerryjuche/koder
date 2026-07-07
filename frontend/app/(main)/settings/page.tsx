@@ -2,12 +2,23 @@
 
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { User as UserIcon, Settings as SettingsIcon, Bell, Shield, Palette, LogOut, CheckCircle2, Chrome, CheckCheck, Clock, GitPullRequest, XCircle, KeyRound, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  User as UserIcon, Settings as SettingsIcon, Bell, Shield,
+  Palette, LogOut, CheckCircle2, Chrome, CheckCheck,
+  GitPullRequest, XCircle, Eye, EyeOff, Info, AlertTriangle,
+  AtSign, FileText, KeyRound, Trash2, Calendar,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fetchUser, fetchUserProfile, updateUserProfile, linkGoogle, deleteAccount, fetchRecentNotifications, fetchApi, logout, changePassword, updateUsername, verifyPin, setPin } from "@/lib/api";
+import {
+  fetchUser, fetchUserProfile, updateUserProfile, linkGoogle,
+  deleteAccount, fetchRecentNotifications, fetchApi, logout,
+  changePassword, updateUsername, verifyPin, setPin,
+} from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
+import { Avatar } from "@/components/base/avatar/avatar";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PinInput } from "@/components/base/input/pin-input";
@@ -296,101 +307,180 @@ function SettingsPageContent() {
           <div className="flex-1 min-w-0 bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6 sm:p-8 shadow-xl">
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <div className="space-y-6 animate-in fade-in">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-8"
+              >
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Public Profile</h2>
-                  <p className="text-sm text-brand-offwhite-muted mb-6">
+                  <p className="text-sm text-brand-offwhite-muted">
                     This information will be displayed publicly on your profile and leaderboards.
                   </p>
                 </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Display Name
+
+                {/* Profile Avatar + Name preview */}
+                <div className="flex items-center gap-5 p-5 rounded-xl bg-brand-charcoal-base border border-brand-charcoal-border">
+                  <Avatar
+                    src={user?.google_avatar_url}
+                    name={name || user?.name}
+                    colorIndex={user?.colorIndex ?? 0}
+                    size="lg"
+                    verified={user?.role === "admin"}
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-brand-offwhite text-lg truncate">
+                        {name || user?.name || "Your Name"}
+                      </h3>
+                      {user?.role === "admin" && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-brand-offwhite-muted/60 mt-0.5">
+                      {user?.username
+                        ? `@${user.username}`
+                        : user?.usernameSet === false
+                          ? "Set a username below"
+                          : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Display Name */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider">
+                      <UserIcon size={12} /> Display Name
                     </label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                      placeholder="Your name"
+                      className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-2.5 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:outline-none focus:border-brand-muted-gold focus:ring-1 focus:ring-brand-muted-gold/30 transition-all"
+                      placeholder="Your display name"
                     />
+                    <p className="text-[11px] text-brand-offwhite-muted/50">
+                      Shown on your profile, submissions, and leaderboard.
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Bio
+                  {/* Bio */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider">
+                      <FileText size={12} /> Bio
                     </label>
-                    <textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      rows={4}
-                      className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors resize-none"
-                      placeholder="Tell the community about yourself..."
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        rows={4}
+                        maxLength={500}
+                        className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-2.5 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:outline-none focus:border-brand-muted-gold focus:ring-1 focus:ring-brand-muted-gold/30 transition-all resize-none"
+                        placeholder="Tell the community about yourself..."
+                      />
+                      <span className="absolute bottom-2.5 right-3 text-[10px] text-brand-offwhite-muted/40 tabular-nums">
+                        {bio.length}/500
+                      </span>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider mb-2">
-                      Username
+                  {/* Username */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider">
+                      <AtSign size={12} /> Username
                     </label>
                     {user?.usernameSet === false ? (
-                      <>
-                        <input
-                          type="text"
-                          value={newUsername}
-                          onChange={(e) => { setNewUsername(e.target.value); setUsernameError(""); }}
-                          className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors"
-                          placeholder="Choose a unique username"
-                        />
-                        {usernameError && (
-                          <p className="text-xs text-red-400 mt-1.5">{usernameError}</p>
-                        )}
-                        <div className="flex items-center justify-between mt-2">
-                          <p className="text-xs text-brand-muted-gold">
-                            This will be your public identifier. Cannot be changed later.
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <Info size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-400/80">
+                            Choose a unique username. This will be your permanent public identifier and cannot be changed later.
                           </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-brand-offwhite-muted font-mono">@</span>
+                          <input
+                            type="text"
+                            value={newUsername}
+                            onChange={(e) => { setNewUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '')); setUsernameError(""); }}
+                            className={cn(
+                              "flex-1 bg-brand-charcoal-base border rounded-xl px-3 py-2 text-sm text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:outline-none focus:ring-1 transition-all",
+                              usernameError
+                                ? "border-brand-error focus:border-brand-error focus:ring-brand-error/30"
+                                : "border-brand-charcoal-border focus:border-brand-muted-gold focus:ring-brand-muted-gold/30"
+                            )}
+                            placeholder="your-unique-name"
+                          />
                           <button
                             onClick={handleSetUsername}
                             disabled={usernameSaving || !newUsername || newUsername.length < 3}
-                            className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-4 py-1.5 rounded-lg font-bold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-brand-muted-gold hover:bg-brand-muted-gold/80 text-brand-charcoal-base px-4 py-2 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                           >
-                            {usernameSaving ? "Saving..." : "Set Username"}
+                            {usernameSaving ? (
+                              <span className="flex items-center gap-1.5">
+                                <div className="w-3.5 h-3.5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                                Saving
+                              </span>
+                            ) : (
+                              "Claim"
+                            )}
                           </button>
                         </div>
-                      </>
+                        {usernameError && (
+                          <p className="text-xs text-brand-error flex items-center gap-1">
+                            <AlertTriangle size={12} /> {usernameError}
+                          </p>
+                        )}
+                      </div>
                     ) : (
-                      <>
-                        <input
-                          type="text"
-                          value={profile?.username || ""}
-                          disabled
-                          className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-lg px-4 py-2.5 text-sm text-brand-offwhite-muted cursor-not-allowed opacity-70"
-                        />
-                        <p className="text-xs text-brand-offwhite-muted mt-2">
-                          Your unique identifier across the platform. Contact support to change it.
-                        </p>
-                      </>
+                      <div className="flex items-center gap-2 bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-2.5">
+                        <span className="text-sm text-brand-offwhite-muted/60 font-mono">@</span>
+                        <span className="text-sm text-brand-offwhite font-mono">
+                          {profile?.username || user?.username || "—"}
+                        </span>
+                        <CheckCircle2 size={14} className="text-brand-success ml-auto shrink-0" />
+                      </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-brand-charcoal-border flex justify-end">
+                  <div className="pt-6 border-t border-brand-charcoal-border flex items-center justify-between">
+                    <p className="text-xs text-brand-offwhite-muted/60">
+                      Changes are visible immediately
+                    </p>
                     <button
                       onClick={handleSaveProfile}
                       disabled={saving || (!name && !bio)}
-                      className="bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-6 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="bg-brand-muted-gold hover:bg-brand-muted-gold/80 text-brand-charcoal-base px-6 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-brand-muted-gold/10"
                     >
-                      {saving ? "Saving..." : "Save Changes"}
+                      {saving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} />
+                          Save Changes
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Appearance Tab */}
             {activeTab === "appearance" && (
-              <div className="space-y-6 animate-in fade-in">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-6"
+              >
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Appearance</h2>
                   <p className="text-sm text-brand-offwhite-muted mb-6">
@@ -431,12 +521,17 @@ function SettingsPageContent() {
                     <div className="text-xs text-brand-offwhite-muted mt-1">High contrast light theme</div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Notifications Tab */}
             {activeTab === "notifications" && (
-              <div className="space-y-6 animate-in fade-in">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-6"
+              >
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Notifications</h2>
                   <p className="text-sm text-brand-offwhite-muted mb-6">
@@ -526,33 +621,46 @@ function SettingsPageContent() {
                     </>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Security Tab */}
             {activeTab === "security" && (
-              <div className="space-y-6 animate-in fade-in">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-6"
+              >
                 <div>
                   <h2 className="text-xl font-bold text-brand-offwhite mb-1">Security</h2>
-                  <p className="text-sm text-brand-offwhite-muted mb-6">
-                    Manage your account security and authentication.
+                  <p className="text-sm text-brand-offwhite-muted">
+                    Manage your account security and authentication methods.
                   </p>
                 </div>
 
-                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Shield className="text-brand-muted-gold" size={20} />
-                    <h3 className="font-bold text-sm text-brand-offwhite">Password</h3>
+                {/* Password */}
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-brand-charcoal-border/50 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-muted-gold/10 shrink-0">
+                      <KeyRound size={18} className="text-brand-muted-gold" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-brand-offwhite">Password</h3>
+                      <p className="text-xs text-brand-offwhite-muted/70">Last changed: —</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-brand-offwhite-muted mb-4">
-                    Change your password using your 6-digit recovery PIN.
-                  </p>
-                  <button
-                    onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpNewPin(''); setCpConfirmNewPin(''); setCpError(''); }}
-                    className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel hover:border-brand-muted-gold/50 text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors"
-                  >
-                    Change Password
-                  </button>
+                  <div className="px-5 py-4 flex items-center justify-between">
+                    <p className="text-sm text-brand-offwhite-muted">
+                      Use your 6-digit recovery PIN to change your password.
+                    </p>
+                    <button
+                      onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpNewPin(''); setCpConfirmNewPin(''); setCpError(''); }}
+                      className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel hover:border-brand-muted-gold/50 text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0"
+                    >
+                      Change Password
+                    </button>
+                  </div>
                 </div>
 
                 <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
@@ -848,77 +956,119 @@ function SettingsPageContent() {
 
 
 
-                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Chrome className="text-brand-muted-gold" size={20} />
-                    <h3 className="font-bold text-sm text-brand-offwhite">Google Account</h3>
-                  </div>
-                  {user?.google_linked ? (
-                    <div className="flex items-center gap-2 text-emerald-400">
-                      <CheckCircle2 size={18} />
-                      <span className="text-sm font-semibold">Account linked</span>
+                {/* Google Account */}
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-brand-charcoal-border/50 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-muted-gold/10 shrink-0">
+                      <Chrome size={18} className="text-brand-muted-gold" />
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm text-brand-offwhite-muted mb-4">
-                        Link your Google account for seamless sign-in. You will still be able to sign in with your password.
-                      </p>
-                      <button
-                        onClick={() => prompt()}
-                        disabled={linkingGoogle}
-                        className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {linkingGoogle ? (
-                          <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
-                        ) : (
-                          <><Chrome size={16} /> Link Google Account</>
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="bg-brand-error/5 border border-brand-error/20 rounded-xl p-5">
-                  <h3 className="font-bold text-sm text-brand-error mb-2">Danger Zone</h3>
-                  <p className="text-sm text-brand-error/80 mb-4">
-                    Once you delete your account, there is no going back. Please be certain.
-                  </p>
-                  {confirmDelete ? (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs text-brand-error/70">
-                        All your submissions, progress, and account data will be permanently removed. Are you sure?
-                      </p>
-                      <div className="flex gap-2">
+                    <div>
+                      <h3 className="font-bold text-sm text-brand-offwhite">Google Account</h3>
+                      <p className="text-xs text-brand-offwhite-muted/70">Single sign-on</p>
+                    </div>
+                  </div>
+                  <div className="px-5 py-4">
+                    {user?.google_linked ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-[#22C55E]/10 flex items-center justify-center">
+                            <CheckCircle2 size={16} className="text-[#22C55E]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-brand-offwhite">Connected</p>
+                            <p className="text-xs text-brand-offwhite-muted/60">
+                              {user.google_avatar_url ? "Sign in with one tap" : "Google account linked"}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
+                          Active
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-brand-offwhite-muted">
+                            Link for seamless sign-in. Password login will remain available.
+                          </p>
+                        </div>
                         <button
-                          onClick={handleDelete}
-                          disabled={deleting}
-                          className="bg-brand-error hover:bg-brand-error/80 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          onClick={() => prompt()}
+                          disabled={linkingGoogle}
+                          className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:border-brand-muted-gold/50 hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
                         >
-                          {deleting ? (
-                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                          {linkingGoogle ? (
+                            <><div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" /> Linking...</>
                           ) : (
-                            "Yes, delete my account"
+                            <><Chrome size={16} /> Link Google Account</>
                           )}
                         </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="rounded-xl border border-brand-error/20 bg-gradient-to-r from-brand-error/5 to-transparent overflow-hidden">
+                  <div className="px-5 py-4 border-b border-brand-error/10 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-error/10 shrink-0">
+                      <Trash2 size={18} className="text-brand-error" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-brand-error">Danger Zone</h3>
+                      <p className="text-xs text-brand-error/70">Irreversible account deletion</p>
+                    </div>
+                  </div>
+                  <div className="px-5 py-4">
+                    {confirmDelete ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3 p-3 rounded-lg bg-brand-error/5 border border-brand-error/10">
+                          <AlertTriangle size={16} className="text-brand-error shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-brand-error mb-1">This action cannot be undone</p>
+                            <p className="text-xs text-brand-error/70 leading-relaxed">
+                              All your submissions, progress, XP, achievements, and account data will be permanently removed from our servers.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => setConfirmDelete(false)}
+                            disabled={deleting}
+                            className="bg-brand-charcoal-hover border border-brand-charcoal-border text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-all hover:bg-brand-charcoal-panel disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="bg-brand-error hover:bg-brand-error/80 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {deleting ? (
+                              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                            ) : (
+                              "Delete my account"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-brand-error/80">
+                          Permanently remove your account and all associated data.
+                        </p>
                         <button
-                          onClick={() => setConfirmDelete(false)}
-                          disabled={deleting}
-                          className="bg-brand-charcoal-hover border border-brand-charcoal-border text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-colors hover:bg-brand-charcoal-panel disabled:opacity-50"
+                          onClick={() => setConfirmDelete(true)}
+                          className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0"
                         >
-                          Cancel
+                          <Trash2 size={14} className="inline mr-1.5" />
+                          Delete Account
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDelete(true)}
-                      className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-colors"
-                    >
-                      Delete Account
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
