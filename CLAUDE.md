@@ -564,9 +564,17 @@ See `.env.example` for full template.
   - New `PublishAllDrafts` store method: single `UPDATE SET visible = true WHERE NOT visible` instead of fetch-all + N round trips
   - Handler publishes `admin.publish-all` event
 
----
+- **July 6 — Module card image fix + all-modules local image:**
+  - `MODULE_META` keys changed from display names (`"Arrays & Slices"`) to lowercase API slugs (`"arrays-strings"`) — root cause of all module images being broken
+  - `MODULE_DISPLAY_NAMES` mapping added so card titles render properly
+  - All 20 modules + fallback now use local `/modules/arrays-strings.png` instead of Unsplash URLs
+  - `frontend/public/modules/arrays-strings.png` replaced with professional ChatGPT-generated image
+- **July 6 — Google auth 502 panic fix:**
+  - `internal/auth/oauth.go`: Removed `pem.Encode(nil, ...)` which panicked on multi-key JWKS responses
+  - `internal/api/middleware.go`: Added `RecoveryMiddleware` — catches panics, returns JSON 500
+  - Google Sign-In confirmed working in production
 
-## Quick Reference: Common Tasks
+---
 
 ### Add a New Problem
 1. Update GitHub curriculum YAML
