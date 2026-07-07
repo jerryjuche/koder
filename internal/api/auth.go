@@ -323,6 +323,10 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 
 	// Atomically set username, student_id, and username_set
 	if err := h.store.CompleteUserOnboarding(r.Context(), userUUID, req.Username); err != nil {
+		if code, friendly, ok := store.IsFriendlyError(err); ok {
+			RespondError(w, http.StatusConflict, code, friendly, nil)
+			return
+		}
 		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set username", nil)
 		return
 	}
@@ -429,8 +433,7 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, authResponse{Token: token})
 }
 
-// CheckUsername checks if a username is available.
-// Always returns available: true to prevent username enumeration.
+// CheckUsername always returns available: true to prevent username enumeration.
 // Actual uniqueness validation happens on submission during onboarding.
 // GET /auth/check-username?username=xxx
 func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
@@ -440,12 +443,9 @@ func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetUserByUsername(r.Context(), username)
-	available := err != nil
-
 	RespondSuccess(w, map[string]interface{}{
 		"username":  username,
-		"available": available,
+		"available": true,
 	})
 }
 

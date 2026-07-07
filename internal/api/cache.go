@@ -16,6 +16,7 @@ type userCache[T any] struct {
 	entries  map[string]cacheEntry[T]
 	ttl      time.Duration
 	stopCh   chan struct{}
+	stopped  bool
 }
 
 func newUserCache[T any](ttl time.Duration) *userCache[T] {
@@ -73,6 +74,15 @@ func (c *userCache[T]) invalidate(key string) {
 	delete(c.entries, key)
 }
 
+func (c *userCache[T]) Stop() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.stopped {
+		close(c.stopCh)
+		c.stopped = true
+	}
+}
+
 // Global caches for user and profile data
 var (
 	profileCache = newUserCache[profileResponse](30 * time.Second)
@@ -102,4 +112,10 @@ func getCachedUser(ctx context.Context, userID string) (meResponse, bool) {
 func InvalidateUserCache(userID string) {
 	profileCache.invalidate(userID)
 	userCacheMap.invalidate(userID)
+}
+
+// StopCaches terminates the cleanup goroutines for all global caches.
+func StopCaches() {
+	profileCache.Stop()
+	userCacheMap.Stop()
 }

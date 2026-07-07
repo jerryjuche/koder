@@ -12,8 +12,23 @@ import (
 	"github.com/jerryjuche/koder/internal/store"
 )
 
+// App holds the HTTP handler and lifecycle-managed resources that need
+// clean shutdown (rate limiters, caches, etc.).
+type App struct {
+	Handler         http.Handler
+	rateLimiter     *RateLimiter
+	authRateLimiter *IPRateLimiter
+}
+
+// Shutdown stops all background goroutines managed by the API layer.
+func (a *App) Shutdown() {
+	a.rateLimiter.Stop()
+	a.authRateLimiter.Stop()
+	StopCaches()
+}
+
 // NewRouter builds the application router for Koder.
-func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (http.Handler, error) {
+func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (*App, error) {
 	r := chi.NewRouter()
 
 	r.Use(RecoveryMiddleware)
@@ -149,5 +164,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.Get("/ws", wsHandler.ServeHTTP)
 	})
 
-	return r, nil
+	return &App{
+		Handler:         r,
+		rateLimiter:     rateLimiter,
+		authRateLimiter: authRateLimiter,
+	}, nil
 }
