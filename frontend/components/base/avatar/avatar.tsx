@@ -9,11 +9,11 @@ const sizeMap = {
   xl: "h-20 w-20 sm:h-24 sm:w-24 text-3xl sm:text-4xl",
 };
 
-const badgeSizeMap: Record<string, { offset: string; svg: number }> = {
-  sm: { offset: "-bottom-0.5 -right-0.5", svg: 14 },
-  md: { offset: "-bottom-0.5 -right-0.5", svg: 16 },
-  lg: { offset: "-bottom-1 -right-1", svg: 20 },
-  xl: { offset: "-bottom-1 -right-1", svg: 24 },
+const badgeConfig: Record<string, { size: number; ring: string }> = {
+  sm: { size: 14, ring: "ring-2" },
+  md: { size: 16, ring: "ring-2" },
+  lg: { size: 20, ring: "ring-[3px]" },
+  xl: { size: 24, ring: "ring-[3px]" },
 };
 
 interface AvatarProps {
@@ -44,8 +44,10 @@ export function Avatar({
         .slice(0, 2)
     : "?";
 
+  const badge = badgeConfig[size];
+
   return (
-    <div className={cn("relative inline-flex shrink-0", className)}>
+    <div className={cn("relative inline-flex shrink-0 rounded-full", className)}>
       <div
         className={cn(
           "flex items-center justify-center rounded-full overflow-hidden",
@@ -66,7 +68,7 @@ export function Avatar({
         ) : null}
         <span
           className={cn(
-            "font-bold text-white",
+            "font-bold text-white select-none",
             src ? "hidden" : "",
             size === "sm" ? "text-[10px]" : size === "md" ? "text-xs" : size === "lg" ? "text-sm" : "",
           )}
@@ -75,18 +77,26 @@ export function Avatar({
         </span>
       </div>
       {verified && (
-        <span className={cn("absolute", badgeSizeMap[size].offset)}>
+        <span
+          className={cn(
+            "absolute rounded-full bg-[#D4AF37] ring-[#1E1E2A] flex items-center justify-center",
+            badge.ring,
+          )}
+          style={{
+            width: badge.size,
+            height: badge.size,
+            bottom: -1,
+            right: -1,
+          }}
+        >
           <svg
-            width={badgeSizeMap[size].svg}
-            height={badgeSizeMap[size].svg}
-            viewBox="0 0 24 24"
+            viewBox="0 0 16 16"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+            className="w-[60%] h-[60%]"
           >
-            <circle cx="12" cy="12" r="11" fill="#D4AF37" stroke="#1E1E2A" strokeWidth="2" />
             <path
-              d="M7 12.5l3 3 7-7"
-              stroke="#1E1E2A"
+              d="M4 8.5l3 3 5.5-5.5"
+              stroke="white"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
