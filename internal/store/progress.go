@@ -3,9 +3,21 @@ package store
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+// advisoryLockID computes a deterministic int64 from user_id and problem_id
+// for use with pg_advisory_xact_lock, preventing XP double-award races on
+// concurrent first-solves where FOR UPDATE cannot lock a non-existent row.
+func advisoryLockID(userID, problemID pgtype.UUID) int64 {
+	h := fnv.New64a()
+	h.Write(userID.Bytes[:])
+	h.Write(problemID.Bytes[:])
+	return int64(h.Sum64())
+}
 
 // UpsertProgress updates progress stats, solves, stars, and awards XP atomically.
 func (s *PostgresStore) UpsertProgress(ctx context.Context, prog *Progress) error {
@@ -20,6 +32,16 @@ func (s *PostgresStore) UpsertProgress(ctx context.Context, prog *Progress) erro
 	defer func() {
 		_ = tx.Rollback(ctx)
 	}()
+
+	// Acquire advisory lock to serialize concurrent first-solves for this
+	// (user, problem) pair. FOR UPDATE below cannot lock a row that doesn't
+	// exist yet, so two concurrent callers would both see no row and both
+	// INSERT — the second would get a unique violation (bad UX) or with
+	// ON CONFLICT would double-award XP. This lock serializes them.
+	_, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, advisoryLockID(prog.UserID, prog.ProblemID))
+	if err != nil {
+		return fmt.Errorf("failed to acquire advisory lock: %w", err)
+	}
 
 	// 1. Get problem details (xp_reward)
 	var xpReward int

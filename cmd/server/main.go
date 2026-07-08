@@ -66,7 +66,7 @@ func main() {
 	b := broker.New()
 	slog.Info("broker: initialized")
 
-	router, err := api.NewRouter(cfg, storeInstance, execInstance, b)
+	app, err := api.NewRouter(cfg, storeInstance, execInstance, b)
 	if err != nil {
 		slog.Error("failed to initialize router", "error", err)
 		os.Exit(1)
@@ -74,7 +74,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      router,
+		Handler:      app.Handler,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -102,8 +102,10 @@ func main() {
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown error", "error", err)
-		os.Exit(1)
 	}
+
+	// Stop background goroutines for rate limiters and caches
+	app.Shutdown()
 
 	slog.Info("server shutdown complete")
 }

@@ -247,15 +247,45 @@ type geminiProvider struct {
 func (g *geminiProvider) Name() string { return "gemini" }
 
 func (g *geminiProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			delay := time.Duration(1<<attempt) * time.Second
+			slog.Warn("enricher: retrying Gemini request", "attempt", attempt+1, "delay", delay)
+			select {
+			case <-time.After(delay):
+			case <-ctx.Done():
+				return "", ctx.Err()
+			}
+		}
+
+		result, err := g.generateOnce(ctx, systemPrompt, userPrompt)
+		if err == nil {
+			return result, nil
+		}
+
+		lastErr = err
+		// Don't retry on content-blocked or schema errors (permanent failures)
+		errStr := err.Error()
+		if strings.Contains(errStr, "prompt may have been blocked") ||
+			strings.Contains(errStr, "finish_reason") ||
+			strings.Contains(errStr, "SAFETY") {
+			return "", err
+		}
+	}
+	return "", fmt.Errorf("gemini generate content failed after 3 attempts: %w", lastErr)
+}
+
+func (g *geminiProvider) generateOnce(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	cfg := &genai.GenerateContentConfig{
-		ResponseMIMEType: "application/json",
-		ResponseSchema:   enrichmentSchema(),
-		Temperature:      float32Ptr(0.0),
-		MaxOutputTokens:  8192,
+		SystemInstruction: genai.NewContentFromText(systemPrompt, genai.RoleUser),
+		ResponseMIMEType:  "application/json",
+		ResponseSchema:    enrichmentSchema(),
+		Temperature:       float32Ptr(0.0),
+		MaxOutputTokens:   8192,
 	}
 
 	response, err := g.client.Models.GenerateContent(ctx, g.model, []*genai.Content{
-		genai.NewContentFromText(systemPrompt, genai.RoleUser),
 		genai.NewContentFromText(userPrompt, genai.RoleUser),
 	}, cfg)
 	if err != nil {

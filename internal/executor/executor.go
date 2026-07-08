@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -228,83 +226,10 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	}
 
 	// 6. Parse go test output
-	var (
-		runRegex      = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
-		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
-		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		caseFailRegex = regexp.MustCompile(`(?:\s|^)=== FAIL: Case (\d+)`)
-		gotRegex      = regexp.MustCompile(`(?:\s|^)GOT:\s+(.*)$`)
-		wantRegex     = regexp.MustCompile(`(?:\s|^)WANT:\s+(.*)$`)
-
-		passedMap = make(map[int]bool)
-		gotMap    = make(map[int]string)
-		wantMap   = make(map[int]string)
-	)
-
-	scanner := bufio.NewScanner(strings.NewReader(output))
-
-	var currentOrdinal int = -1
-	var currentState string // "", "got", "want"
-	var gotBuffer []string
-	var wantBuffer []string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		// Detect test run start
-		if matches := runRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			currentOrdinal = ord
-			currentState = ""
-		} else if matches := passRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			passedMap[ord] = true
-			currentState = ""
-		} else if matches := failRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			passedMap[ord] = false
-			currentState = ""
-		} else if matches := caseFailRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			currentOrdinal = ord
-			passedMap[ord] = false
-			currentState = ""
-		} else if matches := gotRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			// Starting GOT section
-			currentState = "got"
-			gotBuffer = []string{matches[1]}
-		} else if matches := wantRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			// Starting WANT section; finalize GOT
-			if currentOrdinal != -1 && len(gotBuffer) > 0 {
-				gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
-			}
-			currentState = "want"
-			wantBuffer = []string{matches[1]}
-		} else if currentState == "got" && trimmed != "" {
-			// Continue accumulating GOT line
-			gotBuffer = append(gotBuffer, strings.TrimLeft(line, "\t"))
-		} else if currentState == "want" && trimmed != "" {
-			// Continue accumulating WANT line
-			wantBuffer = append(wantBuffer, strings.TrimLeft(line, "\t"))
-		} else if currentState == "got" {
-			// Preserve empty lines within multi-line GOT values
-			gotBuffer = append(gotBuffer, "")
-		} else if currentState == "want" {
-			// Preserve empty lines within multi-line WANT values
-			wantBuffer = append(wantBuffer, "")
-		}
-	}
-
-	// Finalize any remaining buffers
-	if currentOrdinal != -1 {
-		if len(gotBuffer) > 0 {
-			gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
-		}
-		if len(wantBuffer) > 0 {
-			wantMap[currentOrdinal] = strings.Join(wantBuffer, "\n")
-		}
-	}
+	parsed := ParseTestOutput(output)
+	passedMap := parsed.passedMap
+	gotMap := parsed.gotMap
+	wantMap := parsed.wantMap
 
 	// 7. Classify submission status
 	var status string
@@ -614,75 +539,10 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 	}
 
 	// 7. Parse go test output
-	var (
-		runRegex      = regexp.MustCompile(`^=== RUN\s+TestSolution/case_(\d+)`)
-		passRegex     = regexp.MustCompile(`^--- PASS:\s+TestSolution/case_(\d+)`)
-		failRegex     = regexp.MustCompile(`^--- FAIL:\s+TestSolution/case_(\d+)`)
-		caseFailRegex = regexp.MustCompile(`(?:\s|^)=== FAIL: Case (\d+)`)
-		gotRegex      = regexp.MustCompile(`(?:\s|^)GOT:\s+(.*)$`)
-		wantRegex     = regexp.MustCompile(`(?:\s|^)WANT:\s+(.*)$`)
-
-		passedMap = make(map[int]bool)
-		gotMap    = make(map[int]string)
-		wantMap   = make(map[int]string)
-	)
-
-	scanner := bufio.NewScanner(strings.NewReader(output))
-
-	var currentOrdinal int = -1
-	var currentState string
-	var gotBuffer []string
-	var wantBuffer []string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		if matches := runRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			currentOrdinal = ord
-			currentState = ""
-		} else if matches := passRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			passedMap[ord] = true
-			currentState = ""
-		} else if matches := failRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			passedMap[ord] = false
-			currentState = ""
-		} else if matches := caseFailRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			ord, _ := strconv.Atoi(matches[1])
-			currentOrdinal = ord
-			passedMap[ord] = false
-			currentState = ""
-		} else if matches := gotRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			currentState = "got"
-			gotBuffer = []string{matches[1]}
-		} else if matches := wantRegex.FindStringSubmatch(trimmed); len(matches) > 1 {
-			if currentOrdinal != -1 && len(gotBuffer) > 0 {
-				gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
-			}
-			currentState = "want"
-			wantBuffer = []string{matches[1]}
-		} else if currentState == "got" && trimmed != "" {
-			gotBuffer = append(gotBuffer, strings.TrimLeft(line, "\t"))
-		} else if currentState == "want" && trimmed != "" {
-			wantBuffer = append(wantBuffer, strings.TrimLeft(line, "\t"))
-		} else if currentState == "got" {
-			gotBuffer = append(gotBuffer, "")
-		} else if currentState == "want" {
-			wantBuffer = append(wantBuffer, "")
-		}
-	}
-
-	if currentOrdinal != -1 {
-		if len(gotBuffer) > 0 {
-			gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
-		}
-		if len(wantBuffer) > 0 {
-			wantMap[currentOrdinal] = strings.Join(wantBuffer, "\n")
-		}
-	}
+	parsed := ParseTestOutput(output)
+	passedMap := parsed.passedMap
+	gotMap := parsed.gotMap
+	wantMap := parsed.wantMap
 
 	// 8. Classify submission status
 	var status string
