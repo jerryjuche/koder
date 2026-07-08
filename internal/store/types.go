@@ -27,6 +27,7 @@ type User struct {
 	GoogleAvatarURL *string   `db:"google_avatar_url" json:"google_avatar_url,omitempty"`
 	PINHash        *string     `db:"pin_hash" json:"-"`
 	UsernameSet    bool        `db:"username_set" json:"username_set"`
+	PrimaryLanguage string      `db:"primary_language" json:"primary_language"`
 	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
 }
 
@@ -63,8 +64,9 @@ type NewUser struct {
 	Email       *string
 	Password    string // plaintext, will be hashed
 	PINHash     string // bcrypt hash of 6-digit PIN
-	Role        string // "student" | "admin"
-	UsernameSet bool
+	Role            string // "student" | "admin"
+	UsernameSet     bool
+	PrimaryLanguage string // default "go"
 }
 
 // Problem represents an exercise definition stored in the database.
@@ -74,6 +76,7 @@ type Problem struct {
 	Module           string      `db:"module" json:"module"`
 	Type             string      `db:"type" json:"type"`
 	Language         string      `db:"language" json:"language"`
+	LanguageVersions map[string]LanguageSpec `db:"language_versions" json:"language_versions"`
 	Title            string      `db:"title" json:"title"`
 	Statement        string      `db:"statement" json:"statement"`
 	Constraints      string      `db:"constraints" json:"constraints"`
@@ -100,6 +103,13 @@ type Problem struct {
 	AvgRuntimeMs     int         `json:"avg_runtime_ms"`
 	EstTimeMinutes   int         `json:"estTimeMinutes"`
 	Examples         []TestCase  `json:"examples"`
+}
+
+// LanguageSpec holds per-language function metadata for a problem.
+type LanguageSpec struct {
+	FuncName   string   `json:"func_name"`
+	ReturnType string   `json:"return_type"`
+	ParamTypes []string `json:"param_types"`
 }
 
 // TestCase represents a single problem test case.

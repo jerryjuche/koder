@@ -39,6 +39,11 @@ type Config struct {
 	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
 	GoVersion              string // Go version directive for generated go.mod (default "1.23")
 
+	// Python execution
+	PythonDockerImage     string // default: "python:3.12-slim"
+	PythonExecutorTimeout int    // default: 60
+	PythonSandboxURL      string // optional separate Python sandbox
+
 	// Server
 	Port        int
 	Environment string
@@ -206,6 +211,24 @@ func Load() (*Config, error) {
 	if cfg.GoVersion == "" {
 		cfg.GoVersion = "1.23"
 	}
+
+	// Python execution
+	cfg.PythonDockerImage = os.Getenv("PYTHON_DOCKER_IMAGE")
+	if cfg.PythonDockerImage == "" {
+		cfg.PythonDockerImage = "python:3.12-slim"
+	}
+
+	pythonTimeoutStr := os.Getenv("PYTHON_EXECUTOR_TIMEOUT_SECONDS")
+	if pythonTimeoutStr == "" {
+		pythonTimeoutStr = "60"
+	}
+	pythonTimeout, err := strconv.Atoi(pythonTimeoutStr)
+	if err != nil {
+		return nil, fmt.Errorf("PYTHON_EXECUTOR_TIMEOUT_SECONDS must be a valid integer: %w", err)
+	}
+	cfg.PythonExecutorTimeout = pythonTimeout
+
+	cfg.PythonSandboxURL = os.Getenv("PYTHON_SANDBOX_URL")
 
 	// Server
 	portStr := os.Getenv("PORT")
