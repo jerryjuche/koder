@@ -155,6 +155,7 @@ koder/
 │   │   │   ├── label-input-container.tsx      # Input + label spacing (Aceternity)
 │   │   │   ├── auth-divider.tsx               # "or" divider with border
 │   │   │   └── index.ts                       # Re-exports
+│   │   ├── base/avatar/avatar.tsx             # Avatar with src/initials fallback + verified gold badge
 │   │   ├── base/input/pin-input.tsx           # OTP-based PIN input with mask support
 │   │   ├── dashboard/ModuleCards.tsx          # Module grid with images, loading skeleton
 │   │   ├── kibo-ui/
@@ -621,3 +622,18 @@ npm run build   # Builds static + server components
 - **Backend:** Render/Oracle Cloud Ampere A1
 - **Database:** Supabase dashboard
 - **Issues:** Linear "KODER" project
+
+---
+
+## Session Log
+
+### 2026-07-08 — Professional UI polish & fixes
+
+**Changes:**
+- **ProblemReports.tsx** — Full redesign: grouped/flat view toggle, search, resolved filter, priority badges, inline status buttons (New/In Progress/Resolved), expanded detail cards with error/code/screenshot sections, `timeAgo` helper, collapsible problem groups
+- **Avatar component** — Created `components/base/avatar/avatar.tsx` with `src`/`initials` fallback, `size` (sm/md/lg/xl), `verified` prop (custom gold SVG circle badge with white checkmark, dark ring overlap)
+- **TopNav.tsx** — Replaced inline avatar rendering with Avatar component, added gold "Admin" label + verified badge for admin users
+- **ProfileHeader.tsx** — Replaced inline avatar with Avatar component, shows verified badge for admin users
+- **Settings page** — Professional polish: profile preview card with avatar, icon-labeled form sections, char counter on bio, username setup flow with info box, framer-motion tab animations, Security section redesigned with icon headers, polished Danger Zone
+- **Contribution graph year fix** — `index.tsx`: changed `data[0].date` → `data[data.length - 1].date` to show current year (2026) instead of last year
+- **Notification cache bug** — `useNotifications.ts`: added `clearCache("/notifications")` after `markAsRead`/`markAllAsRead` to prevent stale sessionStorage cache from restoring old unread notification state after mutation
