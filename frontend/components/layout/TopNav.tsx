@@ -230,7 +230,7 @@ export default function TopNav() {
                       colorIndex={user.colorIndex}
                       size="md"
                       verified={user.role === "admin"}
-                      className="border-2 border-border shadow-inner"
+                      className="ring-1 ring-border/50"
                     />
                     <div className="hidden sm:flex items-center gap-2">
                       <div className="text-left">

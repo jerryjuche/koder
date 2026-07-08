@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchApi } from "./api";
+import { clearCache } from "./cache";
 
 export interface Notification {
   id: string;
@@ -27,10 +28,15 @@ export function useNotifications() {
     }
   }, []);
 
+  const invalidateCache = () => {
+    clearCache("/notifications");
+  };
+
   const markAsRead = async (id: string) => {
     try {
       const res = await fetchApi(`/notifications/${id}/read`, { method: "POST" });
       if (res.success) {
+        invalidateCache();
         setNotifications((prev) =>
           prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
         );
@@ -45,6 +51,7 @@ export function useNotifications() {
     try {
       const res = await fetchApi("/notifications/read-all", { method: "POST" });
       if (res.success) {
+        invalidateCache();
         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
         setUnreadCount(0);
       }
