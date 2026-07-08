@@ -1,18 +1,19 @@
 "use client";
 
 import { cn, getUserColor } from "@/lib";
-import { CheckCircle2 } from "lucide-react";
 
 const sizeMap = {
   sm: "h-8 w-8 text-xs",
   md: "h-10 w-10 text-sm",
   lg: "h-14 w-14 text-base",
+  xl: "h-20 w-20 sm:h-24 sm:w-24 text-3xl sm:text-4xl",
 };
 
-const badgeSizeMap = {
-  sm: { container: "h-3.5 w-3.5 bottom-0 right-0", icon: 14 },
-  md: { container: "h-4 w-4 bottom-0 right-0", icon: 16 },
-  lg: { container: "h-5 w-5 bottom-0 right-0", icon: 20 },
+const badgeSizeMap: Record<string, { offset: string; svg: number }> = {
+  sm: { offset: "-bottom-0.5 -right-0.5", svg: 14 },
+  md: { offset: "-bottom-0.5 -right-0.5", svg: 16 },
+  lg: { offset: "-bottom-1 -right-1", svg: 20 },
+  xl: { offset: "-bottom-1 -right-1", svg: 24 },
 };
 
 interface AvatarProps {
@@ -20,7 +21,7 @@ interface AvatarProps {
   alt?: string;
   name?: string;
   colorIndex?: number;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   verified?: boolean;
   className?: string;
 }
@@ -67,18 +68,30 @@ export function Avatar({
           className={cn(
             "font-bold text-white",
             src ? "hidden" : "",
-            size === "sm" ? "text-[10px]" : size === "lg" ? "text-sm" : "text-xs",
+            size === "sm" ? "text-[10px]" : size === "md" ? "text-xs" : size === "lg" ? "text-sm" : "",
           )}
         >
           {initials}
         </span>
       </div>
       {verified && (
-        <span className={cn("absolute", badgeSizeMap[size].container)}>
-          <CheckCircle2
-            size={badgeSizeMap[size].icon}
-            className="text-[#22C55E] fill-white"
-          />
+        <span className={cn("absolute", badgeSizeMap[size].offset)}>
+          <svg
+            width={badgeSizeMap[size].svg}
+            height={badgeSizeMap[size].svg}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="12" cy="12" r="11" fill="#D4AF37" stroke="#1E1E2A" strokeWidth="2" />
+            <path
+              d="M7 12.5l3 3 7-7"
+              stroke="#1E1E2A"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </span>
       )}
     </div>
