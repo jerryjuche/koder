@@ -1,0 +1,143 @@
+KODER MULTI-LANGUAGE CURRICULUM INTEGRATION — PROGRESS
+======================================================
+
+Branch: python-curricula
+Updated: 2026-07-08
+
+---
+
+PHASE 0 — Schema & Configuration (DONE)
+========================================
+
+ Files:
+   migrations/027_language_versions.sql         — created
+   internal/config/config.go                    — modified (Python config vars)
+   internal/store/types.go                      — modified (PrimaryLanguage, LanguageVersions, LanguageSpec)
+   .env.example                                 — modified (Python placeholders)
+
+ Details:
+   - Adds primary_language TEXT DEFAULT 'go' to users with index
+   - Adds language_versions JSONB to problems with backfill
+   - Config: PYTHON_DOCKER_IMAGE, PYTHON_EXECUTOR_TIMEOUT_SECONDS, PYTHON_SANDBOX_URL
+   - Go vet: clean
+
+---
+
+PHASE 1 — User Language Preference (NOT STARTED)
+=================================================
+
+ Files:
+   internal/store/store.go                      — add UpdateUserPrimaryLanguage to interface
+   internal/store/users.go                      — add to all GetUserBy* queries + CreateUser + implement method
+   internal/api/me.go                           — add PrimaryLanguage to response + UpdateLanguage handler
+   internal/api/router.go                       — register PUT /me/language
+
+---
+
+PHASE 2 — Problem Language Versions (NOT STARTED)
+==================================================
+
+ Files:
+   internal/store/problems.go                   — add language_versions to SELECT/Scan
+   internal/api/problems.go                     — add ?language= filter
+
+---
+
+PHASE 3 — Language in Submit/Test (NOT STARTED)
+================================================
+
+ Files:
+   internal/api/submissions.go                  — add Language to request, validate, propagate
+   internal/api/test.go                         — same as submissions
+   internal/executor/executor.go                — branch on req.Language, executePython stub
+
+---
+
+PHASE 4 — Python Test Template (NOT STARTED)
+=============================================
+
+ Files:
+   internal/executor/templates.go               — pythonTestTemplate + TestCasesJSON field
+   internal/executor/executor.go                — formatPythonLiteral helper
+
+---
+
+PHASE 5 — Multi-Language Sandbox (NOT STARTED)
+===============================================
+
+ Files:
+   sandbox/main.go                              — Language field + routing
+   sandbox/runtest_go.go                        — extracted Go runner (NEW)
+   sandbox/pyrunner.go                          — Python runner (NEW)
+   sandbox/Dockerfile.python                    — Python sandbox image (NEW)
+   internal/executor/sandbox_client.go          — Language in request
+
+---
+
+PHASE 6 — Python Security (NOT STARTED)
+========================================
+
+ Files:
+   sandbox/secure.go                            — pythonDangerousPatterns + validatePythonCode
+   sandbox/secure_unix.go                       — RLIMIT_AS for Python
+
+---
+
+PHASE 7 — Frontend Types & State (NOT STARTED)
+===============================================
+
+ Files:
+   frontend/lib/types.ts                        — primaryLanguage, language_versions fields
+   frontend/lib/api.ts                          — updatePrimaryLanguage, language params
+   frontend/lib/UserContext.tsx                  — setPrimaryLanguage
+
+---
+
+PHASE 8 — LanguageSelector Component (NOT STARTED)
+===================================================
+
+ Files:
+   frontend/components/LanguageSelector.tsx      — new onboarding component
+   frontend/app/(auth)/onboarding/page.tsx       — integrate language step
+
+---
+
+PHASE 9 — TopNav Language Switcher (NOT STARTED)
+=================================================
+
+ Files:
+   frontend/components/layout/TopNav.tsx         — language dropdown
+
+---
+
+PHASE 10 — Language-Aware Dashboard (NOT STARTED)
+==================================================
+
+ Files:
+   frontend/app/(main)/home/page.tsx            — language filter tabs
+
+---
+
+PHASE 11 — Language-Aware Workspace (NOT STARTED)
+==================================================
+
+ Files:
+   frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx — dynamic editor
+
+---
+
+PHASE 12 — Multi-Language Enrichment (NOT STARTED)
+===================================================
+
+ Files:
+   internal/enricher/enricher.go                — dual Go/Python AI generation
+
+---
+
+LEGEND
+======
+
+ DONE        — implemented, committed, verified
+ IN PROGRESS — actively being worked on
+ NOT STARTED — planned, not yet touched
+ BLOCKED     — blocked by dependency
