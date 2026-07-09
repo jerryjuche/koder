@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -163,25 +164,95 @@ func compileErrorMessage(status, output string) string {
 	if status != "compiler_error" {
 		return ""
 	}
-	// Extract the first meaningful line mentioning solution.go
-	for _, line := range strings.Split(output, "\n") {
+	lines := strings.Split(output, "\n")
+
+	// Try Go error format first
+	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
 			parts := strings.SplitN(line, "solution.go:", 2)
 			return strings.TrimSpace(parts[1])
 		}
 	}
+
+	// Try Python traceback format: find the last error line and its file context
+	for i := len(lines) - 1; i >= 0; i-- {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			continue
+		}
+		if isPythonErrorLine(trimmed) {
+			// Look backwards for File "...", line N context
+			for j := i - 1; j >= max(0, i-4); j-- {
+				ctx := strings.TrimSpace(lines[j])
+				if pyFile, lineNum := extractPyFileLine(ctx); pyFile != "" {
+					return fmt.Sprintf("%s:%s: %s", pyFile, lineNum, trimmed)
+				}
+			}
+			return trimmed
+		}
+	}
+
 	// Fallback: first non-empty, non-Go-toolchain line
-	for _, line := range strings.Split(output, "\n") {
+	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed != "" &&
 			!strings.HasPrefix(trimmed, "#") &&
 			!strings.HasPrefix(trimmed, "FAIL") &&
 			!strings.HasPrefix(trimmed, "exit status") &&
-			!strings.HasPrefix(trimmed, "ok ") {
+			!strings.HasPrefix(trimmed, "ok ") &&
+			!strings.HasPrefix(trimmed, "Traceback") {
 			return trimmed
 		}
 	}
 	return "compilation failed"
+}
+
+// isPythonErrorLine checks if a line is a Python error like "NameError: ..."
+func isPythonErrorLine(line string) bool {
+	for _, prefix := range []string{
+		"SyntaxError:", "IndentationError:", "ImportError:",
+		"ModuleNotFoundError:", "NameError:", "TypeError:",
+		"AttributeError:", "ValueError:", "ZeroDivisionError:",
+		"EOFError:", "RuntimeError:", "KeyError:", "IndexError:",
+		"StopIteration:", "AssertionError:", "OSError:", "FileNotFoundError:",
+		"RecursionError:", "TabError:",
+	} {
+		if strings.HasPrefix(line, prefix) {
+			return true
+		}
+	}
+	return strings.Contains(line, "Error:") || strings.Contains(line, "Exception:")
+}
+
+// extractPyFileLine extracts file and line number from Python "File" line.
+// Input:  File "/tmp/sandbox/solution.py", line 3, in <module>
+// Output: "solution.py", "3"
+func extractPyFileLine(line string) (string, string) {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "File \"") {
+		return "", ""
+	}
+	rest := strings.TrimPrefix(line, "File ")
+	rest = strings.TrimSpace(rest)
+	if !strings.HasPrefix(rest, "\"") {
+		return "", ""
+	}
+	rest = rest[1:] // skip opening quote
+	endQuote := strings.IndexByte(rest, '"')
+	if endQuote < 0 {
+		return "", ""
+	}
+	filePath := rest[:endQuote]
+	basename := filepath.Base(filePath)
+
+	after := strings.TrimSpace(rest[endQuote+1:])
+	if !strings.HasPrefix(after, ", line ") {
+		return basename, ""
+	}
+	after = strings.TrimPrefix(after, ", line ")
+	lineNum := strings.Split(after, ",")[0]
+	lineNum = strings.Split(lineNum, " ")[0]
+	return basename, strings.TrimSpace(lineNum)
 }
 
 func errorResponse(status, message string) ExecuteResponse {

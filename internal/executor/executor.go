@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -365,6 +366,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 func parseCompilerError(output string) string {
 	lines := strings.Split(output, "\n")
+
 	// Try Go error format first
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
@@ -372,37 +374,22 @@ func parseCompilerError(output string) string {
 			return "Line " + strings.TrimSpace(parts[1])
 		}
 	}
-	// Try Python traceback format
-	var pyLines []string
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
+
+	// Try Python traceback format — scan bottom-up for the error line
+	for i := len(lines) - 1; i >= 0; i-- {
+		trimmed := strings.TrimSpace(lines[i])
 		if trimmed == "" {
 			continue
 		}
-		// Capture meaningful error lines from Python tracebacks
-		if strings.HasPrefix(trimmed, "SyntaxError:") ||
-			strings.HasPrefix(trimmed, "IndentationError:") ||
-			strings.HasPrefix(trimmed, "ImportError:") ||
-			strings.HasPrefix(trimmed, "ModuleNotFoundError:") ||
-			strings.HasPrefix(trimmed, "NameError:") ||
-			strings.HasPrefix(trimmed, "TypeError:") ||
-			strings.HasPrefix(trimmed, "AttributeError:") ||
-			strings.HasPrefix(trimmed, "ValueError:") ||
-			strings.HasPrefix(trimmed, "ZeroDivisionError:") ||
-			strings.HasPrefix(trimmed, "EOFError:") {
-			// Include line number context from above
-			for j := max(0, i-3); j < i; j++ {
-				ctx := strings.TrimSpace(lines[j])
-				if ctx != "" && !strings.HasPrefix(ctx, "Traceback") && !strings.HasPrefix(ctx, "File ") {
-					pyLines = append(pyLines, ctx)
-				}
-			}
-			pyLines = append(pyLines, trimmed)
-			break
+		if !isPythonErrorLine(trimmed) {
+			continue
 		}
-	}
-	if len(pyLines) > 0 {
-		return strings.Join(pyLines, "\n")
+		// Found the error line; look backwards for File "..." context
+		fileInfo, _ := extractPyErrorContext(lines[:i])
+		if fileInfo != "" {
+			return fmt.Sprintf("%s: %s", fileInfo, trimmed)
+		}
+		return trimmed
 	}
 
 	// Fallback to first meaningful line
@@ -414,6 +401,41 @@ func parseCompilerError(output string) string {
 	}
 
 	return "Compilation failed due to a syntax error."
+}
+
+var pyFileLineRe = regexp.MustCompile(`File "(.+?)", line (\d+)`)
+
+// isPythonErrorLine checks if a line is a Python error like "NameError: ..."
+func isPythonErrorLine(line string) bool {
+	for _, prefix := range []string{
+		"SyntaxError:", "IndentationError:", "ImportError:",
+		"ModuleNotFoundError:", "NameError:", "TypeError:",
+		"AttributeError:", "ValueError:", "ZeroDivisionError:",
+		"EOFError:", "RuntimeError:", "KeyError:", "IndexError:",
+		"StopIteration:", "AssertionError:", "OSError:", "FileNotFoundError:",
+		"RecursionError:", "TabError:",
+	} {
+		if strings.HasPrefix(line, prefix) {
+			return true
+		}
+	}
+	return strings.Contains(line, "Error:") || strings.Contains(line, "Exception:")
+}
+
+// extractPyErrorContext looks for the File "..." line preceding a Python error.
+func extractPyErrorContext(lines []string) (fileInfo, codeLine string) {
+	for j := len(lines) - 1; j >= max(0, len(lines)-6); j-- {
+		ctx := strings.TrimSpace(lines[j])
+		if ctx == "" {
+			continue
+		}
+		if m := pyFileLineRe.FindStringSubmatch(ctx); len(m) >= 3 {
+			basename := filepath.Base(m[1])
+			fileInfo = fmt.Sprintf("%s:%s", basename, m[2])
+			return
+		}
+	}
+	return
 }
 
 // ExecuteVisibleOnly executes code against visible test cases only (used for testing without submission).
