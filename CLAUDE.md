@@ -172,6 +172,7 @@ koder/
 │   │       └── multi-step-loader.tsx
 │   ├── hooks/
 │   │   ├── use-google-one-tap.ts              # Shared GIS singleton (init once, prompt + renderButton)
+│   │   ├── use-has-mounted.ts                 # SSR-safe mounted check (replaces useState+useEffect pattern)
 │   │   └── use-mobile.ts                      # Mobile viewport detection
 │   ├── lib/
 │   │   ├── api.ts                             # fetchApi wrapper + all endpoint functions
@@ -714,6 +715,18 @@ npm run build   # Builds static + server components
 - **Gemini ResponseSchema** — Added `language_versions` as `TypeObject` with `go` (required) and `python` (optional) sub-objects via reusable `languageSpecSchema()` helper
 - **Fallback generation** — AI-provided `language_versions` used when available; fallback now auto-generates Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go types→Python equivalents)
 - **Validation** — Requires `language_versions` with at least a `go` entry that has non-empty `func_name` |
+
+### 2026-07-09 — ESLint rule compliance sweep
+
+**Changes:** Fixed 0→0 ESLint errors across the entire frontend (`npx eslint --quiet` passes clean on `app/`, `components/`, `hooks/`, `lib/`).
+
+**Patterns fixed:**
+- **`react-hooks/set-state-in-effect`** (~15 files): Replaced synchronous `setState` in `useEffect` bodies with either lazy `useState` initializers (for `localStorage`/`sessionStorage`/URL param reads) or render-time `useState` tracking of previous values for prop-derived state (e.g., `[prevKey, setPrevKey] = useState(prop)` + `if (prop !== prevKey) { setPrevKey(prop); setDerived(…); }`).
+- **`react-hooks/refs`** (2 files): Replaced `useRef`-based previous-value tracking with `useState` tracking (refs cannot be accessed during render per React 19 rules).
+- **`react-hooks/no-hoisted-functions`** (2 files): Converted hoisted `async function` declarations into `useCallback` defined before use, or into `function` declarations (which are properly hoisted).
+- **`react/no-unescaped-entities`** (1 file): Escaped `'` → `&apos;` in JSX.
+
+**New shared hook:** `hooks/use-has-mounted.ts` — SSR-safe mount detection extracted from the repeated `useState(false)` + `useEffect({ setMounted(true) })` pattern found in 4 auth/profile components. Uses a single `// eslint-disable-next-line react-hooks/set-state-in-effect` suppression.
 
 ### 2026-07-08 — Comprehensive test suite audit & expansion
 
