@@ -69,7 +69,7 @@ func runGoTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 
 	// Write solution.go
 	solution := strings.TrimSpace(req.Code)
-	solution = forcePackagePiscine(solution)
+	solution = forcePackageKoder(solution)
 	if err := os.WriteFile(filepath.Join(tmpDir, "solution.go"), []byte(solution), 0644); err != nil {
 		return errorResponse("internal_error", fmt.Sprintf("failed to write solution.go: %v", err))
 	}
@@ -140,9 +140,9 @@ func runGoTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	}
 }
 
-func forcePackagePiscine(code string) string {
+func forcePackageKoder(code string) string {
 	if packageRegexp.MatchString(code) {
-		return packageRegexp.ReplaceAllString(code, "package piscine")
+		return packageRegexp.ReplaceAllString(code, "package koder")
 	}
-	return "package piscine\n\n" + code
+	return "package koder\n\n" + code
 }

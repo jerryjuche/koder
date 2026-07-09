@@ -71,7 +71,7 @@ for tc in test_cases:
 print("--- PASS: TestSolution" if passed == total else "--- FAIL: TestSolution")
 `
 
-const mainTestTemplate = `package piscine
+const mainTestTemplate = `package koder
 
 import (
 	"testing"

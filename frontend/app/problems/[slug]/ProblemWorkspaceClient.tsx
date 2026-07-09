@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { LanguageLogo } from "@/components/LanguageLogo";
 
-const GO_CODE = `package piscine
+const GO_CODE = `package koder
 
 // Write your solution here.
 // The backend will test your exported function automatically.
@@ -77,14 +77,14 @@ function generateScaffold(problem: Problem | null, lang: string): string {
       return `def ${lv.func_name}(${params}):\n    pass\n`;
     }
     const ret = lv.return_type ? ` ${lv.return_type}` : "";
-    return `package piscine\n\nfunc ${lv.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+    return `package koder\n\nfunc ${lv.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
   }
   // Fallback: try top-level Go fields
   if (lang !== "python" && problem?.func_name) {
     const params =
       problem.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
     const ret = problem.return_type ? ` ${problem.return_type}` : "";
-    return `package piscine\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+    return `package koder\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
   }
   // Default constants
   return lang === "python" ? PYTHON_CODE : GO_CODE;

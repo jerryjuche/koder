@@ -217,10 +217,10 @@ func TestParseTestOutput_MultiLineGotWant(t *testing.T) {
 }
 
 func TestParseTestOutput_CompilerError(t *testing.T) {
-	output := `# piscine
+	output := `# koder
 ./solution.go:5:10: syntax error: unexpected newline, expecting comma or }
 FAIL
-piscine [build failed]
+koder [build failed]
 `
 	res := ParseTestOutput(output)
 
