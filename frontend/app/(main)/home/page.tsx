@@ -10,7 +10,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   CheckCircle2,
-  Circle,
   Clock,
   Flame,
   BarChart2,
@@ -452,25 +451,16 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     paginatedProblems.map((problem, i) => {
-                      const diffGradients: Record<number, { from: string; to: string }> = {
-                        1: { from: "from-emerald-500", to: "to-teal-400" },
-                        2: { from: "from-sky-500", to: "to-blue-400" },
-                        3: { from: "from-amber-500", to: "to-yellow-400" },
-                        4: { from: "from-red-500", to: "to-rose-400" },
-                        5: { from: "from-purple-500", to: "to-fuchsia-400" },
+                      const diffMeta: Record<number, { label: string; color: string; glow: string; border: string }> = {
+                        1: { label: "Beginner", color: "text-emerald-400", glow: "from-emerald-500/5", border: "border-emerald-500/20" },
+                        2: { label: "Easy", color: "text-sky-400", glow: "from-sky-500/5", border: "border-sky-500/20" },
+                        3: { label: "Medium", color: "text-amber-400", glow: "from-amber-500/5", border: "border-amber-500/20" },
+                        4: { label: "Hard", color: "text-red-400", glow: "from-red-500/5", border: "border-red-500/20" },
+                        5: { label: "Expert", color: "text-purple-400", glow: "from-purple-500/5", border: "border-purple-500/20" },
                       };
-                      const diff = problem.difficulty as keyof typeof diffGradients;
-                      const grad = diffGradients[diff] || diffGradients[3];
-                      const diffColors: Record<number, string> = {
-                        1: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
-                        2: "text-sky-400 bg-sky-500/10 border-sky-500/25",
-                        3: "text-amber-400 bg-amber-500/10 border-amber-500/25",
-                        4: "text-red-400 bg-red-500/10 border-red-500/25",
-                        5: "text-purple-400 bg-purple-500/10 border-purple-500/25",
-                      };
-                      const diffLabel: Record<number, string> = {
-                        1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
-                      };
+                      const d = problem.difficulty as keyof typeof diffMeta;
+                      const m = diffMeta[d] || diffMeta[3];
+                      const langs = problem.language_versions ? Object.keys(problem.language_versions) : [];
 
                       return (
                       <Link
@@ -484,142 +474,101 @@ export default function Dashboard() {
                       >
                         <Card
                           className={cn(
-                            "group relative overflow-hidden transition-all duration-300",
-                            "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5",
+                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col",
+                            "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8",
                             "animate-in fade-in slide-in-from-bottom-2",
+                            problem.solved && "ring-1 ring-emerald-500/20",
                           )}
                         >
-                          {/* Top accent bar */}
-                          <div className={cn(
-                            "absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-80",
-                            grad.from, grad.to,
-                          )} />
-
-                          {/* Solved glow */}
+                          {/* Gradient accent bar + solved glow */}
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" />
                           {problem.solved && (
-                            <div className="absolute -top-8 -right-8 w-16 h-16 rounded-full bg-emerald-500/10 blur-xl" />
+                            <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-emerald-500/8 blur-2xl" />
                           )}
 
+                          {/* Header */}
                           <CardHeader className="flex-row items-center justify-between p-5 pb-0 space-y-0 relative z-10">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-mono text-muted-foreground/60 font-medium tabular-nums">
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-[11px] font-mono text-muted-foreground/40 font-semibold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
-                              <span className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide uppercase",
-                                diffColors[diff] || diffColors[3],
-                              )}>
-                                {diffLabel[diff] || "Medium"}
-                              </span>
-                            </div>
-                            {problem.solved ? (
-                              <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                <CheckCircle2 className="text-emerald-400" size={16} />
+                              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider", m.color, m.border)}>
+                                {problem.solved && <CheckCircle2 size={10} className="text-emerald-400" />}
+                                {m.label}
                               </div>
-                            ) : (
-                              <Circle
-                                className="text-muted-foreground/20 group-hover:text-primary/30 transition-colors"
-                                size={16}
-                              />
+                            </div>
+                            {langs.length > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                {langs.map((lang) => (
+                                  <span key={lang} className={cn(
+                                    "flex items-center justify-center w-6 h-6 rounded-md border",
+                                    lang === "go" ? "bg-sky-500/10 border-sky-500/25" : "bg-yellow-500/10 border-yellow-500/25",
+                                  )}>
+                                    <LanguageLogo language={lang as "go" | "python"} size={12} />
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </CardHeader>
 
-                          <CardContent className="p-5 pt-3 relative z-10">
-                            <CardTitle className="text-base font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors leading-snug">
+                          {/* Body */}
+                          <CardContent className="p-5 pt-3.5 relative z-10 flex-1 flex flex-col">
+                            <CardTitle className="text-[15px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
                               {problem.title}
                             </CardTitle>
 
-                            {/* Statement excerpt */}
-                            <p className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 mb-3.5 min-h-[2.5em]">
+                            <p className="text-xs text-muted-foreground/65 leading-relaxed line-clamp-2 mb-auto min-h-[2.2em]">
                               {problem.statement ? (
-                                <span>
-                                  {problem.statement
-                                    .replace(/<[^>]*>/g, "")
-                                    .replace(/^#+\s+/gm, "")
-                                    .replace(/\*\*/g, "")
-                                    .replace(/```[\s\S]*?```/g, "")
-                                    .split("\n")
-                                    .filter(Boolean)
-                                    .slice(0, 2)
-                                    .join(" ")
-                                    .trim()
-                                    .substring(0, 120)}
-                                </span>
+                                problem.statement
+                                  .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
+                                  .replace(/\*\*/g, "").replace(/```[\s\S]*?```/g, "")
+                                  .split("\n").filter(Boolean).slice(0, 2).join(" ").trim().substring(0, 120)
                               ) : (
                                 <span className="italic">No description</span>
                               )}
                             </p>
 
-                            {/* Language badges */}
-                            {problem.language_versions && Object.keys(problem.language_versions).length > 0 && (
-                              <div className="flex items-center gap-2 mb-2.5">
-                                {Object.keys(problem.language_versions).map((lang) => (
-                                  <span
-                                    key={lang}
-                                    className={cn(
-                                      "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none border",
-                                      lang === "go"
-                                        ? "text-sky-400 bg-sky-500/10 border-sky-500/25"
-                                        : "text-yellow-400 bg-yellow-500/10 border-yellow-500/25",
-                                    )}
-                                  >
-                                    <LanguageLogo language={lang as "go" | "python"} size={10} />
-                                    {lang === "go" ? "Go" : "Python"}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
                             {/* Tags */}
                             {problem.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mb-0">
-                                {problem.tags.slice(0, 4).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[10px] font-medium bg-muted/40 text-muted-foreground/60 px-2 py-0.5 rounded-md border border-border/40"
-                                  >
+                              <div className="flex flex-wrap gap-1.5 mt-3">
+                                {problem.tags.slice(0, 3).map((tag) => (
+                                  <span key={tag} className="text-[10px] font-medium bg-muted/30 text-muted-foreground/50 px-2 py-0.5 rounded-md border border-border/30">
                                     {tag}
                                   </span>
                                 ))}
-                                {problem.tags.length > 4 && (
-                                  <span className="text-[10px] text-muted-foreground/40 font-medium px-1">
-                                    +{problem.tags.length - 4}
-                                  </span>
+                                {problem.tags.length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground/30 font-medium px-1">+{problem.tags.length - 3}</span>
                                 )}
                               </div>
                             )}
                           </CardContent>
 
-                          <CardFooter className="p-5 pt-3 border-t border-border/40 relative z-10">
+                          {/* Footer */}
+                          <CardFooter className="p-5 pt-3 border-t border-border/30 relative z-10">
                             <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60 font-medium">
-                                <span className="flex items-center gap-1">
-                                  <Code size={12} className="shrink-0" />
+                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground/50 font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  <Code size={12} className="shrink-0 text-muted-foreground/40" />
                                   {problem.total_submissions || 0}
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <BarChart2 size={12} className="shrink-0" />
+                                <span className="flex items-center gap-1.5">
+                                  <BarChart2 size={12} className="shrink-0 text-muted-foreground/40" />
                                   {Math.round(problem.success_rate || 0)}%
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock size={12} className="shrink-0" />
+                                <span className="flex items-center gap-1.5">
+                                  <Clock size={12} className="shrink-0 text-muted-foreground/40" />
                                   {problem.estTimeMinutes || 0}m
                                 </span>
                               </div>
                               <div className={cn(
-                                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors",
-                                "bg-primary/5 border border-primary/15 group-hover:bg-primary/10 group-hover:border-primary/25",
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all",
+                                "bg-primary/5 border border-primary/15",
+                                problem.solved ? "bg-emerald-500/10 border-emerald-500/20" : "group-hover:bg-primary/10 group-hover:border-primary/25",
                               )}>
-                                <svg
-                                  width="12"
-                                  height="15"
-                                  viewBox="0 0 12 16"
-                                  fill="currentColor"
-                                  className="text-primary shrink-0"
-                                >
+                                <svg width="11" height="14" viewBox="0 0 12 16" fill="currentColor" className={cn("shrink-0", problem.solved ? "text-emerald-400" : "text-primary")}>
                                   <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
                                 </svg>
-                                <span className="font-bold text-xs text-primary tabular-nums">
+                                <span className={cn("font-bold text-xs tabular-nums", problem.solved ? "text-emerald-400" : "text-primary")}>
                                   +{problem.xpReward ?? 0}
                                 </span>
                               </div>
