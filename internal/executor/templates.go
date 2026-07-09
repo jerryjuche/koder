@@ -1,10 +1,17 @@
 package executor
 
-// TestCaseRenderData represents the formatted test case variables for rendering in the template.
+// TestCaseRenderData represents the formatted test case variables for rendering in the Go template.
 type TestCaseRenderData struct {
 	Args     string
 	Expected string
 	Ordinal  int
+}
+
+// PyTestCaseRenderData represents a Python test case with pre-formatted literal inputs.
+type PyTestCaseRenderData struct {
+	Ordinal  int
+	PyInputs string // Python tuple literal, e.g. `(3,)` or `("hello", True)`
+	Expected string // JSON-encoded expected value as a string (parsed via json.loads)
 }
 
 // TemplateRenderData represents the global data passed to the template.
@@ -15,7 +22,8 @@ type TemplateRenderData struct {
 	IsPrimitive    bool
 	NeedsReflect   bool
 	TestCases      []TestCaseRenderData
-	TestCasesJSON  string // JSON-encoded test cases for Python template
+	TestCasesJSON  string // JSON-encoded test cases for Python template (legacy)
+	PyTestCases    []PyTestCaseRenderData
 }
 
 // mainTestTemplate generates a clean, compilable Go test file.
@@ -28,7 +36,11 @@ const pythonTestTemplate = `import sys, json
 sys.path.insert(0, '.')
 from solution import {{.FuncName}}
 
-test_cases = {{.TestCasesJSON}}
+test_cases = [
+{{- range $i, $tc := .PyTestCases}}
+    {"ordinal": {{$tc.Ordinal}}, "inputs": {{$tc.PyInputs}}, "expected": {{printf "%q" $tc.Expected}}},
+{{- end}}
+]
 
 print("=== RUN TestSolution")
 
@@ -37,7 +49,7 @@ total = len(test_cases)
 
 for tc in test_cases:
     ordinal = tc["ordinal"]
-    inputs = tc["input_json"]
+    inputs = tc["inputs"]
     expected = tc["expected"]
     try:
         result = {{.FuncName}}(*inputs)

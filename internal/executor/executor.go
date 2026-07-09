@@ -784,6 +784,23 @@ func formatGoLiteral(paramType string, data []byte) (string, error) {
 	return "", fmt.Errorf("unsupported Go type %q: cannot format %s as a Go literal", paramType, string(data))
 }
 
+// goToSnakeCase converts Go camelCase to Python snake_case as a fallback
+// when LanguageVersions["python"].FuncName is not available.
+func goToSnakeCase(name string) string {
+	var result strings.Builder
+	for i, r := range name {
+		if r >= 'A' && r <= 'Z' {
+			if i > 0 {
+				result.WriteByte('_')
+			}
+			result.WriteRune(r + 32) // to lower
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
+
 // formatPythonLiteral converts a JSON value to a Python literal string.
 // Maps Go type names to Python literal syntax.
 func formatPythonLiteral(paramType string, data []byte) (string, error) {
@@ -823,40 +840,58 @@ func formatPythonLiteral(paramType string, data []byte) (string, error) {
 // executePython runs Python code execution: prepares sandbox files,
 // executes, parses output, optionally records submission + progress, and returns the result.
 func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, problem *store.Problem, testCases []store.TestCase, recordSubmission bool) (*ExecutionResult, error) {
-	// 1. Build JSON test case array for the Python template
-	type pyTestCase struct {
-		Ordinal   int               `json:"ordinal"`
-		InputJSON []json.RawMessage `json:"input_json"`
-		Expected  string            `json:"expected"`
-	}
-	pyCases := make([]pyTestCase, len(testCases))
+	// 1. Build Python-formatted test cases using formatPythonLiteral for each input arg.
+	//    Raw JSON embeds true/false/null which are invalid Python (needs True/False/None).
+	pyCases := make([]PyTestCaseRenderData, len(testCases))
+	paramTypes := problem.ParamTypes
 	for i, tc := range testCases {
 		var rawArgs []json.RawMessage
 		if err := json.Unmarshal(tc.Input, &rawArgs); err != nil {
 			return nil, fmt.Errorf("failed to parse test case input: %w", err)
 		}
-		pyCases[i] = pyTestCase{
-			Ordinal:   tc.Ordinal,
-			InputJSON: rawArgs,
-			Expected:  tc.Expected,
+		// Format each argument as a Python literal
+		pyArgParts := make([]string, len(rawArgs))
+		for j, rawArg := range rawArgs {
+			pt := "any"
+			if j < len(paramTypes) {
+				pt = paramTypes[j]
+			}
+			formatted, err := formatPythonLiteral(pt, rawArg)
+			if err != nil {
+				// Fallback: treat as JSON and let json.loads handle it in the template
+				formatted = string(rawArg)
+			}
+			pyArgParts[j] = formatted
+		}
+		// Build Python tuple literal: (a,) for single arg, (a, b) for multiple
+		var pyInputs string
+		if len(pyArgParts) == 1 {
+			pyInputs = "(" + pyArgParts[0] + ",)"
+		} else {
+			pyInputs = "(" + strings.Join(pyArgParts, ", ") + ")"
+		}
+		pyCases[i] = PyTestCaseRenderData{
+			Ordinal:  tc.Ordinal,
+			PyInputs: pyInputs,
+			Expected: tc.Expected,
 		}
 	}
-	casesJSON, err := json.Marshal(pyCases)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal Python test cases: %w", err)
-	}
 
-	// Resolve the Python function name from language_versions (not problem.FuncName,
-	// which was overwritten by resolveProblemLanguageMeta to the Go entry)
+	// Resolve the Python function name from language_versions
+	// resolveProblemLanguageMeta(problem, "python") was already called in Execute(),
+	// so problem.FuncName may already be the Python name if LanguageVersions["python"] exists.
+	// As a fallback, convert Go camelCase to snake_case for problems missing the python spec.
 	pythonFuncName := problem.FuncName
 	if problem.LanguageVersions != nil {
 		if spec, ok := problem.LanguageVersions["python"]; ok && spec.FuncName != "" {
 			pythonFuncName = spec.FuncName
 		}
 	}
+	// goToSnakeCase is idempotent for already-snake_case names
+	pythonFuncName = goToSnakeCase(pythonFuncName)
 	renderData := &TemplateRenderData{
-		FuncName:      pythonFuncName,
-		TestCasesJSON: string(casesJSON),
+		FuncName:   pythonFuncName,
+		PyTestCases: pyCases,
 	}
 
 	// 2. Create isolated sandbox directory

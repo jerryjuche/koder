@@ -277,24 +277,29 @@ func TestPythonTemplate_Renders(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		funcName string
-		cases    string
+		name      string
+		funcName  string
+		pyCases   []PyTestCaseRenderData
 	}{
 		{
 			name:     "basic function",
 			funcName: "fish_and_chips",
-			cases:    `[{"ordinal": 1, "input_json": [4], "expected": "\"fish\""}]`,
+			pyCases: []PyTestCaseRenderData{
+				{Ordinal: 1, PyInputs: "(4,)", Expected: "\"fish\""},
+			},
 		},
 		{
 			name:     "multiple cases",
 			funcName: "is_prime",
-			cases:    `[{"ordinal": 1, "input_json": [2], "expected": "true"}, {"ordinal": 2, "input_json": [4], "expected": "false"}]`,
+			pyCases: []PyTestCaseRenderData{
+				{Ordinal: 1, PyInputs: "(2,)", Expected: "true"},
+				{Ordinal: 2, PyInputs: "(4,)", Expected: "false"},
+			},
 		},
 		{
 			name:     "no test cases",
 			funcName: "do_nothing",
-			cases:    `[]`,
+			pyCases: []PyTestCaseRenderData{},
 		},
 	}
 
@@ -302,8 +307,8 @@ func TestPythonTemplate_Renders(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			err := tmpl.Execute(&buf, &TemplateRenderData{
-				FuncName:      tc.funcName,
-				TestCasesJSON: tc.cases,
+				FuncName:   tc.funcName,
+				PyTestCases: tc.pyCases,
 			})
 			if err != nil {
 				t.Fatalf("template execute error: %v", err)
