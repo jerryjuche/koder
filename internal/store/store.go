@@ -36,6 +36,9 @@ type ActivityEntry struct {
 
 // Store defines the interface for all database operations.
 type Store interface {
+	// Ping checks database connectivity.
+	Ping(ctx context.Context) error
+
 	// User operations
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
@@ -183,6 +186,11 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 	return &PostgresStore{
 		pool: pool,
 	}, nil
+}
+
+// Ping checks database connectivity.
+func (s *PostgresStore) Ping(ctx context.Context) error {
+	return s.pool.Ping(ctx)
 }
 
 // Close closes the connection pool.

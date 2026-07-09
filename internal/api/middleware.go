@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,6 +15,54 @@ import (
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+type contextKey string
+
+const (
+	claimsContextKey contextKey = "claims"
+	reqIDContextKey  contextKey = "request_id"
+)
+
+// generateRequestID creates a short, unique request identifier for tracing.
+func generateRequestID() string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("req%d", time.Now().UnixNano()%100000)
+	}
+	return hex.EncodeToString(b)
+}
+
+// RequestLoggingMiddleware logs every request with method, path, status, duration, and correlation ID.
+func RequestLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqID := generateRequestID()
+		r = r.WithContext(context.WithValue(r.Context(), reqIDContextKey, reqID))
+		w.Header().Set("X-Request-ID", reqID)
+
+		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(lrw, r)
+
+		slog.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", lrw.statusCode,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"request_id", reqID,
+			"remote", r.Header.Get("X-Forwarded-For"),
+		)
+	})
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
 
 // RateLimiter implements a per-user sliding window rate limiter.
 type RateLimiter struct {
@@ -127,10 +177,6 @@ func RateLimitMiddleware(rl *RateLimiter) func(http.Handler) http.Handler {
 		})
 	}
 }
-
-type contextKey string
-
-const claimsContextKey contextKey = "claims"
 
 // CORSMiddleware returns a middleware that applies CORS headers from config.
 // Supports a single origin, comma-separated origins, or "*".
@@ -383,6 +429,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "0")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com; frame-src https://accounts.google.com;")
 		next.ServeHTTP(w, r)
 	})
 }

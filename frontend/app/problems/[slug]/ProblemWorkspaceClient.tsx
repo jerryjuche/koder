@@ -34,6 +34,14 @@ import { fetchProblem, submitSolution, testCode, submitFeedback, updatePrimaryLa
 import { toast } from "@/lib/toast";
 import { Problem, TestResult, ExecutionResult } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const GO_CODE = `package piscine
 
@@ -96,14 +104,19 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportSending, setReportSending] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
+  const [languageConfirmOpen, setLanguageConfirmOpen] = useState(false);
+  const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
+  const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
         const lang = localStorage.getItem("koder_language") || "go";
+        const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
-        setCode(generateScaffold(res.data, lang));
+        setCode(scaffold);
+        setScaffoldAtToggle(scaffold);
         setSaved(true);
       }
     });
@@ -156,6 +169,20 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     localStorage.removeItem(STORE_KEY(slug));
     toast.success("Reset to original scaffold");
   };
+
+  async function applyLanguageSwitch(newLang: string) {
+    const scaffold = generateScaffold(problem, newLang);
+    setActiveLanguage(newLang);
+    setCode(scaffold);
+    setScaffoldAtToggle(scaffold);
+    localStorage.setItem("koder_language", newLang);
+    try {
+      await updatePrimaryLanguage(newLang);
+    } catch {
+      // Non-critical: backend language preference update can fail silently
+    }
+    window.dispatchEvent(new Event("user-updated"));
+  }
 
   function handleFormat() {
     const ed = editorRef.current;
@@ -696,11 +723,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 <button
                   onClick={async () => {
                     const newLang = activeLanguage === "python" ? "go" : "python";
-                    setActiveLanguage(newLang);
-                    setCode(generateScaffold(problem, newLang));
-                    localStorage.setItem("koder_language", newLang);
-                    await updatePrimaryLanguage(newLang);
-                    window.dispatchEvent(new Event("user-updated"));
+                    if (code !== scaffoldAtToggle) {
+                      setPendingLanguage(newLang);
+                      setLanguageConfirmOpen(true);
+                    } else {
+                      await applyLanguageSwitch(newLang);
+                    }
                   }}
                   className={cn(
                     "text-xs font-mono font-bold px-2 py-1 rounded-md border transition-colors",
@@ -1259,6 +1287,39 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      <Dialog open={languageConfirmOpen} onOpenChange={setLanguageConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Switch language?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes in your current code. Switching languages will
+              replace the editor content with a scaffold for the new language. Any
+              unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => { setLanguageConfirmOpen(false); setPendingLanguage(null); }}
+              className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (pendingLanguage) {
+                  await applyLanguageSwitch(pendingLanguage);
+                }
+                setLanguageConfirmOpen(false);
+                setPendingLanguage(null);
+              }}
+              className="rounded-lg bg-brand-muted-gold px-5 py-2 text-sm font-semibold text-black transition-all duration-300 hover:bg-brand-muted-gold/90"
+            >
+              Switch anyway
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

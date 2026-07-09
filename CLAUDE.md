@@ -784,4 +784,54 @@ npm run build   # Builds static + server components
 **Verification:**
 - Go: `go test -count=1 ./...` — 122 tests, 0 failures, `go vet` clean
 - Sandbox: `go vet ./...` + `go build` — clean
-- Frontend: ESLint — 0 errors, TypeScript — 0 errors, `npm run build` — clean|
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors, `npm run build` — clean
+
+### 2026-07-09 — Audit-driven critical fixes (sessions 14)
+
+**Context:** Comprehensive audit identified 5 critical issues. 2 were false alarms (rate limiting already present on `/test`, community approval flow correctly preserves `language_versions`). 3 real issues fixed.
+
+**Changes:**
+
+| Issue | File | Fix |
+|---|---|---|
+| `formatPythonLiteral` null → `NameError` | `internal/executor/executor.go:809-812` | Added early `bytes.Equal(data, []byte("null"))` → `"None"` before type dispatch |
+| No timeout on `validatePythonAST` | `sandbox/pyrunner.go:78-80` | Added `context.WithTimeout(context.Background(), 10*time.Second)` with deferred cancel |
+| Language toggle loses unsaved code | `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Added `scaffoldAtToggle` tracking; shows confirmation dialog when code differs from scaffold; only switches on explicit confirmation |
+
+**Audit findings (2 false alarms):**
+- `/test` rate limiting: Already had `RateLimitMiddleware(rateLimiter)` at `router.go:135` (same 5 req/45s as `/submit`)
+- Community approvals wiping `language_versions`: Code correctly preserves `language_versions` through approval transaction (only falls back to `generateDualLanguageSpec` when nil/empty)
+
+**New test:** `TestFormatPythonLiteral` (9 cases inc. null/None for all types)
+
+**Verification:**
+- Go: `go test -count=1 ./...` — **123 tests, 0 failures**, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors
+
+### 2026-07-09 — Production Polish: Monitoring, Performance, Error UX, Security (Session 15)
+
+**Monitoring & Observability:**
+- **`cmd/server/main.go`** — Switched from `TextHandler` to `JSONHandler` for machine-parseable logs. Added `commit`/`buildAt` ldflags vars. Startup log now includes commit, build time, Go version, arch, OS.
+- **`internal/api/middleware.go`** — Added `RequestLoggingMiddleware` (logs method, path, status code, duration_ms, correlation ID via `X-Request-ID` header, remote IP). Uses `generateRequestID()` with crypto/rand (8 bytes → hex). `loggingResponseWriter` wrapper captures status code from `WriteHeader`.
+- **`internal/api/router.go`** — `/health` endpoint now includes `db_status` (ping result), `db_ms` (latency), `sandbox_url`, `environment`. New `/version` endpoint returns `commit`, `build`, `go` version.
+- **`internal/store/store.go`** — Added `Ping(ctx)` method to `Store` interface and `PostgresStore` (wraps `pool.Ping`).
+
+**Performance:**
+- **`internal/api/cache.go`** — Added `leaderboardCache` (30s TTL) and `InvalidateLeaderboardCache()`. Keyed by period (all/weekly/monthly).
+- **`internal/api/leaderboard.go`** — Cache-first pattern: returns cached leaderboard when fresh, falls back to DB query.
+- **`internal/api/submissions.go`** — `InvalidateLeaderboardCache()` called on solved submission (alongside existing `InvalidateUserCache`).
+- **`frontend/lib/useNotifications.ts`** — Polling interval reduced from 5s to 15s (3x fewer DB queries).
+- **`frontend/components/BroadcastBanner.tsx`** — Polling interval reduced from 5s to 30s (6x fewer DB queries).
+
+**Error UX:**
+- Added 7 new `error.tsx` boundaries: `(main)/`, `home/`, `settings/`, `contribute/`, `admin/`, `problems/[slug]/`, and `global-error.tsx` at root level.
+- Added `home/loading.tsx` with skeleton grid (6 problem cards, filter pills, title).
+
+**Security:**
+- **`internal/api/middleware.go`** — Added `Content-Security-Policy` header to `SecurityHeadersMiddleware` (default-src 'self'; script/style/font/img/connect-src with Google OAuth support).|
+
+**Verification:**
+- Go: `go test -count=1 ./...` — 123 tests, 0 failures, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors|

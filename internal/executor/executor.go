@@ -805,6 +805,12 @@ func goToSnakeCase(name string) string {
 // Maps Go type names to Python literal syntax.
 func formatPythonLiteral(paramType string, data []byte) (string, error) {
 	paramType = strings.TrimSpace(paramType)
+
+	// Detect JSON null early — always becomes Python None
+	if bytes.Equal(data, []byte("null")) {
+		return "None", nil
+	}
+
 	switch paramType {
 	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "rune", "byte":
 		var val int64

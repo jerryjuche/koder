@@ -44,6 +44,10 @@ type Config struct {
 	PythonExecutorTimeout int    // default: 60
 	PythonSandboxURL      string // optional separate Python sandbox
 
+	// Build info (set via ldflags at build time)
+	BuildCommit string
+	BuildTime   string
+
 	// Server
 	Port        int
 	Environment string
@@ -243,6 +247,16 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("PORT must be between 1 and 65535")
 	}
 	cfg.Port = port
+
+	cfg.BuildCommit = os.Getenv("BUILD_COMMIT")
+	if cfg.BuildCommit == "" {
+		cfg.BuildCommit = "dev"
+	}
+
+	cfg.BuildTime = os.Getenv("BUILD_TIME")
+	if cfg.BuildTime == "" {
+		cfg.BuildTime = "unknown"
+	}
 
 	cfg.Environment = os.Getenv("ENVIRONMENT")
 	if cfg.Environment == "" {

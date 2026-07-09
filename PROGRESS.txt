@@ -17,6 +17,12 @@ SESSION 10: Comprehensive test suite expansion (122 tests, all 8 packages covere
 SESSION 11: Python compiler_error fix (formatPythonLiteral, goToSnakeCase, PyTestCases template).
 SESSION 12: ESLint compliance sweep (0 errors, 25+ files, use-has-mounted.ts shared hook).
 SESSION 13: Python sandbox availability check (findPythonBin, Error field, meaningful messages).
+SESSION 14: Audit-driven critical fixes (3 real + 2 false alarms): formatPythonLiteral null→None, AST validation 10s timeout, language toggle confirmation dialog. Rate limiting confirmed on /test. Community approval preserves language_versions. 123 tests, 0 failures, go vet clean, ESLint+TS clean.
+SESSION 15: Production polish phase — monitoring, performance, error UX, security.
+  - Monitoring: JSON logging (main.go), request logging middleware with correlation IDs (middleware.go), improved /health with DB ping, /version endpoint, build vars (commit/buildAt).
+  - Performance: Leaderboard cache (30s TTL), leaderboard cache invalidation on submission, reduced notification polling 5s→15s, reduced broadcast polling 5s→30s.
+  - Error UX: Added 7 error.tsx boundaries (home, settings, contribute, admin, problems/[slug], (main) layout, global-error.tsx), home loading skeleton.
+  - Security: CSP header on all responses (middleware.go).
 
 ---
 

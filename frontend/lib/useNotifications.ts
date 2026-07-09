@@ -67,7 +67,7 @@ export function useNotifications() {
     let timeoutId: NodeJS.Timeout;
     
     const scheduleNext = () => {
-      const delay = document.visibilityState === "visible" ? 5000 : 60000;
+      const delay = document.visibilityState === "visible" ? 15000 : 60000;
       timeoutId = setTimeout(() => {
         fetchNotifications().finally(() => {
           scheduleNext();

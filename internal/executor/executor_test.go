@@ -77,6 +77,35 @@ func TestIsPrimitiveType(t *testing.T) {
 	}
 }
 
+func TestFormatPythonLiteral(t *testing.T) {
+	tests := []struct {
+		typ  string
+		json string
+		want string
+	}{
+		{"int", "42", "42"},
+		{"string", `"hello"`, `"hello"`},
+		{"bool", "true", "True"},
+		{"bool", "false", "False"},
+		{"float64", "3.14", "3.14"},
+		{"any", "null", "None"},
+		{"int", "null", "None"},
+		{"string", "null", "None"},
+		{"", "null", "None"},
+	}
+
+	for _, tc := range tests {
+		got, err := formatPythonLiteral(tc.typ, []byte(tc.json))
+		if err != nil {
+			t.Errorf("formatPythonLiteral(%s, %s) error: %v", tc.typ, tc.json, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("formatPythonLiteral(%s, %s) = %q, want %q", tc.typ, tc.json, got, tc.want)
+		}
+	}
+}
+
 func TestFormatGoLiteral(t *testing.T) {
 	tests := []struct {
 		typ  string

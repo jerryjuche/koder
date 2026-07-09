@@ -75,7 +75,10 @@ print(json.dumps({"ok": True}))
 		// No Python available, skip AST validation
 		return nil
 	}
-	cmd := exec.Command(astPythonBin, "-c", script)
+	// Use a short timeout (10s) to prevent malicious AST from hanging the sandbox
+	astCtx, astCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer astCancel()
+	cmd := exec.CommandContext(astCtx, astPythonBin, "-c", script)
 	cmd.Stdin = strings.NewReader(code)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

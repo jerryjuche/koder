@@ -32,6 +32,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	r := chi.NewRouter()
 
 	r.Use(RecoveryMiddleware)
+	r.Use(RequestLoggingMiddleware)
 	r.Use(CORSMiddleware(cfg))
 	r.Use(SecurityHeadersMiddleware)
 
@@ -53,9 +54,31 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	}
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		dbErr := store.Ping(r.Context())
+		dbStatus := "ok"
+		httpStatus := http.StatusOK
+		overallStatus := "healthy"
+		if dbErr != nil {
+			dbStatus = "error"
+			httpStatus = http.StatusServiceUnavailable
+			overallStatus = "degraded"
+		}
+		respondJSON(w, httpStatus, map[string]any{
+			"status":      overallStatus,
+			"time":        time.Now().UTC().String(),
+			"db_status":   dbStatus,
+			"db_ms":       time.Since(start).Milliseconds(),
+			"sandbox_url": cfg.SandboxURL,
+			"environment": cfg.Environment,
+		}, nil)
+	})
+
+	r.Get("/version", func(w http.ResponseWriter, r *http.Request) {
 		RespondSuccess(w, map[string]string{
-			"status": "healthy",
-			"time":   time.Now().UTC().String(),
+			"commit": cfg.BuildCommit,
+			"build":  cfg.BuildTime,
+			"go":     cfg.GoVersion,
 		})
 	})
 

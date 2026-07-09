@@ -287,6 +287,12 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	if headers.Get("Referrer-Policy") != "strict-origin-when-cross-origin" {
 		t.Error("missing Referrer-Policy header")
 	}
+	if headers.Get("Strict-Transport-Security") != "max-age=31536000; includeSubDomains" {
+		t.Error("missing Strict-Transport-Security header")
+	}
+	if headers.Get("Content-Security-Policy") == "" {
+		t.Error("missing Content-Security-Policy header")
+	}
 }
 
 func TestRecoveryMiddleware(t *testing.T) {
