@@ -813,8 +813,16 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 		return nil, fmt.Errorf("failed to marshal Python test cases: %w", err)
 	}
 
+	// Resolve the Python function name from language_versions (not problem.FuncName,
+	// which was overwritten by resolveProblemLanguageMeta to the Go entry)
+	pythonFuncName := problem.FuncName
+	if problem.LanguageVersions != nil {
+		if spec, ok := problem.LanguageVersions["python"]; ok && spec.FuncName != "" {
+			pythonFuncName = spec.FuncName
+		}
+	}
 	renderData := &TemplateRenderData{
-		FuncName:      problem.FuncName,
+		FuncName:      pythonFuncName,
 		TestCasesJSON: string(casesJSON),
 	}
 
