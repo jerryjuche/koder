@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Copy,
   Expand,
+  Shrink,
   CheckCircle2,
   Bug,
   Send,
@@ -42,6 +43,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+const GoLogoSvg = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 28 28" fill="none" className="shrink-0">
+    <circle cx="14" cy="14" r="13" fill="#00ADD8" />
+    <path d="M5 9C3 5 2 4 5 3s5 2 6 5l-2 1z" fill="#00ADD8" />
+    <path d="M23 9c2-4 3-5 0-6s-5 2-6 5l2 1z" fill="#00ADD8" />
+    <circle cx="10" cy="12" r="2.2" fill="white" />
+    <circle cx="18" cy="12" r="2.2" fill="white" />
+    <ellipse cx="14" cy="16.5" rx="3" ry="1.5" fill="white" opacity="0.9" />
+    <path d="M9.5 20.5c2.5 2 6.5 2 9 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+  </svg>
+);
+
+const PythonLogoSvg = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 28 28" fill="none" className="shrink-0">
+    <rect x="1" y="1" width="26" height="26" rx="6" fill="#3776AB" />
+    <path d="M11.5 3.5C8.5 3.5 7 5 7 8v3c0 2 1 3 3.5 3h7c3 0 4.5 1.5 4.5 3.5V20c0 3-1.5 5-4.5 5h-7c-3 0-4.5-2-4.5-4.5" stroke="#FFD43B" strokeWidth="2.2" strokeLinecap="round" />
+    <path d="M16.5 24.5c3 0 4.5-1.5 4.5-4.5v-3c0-2-1-3-3.5-3h-7c-3 0-4.5-1.5-4.5-3.5V8c0-3 1.5-5 4.5-5h7c3 0 4.5 2 4.5 4" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
 
 const GO_CODE = `package piscine
 
@@ -107,6 +128,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [languageConfirmOpen, setLanguageConfirmOpen] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
   const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -380,9 +402,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </Link>
           <div className="w-px h-5 bg-brand-charcoal-border"></div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-brand-offwhite-muted">
-              #{problem.slug === "hello-world" ? "001" : "002"}
-            </span>
             <span className="font-bold">{problem.title}</span>
             <span
               className={cn(
@@ -391,6 +410,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               )}
             >
               {getDifficultyLabel(problem.difficulty)}
+            </span>
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border",
+              activeLanguage === "python"
+                ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25"
+                : "text-blue-400 bg-blue-500/10 border-blue-500/25",
+            )}>
+              {activeLanguage === "python" ? <PythonLogoSvg /> : <GoLogoSvg />}
+              {activeLanguage === "python" ? "Python" : "Go"}
             </span>
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
               {problem.module}
@@ -475,7 +503,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       {/* Main Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Problem Statement */}
-        <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
+        {!fullscreen && (
+          <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
           <div className="p-6">
             {/* Problem Header */}
             <div className="mb-6">
@@ -492,11 +521,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   {getDifficultyLabel(problem.difficulty)}
                 </span>
                 <span className={cn(
-                  "text-xs font-mono px-2.5 py-1 rounded border",
+                  "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border",
                   activeLanguage === "python"
                     ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
                     : "text-blue-400 bg-blue-500/10 border-blue-500/30"
                 )}>
+                  {activeLanguage === "python" ? <PythonLogoSvg /> : <GoLogoSvg />}
                   {activeLanguage === "python" ? "Python" : "Go"}
                 </span>
                 {problem.solved && (
@@ -713,35 +743,55 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             )}
           </div>
         </div>
+        )}
 
         {/* Middle: Editor & Results */}
         <div className="flex-1 flex flex-col min-w-0 bg-[#0F1115]">
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
+              <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
                 <button
                   onClick={async () => {
-                    const newLang = activeLanguage === "python" ? "go" : "python";
+                    if (activeLanguage === "go") return;
                     if (code !== scaffoldAtToggle) {
-                      setPendingLanguage(newLang);
+                      setPendingLanguage("go");
                       setLanguageConfirmOpen(true);
                     } else {
-                      await applyLanguageSwitch(newLang);
+                      await applyLanguageSwitch("go");
                     }
                   }}
                   className={cn(
-                    "text-xs font-mono font-bold px-2 py-1 rounded-md border transition-colors",
-                    activeLanguage === "python"
-                      ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
-                      : "text-blue-400 bg-blue-500/10 border-blue-500/30"
+                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                    activeLanguage === "go"
+                      ? "bg-blue-500/15 text-blue-400"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover"
                   )}
                 >
-                  {activeLanguage === "python" ? "Python" : "Go"}
+                  <GoLogoSvg />
+                  Go
                 </button>
-                <span className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors" title="Switch language">
-                  ↻
-                </span>
+                <div className="w-px bg-brand-charcoal-border self-stretch" />
+                <button
+                  onClick={async () => {
+                    if (activeLanguage === "python") return;
+                    if (code !== scaffoldAtToggle) {
+                      setPendingLanguage("python");
+                      setLanguageConfirmOpen(true);
+                    } else {
+                      await applyLanguageSwitch("python");
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                    activeLanguage === "python"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover"
+                  )}
+                >
+                  <PythonLogoSvg />
+                  Python
+                </button>
               </div>
               <span className="text-xs font-mono text-brand-offwhite-muted">
                 {activeLanguage === "python" ? "solution.py" : "solution.go"}
@@ -765,11 +815,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               >
                 {`{ }`}
               </button>
-              <button className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(code).then(() => {
+                    toast.success("Code copied to clipboard");
+                  }).catch(() => {
+                    toast.error("Failed to copy code");
+                  });
+                }}
+                className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+                title="Copy code"
+              >
                 <Copy size={16} />
               </button>
-              <button className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors">
-                <Expand size={16} />
+              <button
+                onClick={() => setFullscreen(!fullscreen)}
+                className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+                title={fullscreen ? "Exit fullscreen" : "Fullscreen editor"}
+              >
+                {fullscreen ? <Shrink size={16} /> : <Expand size={16} />}
               </button>
             </div>
           </div>

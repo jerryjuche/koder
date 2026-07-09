@@ -46,7 +46,7 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		for _, p := range problems {
 			if p.Language == languageFilter {
 				filtered = append(filtered, p)
-			} else if p.Language == "" && p.LanguageVersions != nil {
+			} else if p.LanguageVersions != nil {
 				if _, ok := p.LanguageVersions[languageFilter]; ok {
 					filtered = append(filtered, p)
 				}

@@ -372,8 +372,24 @@ export default function Dashboard() {
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {lang === "go" && <span className="w-2 h-2 rounded-full bg-blue-500" />}
-                    {lang === "python" && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    {lang === "go" && (
+                      <svg width="14" height="14" viewBox="0 0 28 28" fill="none" className="shrink-0">
+                        <circle cx="14" cy="14" r="13" fill="#00ADD8" />
+                        <path d="M5 9C3 5 2 4 5 3s5 2 6 5l-2 1z" fill="#00ADD8" />
+                        <path d="M23 9c2-4 3-5 0-6s-5 2-6 5l2 1z" fill="#00ADD8" />
+                        <circle cx="10" cy="12" r="2.2" fill="white" />
+                        <circle cx="18" cy="12" r="2.2" fill="white" />
+                        <ellipse cx="14" cy="16.5" rx="3" ry="1.5" fill="white" opacity="0.9" />
+                        <path d="M9.5 20.5c2.5 2 6.5 2 9 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                      </svg>
+                    )}
+                    {lang === "python" && (
+                      <svg width="14" height="14" viewBox="0 0 28 28" fill="none" className="shrink-0">
+                        <rect x="1" y="1" width="26" height="26" rx="6" fill="#3776AB" />
+                        <path d="M11.5 3.5C8.5 3.5 7 5 7 8v3c0 2 1 3 3.5 3h7c3 0 4.5 1.5 4.5 3.5V20c0 3-1.5 5-4.5 5h-7c-3 0-4.5-2-4.5-4.5" stroke="#FFD43B" strokeWidth="2.2" strokeLinecap="round" />
+                        <path d="M16.5 24.5c3 0 4.5-1.5 4.5-4.5v-3c0-2-1-3-3.5-3h-7c-3 0-4.5-1.5-4.5-3.5V8c0-3 1.5-5 4.5-5h7c3 0 4.5 2 4.5 4" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+                      </svg>
+                    )}
                     {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
                   </button>
                 ))}
