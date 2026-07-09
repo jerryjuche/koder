@@ -397,9 +397,9 @@ func parseCompilerError(output string) string {
 		}
 		// Found the error line; look backwards for File "..." context
 		if fileInfo := extractPyErrorContext(lines[:i]); fileInfo != "" {
-			return fmt.Sprintf("%s: %s", fileInfo, trimmed)
+			return EnhancePythonError(fmt.Sprintf("%s: %s", fileInfo, trimmed))
 		}
-		return trimmed
+		return EnhancePythonError(trimmed)
 	}
 
 	// Fallback to first meaningful line
@@ -435,6 +435,63 @@ func isPythonErrorLine(line string) bool {
 		return false
 	}
 	return strings.HasSuffix(errorType, "Error") || strings.HasSuffix(errorType, "Exception")
+}
+
+// EnhancePythonError takes an error string and formats it to be human-readable,
+// adding helpful tips for common Python exceptions.
+func EnhancePythonError(errStr string) string {
+	// Convert "solution.py:3:" prefix to "Line 3:"
+	if strings.HasPrefix(errStr, "solution.py:") {
+		parts := strings.SplitN(errStr, ":", 3)
+		if len(parts) >= 3 {
+			errStr = fmt.Sprintf("Line %s: %s", parts[1], strings.TrimSpace(parts[2]))
+		}
+	}
+
+	// Extract the error type to determine the appropriate tip
+	var errType string
+	if strings.HasPrefix(errStr, "Line ") {
+		parts := strings.SplitN(errStr, ":", 3)
+		if len(parts) >= 2 {
+			errType = strings.TrimSpace(parts[1])
+		}
+	} else {
+		parts := strings.SplitN(errStr, ":", 2)
+		if len(parts) >= 1 {
+			errType = strings.TrimSpace(parts[0])
+		}
+	}
+
+	var tip string
+	switch errType {
+	case "SyntaxError":
+		tip = "Check for missing colons, unclosed brackets, or incorrect syntax."
+	case "IndentationError", "TabError":
+		tip = "Check your indentation. Python requires consistent spaces (usually 4)."
+	case "NameError":
+		tip = "Check that the variable or function is defined and spelled correctly."
+	case "TypeError":
+		tip = "Check that you are using compatible data types for this operation."
+	case "IndexError":
+		tip = "Check that your list index is within the valid range."
+	case "KeyError":
+		tip = "Check that the dictionary key exists before accessing it."
+	case "AttributeError":
+		tip = "Check that the object actually has this method or property."
+	case "ZeroDivisionError":
+		tip = "Check that your denominator is not zero."
+	case "RecursionError":
+		tip = "Ensure your recursive function has a valid base case to stop."
+	case "ValueError":
+		tip = "Check that the function arguments have the correct value."
+	case "ModuleNotFoundError", "ImportError":
+		tip = "That module is either not allowed or not available in the sandbox."
+	}
+
+	if tip != "" {
+		return errStr + " — Tip: " + tip
+	}
+	return errStr
 }
 
 // extractPyErrorContext scans lines before a Python error looking for the
@@ -674,7 +731,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
 			if sandboxError != "" {
-				friendlyMessage = sandboxError
+				friendlyMessage = EnhancePythonError(sandboxError)
 			} else {
 				friendlyMessage = parseCompilerError(output)
 			}
@@ -1100,7 +1157,7 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
 			if sandboxError != "" {
-				friendlyMessage = sandboxError
+				friendlyMessage = EnhancePythonError(sandboxError)
 			} else {
 				friendlyMessage = parseCompilerError(output)
 			}
