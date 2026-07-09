@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   ChevronDown,
@@ -482,14 +483,26 @@ export default function Dashboard() {
                             problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
                           )}
                         >
+                          {/* Background image with gradient fade */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            <Image
+                              src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
+                              alt=""
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background" />
+                          </div>
+
                           {/* Solved accent line */}
                           <div className={cn(
-                            "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300",
+                            "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300 z-10",
                             problem.solved ? "bg-emerald-500" : "bg-transparent",
                           )} />
 
                           {/* Header */}
-                          <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0">
+                          <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0 relative z-10">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
@@ -509,7 +522,7 @@ export default function Dashboard() {
                           </CardHeader>
 
                           {/* Body */}
-                          <CardContent className="px-5 pb-3 flex-1 flex flex-col">
+                          <CardContent className="px-5 pb-3 flex-1 flex flex-col relative z-10">
                             <div className="flex items-start justify-between gap-3 mb-2">
                               <CardTitle className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                                 {problem.title}
@@ -517,10 +530,7 @@ export default function Dashboard() {
                               {langs.length > 0 && (
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {langs.map((lang) => (
-                                    <span key={lang} className={cn(
-                                      "flex items-center justify-center w-7 h-7 rounded-lg border",
-                                      lang === "go" ? "bg-sky-500/10 border-sky-500/25" : "bg-yellow-500/10 border-yellow-500/25",
-                                    )}>
+                                    <span key={lang} className="flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-background/40 backdrop-blur-[2px]">
                                       <LanguageLogo language={lang as "go" | "python"} size={16} />
                                     </span>
                                   ))}
@@ -542,7 +552,7 @@ export default function Dashboard() {
                             {problem.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-3">
                                 {problem.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-muted/20 px-2 py-0.5 rounded-md border border-border/20">
+                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
                                     {tag}
                                   </span>
                                 ))}
@@ -554,7 +564,7 @@ export default function Dashboard() {
                           </CardContent>
 
                           {/* Footer */}
-                          <CardFooter className="px-5 py-3 border-t border-border/20">
+                          <CardFooter className="px-5 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
                             <div className="flex items-center justify-between w-full">
                               <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium">
                                 <span className="flex items-center gap-1">
