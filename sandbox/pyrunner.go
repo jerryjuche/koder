@@ -150,7 +150,7 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		log.Printf("security: blocked Python submission (regex): %v", err)
 		return ExecuteResponse{
 			Status: "security_error",
-			Error:  formatSecurityFriendlyMessage(err.Error()),
+			Error:  err.Error(),
 		}
 	}
 
@@ -159,7 +159,7 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		log.Printf("security: blocked Python submission (AST): %v", err)
 		return ExecuteResponse{
 			Status: "security_error",
-			Error:  formatSecurityFriendlyMessage(err.Error()),
+			Error:  err.Error(),
 		}
 	}
 
