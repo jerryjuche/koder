@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -91,6 +92,34 @@ func (c *sandboxClient) execute(ctx context.Context, language, code, testCode, g
 	}
 
 	return nil, fmt.Errorf("sandbox: all %d attempts failed: %w", maxRetries+1, lastErr)
+}
+
+// formatFriendlySandboxError translates raw sandbox HTTP errors into user-friendly messages.
+func FormatFriendlySandboxError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+
+	// Rate limited (429)
+	if strings.Contains(msg, "429") || strings.Contains(msg, "rate_limit") {
+		return "The grading server is currently busy. Please wait a moment and try again."
+	}
+	// Server errors (5xx)
+	if strings.Contains(msg, "50") || strings.Contains(msg, "503") {
+		return "The grading server encountered a temporary issue. Please try again."
+	}
+	// Connection / DNS / timeout
+	if strings.Contains(msg, "connection refused") || strings.Contains(msg, "no such host") || strings.Contains(msg, "timeout") {
+		return "Unable to reach the grading server. Please check your connection and try again."
+	}
+	// Generic fallback — strip the "sandbox: " internal prefix chatter
+	cleaned := strings.ReplaceAll(msg, "sandbox: ", "")
+	cleaned = strings.TrimSpace(strings.TrimPrefix(cleaned, "all "))
+	if len(cleaned) > 120 {
+		cleaned = cleaned[:120] + "..."
+	}
+	return fmt.Sprintf("Code execution failed: %s", cleaned)
 }
 
 func (c *sandboxClient) doRequest(ctx context.Context, url string, body []byte) (*SandboxResponse, error) {

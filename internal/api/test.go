@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -108,7 +107,8 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 	res, err := h.executor.ExecuteVisibleOnly(r.Context(), execReq)
 	if err != nil {
 		slog.Error("executor: test execution failed", "error", err, "user_id", userID, "problem_id", req.ProblemSlug, "language", language)
-		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", fmt.Sprintf("Failed to test code: %s", err.Error()), nil)
+		friendly := executor.FormatFriendlySandboxError(err)
+		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", friendly, nil)
 		return
 	}
 
