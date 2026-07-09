@@ -11,7 +11,7 @@ BEGIN
         slug, module, type, language, title, statement,
         func_name, return_type, param_types,
         hints, difficulty, xp_reward, tags,
-        visible, source_hash, language_versions
+        visible, source_hash, raw_readme, language_versions
     ) VALUES (
         'py-double-it',
         'arrays-strings',
@@ -28,6 +28,7 @@ BEGIN
         '{go,python,basics}',
         true,
         'manual-test-001',
+        'python test seed',
         jsonb_build_object(
             'go', jsonb_build_object(
                 'func_name',   'DoubleIt',
