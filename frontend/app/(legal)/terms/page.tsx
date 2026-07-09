@@ -34,9 +34,9 @@ const sections: Section[] = [
     body: [
       'You agree to use Koder only for its intended purpose: learning and practicing Go programming. You must not:',
       <span key="sandbox">Submit code designed to escape the sandbox, consume excessive resources, or attack the platform infrastructure.</span>,
-      <span key="access">Attempt to access, modify, or delete another user\'s submissions or account data.</span>,
+      <span key="access">Attempt to access, modify, or delete another user&apos;s submissions or account data.</span>,
       <span key="scrape">Reverse-engineer, scrape, or automate requests in ways that degrade service for others.</span>,
-      <span key="plagiarise">Submit another person\'s work as your own in violation of your cohort\'s academic integrity rules.</span>,
+      <span key="plagiarise">Submit another person&apos;s work as your own in violation of your cohort&apos;s academic integrity rules.</span>,
       <span key="lawful">Use the platform for any unlawful purpose or in violation of applicable law.</span>,
     ],
     callout: 'Code submissions run inside isolated containers with no network access, strict memory limits, and process restrictions. Attempting to circumvent these controls is a violation of these terms and may result in immediate account suspension.',

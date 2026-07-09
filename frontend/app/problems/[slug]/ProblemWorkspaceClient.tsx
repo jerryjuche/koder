@@ -75,7 +75,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState(GO_CODE);
+  const [code, setCode] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORE_KEY(slug));
+      if (saved) return saved;
+    }
+    return GO_CODE;
+  });
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
   const [hintsOpen, setHintsOpen] = useState<boolean[]>(Array(10).fill(false));
   const [submitting, setSubmitting] = useState(false);
@@ -122,17 +128,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [code, slug, problem]);
 
-  // Restore saved code on mount
-  useEffect(() => {
-    if (!problem || !problem.func_name) return;
-    const savedCode = localStorage.getItem(STORE_KEY(slug));
-    if (savedCode) {
-      setCode(savedCode);
-      setSaved(true);
-    }
-  }, [problem, slug]);
-
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -147,7 +143,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, []);
 
   const handleReset = () => {
     let fresh = generateScaffold(problem, activeLanguage);
@@ -161,7 +157,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     toast.success("Reset to original scaffold");
   };
 
-  const handleFormat = () => {
+  function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
     const raw = ed.getValue();
@@ -184,7 +180,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     toast.success("Code formatted");
   };
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     setSubmitting(true);
     setPanelMode("tests");
     setTestsExpanded(true);
@@ -253,7 +249,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setSubmitting(false);
   };
 
-  const handleTest = async () => {
+  async function handleTest() {
     setSubmitting(true);
     setPanelMode("tests");
     setTestsExpanded(true);
