@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,10 +33,48 @@ func findPythonBin() string {
 	return ""
 }
 
+type cappedBuffer struct {
+	bytes.Buffer
+	max int
+}
+
+func (b *cappedBuffer) Write(p []byte) (int, error) {
+	if b.Len() >= b.max {
+		return len(p), nil
+	}
+	if len(p) > b.max-b.Len() {
+		p = p[:b.max-b.Len()]
+	}
+	return b.Buffer.Write(p)
+}
+
+func runCommandWithLimitedOutput(ctx context.Context, name string, stdin *strings.Reader, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
+	if stdin != nil {
+		cmd.Stdin = stdin
+	}
+	var out cappedBuffer
+	out.max = 64 * 1024
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return out.Bytes(), err
+	}
+	return out.Bytes(), nil
+}
+
+func formatSecurityFriendlyMessage(errText string) string {
+	reason := strings.TrimSpace(strings.TrimPrefix(errText, "security:"))
+	if reason == "" {
+		reason = "restricted or unsafe behavior"
+	}
+	return fmt.Sprintf("Your code was blocked by the sandbox security checks: %s — Tip: Keep your solution within the allowed built-ins and avoid file, network, process, and dynamic execution features.", reason)
+}
+
 // validatePythonAST is Layer 2 defense: runs ast.parse() on the submitted code
 // via a Python subprocess to catch obfuscated imports and dangerous calls.
 func validatePythonAST(code string) error {
-	script := fmt.Sprintf(`
+	script := `
 import ast, sys, json
 
 dangerous_modules = {"os", "subprocess", "ctypes", "socket", "shutil", "pickle", "code", "importlib", "builtins"}
@@ -69,7 +108,7 @@ for node in ast.walk(tree):
                 sys.exit(0)
 
 print(json.dumps({"ok": True}))
-`)
+`
 	var astPythonBin = findPythonBin()
 	if astPythonBin == "" {
 		// No Python available, skip AST validation
@@ -78,11 +117,9 @@ print(json.dumps({"ok": True}))
 	// Use a short timeout (10s) to prevent malicious AST from hanging the sandbox
 	astCtx, astCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer astCancel()
-	cmd := exec.CommandContext(astCtx, astPythonBin, "-c", script)
-	cmd.Stdin = strings.NewReader(code)
-	output, err := cmd.CombinedOutput()
+	output, err := runCommandWithLimitedOutput(astCtx, astPythonBin, strings.NewReader(code), "-c", script)
 	if err != nil {
-		// If Python is unavailable, skip AST validation (fall back to regex)
+		log.Printf("validatePythonAST: python subprocess error: %v output=%s", err, string(output))
 		return nil
 	}
 
@@ -91,6 +128,7 @@ print(json.dumps({"ok": True}))
 		Error string `json:"error"`
 	}
 	if err := json.Unmarshal(output, &result); err != nil {
+		log.Printf("validatePythonAST: failed to parse python AST output: %v output=%s", err, string(output))
 		return nil
 	}
 	if !result.Ok {
@@ -112,7 +150,7 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		log.Printf("security: blocked Python submission (regex): %v", err)
 		return ExecuteResponse{
 			Status: "security_error",
-			Error:  err.Error(),
+			Error:  formatSecurityFriendlyMessage(err.Error()),
 		}
 	}
 
@@ -121,7 +159,7 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		log.Printf("security: blocked Python submission (AST): %v", err)
 		return ExecuteResponse{
 			Status: "security_error",
-			Error:  err.Error(),
+			Error:  formatSecurityFriendlyMessage(err.Error()),
 		}
 	}
 
@@ -137,10 +175,10 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 	log.Printf("using python binary: %s", pythonBin)
 
 	// Create an isolated temp directory
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("pysandbox-%s-", randString(8)))
+	tmpDir, err := os.MkdirTemp("", "pysandbox-"+randString(8)+"-")
 	if err != nil {
 		log.Printf("WARN: system temp dir unavailable (%v), falling back to CWD", err)
-		tmpDir, err = os.MkdirTemp(".", fmt.Sprintf("pysandbox-%s-", randString(8)))
+		tmpDir, err = os.MkdirTemp(".", "pysandbox-"+randString(8)+"-")
 	}
 	if err != nil {
 		return errorResponse("internal_error", fmt.Sprintf("failed to create temp directory: %v", err))
@@ -179,7 +217,22 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 
 	setPythonRlimits(timeoutSec)
 
-	outputBytes, err := cmd.CombinedOutput()
+	var out cappedBuffer
+	out.max = 64 * 1024
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err = cmd.Run()
+	outputBytes := out.Bytes()
+	if err != nil {
+		log.Printf("runPythonTests: python command returned error: %v output=%s", err, string(outputBytes))
+		if strings.Contains(string(outputBytes), "cannot allocate memory") || strings.Contains(string(outputBytes), "out of memory") || strings.Contains(string(outputBytes), "Killed") {
+			return ExecuteResponse{
+				Status: "compiler_error",
+				Stdout: string(outputBytes),
+				Error:  "The sandbox ran out of memory while executing your code. Try simplifying your solution or reducing the amount of data processed.",
+			}
+		}
+	}
 
 	if len(outputBytes) > 100*1024 {
 		outputBytes = outputBytes[:100*1024]

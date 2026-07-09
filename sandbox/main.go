@@ -166,6 +166,10 @@ func compileErrorMessage(status, output string) string {
 	}
 	lines := strings.Split(output, "\n")
 
+	if strings.Contains(output, "cannot allocate memory") || strings.Contains(output, "out of memory") || strings.Contains(output, "Killed") {
+		return "The sandbox ran out of memory while executing your code. Try simplifying your solution or reducing the amount of data processed."
+	}
+
 	// Try Go error format first
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {

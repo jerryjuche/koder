@@ -90,7 +90,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	// 3. Resolve language-specific function metadata from LanguageVersions
 	resolveProblemLanguageMeta(problem, req.Language)
 
-		// 4. Route to language-specific executor
+	// 4. Route to language-specific executor
 	if req.Language == "python" {
 		return e.executePython(ctx, req, problem, testCases, true)
 	}
@@ -276,7 +276,11 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			}
 		case "security_error":
 			status = "compiler_error"
-			friendlyMessage = "Your code was blocked for security reasons."
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
 		}
 	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
@@ -373,6 +377,14 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		RuntimeMs:       runtimeMs,
 		TestResults:     results,
 	}, nil
+}
+
+func formatExecutionErrorMessage(errText string) string {
+	reason := strings.TrimSpace(strings.TrimPrefix(errText, "security:"))
+	if reason == "" {
+		reason = "restricted or unsafe behavior"
+	}
+	return fmt.Sprintf("Your code was blocked by the sandbox security checks: %s — Tip: Keep your solution within the allowed built-ins and avoid file, network, process, and dynamic execution features.", reason)
 }
 
 func parseCompilerError(output string) string {
@@ -737,7 +749,11 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			}
 		case "security_error":
 			status = "compiler_error"
-			friendlyMessage = "Your code was blocked for security reasons."
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
 		}
 	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
@@ -1015,7 +1031,7 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 	// goToSnakeCase is idempotent for already-snake_case names
 	pythonFuncName = goToSnakeCase(pythonFuncName)
 	renderData := &TemplateRenderData{
-		FuncName:   pythonFuncName,
+		FuncName:    pythonFuncName,
 		PyTestCases: pyCases,
 	}
 
@@ -1163,7 +1179,11 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 			}
 		case "security_error":
 			status = "compiler_error"
-			friendlyMessage = "Your code was blocked for security reasons."
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
 		}
 	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
