@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -32,25 +33,7 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const { prompt, ready } = useGoogleOneTap(
-    useCallback((response: { credential: string }) => {
-      handleGoogleResponse(response);
-    }, []),
-  );
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { loginId: '', password: '' },
-  });
-
-  const handleGoogleResponse = async (response: { credential: string }) => {
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
     setGoogleLoading(true);
     setErrorMsg('');
     try {
@@ -67,9 +50,26 @@ export default function LoginPage() {
     } finally {
       setGoogleLoading(false);
     }
-  };
+  }, [router]);
 
-  const onSubmit = async (data: LoginForm) => {
+  const { prompt, ready } = useGoogleOneTap(
+    useCallback((response: { credential: string }) => {
+      handleGoogleResponse(response);
+    }, [handleGoogleResponse]),
+  );
+
+  const mounted = useHasMounted();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { loginId: '', password: '' },
+  });
+
+  async function onSubmit(data: LoginForm) {
     setLoading(true);
     setErrorMsg('');
     try {

@@ -9,6 +9,8 @@ RUN CGO_ENABLED=0 go build -ldflags="-X main.gitCommit=${GIT_COMMIT}" -o sandbox
 
 FROM golang:1.23-alpine
 
+RUN apk add --no-cache python3
+
 WORKDIR /app
 COPY --from=builder /build/sandbox-runner /usr/local/bin/
 

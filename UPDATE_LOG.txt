@@ -245,3 +245,9 @@ Registration Race Condition Fix:
 3. Login/auth uses !user.UsernameSet instead of strings.HasPrefix heuristic
 4. Settings: editable username field when usernameSet === false; read-only when already set
 5. PUT /me/username: validates + sets username one time; returns 403 if already set
+
+Date: 2026-07-09
+
+Python compiler error context extraction fix:
+1. sandbox/main.go: updated isPythonErrorLine to robustly detect all Python builtin and custom exceptions (SyntaxError, NameError, etc.) and extract file and line context.
+2. internal/executor/executor.go: fixed variable shadowing bug where `sandboxError` was scoped only to an `if` block, ensuring Python traceback and syntax errors properly surface to the frontend.

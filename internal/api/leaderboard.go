@@ -20,6 +20,11 @@ func (h *LeaderboardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Reque
 		period = "all"
 	}
 
+	if cached, ok := leaderboardCache.get(period); ok {
+		RespondSuccess(w, cached)
+		return
+	}
+
 	entries, err := h.store.GetLeaderboard(r.Context(), period)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", "Failed to fetch leaderboard", nil)
@@ -30,5 +35,6 @@ func (h *LeaderboardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Reque
 		entries = []store.LeaderboardEntry{}
 	}
 
+	leaderboardCache.set(period, entries)
 	RespondSuccess(w, entries)
 }

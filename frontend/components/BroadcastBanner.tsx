@@ -94,7 +94,7 @@ export default function BroadcastBanner() {
     fetchBanners();
 
     const scheduleNext = () => {
-      const delay = document.visibilityState === "visible" ? 5000 : 60000;
+      const delay = document.visibilityState === "visible" ? 30000 : 120000;
       timeoutId = setTimeout(() => {
         fetchBanners();
         scheduleNext();

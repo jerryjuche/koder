@@ -42,14 +42,18 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 
 	// Insert into database with parameterized query
 	email := user.Email
+	primaryLanguage := user.PrimaryLanguage
+	if primaryLanguage == "" {
+		primaryLanguage = "go"
+	}
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, NOW())
+		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, primary_language, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, NOW())
 		RETURNING id, created_at
 	`
 
 	pinHash := user.PINHash
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex, user.UsernameSet).
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex, user.UsernameSet, primaryLanguage).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		if msg, ok := IsUniqueViolation(err); ok {
@@ -59,17 +63,18 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	}
 
 	return &User{
-		ID:         userID,
-		StudentID:  user.StudentID,
-		Username:   user.Username,
-		Name:       user.Name,
-		Password:   string(hashedPassword),
-		PINHash:    &pinHash,
-		Role:       user.Role,
-		ColorIndex: colorIndex,
-		XP:          0,
-		CreatedAt:   createdAt.Time,
-		UsernameSet: user.UsernameSet,
+		ID:              userID,
+		StudentID:       user.StudentID,
+		Username:        user.Username,
+		Name:            user.Name,
+		Password:        string(hashedPassword),
+		PINHash:         &pinHash,
+		Role:            user.Role,
+		ColorIndex:      colorIndex,
+		XP:             0,
+		CreatedAt:       createdAt.Time,
+		UsernameSet:     user.UsernameSet,
+		PrimaryLanguage: primaryLanguage,
 	}, nil
 }
 
@@ -83,7 +88,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE student_id = $1
 	`
@@ -104,6 +109,7 @@ func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -126,7 +132,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE id = $1
 	`
@@ -148,6 +154,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -170,7 +177,7 @@ func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) 
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE username = $1
 	`
@@ -191,6 +198,7 @@ func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) 
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -213,7 +221,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE email = $1
 	`
@@ -235,6 +243,7 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -257,7 +266,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE username = $1 OR email = $1 OR student_id = $1
 		LIMIT 1
@@ -279,6 +288,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -301,7 +311,7 @@ func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) 
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE google_id = $1
 	`
@@ -322,6 +332,7 @@ func (s *PostgresStore) GetUserByGoogleID(ctx context.Context, googleID string) 
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 	)
 
 	if err != nil {
@@ -474,7 +485,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 
 	query := `
 		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
-		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set,
+		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set, u.primary_language,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -496,6 +507,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.GoogleAvatarURL,
 		&user.CreatedAt,
 		&user.UsernameSet,
+		&user.PrimaryLanguage,
 		&solvedCount,
 	)
 
@@ -507,6 +519,32 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	}
 
 	return user, solvedCount, nil
+}
+
+// UpdateUserPrimaryLanguage updates the user's primary language preference.
+func (s *PostgresStore) UpdateUserPrimaryLanguage(ctx context.Context, id uuid.UUID, language string) error {
+	if id == uuid.Nil {
+		return fmt.Errorf("id cannot be nil")
+	}
+	if language != "go" && language != "python" {
+		return fmt.Errorf("invalid language: %q (must be 'go' or 'python')", language)
+	}
+
+	query := `
+		UPDATE users
+		SET primary_language = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.pool.Exec(ctx, query, language, id)
+	if err != nil {
+		return fmt.Errorf("failed to update primary language: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }
 
 // UpdateUserName updates the user's name by ID.

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -30,14 +31,30 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+    setGoogleLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await googleLogin(response.credential);
+      if (res.success && res.data) {
+        router.push(res.data.onboarding ? '/onboarding' : '/');
+      } else {
+        setErrorMsg(res.error?.message || 'Google sign-in failed');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [router]);
+
   const { prompt, ready } = useGoogleOneTap(
     useCallback((response: { credential: string }) => {
       handleGoogleResponse(response);
-    }, []),
+    }, [handleGoogleResponse]),
   );
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useHasMounted();
 
   // Step 1 fields
   const [firstName, setFirstName] = useState('');
@@ -65,23 +82,6 @@ export default function RegisterPage() {
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
 
-  const handleGoogleResponse = async (response: { credential: string }) => {
-    setGoogleLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await googleLogin(response.credential);
-      if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/');
-      } else {
-        setErrorMsg(res.error?.message || 'Google sign-in failed');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to connect. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   const handleGoogleClick = () => {
     if (ready) prompt();
   };
@@ -108,10 +108,7 @@ export default function RegisterPage() {
 
   // Check username availability with debounce
   useEffect(() => {
-    if (username.length < 3) {
-      setUsernameAvailable(null);
-      return;
-    }
+    if (username.length < 3) return;
     const timer = setTimeout(async () => {
       setUsernameChecking(true);
       try {

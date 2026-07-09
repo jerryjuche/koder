@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { User as UserType, UserProfile } from "@/lib/types";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -42,9 +43,7 @@ function MiniStat({ value, label, icon: Icon, accent }: {
 export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useHasMounted();
 
   const copyProfileLink = async () => {
     try {

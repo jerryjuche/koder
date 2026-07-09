@@ -132,7 +132,10 @@ export default function LeaderboardClient() {
 
   useEffect(() => {
     mounted.current = true;
-    loadData(period);
+    const loadAndPoll = async () => {
+      await loadData(period);
+    };
+    loadAndPoll();
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(() => loadData(period), 30_000);
     const onUserUpdated = () => loadData(period);
@@ -145,9 +148,11 @@ export default function LeaderboardClient() {
   }, [period]);
 
   // Reset avatar errors when user data changes (e.g. after Google sync)
-  useEffect(() => {
+  const [prevAvatarUrl, setPrevAvatarUrl] = useState(user?.google_avatar_url);
+  if (user?.google_avatar_url !== prevAvatarUrl) {
+    setPrevAvatarUrl(user?.google_avatar_url);
     setAvatarsFailed(new Set());
-  }, [user?.google_avatar_url]);
+  }
 
   const filtered = useMemo(() => {
     const all = leaderboard;
