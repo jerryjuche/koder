@@ -373,8 +373,8 @@ export default function Dashboard() {
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {lang === "go" && <LanguageLogo language="go" size={14} />}
-                    {lang === "python" && <LanguageLogo language="python" size={14} />}
+                    {lang === "go" && <LanguageLogo language="go" size={16} />}
+                    {lang === "python" && <LanguageLogo language="python" size={16} />}
                     {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
                   </button>
                 ))}
@@ -530,8 +530,8 @@ export default function Dashboard() {
                               {langs.length > 0 && (
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {langs.map((lang) => (
-                                    <span key={lang} className="flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-background/40 backdrop-blur-[2px]">
-                                      <LanguageLogo language={lang as "go" | "python"} size={16} />
+                                    <span key={lang} className="flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-background/40 backdrop-blur-[2px]">
+                                      <LanguageLogo language={lang as "go" | "python"} size={20} />
                                     </span>
                                   ))}
                                 </div>

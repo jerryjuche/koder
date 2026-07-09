@@ -776,7 +776,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
                   )}
                 >
-                  <LanguageLogo language="go" size={16} />
+                  <LanguageLogo language="go" size={18} />
                   Go
                 </button>
                 <div className="w-px bg-brand-charcoal-border self-stretch" />
@@ -797,7 +797,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
                   )}
                 >
-                  <LanguageLogo language="python" size={16} />
+                  <LanguageLogo language="python" size={18} />
                   Python
                 </button>
               </div>
