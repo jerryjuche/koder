@@ -5,6 +5,11 @@ import (
 	"regexp"
 )
 
+type resourceLimit struct {
+	resource int
+	cur, max uint64
+}
+
 // dangerousPatterns are checked against student code before execution.
 // Each entry pairs a compiled regex with a human-readable reason.
 var dangerousPatterns = []struct {

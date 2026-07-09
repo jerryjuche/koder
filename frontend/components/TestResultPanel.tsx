@@ -398,10 +398,7 @@ export default function TestResultPanel({
                     </button>
                   </div>
                   <div className="bg-[#1A1A1A] rounded-lg border border-brand-error/15 p-3 font-mono text-xs text-brand-error leading-relaxed whitespace-pre-wrap overflow-x-auto">
-                    {execution?.friendly_message || "Unknown compilation error"}
-                    {serverMainMessage ||
-                      execution?.friendly_message ||
-                      "Unknown compilation error"}
+                    {serverMainMessage || execution?.friendly_message || "Unknown compilation error"}
                   </div>
                 </div>
               </div>

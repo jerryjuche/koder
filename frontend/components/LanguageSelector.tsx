@@ -3,28 +3,29 @@
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useUser } from "@/lib/UserContext";
+import { LanguageLogo } from "@/components/LanguageLogo";
 
 const languages = [
   {
     id: "go",
     name: "Go",
     description: "Fast compilation, goroutines, static typing",
-    icon: "🐹",
-    gradient: "from-blue-600/20 to-blue-900/20",
-    border: "border-blue-500/30",
-    hoverBorder: "group-hover:border-blue-400",
-    accent: "bg-blue-500",
+    icon: <LanguageLogo language="go" size={40} className="text-white" />,
+    gradient: "from-[#00ADD8]/18 to-[#003F6F]/20",
+    border: "border-[#00ADD8]/30",
+    hoverBorder: "group-hover:border-[#00ADD8]",
+    accent: "bg-[#00ADD8]",
     cta: "Start Learning Go",
   },
   {
     id: "python",
     name: "Python",
     description: "Readable syntax, vast ecosystem, dynamic typing",
-    icon: "🐍",
-    gradient: "from-emerald-600/20 to-emerald-900/20",
-    border: "border-emerald-500/30",
-    hoverBorder: "group-hover:border-emerald-400",
-    accent: "bg-emerald-500",
+    icon: <LanguageLogo language="python" size={40} className="text-white" />,
+    gradient: "from-[#306998]/18 to-[#FFD43B]/20",
+    border: "border-[#FFD43B]/30",
+    hoverBorder: "group-hover:border-[#FFD43B]",
+    accent: "bg-[#FFD43B]",
     cta: "Start Learning Python",
   },
 ];
@@ -48,7 +49,9 @@ export default function LanguageSelector() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "linear-gradient(135deg, #0A0C0F 0%, #0F1115 100%)" }}
+      style={{
+        background: "linear-gradient(135deg, #0A0C0F 0%, #0F1115 100%)",
+      }}
     >
       <div className="max-w-2xl w-full">
         <motion.div
@@ -77,10 +80,12 @@ export default function LanguageSelector() {
               onClick={() => handleSelect(lang.id)}
               className={`group relative overflow-hidden rounded-2xl p-6 text-left border ${lang.border} ${lang.hoverBorder} transition-all bg-gradient-to-br ${lang.gradient} backdrop-blur-sm`}
             >
-              <div className="text-4xl mb-4">{lang.icon}</div>
+              <div className="mb-4">{lang.icon}</div>
               <h2 className="text-xl font-bold text-white mb-2">{lang.name}</h2>
               <p className="text-sm text-gray-400 mb-5">{lang.description}</p>
-              <span className={`inline-block px-4 py-2 rounded-lg text-sm font-semibold text-white ${lang.accent} opacity-90 group-hover:opacity-100 transition-opacity`}>
+              <span
+                className={`inline-block px-4 py-2 rounded-lg text-sm font-semibold text-white ${lang.accent} opacity-90 group-hover:opacity-100 transition-opacity`}
+              >
                 {lang.cta}
               </span>
             </motion.button>
