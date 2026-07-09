@@ -550,6 +550,26 @@ export default function Dashboard() {
                               )}
                             </p>
 
+                            {/* Language badges */}
+                            {problem.language_versions && Object.keys(problem.language_versions).length > 0 && (
+                              <div className="flex items-center gap-2 mb-2.5">
+                                {Object.keys(problem.language_versions).map((lang) => (
+                                  <span
+                                    key={lang}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none border",
+                                      lang === "go"
+                                        ? "text-sky-400 bg-sky-500/10 border-sky-500/25"
+                                        : "text-yellow-400 bg-yellow-500/10 border-yellow-500/25",
+                                    )}
+                                  >
+                                    <LanguageLogo language={lang as "go" | "python"} size={10} />
+                                    {lang === "go" ? "Go" : "Python"}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
                             {/* Tags */}
                             {problem.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 mb-0">
