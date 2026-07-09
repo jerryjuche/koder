@@ -960,6 +960,11 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 		output = resp.Stdout
 		runtimeMs = resp.RuntimeMs
 		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.PythonTimeout())
 		defer runCancel()

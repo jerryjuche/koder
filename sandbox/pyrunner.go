@@ -21,6 +21,17 @@ func stripShebang(code string) string {
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
+// findPythonBin returns the path to a Python 3 interpreter, or empty string if none found.
+func findPythonBin() string {
+	if _, err := exec.LookPath("python3"); err == nil {
+		return "python3"
+	}
+	if _, err := exec.LookPath("python"); err == nil {
+		return "python"
+	}
+	return ""
+}
+
 // validatePythonAST is Layer 2 defense: runs ast.parse() on the submitted code
 // via a Python subprocess to catch obfuscated imports and dangerous calls.
 func validatePythonAST(code string) error {
@@ -59,11 +70,16 @@ for node in ast.walk(tree):
 
 print(json.dumps({"ok": True}))
 `)
-	cmd := exec.Command("python3", "-c", script)
+	var astPythonBin = findPythonBin()
+	if astPythonBin == "" {
+		// No Python available, skip AST validation
+		return nil
+	}
+	cmd := exec.Command(astPythonBin, "-c", script)
 	cmd.Stdin = strings.NewReader(code)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// If python3 is unavailable, skip AST validation (fall back to regex)
+		// If Python is unavailable, skip AST validation (fall back to regex)
 		return nil
 	}
 
@@ -106,6 +122,17 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		}
 	}
 
+	var pythonBin = findPythonBin()
+	if pythonBin == "" {
+		log.Printf("neither python3 nor python found in PATH")
+		return ExecuteResponse{
+			Status: "compiler_error",
+			Stdout: "",
+			Error:  "Python interpreter not found in sandbox environment",
+		}
+	}
+	log.Printf("using python binary: %s", pythonBin)
+
 	// Create an isolated temp directory
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("pysandbox-%s-", randString(8)))
 	if err != nil {
@@ -133,12 +160,12 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		return errorResponse("internal_error", fmt.Sprintf("failed to write run_tests.py: %v", err))
 	}
 
-	// Execute python3 -u run_tests.py with execution timeout
+	// Execute python -u run_tests.py with execution timeout
 	runCtx, runCancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second)
 	defer runCancel()
 
 	start := time.Now()
-	cmd := exec.CommandContext(runCtx, "python3", "-u", "run_tests.py")
+	cmd := exec.CommandContext(runCtx, pythonBin, "-u", "run_tests.py")
 	cmd.Dir = tmpDir
 	cmd.Env = []string{
 		"PATH=" + os.Getenv("PATH"),
@@ -176,5 +203,6 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		PassedCount: result.passedCount,
 		TotalCount:  result.totalCount,
 		RuntimeMs:   runtimeMs,
+		Error:       compileErrorMessage(result.status, output),
 	}
 }
