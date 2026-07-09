@@ -213,23 +213,24 @@ type UserProblemTestCase struct {
 
 // UserProblem represents a staging problem submitted by a verified contributor.
 type UserProblem struct {
-	ID         pgtype.UUID           `db:"id" json:"id"`
-	UserID     pgtype.UUID           `db:"user_id" json:"user_id"`
-	Slug       string                `db:"slug" json:"slug"`
-	Title      string                `db:"title" json:"title"`
-	Statement  string                `db:"statement" json:"statement"`
-	FuncName   string                `db:"func_name" json:"func_name"`
-	ReturnType string                `db:"return_type" json:"return_type"`
-	ParamTypes []string              `db:"param_types" json:"param_types"`
-	Hints      []string              `db:"hints" json:"hints"`
-	Difficulty int                   `db:"difficulty" json:"difficulty"`
-	XPReward   int                   `db:"xp_reward" json:"xp_reward"`
-	Tags       []string              `db:"tags" json:"tags"`
-	TestCases  []UserProblemTestCase `db:"test_cases" json:"test_cases"`
-	Status     string                `db:"status" json:"status"` // pending | approved | rejected
-	AdminNotes *string               `db:"admin_notes" json:"admin_notes,omitempty"`
-	CreatedAt  time.Time             `db:"created_at" json:"created_at"`
-	ReviewedAt *time.Time            `db:"reviewed_at" json:"reviewed_at,omitempty"`
+	ID               pgtype.UUID           `db:"id" json:"id"`
+	UserID           pgtype.UUID           `db:"user_id" json:"user_id"`
+	Slug             string                `db:"slug" json:"slug"`
+	Title            string                `db:"title" json:"title"`
+	Statement        string                `db:"statement" json:"statement"`
+	FuncName         string                `db:"func_name" json:"func_name"`
+	ReturnType       string                `db:"return_type" json:"return_type"`
+	ParamTypes       []string              `db:"param_types" json:"param_types"`
+	LanguageVersions *map[string]LanguageSpec `db:"language_versions" json:"language_versions,omitempty"`
+	Hints            []string              `db:"hints" json:"hints"`
+	Difficulty       int                   `db:"difficulty" json:"difficulty"`
+	XPReward         int                   `db:"xp_reward" json:"xp_reward"`
+	Tags             []string              `db:"tags" json:"tags"`
+	TestCases        []UserProblemTestCase `db:"test_cases" json:"test_cases"`
+	Status           string                `db:"status" json:"status"` // pending | approved | rejected
+	AdminNotes       *string               `db:"admin_notes" json:"admin_notes,omitempty"`
+	CreatedAt        time.Time             `db:"created_at" json:"created_at"`
+	ReviewedAt       *time.Time            `db:"reviewed_at" json:"reviewed_at,omitempty"`
 }
 
 // Notification represents an alert for a user.
@@ -245,17 +246,18 @@ type Notification struct {
 
 // NewUserProblem is the payload for creating a community contribution.
 type NewUserProblem struct {
-	Slug       string                `json:"slug"`
-	Title      string                `json:"title"`
-	Statement  string                `json:"statement"`
-	FuncName   string                `json:"func_name"`
-	ReturnType string                `json:"return_type"`
-	ParamTypes []string              `json:"param_types"`
-	Hints      []string              `json:"hints"`
-	Difficulty int                   `json:"difficulty"`
-	XPReward   int                   `json:"xp_reward"`
-	Tags       []string              `json:"tags"`
-	TestCases  []UserProblemTestCase `json:"test_cases"`
+	Slug             string                     `json:"slug"`
+	Title            string                     `json:"title"`
+	Statement        string                     `json:"statement"`
+	FuncName         string                     `json:"func_name"`
+	ReturnType       string                     `json:"return_type"`
+	ParamTypes       []string                   `json:"param_types"`
+	LanguageVersions *map[string]LanguageSpec   `json:"language_versions,omitempty"`
+	Hints            []string                   `json:"hints"`
+	Difficulty       int                        `json:"difficulty"`
+	XPReward         int                        `json:"xp_reward"`
+	Tags             []string                   `json:"tags"`
+	TestCases        []UserProblemTestCase      `json:"test_cases"`
 }
 
 // Feedback represents a user-submitted feedback or bug report.

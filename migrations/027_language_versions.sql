@@ -11,6 +11,6 @@ UPDATE problems SET language_versions = jsonb_build_object(
   'go', jsonb_build_object(
     'func_name', COALESCE(func_name, ''),
     'return_type', COALESCE(return_type, ''),
-    'param_types', COALESCE(param_types, '[]'::text[])
+    'param_types', COALESCE(param_types, '{}'::text[])
   )
 ) WHERE language = 'go' AND language_versions = '{"go": {"func_name": "", "return_type": "", "param_types": []}}'::jsonb;

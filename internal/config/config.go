@@ -282,6 +282,11 @@ func (c *Config) ExecutorTimeout() time.Duration {
 	return time.Duration(c.ExecutorTimeoutSeconds) * time.Second
 }
 
+// PythonTimeout returns the Python executor timeout as a time.Duration.
+func (c *Config) PythonTimeout() time.Duration {
+	return time.Duration(c.PythonExecutorTimeout) * time.Second
+}
+
 // JWTExpiry returns the JWT expiry as a time.Duration.
 func (c *Config) JWTExpiry() time.Duration {
 	return time.Duration(c.JWTExpiryHours) * time.Hour

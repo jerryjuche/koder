@@ -21,18 +21,24 @@ func (s *PostgresStore) CreateUserProblem(ctx context.Context, userID uuid.UUID,
 		testCasesJSON = append(testCasesJSON, string(b))
 	}
 
+	lvJSON, err := json.Marshal(problem.LanguageVersions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal language_versions: %w", err)
+	}
+
 	query := `
 		INSERT INTO user_problems (
 			user_id, slug, title, statement, func_name, return_type, 
-			param_types, hints, difficulty, xp_reward, tags, test_cases, status
+			param_types, language_versions, hints, difficulty, xp_reward, tags, test_cases, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::JSONB[], 'pending')
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::JSONB[], 'pending')
 		ON CONFLICT (slug) DO UPDATE SET
 			title = EXCLUDED.title,
 			statement = EXCLUDED.statement,
 			func_name = EXCLUDED.func_name,
 			return_type = EXCLUDED.return_type,
 			param_types = EXCLUDED.param_types,
+			language_versions = EXCLUDED.language_versions,
 			hints = EXCLUDED.hints,
 			difficulty = EXCLUDED.difficulty,
 			xp_reward = EXCLUDED.xp_reward,
@@ -41,17 +47,24 @@ func (s *PostgresStore) CreateUserProblem(ctx context.Context, userID uuid.UUID,
 			status = 'pending',
 			admin_notes = NULL
 		WHERE user_problems.user_id = EXCLUDED.user_id
-		RETURNING id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, status, created_at
+		RETURNING id, user_id, slug, title, statement, func_name, return_type, param_types, language_versions, hints, difficulty, xp_reward, tags, status, created_at
 	`
 
 	var up UserProblem
-	err := s.pool.QueryRow(ctx, query,
+	var lvBytes []byte
+	err = s.pool.QueryRow(ctx, query,
 		userID, problem.Slug, problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
-		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward, problem.Tags, testCasesJSON,
+		problem.ParamTypes, lvJSON, problem.Hints, problem.Difficulty, problem.XPReward, problem.Tags, testCasesJSON,
 	).Scan(
 		&up.ID, &up.UserID, &up.Slug, &up.Title, &up.Statement, &up.FuncName, &up.ReturnType,
-		&up.ParamTypes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &up.Status, &up.CreatedAt,
+		&up.ParamTypes, &lvBytes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &up.Status, &up.CreatedAt,
 	)
+	if len(lvBytes) > 0 {
+		var lv map[string]LanguageSpec
+		if err := json.Unmarshal(lvBytes, &lv); err == nil {
+			up.LanguageVersions = &lv
+		}
+	}
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -75,11 +88,18 @@ func (s *PostgresStore) listUserProblems(ctx context.Context, query string, args
 	for rows.Next() {
 		var up UserProblem
 		var testCasesJSON [][]byte
+		var lvBytes []byte
 		err := rows.Scan(
 			&up.ID, &up.UserID, &up.Slug, &up.Title, &up.Statement, &up.FuncName, &up.ReturnType,
-			&up.ParamTypes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &testCasesJSON,
+			&up.ParamTypes, &lvBytes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &testCasesJSON,
 			&up.Status, &up.AdminNotes, &up.CreatedAt, &up.ReviewedAt,
 		)
+		if len(lvBytes) > 0 {
+			var lv map[string]LanguageSpec
+			if err := json.Unmarshal(lvBytes, &lv); err == nil {
+				up.LanguageVersions = &lv
+			}
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user problem: %w", err)
 		}
@@ -101,7 +121,7 @@ func (s *PostgresStore) listUserProblems(ctx context.Context, query string, args
 // ListUserProblemsByUser lists all submissions from a specific user.
 func (s *PostgresStore) ListUserProblemsByUser(ctx context.Context, userID uuid.UUID) ([]UserProblem, error) {
 	query := `
-		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
+		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, language_versions, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
 		FROM user_problems
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -113,7 +133,7 @@ func (s *PostgresStore) ListUserProblemsByUser(ctx context.Context, userID uuid.
 // ListPendingUserProblems lists all pending community contributions for admins.
 func (s *PostgresStore) ListPendingUserProblems(ctx context.Context) ([]UserProblem, error) {
 	query := `
-		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
+		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, language_versions, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
 		FROM user_problems
 		WHERE status = 'pending'
 		ORDER BY created_at ASC
@@ -125,7 +145,7 @@ func (s *PostgresStore) ListPendingUserProblems(ctx context.Context) ([]UserProb
 // GetUserProblemByID fetches a single user problem by its ID.
 func (s *PostgresStore) GetUserProblemByID(ctx context.Context, id uuid.UUID) (*UserProblem, error) {
 	query := `
-		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
+		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, language_versions, hints, difficulty, xp_reward, tags, test_cases, status, admin_notes, created_at, reviewed_at
 		FROM user_problems
 		WHERE id = $1
 	`
@@ -171,15 +191,16 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	// 1. Fetch the user problem
 	var up UserProblem
 	var testCasesJSON [][]byte
+	var lvBytes []byte
 	fetchQuery := `
-		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, test_cases
+		SELECT id, user_id, slug, title, statement, func_name, return_type, param_types, language_versions, hints, difficulty, xp_reward, tags, test_cases
 		FROM user_problems
 		WHERE id = $1 AND status = 'pending'
 		FOR UPDATE
 	`
 	err = tx.QueryRow(ctx, fetchQuery, id).Scan(
 		&up.ID, &up.UserID, &up.Slug, &up.Title, &up.Statement, &up.FuncName, &up.ReturnType,
-		&up.ParamTypes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &testCasesJSON,
+		&up.ParamTypes, &lvBytes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &testCasesJSON,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -199,16 +220,32 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	insertProbQuery := `
 		INSERT INTO problems (
 			slug, module, type, language, title, statement, func_name, return_type, 
-			param_types, hints, difficulty, xp_reward, tags, visible, source_hash, raw_readme, author_id, author_name
+			param_types, hints, difficulty, xp_reward, tags, visible, source_hash, raw_readme, language_versions, author_id, author_name
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id
 	`
+	// Unmarshal stored language_versions
+	var languageVersions map[string]LanguageSpec
+	if len(lvBytes) > 0 {
+		if err := json.Unmarshal(lvBytes, &languageVersions); err != nil {
+			return nil, nil, fmt.Errorf("failed to unmarshal language_versions: %w", err)
+		}
+	}
+	// Fall back to auto-generated Go+Python if contributor didn't supply one
+	if languageVersions == nil || len(languageVersions) == 0 {
+		languageVersions = generateDualLanguageSpec(up.FuncName, up.ReturnType, up.ParamTypes)
+	}
+	lvJSON, err := json.Marshal(languageVersions)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal language_versions: %w", err)
+	}
+
 	var newProblemID uuid.UUID
 	err = tx.QueryRow(ctx, insertProbQuery,
 		up.Slug, "Community", "algorithm", "go", up.Title, up.Statement, up.FuncName, up.ReturnType,
 		up.ParamTypes, up.Hints, up.Difficulty, up.XPReward, up.Tags, true, "COMMUNITY:"+uuid.UUID(up.ID.Bytes).String(),
-		"Community Contribution", up.UserID, authorName,
+		"Community Contribution", lvJSON, up.UserID, authorName,
 	).Scan(&newProblemID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to insert problem: %w", err)
@@ -248,4 +285,74 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	up.Status = "approved"
 	up.AdminNotes = &adminNotes
 	return &up, &newProblemID, nil
+}
+
+// generateDualLanguageSpec derives Go+Python entries from top-level function metadata.
+func generateDualLanguageSpec(funcName, returnType string, paramTypes []string) map[string]LanguageSpec {
+	snakeName := pascalToSnake(funcName)
+	return map[string]LanguageSpec{
+		"go": {
+			FuncName:   funcName,
+			ReturnType: returnType,
+			ParamTypes: paramTypes,
+		},
+		"python": {
+			FuncName:   snakeName,
+			ReturnType: goTypeToPython(returnType),
+			ParamTypes: mapSlice(paramTypes, goTypeToPython),
+		},
+	}
+}
+
+// pascalToSnake converts PascalCase to snake_case.
+func pascalToSnake(s string) string {
+	if s == "" {
+		return ""
+	}
+	out := make([]byte, 0, len(s)+4)
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			if i > 0 && (s[i-1] >= 'a' && s[i-1] <= 'z' || (i+1 < len(s) && s[i+1] >= 'a' && s[i+1] <= 'z')) {
+				out = append(out, '_')
+			}
+			out = append(out, c+32)
+		} else {
+			out = append(out, c)
+		}
+	}
+	return string(out)
+}
+
+// goTypeToPython translates a Go type name to its Python equivalent.
+func goTypeToPython(t string) string {
+	switch t {
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "byte", "rune":
+		return "int"
+	case "float32", "float64":
+		return "float"
+	case "string":
+		return "str"
+	case "bool":
+		return "bool"
+	case "error":
+		return "bool"
+	default:
+		if len(t) > 2 && t[0] == '[' && t[1] == ']' {
+			return "list"
+		}
+		if len(t) > 4 && t[:4] == "map[" {
+			return "dict"
+		}
+		return t
+	}
+}
+
+// mapSlice applies a transform function to each element of a slice.
+func mapSlice[T any, R any](s []T, f func(T) R) []R {
+	result := make([]R, len(s))
+	for i, v := range s {
+		result[i] = f(v)
+	}
+	return result
 }

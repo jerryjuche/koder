@@ -2,45 +2,103 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, python-curricula]
   pull_request:
     branches: [main]
 
+env:
+  GO_VERSION: "1.26"
+  NODE_VERSION: "20"
+
 jobs:
-  test:
+  backend:
+    name: Backend — Test & Build
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            go.sum
+            sandbox/go.mod
 
-      - name: Go vet
-        run: go vet ./...
+      - name: Go vet (main module)
+        run: go vet ./internal/...
 
-      - name: Go test
-        run: go test ./... -count=1
+      - name: Go test (main module)
+        run: go test ./internal/... -count=1 -timeout 120s
+        env:
+          DATABASE_URL: postgres://placeholder:placeholder@localhost:5432/test
+          JWT_SECRET: ci-test-jwt-secret-that-is-at-least-32-chars!!
+          GEMINI_API_KEY: ci-test-placeholder
+          GROQ_API_KEY: ""
+
+      - name: Build (main module)
+        run: go build -o /dev/null ./cmd/server
+
+      - name: Build (sandbox)
+        working-directory: ./sandbox
+        run: CGO_ENABLED=0 go build -o /dev/null .
 
   frontend:
+    name: Frontend — Lint & Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint
+
       - name: TypeScript check
+        working-directory: ./frontend
         run: npx tsc --noEmit
 
       - name: Build
+        working-directory: ./frontend
         run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-test-placeholder
+
+  deploy-backend:
+    name: Deploy — Backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  deploy-sandbox:
+    name: Deploy — Sandbox
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Trigger Railway deploy hook
+        run: |
+          curl -fsSL -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"

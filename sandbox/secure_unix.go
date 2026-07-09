@@ -23,6 +23,16 @@ func setProcessAttributes(cmd *exec.Cmd, timeoutSec int) {
 	setRlimits(timeoutSec)
 }
 
+// setPythonRlimits applies resource limits specific to Python execution.
+// RLIMIT_AS is safe for Python (unlike Go, which reserves large virtual address spaces).
+func setPythonRlimits(timeoutSec int) {
+	// RLIMIT_AS on linux/arm64 = 9
+	if err := syscall.Setrlimit(9, &syscall.Rlimit{Cur: 512 << 20, Max: 512 << 20}); err != nil {
+		log.Printf("WARN: setrlimit RLIMIT_AS: %v", err)
+	}
+	setRlimits(timeoutSec)
+}
+
 // setRlimits applies hard resource limits to the current process.
 // These limits are inherited by all child processes (go test, student code).
 func setRlimits(timeoutSec int) {

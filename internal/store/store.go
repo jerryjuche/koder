@@ -62,6 +62,7 @@ type Store interface {
 	GetFullProfile(ctx context.Context, userID uuid.UUID) (*FullProfileResult, error)
 	GetUserActivity(ctx context.Context, userID uuid.UUID, year int) ([]ActivityEntry, error)
 	UpdateUserProfileWithReturn(ctx context.Context, id uuid.UUID, name, bio string) (*User, error)
+	UpdateUserPrimaryLanguage(ctx context.Context, id uuid.UUID, language string) error
 	LinkGoogleToUser(ctx context.Context, userID uuid.UUID, info *GoogleUserInfo) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 

@@ -4,10 +4,40 @@ KODER MULTI-LANGUAGE CURRICULUM INTEGRATION — PROGRESS
 Branch: python-curricula
 Updated: 2026-07-08
 
+SESSION 1: Phase 1 implemented and verified (go vet: clean).
+SESSION 2: Phase 2 implemented and verified (go vet: clean).
+SESSION 3: Phase 3 implemented and verified (go vet: clean).
+SESSION 4: Phase 4 implemented and verified (go vet: clean).
+SESSION 5: Phase 5 implemented and verified (sandbox build: clean, go vet: clean).
+SESSION 6: Phase 6 implemented and verified (sandbox build: clean, go vet: clean).
+SESSION 7: Phases 7-11 implemented (frontend types, LanguageSelector, TopNav switcher, dashboard tabs, workspace).
+SESSION 8: Phase 12 implemented (enricher dual Go/Python generation, AI prompt/schema, fallback).
+SESSION 9: Bugfix sweep (8 fixes: enricher copy, Python json.loads, workspace scaffold, fencing, unmarshal order, awaits, skip persist, marshal error).
+SESSION 10: Comprehensive test suite expansion (122 tests, all 8 packages covered, go vet clean).
+
 ---
 
-PHASE 0 — Schema & Configuration (DONE)
-========================================
+ALL PHASES COMPLETE
+===================
+
+Phase 0  — Schema & Configuration (DONE)
+Phase 1  — User Language Preference (DONE)
+Phase 2  — Problem Language Versions (DONE)
+Phase 3  — Language in Submit/Test (DONE)
+Phase 4  — Python Test Template (DONE)
+Phase 5  — Multi-Language Sandbox (DONE)
+Phase 6  — Python Security (DONE)
+Phase 7  — Frontend Types & State (DONE)
+Phase 8  — LanguageSelector Component (DONE)
+Phase 9  — TopNav Language Switcher (DONE)
+Phase 10 — Language-Aware Dashboard (DONE)
+Phase 11 — Language-Aware Workspace (DONE)
+Phase 12 — Multi-Language Enrichment (DONE)
+
+---
+
+DETAIL: PHASE 0 — Schema & Configuration
+==========================================
 
  Files:
    migrations/027_language_versions.sql         — created
@@ -23,120 +53,143 @@ PHASE 0 — Schema & Configuration (DONE)
 
 ---
 
-PHASE 1 — User Language Preference (NOT STARTED)
-=================================================
+DETAIL: PHASE 1 — User Language Preference
+============================================
 
- Files:
-   internal/store/store.go                      — add UpdateUserPrimaryLanguage to interface
-   internal/store/users.go                      — add to all GetUserBy* queries + CreateUser + implement method
-   internal/api/me.go                           — add PrimaryLanguage to response + UpdateLanguage handler
-   internal/api/router.go                       — register PUT /me/language
-
----
-
-PHASE 2 — Problem Language Versions (NOT STARTED)
-==================================================
-
- Files:
-   internal/store/problems.go                   — add language_versions to SELECT/Scan
-   internal/api/problems.go                     — add ?language= filter
+ Changes:
+    internal/store/store.go                      — added UpdateUserPrimaryLanguage to interface
+    internal/store/users.go                      — added primary_language to all 7 GetUserBy* queries + CreateUser + implemented UpdateUserPrimaryLanguage (validates "go"|"python")
+    internal/api/me.go                           — added PrimaryLanguage to meResponse + GetMe; added UpdateLanguage handler with validation + cache invalidation + full user response
+    internal/api/router.go                       — registered PUT /me/language (256KB body limit)
 
 ---
 
-PHASE 3 — Language in Submit/Test (NOT STARTED)
-================================================
-
- Files:
-   internal/api/submissions.go                  — add Language to request, validate, propagate
-   internal/api/test.go                         — same as submissions
-   internal/executor/executor.go                — branch on req.Language, executePython stub
-
----
-
-PHASE 4 — Python Test Template (NOT STARTED)
+DETAIL: PHASE 2 — Problem Language Versions
 =============================================
 
- Files:
-   internal/executor/templates.go               — pythonTestTemplate + TestCasesJSON field
-   internal/executor/executor.go                — formatPythonLiteral helper
+ Changes:
+    internal/store/problems.go                   — language_versions added to all problem queries (SELECT + Scan + json.Unmarshal)
+    internal/store/submissions.go                — language_versions added to GetProblemWithTestCases
+    internal/api/problems.go                     — ?language= query filter added to ListVisibleProblems handler
 
 ---
 
-PHASE 5 — Multi-Language Sandbox (NOT STARTED)
-===============================================
+DETAIL: PHASE 3 — Language in Submit/Test
+===========================================
 
- Files:
-   sandbox/main.go                              — Language field + routing
-   sandbox/runtest_go.go                        — extracted Go runner (NEW)
-   sandbox/pyrunner.go                          — Python runner (NEW)
-   sandbox/Dockerfile.python                    — Python sandbox image (NEW)
-   internal/executor/sandbox_client.go          — Language in request
+ Changes:
+    internal/api/submissions.go                  — Language field in submitRequest, validated against LanguageVersions
+    internal/api/test.go                         — Language field in test request, same validation
+    internal/executor/executor.go                — Execute/ExecuteVisibleOnly branch on req.Language → executePython stub
 
 ---
 
-PHASE 6 — Python Security (NOT STARTED)
+DETAIL: PHASE 4 — Python Test Template
 ========================================
 
- Files:
-   sandbox/secure.go                            — pythonDangerousPatterns + validatePythonCode
-   sandbox/secure_unix.go                       — RLIMIT_AS for Python
+ Changes:
+    internal/executor/templates.go               — pythonTestTemplate with json.loads comparison, TestCasesJSON field
+    internal/executor/executor.go                — formatPythonLiteral helper (True/False for Python bools)
 
 ---
 
-PHASE 7 — Frontend Types & State (NOT STARTED)
+DETAIL: PHASE 5 — Multi-Language Sandbox
+==========================================
+
+ Changes:
+    sandbox/main.go                              — Language field, runTests dispatcher
+    sandbox/runtest_go.go                        — extracted runGoTests
+    sandbox/pyrunner.go                          — runPythonTests with temp dir, code validation
+    internal/executor/sandbox_client.go          — Language in SandboxRequest
+
+---
+
+DETAIL: PHASE 6 — Python Security
+====================================
+
+ Changes:
+    sandbox/secure.go                            — pythonDangerousPatterns + validatePythonCode
+    sandbox/pyrunner.go                          — validatePythonAST (Layer 2)
+    sandbox/secure_unix.go                       — setPythonRlimits (RLIMIT_AS=512MB)
+    internal/executor/executor.go                — executePython full implementation
+    internal/config/config.go                    — PythonTimeout helper
+
+---
+
+DETAIL: PHASE 7 — Frontend Types & State
+==========================================
+
+ Changes:
+    frontend/lib/types.ts                        — primaryLanguage, language_versions types
+    frontend/lib/api.ts                          — updatePrimaryLanguage, language params
+    frontend/lib/UserContext.tsx                  — setPrimaryLanguage in context
+
+---
+
+DETAIL: PHASE 8 — LanguageSelector Component
 ===============================================
 
- Files:
-   frontend/lib/types.ts                        — primaryLanguage, language_versions fields
-   frontend/lib/api.ts                          — updatePrimaryLanguage, language params
-   frontend/lib/UserContext.tsx                  — setPrimaryLanguage
+ Changes:
+    frontend/components/LanguageSelector.tsx      — full-screen overlay with Go/Python cards, animations
+    frontend/app/(auth)/onboarding/page.tsx       — two-step flow with language step
 
 ---
 
-PHASE 8 — LanguageSelector Component (NOT STARTED)
-===================================================
+DETAIL: PHASE 9 — TopNav Language Switcher
+============================================
 
- Files:
-   frontend/components/LanguageSelector.tsx      — new onboarding component
-   frontend/app/(auth)/onboarding/page.tsx       — integrate language step
-
----
-
-PHASE 9 — TopNav Language Switcher (NOT STARTED)
-=================================================
-
- Files:
-   frontend/components/layout/TopNav.tsx         — language dropdown
+ Changes:
+    frontend/components/layout/TopNav.tsx         — language switcher with colored dot, label, options
 
 ---
 
-PHASE 10 — Language-Aware Dashboard (NOT STARTED)
-==================================================
+DETAIL: PHASE 10 — Language-Aware Dashboard
+=============================================
 
- Files:
-   frontend/app/(main)/home/page.tsx            — language filter tabs
-
----
-
-PHASE 11 — Language-Aware Workspace (NOT STARTED)
-==================================================
-
- Files:
-   frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx — dynamic editor
+ Changes:
+    frontend/app/(main)/home/page.tsx            — language filter tabs (All | Go | Python), URL persistence
 
 ---
 
-PHASE 12 — Multi-Language Enrichment (NOT STARTED)
-===================================================
+DETAIL: PHASE 11 — Language-Aware Workspace
+=============================================
 
- Files:
-   internal/enricher/enricher.go                — dual Go/Python AI generation
+ Changes:
+    frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx — dynamic Monaco editor, language scaffold toggle, dynamic filename/badge
+
+---
+
+DETAIL: PHASE 12 — Multi-Language Enrichment
+==============================================
+
+ Changes:
+    internal/enricher/enricher.go                — system prompt rewritten for dual Go/Python; Gemini ResponseSchema with language_versions; toSnakeCase/toPythonType fallback; validation requiring go entry with non-empty func_name
+
+---
+
+TEST SUITE EXPANSION
+=====================
+
+ 12 test files · 122 tests · 0 failures · go vet clean across all 8 packages
+
+ New files:
+    internal/broker/broker_test.go               — 10 tests (pub/sub, concurrency, buffer overflow)
+    internal/parser/parser_test.go                — 13 tests (URL parsing, normalization, hashing)
+    internal/auth/oauth_test.go                   — 5 tests (JWKS RSA round-trip, audience, issuer)
+    internal/store/errors_test.go                 — 7 tests (FriendlyError, IsUniqueViolation)
+    internal/store/types_test.go                  — 2 tests (FlexibleBool unmarshal)
+    internal/api/responses_test.go                — 10 tests (response helpers, cookies, HTTPS detection)
+
+ Expanded:
+    internal/api/middleware_test.go               — +23 tests (rate limiters, CORS, IP extraction, auth guards)
+    internal/config/config_test.go                — +7 tests (provider selection, duration helpers, validation)
+    internal/enricher/enricher_test.go            — 13 tests (utility functions, validation)
+    internal/executor/executor_test.go            — 12 tests (templates, parsing, Python format, language meta)
 
 ---
 
 LEGEND
 ======
-
  DONE        — implemented, committed, verified
  IN PROGRESS — actively being worked on
  NOT STARTED — planned, not yet touched

@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,12 +51,13 @@ func (s *PostgresStore) GetProblemWithTestCases(ctx context.Context, problemID u
 	}
 
 	query := `
-		SELECT id, slug, module, type, language, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, visible, source_hash, raw_readme, created_at, updated_at
+		SELECT id, slug, module, type, language, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, visible, source_hash, language_versions, raw_readme, created_at, updated_at
 		FROM problems
 		WHERE id = $1
 	`
 
 	var problem Problem
+	var lvBytes []byte
 	err := s.pool.QueryRow(ctx, query, problemID).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -72,12 +75,19 @@ func (s *PostgresStore) GetProblemWithTestCases(ctx context.Context, problemID u
 		&problem.Tags,
 		&problem.Visible,
 		&problem.SourceHash,
+		&lvBytes,
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get problem: %w", err)
+	}
+
+	if len(lvBytes) > 0 {
+		if err := json.Unmarshal(lvBytes, &problem.LanguageVersions); err != nil {
+			slog.Warn("failed to unmarshal language_versions", "slug", problem.Slug, "error", err)
+		}
 	}
 
 	testCases, err := s.GetTestCasesForProblem(ctx, problemID)

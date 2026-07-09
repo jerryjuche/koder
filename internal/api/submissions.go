@@ -27,6 +27,7 @@ func NewSubmissionHandler(store store.Store, exec *executor.Executor) *Submissio
 type submitRequest struct {
 	ProblemSlug string `json:"problem_slug"`
 	Code        string `json:"code"`
+	Language    string `json:"language,omitempty"`
 }
 
 // Submit handles students compiling and running their solution.
@@ -84,12 +85,38 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve and validate language
+	language := req.Language
+	if language == "" {
+		language = problem.Language
+	}
+	if language == "" && len(problem.LanguageVersions) > 0 {
+		if _, ok := problem.LanguageVersions["go"]; ok {
+			language = "go"
+		} else if _, ok := problem.LanguageVersions["python"]; ok {
+			language = "python"
+		} else {
+			for lang := range problem.LanguageVersions {
+				language = lang
+				break
+			}
+		}
+	}
+	if language != "go" && language != "python" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Language must be 'go' or 'python'", nil)
+		return
+	}
+	if _, supported := problem.LanguageVersions[language]; !supported && problem.LanguageVersions != nil {
+		RespondError(w, http.StatusBadRequest, "LANGUAGE_NOT_SUPPORTED", "Problem does not support the requested language", nil)
+		return
+	}
+
 	// Execute grading flow
 	execReq := executor.ExecutionRequest{
 		UserID:    userID,
 		ProblemID: uuid.UUID(problem.ID.Bytes),
 		Code:      req.Code,
-		Language:  problem.Language,
+		Language:  language,
 	}
 
 	res, err := h.executor.Execute(r.Context(), execReq)

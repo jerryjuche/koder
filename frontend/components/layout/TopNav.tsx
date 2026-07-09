@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
 import { useNotifications } from "@/lib/useNotifications";
-import { logout } from "@/lib/api";
+import { logout, updatePrimaryLanguage } from "@/lib/api";
 import { Avatar } from "@/components/base/avatar/avatar";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -33,7 +33,7 @@ import {
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, refreshUser } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
   const [avatarError, setAvatarError] = React.useState(false);
@@ -156,6 +156,45 @@ export default function TopNav() {
                 <span>Add Problem</span>
               </Link>
             )}
+
+            {/* Language Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50">
+                  <span className={`w-2 h-2 rounded-full ${user.primaryLanguage === "python" ? "bg-emerald-500" : "bg-blue-500"}`} />
+                  {user.primaryLanguage === "python" ? "Python" : "Go"}
+                  <ChevronDown size={12} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    localStorage.setItem("koder_language", "go");
+                    await updatePrimaryLanguage("go");
+                    window.dispatchEvent(new Event("user-updated"));
+                    refreshUser();
+                  }}
+                  className={user.primaryLanguage === "go" ? "font-bold" : ""}
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                  Go
+                  {user.primaryLanguage === "go" && <span className="ml-auto text-primary">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    localStorage.setItem("koder_language", "python");
+                    await updatePrimaryLanguage("python");
+                    window.dispatchEvent(new Event("user-updated"));
+                    refreshUser();
+                  }}
+                  className={user.primaryLanguage === "python" ? "font-bold" : ""}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                  Python
+                  {user.primaryLanguage === "python" && <span className="ml-auto text-primary">✓</span>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Notifications */}
             <div className="relative" ref={notifRef}>

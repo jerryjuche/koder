@@ -637,3 +637,82 @@ npm run build   # Builds static + server components
 - **Settings page** — Professional polish: profile preview card with avatar, icon-labeled form sections, char counter on bio, username setup flow with info box, framer-motion tab animations, Security section redesigned with icon headers, polished Danger Zone
 - **Contribution graph year fix** — `index.tsx`: changed `data[0].date` → `data[data.length - 1].date` to show current year (2026) instead of last year
 - **Notification cache bug** — `useNotifications.ts`: added `clearCache("/notifications")` after `markAsRead`/`markAllAsRead` to prevent stale sessionStorage cache from restoring old unread notification state after mutation
+
+### 2026-07-08 — Multi-language audit bugfixes
+
+**Changes:**
+- **Phase 11 bugfix** — `ProblemWorkspaceClient.tsx:56`: fixed `DEFAULT_CODE` → `GO_CODE` (undefined constant)
+- **Phase 3 critical gap** — `submit.go:89-96`, `test.go:73-80`: infer language from `LanguageVersions` when `problem.Language` is empty (handles Python-only problems)
+- **Phase 2 Gap 1** — `problems.go:99`: added `language_versions` to `GetProblemBySlug` JSON response payload
+- **Phase 2 language filter** — `problems.go:44-53`: `ListVisibleProblems` now checks `LanguageVersions` when `Language` column is empty
+
+### 2026-07-08 — Professional fixes for multi-language pipeline
+
+**Changes:**
+- **Silent error handling** — All 7 `json.Unmarshal` calls for `language_versions` now log failures via `slog.Warn` instead of silently ignoring errors (added `unmarshalLanguageVersions` helper)
+- **Deterministic language inference** — `submit.go` + `test.go`: when inferring language from `LanguageVersions`, prefer "go" → "python" → first key instead of non-deterministic map iteration
+- **Write path completeness** — Added `language_versions` column to `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`, and community contribution insert queries (was missing from all write paths)
+- **Executor metadata resolution** — Added `resolveProblemLanguageMeta()` helper called in both `Execute` and `ExecuteVisibleOnly`; resolves `FuncName`/`ReturnType`/`ParamTypes` from `LanguageVersions` before routing to language-specific executor
+- **Admin handler** — `UpdateProblem` now accepts and persists `language_versions` field
+
+### 2026-07-08 — Bugfix sweep: Phase 4 enricher + 8 error fixes
+
+**Phase 4 — Enricher now populates `LanguageVersions`:**
+- Added `LanguageVersions` field to `enrichedResponse` struct (`enricher.go:44`)
+- Updated system prompt example JSON and production rules to include `language_versions`
+- `EnrichProblem` builds `LanguageVersions` from AI response or falls back to top-level Go fields (`enricher.go:187-197`)
+- Added validation requiring Go entry with non-empty `func_name` (`enricher.go:601-608`)
+
+**Bug fixes from comprehensive audit:**
+
+| Severity | File | Bug | Fix |
+|---|---|---|---|
+| **CRITICAL** | `admin.go:154-163` | Enrich/EnrichAll discard AI-generated `LanguageVersions` | Added copy to problem before save |
+| **CRITICAL** | `templates.go:44` | Python `str(result) == str(expected)` fails for bools/strings/complex types | Switched to `json.loads(expected)` + `==` |
+| **BUG** | `ProblemWorkspaceClient.tsx:702` | Language toggle doesn't reset code scaffold | Added `setCode(newLang === "python" ? PYTHON_CODE : GO_CODE)` |
+| **BUG** | `ProblemWorkspaceClient.tsx:320` | Bug report always uses ```go fencing | Changed to `` ```${activeLanguage} `` |
+| **MEDIUM** | `submissions.go:83-88` | Unmarshal runs before Scan error check | Moved after `if err != nil` |
+| **MEDIUM** | `ProblemWorkspaceClient.tsx:706` | `updatePrimaryLanguage()` called without `await` | Added `await` |
+| **LOW** | `LanguageSelector.tsx:41` | Skip doesn't persist language to backend | Changed to `await setPrimaryLanguage("go")` |
+| **LOW** | `user_problems.go:207` | `json.Marshal` error discarded | Now checks err
+
+### 2026-07-08 — Phase 12: Multi-language enrichment
+
+**Changes:**
+- **System prompt** — Rewrote from "Go curriculum author" → "programming curriculum author"; example JSON now includes Python entry (`fish_and_chips`, `str`, `["int"]`) alongside Go
+- **Production rules** — Rule #11 now **REQUIRED** with both `go` and `python` entries, includes Go→Python type translation table
+- **Gemini ResponseSchema** — Added `language_versions` as `TypeObject` with `go` (required) and `python` (optional) sub-objects via reusable `languageSpecSchema()` helper
+- **Fallback generation** — AI-provided `language_versions` used when available; fallback now auto-generates Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go types→Python equivalents)
+- **Validation** — Requires `language_versions` with at least a `go` entry that has non-empty `func_name` |
+
+### 2026-07-08 — Comprehensive test suite audit & expansion
+
+**Changes:**
+- **`internal/broker/broker_test.go`** (new, 10 tests) — Subscribe uniqueness, Publish delivery to 1/N subscribers, PublishEvent, Unsubscribe (remove + non-existent), slow client buffer overflow, timestamp on publish, concurrent pub/sub
+- **`internal/parser/parser_test.go`** (new, 13 tests) — isReadmeFile, detectProblemType, normalizeSlug/module, computeSourceHash, cleanRepoURL, parseGitHubURL (tree/blob/SSH), parseRepoMetadata, parseGitSSHURL, NewParser, IngestGitHubRepo empty URL
+- **`internal/auth/oauth_test.go`** (new, 5 tests) — isExpectedAudience, isExpectedIssuer, jwksKeyToPublicKey (real RSA round-trip, invalid base64 modulus/exponent)
+- **`internal/store/errors_test.go`** (new, 7 tests) — FriendlyError, NewDuplicate/NotFound/Validation, IsFriendlyError (nil/plain/wrapped), IsUniqueViolation (non-pg/nil)
+- **`internal/store/types_test.go`** (new, 2 tests) — FlexibleBool valid + invalid UnmarshalJSON
+- **`internal/api/middleware_test.go`** (expanded +23 tests) — RateLimiter (under/over/isolation/window/stop), IPRateLimiter, GetClaims, AdminOnly, VerifiedContributorOnly, BodySizeLimit, SecurityHeaders, RecoveryMiddleware, CORSMiddleware (wildcard/specific/no-origin/OPTIONS/null/multi-origin), IPRateLimiter.Middleware (under/over/extraction), RateLimitMiddleware (no-claims/admin-bypass/under/over)
+- **`internal/api/responses_test.go`** (new, 10 tests) — RespondSuccess, RespondCreated, RespondError (with/without details), isHTTPS, SetAuthCookie (HTTP/HTTPS), ClearAuthCookie, ContentType
+- **`internal/config/config_test.go`** (expanded +7 tests) — MissingGeminiKey, GroqDefaults, ProviderSelection, ProviderSwitch, InvalidJWTExpiry, EmptyAllowedOrigin, ExecutorTimeout, PythonTimeout, JWTExpiry
+
+**Result:** 122 tests, 0 failures, `go vet` clean across all 8 internal packages
+
+### 2026-07-08 — CI/CD pipeline
+
+**Changes:**
+- **`.github/workflows/ci.yml`** (new) — 4-job GitHub Actions workflow:
+  - `backend` — `go vet`, `go test` (with minimal env vars), `go build` (main + sandbox)
+  - `frontend` — `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm run build` (with minimal env vars)
+  - `deploy-backend` — Render deploy hook trigger (main branch only, after backend tests pass)
+  - `deploy-sandbox` — Railway deploy hook trigger (main branch only, after backend tests pass)
+- **`build.sh`** — Updated to build both backend and sandbox with explicit GOOS/GOARCH
+
+### 2026-07-08 — Dual-language seed backfill migration
+
+**Changes:**
+- **`migrations/028_backfill_language_versions.sql`** (new) — Backfills the `language_versions` JSONB column for all 180 seed problems that were inserted without it (migration 027 added the column but seeds ran before the backfill could populate them). Adds two PL/pgSQL helpers:
+  - `koder_to_snake_case()` — converts PascalCase Go function names to Python snake_case
+  - `koder_go_type_to_python()` — translates Go type annotations to Python equivalents
+- Runs as an idempotent UPDATE targeting problems with `language = 'go'` that lack a `'python'` key in `language_versions`|

@@ -14,6 +14,7 @@ import (
 
 // SandboxRequest is the payload sent to the remote sandbox service.
 type SandboxRequest struct {
+	Language   string `json:"language"`
 	Code       string `json:"code"`
 	TestCode   string `json:"test_code"`
 	TimeoutSec int    `json:"timeout_sec"`
@@ -51,8 +52,9 @@ func newSandboxClient(baseURL string, timeoutSec int) *sandboxClient {
 
 // execute sends code and test_code to the remote sandbox and returns the result.
 // It performs up to maxRetries attempts with exponential backoff on transient failures.
-func (c *sandboxClient) execute(ctx context.Context, code, testCode, goVersion string) (*SandboxResponse, error) {
+func (c *sandboxClient) execute(ctx context.Context, language, code, testCode, goVersion string) (*SandboxResponse, error) {
 	reqBody := SandboxRequest{
+		Language:   language,
 		Code:       code,
 		TestCode:   testCode,
 		TimeoutSec: c.timeoutSec,

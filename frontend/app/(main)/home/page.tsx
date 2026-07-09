@@ -62,13 +62,16 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "solved" | "unsolved">("all");
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 18;
 
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
-      Promise.all([fetchProblems(), fetchUser(), fetchBestPractices(20)]).then(
+      const langParam = new URLSearchParams(window.location.search).get("tab");
+      const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20)]).then(
         ([probRes, userRes, bpRes]) => {
           if (!mounted) return;
           if (probRes.success) {
@@ -84,17 +87,19 @@ export default function Dashboard() {
 
     loadData();
 
-    // Restore module from query param on initial load
+    // Restore module and language tab from query params on initial load
     const params = new URLSearchParams(window.location.search);
     const moduleParam = params.get("module");
     if (moduleParam) setSelectedModule(moduleParam);
+    const tabParam = params.get("tab");
+    if (tabParam === "go" || tabParam === "python") setLanguageFilter(tabParam);
 
     // Debounced reload on user-updated — clear stale cache, then fetch fresh data
     let debounceTimer: ReturnType<typeof setTimeout>;
     const handleUserUpdated = () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        clearCache("/problems");
+        clearCache("/problems" + (languageFilter !== "all" ? `?language=${languageFilter}` : ""));
         clearCache("/me");
         clearCache("/best-practices");
         loadData();
@@ -330,6 +335,43 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Language Filter Tabs */}
+              <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
+                {(["all", "go", "python"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      setLanguageFilter(lang);
+                      setCurrentPage(1);
+                      const params = new URLSearchParams(window.location.search);
+                      if (lang === "all") {
+                        params.delete("tab");
+                      } else {
+                        params.set("tab", lang);
+                      }
+                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                      window.history.replaceState({}, "", newUrl);
+                      clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
+                      setLoading(true);
+                      fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
+                        if (res.success) setProblems(res.data || []);
+                        setLoading(false);
+                      });
+                    }}
+                    className={cn(
+                      "px-4 py-1.5 rounded text-sm font-medium transition-all capitalize flex items-center gap-1.5",
+                      languageFilter === lang
+                        ? "bg-muted text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {lang === "go" && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                    {lang === "python" && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
+                  </button>
+                ))}
               </div>
 
               {/* Filters (no module dropdown) */}

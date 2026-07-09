@@ -30,25 +30,52 @@ import {
   Activity,
 } from "lucide-react";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
-import { fetchProblem, submitSolution, testCode, submitFeedback } from "@/lib/api";
+import { fetchProblem, submitSolution, testCode, submitFeedback, updatePrimaryLanguage } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Problem, TestResult, ExecutionResult } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 
-const DEFAULT_CODE = `package piscine
+const GO_CODE = `package piscine
 
 // Write your solution here.
 // The backend will test your exported function automatically.
 `;
 
+const PYTHON_CODE = `def solution():
+    # Write your solution here.
+    pass
+`;
+
 const STORE_KEY = (s: string) => `koder_code_${s}`;
+
+function generateScaffold(problem: Problem | null, lang: string): string {
+  const lv = problem?.language_versions?.[lang];
+  if (lv?.func_name) {
+    const params = lv.param_types?.map((t, i) =>
+      lang === "python" ? `arg${i + 1}` : `arg${i + 1} ${t}`
+    ).join(", ") || "";
+    if (lang === "python") {
+      return `def ${lv.func_name}(${params}):\n    pass\n`;
+    }
+    const ret = lv.return_type ? ` ${lv.return_type}` : "";
+    return `package piscine\n\nfunc ${lv.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+  }
+  // Fallback: try top-level Go fields
+  if (lang !== "python" && problem?.func_name) {
+    const params = problem.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
+    const ret = problem.return_type ? ` ${problem.return_type}` : "";
+    return `package piscine\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+  }
+  // Default constants
+  return lang === "python" ? PYTHON_CODE : GO_CODE;
+}
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState(DEFAULT_CODE);
+  const [code, setCode] = useState(GO_CODE);
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
   const [hintsOpen, setHintsOpen] = useState<boolean[]>(Array(10).fill(false));
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +84,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
+  const [activeLanguage, setActiveLanguage] = useState<string>("go");
   const [cooldown, setCooldown] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
@@ -67,15 +95,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
-        const p = res.data;
-        if (p.func_name) {
-          const params =
-            p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
-          const ret = p.return_type ? ` ${p.return_type}` : "";
-          const scaffold = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
-          setCode(scaffold);
-          setSaved(true);
-        }
+        const lang = localStorage.getItem("koder_language") || "go";
+        setActiveLanguage(lang);
+        setCode(generateScaffold(res.data, lang));
+        setSaved(true);
       }
     });
   }, [slug]);
@@ -127,16 +150,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   });
 
   const handleReset = () => {
-    const p = problem;
-    let fresh: string;
-    if (p?.func_name) {
-      const params =
-        p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
-      const ret = p.return_type ? ` ${p.return_type}` : "";
-      fresh = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
-    } else {
-      fresh = DEFAULT_CODE;
-    }
+    let fresh = generateScaffold(problem, activeLanguage);
     setCode(fresh);
     setSaved(true);
     setResults(null);
@@ -176,7 +190,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setTestsExpanded(true);
     setErrorMsg(null);
 
-    const res = await submitSolution(slug, code);
+    const res = await submitSolution(slug, code, activeLanguage);
 
     if (res.success && res.data) {
       const executionResult = res.data;
@@ -245,7 +259,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setTestsExpanded(true);
     setErrorMsg(null);
 
-    const res = await testCode(slug, code);
+    const res = await testCode(slug, code, activeLanguage);
 
     if (res.success && res.data) {
       const executionResult = res.data;
@@ -302,7 +316,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
-    const baseDesc = `Error encountered while solving "${problem.title}" (${problem.slug}).\n\nError: ${errorMsg || lastExecution?.friendly_message || "Unknown error"}\n\nCode:\n\`\`\`go\n${code}\n\`\`\``;
+    const baseDesc = `Error encountered while solving "${problem.title}" (${problem.slug}).\n\nError: ${errorMsg || lastExecution?.friendly_message || "Unknown error"}\n\nCode:\n\`\`\`${activeLanguage}\n${code}\n\`\`\``;
     const fullDesc = reportDescription.trim() ? `${baseDesc}\n\nAdditional notes:\n${reportDescription.trim()}` : baseDesc;
     const res = await submitFeedback({
       type: "bug",
@@ -454,8 +468,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 >
                   {getDifficultyLabel(problem.difficulty)}
                 </span>
-                <span className="text-xs font-mono text-brand-offwhite-muted bg-brand-charcoal-hover px-2.5 py-1 rounded border border-brand-charcoal-border">
-                  Go
+                <span className={cn(
+                  "text-xs font-mono px-2.5 py-1 rounded border",
+                  activeLanguage === "python"
+                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+                    : "text-blue-400 bg-blue-500/10 border-blue-500/30"
+                )}>
+                  {activeLanguage === "python" ? "Python" : "Go"}
                 </span>
                 {problem.solved && (
                   <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
@@ -677,11 +696,31 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              <div className="text-xs font-mono font-bold bg-brand-charcoal-hover text-brand-offwhite px-2 py-1 rounded-md border border-brand-charcoal-border">
-                Go
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={async () => {
+                    const newLang = activeLanguage === "python" ? "go" : "python";
+                    setActiveLanguage(newLang);
+                    setCode(generateScaffold(problem, newLang));
+                    localStorage.setItem("koder_language", newLang);
+                    await updatePrimaryLanguage(newLang);
+                    window.dispatchEvent(new Event("user-updated"));
+                  }}
+                  className={cn(
+                    "text-xs font-mono font-bold px-2 py-1 rounded-md border transition-colors",
+                    activeLanguage === "python"
+                      ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+                      : "text-blue-400 bg-blue-500/10 border-blue-500/30"
+                  )}
+                >
+                  {activeLanguage === "python" ? "Python" : "Go"}
+                </button>
+                <span className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors" title="Switch language">
+                  ↻
+                </span>
               </div>
               <span className="text-xs font-mono text-brand-offwhite-muted">
-                solution.go
+                {activeLanguage === "python" ? "solution.py" : "solution.go"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -690,7 +729,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   ● Unsaved
                 </span>
               )}
-              {saved && code !== DEFAULT_CODE && (
+              {saved && code !== (activeLanguage === "python" ? PYTHON_CODE : GO_CODE) && (
                 <span className="text-[10px] text-brand-success/60">
                   ● Saved
                 </span>
@@ -715,7 +754,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <div className="flex-1 overflow-hidden relative">
             <Editor
               height="100%"
-              defaultLanguage="go"
+              language={activeLanguage}
               theme="vs-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
@@ -922,6 +961,96 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     ];
 
                     return { suggestions };
+                  },
+                });
+
+                const pythonKeywords = [
+                  "False", "None", "True", "and", "as", "assert", "async", "await",
+                  "break", "class", "continue", "def", "del", "elif", "else", "except",
+                  "finally", "for", "from", "global", "if", "import", "in", "is",
+                  "lambda", "nonlocal", "not", "or", "pass", "raise", "return",
+                  "try", "while", "with", "yield",
+                ];
+
+                const pythonBuiltins = [
+                  "abs", "all", "any", "bin", "bool", "chr", "dict", "dir",
+                  "enumerate", "filter", "float", "format", "frozenset", "getattr",
+                  "hasattr", "hash", "hex", "id", "input", "int", "isinstance",
+                  "issubclass", "iter", "len", "list", "map", "max", "min",
+                  "next", "object", "oct", "open", "ord", "pow", "print",
+                  "range", "repr", "reversed", "round", "set", "slice", "sorted",
+                  "str", "sum", "tuple", "type", "vars", "zip",
+                ];
+
+                const pythonStdlibHints: Record<string, string> = {
+                  len: "Return the number of items in a container.",
+                  range: "Return an object that produces a sequence of integers from start (inclusive) to stop (exclusive).",
+                  enumerate: "Return an enumerate object yielding pairs of index and value.",
+                  zip: "Iterate over several iterables in parallel.",
+                  map: "Return an iterator that applies function to every item of iterable.",
+                  filter: "Return an iterator yielding items of iterable for which function returns true.",
+                  sorted: "Return a new sorted list from the items in iterable.",
+                  reversed: "Return a reverse iterator.",
+                  print: "Prints values to a stream, or to sys.stdout by default.",
+                  isinstance: "Return whether an object is an instance of a class or of a subclass thereof.",
+                  int: "Return an integer object constructed from a number or string.",
+                  str: "Return a string object.",
+                  bool: "Return a Boolean value.",
+                  list: "Rather than being a function, list is a mutable sequence type.",
+                  dict: "Rather than being a function, dict is a mapping type.",
+                };
+
+                monaco.languages.registerCompletionItemProvider("python", {
+                  triggerCharacters: ["."],
+                  provideCompletionItems: (model: any, position: any) => {
+                    const word = model.getWordUntilPosition(position);
+                    const range = {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: word.startColumn,
+                      endColumn: position.column,
+                    };
+                    const suggestions = [
+                      ...pythonKeywords.map((kw) => ({
+                        label: kw,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: kw,
+                        range,
+                        detail: "Python keyword",
+                      })),
+                      ...pythonBuiltins.map((fn) => ({
+                        label: fn,
+                        kind: monaco.languages.CompletionItemKind.Function,
+                        insertText: fn,
+                        range,
+                        detail: pythonStdlibHints[fn] || "Python built-in",
+                      })),
+                    ];
+                    return { suggestions };
+                  },
+                });
+
+                monaco.languages.registerHoverProvider("python", {
+                  provideHover: (model: any, position: any) => {
+                    const word = model.getWordAtPosition(position);
+                    if (!word) return null;
+                    const hint = pythonStdlibHints[word.word];
+                    if (hint) {
+                      return {
+                        contents: [
+                          { value: `**${word.word}**` },
+                          { value: `\`\`\`\n${hint}\n\`\`\`` },
+                        ],
+                      };
+                    }
+                    if (pythonKeywords.includes(word.word)) {
+                      return {
+                        contents: [
+                          { value: `**${word.word}** — Python keyword` },
+                        ],
+                      };
+                    }
+                    return null;
                   },
                 });
               }}

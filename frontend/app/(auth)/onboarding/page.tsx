@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Code2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { completeOnboarding, checkUsername, fetchUser } from '@/lib/api';
+import LanguageSelector from '@/components/LanguageSelector';
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const [step, setStep] = useState<'username' | 'language'>('username');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -52,7 +54,7 @@ export default function OnboardingPage() {
       const res = await completeOnboarding(username);
       if (res.success && res.data) {
         window.dispatchEvent(new Event("user-updated"));
-        router.push('/');
+        setStep('language');
       } else {
         setErrorMsg(res.error?.message || 'Failed to set username');
       }
@@ -62,6 +64,10 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  if (step === 'language') {
+    return <LanguageSelector />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

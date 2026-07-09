@@ -68,3 +68,39 @@ func validateCode(code string) error {
 	}
 	return nil
 }
+
+// pythonDangerousPatterns blocks dangerous code in Python submissions.
+// Layer 1 of defense-in-depth: regex blocklist.
+var pythonDangerousPatterns = []struct {
+	re  *regexp.Regexp
+	msg string
+}{
+	{regexp.MustCompile(`\bimport\s+(os|subprocess|ctypes|socket|shutil|pickle|code|importlib|builtins)\b`), "dangerous module import"},
+	{regexp.MustCompile(`\bfrom\s+(os|subprocess|ctypes|socket|shutil|pickle|code|importlib|builtins)\s+import\b`), "dangerous module import"},
+	{regexp.MustCompile(`\beval\s*\(`), "eval() is not allowed"},
+	{regexp.MustCompile(`\bexec\s*\(`), "exec() is not allowed"},
+	{regexp.MustCompile(`\bcompile\s*\(`), "compile() is not allowed"},
+	{regexp.MustCompile(`\b__import__\s*\(`), "__import__() is not allowed"},
+	{regexp.MustCompile(`\bopen\s*\(`), "open() is not allowed"},
+	{regexp.MustCompile(`\bos\.`), "os module access is not allowed"},
+	{regexp.MustCompile(`\bsubprocess\.`), "subprocess module access is not allowed"},
+	{regexp.MustCompile(`\bsocket\.`), "socket module access is not allowed"},
+	{regexp.MustCompile(`\bctypes\.`), "ctypes module access is not allowed"},
+	{regexp.MustCompile(`\bgetattr\s*\(`), "getattr() is not allowed"},
+	{regexp.MustCompile(`\bsetattr\s*\(`), "setattr() is not allowed"},
+	{regexp.MustCompile(`\bglobals\s*\(`), "globals() is not allowed"},
+	{regexp.MustCompile(`\blocals\s*\(`), "locals() is not allowed"},
+	{regexp.MustCompile(`\bpickle\.`), "pickle deserialization is not allowed"},
+	{regexp.MustCompile(`\bmarshal\.`), "marshal deserialization is not allowed"},
+	{regexp.MustCompile(`\bshelve\.`), "shelve deserialization is not allowed"},
+}
+
+// validatePythonCode checks student Python code against known dangerous patterns (Layer 1).
+func validatePythonCode(code string) error {
+	for _, d := range pythonDangerousPatterns {
+		if d.re.MatchString(code) {
+			return fmt.Errorf("security: %s", d.msg)
+		}
+	}
+	return nil
+}

@@ -102,6 +102,13 @@ func (h *AdminHandler) Ingest(w http.ResponseWriter, r *http.Request) {
 			Visible:    false,
 			SourceHash: rawProblem.SourceHash,
 			RawReadme:  rawProblem.RawReadme,
+			LanguageVersions: map[string]store.LanguageSpec{
+				"go": {
+					FuncName:   "",
+					ReturnType: "",
+					ParamTypes: []string{},
+				},
+			},
 		}
 
 		if err := h.store.UpsertProblem(r.Context(), problem); err != nil {
@@ -160,6 +167,7 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 	problem.Difficulty = enriched.Difficulty
 	problem.XPReward = enriched.XPReward
 	problem.Tags = enriched.Tags
+	problem.LanguageVersions = enriched.LanguageVersions
 	problem.Visible = true
 
 	if err := h.store.UpsertEnrichedProblem(r.Context(), problem, testCases); err != nil {
@@ -198,6 +206,7 @@ func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
 		problem.Difficulty = enriched.Difficulty
 		problem.XPReward = enriched.XPReward
 		problem.Tags = enriched.Tags
+		problem.LanguageVersions = enriched.LanguageVersions
 		problem.Visible = true
 
 		if err := h.store.UpsertEnrichedProblem(r.Context(), &problem, testCases); err != nil {
@@ -394,21 +403,22 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title             *string  `json:"title,omitempty"`
-		Statement         *string  `json:"statement,omitempty"`
-		Constraints       *string  `json:"constraints,omitempty"`
-		LearningObjective *string  `json:"learning_objective,omitempty"`
-		Module            *string  `json:"module,omitempty"`
-		Type              *string  `json:"type,omitempty"`
-		Language          *string  `json:"language,omitempty"`
-		FuncName          *string  `json:"func_name,omitempty"`
-		ReturnType        *string  `json:"return_type,omitempty"`
-		ParamTypes        []string `json:"param_types,omitempty"`
-		Hints             []string `json:"hints,omitempty"`
-		Difficulty        *int     `json:"difficulty,omitempty"`
-		XPReward          *int     `json:"xp_reward,omitempty"`
-		Tags              []string `json:"tags,omitempty"`
-		Visible           *bool    `json:"visible,omitempty"`
+		Title             *string                  `json:"title,omitempty"`
+		Statement         *string                  `json:"statement,omitempty"`
+		Constraints       *string                  `json:"constraints,omitempty"`
+		LearningObjective *string                  `json:"learning_objective,omitempty"`
+		Module            *string                  `json:"module,omitempty"`
+		Type              *string                  `json:"type,omitempty"`
+		Language          *string                  `json:"language,omitempty"`
+		FuncName          *string                  `json:"func_name,omitempty"`
+		ReturnType        *string                  `json:"return_type,omitempty"`
+		ParamTypes        []string                 `json:"param_types,omitempty"`
+		Hints             []string                 `json:"hints,omitempty"`
+		Difficulty        *int                     `json:"difficulty,omitempty"`
+		XPReward          *int                     `json:"xp_reward,omitempty"`
+		Tags              []string                 `json:"tags,omitempty"`
+		Visible           *bool                    `json:"visible,omitempty"`
+		LanguageVersions  *map[string]store.LanguageSpec `json:"language_versions,omitempty"`
 	}
 
 	dec := json.NewDecoder(r.Body)
@@ -470,6 +480,9 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Visible != nil {
 		existing.Visible = *req.Visible
+	}
+	if req.LanguageVersions != nil {
+		existing.LanguageVersions = *req.LanguageVersions
 	}
 
 	updated, err := h.store.UpdateProblem(r.Context(), existing)

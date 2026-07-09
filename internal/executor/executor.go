@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,7 +86,15 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		return nil, fmt.Errorf("failed to fetch problem and test cases: %w", err)
 	}
 
-	// 3. Format test cases as Go literals and prepare template data
+	// 3. Resolve language-specific function metadata from LanguageVersions
+	resolveProblemLanguageMeta(problem, req.Language)
+
+		// 4. Route to language-specific executor
+	if req.Language == "python" {
+		return e.executePython(ctx, req, problem, testCases, true)
+	}
+
+	// 4. Format test cases as Go literals and prepare template data
 	var needsReflect bool
 	if !IsPrimitiveType(problem.ReturnType) && problem.ReturnType != "" {
 		needsReflect = true
@@ -179,7 +189,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
+		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}
@@ -391,12 +401,20 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		return nil, fmt.Errorf("failed to fetch problem and test cases: %w", err)
 	}
 
-	// 3. Filter to only visible test cases
+	// 3. Resolve language-specific function metadata from LanguageVersions
+	resolveProblemLanguageMeta(problem, req.Language)
+
+	// Filter to only visible test cases
 	var testCases []store.TestCase
 	for _, tc := range allTestCases {
 		if !tc.IsHidden {
 			testCases = append(testCases, tc)
 		}
+	}
+
+	// Route to language-specific executor
+	if req.Language == "python" {
+		return e.executePython(ctx, req, problem, testCases, false)
 	}
 	var needsReflect bool
 	if !IsPrimitiveType(problem.ReturnType) && problem.ReturnType != "" {
@@ -492,7 +510,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
+		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}
@@ -731,4 +749,325 @@ func formatGoLiteral(paramType string, data []byte) (string, error) {
 	}
 
 	return "", fmt.Errorf("unsupported Go type %q: cannot format %s as a Go literal", paramType, string(data))
+}
+
+// formatPythonLiteral converts a JSON value to a Python literal string.
+// Maps Go type names to Python literal syntax.
+func formatPythonLiteral(paramType string, data []byte) (string, error) {
+	paramType = strings.TrimSpace(paramType)
+	switch paramType {
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "rune", "byte":
+		var val int64
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return strconv.FormatInt(val, 10), nil
+	case "float32", "float64":
+		var val float64
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return strconv.FormatFloat(val, 'f', -1, 64), nil
+	case "string":
+		var val string
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%q", val), nil
+	case "bool":
+		var val bool
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		if val {
+			return "True", nil
+		}
+		return "False", nil
+	}
+	return "", fmt.Errorf("unsupported type %q for Python literal", paramType)
+}
+
+// executePython runs Python code execution: prepares sandbox files,
+// executes, parses output, optionally records submission + progress, and returns the result.
+func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, problem *store.Problem, testCases []store.TestCase, recordSubmission bool) (*ExecutionResult, error) {
+	// 1. Build JSON test case array for the Python template
+	type pyTestCase struct {
+		Ordinal   int               `json:"ordinal"`
+		InputJSON []json.RawMessage `json:"input_json"`
+		Expected  string            `json:"expected"`
+	}
+	pyCases := make([]pyTestCase, len(testCases))
+	for i, tc := range testCases {
+		var rawArgs []json.RawMessage
+		if err := json.Unmarshal(tc.Input, &rawArgs); err != nil {
+			return nil, fmt.Errorf("failed to parse test case input: %w", err)
+		}
+		pyCases[i] = pyTestCase{
+			Ordinal:   tc.Ordinal,
+			InputJSON: rawArgs,
+			Expected:  tc.Expected,
+		}
+	}
+	casesJSON, err := json.Marshal(pyCases)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal Python test cases: %w", err)
+	}
+
+	renderData := &TemplateRenderData{
+		FuncName:      problem.FuncName,
+		TestCasesJSON: string(casesJSON),
+	}
+
+	// 2. Create isolated sandbox directory
+	uuidStr := uuid.NewString()
+	sandboxPath := filepath.Join(e.cfg.SandboxBaseDir, uuidStr)
+	if err := os.MkdirAll(sandboxPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create sandbox directory: %w", err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll(sandboxPath); err != nil {
+			slog.Error("executor: failed to clean up sandbox directory", "path", sandboxPath, "error", err)
+		}
+	}()
+
+	slog.Info("executor: python sandbox created", "path", sandboxPath)
+
+	// 3. Write solution.py
+	cleanCode := strings.TrimSpace(req.Code)
+	if err := os.WriteFile(filepath.Join(sandboxPath, "solution.py"), []byte(cleanCode), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write solution.py: %w", err)
+	}
+
+	// 4. Render and write run_tests.py from Python template
+	tmpl, err := template.New("run_tests").Parse(pythonTestTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Python test template: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, renderData); err != nil {
+		return nil, fmt.Errorf("failed to render run_tests.py: %w", err)
+	}
+	slog.Debug("executor: generated run_tests.py", "content", buf.String())
+	if err := os.WriteFile(filepath.Join(sandboxPath, "run_tests.py"), buf.Bytes(), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write run_tests.py: %w", err)
+	}
+
+	// 5. Execute: remote sandbox or local Docker
+	var (
+		output        string
+		runtimeMs     int
+		cmdErr        error
+		sandboxStatus string
+		runCtx        context.Context
+		runCancel     context.CancelFunc
+	)
+
+	sandboxURL := e.cfg.SandboxURL
+	if e.cfg.PythonSandboxURL != "" {
+		sandboxURL = e.cfg.PythonSandboxURL
+	}
+	if sandboxURL != "" {
+		codeBytes, err := os.ReadFile(filepath.Join(sandboxPath, "solution.py"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read solution.py: %w", err)
+		}
+		testBytes, err := os.ReadFile(filepath.Join(sandboxPath, "run_tests.py"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read run_tests.py: %w", err)
+		}
+		client := newSandboxClient(sandboxURL, e.cfg.PythonExecutorTimeout)
+		resp, err := client.execute(ctx, "python", string(codeBytes), string(testBytes), "")
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: %w", err)
+		}
+		output = resp.Stdout
+		runtimeMs = resp.RuntimeMs
+		sandboxStatus = resp.Status
+	} else {
+		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.PythonTimeout())
+		defer runCancel()
+
+		start := time.Now()
+		cmd := exec.CommandContext(runCtx, "docker", "run",
+			"--rm",
+			"--user=65534:65534",
+			"--cap-drop=ALL",
+			"--security-opt=no-new-privileges",
+			"--network=none",
+			"--memory=512m",
+			"--cpus=1.0",
+			"--pids-limit=512",
+			"--read-only",
+			"--env", "PYTHONDONTWRITEBYTECODE=1",
+			"-v", fmt.Sprintf("%s:/app:ro", sandboxPath),
+			"-w", "/app",
+			e.cfg.PythonDockerImage,
+			"python3", "-u", "run_tests.py",
+		)
+
+		outputBytes, execErr := cmd.CombinedOutput()
+
+		if len(outputBytes) > 100*1024 {
+			outputBytes = outputBytes[:100*1024]
+		}
+		output = string(outputBytes)
+		cmdErr = execErr
+
+		if runCtx.Err() == context.DeadlineExceeded {
+			output = "timeout"
+		}
+
+		runtimeMs = int(time.Since(start).Milliseconds())
+	}
+
+	// 6. Parse go test -v output (Python runner emits Go-compatible format)
+	parsed := ParseTestOutput(output)
+	passedMap := parsed.passedMap
+	gotMap := parsed.gotMap
+	wantMap := parsed.wantMap
+
+	// 7. Classify submission status
+	var status string
+	var passedCount int
+	totalCount := len(testCases)
+
+	for _, tc := range testCases {
+		if passed, found := passedMap[tc.Ordinal]; found && passed {
+			passedCount++
+		}
+	}
+
+	var friendlyMessage string
+
+	if sandboxStatus != "" {
+		status = sandboxStatus
+		switch status {
+		case "timeout":
+			slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
+			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+		case "compiler_error":
+			friendlyMessage = parseCompilerError(output)
+		case "security_error":
+			status = "compiler_error"
+			friendlyMessage = "Your code was blocked for security reasons."
+		}
+	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
+		slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout"
+		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
+		slog.Error("executor: python execution OOM", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout"
+		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
+	} else if cmdErr != nil && len(passedMap) == 0 {
+		status = "compiler_error"
+		friendlyMessage = parseCompilerError(output)
+	} else if totalCount > 0 && passedCount == totalCount {
+		status = "passed"
+	} else {
+		status = "failed"
+	}
+
+	slog.Info("executor: python execution finished", "status", status, "passed", passedCount, "total", totalCount, "runtime_ms", runtimeMs)
+
+	if recordSubmission {
+		// 8. Record submission in DB
+		sub := &store.Submission{
+			UserID:      pgtype.UUID{Bytes: req.UserID, Valid: true},
+			ProblemID:   pgtype.UUID{Bytes: req.ProblemID, Valid: true},
+			Language:    req.Language,
+			Code:        req.Code,
+			Status:      status,
+			PassedCount: passedCount,
+			TotalCount:  totalCount,
+			OutputLogs:  output,
+			RuntimeMs:   runtimeMs,
+		}
+
+		if err := e.store.CreateSubmission(ctx, sub); err != nil {
+			return nil, fmt.Errorf("failed to save python submission: %w", err)
+		}
+
+		// 9. Update user progress in DB
+		prog := &store.Progress{
+			UserID:      pgtype.UUID{Bytes: req.UserID, Valid: true},
+			ProblemID:   pgtype.UUID{Bytes: req.ProblemID, Valid: true},
+			Solved:      status == "passed",
+			BestRuntime: runtimeMs,
+		}
+
+		if err := e.store.UpsertProgress(ctx, prog); err != nil {
+			return nil, fmt.Errorf("failed to update progress: %w", err)
+		}
+	}
+
+	// 10. Map results back to execution response
+	var results []TestResult
+	for _, tc := range testCases {
+		passed := passedMap[tc.Ordinal]
+		var got, want string
+
+		if parsedGot, exists := gotMap[tc.Ordinal]; exists {
+			got = parsedGot
+		} else if !passed {
+			got = "(no output captured)"
+		} else {
+			got = tc.Expected
+		}
+
+		if parsedWant, exists := wantMap[tc.Ordinal]; exists {
+			want = parsedWant
+		} else {
+			want = tc.Expected
+		}
+
+		if tc.IsHidden && !passed {
+			got = "(hidden test case)"
+			want = "(hidden)"
+		}
+
+		results = append(results, TestResult{
+			TestCaseID: uuid.UUID(tc.ID.Bytes),
+			Ordinal:    tc.Ordinal,
+			Passed:     passed,
+			Got:        got,
+			Expected:   want,
+			IsHidden:   tc.IsHidden,
+		})
+	}
+
+	return &ExecutionResult{
+		Status:          status,
+		FriendlyMessage: friendlyMessage,
+		PassedCount:     passedCount,
+		TotalCount:      totalCount,
+		OutputLogs:      output,
+		RuntimeMs:       runtimeMs,
+		TestResults:     results,
+	}, nil
+}
+
+// resolveProblemLanguageMeta sets language-specific FuncName/ReturnType/ParamTypes
+// from LanguageVersions when available, falling back to top-level fields.
+func resolveProblemLanguageMeta(problem *store.Problem, language string) {
+	if language == "" {
+		return
+	}
+	if problem.LanguageVersions == nil {
+		return
+	}
+	spec, ok := problem.LanguageVersions[language]
+	if !ok {
+		return
+	}
+	if spec.FuncName != "" {
+		problem.FuncName = spec.FuncName
+	}
+	if spec.ReturnType != "" {
+		problem.ReturnType = spec.ReturnType
+	}
+	if len(spec.ParamTypes) > 0 {
+		problem.ParamTypes = spec.ParamTypes
+	}
 }
