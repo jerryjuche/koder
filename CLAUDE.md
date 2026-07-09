@@ -880,5 +880,19 @@ npm run build   # Builds static + server components
 **Backend file inventory (post-indexing):**
 - **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
 - **13 test files** across 7 packages, 124 tests total
-- **29 migrations** from 001_init to 029_ensure_language_versions
+- **30 migrations** from 001_init to 031_python_intermediate_seed
 - **Sandbox**: 8 source files (zero external dependencies), standalone Go binary
+
+---
+
+### 2026-07-10 — Empty func_name filtering + python-intermediate seed push
+
+**Context:** Python-only problems showed Go language badge/toggle because `Object.keys(language_versions)` included the `go` key even when `func_name` was empty. Code execution failed with `unsupported Go type 'str'` because the frontend sent `language="go"` which routed to the Go formatter.
+
+**Changes pushed (db94c7d):**
+- **Frontend** (`ProblemWorkspaceClient.tsx` 2 locations, `home/page.tsx`): Changed `Object.keys()` to `Object.entries().filter(([_, spec]) => spec.func_name).map(...)` so only languages with non-empty `func_name` appear in the toggle/badge
+- **Backend** (`submissions.go`, `test.go`): Language inference now checks `spec.FuncName != ""` before preferring "go"/"python"/first. Added validation rejecting languages whose `LanguageVersions` entry has empty `func_name`
+- **Backend** (`problems.go`): Language filter on `ListVisibleProblems` also checks `spec.FuncName != ""`
+- **Seed** (`031_python_intermediate_seed.sql`): Removed empty `go` keys from all 10 `language_versions` values
+
+**Verification:** All 124 tests pass, `go vet` clean.
