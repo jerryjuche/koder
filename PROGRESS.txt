@@ -23,6 +23,7 @@ SESSION 15: Production polish phase — monitoring, performance, error UX, secur
   - Performance: Leaderboard cache (30s TTL), leaderboard cache invalidation on submission, reduced notification polling 5s→15s, reduced broadcast polling 5s→30s.
   - Error UX: Added 7 error.tsx boundaries (home, settings, contribute, admin, problems/[slug], (main) layout, global-error.tsx), home loading skeleton.
   - Security: CSP header on all responses (middleware.go).
+SESSION 16: Python compiler error context extraction fix. Fixed bug in sandbox/main.go for identifying exception lines. Fixed variable shadowing in internal/executor/executor.go preventing sandboxError propagation.
 
 ---
 

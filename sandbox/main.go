@@ -207,21 +207,26 @@ func compileErrorMessage(status, output string) string {
 	return "compilation failed"
 }
 
-// isPythonErrorLine checks if a line is a Python error like "NameError: ..."
+// isPythonErrorLine detects Python error lines like "NameError: ..." or
+// "TypeError: ...". It uses a colon-based heuristic: the word before the
+// first colon must end with "Error" or "Exception" and be a single token
+// (no spaces/quotes), which matches all Python builtin and custom exceptions
+// while rejecting Go file paths, indented code, and traceback headers.
 func isPythonErrorLine(line string) bool {
-	for _, prefix := range []string{
-		"SyntaxError:", "IndentationError:", "ImportError:",
-		"ModuleNotFoundError:", "NameError:", "TypeError:",
-		"AttributeError:", "ValueError:", "ZeroDivisionError:",
-		"EOFError:", "RuntimeError:", "KeyError:", "IndexError:",
-		"StopIteration:", "AssertionError:", "OSError:", "FileNotFoundError:",
-		"RecursionError:", "TabError:",
-	} {
-		if strings.HasPrefix(line, prefix) {
-			return true
-		}
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return false
 	}
-	return strings.Contains(line, "Error:") || strings.Contains(line, "Exception:")
+	colonIdx := strings.IndexByte(line, ':')
+	if colonIdx <= 0 {
+		return false
+	}
+	errorType := line[:colonIdx]
+	// Must be a single word token — reject paths, indented code, headers
+	if strings.ContainsAny(errorType, " \t\"'") {
+		return false
+	}
+	return strings.HasSuffix(errorType, "Error") || strings.HasSuffix(errorType, "Exception")
 }
 
 // extractPyFileLine extracts file and line number from Python "File" line.

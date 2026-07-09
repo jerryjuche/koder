@@ -835,3 +835,15 @@ npm run build   # Builds static + server components
 - Go: `go test -count=1 ./...` — 123 tests, 0 failures, `go vet` clean
 - Sandbox: `go vet ./...` + `go build` — clean
 - Frontend: ESLint — 0 errors, TypeScript — 0 errors|
+
+### 2026-07-09 — Python compiler error context extraction fix
+
+**Context:** Python compiler errors and tracebacks were lacking line numbers in the backend because the fallback regex was bypassed.
+
+**Changes:**
+- `sandbox/main.go`: Updated `isPythonErrorLine` with a robust colon-based heuristic. `compileErrorMessage` now scans bottom-up and extracts exact file/line context via `extractPyFileLine` to match Go's output format.
+- `internal/executor/executor.go`: Fixed a variable shadowing bug in the `executePython` path where `sandboxError` was inadvertently scoped to an `if` block, preventing the properly formatted sandbox error from being propagated to the frontend.
+
+**Verification:**
+- Go: `go test -count=1 ./...` — **124 tests, 0 failures**, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean

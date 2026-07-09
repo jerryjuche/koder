@@ -1024,3 +1024,15 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 - [ ] Merge `update` branch into `main` to deploy to production
 
 ---
+
+## Session 16 — 2026-07-09
+
+### Goal
+Fix Python compiler error formatting so tracebacks and syntax errors show proper line numbers.
+
+### Tasks Completed
+1. Fixed `isPythonErrorLine` in `sandbox/main.go` to use a colon-based heuristic for Python exceptions.
+2. Fixed a variable shadowing bug in `internal/executor/executor.go` where `sandboxError` was scoped locally inside an `if` block, preventing propagation.
+3. Verified full test suite passes (124 tests).
+
+---

@@ -175,7 +175,8 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		output        string
 		runtimeMs     int
 		cmdErr        error
-		sandboxStatus string // non-empty = use sandbox result directly
+		sandboxStatus string
+		sandboxError  string
 		runCtx        context.Context
 		runCancel     context.CancelFunc
 	)
@@ -197,6 +198,12 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		output = resp.Stdout
 		runtimeMs = resp.RuntimeMs
 		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
+		sandboxError = resp.Error
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
 		defer runCancel()
@@ -262,7 +269,11 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
-			friendlyMessage = parseCompilerError(output)
+			if sandboxError != "" {
+				friendlyMessage = sandboxError
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
 		case "security_error":
 			status = "compiler_error"
 			friendlyMessage = "Your code was blocked for security reasons."
@@ -385,8 +396,7 @@ func parseCompilerError(output string) string {
 			continue
 		}
 		// Found the error line; look backwards for File "..." context
-		fileInfo, _ := extractPyErrorContext(lines[:i])
-		if fileInfo != "" {
+		if fileInfo := extractPyErrorContext(lines[:i]); fileInfo != "" {
 			return fmt.Sprintf("%s: %s", fileInfo, trimmed)
 		}
 		return trimmed
@@ -405,37 +415,56 @@ func parseCompilerError(output string) string {
 
 var pyFileLineRe = regexp.MustCompile(`File "(.+?)", line (\d+)`)
 
-// isPythonErrorLine checks if a line is a Python error like "NameError: ..."
+// isPythonErrorLine detects Python error lines like "NameError: ..." or
+// "TypeError: ...". It uses a colon-based heuristic: the word before the
+// first colon must end with "Error" or "Exception" and be a single token
+// (no spaces/quotes), which matches all Python builtin and custom exceptions
+// while rejecting Go file paths, indented code, and traceback headers.
 func isPythonErrorLine(line string) bool {
-	for _, prefix := range []string{
-		"SyntaxError:", "IndentationError:", "ImportError:",
-		"ModuleNotFoundError:", "NameError:", "TypeError:",
-		"AttributeError:", "ValueError:", "ZeroDivisionError:",
-		"EOFError:", "RuntimeError:", "KeyError:", "IndexError:",
-		"StopIteration:", "AssertionError:", "OSError:", "FileNotFoundError:",
-		"RecursionError:", "TabError:",
-	} {
-		if strings.HasPrefix(line, prefix) {
-			return true
-		}
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return false
 	}
-	return strings.Contains(line, "Error:") || strings.Contains(line, "Exception:")
+	colonIdx := strings.IndexByte(line, ':')
+	if colonIdx <= 0 {
+		return false
+	}
+	errorType := line[:colonIdx]
+	// Must be a single word token — reject paths, indented code, headers
+	if strings.ContainsAny(errorType, " \t\"'") {
+		return false
+	}
+	return strings.HasSuffix(errorType, "Error") || strings.HasSuffix(errorType, "Exception")
 }
 
-// extractPyErrorContext looks for the File "..." line preceding a Python error.
-func extractPyErrorContext(lines []string) (fileInfo, codeLine string) {
-	for j := len(lines) - 1; j >= max(0, len(lines)-6); j-- {
+// extractPyErrorContext scans lines before a Python error looking for the
+// File "...", line N context, preferring solution.py files over run_tests.py.
+func extractPyErrorContext(lines []string) string {
+	var bestFile string
+	var bestLine string
+	for j := len(lines) - 1; j >= 0 && j >= len(lines)-20; j-- {
 		ctx := strings.TrimSpace(lines[j])
-		if ctx == "" {
+		if !strings.HasPrefix(ctx, "File \"") {
 			continue
 		}
-		if m := pyFileLineRe.FindStringSubmatch(ctx); len(m) >= 3 {
-			basename := filepath.Base(m[1])
-			fileInfo = fmt.Sprintf("%s:%s", basename, m[2])
-			return
+		m := pyFileLineRe.FindStringSubmatch(ctx)
+		if len(m) < 3 {
+			continue
+		}
+		basename := filepath.Base(m[1])
+		lineNum := m[2]
+		// Prefer solution.py over run_tests.py for more relevant errors
+		if basename == "solution.py" {
+			return fmt.Sprintf("%s:%s", basename, lineNum)
+		}
+		if bestFile == "" {
+			bestFile, bestLine = basename, lineNum
 		}
 	}
-	return
+	if bestFile != "" {
+		return fmt.Sprintf("%s:%s", bestFile, bestLine)
+	}
+	return ""
 }
 
 // ExecuteVisibleOnly executes code against visible test cases only (used for testing without submission).
@@ -551,6 +580,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		runtimeMs     int
 		cmdErr        error
 		sandboxStatus string
+		sandboxError  string
 		runCtx        context.Context
 		runCancel     context.CancelFunc
 	)
@@ -572,6 +602,12 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		output = resp.Stdout
 		runtimeMs = resp.RuntimeMs
 		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
+		sandboxError = resp.Error
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
 		defer runCancel()
@@ -637,7 +673,11 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
-			friendlyMessage = parseCompilerError(output)
+			if sandboxError != "" {
+				friendlyMessage = sandboxError
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
 		case "security_error":
 			status = "compiler_error"
 			friendlyMessage = "Your code was blocked for security reasons."
@@ -963,6 +1003,7 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 		runtimeMs     int
 		cmdErr        error
 		sandboxStatus string
+		sandboxError  string
 		runCtx        context.Context
 		runCancel     context.CancelFunc
 	)
@@ -993,6 +1034,8 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 				output = resp.Error
 			}
 		}
+		// Store sandbox error for friendly_message, preserving full output for logs
+		sandboxError = resp.Error
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.PythonTimeout())
 		defer runCancel()
@@ -1056,7 +1099,11 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 			slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
-			friendlyMessage = parseCompilerError(output)
+			if sandboxError != "" {
+				friendlyMessage = sandboxError
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
 		case "security_error":
 			status = "compiler_error"
 			friendlyMessage = "Your code was blocked for security reasons."

@@ -32,3 +32,13 @@ Start Phase 1 (User Language Preference).
 
 ### Open Issues
 - None so far
+
+## Session 16 — 2026-07-09
+
+### Goal
+Fix Python compiler error formatting.
+
+### Tasks Completed
+1. Updated `sandbox/main.go` with robust exception detection logic.
+2. Fixed variable shadowing in `executor.go` to correctly propagate `sandboxError`.
+3. Verified compilation and test suite (124 tests).
