@@ -365,21 +365,54 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 
 func parseCompilerError(output string) string {
 	lines := strings.Split(output, "\n")
+	// Try Go error format first
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
 			parts := strings.SplitN(line, "solution.go:", 2)
 			return "Line " + strings.TrimSpace(parts[1])
 		}
 	}
-	
+	// Try Python traceback format
+	var pyLines []string
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		// Capture meaningful error lines from Python tracebacks
+		if strings.HasPrefix(trimmed, "SyntaxError:") ||
+			strings.HasPrefix(trimmed, "IndentationError:") ||
+			strings.HasPrefix(trimmed, "ImportError:") ||
+			strings.HasPrefix(trimmed, "ModuleNotFoundError:") ||
+			strings.HasPrefix(trimmed, "NameError:") ||
+			strings.HasPrefix(trimmed, "TypeError:") ||
+			strings.HasPrefix(trimmed, "AttributeError:") ||
+			strings.HasPrefix(trimmed, "ValueError:") ||
+			strings.HasPrefix(trimmed, "ZeroDivisionError:") ||
+			strings.HasPrefix(trimmed, "EOFError:") {
+			// Include line number context from above
+			for j := max(0, i-3); j < i; j++ {
+				ctx := strings.TrimSpace(lines[j])
+				if ctx != "" && !strings.HasPrefix(ctx, "Traceback") && !strings.HasPrefix(ctx, "File ") {
+					pyLines = append(pyLines, ctx)
+				}
+			}
+			pyLines = append(pyLines, trimmed)
+			break
+		}
+	}
+	if len(pyLines) > 0 {
+		return strings.Join(pyLines, "\n")
+	}
+
 	// Fallback to first meaningful line
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") {
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") && !strings.HasPrefix(trimmed, "Traceback") && !strings.HasPrefix(trimmed, "File ") {
 			return trimmed
 		}
 	}
-	
+
 	return "Compilation failed due to a syntax error."
 }
 
