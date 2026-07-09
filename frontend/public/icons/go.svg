@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Go programming language icon</title>
+  <defs>
+    <linearGradient id="goGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ADD8" />
+      <stop offset="100%" stop-color="#0077B6" />
+    </linearGradient>
+    <linearGradient id="goShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#goGradient)" />
+  <circle cx="64" cy="64" r="44" fill="#0A6C96" />
+  <path d="M42 54c0-13 10-23 22-23s22 10 22 23c0 12-7 23-15 26v8h-6v-8c-8-3-15-14-15-26z" fill="#FFF" />
+  <path d="M55 49h4l5 8 5-8h4l-8 12 9 13h-4l-6-9-6 9h-4l9-13-8-12z" fill="#FFF" />
+  <circle cx="64" cy="64" r="44" fill="url(#goShadow)" />
+</svg>

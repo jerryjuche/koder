@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Python programming language icon</title>
+  <defs>
+    <linearGradient id="pyBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#306998" />
+      <stop offset="100%" stop-color="#205081" />
+    </linearGradient>
+    <linearGradient id="pyYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD43B" />
+      <stop offset="100%" stop-color="#FFE873" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="#2E3440" />
+  <path d="M44 46c0-14 11-25 24-25h24v14c0 6-5 11-11 11h-14c-4 0-7 3-7 7v6H44V46z" fill="url(#pyBlue)" />
+  <circle cx="58" cy="28" r="4" fill="#FFF" />
+  <path d="M84 82c0 14-11 25-24 25H36v-14c0-6 5-11 11-11h14c4 0 7-3 7-7v-6h16v13z" fill="url(#pyYellow)" />
+  <circle cx="70" cy="100" r="4" fill="#306998" />
+  <path d="M84 46h-28v-8c0-4 3-7 7-7h14c6 0 11 5 11 11v14z" fill="#205081" opacity="0.42" />
+  <path d="M44 82h28v8c0 4-3 7-7 7H51c-6 0-11-5-11-11V82z" fill="#FFE873" opacity="0.4" />
+</svg>
