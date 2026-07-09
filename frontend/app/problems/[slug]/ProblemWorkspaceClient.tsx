@@ -398,6 +398,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     );
   }
 
+  const availableLanguages = problem.language_versions ? Object.keys(problem.language_versions) : [];
+  const langColors: Record<string, { active: string; text: string }> = {
+    go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
+    python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
+  };
+
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
@@ -762,47 +768,40 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              {(() => {
-                const available = problem?.language_versions ? Object.keys(problem.language_versions) : ["go", "python"];
-                const langColors: Record<string, { active: string; text: string }> = {
-                  go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
-                  python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
-                };
-                return available.length > 1 ? (
-                  <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
-                    {available.map((lang, idx) => (
-                      <React.Fragment key={lang}>
-                        {idx > 0 && <div className="w-px bg-brand-charcoal-border self-stretch" />}
-                        <button
-                          onClick={async () => {
-                            if (activeLanguage === lang) return;
-                            if (code !== scaffoldAtToggle) {
-                              setPendingLanguage(lang);
-                              setLanguageConfirmOpen(true);
-                            } else {
-                              await applyLanguageSwitch(lang);
-                            }
-                          }}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
-                            activeLanguage === lang
-                              ? (langColors[lang]?.active || "bg-primary/15 text-primary")
-                              : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                          )}
-                        >
-                          <LanguageLogo language={lang as "go" | "python"} size={18} />
-                          {langColors[lang]?.text || lang}
-                        </button>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-offwhite-muted">
-                    <LanguageLogo language={available[0] as "go" | "python"} size={18} />
-                    {langColors[available[0]]?.text || available[0]}
-                  </div>
-                );
-              })()}
+              {availableLanguages.length > 1 ? (
+                <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
+                  {availableLanguages.map((lang, idx) => (
+                    <React.Fragment key={lang}>
+                      {idx > 0 && <div className="w-px bg-brand-charcoal-border self-stretch" />}
+                      <button
+                        onClick={async () => {
+                          if (activeLanguage === lang) return;
+                          if (code !== scaffoldAtToggle) {
+                            setPendingLanguage(lang);
+                            setLanguageConfirmOpen(true);
+                          } else {
+                            await applyLanguageSwitch(lang);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                          activeLanguage === lang
+                            ? (langColors[lang]?.active || "bg-primary/15 text-primary")
+                            : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                        )}
+                      >
+                        <LanguageLogo language={lang as "go" | "python"} size={18} />
+                        {langColors[lang]?.text || lang}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-offwhite-muted">
+                  <LanguageLogo language={(availableLanguages[0] || "go") as "go" | "python"} size={18} />
+                  {langColors[availableLanguages[0]]?.text || (availableLanguages[0] === "python" ? "Python" : "Go")}
+                </div>
+              )}
               <span className="text-xs font-mono text-brand-offwhite-muted">
                 solution.{activeLanguage === "python" ? "py" : "go"}
               </span>
