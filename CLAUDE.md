@@ -716,6 +716,14 @@ npm run build   # Builds static + server components
 - **Fallback generation** — AI-provided `language_versions` used when available; fallback now auto-generates Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go types→Python equivalents)
 - **Validation** — Requires `language_versions` with at least a `go` entry that has non-empty `func_name` |
 
+### 2026-07-09 — Python compiler_error: formatPythonLiteral + snake_case fallback
+
+**Bug:** All Python submissions returned `compiler_error` even for valid code like `def double_it(x): return x * 2`. Sandbox logs showed "compiler didnt output anything".
+
+**Root causes & fixes:**
+1. **Raw JSON → Python literal mismatch** (`executor.go` + `templates.go`): The Python test template embedded raw JSON directly via `test_cases = {{.TestCasesJSON}}`. JSON uses `true`/`false`/`null` but Python requires `True`/`False`/`None`, causing `NameError` at module load time for any boolean/null inputs. The `formatPythonLiteral()` function existed but was dead code (never called). Fixed by replacing `TestCasesJSON` (raw JSON) with `PyTestCases` (pre-formatted Python tuple literals using `formatPythonLiteral()`).
+2. **Go camelCase → snake_case fallback** (`executor.go`): When `LanguageVersions["python"]` is missing (e.g., seeds without backfill migration), `problem.FuncName` retained the Go camelCase name (e.g., `doubleIt`), causing `ImportError` since student code uses `def double_it(...)`. Added `goToSnakeCase()` as fallback that's idempotent for already-snake_case names.
+
 ### 2026-07-09 — ESLint rule compliance sweep
 
 **Changes:** Fixed 0→0 ESLint errors across the entire frontend (`npx eslint --quiet` passes clean on `app/`, `components/`, `hooks/`, `lib/`).
