@@ -215,6 +215,7 @@ func runPythonTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 		"PYTHONUNBUFFERED=1",
 	}
 
+	setProcessAttributes(cmd, timeoutSec)
 	setPythonRlimits(timeoutSec)
 
 	var out cappedBuffer
