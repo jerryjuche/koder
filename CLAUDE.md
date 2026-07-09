@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Koder** is a zero-cost, production-grade automated code-grading platform for Go programming curricula. Students solve problems in a Monaco editor workspace, submit code, and receive instant pass/fail results with diff output. AI (Gemini/Groq) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
+**Koder** is a zero-cost, production-grade automated code-grading platform for Go (and now Python) programming curricula. Students solve problems in a Monaco editor workspace, submit code, and receive instant pass/fail results with diff output. AI (Gemini/Groq) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote Go sandbox on Railway + Supabase Postgres + Vercel frontend
@@ -18,11 +18,11 @@
 | **Database** | PostgreSQL 15 (Supabase), pgx/v5 | Raw SQL, connection pooling (10 max) |
 | **Auth** | golang-jwt/v5, bcrypt, Google Identity Services | JWT tokens, password hashing, OAuth |
 | **AI** | Gemini API (genai), Groq API (Llama) | Test case generation from problem specs |
-| **Execution** | Docker (local) or remote Go sandbox | Isolated `go test` execution |
+| **Execution** | Docker (local) or remote sandbox | Isolated `go test` / `python3` execution |
 | **Real-time** | gorilla/websocket, in-memory pub/sub | Live admin dashboard updates |
 | **Frontend** | Next.js 15, React 19, Tailwind CSS 4 | App Router, server components, shadcn/ui |
-| **Editor** | Monaco Editor (local workers) | In-browser Go code editing |
-| **Sandbox** | Standalone Go binary (zero deps) | Railway-hosted `go test` execution |
+| **Editor** | Monaco Editor (local workers) | In-browser Go & Python code editing |
+| **Sandbox** | Standalone Go binary (zero deps) | Railway-hosted Go + Python execution |
 
 ---
 
@@ -626,6 +626,36 @@ npm run build   # Builds static + server components
 ---
 
 ## Session Log
+
+### 2026-07-09 — Full codebase indexing on python-curricula branch
+
+**Context:** Switched from `update` branch to `origin/python-curricula`. All 12 multi-language phases complete. 122 tests, `go vet` clean.
+
+**Key differences from `update`:**
+- `sandbox/pyrunner.go` — Python test runner with AST validation
+- `sandbox/runtest_go.go` — Extracted Go runner
+- `internal/executor/executor.go` — `executePython`, `formatPythonLiteral`, `resolveProblemLanguageMeta`
+- `internal/executor/templates.go` — `pythonTestTemplate`
+- `internal/enricher/enricher.go` — Dual Go/Python system prompt, `toSnakeCase`, `toPythonType`, fallback
+- `internal/store/types.go` — `PrimaryLanguage`, `LanguageVersions`, `LanguageSpec`
+- `migrations/027_language_versions.sql` — Schema for multi-language
+- `migrations/028_backfill_language_versions.sql` — Backfill for 180 seed problems
+- `internal/api/me.go` — `UpdateLanguage` handler
+- `internal/api/problems.go` — `?language=` query filter
+- `internal/api/submissions.go`, `test.go` — Language validation/inference
+- `internal/api/admin.go` — `language_versions` in write paths
+- `frontend/components/LanguageSelector.tsx` — Onboarding language selection
+- `frontend/lib/types.ts`, `api.ts`, `UserContext.tsx` — Language-aware state
+- `frontend/components/layout/TopNav.tsx` — Language switcher dropdown
+- `frontend/app/(main)/home/page.tsx` — Language filter tabs (All/Go/Python)
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Dynamic Monaco language/scaffold
+- `PROGRESS.txt` — Completion tracking
+
+**Sandbox Python additions:**
+- `sandbox/Dockerfile` — Added `python3` install
+- `sandbox/secure.go` — `pythonDangerousPatterns` + `validatePythonCode`
+- `sandbox/secure_unix.go` — `setPythonRlimits` (RLIMIT_AS=512MB)
+- `sandbox/main.go` — Language routing in `executeHandler`
 
 ### 2026-07-08 — Professional UI polish & fixes
 
