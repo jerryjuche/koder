@@ -847,3 +847,38 @@ npm run build   # Builds static + server components
 **Verification:**
 - Go: `go test -count=1 ./...` — **124 tests, 0 failures**, `go vet` clean
 - Sandbox: `go vet ./...` + `go build` — clean
+
+### 2026-07-09 — Professional codebase indexing & final polish
+
+**Context:** Comprehensive full-codebase indexing session. Pulled latest (9 new commits since last index: sandbox error messaging, Go logo icons, Python sandbox isolation alignment, language filter bugfix, migration 029, fullscreen toggle, logo fixes).
+
+**New/modified files since last session log:**
+| File | Change |
+|---|---|
+| `sandbox/main.go` | Python error messaging improvements, `use Out.String()` for Go output capture |
+| `sandbox/pyrunner.go` | `validatePythonAST` output capture, process group isolation alignment |
+| `sandbox/runtest_go.go` | `use Out.String()` for stdout capture |
+| `sandbox/secure_unix.go` | Align Python `Setpgid` with Go runner pattern |
+| `sandbox/sandbox-runner` | Binary updated (new) |
+| `sandbox/security_message_test.go` | New: validates sandbox security messages |
+| `internal/executor/executor.go` | `EnhancePythonError` for human-readable Python exceptions with debugging tips |
+| `frontend/components/TestResultPanel.tsx` | Show server-provided Python debugging tips |
+| `frontend/components/LanguageLogo.tsx` | New: renders Go/Python SVG icons |
+| `frontend/public/icons/go.svg` | New: real Go gopher logo (SVG) |
+| `frontend/public/icons/python.svg` | New: real Python logo (SVG) |
+| `frontend/app/(main)/home/page.tsx` | Language filter bugfix |
+| `migrations/029_ensure_language_versions.sql` | New: guarantees every problem has both Go and Python entries |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Fullscreen toggle |
+
+**Frontend file inventory (post-indexing):**
+- **52 app router files** across 12 route groups (root, landing, oauth, auth, main, home, leaderboard, profile, settings, contribute, admin, problems, legal)
+- **37 shared components** (14 shadcn/ui, 5 auth, 3 kibo-ui, 2 base, 7 feature, 1 dashboard, 1 layout, 2 language, 1 demo, 1 test result)
+- **3 custom hooks** (use-google-one-tap, use-has-mounted, use-mobile)
+- **10 lib modules** (api client w/ 40+ endpoints, types, utils, cache, event/WebSocket, UserContext, useNotifications, toast, achievements, index)
+- **3 style files** (globals, theme vars 856 lines, typography 430 lines)
+
+**Backend file inventory (post-indexing):**
+- **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
+- **13 test files** across 7 packages, 124 tests total
+- **29 migrations** from 001_init to 029_ensure_language_versions
+- **Sandbox**: 8 source files (zero external dependencies), standalone Go binary

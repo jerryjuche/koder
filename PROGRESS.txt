@@ -198,9 +198,17 @@ TEST SUITE EXPANSION
 
 ---
 
+SESSION 16: Python compiler error context extraction fix (sandbox/main.go, executor.go). 124 tests, go vet clean, sandbox build clean.
+SESSION 17: Enhancement batch: EnhancePythonError for human-readable tips, Go/Python SVG logo icons, LanguageLogo component, Python sandbox process group alignment, language filter bugfix, fullscreen toggle, migration 029 (ensures both languages on every problem). 9 commits pulled.
+
+---
+Backend: 7 packages, 24 API source files, 13 test files, 124 tests, 29 migrations
+Frontend: 52 app-router files, 37 components, 3 hooks, 10 lib modules, 3 style sheets
+Sandbox: 8 source files, zero external dependencies, standalone Go binary
+
 LEGEND
 ======
- DONE        — implemented, committed, verified
- IN PROGRESS — actively being worked on
- NOT STARTED — planned, not yet touched
- BLOCKED     — blocked by dependency
+  DONE        — implemented, committed, verified
+  IN PROGRESS — actively being worked on
+  NOT STARTED — planned, not yet touched
+  BLOCKED     — blocked by dependency
