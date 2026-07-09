@@ -48,15 +48,14 @@ BEGIN
         visible = true
     RETURNING id INTO prob_id;
 
-    -- Visible test case 1
-    INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal)
-    VALUES (prob_id, '[3]', '6', false, 1)
-    ON CONFLICT (problem_id, ordinal) DO NOTHING;
+    -- Remove old test cases (from a previous buggy run) and insert fresh ones
+    DELETE FROM test_cases WHERE problem_id = prob_id;
 
-    -- Hidden test case 2
     INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal)
-    VALUES (prob_id, '[0]', '0', true, 2)
-    ON CONFLICT (problem_id, ordinal) DO NOTHING;
+    VALUES (prob_id, '[3]', '6', false, 1);
+
+    INSERT INTO test_cases (problem_id, input, expected, is_hidden, ordinal)
+    VALUES (prob_id, '[0]', '0', true, 2);
 
     RAISE NOTICE 'Created/updated problem py-double-it with id %', prob_id;
 END;
