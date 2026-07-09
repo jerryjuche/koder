@@ -56,8 +56,16 @@ export default function FeedbackPanel({ compact }: Props) {
   };
 
   useEffect(() => {
-    setLoading(true);
-    loadData();
+    const doFetch = async () => {
+      const [feedbackRes, countsRes] = await Promise.all([
+        fetchAdminFeedback(statusFilter),
+        fetchAdminFeedbackCounts(),
+      ]);
+      if (feedbackRes.success && feedbackRes.data) setFeedbacks(feedbackRes.data);
+      if (countsRes.success && countsRes.data) setCounts(countsRes.data);
+      setLoading(false);
+    };
+    doFetch();
   }, [statusFilter]);
 
   const filtered = searchTerm

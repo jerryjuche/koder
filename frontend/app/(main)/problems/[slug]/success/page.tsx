@@ -39,7 +39,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   const { slug } = React.use(params);
 
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState<string>("");
+  const [code, setCode] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(`koder_solution_${slug}`) || "";
+    }
+    return "";
+  });
   const [nextProblem, setNextProblem] = useState<Problem | null>(null);
   const [communitySolutions, setCommunitySolutions] = useState<
     CommunitySolution[]
@@ -85,9 +90,6 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   }, [ready]);
 
   useEffect(() => {
-    const savedCode = sessionStorage.getItem(`koder_solution_${slug}`);
-    if (savedCode) setCode(savedCode);
-
     const loadData = async () => {
       try {
         // Read cached data to avoid wasteful API calls

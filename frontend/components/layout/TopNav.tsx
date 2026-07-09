@@ -38,11 +38,20 @@ export default function TopNav() {
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
   const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
+  const [prevGoogleUrl, setPrevGoogleUrl] = React.useState(user?.google_avatar_url);
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
 
   // Reset avatarError when user data changes (e.g. after Google sync)
-  React.useEffect(() => {
+  if (user?.google_avatar_url !== prevGoogleUrl) {
+    setPrevGoogleUrl(user?.google_avatar_url);
     setAvatarError(false);
-  }, [user?.google_avatar_url]);
+  }
+
+  // Close notification menu on route change
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setNotifMenuOpen(false);
+  }
 
   // Close notification menu on outside click
   React.useEffect(() => {
@@ -54,11 +63,6 @@ export default function TopNav() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Close notification menu on route change
-  React.useEffect(() => {
-    setNotifMenuOpen(false);
-  }, [pathname]);
 
   const navLinks = [
     { name: "Problems", href: "/", icon: LayoutDashboard },

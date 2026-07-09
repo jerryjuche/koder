@@ -36,7 +36,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    loadUser();
+    const initialLoad = async () => {
+      try {
+        const res = await fetchUser();
+        if (res.success && res.data) {
+          setUser(res.data);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    initialLoad();
     window.addEventListener("user-updated", loadUser);
     return () => window.removeEventListener("user-updated", loadUser);
   }, [loadUser]);

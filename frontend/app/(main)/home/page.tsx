@@ -58,11 +58,19 @@ export default function Dashboard() {
 
   // View state
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const moduleParam = new URLSearchParams(window.location.search).get("module");
+    return moduleParam || null;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "solved" | "unsolved">("all");
-  const [languageFilter, setLanguageFilter] = useState<string>("all");
+  const [languageFilter, setLanguageFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    return tabParam === "go" || tabParam === "python" ? tabParam : "all";
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 18;
 
@@ -86,13 +94,6 @@ export default function Dashboard() {
     };
 
     loadData();
-
-    // Restore module and language tab from query params on initial load
-    const params = new URLSearchParams(window.location.search);
-    const moduleParam = params.get("module");
-    if (moduleParam) setSelectedModule(moduleParam);
-    const tabParam = params.get("tab");
-    if (tabParam === "go" || tabParam === "python") setLanguageFilter(tabParam);
 
     // Debounced reload on user-updated — clear stale cache, then fetch fresh data
     let debounceTimer: ReturnType<typeof setTimeout>;
@@ -171,9 +172,13 @@ export default function Dashboard() {
 
   const solvedCount = problems.filter((p) => p.solved).length;
 
-  useEffect(() => {
+  // Reset to page 1 when filters change
+  const filtersKey = `${selectedModule}-${searchQuery}-${difficultyFilter}-${statusFilter}`;
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (filtersKey !== prevFiltersKey) {
+    setPrevFiltersKey(filtersKey);
     setCurrentPage(1);
-  }, [selectedModule, searchQuery, difficultyFilter, statusFilter]);
+  }
 
   const handleSelectModule = useCallback((mod: string) => {
     setSelectedModule(mod);

@@ -121,8 +121,12 @@ export default function ProblemReports({ compact }: Props) {
   };
 
   useEffect(() => {
-    setLoading(true);
-    loadReports();
+    const doFetch = async () => {
+      const res = await fetchProblemReports();
+      if (res.success && res.data) setReports(res.data);
+      setLoading(false);
+    };
+    doFetch();
   }, [statusFilter]);
 
   const filtered = useMemo(() => {

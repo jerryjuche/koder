@@ -24,9 +24,9 @@ const sections: Section[] = [
     body: [
       'You are responsible for maintaining the confidentiality of your credentials and for all activity that occurs under your account.',
       <span key="accurate">Provide accurate information when registering.</span>,
-      <span key="share">Not share your account with others or use another person\'s account.</span>,
+      <span key="share">Not share your account with others or use another person&apos;s account.</span>,
       <span key="notify">Notify us immediately if you suspect unauthorized access to your account.</span>,
-      <React.Fragment key="google"><br />If you use Google Sign-In, you are also bound by Google\'s Terms of Service for that authentication method.</React.Fragment>,
+      <React.Fragment key="google"><br />If you use Google Sign-In, you are also bound by Google&apos;s Terms of Service for that authentication method.</React.Fragment>,
     ],
   },
   {

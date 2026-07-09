@@ -8,14 +8,12 @@ import { fetchUser } from "@/lib/api";
 import { User } from "@/lib/types";
 
 export default function GoogleLinkBanner() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (localStorage.getItem("google-banner-dismissed") === "true") return false;
+    return true;
+  });
   const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem("google-banner-dismissed") === "true") return;
-    setVisible(true);
-  }, []);
 
   useEffect(() => {
     if (!visible) return;

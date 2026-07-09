@@ -69,7 +69,10 @@ function ensureInitialized(clientId: string) {
 
 export function useGoogleOneTap(onSuccess: OneTapCallback) {
   const cbRef = useRef<OneTapCallback>(onSuccess);
-  cbRef.current = onSuccess;
+
+  useEffect(() => {
+    cbRef.current = onSuccess;
+  }, [onSuccess]);
 
   const canLoad = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [ready, setReady] = useState(false);

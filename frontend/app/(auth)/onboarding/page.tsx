@@ -25,10 +25,7 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
-    if (username.length < 3) {
-      setAvailable(null);
-      return;
-    }
+    if (username.length < 3) return;
     const timer = setTimeout(async () => {
       setChecking(true);
       try {
@@ -104,7 +101,10 @@ export default function OnboardingPage() {
                 required
                 minLength={3}
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                onChange={(e) => {
+                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''));
+                  setAvailable(null);
+                }}
                 className="w-full bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl px-4 py-3 text-brand-offwhite focus:outline-none focus:border-brand-muted-gold transition-colors pr-10"
                 placeholder="your-unique-username"
               />
