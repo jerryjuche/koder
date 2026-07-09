@@ -766,4 +766,22 @@ npm run build   # Builds static + server components
 - **`migrations/028_backfill_language_versions.sql`** (new) — Backfills the `language_versions` JSONB column for all 180 seed problems that were inserted without it (migration 027 added the column but seeds ran before the backfill could populate them). Adds two PL/pgSQL helpers:
   - `koder_to_snake_case()` — converts PascalCase Go function names to Python snake_case
   - `koder_go_type_to_python()` — translates Go type annotations to Python equivalents
-- Runs as an idempotent UPDATE targeting problems with `language = 'go'` that lack a `'python'` key in `language_versions`|
+- Runs as an idempotent UPDATE targeting problems with `language = 'go'` that lack a `'python'` key in `language_versions`
+
+### 2026-07-09 — Python sandbox: python3 availability check + meaningful error messages
+
+**Bug:** Railway sandbox returned `compiler_error` with empty `output_logs` when `python3` was unavailable. The sandbox hardcoded `"python3"` everywhere with no fallback, and the `Error` field was never populated in the `ExecuteResponse` for Python (only Go had it via `compileErrorMessage`). The backend had no way to surface the real error.
+
+**Fixes:**
+
+| File | Change |
+|---|---|
+| `sandbox/pyrunner.go` | Added `findPythonBin()` helper: checks `PATH` for `python3`, falls back to `python`, returns empty string if neither |
+| `sandbox/pyrunner.go` | `validatePythonAST()` uses `findPythonBin()` instead of hardcoded `"python3"` |
+| `sandbox/pyrunner.go` | `runPythonTests()` uses `findPythonBin()` with early return + clear error response when Python missing; logs binary used; adds `Error` field via `compileErrorMessage()` matching `runGoTests` |
+| `internal/executor/executor.go` | Forwards sandbox `Error` to output when `compiler_error` with empty stdout |
+
+**Verification:**
+- Go: `go test -count=1 ./...` — 122 tests, 0 failures, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors, `npm run build` — clean|

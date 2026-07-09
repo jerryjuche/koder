@@ -2,7 +2,7 @@ KODER MULTI-LANGUAGE CURRICULUM INTEGRATION — PROGRESS
 ======================================================
 
 Branch: python-curricula
-Updated: 2026-07-08
+Updated: 2026-07-09
 
 SESSION 1: Phase 1 implemented and verified (go vet: clean).
 SESSION 2: Phase 2 implemented and verified (go vet: clean).
@@ -14,6 +14,9 @@ SESSION 7: Phases 7-11 implemented (frontend types, LanguageSelector, TopNav swi
 SESSION 8: Phase 12 implemented (enricher dual Go/Python generation, AI prompt/schema, fallback).
 SESSION 9: Bugfix sweep (8 fixes: enricher copy, Python json.loads, workspace scaffold, fencing, unmarshal order, awaits, skip persist, marshal error).
 SESSION 10: Comprehensive test suite expansion (122 tests, all 8 packages covered, go vet clean).
+SESSION 11: Python compiler_error fix (formatPythonLiteral, goToSnakeCase, PyTestCases template).
+SESSION 12: ESLint compliance sweep (0 errors, 25+ files, use-has-mounted.ts shared hook).
+SESSION 13: Python sandbox availability check (findPythonBin, Error field, meaningful messages).
 
 ---
 
