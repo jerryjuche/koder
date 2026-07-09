@@ -880,7 +880,7 @@ npm run build   # Builds static + server components
 **Backend file inventory (post-indexing):**
 - **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
 - **13 test files** across 7 packages, 124 tests total
-- **30 migrations** from 001_init to 031_python_intermediate_seed
+- **30 migrations** from 001_init to 032_python_variables_math_seed
 - **Sandbox**: 8 source files (zero external dependencies), standalone Go binary
 
 ---
@@ -896,3 +896,15 @@ npm run build   # Builds static + server components
 - **Seed** (`031_python_intermediate_seed.sql`): Removed empty `go` keys from all 10 `language_versions` values
 
 **Verification:** All 124 tests pass, `go vet` clean.
+
+### 2026-07-10 — Variables & Math Operators seed (module: python-variables-math)
+
+**Context:** User requested a Python beginner problem for the new `python-variables-math` module. The description must be purely educational — no function name or signature in the description text. Function metadata goes into the DB columns and `language_versions`.
+
+**New file:** `migrations/032_python_variables_math_seed.sql`
+- **Problem:** `py-vars-math-calc` — `calculate(a, b, operator)` → `float`
+- **10 test cases** (7 visible, 3 hidden) covering all 7 operators: `+`, `-`, `*`, `/`, `//`, `%`, `**` plus negative numbers
+- **Description** is pure conceptual prose about variables and arithmetic operators — no function signature in the `statement` column
+- **`raw_readme`** includes expected function, examples, constraints, and a reference solution with explanation
+- Difficulty 1, 70 XP
+- Verified: all 124 tests pass, `go vet` clean
