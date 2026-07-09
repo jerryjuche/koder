@@ -33,7 +33,7 @@ BEGIN
             'go', jsonb_build_object(
                 'func_name',   'DoubleIt',
                 'return_type', 'int',
-                'param_types', '{int}'
+                'param_types', to_jsonb(ARRAY['int']::text[])
             ),
             'python', jsonb_build_object(
                 'func_name',   koder_to_snake_case('DoubleIt'),
