@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, API_BASE } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
