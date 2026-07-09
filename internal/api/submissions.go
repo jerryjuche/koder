@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -121,7 +122,8 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.executor.Execute(r.Context(), execReq)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", "Failed to grade solution attempt", nil)
+		slog.Error("executor: submission execution failed", "error", err, "user_id", userID, "problem_id", req.ProblemSlug, "language", language)
+		RespondError(w, http.StatusInternalServerError, "EXECUTION_FAILED", fmt.Sprintf("Failed to grade solution attempt: %s", err.Error()), nil)
 		return
 	}
 
