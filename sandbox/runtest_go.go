@@ -103,12 +103,18 @@ func runGoTests(ctx context.Context, req ExecuteRequest) ExecuteResponse {
 
 	setProcessAttributes(cmd, timeoutSec)
 
-	outputBytes, err := cmd.CombinedOutput()
-
-	if len(outputBytes) > 100*1024 {
-		outputBytes = outputBytes[:100*1024]
+	var out cappedBuffer
+	out.max = 64 * 1024
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		log.Printf("runGoTests: go command returned error: %v output=%s", err, out.String())
 	}
-	output := string(outputBytes)
+
+	output := out.String()
+	if len(output) > 100*1024 {
+		output = output[:100*1024]
+	}
 
 	if runCtx.Err() == context.DeadlineExceeded {
 		killProcessGroup(cmd)
