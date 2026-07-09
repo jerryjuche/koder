@@ -18,13 +18,14 @@ export function LanguageLogo({
   className?: string;
 }) {
   return (
-    <div className={cn("shrink-0", className)}>
+    <div className={cn("shrink-0 flex items-center justify-center", className)}>
       <Image
         src={languageIcon[language]}
         alt={language === "python" ? "Python icon" : "Go icon"}
         width={size}
         height={size}
         unoptimized
+        className="drop-shadow-sm"
       />
     </div>
   );

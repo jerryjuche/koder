@@ -451,22 +451,24 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     paginatedProblems.map((problem, i) => {
-                      const diffMeta: Record<number, { label: string; color: string; glow: string; border: string }> = {
-                        1: { label: "Beginner", color: "text-emerald-400", glow: "from-emerald-500/5", border: "border-emerald-500/20" },
-                        2: { label: "Easy", color: "text-sky-400", glow: "from-sky-500/5", border: "border-sky-500/20" },
-                        3: { label: "Medium", color: "text-amber-400", glow: "from-amber-500/5", border: "border-amber-500/20" },
-                        4: { label: "Hard", color: "text-red-400", glow: "from-red-500/5", border: "border-red-500/20" },
-                        5: { label: "Expert", color: "text-purple-400", glow: "from-purple-500/5", border: "border-purple-500/20" },
+                      const diffColor: Record<number, string> = {
+                        1: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+                        2: "text-sky-400 bg-sky-500/10 border-sky-500/25",
+                        3: "text-amber-400 bg-amber-500/10 border-amber-500/25",
+                        4: "text-red-400 bg-red-500/10 border-red-500/25",
+                        5: "text-purple-400 bg-purple-500/10 border-purple-500/25",
                       };
-                      const d = problem.difficulty as keyof typeof diffMeta;
-                      const m = diffMeta[d] || diffMeta[3];
+                      const diffLabel: Record<number, string> = {
+                        1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
+                      };
+                      const d = problem.difficulty as keyof typeof diffColor;
                       const langs = problem.language_versions ? Object.keys(problem.language_versions) : [];
 
                       return (
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
-                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
+                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                         style={{
                           animationFillMode: "both",
                           animationDelay: i * 50 + "ms",
@@ -474,50 +476,59 @@ export default function Dashboard() {
                       >
                         <Card
                           className={cn(
-                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col",
-                            "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8",
+                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
+                            "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/6",
                             "animate-in fade-in slide-in-from-bottom-2",
-                            problem.solved && "ring-1 ring-emerald-500/20",
+                            problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
                           )}
                         >
-                          {/* Gradient accent bar + solved glow */}
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" />
-                          {problem.solved && (
-                            <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-emerald-500/8 blur-2xl" />
-                          )}
+                          {/* Solved accent line */}
+                          <div className={cn(
+                            "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300",
+                            problem.solved ? "bg-emerald-500" : "bg-transparent",
+                          )} />
 
                           {/* Header */}
-                          <CardHeader className="flex-row items-center justify-between p-5 pb-0 space-y-0 relative z-10">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-[11px] font-mono text-muted-foreground/40 font-semibold tabular-nums">
+                          <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
-                              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider", m.color, m.border)}>
-                                {problem.solved && <CheckCircle2 size={10} className="text-emerald-400" />}
-                                {m.label}
-                              </div>
+                              <span className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                diffColor[d] || diffColor[3],
+                              )}>
+                                {diffLabel[d] || "Medium"}
+                              </span>
                             </div>
-                            {langs.length > 0 && (
-                              <div className="flex items-center gap-1.5">
-                                {langs.map((lang) => (
-                                  <span key={lang} className={cn(
-                                    "flex items-center justify-center w-6 h-6 rounded-md border",
-                                    lang === "go" ? "bg-sky-500/10 border-sky-500/25" : "bg-yellow-500/10 border-yellow-500/25",
-                                  )}>
-                                    <LanguageLogo language={lang as "go" | "python"} size={12} />
-                                  </span>
-                                ))}
-                              </div>
+                            {problem.solved ? (
+                              <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/15 mt-0.5 shrink-0" />
                             )}
                           </CardHeader>
 
                           {/* Body */}
-                          <CardContent className="p-5 pt-3.5 relative z-10 flex-1 flex flex-col">
-                            <CardTitle className="text-[15px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
-                              {problem.title}
-                            </CardTitle>
+                          <CardContent className="px-5 pb-3 flex-1 flex flex-col">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <CardTitle className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                                {problem.title}
+                              </CardTitle>
+                              {langs.length > 0 && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {langs.map((lang) => (
+                                    <span key={lang} className={cn(
+                                      "flex items-center justify-center w-7 h-7 rounded-lg border",
+                                      lang === "go" ? "bg-sky-500/10 border-sky-500/25" : "bg-yellow-500/10 border-yellow-500/25",
+                                    )}>
+                                      <LanguageLogo language={lang as "go" | "python"} size={16} />
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
-                            <p className="text-xs text-muted-foreground/65 leading-relaxed line-clamp-2 mb-auto min-h-[2.2em]">
+                            <p className="text-xs text-muted-foreground/60 leading-relaxed line-clamp-2 mb-auto">
                               {problem.statement ? (
                                 problem.statement
                                   .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
@@ -528,11 +539,10 @@ export default function Dashboard() {
                               )}
                             </p>
 
-                            {/* Tags */}
                             {problem.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-3">
+                              <div className="flex flex-wrap gap-1 mt-3">
                                 {problem.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="text-[10px] font-medium bg-muted/30 text-muted-foreground/50 px-2 py-0.5 rounded-md border border-border/30">
+                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-muted/20 px-2 py-0.5 rounded-md border border-border/20">
                                     {tag}
                                   </span>
                                 ))}
@@ -544,33 +554,32 @@ export default function Dashboard() {
                           </CardContent>
 
                           {/* Footer */}
-                          <CardFooter className="p-5 pt-3 border-t border-border/30 relative z-10">
+                          <CardFooter className="px-5 py-3 border-t border-border/20">
                             <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground/50 font-medium">
-                                <span className="flex items-center gap-1.5">
-                                  <Code size={12} className="shrink-0 text-muted-foreground/40" />
+                              <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium">
+                                <span className="flex items-center gap-1">
+                                  <Code size={11} className="shrink-0 text-muted-foreground/30" />
                                   {problem.total_submissions || 0}
                                 </span>
-                                <span className="flex items-center gap-1.5">
-                                  <BarChart2 size={12} className="shrink-0 text-muted-foreground/40" />
+                                <span className="flex items-center gap-1">
+                                  <BarChart2 size={11} className="shrink-0 text-muted-foreground/30" />
                                   {Math.round(problem.success_rate || 0)}%
                                 </span>
-                                <span className="flex items-center gap-1.5">
-                                  <Clock size={12} className="shrink-0 text-muted-foreground/40" />
+                                <span className="flex items-center gap-1">
+                                  <Clock size={11} className="shrink-0 text-muted-foreground/30" />
                                   {problem.estTimeMinutes || 0}m
                                 </span>
                               </div>
                               <div className={cn(
-                                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all",
-                                "bg-primary/5 border border-primary/15",
-                                problem.solved ? "bg-emerald-500/10 border-emerald-500/20" : "group-hover:bg-primary/10 group-hover:border-primary/25",
+                                "flex items-center gap-1 px-2 py-1 rounded-md transition-all",
+                                problem.solved
+                                  ? "bg-emerald-500/10 text-emerald-400"
+                                  : "bg-primary/5 text-primary group-hover:bg-primary/10",
                               )}>
-                                <svg width="11" height="14" viewBox="0 0 12 16" fill="currentColor" className={cn("shrink-0", problem.solved ? "text-emerald-400" : "text-primary")}>
+                                <svg width="10" height="13" viewBox="0 0 12 16" fill="currentColor" className="shrink-0">
                                   <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
                                 </svg>
-                                <span className={cn("font-bold text-xs tabular-nums", problem.solved ? "text-emerald-400" : "text-primary")}>
-                                  +{problem.xpReward ?? 0}
-                                </span>
+                                <span className="font-bold text-[11px] tabular-nums">+{problem.xpReward ?? 0}</span>
                               </div>
                             </div>
                           </CardFooter>

@@ -416,20 +416,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             >
               {getDifficultyLabel(problem.difficulty)}
             </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border",
-                activeLanguage === "python"
-                  ? "text-[#FFD43B] bg-[#FFD43B]/10 border-[#FFD43B]/25"
-                  : "text-[#00ADD8] bg-[#00ADD8]/10 border-[#00ADD8]/25",
-              )}
-            >
-              <LanguageLogo
-                language={activeLanguage as "go" | "python"}
-                size={14}
-              />
-              {activeLanguage === "python" ? "Python" : "Go"}
-            </span>
+            
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
               {problem.module}
             </span>
@@ -536,21 +523,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   >
                     {getDifficultyLabel(problem.difficulty)}
                   </span>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border",
-                      activeLanguage === "python"
-                        ? "text-[#FFD43B] bg-[#FFD43B]/10 border-[#FFD43B]/30"
-                        : "text-[#00ADD8] bg-[#00ADD8]/10 border-[#00ADD8]/30",
-                    )}
-                  >
-                    <LanguageLogo
-                      language={activeLanguage as "go" | "python"}
-                      size={16}
-                      className="flex-shrink-0"
-                    />
-                    {activeLanguage === "python" ? "Python" : "Go"}
-                  </span>
+                  
                   {problem.solved && (
                     <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
                       ✓ Solved
