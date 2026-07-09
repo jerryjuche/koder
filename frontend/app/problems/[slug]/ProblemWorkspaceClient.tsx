@@ -125,7 +125,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
-        const lang = localStorage.getItem("koder_language") || "go";
+        const available = res.data.language_versions ? Object.keys(res.data.language_versions) : [];
+        const preferred = localStorage.getItem("koder_language") || "go";
+        const lang = available.length > 0 && !available.includes(preferred)
+          ? available[0]
+          : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
         setCode(scaffold);
@@ -758,51 +762,49 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
-                <button
-                  onClick={async () => {
-                    if (activeLanguage === "go") return;
-                    if (code !== scaffoldAtToggle) {
-                      setPendingLanguage("go");
-                      setLanguageConfirmOpen(true);
-                    } else {
-                      await applyLanguageSwitch("go");
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
-                    activeLanguage === "go"
-                      ? "bg-[#00ADD8]/15 text-[#00ADD8]"
-                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                  )}
-                >
-                  <LanguageLogo language="go" size={18} />
-                  Go
-                </button>
-                <div className="w-px bg-brand-charcoal-border self-stretch" />
-                <button
-                  onClick={async () => {
-                    if (activeLanguage === "python") return;
-                    if (code !== scaffoldAtToggle) {
-                      setPendingLanguage("python");
-                      setLanguageConfirmOpen(true);
-                    } else {
-                      await applyLanguageSwitch("python");
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
-                    activeLanguage === "python"
-                      ? "bg-[#FFD43B]/15 text-[#FFD43B]"
-                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                  )}
-                >
-                  <LanguageLogo language="python" size={18} />
-                  Python
-                </button>
-              </div>
+              {(() => {
+                const available = problem?.language_versions ? Object.keys(problem.language_versions) : ["go", "python"];
+                const langColors: Record<string, { active: string; text: string }> = {
+                  go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
+                  python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
+                };
+                return available.length > 1 ? (
+                  <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
+                    {available.map((lang, idx) => (
+                      <React.Fragment key={lang}>
+                        {idx > 0 && <div className="w-px bg-brand-charcoal-border self-stretch" />}
+                        <button
+                          onClick={async () => {
+                            if (activeLanguage === lang) return;
+                            if (code !== scaffoldAtToggle) {
+                              setPendingLanguage(lang);
+                              setLanguageConfirmOpen(true);
+                            } else {
+                              await applyLanguageSwitch(lang);
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                            activeLanguage === lang
+                              ? (langColors[lang]?.active || "bg-primary/15 text-primary")
+                              : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                          )}
+                        >
+                          <LanguageLogo language={lang as "go" | "python"} size={18} />
+                          {langColors[lang]?.text || lang}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-offwhite-muted">
+                    <LanguageLogo language={available[0] as "go" | "python"} size={18} />
+                    {langColors[available[0]]?.text || available[0]}
+                  </div>
+                );
+              })()}
               <span className="text-xs font-mono text-brand-offwhite-muted">
-                {activeLanguage === "python" ? "solution.py" : "solution.go"}
+                solution.{activeLanguage === "python" ? "py" : "go"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -812,8 +814,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </span>
               )}
               {saved &&
-                code !==
-                  (activeLanguage === "python" ? PYTHON_CODE : GO_CODE) && (
+                code !== scaffoldAtToggle && (
                   <span className="text-[10px] text-brand-success/60">
                     ● Saved
                   </span>
