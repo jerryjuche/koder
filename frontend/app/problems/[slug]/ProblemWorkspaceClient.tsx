@@ -125,7 +125,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
-        const available = res.data.language_versions ? Object.keys(res.data.language_versions) : [];
+        const available = res.data.language_versions
+          ? Object.entries(res.data.language_versions)
+              .filter(([_, spec]) => spec.func_name)
+              .map(([lang]) => lang)
+          : [];
         const preferred = localStorage.getItem("koder_language") || "go";
         const lang = available.length > 0 && !available.includes(preferred)
           ? available[0]
@@ -398,7 +402,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     );
   }
 
-  const availableLanguages = problem.language_versions ? Object.keys(problem.language_versions) : [];
+  const availableLanguages = problem.language_versions
+    ? Object.entries(problem.language_versions)
+        .filter(([_, spec]) => spec.func_name)
+        .map(([lang]) => lang)
+    : [];
   const langColors: Record<string, { active: string; text: string }> = {
     go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
     python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
