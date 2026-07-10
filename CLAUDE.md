@@ -34,27 +34,31 @@ koder/
 ├── internal/
 │   ├── api/                                   # HTTP handlers (chi router)
 │   │   ├── router.go                          # Route registration, middleware wiring, lifecycle
-│   │   ├── auth.go                            # POST /auth/register, /login, /google, /logout, check-username
-│   │   ├── me.go                              # GET /me, PUT /me/username, POST /me/delete-account
+│   │   ├── auth.go                            # POST /auth/register, /login, /google, /logout, check-username, complete-onboarding
+│   │   ├── me.go                              # GET /me, PUT /me/username, PUT /me/language, POST /me/delete-account
 │   │   ├── change_password.go                 # POST /auth/change-password, /verify-pin, /set-pin
 │   │   ├── pin_reset.go                       # POST /auth/forgot-password-pin, /reset-password-pin
-│   │   ├── password_reset.go                  # POST /auth/forgot-password, /reset-password (email-based)
-│   │   ├── problems.go                        # GET /problems, GET /problems/:slug
-│   │   ├── submissions.go                     # POST /submit (rate-limited, scoring)
-│   │   ├── test.go                            # POST /test (no-scoring execution)
-│   │   ├── admin.go                           # Admin endpoints: ingest, enrich, stats, publish, visibility
-│   │   ├── leaderboard.go                     # GET /leaderboard?period=
+│   │   ├── password_reset.go                  # POST /auth/forgot-password, /reset-password (email-based via Resend)
+│   │   ├── problems.go                        # GET /problems?language=, GET /problems/:slug (language_versions-aware)
+│   │   ├── submissions.go                     # POST /submit (rate-limited, scoring, language validation)
+│   │   ├── test.go                            # POST /test (no-scoring execution, language inference)
+│   │   ├── admin.go                           # Admin: ingest, enrich, enrich-all, stats, publish, visibility, update
+│   │   ├── leaderboard.go                     # GET /leaderboard?period= (30s cache)
 │   │   ├── profile.go                         # GET/PUT /me/profile
-│   │   ├── community.go                       # GET community solutions, POST/DELETE likes
-│   │   ├── contributions.go                   # POST /user-problems, GET /me/contributions
+│   │   ├── community.go                       # GET community solutions, GET best-practices, POST/DELETE likes
+│   │   ├── contributions.go                   # POST /user-problems (verified_contributor+), GET /me/contributions
 │   │   ├── activity.go                        # GET /me/activity?year=
-│   │   ├── notifications.go                   # GET /notifications, POST read-all, POST read
-│   │   ├── feedback.go                        # POST /feedback, GET admin/mine, PATCH status
+│   │   ├── notifications.go                   # GET /notifications, GET /notifications/recent, POST read-all, POST read
+│   │   ├── feedback.go                        # POST /feedback (10MB), GET admin/mine, PATCH status, GET problem-reports
 │   │   ├── broadcasts.go                      # CRUD + dismiss for broadcast announcements
-│   │   ├── cache.go                           # In-memory response cache with TTL + stop channel
-│   │   ├── ws.go                              # WebSocket upgrade handler (gorilla/websocket)
-│   │   ├── middleware.go                      # AuthMiddleware, AdminOnly, RateLimit, CORS, Recovery, SecurityHeaders
-│   │   └── responses.go                       # RespondSuccess, RespondError shared helpers
+│   │   ├── cache.go                           # In-memory caches: profileCache, userCacheMap, leaderboardCache (30s TTL)
+│   │   ├── ws.go                              # WebSocket upgrade handler (gorilla/websocket, broker pub/sub)
+│   │   ├── middleware.go                      # RequestLogging, Recovery, CORS, SecurityHeaders, Auth, AdminOnly,
+│   │   │                                        VerifiedContributorOnly, RateLimit(5/45s), IPRateLimiter(10/min), BodySizeLimit
+│   │   ├── middleare_test.go                  # RateLimiter, IPRateLimiter, Auth, AdminOnly, CORS, Recovery tests
+│   │   ├── responses.go                       # RespondSuccess, RespondCreated, RespondError, SetAuthCookie, ClearAuthCookie
+│   │   ├── responses_test.go                  # Response helpers tests
+│   │   └── handlers/                          # Handler-specific sub-package (future extraction)
 │   ├── store/                                 # Database access layer (pgx/v5)
 │   │   ├── store.go                           # Store interface (full DB contract) + PostgresStore impl
 │   │   ├── types.go                           # All data types: User, Problem, Submission, Progress, etc.
@@ -74,12 +78,15 @@ koder/
 │   │   └── password_reset.go                  # PIN + email password reset tokens
 │   ├── executor/                              # Code execution engine
 │   │   ├── executor.go                        # Execute() and ExecuteVisibleOnly() — orchestrator
+│   │   │                                        (formatGoLiteral, formatPythonLiteral, executePython,
+│   │   │                                         resolveProblemLanguageMeta, goToSnakeCase,
+│   │   │                                         EnhancePythonError, isPythonErrorLine)
 │   │   ├── parser.go                          # ParseTestOutput — GOT/WANT regex extraction
 │   │   ├── sandbox.go                         # PrepareSandbox — temp dir setup, file writes
 │   │   ├── sandbox_client.go                  # HTTP client for remote Railway sandbox
-│   │   ├── templates.go                       # Go text/template for main_test.go generation
+│   │   ├── templates.go                       # Go text/template + pythonTestTemplate templates
 │   │   └── types.go                           # ExecutionRequest, ExecutionResult, TestResult
-│   ├── enricher/enricher.go                   # AI test generation (Gemini + Groq providers)
+│   ├── enricher/enricher.go                   # AI test generation (Gemini + Groq providers, dual Go/Python)
 │   ├── broker/broker.go                       # In-memory pub/sub for WebSocket events
 │   ├── parser/parser.go                       # GitHub YAML curriculum parser
 │   ├── auth/
@@ -102,9 +109,11 @@ koder/
 │   │   │   ├── forgot-password/page.tsx       # PIN-based forgot password flow
 │   │   │   ├── reset-password/page.tsx        # Password reset from token
 │   │   │   └── onboarding/page.tsx            # Post-registration username/student_id setup
-│   │   ├── (main)/                            # Authenticated routes
-│   │   │   ├── layout.tsx                     # Main layout: TopNav + BroadcastBanner
+│   │   ├── (main)/                            # Authenticated routes (UserProvider wrapper)
+│   │   │   ├── layout.tsx                     # Main layout: TopNav + BroadcastBanner + FeedbackButton
+│   │   │   ├── error.tsx                      # Main error boundary
 │   │   │   ├── home/page.tsx                  # Dashboard: problem grid, module cards, pagination
+│   │   │   ├── home/loading.tsx               # Dashboard skeleton loading state
 │   │   │   ├── leaderboard/
 │   │   │   │   ├── page.tsx                   # Leaderboard server component
 │   │   │   │   ├── LeaderboardClient.tsx      # Client component with period filter
@@ -125,8 +134,11 @@ koder/
 │   │   │   │       ├── ContributionGraphSection.tsx  # GitHub-style heatmap
 │   │   │   │       └── MyContributions.tsx    # User-submitted problem list
 │   │   │   ├── settings/page.tsx              # Settings: profile, security, notifications tabs
+│   │   │   ├── settings/error.tsx             # Settings error boundary
 │   │   │   ├── contribute/page.tsx            # Community problem contribution form
+│   │   │   ├── contribute/error.tsx           # Contribute error boundary
 │   │   │   ├── problems/[slug]/success/page.tsx  # Post-submission success screen
+│   │   │   ├── problems/[slug]/error.tsx      # Workspace error boundary
 │   │   │   └── admin/
 │   │   │       ├── page.tsx                   # Admin dashboard: tabs for each section
 │   │   │       ├── FeedbackPanel.tsx          # Feedback list with status filters
@@ -143,11 +155,13 @@ koder/
 │   │       ├── privacy/page.tsx               # Privacy policy
 │   │       └── terms/page.tsx                 # Terms of service
 │   ├── components/
-│   │   ├── BroadcastBanner.tsx                # Color-coded dismissable banner with 5s polling
+│   │   ├── BroadcastBanner.tsx                # Color-coded dismissable banner with 30s polling
 │   │   ├── FeedbackButton.tsx                 # Floating feedback modal (general/bug/feature)
 │   │   ├── GoogleLinkBanner.tsx               # Amber banner to link Google account
 │   │   ├── LandingContent.tsx                 # Landing page marketing content
-│   │   ├── TestResultPanel.tsx                # LCS-based unified diff display
+│   │   ├── LanguageLogo.tsx                   # Go/Python SVG icon renderer
+│   │   ├── LanguageSelector.tsx               # Onboarding language selection dropdown
+│   │   ├── TestResultPanel.tsx                # LCS-based unified diff display with debug tips
 │   │   ├── multi-step-loader-demo.tsx         # Loading animation demo
 │   │   ├── auth/                              # Auth form components
 │   │   │   ├── google-button.tsx              # Dark Google Sign-In button with SVG
@@ -201,12 +215,15 @@ koder/
 │   ├── components.json                        # shadcn/ui config
 │   └── package.json                           # Dependencies and scripts
 ├── sandbox/                                   # Remote code execution service (Railway)
-│   ├── main.go                                # HTTP server: /health, /version, /execute
+│   ├── main.go                                # HTTP server: /health, /version, /execute, language routing
 │   ├── ratelimit.go                           # Per-IP sliding window: 10 req/min
-│   ├── secure.go                              # Pre-exec malicious code validation
-│   ├── secure_unix.go                         # setrlimit, process group isolation
+│   ├── secure.go                              # Pre-exec malicious code validation (Go + Python patterns)
+│   ├── secure_unix.go                         # setrlimit, process group isolation, Python RLIMIT_AS
 │   ├── secure_other.go                        # Noop for non-Unix platforms
-│   ├── Dockerfile                             # Two-stage ARM64 build
+│   ├── runtest_go.go                          # Go test runner (go.mod, solution.go, main_test.go)
+│   ├── pyrunner.go                            # Python test runner (AST validation, run_tests.py)
+│   ├── security_message_test.go               # Validates sandbox security messages
+│   ├── Dockerfile                             # Two-stage ARM64 build (includes python3)
 │   └── go.mod                                 # Standalone module, zero external deps
 ├── migrations/                                # Database migrations (ordered, idempotent)
 │   ├── 001_init.sql                           # Core schema: users, problems, submissions, progress
@@ -235,7 +252,15 @@ koder/
 │   ├── 023_split_problem_fields.sql           # constraints + learning_objective columns
 │   ├── 024_add_username_set.sql               # username_set flag for onboarding
 │   ├── 025_report_issue_fields.sql            # problem_slug, code_snippet, error_message on feedback
-│   └── 026_output_logs_ttl.sql                # TTL cleanup for old output logs
+│   ├── 026_output_logs_ttl.sql                # TTL cleanup for old output logs
+│   ├── 027_language_versions.sql              # Multi-language: language_versions JSONB column
+│   ├── 028_backfill_language_versions.sql     # Backfill Python entries for 180 seed problems
+│   ├── 029_ensure_language_versions.sql       # Guarantees every problem has Go + Python entries
+│   ├── 031_python_intermediate_seed.sql       # 10 Python intermediate problems
+│   ├── 032_python_variables_math_seed.sql     # Python variables & math operators seed
+│   ├── 033_add_user_problems_language_versions.sql  # language_versions on community contributions
+│   ├── 034_python_arrays_strings_seed.sql     # 7 Python arrays & strings problems
+│   └── 999_seed_python_test.sql               # Python seed test migration
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (keeps users)
 │   ├── setup-docker-cache.sh                  # Docker build cache setup
@@ -299,7 +324,8 @@ POST /admin/enrich (single) | POST /admin/enrich-all (batch)
   → Rate limit: 30s Gemini / 2s Groq between calls
   → Send raw README to AI with structured schema
   → Parse ResponseSchema JSON output
-  → Validate: title, func_name, 3 hints, 5+ test cases
+  → Validate: title, func_name, 3 hints, 5+ test cases, language_versions (Go + Python)
+  → Auto-generate Python entry via toSnakeCase()/toPythonType() if AI omits it
   → Upsert enriched problem + test cases in single transaction
   → Cache result via source_hash
 ```
@@ -309,13 +335,23 @@ POST /admin/enrich (single) | POST /admin/enrich-all (batch)
 POST /submit (scoring) | POST /test (no-score)
   → Acquire semaphore slot (max 6 concurrent)
   → Fetch problem + test cases from DB
-  → Format test case inputs as Go literals
+  → Resolve language-specific metadata from LanguageVersions
+  → Route to language-specific executor (Go or Python):
+
+  Go path:
+  → Format test case inputs as Go literals (formatGoLiteral)
   → Generate main_test.go via text/template
   → Write solution.go + main_test.go to temp dir
+
+  Python path:
+  → Format test case inputs as Python literals (formatPythonLiteral)
+  → Generate run_tests.py via pythonTestTemplate
+  → Write solution.py + run_tests.py to temp dir
+
   → Execute:
       PRIMARY: HTTP POST to remote sandbox (Railway)
-      FALLBACK: docker run golang:1.23-alpine (local)
-  → Parse `go test -v` output (GOT/WANT regex)
+      FALLBACK: docker run golang:1.23-alpine / python:3.12-slim (local)
+  → Parse Go-compatible test output (GOT/WANT regex)
   → Classify: passed/failed/compiler_error/timeout
   → Record submission + update progress in DB
   → Return ExecutionResult with per-test-case diff
@@ -335,10 +371,10 @@ POST /submit (scoring) | POST /test (no-score)
 | `submissions` | Student solution attempts | id, user_id, problem_id, code, status, passed_count, total_count, output_logs, runtime_ms |
 | `progress` | Per-user problem state | user_id + problem_id (PK), solved, stars, attempts, best_runtime, xp_awarded |
 | `activity_logs` | Admin audit trail | id, type, message, color, icon |
-| `user_problems` | Community contributions | id, user_id, slug, title, statement, test_cases (JSON), status (pending/approved/rejected) |
+| `user_problems` | Community contributions | id, user_id, slug, title, statement, test_cases (JSON), status (pending/approved/rejected), language_versions (JSONB) |
 | `notifications` | User alerts | id, user_id, type, message, related_id, is_read |
 | `submission_likes` | Community solution likes | user_id + submission_id (PK) |
-| `feedback` | Bug reports & feature requests | id, type, priority, status, screenshot_url, problem_slug, code_snippet, error_message |
+| `feedback` | Bug reports & feature requests | id, type, priority, status, screenshot_url, problem_slug, code_snippet, error_message, problem_title |
 | `broadcasts` | System-wide announcements | id, type, priority, title, message, action_label/url, active |
 | `user_broadcast_status` | Per-user dismissal tracking | user_id + broadcast_id (PK), dismissed_at |
 | `password_reset_tokens` | Email-based password reset | email, token_hash, expires_at, used |
@@ -375,8 +411,9 @@ POST /submit (scoring) | POST /test (no-score)
 ### User (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /me | `me.go:GetMe` | Current user with stats, google_linked, username_set |
+| GET | /me | `me.go:GetMe` | Current user with stats, google_linked, username_set, primary_language |
 | PUT | /me/username | `me.go:SetUsername` | One-time username set (403 if already set) |
+| PUT | /me/language | `me.go:UpdateLanguage` | Set primary language preference | |
 | POST | /me/delete-account | `me.go:DeleteAccount` | Transactional cascade delete |
 | GET | /me/profile | `profile.go:GetProfile` | Full profile with rank, stats, module proficiency |
 | PUT | /me/profile | `profile.go:UpdateProfile` | Update name and bio |
@@ -878,10 +915,24 @@ npm run build   # Builds static + server components
 - **3 style files** (globals, theme vars 856 lines, typography 430 lines)
 
 **Backend file inventory (post-indexing):**
-- **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
-- **13 test files** across 7 packages, 124 tests total
-- **32 migrations** from 001_init to 034_python_arrays_strings_seed
-- **Sandbox**: 8 source files (zero external dependencies), standalone Go binary
+- **7 internal packages**: api (25 source files incl. handlers/), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (19 source files) = 63 total .go files
+- **12 test files** across 7 packages, 124 tests total, `go vet` clean
+- **35 migrations** from 001_init to 999_seed_python_test (includes 027-034, 999)
+- **Sandbox**: 8 source files (zero external deps), standalone Go binary
+
+### 2026-07-10 — Professional codebase indexing session
+
+**Context:** Full read-through of all source files across backend (Go 1.26), frontend (Next.js 15/React 19), sandbox (Go standalone), and 35 migrations. Verified all file inventories, route tables, type definitions, and component lists against actual filesystem.
+
+**Updated CLAUDE.md:**
+- Repository structure tree: added `handlers/`, `middleware_test.go`, `responses_test.go`, `runtest_go.go`, `pyrunner.go`, `security_message_test.go`, `LanguageLogo.tsx`, `LanguageSelector.tsx`, 5 `error.tsx` boundaries, `home/loading.tsx`
+- API endpoints: added `PUT /me/language`, `GET /me/contributions`, `GET /notifications/recent`, `GET /best-practices`, `PATCH /admin/feedback`, `GET /admin/problem-reports`, `/admin/broadcasts` CRUD
+- Middleware: documented full chain order with line numbers, added `RequestLoggingMiddleware`, `VerifiedContributorOnly`, `IPRateLimiter.Middleware`, `BodySizeLimitMiddleware`, `SecurityHeadersMiddleware` (CSP)
+- Executor pipeline: dual Go/Python paths with `formatGoLiteral`/`formatPythonLiteral`/`executePython`/`EnhancePythonError`
+- Enricher pipeline: dual-language schema, `language_versions` generation, Python fallback via `toSnakeCase()`/`toPythonType()`
+- Migration inventory: 35 migrations from `001_init` → `999_seed_python_test`
+- Config: added `PythonDockerImage`, `PythonExecutorTimeout`, `PythonSandboxURL`
+- Session log: entries through 2026-07-10
 
 ---
 

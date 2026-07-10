@@ -18,12 +18,14 @@ type App struct {
 	Handler         http.Handler
 	rateLimiter     *RateLimiter
 	authRateLimiter *IPRateLimiter
+	aiRateLimiter   *RateLimiter
 }
 
 // Shutdown stops all background goroutines managed by the API layer.
 func (a *App) Shutdown() {
 	a.rateLimiter.Stop()
 	a.authRateLimiter.Stop()
+	a.aiRateLimiter.Stop()
 	StopCaches()
 }
 
@@ -47,6 +49,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 
 	rateLimiter := NewRateLimiter(5, 45*time.Second)
 	slog.Info("rate_limiter: enabled", "max_requests", 5, "window_seconds", 45)
+
+	aiRateLimiter := NewRateLimiter(15, 1*time.Minute)
+	slog.Info("ai_rate_limiter: enabled", "max_requests", 15, "window_seconds", 60)
 
 	adminHandler, err := NewAdminHandler(store, cfg, b)
 	if err != nil {
@@ -89,6 +94,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/register", authHandler.Register)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/login", authHandler.Login)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/google", authHandler.GoogleAuth)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password-pin", pinResetHandler.ForgotPasswordPin)
@@ -103,6 +109,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.Get("/me", meHandler.GetMe)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/me/username", meHandler.SetUsername)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Put("/me/language", meHandler.UpdateLanguage)
+		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Get("/me/export-data", meHandler.ExportData)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/me/delete-account", meHandler.DeleteAccount)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/logout", authHandler.Logout)
 
@@ -162,6 +169,8 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/ingest", adminHandler.Ingest)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/enrich", adminHandler.Enrich)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/enrich-all", adminHandler.EnrichAll)
+			r.With(AIRateLimitMiddleware(aiRateLimiter), BodySizeLimitMiddleware(1*1024*1024)).Post("/admin/ai/assist", adminHandler.AIAssist)
+			r.Get("/admin/ai/usage", adminHandler.GetAIUsage)
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)
 			r.Get("/admin/problems", adminHandler.ListAllProblems)
@@ -192,5 +201,6 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		Handler:         r,
 		rateLimiter:     rateLimiter,
 		authRateLimiter: authRateLimiter,
+		aiRateLimiter:   aiRateLimiter,
 	}, nil
 }

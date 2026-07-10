@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -1120,4 +1121,116 @@ func (s *PostgresStore) CalculateStreak(ctx context.Context, userID uuid.UUID) (
 		return 0, fmt.Errorf("failed to calculate streak: %w", err)
 	}
 	return days, nil
+}
+
+// GetUserExportData collects all user data for account export as a JSON-serializable map.
+func (s *PostgresStore) GetUserExportData(ctx context.Context, userID uuid.UUID) (map[string]any, error) {
+	result := make(map[string]any)
+
+	// User profile
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	result["user"] = map[string]any{
+		"id":              uuid.UUID(user.ID.Bytes).String(),
+		"username":        user.Username,
+		"student_id":      user.StudentID,
+		"name":            user.Name,
+		"email":           user.Email,
+		"role":            user.Role,
+		"xp":              user.XP,
+		"primary_language": user.PrimaryLanguage,
+		"created_at":      user.CreatedAt,
+	}
+
+	// Submissions
+	rows, err := s.pool.Query(ctx, `
+		SELECT s.id, s.problem_id, p.slug, s.language, s.status, s.passed_count, s.total_count,
+		       s.runtime_ms, s.created_at
+		FROM submissions s
+		LEFT JOIN problems p ON p.id = s.problem_id
+		WHERE s.user_id = $1
+		ORDER BY s.created_at DESC
+	`, userID)
+	if err == nil {
+		defer rows.Close()
+		var submissions []map[string]any
+		for rows.Next() {
+			var subID, probID pgtype.UUID
+			var slug, lang, status string
+			var passed, total, runtime int
+			var createdAt time.Time
+			if err := rows.Scan(&subID, &probID, &slug, &lang, &status, &passed, &total, &runtime, &createdAt); err == nil {
+				submissions = append(submissions, map[string]any{
+					"id":           uuid.UUID(subID.Bytes).String(),
+					"problem_slug": slug,
+					"language":     lang,
+					"status":       status,
+					"passed":       passed,
+					"total":        total,
+					"runtime_ms":   runtime,
+					"created_at":   createdAt,
+				})
+			}
+		}
+		result["submissions"] = submissions
+	}
+
+	// Progress
+	rows2, err := s.pool.Query(ctx, `
+		SELECT pr.problem_id, p.slug, pr.solved, pr.stars, pr.attempts, pr.xp_awarded
+		FROM progress pr
+		LEFT JOIN problems p ON p.id = pr.problem_id
+		WHERE pr.user_id = $1
+	`, userID)
+	if err == nil {
+		defer rows2.Close()
+		var progress []map[string]any
+		for rows2.Next() {
+			var probID pgtype.UUID
+			var slug string
+			var solved bool
+			var stars, attempts, xp int
+			if err := rows2.Scan(&probID, &slug, &solved, &stars, &attempts, &xp); err == nil {
+				progress = append(progress, map[string]any{
+					"problem_slug": slug,
+					"solved":       solved,
+					"stars":        stars,
+					"attempts":     attempts,
+					"xp_awarded":   xp,
+				})
+			}
+		}
+		result["progress"] = progress
+	}
+
+	// Feedback
+	rows3, err := s.pool.Query(ctx, `
+		SELECT id, type, title, status, created_at
+		FROM feedback
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`, userID)
+	if err == nil {
+		defer rows3.Close()
+		var feedback []map[string]any
+		for rows3.Next() {
+			var id pgtype.UUID
+			var ftype, title, status string
+			var createdAt time.Time
+			if err := rows3.Scan(&id, &ftype, &title, &status, &createdAt); err == nil {
+				feedback = append(feedback, map[string]any{
+					"id":         uuid.UUID(id.Bytes).String(),
+					"type":       ftype,
+					"title":      title,
+					"status":     status,
+					"created_at": createdAt,
+				})
+			}
+		}
+		result["feedback"] = feedback
+	}
+
+	return result, nil
 }

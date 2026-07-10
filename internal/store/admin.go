@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // LogActivity inserts a new activity log event into the database.
@@ -60,9 +61,15 @@ func (s *PostgresStore) GetAdminStats(ctx context.Context) (*AdminStats, error) 
 		SELECT 
 			(SELECT COUNT(*) FROM problems),
 			(SELECT COUNT(*) FROM problems WHERE visible = true),
-			(SELECT COUNT(*) FROM submissions)
+			(SELECT COUNT(*) FROM submissions),
+			(SELECT COUNT(*) FROM ai_usage_logs),
+			(SELECT COUNT(*) FROM ai_usage_logs WHERE created_at >= $1)
 	`
-	err := s.pool.QueryRow(ctx, query).Scan(&stats.TotalProblems, &stats.ActiveProblems, &stats.TotalSubmissions)
+	todayStart := time.Now().Truncate(24 * time.Hour)
+	err := s.pool.QueryRow(ctx, query, todayStart).Scan(
+		&stats.TotalProblems, &stats.ActiveProblems, &stats.TotalSubmissions,
+		&stats.TotalAICalls, &stats.AICallsToday,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate admin stats: %w", err)
 	}

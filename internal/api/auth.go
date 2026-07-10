@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -50,8 +51,9 @@ type completeGoogleRequest struct {
 }
 
 type authResponse struct {
-	Token      string `json:"token"`
-	Onboarding bool   `json:"onboarding,omitempty"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	Onboarding   bool   `json:"onboarding,omitempty"`
 }
 
 func uuidStringFromPGType(id pgtype.UUID) (string, error) {
@@ -135,15 +137,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Issue JWT with onboarding flag — user must set their username
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), true)
+	// Issue access token + refresh token with onboarding flag
+	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, true, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 		return
 	}
-
-	SetAuthCookie(w, r, token, h.config)
-	RespondCreated(w, authResponse{Token: token, Onboarding: true})
+	RespondCreated(w, resp)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -177,14 +177,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
+	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 		return
 	}
-
-	SetAuthCookie(w, r, token, h.config)
-	RespondSuccess(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
+	RespondSuccess(w, resp)
 }
 
 // GoogleAuth handles Google Sign-In.
@@ -223,14 +221,12 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(user.ID)
-		token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
+		resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 			return
 		}
-
-		SetAuthCookie(w, r, token, h.config)
-		RespondSuccess(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
+		RespondSuccess(w, resp)
 		return
 	}
 
@@ -249,14 +245,12 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userID, _ := uuidStringFromPGType(existingUser.ID)
-		token, err := auth.SignToken(userID, existingUser.StudentID, existingUser.Username, existingUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !existingUser.UsernameSet)
+		resp, err := h.issueTokens(r.Context(), userID, existingUser.StudentID, existingUser.Username, existingUser.Role, !existingUser.UsernameSet, true, w, r)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 			return
 		}
-
-		SetAuthCookie(w, r, token, h.config)
-		RespondSuccess(w, authResponse{Token: token, Onboarding: !existingUser.UsernameSet})
+		RespondSuccess(w, resp)
 		return
 	}
 
@@ -341,14 +335,12 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 	}
 
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
-	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !updatedUser.UsernameSet)
+	resp, err := h.issueTokens(r.Context(), userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, !updatedUser.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 		return
 	}
-
-	SetAuthCookie(w, r, token, h.config)
-	RespondSuccess(w, authResponse{Token: token})
+	RespondSuccess(w, resp)
 }
 
 // LinkGoogle links a Google account to the currently authenticated user.
@@ -423,14 +415,12 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
-	token, err := auth.SignToken(userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, h.config.JWTSecret, h.config.JWTExpiry(), !updatedUser.UsernameSet)
+	resp, err := h.issueTokens(r.Context(), userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, !updatedUser.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 		return
 	}
-
-	SetAuthCookie(w, r, token, h.config)
-	RespondSuccess(w, authResponse{Token: token})
+	RespondSuccess(w, resp)
 }
 
 // CheckUsername always returns available: true to prevent username enumeration.
@@ -447,6 +437,119 @@ func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		"username":  username,
 		"available": true,
 	})
+}
+
+// issueTokens creates a short-lived access token + cryptographically random refresh token,
+// persists the refresh token (SHA-256 hashed), and returns the auth response.
+func (h *AuthHandler) issueTokens(ctx context.Context, userID, studentID, username, role string, onboarding bool, setCookie bool, w http.ResponseWriter, r *http.Request) (authResponse, error) {
+	accessToken, err := auth.SignToken(userID, studentID, username, role, h.config.JWTSecret, h.config.AccessTokenExpiry(), onboarding)
+	if err != nil {
+		return authResponse{}, fmt.Errorf("failed to sign access token: %w", err)
+	}
+
+	rawRefresh, refreshHash, err := auth.GenerateRefreshToken()
+	if err != nil {
+		return authResponse{}, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return authResponse{}, fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	if err := h.store.CreateRefreshToken(ctx, userUUID, refreshHash, time.Now().Add(h.config.RefreshTokenExpiry())); err != nil {
+		return authResponse{}, fmt.Errorf("failed to store refresh token: %w", err)
+	}
+
+	if setCookie {
+		SetAuthCookie(w, r, accessToken, h.config)
+	}
+
+	return authResponse{
+		Token:        accessToken,
+		RefreshToken: rawRefresh,
+		Onboarding:   onboarding,
+	}, nil
+}
+
+// refreshRequest is the payload for POST /auth/refresh.
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+// RefreshToken issues a new access token and refresh token (rotation) given a valid refresh token.
+// POST /auth/refresh
+func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var req refreshRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if req.RefreshToken == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "refresh_token is required", nil)
+		return
+	}
+
+	// Hash the incoming token to look it up
+	hash := auth.SHA256Hash(req.RefreshToken)
+
+	stored, err := h.store.GetRefreshToken(r.Context(), hash)
+	if err != nil {
+		slog.Error("auth: refresh token lookup failed", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to verify refresh token", nil)
+		return
+	}
+	if stored == nil {
+		RespondError(w, http.StatusUnauthorized, "INVALID_REFRESH_TOKEN", "Refresh token not found", nil)
+		return
+	}
+
+	// Check revoked
+	if stored.Revoked {
+		// Token reuse detected — revoke all tokens for this user (rotation compromise)
+		userUUID := uuid.UUID(stored.UserID.Bytes)
+		_ = h.store.RevokeAllUserRefreshTokens(r.Context(), userUUID)
+		RespondError(w, http.StatusUnauthorized, "REFRESH_TOKEN_REVOKED", "Refresh token has been revoked. All sessions invalidated.", nil)
+		return
+	}
+
+	if time.Now().After(stored.ExpiresAt) {
+		RespondError(w, http.StatusUnauthorized, "REFRESH_TOKEN_EXPIRED", "Refresh token has expired. Please log in again.", nil)
+		return
+	}
+
+	// Revoke the old refresh token (rotation)
+	tokenUUID := uuid.UUID(stored.ID.Bytes)
+	if err := h.store.RevokeRefreshToken(r.Context(), tokenUUID); err != nil {
+		slog.Error("auth: failed to revoke old refresh token", "error", err)
+	}
+
+	// Issue new tokens
+	userUUID := uuid.UUID(stored.UserID.Bytes)
+	user, err := h.store.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		slog.Error("auth: failed to fetch user for refresh", "user_id", userUUID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "USER_LOOKUP_FAILED", "Failed to refresh token", nil)
+		return
+	}
+
+	userID, err := uuidStringFromPGType(user.ID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
+		return
+	}
+
+	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, false, true, w, r)
+	if err != nil {
+		slog.Error("auth: failed to issue new tokens on refresh", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Failed to issue new tokens", nil)
+		return
+	}
+
+	RespondSuccess(w, resp)
 }
 
 // Logout revokes the current JWT token by adding it to the blacklist.
@@ -471,8 +574,13 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.store.BlacklistToken(r.Context(), claims.ID, expiresAt); err != nil {
 		slog.Error("auth: failed to blacklist token", "error", err)
-		RespondError(w, http.StatusInternalServerError, "LOGOUT_FAILED", "Failed to complete logout", nil)
-		return
+	}
+
+	// Revoke all refresh tokens for this user
+	if userUUID, err := uuid.Parse(claims.UserID); err == nil {
+		if err := h.store.RevokeAllUserRefreshTokens(r.Context(), userUUID); err != nil {
+			slog.Error("auth: failed to revoke refresh tokens on logout", "user_id", claims.UserID, "error", err)
+		}
 	}
 
 	ClearAuthCookie(w, r)

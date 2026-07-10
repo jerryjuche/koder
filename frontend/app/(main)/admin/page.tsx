@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { AdminStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
+import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [aiUsageStats, setAIUsageStats] = useState<AIUsageStats | null>(null);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,13 +40,15 @@ export default function AdminDashboard() {
   const [problemsError, setProblemsError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [statsRes, logsRes, problemsRes] = await Promise.all([
+    const [statsRes, usageRes, logsRes, problemsRes] = await Promise.all([
       fetchAdminStats(),
+      fetchAIUsageStats(),
       fetchAdminActivity(),
       fetchAllProblemsAdmin()
     ]);
 
     if (statsRes.success && statsRes.data) setStats(statsRes.data);
+    if (usageRes.success && usageRes.data) setAIUsageStats(usageRes.data);
     if (logsRes.success && logsRes.data) setActivityLogs(logsRes.data);
     if (problemsRes.success && problemsRes.data) {
       setProblems(problemsRes.data);
@@ -215,7 +218,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Top Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <FileText size={20} className="text-brand-muted-gold mb-4" />
           <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_problems || 0}</div>
@@ -231,7 +234,38 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_submissions || 0}</div>
           <div className="text-sm text-brand-offwhite-muted font-medium">Total Submissions</div>
         </div>
+        <div className="bg-brand-charcoal-card border border-brand-cool-accent/30 rounded-2xl p-6">
+          <BrainCircuit size={20} className="text-brand-cool-accent mb-4" />
+          <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_ai_calls || 0}</div>
+          <div className="text-sm text-brand-offwhite-muted font-medium">AI Calls</div>
+          <div className="text-xs text-brand-offwhite-muted/70 mt-1">{stats?.ai_calls_today ?? 0} today</div>
+        </div>
       </div>
+
+      {/* AI Usage Details */}
+      {aiUsageStats && aiUsageStats.total_ai_calls > 0 && (
+        <div className="bg-brand-charcoal-card border border-brand-cool-accent/20 rounded-2xl p-5">
+          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-3">
+            <BrainCircuit size={16} className="text-brand-cool-accent" />
+            <span className="font-medium text-brand-offwhite">AI Usage</span>
+            <span className="text-xs">{aiUsageStats.total_ai_calls} total calls</span>
+          </div>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <div>
+              <span className="text-brand-offwhite-muted">This week: </span>
+              <span className="text-brand-offwhite font-medium">{aiUsageStats.ai_calls_this_week}</span>
+            </div>
+            <div>
+              <span className="text-brand-offwhite-muted">Success rate: </span>
+              <span className="text-brand-success font-medium">{aiUsageStats.success_rate}%</span>
+            </div>
+            <div>
+              <span className="text-brand-offwhite-muted">Avg response: </span>
+              <span className="text-brand-offwhite font-medium">{Math.round(aiUsageStats.avg_response_time_ms)}ms</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">

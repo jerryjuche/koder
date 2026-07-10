@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -175,7 +176,15 @@ func (h *AdminHandler) Enrich(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondSuccess(w, map[string]string{"slug": req.Slug})
+	// Re-fetch the fully saved problem to return to the caller
+	updated, err := h.store.GetProblemBySlugAny(r.Context(), req.Slug)
+	if err != nil {
+		slog.Warn("admin: enrich saved but refetch failed", "slug", req.Slug, "error", err)
+		RespondSuccess(w, map[string]string{"slug": req.Slug})
+		return
+	}
+
+	RespondSuccess(w, updated)
 }
 
 func (h *AdminHandler) EnrichAll(w http.ResponseWriter, r *http.Request) {
@@ -502,4 +511,96 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	})
 
 	RespondSuccess(w, updated)
+}
+
+// AIAssist performs a targeted AI editing action on a problem.
+// POST /admin/ai/assist
+func (h *AdminHandler) AIAssist(w http.ResponseWriter, r *http.Request) {
+	var req enricher.AIAssistRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request", nil)
+		return
+	}
+
+	if req.Problem == nil || req.Problem.Slug == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "problem with slug is required", nil)
+		return
+	}
+
+	// Fetch fresh problem from DB to ensure AI works with latest data
+	problem, err := h.store.GetProblemBySlugAny(r.Context(), req.Problem.Slug)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
+		return
+	}
+	req.Problem = problem
+
+	claims := GetClaims(r.Context())
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		slog.Error("admin: failed to parse user ID", "user_id", claims.UserID, "error", err)
+		RespondError(w, http.StatusBadRequest, "INVALID_USER", "Invalid user ID", nil)
+		return
+	}
+
+	start := time.Now()
+	result, err := h.enricher.AIAssistProblem(r.Context(), &req)
+	duration := time.Since(start)
+	respTimeMs := int(duration.Milliseconds())
+
+	// Estimate token count from request/response size
+	tokensIn := len(req.Message) / 4
+	if tokensIn < 10 {
+		tokensIn = 10
+	}
+	var tokensOut int
+	if err == nil {
+		tokensOut = len(result.Explanation) / 4
+		if tokensOut < 5 {
+			tokensOut = 5
+		}
+	}
+
+	if err != nil {
+		slog.Error("admin: ai assist failed", "slug", problem.Slug, "action", req.Action, "error", err)
+		h.store.LogAIUsage(r.Context(), userID, string(req.Action), problem.Slug, tokensIn, 0, respTimeMs, false, err.Error())
+		RespondError(w, http.StatusBadRequest, "AI_ASSIST_FAILED", err.Error(), nil)
+		return
+	}
+
+	h.store.LogAIUsage(r.Context(), userID, string(req.Action), problem.Slug, tokensIn, tokensOut, respTimeMs, true, "")
+
+	// Persist test cases immediately for test-case-related actions
+	if len(result.TestCases) > 0 {
+		problemID := uuid.UUID(problem.ID.Bytes)
+		if err := h.store.UpsertTestCasesForProblem(r.Context(), problemID, result.TestCases); err != nil {
+			slog.Error("admin: ai assist test case persistence failed", "slug", problem.Slug, "error", err)
+		} else {
+			slog.Info("admin: ai assist test cases saved",
+				"slug", problem.Slug,
+				"action", req.Action,
+				"count", len(result.TestCases),
+			)
+		}
+	}
+
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("AI assist '%s' on '%s' (%dms)", req.Action, problem.Slug, respTimeMs),
+		"text-brand-muted-gold", "Wand2",
+	)
+
+	RespondSuccess(w, result)
+}
+
+// GetAIUsage returns aggregate AI usage stats for the admin dashboard.
+func (h *AdminHandler) GetAIUsage(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.store.GetAIUsageStats(r.Context())
+	if err != nil {
+		slog.Error("admin: failed to get AI usage stats", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get AI usage stats", nil)
+		return
+	}
+	RespondSuccess(w, stats)
 }
