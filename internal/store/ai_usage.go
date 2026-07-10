@@ -39,7 +39,7 @@ func (s *PostgresStore) GetAIUsageStats(ctx context.Context) (*AIUsageStats, err
 				AVG(CASE WHEN success THEN response_time_ms ELSE NULL END)::float8, 0
 			) AS avg_ms,
 			CASE
-				WHEN COUNT(*) > 0 THEN ROUND(COUNT(*) FILTER (WHERE success)::float8 / COUNT(*) * 100, 1)
+				WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE success)::numeric / COUNT(*) * 100), 1)
 				ELSE 0
 			END AS success_rate
 		FROM ai_usage_logs
