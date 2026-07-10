@@ -393,9 +393,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
   };
 
-  handleFormatRef.current = handleFormat;
-  handleSubmitRef.current = handleSubmit;
-  handleTestRef.current = handleTest;
+  useEffect(() => {
+    handleFormatRef.current = handleFormat;
+    handleSubmitRef.current = handleSubmit;
+    handleTestRef.current = handleTest;
+  });
 
   if (!problem) {
     return (
