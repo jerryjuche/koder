@@ -49,6 +49,9 @@ func (s *PostgresStore) GetAIUsageStats(ctx context.Context) (*AIUsageStats, err
 		&stats.AvgResponseTimeMs, &stats.SuccessRate,
 	)
 	if err != nil {
+		if isRelationNotExist(err) {
+			return &AIUsageStats{}, nil
+		}
 		return nil, fmt.Errorf("failed to get AI usage stats: %w", err)
 	}
 

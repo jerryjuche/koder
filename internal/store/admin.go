@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -61,18 +62,36 @@ func (s *PostgresStore) GetAdminStats(ctx context.Context) (*AdminStats, error) 
 		SELECT 
 			(SELECT COUNT(*) FROM problems),
 			(SELECT COUNT(*) FROM problems WHERE visible = true),
-			(SELECT COUNT(*) FROM submissions),
-			(SELECT COUNT(*) FROM ai_usage_logs),
-			(SELECT COUNT(*) FROM ai_usage_logs WHERE created_at >= $1)
+			(SELECT COUNT(*) FROM submissions)
 	`
-	todayStart := time.Now().Truncate(24 * time.Hour)
-	err := s.pool.QueryRow(ctx, query, todayStart).Scan(
+	err := s.pool.QueryRow(ctx, query).Scan(
 		&stats.TotalProblems, &stats.ActiveProblems, &stats.TotalSubmissions,
-		&stats.TotalAICalls, &stats.AICallsToday,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate admin stats: %w", err)
 	}
 
+	// AI usage stats — graceful if table doesn't exist
+	todayStart := time.Now().Truncate(24 * time.Hour)
+	aiQuery := `
+		SELECT
+			(SELECT COUNT(*) FROM ai_usage_logs),
+			(SELECT COUNT(*) FROM ai_usage_logs WHERE created_at >= $1)
+	`
+	if err := s.pool.QueryRow(ctx, aiQuery, todayStart).Scan(
+		&stats.TotalAICalls, &stats.AICallsToday,
+	); err != nil {
+		if isRelationNotExist(err) {
+			stats.TotalAICalls = 0
+			stats.AICallsToday = 0
+		} else {
+			return nil, fmt.Errorf("failed to calculate admin stats: %w", err)
+		}
+	}
+
 	return &stats, nil
+}
+
+func isRelationNotExist(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "does not exist")
 }
