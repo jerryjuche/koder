@@ -2,21 +2,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const nonce = crypto.randomUUID().replace(/-/g, '');
-
   const response = NextResponse.next();
-
-  // Set nonce header for Next.js to use in rendering
-  response.headers.set('x-nonce', nonce);
 
   // Set strict CSP
   const csp = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval';
+    script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self' data:;
     connect-src 'self' https: wss:;
+    frame-src https://vercel.live;
     object-src 'none';
     base-uri 'self';
     frame-ancestors 'none';
