@@ -599,7 +599,7 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
                       Languages
                     </h4>
                     <div className="space-y-1">
-                      {Object.entries(previewData.languageVersions).map(([lang, spec]) => (
+                      {Object.entries(previewData.languageVersions).map(([lang, spec]: [string, { func_name: string; return_type: string; param_types: string[] }]) => (
                         <div key={lang} className="bg-brand-charcoal-base rounded-lg p-2 font-mono text-[10px]">
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className={cn(
