@@ -1443,6 +1443,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       return { suggestions: [] };
                     }
 
+                    const goSnippetLabels = new Set(goSnippets.map((s) => s.label));
                     const suggestions = [
                       ...goSnippets.map((s) => ({
                         label: s.label,
@@ -1461,13 +1462,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         range,
                         detail: "Go package",
                       })),
-                      ...keywords.map((kw) => ({
-                        label: kw,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: kw,
-                        range,
-                        detail: "Go keyword",
-                      })),
+                      ...keywords
+                        .filter((kw) => !goSnippetLabels.has(kw))
+                        .map((kw) => ({
+                          label: kw,
+                          kind: monaco.languages.CompletionItemKind.Keyword,
+                          insertText: kw,
+                          range,
+                          detail: "Go keyword",
+                        })),
                     ];
 
                     return { suggestions };
@@ -1660,6 +1663,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       startColumn: word.startColumn,
                       endColumn: position.column,
                     };
+                    const pySnippetLabels = new Set(pythonSnippets.map((s) => s.label));
                     const suggestions = [
                       ...pythonSnippets.map((s) => ({
                         label: s.label,
@@ -1671,13 +1675,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         range,
                         detail: s.detail,
                       })),
-                      ...pythonKeywords.map((kw) => ({
-                        label: kw,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: kw,
-                        range,
-                        detail: "Python keyword",
-                      })),
+                      ...pythonKeywords
+                        .filter((kw) => !pySnippetLabels.has(kw))
+                        .map((kw) => ({
+                          label: kw,
+                          kind: monaco.languages.CompletionItemKind.Keyword,
+                          insertText: kw,
+                          range,
+                          detail: "Python keyword",
+                        })),
                       ...pythonBuiltins.map((fn) => ({
                         label: fn,
                         kind: monaco.languages.CompletionItemKind.Function,
