@@ -718,10 +718,11 @@ func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt 
 		return "", fmt.Errorf("nvidia read response: %w", err)
 	}
 
-	// Retry on rate limit (429) with exponential backoff, up to 3 retries
-	if resp.StatusCode == 429 && attempt < 3 {
+	// Retry on rate limit (429) or service unavailable (503) with exponential backoff, up to 3 retries
+	if (resp.StatusCode == 429 || resp.StatusCode == 503) && attempt < 3 {
 		wait := time.Duration(1<<(attempt+1)) * time.Second
-		slog.Warn("nvidia rate limited, retrying",
+		slog.Warn("nvidia transient error, retrying",
+			"status", resp.StatusCode,
 			"retry_after_sec", wait.Seconds(),
 			"attempt", attempt+1,
 		)
