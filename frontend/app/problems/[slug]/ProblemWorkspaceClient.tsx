@@ -170,10 +170,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         if (e.shiftKey) handleSubmit();
         else handleTest();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleFormat();
-      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -1364,8 +1360,51 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   },
                 });
 
+                const goSnippets = [
+                  {
+                    label: "for",
+                    insertText: "for i := 0; i < ${1:n}; i++ {\n\t${0}\n}",
+                    detail: "For loop (classic)",
+                  },
+                  {
+                    label: "forr",
+                    insertText: "for ${1:_}, ${2:v} := range ${3:collection} {\n\t${0}\n}",
+                    detail: "For range loop",
+                  },
+                  {
+                    label: "iferr",
+                    insertText: "if ${1:err} != nil {\n\treturn ${0}\n}",
+                    detail: "If err != nil guard",
+                  },
+                  {
+                    label: "fn",
+                    insertText: "func ${1:name}(${2:args}) ${3:return} {\n\t${0}\n}",
+                    detail: "Function declaration",
+                  },
+                  {
+                    label: "switch",
+                    insertText: "switch ${1:expr} {\ncase ${2}:\n\t${0}\n}",
+                    detail: "Switch statement",
+                  },
+                  {
+                    label: "struct",
+                    insertText: "type ${1:Name} struct {\n\t${0}\n}",
+                    detail: "Struct type definition",
+                  },
+                  {
+                    label: "main",
+                    insertText: "func main() {\n\t${0}\n}",
+                    detail: "Main function",
+                  },
+                  {
+                    label: "type",
+                    insertText: "type ${1:Name} ${2:underlyingType}",
+                    detail: "Type definition",
+                  },
+                ];
+
                 monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: ["."],
+                  triggerCharacters: [".", " "],
                   provideCompletionItems: (model: any, position: any) => {
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -1405,6 +1444,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     }
 
                     const suggestions = [
+                      ...goSnippets.map((s) => ({
+                        label: s.label,
+                        kind: monaco.languages.CompletionItemKind.Snippet,
+                        insertText: s.insertText,
+                        insertTextRules:
+                          monaco.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                        range,
+                        detail: s.detail,
+                      })),
                       ...allPackages.map((pkg) => ({
                         label: pkg,
                         kind: monaco.languages.CompletionItemKind.Module,
@@ -1538,6 +1587,69 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   dict: "Rather than being a function, dict is a mapping type.",
                 };
 
+                const pythonSnippets = [
+                  {
+                    label: "def",
+                    insertText: "def ${1:name}(${2:args}):\n\t${0}\n",
+                    detail: "Function definition",
+                  },
+                  {
+                    label: "for",
+                    insertText: "for ${1:item} in ${2:collection}:\n\t${0}\n",
+                    detail: "For loop",
+                  },
+                  {
+                    label: "fori",
+                    insertText: "for ${1:i} in range(${2:n}):\n\t${0}\n",
+                    detail: "For i in range loop",
+                  },
+                  {
+                    label: "ifmain",
+                    insertText: "if __name__ == \"__main__\":\n\t${0}\n",
+                    detail: "Main guard",
+                  },
+                  {
+                    label: "if",
+                    insertText: "if ${1:condition}:\n\t${0}\n",
+                    detail: "If statement",
+                  },
+                  {
+                    label: "else",
+                    insertText: "else:\n\t${0}\n",
+                    detail: "Else statement",
+                  },
+                  {
+                    label: "elif",
+                    insertText: "elif ${1:condition}:\n\t${0}\n",
+                    detail: "Elif statement",
+                  },
+                  {
+                    label: "class",
+                    insertText: "class ${1:Name}:\n\tdef __init__(self${2:, args}):\n\t\t${0}\n",
+                    detail: "Class definition",
+                  },
+                  {
+                    label: "try",
+                    insertText: "try:\n\t${1}\nexcept ${2:Exception} as e:\n\t${0}\n",
+                    detail: "Try except block",
+                  },
+                  {
+                    label: "with",
+                    insertText: "with ${1:open}(${2:args}) as ${3:var}:\n\t${0}\n",
+                    detail: "With statement",
+                  },
+                  {
+                    label: "compr",
+                    insertText: "[${1:expr} for ${2:item} in ${3:collection}]",
+                    detail: "List comprehension",
+                  },
+                  {
+                    label: "enum",
+                    insertText: "for ${1:i}, ${2:item} in enumerate(${3:collection}):\n\t${0}\n",
+                    detail: "Enumerate loop",
+                  },
+                ];
+
                 monaco.languages.registerCompletionItemProvider("python", {
                   triggerCharacters: ["."],
                   provideCompletionItems: (model: any, position: any) => {
@@ -1549,6 +1661,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       endColumn: position.column,
                     };
                     const suggestions = [
+                      ...pythonSnippets.map((s) => ({
+                        label: s.label,
+                        kind: monaco.languages.CompletionItemKind.Snippet,
+                        insertText: s.insertText,
+                        insertTextRules:
+                          monaco.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                        range,
+                        detail: s.detail,
+                      })),
                       ...pythonKeywords.map((kw) => ({
                         label: kw,
                         kind: monaco.languages.CompletionItemKind.Keyword,
@@ -1591,22 +1713,65 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     return null;
                   },
                 });
+
+                editor.addAction({
+                  id: "koder-format",
+                  label: "Format Code",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+                  run: () => handleFormat(),
+                });
+
+                editor.addAction({
+                  id: "koder-test",
+                  label: "Run Tests",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+                  run: () => handleTest(),
+                });
+
+                editor.addAction({
+                  id: "koder-submit",
+                  label: "Submit Solution",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter],
+                  run: () => handleSubmit(),
+                });
               }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
                 fontFamily: "var(--font-mono), monospace",
-                padding: { top: 16 },
+                padding: { top: 16, bottom: 16 },
+                renderLineHighlight: "all",
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                smoothScrolling: true,
                 scrollbar: {
                   verticalScrollbarSize: 8,
                   horizontalScrollbarSize: 8,
+                  alwaysConsumeMouseWheel: false,
                 },
-                renderLineHighlight: "none",
-                overviewRulerLanes: 0,
-                hideCursorInOverviewRuler: true,
-                quickSuggestions: false,
+                overviewRulerLanes: 3,
+                hideCursorInOverviewRuler: false,
+                bracketPairColorization: { enabled: true },
+                matchBrackets: "always",
+                autoClosingBrackets: "always",
+                autoClosingQuotes: "always",
+                autoIndent: "full",
+                formatOnPaste: true,
+                tabSize: 4,
+                insertSpaces: true,
+                quickSuggestions: {
+                  other: true,
+                  comments: false,
+                  strings: false,
+                },
+                snippetSuggestions: "inline",
                 suggestOnTriggerCharacters: true,
                 acceptSuggestionOnEnter: "smart",
+                suggestSelection: "first",
+                wordWrap: "off",
+                folding: true,
+                foldingHighlight: true,
+                foldingStrategy: "indentation",
               }}
             />
           </div>
