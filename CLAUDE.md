@@ -880,7 +880,7 @@ npm run build   # Builds static + server components
 **Backend file inventory (post-indexing):**
 - **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
 - **13 test files** across 7 packages, 124 tests total
-- **30 migrations** from 001_init to 032_python_variables_math_seed
+- **32 migrations** from 001_init to 034_python_arrays_strings_seed
 - **Sandbox**: 8 source files (zero external dependencies), standalone Go binary
 
 ---
