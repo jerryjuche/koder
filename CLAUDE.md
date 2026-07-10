@@ -908,3 +908,14 @@ npm run build   # Builds static + server components
 - **`raw_readme`** includes expected function, examples, constraints, and a reference solution with explanation
 - Difficulty 1, 70 XP
 - Verified: all 124 tests pass, `go vet` clean
+
+### 2026-07-10 — Arrays & Strings seed (module: python-arrays-strings)
+
+**Context:** User requested 7 Python-only problems for a new `python-arrays-strings` module paralleling the Go `arrays-strings` module.
+
+**New file:** `migrations/034_python_arrays_strings_seed.sql`
+- 7 problems covering list and string operations
+- Difficulty progression 1-2 (70-100 XP), 6 test cases each (4 visible + 2 hidden)
+- All descriptions are pure conceptual prose — no function signatures in `statement`
+- Problems: `find_max`, `reverse_string`, `count_vowels`, `is_palindrome`, `list_sum`, `count_words`, `remove_duplicates`
+- Verified: all 124 tests pass, `go vet` clean
