@@ -2,6 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import {
   MessageSquare,
   Lightbulb,
@@ -17,6 +20,7 @@ import {
   RefreshCw,
   Sparkles,
   RotateCcw,
+  Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { aiAssist } from '@/lib/api';
@@ -96,6 +100,12 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (activePreview) {
+          handleApplyPreview();
+        }
       }
       if (e.key === 'Tab' && panelRef.current) {
         const focusable = panelRef.current.querySelectorAll<HTMLElement>(
@@ -436,8 +446,13 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
                       Regen
                     </button>
                   </div>
-                  <div className="text-[11px] text-brand-offwhite leading-relaxed whitespace-pre-wrap line-clamp-7 bg-brand-charcoal-base/50 rounded-lg p-2">
-                    {previewData.statement}
+                  <div className="text-[11px] text-brand-offwhite leading-relaxed [&_p]:mb-1 [&_code]:text-brand-muted-gold [&_code]:text-[10px] [&_pre]:bg-brand-charcoal-base [&_pre]:rounded [&_pre]:p-1.5 [&_pre]:text-[10px] [&_pre]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:text-sm [&_h1]:font-bold [&_h2]:text-xs [&_h2]:font-bold line-clamp-7">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeSanitize]}
+                    >
+                      {previewData.statement}
+                    </ReactMarkdown>
                   </div>
                 </div>
 
@@ -575,6 +590,35 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
                     {previewData.returnType}
                   </div>
                 </div>
+
+                {/* Language Versions */}
+                {previewData.languageVersions && Object.keys(previewData.languageVersions).length > 0 && (
+                  <div className="space-y-1.5">
+                    <h4 className="text-[10px] font-medium text-brand-offwhite-muted uppercase tracking-wider flex items-center gap-1">
+                      <Code2 size={10} className="text-brand-muted-gold" />
+                      Languages
+                    </h4>
+                    <div className="space-y-1">
+                      {Object.entries(previewData.languageVersions).map(([lang, spec]) => (
+                        <div key={lang} className="bg-brand-charcoal-base rounded-lg p-2 font-mono text-[10px]">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className={cn(
+                              "text-[9px] px-1 py-0.5 rounded font-medium",
+                              lang === 'go' ? 'bg-sky-500/20 text-sky-400' : 'bg-amber-500/20 text-amber-400'
+                            )}>
+                              {lang === 'go' ? 'Go' : 'Python'}
+                            </span>
+                          </div>
+                          <div className="text-brand-offwhite truncate">
+                            {spec.func_name}(
+                            <span className="text-brand-offwhite-muted">{spec.param_types.join(', ')}</span>
+                            ) <span className="text-brand-muted-gold">→</span> {spec.return_type}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Difficulty */}
                 <div className="space-y-1.5">
