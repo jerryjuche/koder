@@ -94,6 +94,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
+  const handleTestRef = useRef<() => Promise<void>>(async () => {});
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
+  const handleFormatRef = useRef<() => void>(() => {});
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -167,8 +170,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (e.shiftKey) handleSubmit();
-        else handleTest();
+        if (e.shiftKey) handleSubmitRef.current();
+        else handleTestRef.current();
       }
     };
     window.addEventListener("keydown", handler);
@@ -389,6 +392,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       toast.error(res.error?.message || "Failed to submit report");
     }
   };
+
+  handleFormatRef.current = handleFormat;
+  handleSubmitRef.current = handleSubmit;
+  handleTestRef.current = handleTest;
 
   if (!problem) {
     return (
@@ -1774,21 +1781,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   id: "koder-format",
                   label: "Format Code",
                   keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-                  run: () => handleFormat(),
+                  run: () => handleFormatRef.current(),
                 });
 
                 editor.addAction({
                   id: "koder-test",
                   label: "Run Tests",
                   keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-                  run: () => handleTest(),
+                  run: () => handleTestRef.current(),
                 });
 
                 editor.addAction({
                   id: "koder-submit",
                   label: "Submit Solution",
                   keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter],
-                  run: () => handleSubmit(),
+                  run: () => handleSubmitRef.current(),
                 });
               }}
               options={{
