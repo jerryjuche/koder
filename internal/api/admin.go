@@ -317,6 +317,7 @@ func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) 
 func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListPendingUserProblems(r.Context())
 	if err != nil {
+		slog.Error("admin: failed to list pending user problems", "error", err)
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to fetch pending problems", nil)
 		return
 	}
@@ -487,6 +488,7 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := h.store.UpdateProblem(r.Context(), existing)
 	if err != nil {
+		slog.Error("admin: failed to update problem", "id", problemID, "error", err)
 		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update problem", nil)
 		return
 	}
