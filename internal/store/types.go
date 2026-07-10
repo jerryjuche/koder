@@ -46,6 +46,29 @@ func (b *FlexibleBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// FlexibleStrings accepts both a single JSON string and an array of strings.
+type FlexibleStrings []string
+
+func (fs *FlexibleStrings) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if data[0] == '[' {
+		var arr []string
+		if err := json.Unmarshal(data, &arr); err != nil {
+			return err
+		}
+		*fs = FlexibleStrings(arr)
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*fs = FlexibleStrings{s}
+	return nil
+}
+
 // GoogleUserInfo represents the user info from Google's ID token.
 type GoogleUserInfo struct {
 	Sub           string       `json:"sub"`
@@ -107,9 +130,9 @@ type Problem struct {
 
 // LanguageSpec holds per-language function metadata for a problem.
 type LanguageSpec struct {
-	FuncName   string   `json:"func_name"`
-	ReturnType string   `json:"return_type"`
-	ParamTypes []string `json:"param_types"`
+	FuncName   string         `json:"func_name"`
+	ReturnType string         `json:"return_type"`
+	ParamTypes FlexibleStrings `json:"param_types"`
 }
 
 // TestCase represents a single problem test case.

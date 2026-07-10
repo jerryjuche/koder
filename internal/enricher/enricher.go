@@ -648,15 +648,10 @@ type nvidiaMessage struct {
 }
 
 type nvidiaRequest struct {
-	Model          string              `json:"model"`
-	Messages       []nvidiaMessage     `json:"messages"`
-	ResponseFormat *nvidiaResponseFormat `json:"response_format,omitempty"`
-	Temperature    float64             `json:"temperature"`
-	MaxTokens      int                 `json:"max_tokens"`
-}
-
-type nvidiaResponseFormat struct {
-	Type string `json:"type"`
+	Model       string          `json:"model"`
+	Messages    []nvidiaMessage `json:"messages"`
+	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens"`
 }
 
 type nvidiaResponse struct {
@@ -691,9 +686,8 @@ func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, user
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		ResponseFormat: &nvidiaResponseFormat{Type: "json_object"},
-		Temperature:    nvidiaTemp,
-		MaxTokens:      nvidiaMaxTokens,
+		Temperature: nvidiaTemp,
+		MaxTokens:   nvidiaMaxTokens,
 	}
 
 	payload, err := json.Marshal(body)
