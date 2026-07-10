@@ -449,27 +449,41 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 // generateCSPNonce creates a cryptographically random nonce for CSP.
 func generateCSPNonce() string {
 	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return fmt.Sprintf("nonce%d", time.Now().UnixNano())
-	}
+	rand.Read(b)
 	return hex.EncodeToString(b)
 }
 
 // SecurityHeadersMiddleware sets standard security headers on every response.
 // Each response gets a unique CSP nonce exposed via X-CSP-Nonce header.
-func SecurityHeadersMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nonce := generateCSPNonce()
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "0")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		w.Header().Set("X-CSP-Nonce", nonce)
-		csp := fmt.Sprintf("default-src 'self'; script-src 'self' 'nonce-%s' 'unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com wss://koder-update.onrender.com wss://koder.onrender.com wss://koder-py.onrender.com ws://localhost:8080; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'", nonce)
-		w.Header().Set("Content-Security-Policy", csp)
-		next.ServeHTTP(w, r)
-	})
+func SecurityHeadersMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			nonce := generateCSPNonce()
+
+			csp := fmt.Sprintf(
+				"default-src 'self'; "+
+					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval'; "+
+					"style-src 'self' 'unsafe-inline'; "+
+					"img-src 'self' data: https:; "+
+					"font-src 'self' data:; "+
+					"connect-src 'self' https: wss:; "+
+					"object-src 'none'; "+
+					"base-uri 'self'; "+
+					"frame-ancestors 'none'; "+
+					"form-action 'self';",
+				nonce,
+			)
+
+			w.Header().Set("Content-Security-Policy", csp)
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			w.Header().Set("X-CSP-Nonce", nonce)
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // GetClaims extracts JWT claims from the request context.

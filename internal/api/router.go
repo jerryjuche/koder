@@ -36,7 +36,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	r.Use(RecoveryMiddleware)
 	r.Use(RequestLoggingMiddleware)
 	r.Use(CORSMiddleware(cfg))
-	r.Use(SecurityHeadersMiddleware)
+	r.Use(SecurityHeadersMiddleware(cfg))
 
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
