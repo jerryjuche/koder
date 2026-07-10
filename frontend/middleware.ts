@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live`,
+      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live`,
       "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://accounts.google.com",
       "img-src 'self' data: blob: https:",
