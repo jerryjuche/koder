@@ -35,6 +35,9 @@ const goKeywords = [
   "else", "fallthrough", "for", "func", "go", "goto", "if",
   "import", "interface", "map", "package", "range", "return",
   "select", "struct", "switch", "type", "var",
+];
+
+const goTypes = [
   "bool", "true", "false", "uint8", "uint16", "uint32", "uint64",
   "int8", "int16", "int32", "int64", "float32", "float64",
   "complex64", "complex128", "byte", "rune", "uint", "int",
@@ -46,7 +49,6 @@ const goOperators = [
   "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "&^=",
   "&&", "||", "<-", "++", "--", "==", "<", ">", "=", "!", "!=",
   "<=", ">=", ":=", "...",
-  "(", ")", "", "]", "{", "}", ",", ";", ".", ":",
 ];
 
 const goSymbols = /[=><!~?:&|+\-*\/\^%]+/;
@@ -57,21 +59,23 @@ const goLanguage: languages.IMonarchLanguage = {
   tokenPostfix: ".go",
 
   keywords: goKeywords,
+  types: goTypes,
   operators: goOperators,
   symbols: goSymbols,
   escapes: goEscapes,
 
   tokenizer: {
     root: [
-      [/\b(func)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.func", "", "identifier.function"]],
-      [/\b(type)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.type", "", "identifier.type"]],
-      [/\b(var|const)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.declaration", "", "identifier.variable"]],
-      [/\b(func)(\s*\([^)]*\))(\s+)([a-zA-Z_]\w*)\s*\(/, ["keyword.func", "", "", "identifier.function", ""]],
-      [/\b(package)(\s+)([a-zA-Z_]\w*)/, ["keyword.package", "", "identifier.module"]],
+      [/\b(func)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.func", "", "entity.name.function"]],
+      [/\b(type)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.type", "", "entity.name.type"]],
+      [/\b(var|const)(\s+)([a-zA-Z_]\w*)\b/, ["storage.modifier", "", "variable.other"]],
+      [/\b(func)(\s*\([^)]*\))(\s+)([a-zA-Z_]\w*)\s*\(/, ["keyword.func", "", "", "entity.name.function", ""]],
+      [/\b(package)(\s+)([a-zA-Z_]\w*)/, ["keyword.package", "", "entity.name.import"]],
 
       [/[a-zA-Z_]\w*/, {
         cases: {
           "@keywords": { token: "keyword.$0" },
+          "@types": "support.type",
           "@default": "identifier",
         },
       }],
@@ -79,22 +83,22 @@ const goLanguage: languages.IMonarchLanguage = {
       { include: "@whitespace" },
       [/\[\[.*\]\]/, "annotation"],
       [/^\s*#\w+/, "keyword"],
-      [/[{}()\[\]]/, "@brackets"],
-      [/[<>](?!@symbols)/, "@brackets"],
+      [/[{}()\[\]]/, "punctuation"],
+      [/[<>](?!@symbols)/, "punctuation"],
       [/@symbols/, {
         cases: {
-          "@operators": "delimiter",
+          "@operators": "keyword.operator",
           "@default": "",
         },
       }],
-      [/\d*\d+[eE]([\-+]?\d+)?/, "number.float"],
-      [/\d*\.\d+([eE][\-+]?\d+)?/, "number.float"],
-      [/0[xX][0-9a-fA-F']*[0-9a-fA-F]/, "number.hex"],
-      [/0[0-7']*[0-7]/, "number.octal"],
-      [/0[bB][0-1']*[0-1]/, "number.binary"],
-      [/\d[\d']*/, "number"],
-      [/\d/, "number"],
-      [/[;,.]/, "delimiter"],
+      [/\d*\d+[eE]([\-+]?\d+)?/, "constant.numeric"],
+      [/\d*\.\d+([eE][\-+]?\d+)?/, "constant.numeric"],
+      [/0[xX][0-9a-fA-F']*[0-9a-fA-F]/, "constant.numeric"],
+      [/0[0-7']*[0-7]/, "constant.numeric"],
+      [/0[bB][0-1']*[0-1]/, "constant.numeric"],
+      [/\d[\d']*/, "constant.numeric"],
+      [/\d/, "constant.numeric"],
+      [/[;,.]/, "punctuation"],
       [/"([^"\\]|\\.)*$/, "string.invalid"],
       [/"/, "string", "@string"],
       [/`/, "string", "@rawstring"],
@@ -168,9 +172,9 @@ const pythonLanguage: languages.IMonarchLanguage = {
   keywords: pythonKeywords,
 
   brackets: [
-    { open: "{", close: "}", token: "delimiter.curly" },
-    { open: "[", close: "]", token: "delimiter.bracket" },
-    { open: "(", close: ")", token: "delimiter.parenthesis" },
+    { open: "{", close: "}", token: "punctuation" },
+    { open: "[", close: "]", token: "punctuation" },
+    { open: "(", close: ")", token: "punctuation" },
   ],
 
   tokenizer: {
@@ -179,13 +183,13 @@ const pythonLanguage: languages.IMonarchLanguage = {
       { include: "@numbers" },
       { include: "@strings" },
 
-      [/\b(def)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.def", "", "identifier.function"]],
-      [/\b(class)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.class", "", "identifier.type"]],
+      [/\b(def)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.def", "", "entity.name.function"]],
+      [/\b(class)(\s+)([a-zA-Z_]\w*)\b/, ["keyword.class", "", "entity.name.type"]],
 
-      [/\bself\b/, "variable.language.self"],
-      [/\bcls\b/, "variable.language.self"],
+      [/\bself\b/, "variable.language.special.self.python"],
+      [/\bcls\b/, "variable.language.special.self.python"],
 
-      [/[,:;]/, "delimiter"],
+      [/[,:;]/, "punctuation"],
       [/[{}()\[\]]/, "@brackets"],
       [/@[a-zA-Z_]\w*/, "tag"],
 
@@ -219,8 +223,8 @@ const pythonLanguage: languages.IMonarchLanguage = {
     ],
 
     numbers: [
-      [/-?0x([abcdef]|[ABCDEF]|\d)+[lL]?/, "number.hex"],
-      [/-?(\d*\.)?\d+([eE][+\-]?\d+)?[jJ]?[lL]?/, "number"],
+      [/-?0x([abcdef]|[ABCDEF]|\d)+[lL]?/, "constant.numeric"],
+      [/-?(\d*\.)?\d+([eE][+\-]?\d+)?[jJ]?[lL]?/, "constant.numeric"],
     ],
 
     strings: [
@@ -278,28 +282,35 @@ const themeRules: editor.ITokenThemeRule[] = [
 
   { token: "comment", foreground: C.comment, fontStyle: "italic" },
   { token: "keyword", foreground: C.keyword },
+  { token: "keyword.control", foreground: C.keyword },
+  { token: "keyword.package", foreground: C.keyword },
+  { token: "keyword.operator", foreground: C.fg },
+  { token: "storage.modifier", foreground: C.keyword },
 
-  { token: "identifier.function", foreground: C.function },
-  { token: "identifier.type", foreground: C.type },
-  { token: "identifier.variable", foreground: C.variable },
-  { token: "identifier.module", foreground: C.module },
-  { token: "variable.language.self", foreground: C.self },
+  { token: "entity.name.function", foreground: C.function },
+  { token: "support.function", foreground: C.function },
+  { token: "entity.name.type", foreground: C.type },
+  { token: "support.type", foreground: C.type },
+  { token: "entity.name.import", foreground: C.module },
+
+  { token: "variable.other", foreground: C.variable },
+  { token: "variable.parameter", foreground: C.variable },
+  { token: "variable.language.special.self.python", foreground: C.variable },
+
+  { token: "string", foreground: C.string },
+  { token: "string.quoted", foreground: C.string },
+  { token: "constant.numeric", foreground: C.number },
+  { token: "punctuation", foreground: C.fg },
+  { token: "tag", foreground: C.tag },
 
   { token: "function", foreground: C.function },
   { token: "variable", foreground: C.variable },
   { token: "parameter", foreground: C.variable },
   { token: "property", foreground: C.variable },
   { token: "type", foreground: C.type },
-  { token: "struct", foreground: C.type },
   { token: "class", foreground: C.type },
+  { token: "struct", foreground: C.type },
   { token: "interface", foreground: C.type },
-
-  { token: "string", foreground: C.string },
-  { token: "number", foreground: C.number },
-  { token: "delimiter", foreground: C.fg },
-  { token: "tag", foreground: C.tag },
-  { token: "attribute.name", foreground: C.variable },
-  { token: "attribute.value", foreground: C.string },
 ];
 
 const themeColors: editor.IStandaloneThemeData["colors"] = {
