@@ -92,14 +92,16 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		language = problem.Language
 	}
 	if language == "" && len(problem.LanguageVersions) > 0 {
-		if _, ok := problem.LanguageVersions["go"]; ok {
+		if spec, ok := problem.LanguageVersions["go"]; ok && spec.FuncName != "" {
 			language = "go"
-		} else if _, ok := problem.LanguageVersions["python"]; ok {
+		} else if spec, ok := problem.LanguageVersions["python"]; ok && spec.FuncName != "" {
 			language = "python"
 		} else {
-			for lang := range problem.LanguageVersions {
-				language = lang
-				break
+			for lang, spec := range problem.LanguageVersions {
+				if spec.FuncName != "" {
+					language = lang
+					break
+				}
 			}
 		}
 	}
@@ -108,6 +110,10 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, supported := problem.LanguageVersions[language]; !supported && problem.LanguageVersions != nil {
+		RespondError(w, http.StatusBadRequest, "LANGUAGE_NOT_SUPPORTED", "Problem does not support the requested language", nil)
+		return
+	}
+	if spec, ok := problem.LanguageVersions[language]; ok && spec.FuncName == "" {
 		RespondError(w, http.StatusBadRequest, "LANGUAGE_NOT_SUPPORTED", "Problem does not support the requested language", nil)
 		return
 	}

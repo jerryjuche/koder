@@ -89,6 +89,16 @@ export type AdminStats = {
   total_problems: number;
   active_problems: number;
   total_submissions: number;
+  total_ai_calls: number;
+  ai_calls_today: number;
+};
+
+export type AIUsageStats = {
+  total_ai_calls: number;
+  ai_calls_today: number;
+  ai_calls_this_week: number;
+  success_rate: number;
+  avg_response_time_ms: number;
 };
 
 export type ActivityLog = {
@@ -275,3 +285,59 @@ export type ApiResponse<T> = {
     details?: any;
   };
 };
+
+// AI Assist Types
+export type AIActionType =
+  | 'rephrase_statement'
+  | 'improve_hints'
+  | 'generate_test_cases'
+  | 'regenerate_test_cases'
+  | 'adjust_difficulty'
+  | 'fix_signatures'
+  | 'add_edge_cases'
+  | 'chat';
+
+export interface AIAssistRequest {
+  action: AIActionType;
+  problem: Problem;
+  message?: string;
+  test_cases?: TestCase[];
+  difficulty?: number;
+}
+
+export interface AIAssistResponse {
+  statement?: string;
+  hints?: string[];
+  constraints?: string;
+  learning_objective?: string;
+  func_name?: string;
+  return_type?: string;
+  param_types?: string[];
+  language_versions?: Record<string, {
+    func_name: string;
+    return_type: string;
+    param_types: string[];
+  }>;
+  test_cases?: TestCase[];
+  difficulty?: number;
+  xp_reward?: number;
+  explanation: string;
+}
+
+export interface TestCase {
+  id?: string;
+  input: any;
+  expected: string;
+  is_hidden: boolean;
+  ordinal: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  status: 'pending' | 'streaming' | 'complete' | 'error';
+  response?: AIAssistResponse;
+  error?: string;
+  applied?: boolean;
+}

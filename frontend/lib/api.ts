@@ -5,6 +5,7 @@ import {
   ExecutionResult,
   User,
   AdminStats,
+  AIUsageStats,
   ActivityLog,
   UserProfile,
   UserProblem,
@@ -14,22 +15,65 @@ import {
   FeedbackItem,
   Broadcast,
   UpdateProblemPayload,
+  AIAssistRequest,
+  AIAssistResponse,
 } from "./types";
 import { getCache, setCache } from "./cache";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (v: boolean) => void }> = [];
+
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = localStorage.getItem("refresh_token");
+  if (!refreshToken) return false;
+
+  if (isRefreshing) {
+    return new Promise((resolve) => refreshQueue.push({ resolve }));
+  }
+  isRefreshing = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      localStorage.removeItem("refresh_token");
+      return false;
+    }
+    const data = await res.json();
+    if (data?.data?.refresh_token) {
+      localStorage.setItem("refresh_token", data.data.refresh_token);
+    }
+    return true;
+  } catch {
+    localStorage.removeItem("refresh_token");
+    return false;
+  } finally {
+    isRefreshing = false;
+    refreshQueue.forEach((q) => q.resolve(true));
+    refreshQueue = [];
+  }
+}
+
 export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
+  // Skip auth refresh for auth endpoints to avoid loops
+  const isAuthEndpoint = endpoint.startsWith("/auth/");
+
   // Return cached GET response if fresh
   if (!options?.method || options.method === "GET") {
     const cached = getCache<T>(endpoint);
     if (cached) return { success: true, data: cached };
   }
 
-  try {
+  const doFetch = async (): Promise<ApiResponse<T>> => {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: "include",
@@ -51,7 +95,7 @@ export async function fetchApi<T>(
       if (serverError?.details) {
         (data.error as any).message = `${serverError.message}: ${serverError.details}`;
       }
-      return data;
+      return { ...data, success: false };
     }
 
     if (!data.success && data.error) {
@@ -60,12 +104,23 @@ export async function fetchApi<T>(
       throw new Error(msg);
     }
 
-    // Cache successful GET responses
-    if (!options?.method || options.method === "GET") {
-      setCache(endpoint, data.data);
-    }
-
     return data;
+  };
+
+  try {
+    const result = await doFetch();
+    const authErrCode = result.error?.code;
+    if (!result.success && !isAuthEndpoint && (authErrCode === "AUTH_REQUIRED" || authErrCode === "AUTH_INVALID" || authErrCode === "TOKEN_REVOKED")) {
+      const refreshed = await tryRefreshToken();
+      if (refreshed) {
+        return doFetch();
+      }
+    }
+    // Cache successful GET responses
+    if (result.success && (!options?.method || options.method === "GET")) {
+      setCache(endpoint, result.data);
+    }
+    return result;
   } catch (error: any) {
     return {
       success: false,
@@ -78,35 +133,54 @@ export async function fetchApi<T>(
   }
 }
 
+export async function refreshToken(): Promise<ApiResponse<AuthResponse>> {
+  const res = await fetchApi<AuthResponse>("/auth/refresh", {
+    method: "POST",
+  });
+  return handleAuthResponse(res);
+}
+
 // ============================================
 // API ENDPOINTS
 // ============================================
 
+type AuthResponse = { token: string; refresh_token?: string; onboarding?: boolean };
+
+function handleAuthResponse(res: ApiResponse<AuthResponse>): ApiResponse<AuthResponse> {
+  if (res.success && res.data?.refresh_token) {
+    localStorage.setItem("refresh_token", res.data.refresh_token);
+  }
+  return res;
+}
+
 export async function login(
   data: any,
-): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
-  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/login", {
+): Promise<ApiResponse<AuthResponse>> {
+  const res = await fetchApi<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(data),
   });
+  return handleAuthResponse(res);
 }
 
 export async function register(
   data: any,
-): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
-  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/register", {
+): Promise<ApiResponse<AuthResponse>> {
+  const res = await fetchApi<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(data),
   });
+  return handleAuthResponse(res);
 }
 
 export async function googleLogin(
   idToken: string,
-): Promise<ApiResponse<{ token: string; onboarding?: boolean }>> {
-  return fetchApi<{ token: string; onboarding?: boolean }>("/auth/google", {
+): Promise<ApiResponse<AuthResponse>> {
+  const res = await fetchApi<AuthResponse>("/auth/google", {
     method: "POST",
     body: JSON.stringify({ id_token: idToken }),
   });
+  return handleAuthResponse(res);
 }
 
 export async function resetPassword(
@@ -272,6 +346,20 @@ export async function ingestGitHubRepo(url: string): Promise<ApiResponse<any>> {
   return fetchApi<any>("/admin/ingest", {
     method: "POST",
     body: JSON.stringify({ repo_url: url }),
+  });
+}
+
+export async function enrichProblem(slug: string): Promise<ApiResponse<Problem>> {
+  return fetchApi<Problem>(`/admin/enrich`, {
+    method: "POST",
+    body: JSON.stringify({ slug }),
+  });
+}
+
+export async function aiAssist(data: AIAssistRequest): Promise<ApiResponse<AIAssistResponse>> {
+  return fetchApi<AIAssistResponse>("/admin/ai/assist", {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 
@@ -494,6 +582,10 @@ export async function setPin(pin: string, confirmPin: string): Promise<ApiRespon
     method: "POST",
     body: JSON.stringify({ pin, confirm_pin: confirmPin }),
   });
+}
+
+export async function fetchAIUsageStats(): Promise<ApiResponse<AIUsageStats>> {
+  return fetchApi<AIUsageStats>("/admin/ai/usage");
 }
 
 
