@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-// Load Monaco from the local public/vs directory instead of CDN
+import { registerCustomTokenizers } from "@/lib/custom-tokenizers";
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
 import Markdown from "react-markdown";
@@ -896,6 +896,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     { token: "", foreground: "D4D4D4", background: "1E1E1E" },
                     { token: "comment", foreground: "6A9955", fontStyle: "italic" },
                     { token: "keyword", foreground: "C586C0" },
+                    { token: "identifier.function", foreground: "DCDCAA" },
+                    { token: "identifier.type", foreground: "4EC9B0" },
+                    { token: "identifier.variable", foreground: "9CDCFE" },
+                    { token: "identifier.module", foreground: "CE9178" },
+                    { token: "variable.language.self", foreground: "9CDCFE" },
                     { token: "type", foreground: "4EC9B0" },
                     { token: "string", foreground: "CE9178" },
                     { token: "number", foreground: "B5CEA8" },
@@ -926,6 +931,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   },
                 });
                 monaco.editor.setTheme("koder-vscode");
+                registerCustomTokenizers(monaco);
 
                 const pkgMethods: Record<
                   string,
