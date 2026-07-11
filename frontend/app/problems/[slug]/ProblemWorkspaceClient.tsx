@@ -94,6 +94,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
+  const handleTestRef = useRef<() => Promise<void>>(async () => {});
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
+  const handleFormatRef = useRef<() => void>(() => {});
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -125,7 +128,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
-        const lang = localStorage.getItem("koder_language") || "go";
+        const available = res.data.language_versions
+          ? Object.entries(res.data.language_versions)
+              .filter(([_, spec]) => spec.func_name)
+              .map(([lang]) => lang)
+          : [];
+        const preferred = localStorage.getItem("koder_language") || "go";
+        const lang = available.length > 0 && !available.includes(preferred)
+          ? available[0]
+          : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
         setCode(scaffold);
@@ -159,12 +170,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (e.shiftKey) handleSubmit();
-        else handleTest();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleFormat();
+        if (e.shiftKey) handleSubmitRef.current();
+        else handleTestRef.current();
       }
     };
     window.addEventListener("keydown", handler);
@@ -386,6 +393,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
   };
 
+  useEffect(() => {
+    handleFormatRef.current = handleFormat;
+    handleSubmitRef.current = handleSubmit;
+    handleTestRef.current = handleTest;
+  });
+
   if (!problem) {
     return (
       <div className="h-screen w-screen bg-brand-charcoal-base flex items-center justify-center">
@@ -393,6 +406,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       </div>
     );
   }
+
+  const availableLanguages = problem.language_versions
+    ? Object.entries(problem.language_versions)
+        .filter(([_, spec]) => spec.func_name)
+        .map(([lang]) => lang)
+    : [];
+  const langColors: Record<string, { active: string; text: string }> = {
+    go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
+    python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
+  };
 
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
@@ -758,51 +781,42 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
-                <button
-                  onClick={async () => {
-                    if (activeLanguage === "go") return;
-                    if (code !== scaffoldAtToggle) {
-                      setPendingLanguage("go");
-                      setLanguageConfirmOpen(true);
-                    } else {
-                      await applyLanguageSwitch("go");
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
-                    activeLanguage === "go"
-                      ? "bg-[#00ADD8]/15 text-[#00ADD8]"
-                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                  )}
-                >
-                  <LanguageLogo language="go" size={18} />
-                  Go
-                </button>
-                <div className="w-px bg-brand-charcoal-border self-stretch" />
-                <button
-                  onClick={async () => {
-                    if (activeLanguage === "python") return;
-                    if (code !== scaffoldAtToggle) {
-                      setPendingLanguage("python");
-                      setLanguageConfirmOpen(true);
-                    } else {
-                      await applyLanguageSwitch("python");
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
-                    activeLanguage === "python"
-                      ? "bg-[#FFD43B]/15 text-[#FFD43B]"
-                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-                  )}
-                >
-                  <LanguageLogo language="python" size={18} />
-                  Python
-                </button>
-              </div>
+              {availableLanguages.length > 1 ? (
+                <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
+                  {availableLanguages.map((lang, idx) => (
+                    <React.Fragment key={lang}>
+                      {idx > 0 && <div className="w-px bg-brand-charcoal-border self-stretch" />}
+                      <button
+                        onClick={async () => {
+                          if (activeLanguage === lang) return;
+                          if (code !== scaffoldAtToggle) {
+                            setPendingLanguage(lang);
+                            setLanguageConfirmOpen(true);
+                          } else {
+                            await applyLanguageSwitch(lang);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                          activeLanguage === lang
+                            ? (langColors[lang]?.active || "bg-primary/15 text-primary")
+                            : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                        )}
+                      >
+                        <LanguageLogo language={lang as "go" | "python"} size={18} />
+                        {langColors[lang]?.text || lang}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-offwhite-muted">
+                  <LanguageLogo language={(availableLanguages[0] || "go") as "go" | "python"} size={18} />
+                  {langColors[availableLanguages[0]]?.text || (availableLanguages[0] === "python" ? "Python" : "Go")}
+                </div>
+              )}
               <span className="text-xs font-mono text-brand-offwhite-muted">
-                {activeLanguage === "python" ? "solution.py" : "solution.go"}
+                solution.{activeLanguage === "python" ? "py" : "go"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -812,8 +826,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </span>
               )}
               {saved &&
-                code !==
-                  (activeLanguage === "python" ? PYTHON_CODE : GO_CODE) && (
+                code !== scaffoldAtToggle && (
                   <span className="text-[10px] text-brand-success/60">
                     ● Saved
                   </span>
@@ -856,7 +869,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="vs-dark"
+              theme="koder-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -875,6 +888,56 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
+
+                monaco.editor.defineTheme("koder-dark", {
+                  base: "vs-dark",
+                  inherit: true,
+                  rules: [
+                    { token: "comment", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "comment.line", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "comment.block", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "keyword.control", foreground: "C586C0" },
+                    { token: "keyword.other", foreground: "569CD6" },
+                    { token: "keyword", foreground: "569CD6" },
+                    { token: "string", foreground: "CE9178" },
+                    { token: "string.quoted", foreground: "CE9178" },
+                    { token: "number", foreground: "B5CEA8" },
+                    { token: "type", foreground: "4EC9B0" },
+                    { token: "type.identifier", foreground: "4EC9B0" },
+                    { token: "entity.name.function", foreground: "DCDCAA" },
+                    { token: "identifier", foreground: "9CDCFE" },
+                    { token: "variable", foreground: "9CDCFE" },
+                    { token: "variable.other", foreground: "9CDCFE" },
+                    { token: "delimiter", foreground: "D4D4D4" },
+                    { token: "delimiter.bracket", foreground: "D4D4D4" },
+                    { token: "operator", foreground: "D4D4D4" },
+                    { token: "tag", foreground: "569CD6" },
+                    { token: "attribute.name", foreground: "9CDCFE" },
+                    { token: "attribute.value", foreground: "CE9178" },
+                  ],
+                  colors: {
+                    "editor.background": "#1E1E1E",
+                    "editor.foreground": "#D4D4D4",
+                    "editor.lineHighlightBackground": "#2A2D2E",
+                    "editor.selectionBackground": "#264F78",
+                    "editor.inactiveSelectionBackground": "#3A3D41",
+                    "editorCursor.foreground": "#AEAFAD",
+                    "editorLineNumber.foreground": "#858585",
+                    "editorLineNumber.activeForeground": "#C6C6C6",
+                    "editor.selectionHighlightBackground": "#3A3D41",
+                    "editorBracketMatch.background": "#3A3D41",
+                    "editorBracketMatch.border": "#888888",
+                    "editorGutter.background": "#1E1E1E",
+                    "editorWidget.background": "#252526",
+                    "editorWidget.border": "#454545",
+                    "editorSuggestWidget.background": "#252526",
+                    "editorSuggestWidget.border": "#454545",
+                    "editorSuggestWidget.selectedBackground": "#094771",
+                    "minimap.background": "#1E1E1E",
+                  },
+                });
+                monaco.editor.setTheme("koder-dark");
+
                 const pkgMethods: Record<
                   string,
                   { label: string; detail: string; insertText: string }[]
@@ -1356,8 +1419,51 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   },
                 });
 
+                const goSnippets = [
+                  {
+                    label: "for",
+                    insertText: "for i := 0; i < ${1:n}; i++ {\n\t${0}\n}",
+                    detail: "For loop (classic)",
+                  },
+                  {
+                    label: "forr",
+                    insertText: "for ${1:_}, ${2:v} := range ${3:collection} {\n\t${0}\n}",
+                    detail: "For range loop",
+                  },
+                  {
+                    label: "iferr",
+                    insertText: "if ${1:err} != nil {\n\treturn ${0}\n}",
+                    detail: "If err != nil guard",
+                  },
+                  {
+                    label: "fn",
+                    insertText: "func ${1:name}(${2:args}) ${3:return} {\n\t${0}\n}",
+                    detail: "Function declaration",
+                  },
+                  {
+                    label: "switch",
+                    insertText: "switch ${1:expr} {\ncase ${2}:\n\t${0}\n}",
+                    detail: "Switch statement",
+                  },
+                  {
+                    label: "struct",
+                    insertText: "type ${1:Name} struct {\n\t${0}\n}",
+                    detail: "Struct type definition",
+                  },
+                  {
+                    label: "main",
+                    insertText: "func main() {\n\t${0}\n}",
+                    detail: "Main function",
+                  },
+                  {
+                    label: "type",
+                    insertText: "type ${1:Name} ${2:underlyingType}",
+                    detail: "Type definition",
+                  },
+                ];
+
                 monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: ["."],
+                  triggerCharacters: [".", " "],
                   provideCompletionItems: (model: any, position: any) => {
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -1396,7 +1502,18 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       return { suggestions: [] };
                     }
 
+                    const goSnippetLabels = new Set(goSnippets.map((s) => s.label));
                     const suggestions = [
+                      ...goSnippets.map((s) => ({
+                        label: s.label,
+                        kind: monaco.languages.CompletionItemKind.Snippet,
+                        insertText: s.insertText,
+                        insertTextRules:
+                          monaco.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                        range,
+                        detail: s.detail,
+                      })),
                       ...allPackages.map((pkg) => ({
                         label: pkg,
                         kind: monaco.languages.CompletionItemKind.Module,
@@ -1404,13 +1521,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         range,
                         detail: "Go package",
                       })),
-                      ...keywords.map((kw) => ({
-                        label: kw,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: kw,
-                        range,
-                        detail: "Go keyword",
-                      })),
+                      ...keywords
+                        .filter((kw) => !goSnippetLabels.has(kw))
+                        .map((kw) => ({
+                          label: kw,
+                          kind: monaco.languages.CompletionItemKind.Keyword,
+                          insertText: kw,
+                          range,
+                          detail: "Go keyword",
+                        })),
                     ];
 
                     return { suggestions };
@@ -1530,6 +1649,69 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   dict: "Rather than being a function, dict is a mapping type.",
                 };
 
+                const pythonSnippets = [
+                  {
+                    label: "def",
+                    insertText: "def ${1:name}(${2:args}):\n\t${0}\n",
+                    detail: "Function definition",
+                  },
+                  {
+                    label: "for",
+                    insertText: "for ${1:item} in ${2:collection}:\n\t${0}\n",
+                    detail: "For loop",
+                  },
+                  {
+                    label: "fori",
+                    insertText: "for ${1:i} in range(${2:n}):\n\t${0}\n",
+                    detail: "For i in range loop",
+                  },
+                  {
+                    label: "ifmain",
+                    insertText: "if __name__ == \"__main__\":\n\t${0}\n",
+                    detail: "Main guard",
+                  },
+                  {
+                    label: "if",
+                    insertText: "if ${1:condition}:\n\t${0}\n",
+                    detail: "If statement",
+                  },
+                  {
+                    label: "else",
+                    insertText: "else:\n\t${0}\n",
+                    detail: "Else statement",
+                  },
+                  {
+                    label: "elif",
+                    insertText: "elif ${1:condition}:\n\t${0}\n",
+                    detail: "Elif statement",
+                  },
+                  {
+                    label: "class",
+                    insertText: "class ${1:Name}:\n\tdef __init__(self${2:, args}):\n\t\t${0}\n",
+                    detail: "Class definition",
+                  },
+                  {
+                    label: "try",
+                    insertText: "try:\n\t${1}\nexcept ${2:Exception} as e:\n\t${0}\n",
+                    detail: "Try except block",
+                  },
+                  {
+                    label: "with",
+                    insertText: "with ${1:open}(${2:args}) as ${3:var}:\n\t${0}\n",
+                    detail: "With statement",
+                  },
+                  {
+                    label: "compr",
+                    insertText: "[${1:expr} for ${2:item} in ${3:collection}]",
+                    detail: "List comprehension",
+                  },
+                  {
+                    label: "enum",
+                    insertText: "for ${1:i}, ${2:item} in enumerate(${3:collection}):\n\t${0}\n",
+                    detail: "Enumerate loop",
+                  },
+                ];
+
                 monaco.languages.registerCompletionItemProvider("python", {
                   triggerCharacters: ["."],
                   provideCompletionItems: (model: any, position: any) => {
@@ -1540,14 +1722,27 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       startColumn: word.startColumn,
                       endColumn: position.column,
                     };
+                    const pySnippetLabels = new Set(pythonSnippets.map((s) => s.label));
                     const suggestions = [
-                      ...pythonKeywords.map((kw) => ({
-                        label: kw,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: kw,
+                      ...pythonSnippets.map((s) => ({
+                        label: s.label,
+                        kind: monaco.languages.CompletionItemKind.Snippet,
+                        insertText: s.insertText,
+                        insertTextRules:
+                          monaco.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
                         range,
-                        detail: "Python keyword",
+                        detail: s.detail,
                       })),
+                      ...pythonKeywords
+                        .filter((kw) => !pySnippetLabels.has(kw))
+                        .map((kw) => ({
+                          label: kw,
+                          kind: monaco.languages.CompletionItemKind.Keyword,
+                          insertText: kw,
+                          range,
+                          detail: "Python keyword",
+                        })),
                       ...pythonBuiltins.map((fn) => ({
                         label: fn,
                         kind: monaco.languages.CompletionItemKind.Function,
@@ -1583,22 +1778,66 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     return null;
                   },
                 });
+
+                editor.addAction({
+                  id: "koder-format",
+                  label: "Format Code",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+                  run: () => handleFormatRef.current(),
+                });
+
+                editor.addAction({
+                  id: "koder-test",
+                  label: "Run Tests",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+                  run: () => handleTestRef.current(),
+                });
+
+                editor.addAction({
+                  id: "koder-submit",
+                  label: "Submit Solution",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter],
+                  run: () => handleSubmitRef.current(),
+                });
               }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
+                fontWeight: "500",
                 fontFamily: "var(--font-mono), monospace",
-                padding: { top: 16 },
+                padding: { top: 16, bottom: 16 },
+                renderLineHighlight: "all",
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                smoothScrolling: true,
                 scrollbar: {
                   verticalScrollbarSize: 8,
                   horizontalScrollbarSize: 8,
+                  alwaysConsumeMouseWheel: false,
                 },
-                renderLineHighlight: "none",
-                overviewRulerLanes: 0,
-                hideCursorInOverviewRuler: true,
-                quickSuggestions: false,
+                overviewRulerLanes: 3,
+                hideCursorInOverviewRuler: false,
+                bracketPairColorization: { enabled: true },
+                matchBrackets: "always",
+                autoClosingBrackets: "always",
+                autoClosingQuotes: "always",
+                autoIndent: "full",
+                formatOnPaste: true,
+                tabSize: 4,
+                insertSpaces: true,
+                quickSuggestions: {
+                  other: true,
+                  comments: false,
+                  strings: false,
+                },
+                snippetSuggestions: "inline",
                 suggestOnTriggerCharacters: true,
                 acceptSuggestionOnEnter: "smart",
+                suggestSelection: "first",
+                wordWrap: "off",
+                folding: true,
+                foldingHighlight: true,
+                foldingStrategy: "indentation",
               }}
             />
           </div>

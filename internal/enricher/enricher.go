@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
-	"google.golang.org/genai"
 )
 
 type enrichmentProvider interface {
@@ -52,24 +50,9 @@ type enrichedTestCase struct {
 	Ordinal  int    `json:"ordinal"`
 }
 
-func NewEnricher(ctx context.Context, cfg *config.Config) (*Enricher, error) {
-	var provider enrichmentProvider
-
-	switch cfg.EnrichmentProvider {
-	case "gemini":
-		client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.GeminiAPIKey})
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize Gemini client: %w", err)
-		}
-		provider = &geminiProvider{client: client, model: cfg.GeminiModel}
-		slog.Info("enricher: using Gemini provider", "model", cfg.GeminiModel)
-	case "groq":
-		provider = newGroqProvider(cfg.GroqAPIKey, cfg.GroqModel)
-		slog.Info("enricher: using Groq provider", "model", cfg.GroqModel)
-	default:
-		return nil, fmt.Errorf("unknown enrichment provider: %s", cfg.EnrichmentProvider)
-	}
-
+func NewEnricher(_ context.Context, cfg *config.Config) (*Enricher, error) {
+	provider := newNvidiaProvider(cfg.NVIDIAAPIKey)
+	slog.Info("enricher: using NVIDIA NIM (DeepSeek V4 Flash)")
 	return &Enricher{cfg: cfg, provider: provider}, nil
 }
 
@@ -254,19 +237,383 @@ README:
 	return problem, testCases, nil
 }
 
+// AIAssistAction represents a targeted AI editing action.
+type AIAssistAction string
+
+const (
+	ActionRephraseStatement   AIAssistAction = "rephrase_statement"
+	ActionImproveHints        AIAssistAction = "improve_hints"
+	ActionGenerateTestCases   AIAssistAction = "generate_test_cases"
+	ActionRegenerateTestCases AIAssistAction = "regenerate_test_cases"
+	ActionAdjustDifficulty    AIAssistAction = "adjust_difficulty"
+	ActionFixSignatures       AIAssistAction = "fix_signatures"
+	ActionAddEdgeCases        AIAssistAction = "add_edge_cases"
+	ActionChat                AIAssistAction = "chat"
+)
+
+// AIAssistRequest is the payload for a targeted AI editing action.
+type AIAssistRequest struct {
+	Action     AIAssistAction  `json:"action"`
+	Problem    *store.Problem  `json:"problem"`
+	Message    string          `json:"message,omitempty"`
+	TestCases  []store.TestCase `json:"test_cases,omitempty"`
+	Difficulty *int            `json:"difficulty,omitempty"`
+}
+
+// AIAssistResponse contains only the fields the AI changed for a given action.
+type AIAssistResponse struct {
+	Statement         *string                       `json:"statement,omitempty"`
+	Hints             []string                      `json:"hints,omitempty"`
+	Constraints       *string                       `json:"constraints,omitempty"`
+	LearningObjective *string                       `json:"learning_objective,omitempty"`
+	FuncName          *string                       `json:"func_name,omitempty"`
+	ReturnType        *string                       `json:"return_type,omitempty"`
+	ParamTypes        []string                      `json:"param_types,omitempty"`
+	LanguageVersions  *map[string]store.LanguageSpec `json:"language_versions,omitempty"`
+	TestCases         []store.TestCase              `json:"test_cases,omitempty"`
+	Difficulty        *int                          `json:"difficulty,omitempty"`
+	XPReward          *int                          `json:"xp_reward,omitempty"`
+	Explanation       string                        `json:"explanation"`
+}
+
+// AIAssistProblem performs a targeted AI editing action on a problem.
+func (e *Enricher) AIAssistProblem(ctx context.Context, req *AIAssistRequest) (*AIAssistResponse, error) {
+	if req == nil || req.Problem == nil {
+		return nil, fmt.Errorf("request and problem are required")
+	}
+
+	if err := e.waitForRateLimit(ctx); err != nil {
+		return nil, err
+	}
+
+	ctxJSON := buildProblemContext(req.Problem)
+
+	systemPrompt, err := buildAISystemPrompt(req.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	userPrompt := buildAIUserPrompt(req.Action, ctxJSON, req)
+
+	payload, err := e.provider.GenerateContent(ctx, systemPrompt, userPrompt)
+	if err != nil {
+		return nil, fmt.Errorf("ai assist generate content failed: %w", err)
+	}
+
+	payload = cleanResponse(payload)
+	slog.Debug("enricher: ai assist raw response",
+		"action", req.Action,
+		"payload_len", len(payload),
+		"payload_preview", truncate(payload, 500),
+	)
+
+	var parsed struct {
+		Statement         *string                       `json:"statement"`
+		Hints             []string                      `json:"hints"`
+		Constraints       *string                       `json:"constraints"`
+		LearningObjective *string                       `json:"learning_objective"`
+		FuncName          *string                       `json:"func_name"`
+		ReturnType        *string                       `json:"return_type"`
+		ParamTypes        []string                      `json:"param_types"`
+		LanguageVersions  *map[string]store.LanguageSpec `json:"language_versions"`
+		TestCases         []struct {
+			Input    any    `json:"input_json"`
+			Expected string `json:"expected"`
+			IsHidden bool   `json:"is_hidden"`
+			Ordinal  int    `json:"ordinal"`
+		} `json:"test_cases"`
+		Difficulty  *int   `json:"difficulty"`
+		XPReward    *int   `json:"xp_reward"`
+		Explanation string `json:"explanation"`
+	}
+
+	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
+		slog.Error("enricher: ai assist failed to parse JSON",
+			"action", req.Action,
+			"error", err,
+			"payload", truncate(payload, 2000),
+		)
+		return nil, fmt.Errorf("unable to parse AI assist response: %w", err)
+	}
+
+	resp := &AIAssistResponse{
+		Statement:         parsed.Statement,
+		Hints:             parsed.Hints,
+		Constraints:       parsed.Constraints,
+		LearningObjective: parsed.LearningObjective,
+		FuncName:          parsed.FuncName,
+		ReturnType:        parsed.ReturnType,
+		ParamTypes:        parsed.ParamTypes,
+		LanguageVersions:  parsed.LanguageVersions,
+		Difficulty:        parsed.Difficulty,
+		XPReward:          parsed.XPReward,
+		Explanation:       parsed.Explanation,
+	}
+
+	// Convert test cases
+	if len(parsed.TestCases) > 0 {
+		resp.TestCases = make([]store.TestCase, 0, len(parsed.TestCases))
+		for _, tc := range parsed.TestCases {
+			normalized, err := normalizeTestCaseInput(tc.Input)
+			if err != nil {
+				return nil, fmt.Errorf("invalid test case input: %w", err)
+			}
+			resp.TestCases = append(resp.TestCases, store.TestCase{
+				Input:    normalized,
+				Expected: strings.TrimSpace(tc.Expected),
+				IsHidden: tc.IsHidden,
+				Ordinal:  tc.Ordinal,
+			})
+		}
+	}
+
+	// Validate action-specific requirements
+	switch req.Action {
+	case ActionImproveHints:
+		if len(resp.Hints) != 3 {
+			slog.Warn("enricher: ai assist hints count mismatch", "got", len(resp.Hints), "expected", 3)
+		}
+	case ActionGenerateTestCases, ActionRegenerateTestCases, ActionAddEdgeCases:
+		if len(resp.TestCases) == 0 {
+			return nil, fmt.Errorf("AI did not return any test cases")
+		}
+	}
+
+	slog.Info("enricher: ai assist completed",
+		"action", req.Action,
+		"slug", req.Problem.Slug,
+		"fields_changed", countChangedFields(resp),
+	)
+
+	return resp, nil
+}
+
+func buildProblemContext(p *store.Problem) string {
+	b, _ := json.Marshal(map[string]any{
+		"slug":                p.Slug,
+		"title":               p.Title,
+		"statement":           p.Statement,
+		"constraints":         p.Constraints,
+		"learning_objective":  p.LearningObjective,
+		"func_name":           p.FuncName,
+		"return_type":         p.ReturnType,
+		"param_types":         p.ParamTypes,
+		"hints":               p.Hints,
+		"difficulty":          p.Difficulty,
+		"xp_reward":           p.XPReward,
+		"tags":                p.Tags,
+		"language_versions":   p.LanguageVersions,
+		"module":              p.Module,
+		"language":            p.Language,
+	})
+	return string(b)
+}
+
+func buildAISystemPrompt(action AIAssistAction) (string, error) {
+	switch action {
+	case ActionRephraseStatement:
+		return `You are a programming education expert specializing in clear, engaging problem statements.
+
+Given a programming problem, rewrite its STATEMENT to be more pedagogically effective. Follow these rules:
+
+1. Keep the same technical requirements — do NOT add or remove functionality
+2. Use clear, concise language appropriate for the difficulty level
+3. Add structure: break into sections with headings if appropriate
+4. Include a brief "Objective" sentence at the top explaining what the student will practice
+5. Preserve any code examples, function signatures, and usage examples exactly
+6. Keep the same readability level — don't oversimplify for advanced problems
+
+Return ONLY valid JSON with these fields:
+- "statement": the rewritten full markdown statement
+- "explanation": 1-2 sentence explanation of what you changed and why
+
+Example:
+{
+  "statement": "## Updated Title\n\n### Objective\nPractice using conditionals...\n\n### Instructions\n...",
+  "explanation": "Added an objective section, restructured instructions into bullet points, clarified edge case requirements."
+}`, nil
+
+	case ActionImproveHints:
+		return `You are a programming education expert specializing in pedagogical hints.
+
+Given a programming problem and its current hints, rewrite the 3 hints to be more helpful. Follow these rules:
+
+1. Always return EXACTLY 3 hints
+2. Hint 1: Subtle conceptual nudge — describes the approach without being specific
+3. Hint 2: More direct — mentions relevant functions, operators, or patterns
+4. Hint 3: Very specific — could almost reveal the solution
+5. Each hint should be 1-3 complete sentences
+6. Match the difficulty level of the problem
+
+Return ONLY valid JSON with:
+- "hints": array of exactly 3 strings
+- "explanation": 1-2 sentence summary of how you improved them`, nil
+
+	case ActionGenerateTestCases, ActionRegenerateTestCases, ActionAddEdgeCases:
+		return `You are a programming education expert specializing in test case generation.
+
+Given a programming problem, generate 8 comprehensive test cases. Follow these rules:
+
+1. 5 visible test cases (is_hidden: false) — cover normal functionality
+2. 3 hidden test cases (is_hidden: true) — edge cases, boundary conditions, error inputs
+3. Test cases should progress from basic to more complex
+4. Cover: typical inputs, edge cases (empty, zero, negative), boundary values, error conditions
+5. ordinal must be 1-based sequential
+6. input_json: JSON array of arguments as a string, e.g. "[4]" or "[4, \"hello\"]"
+7. expected: string representation of the expected result. For strings, wrap in escaped quotes: "\"fish\"". For other types, raw value like "42" or "true"
+
+Return ONLY valid JSON with:
+- "test_cases": array of test case objects with input_json, expected, is_hidden, ordinal
+- "explanation": 1-2 sentence summary of what the test cases cover`, nil
+
+	case ActionAdjustDifficulty:
+		return `You are a programming education expert specializing in difficulty calibration.
+
+Given a programming problem, rewrite it for a TARGET DIFFICULTY level (1-5). Follow these rules:
+
+1. Adjust the STATEMENT: simplify or add complexity appropriate for the target level
+2. Adjust CONSTRAINTS: add or remove limitations to match difficulty
+3. Rewrite all 3 HINTS to match the new difficulty level
+4. Set appropriate XP_REWARD: 10/25/50/100/200 for difficulty 1/2/3/4/5
+5. Keep the same function signature and core functionality
+
+Difficulty definitions:
+- 1 (Beginner): Basic syntax, single concept, minimal edge cases
+- 2 (Easy): Two concepts combined, simple edge cases
+- 3 (Medium): Multiple concepts, moderately complex logic
+- 4 (Hard): Advanced concepts, optimization considerations, complex edge cases
+- 5 (Expert): Advanced algorithms, performance constraints, multiple edge cases
+
+Return ONLY valid JSON with:
+- "statement": adjusted markdown statement
+- "constraints": adjusted constraints
+- "hints": exactly 3 hints at the new difficulty level
+- "difficulty": the target difficulty number
+- "xp_reward": appropriate XP value
+- "explanation": what you changed and why`, nil
+
+	case ActionFixSignatures:
+		return `You are a programming education expert specializing in cross-language function signatures.
+
+Given a programming problem, review and correct the function signatures for both Go and Python in language_versions.
+
+Rules:
+- Go: func_name must be PascalCase, return_type and param_types must be valid Go types
+- Python: func_name must be snake_case, return_type and param_types must be valid Python types
+- Python types map: string→str, int→int, bool→bool, float64→float, []T→list, map[K]V→dict
+- param_types must match the function's actual parameter needs
+- If language_versions is missing a Python entry, generate one
+
+Return ONLY valid JSON with:
+- "func_name": corrected Go function name (if changed)
+- "return_type": corrected Go return type (if changed)
+- "param_types": corrected Go param types (if changed)
+- "language_versions": full corrected language_versions object
+- "explanation": what was wrong and how you fixed it`, nil
+
+	case ActionChat:
+		return `You are an AI assistant helping an admin edit a programming problem on a coding education platform.
+
+The admin will ask questions or request changes about the problem. Your response should:
+
+1. Answer the question directly and professionally
+2. When suggesting changes to problem fields, include the updated field values in structured JSON
+3. For simple suggestions, return only an explanation
+4. For actionable changes (statement rewrites, hint improvements, etc.), include the updated field
+
+Always return valid JSON. For simple chat responses with no field changes:
+{
+  "explanation": "Your answer here..."
+}
+
+For responses that include changes to problem fields, include the relevant fields alongside the explanation.
+
+Available fields you can modify: statement, hints, constraints, learning_objective, func_name, return_type, param_types, language_versions, difficulty, xp_reward`, nil
+
+	default:
+		return "", fmt.Errorf("unknown AI assist action: %s", action)
+	}
+}
+
+func buildAIUserPrompt(action AIAssistAction, ctxJSON string, req *AIAssistRequest) string {
+	var b strings.Builder
+
+	switch action {
+	case ActionRephraseStatement:
+		fmt.Fprintf(&b, "Rephrase the statement for this problem:\n\n%s\n\nReturn only the rewritten statement and explanation.", ctxJSON)
+
+	case ActionImproveHints:
+		fmt.Fprintf(&b, "Improve the hints for this problem:\n\n%s\n\nReturn exactly 3 improved hints and an explanation.", ctxJSON)
+
+	case ActionGenerateTestCases:
+		fmt.Fprintf(&b, "Generate 8 test cases for this problem:\n\n%s\n\nReturn 5 visible + 3 hidden test cases covering normal and edge cases.", ctxJSON)
+
+	case ActionRegenerateTestCases:
+		fmt.Fprintf(&b, "Regenerate ALL test cases for this problem:\n\n%s\n\nThe current test cases are being replaced. Return 8 new test cases (5 visible, 3 hidden).", ctxJSON)
+
+	case ActionAddEdgeCases:
+		fmt.Fprintf(&b, "Add 3 additional edge case test cases to the following problem:\n\n%s\n\nReturn 3 test cases (all hidden) covering edge cases not already covered. Use ordinals 9, 10, 11.", ctxJSON)
+
+	case ActionAdjustDifficulty:
+		target := 3
+		if req.Difficulty != nil {
+			target = *req.Difficulty
+		}
+		fmt.Fprintf(&b, "Adjust the following problem to difficulty level %d/5:\n\n%s\n\nReturn updated statement, constraints, hints, difficulty, xp_reward, and explanation.", target, ctxJSON)
+
+	case ActionFixSignatures:
+		fmt.Fprintf(&b, "Review and fix the function signatures for this problem:\n\n%s\n\nReturn corrected func_name, return_type, param_types, language_versions, and explanation.", ctxJSON)
+
+	case ActionChat:
+		fmt.Fprintf(&b, "Current problem:\n\n%s\n\n\nAdmin request: %s\n\nRespond with any field changes as structured JSON alongside your explanation.", ctxJSON, req.Message)
+	}
+
+	return b.String()
+}
+
+func countChangedFields(resp *AIAssistResponse) int {
+	count := 0
+	if resp.Statement != nil {
+		count++
+	}
+	if resp.Hints != nil {
+		count++
+	}
+	if resp.Constraints != nil {
+		count++
+	}
+	if resp.LearningObjective != nil {
+		count++
+	}
+	if resp.FuncName != nil {
+		count++
+	}
+	if resp.ReturnType != nil {
+		count++
+	}
+	if resp.ParamTypes != nil {
+		count++
+	}
+	if resp.LanguageVersions != nil {
+		count++
+	}
+	if resp.TestCases != nil {
+		count++
+	}
+	if resp.Difficulty != nil {
+		count++
+	}
+	if resp.XPReward != nil {
+		count++
+	}
+	return count
+}
+
 func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	var delay time.Duration
-	switch e.provider.Name() {
-	case "gemini":
-		delay = 30 * time.Second
-	case "groq":
-		delay = 2 * time.Second
-	default:
-		delay = 1 * time.Second
-	}
+	const delay = 1 * time.Second
 
 	if !e.lastRequest.IsZero() {
 		next := e.lastRequest.Add(delay)
@@ -283,104 +630,31 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	return nil
 }
 
-type geminiProvider struct {
-	client *genai.Client
-	model  string
-}
+const (
+	nvidiaBaseURL  = "https://integrate.api.nvidia.com/v1"
+	nvidiaModel    = "deepseek-ai/deepseek-v4-flash"
+	nvidiaTemp     = 0.7
+	nvidiaMaxTokens = 8192
+)
 
-func (g *geminiProvider) Name() string { return "gemini" }
-
-func (g *geminiProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		if attempt > 0 {
-			delay := time.Duration(1<<attempt) * time.Second
-			slog.Warn("enricher: retrying Gemini request", "attempt", attempt+1, "delay", delay)
-			select {
-			case <-time.After(delay):
-			case <-ctx.Done():
-				return "", ctx.Err()
-			}
-		}
-
-		result, err := g.generateOnce(ctx, systemPrompt, userPrompt)
-		if err == nil {
-			return result, nil
-		}
-
-		lastErr = err
-		// Don't retry on content-blocked or schema errors (permanent failures)
-		errStr := err.Error()
-		if strings.Contains(errStr, "prompt may have been blocked") ||
-			strings.Contains(errStr, "finish_reason") ||
-			strings.Contains(errStr, "SAFETY") {
-			return "", err
-		}
-	}
-	return "", fmt.Errorf("gemini generate content failed after 3 attempts: %w", lastErr)
-}
-
-func (g *geminiProvider) generateOnce(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	cfg := &genai.GenerateContentConfig{
-		SystemInstruction: genai.NewContentFromText(systemPrompt, genai.RoleUser),
-		ResponseMIMEType:  "application/json",
-		ResponseSchema:    enrichmentSchema(),
-		Temperature:       float32Ptr(0.0),
-		MaxOutputTokens:   8192,
-	}
-
-	response, err := g.client.Models.GenerateContent(ctx, g.model, []*genai.Content{
-		genai.NewContentFromText(userPrompt, genai.RoleUser),
-	}, cfg)
-	if err != nil {
-		return "", fmt.Errorf("gemini generate content failed: %w", err)
-	}
-
-	if len(response.Candidates) == 0 {
-		return "", fmt.Errorf("gemini returned no candidates (prompt may have been blocked)")
-	}
-
-	candidate := response.Candidates[0]
-	if candidate.FinishReason != genai.FinishReasonStop {
-		slog.Warn("enricher: Gemini finish reason not Stop",
-			"finish_reason", candidate.FinishReason,
-			"index", candidate.Index,
-		)
-		return "", fmt.Errorf("gemini generation stopped early: finish_reason=%s", candidate.FinishReason)
-	}
-
-	payload := strings.TrimSpace(response.Text())
-	if payload == "" {
-		return "", fmt.Errorf("empty response from Gemini (finish_reason=%s)", candidate.FinishReason)
-	}
-
-	return payload, nil
-}
-
-type groqProvider struct {
+type nvidiaProvider struct {
 	apiKey     string
-	model      string
 	httpClient *http.Client
 }
 
-type groqMessage struct {
+type nvidiaMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type groqRequest struct {
-	Model          string              `json:"model"`
-	Messages       []groqMessage       `json:"messages"`
-	ResponseFormat *groqResponseFormat `json:"response_format,omitempty"`
-	Temperature    float64             `json:"temperature"`
-	MaxTokens      int                 `json:"max_tokens"`
+type nvidiaRequest struct {
+	Model       string          `json:"model"`
+	Messages    []nvidiaMessage `json:"messages"`
+	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens"`
 }
 
-type groqResponseFormat struct {
-	Type string `json:"type"`
-}
-
-type groqResponse struct {
+type nvidiaResponse struct {
 	Choices []struct {
 		Index         int    `json:"index"`
 		Message       struct {
@@ -394,71 +668,61 @@ type groqResponse struct {
 	} `json:"error,omitempty"`
 }
 
-func newGroqProvider(apiKey, model string) *groqProvider {
-	if model == "" {
-		model = "llama-3.3-70b-versatile"
-	}
-	return &groqProvider{
+func newNvidiaProvider(apiKey string) *nvidiaProvider {
+	return &nvidiaProvider{
 		apiKey: apiKey,
-		model:  model,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
 	}
 }
 
-func (g *groqProvider) Name() string { return "groq" }
+func (n *nvidiaProvider) Name() string { return "nvidia" }
 
-func (g *groqProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	body := groqRequest{
-		Model: g.model,
-		Messages: []groqMessage{
+func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	body := nvidiaRequest{
+		Model: nvidiaModel,
+		Messages: []nvidiaMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		ResponseFormat: &groqResponseFormat{Type: "json_object"},
-		Temperature:    0.0,
-		MaxTokens:      8192,
+		Temperature: nvidiaTemp,
+		MaxTokens:   nvidiaMaxTokens,
 	}
 
 	payload, err := json.Marshal(body)
 	if err != nil {
-		return "", fmt.Errorf("groq marshal request: %w", err)
+		return "", fmt.Errorf("nvidia marshal request: %w", err)
 	}
 
-	return g.doRequest(ctx, payload, 0)
+	return n.doRequest(ctx, payload, 0)
 }
 
-func (g *groqProvider) doRequest(ctx context.Context, payload []byte, attempt int) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewReader(payload))
+func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt int) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", nvidiaBaseURL+"/chat/completions", bytes.NewReader(payload))
 	if err != nil {
-		return "", fmt.Errorf("groq create request: %w", err)
+		return "", fmt.Errorf("nvidia create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+g.apiKey)
+	req.Header.Set("Authorization", "Bearer "+n.apiKey)
 
-	resp, err := g.httpClient.Do(req)
+	resp, err := n.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("groq request failed: %w", err)
+		return "", fmt.Errorf("nvidia request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("groq read response: %w", err)
+		return "", fmt.Errorf("nvidia read response: %w", err)
 	}
 
-	if resp.StatusCode == 429 && attempt < 2 {
-		retryAfter := resp.Header.Get("Retry-After")
-		var wait time.Duration
-		if seconds, err := strconv.Atoi(retryAfter); err == nil {
-			wait = time.Duration(seconds) * time.Second
-		} else {
-			wait = 5 * time.Second
-		}
-
-		slog.Warn("groq rate limited, retrying",
+	// Retry on rate limit (429) or service unavailable (503) with exponential backoff, up to 3 retries
+	if (resp.StatusCode == 429 || resp.StatusCode == 503) && attempt < 3 {
+		wait := time.Duration(1<<(attempt+1)) * time.Second
+		slog.Warn("nvidia transient error, retrying",
+			"status", resp.StatusCode,
 			"retry_after_sec", wait.Seconds(),
 			"attempt", attempt+1,
 		)
@@ -467,48 +731,48 @@ func (g *groqProvider) doRequest(ctx context.Context, payload []byte, attempt in
 		case <-ctx.Done():
 			return "", ctx.Err()
 		}
-		return g.doRequest(ctx, payload, attempt+1)
+		return n.doRequest(ctx, payload, attempt+1)
 	}
 
 	if resp.StatusCode != 200 {
 		bodySnippet := truncate(string(respBody), 1000)
-		slog.Error("groq HTTP error",
+		slog.Error("nvidia HTTP error",
 			"status", resp.StatusCode,
 			"body", bodySnippet,
 		)
-		return "", fmt.Errorf("groq returned HTTP %d: %s", resp.StatusCode, bodySnippet)
+		return "", fmt.Errorf("nvidia returned HTTP %d: %s", resp.StatusCode, bodySnippet)
 	}
 
-	var result groqResponse
+	var result nvidiaResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		bodySnippet := truncate(string(respBody), 1000)
-		slog.Error("groq parse response failed",
+		slog.Error("nvidia parse response failed",
 			"error", err,
 			"body", bodySnippet,
 		)
-		return "", fmt.Errorf("groq parse response: %w (body: %s)", err, bodySnippet)
+		return "", fmt.Errorf("nvidia parse response: %w (body: %s)", err, bodySnippet)
 	}
 
 	if result.Error != nil {
-		return "", fmt.Errorf("groq API error: %s - %s", result.Error.Type, result.Error.Message)
+		return "", fmt.Errorf("nvidia API error: %s - %s", result.Error.Type, result.Error.Message)
 	}
 
 	if len(result.Choices) == 0 {
 		bodySnippet := truncate(string(respBody), 1000)
-		slog.Error("groq returned no choices", "body", bodySnippet)
-		return "", fmt.Errorf("groq returned no choices (body: %s)", bodySnippet)
+		slog.Error("nvidia returned no choices", "body", bodySnippet)
+		return "", fmt.Errorf("nvidia returned no choices (body: %s)", bodySnippet)
 	}
 
 	finishReason := result.Choices[0].FinishReason
 	if finishReason == "length" {
-		slog.Warn("groq response truncated due to max_tokens", "finish_reason", finishReason)
+		slog.Warn("nvidia response truncated due to max_tokens", "finish_reason", finishReason)
 	} else if finishReason != "stop" {
-		return "", fmt.Errorf("groq generation stopped early: %s", finishReason)
+		return "", fmt.Errorf("nvidia generation stopped early: %s", finishReason)
 	}
 
 	content := strings.TrimSpace(result.Choices[0].Message.Content)
 	if content == "" {
-		return "", fmt.Errorf("groq returned empty content (finish_reason=%s)", finishReason)
+		return "", fmt.Errorf("nvidia returned empty content (finish_reason=%s)", finishReason)
 	}
 
 	return content, nil
@@ -535,74 +799,6 @@ func cleanResponse(s string) string {
 	}
 
 	return s[start : end+1]
-}
-
-func languageSpecSchema() *genai.Schema {
-	return &genai.Schema{
-		Type: genai.TypeObject,
-		Properties: map[string]*genai.Schema{
-			"func_name":   {Type: genai.TypeString},
-			"return_type": {Type: genai.TypeString},
-			"param_types": {
-				Type:  genai.TypeArray,
-				Items: &genai.Schema{Type: genai.TypeString},
-			},
-		},
-		Required: []string{"func_name", "return_type", "param_types"},
-	}
-}
-
-func enrichmentSchema() *genai.Schema {
-	return &genai.Schema{
-		Type: genai.TypeObject,
-		Properties: map[string]*genai.Schema{
-			"title":       {Type: genai.TypeString},
-			"statement":   {Type: genai.TypeString},
-			"func_name":   {Type: genai.TypeString},
-			"return_type": {Type: genai.TypeString},
-			"param_types": {
-				Type:  genai.TypeArray,
-				Items: &genai.Schema{Type: genai.TypeString},
-			},
-			"hints": {
-				Type:     genai.TypeArray,
-				Items:    &genai.Schema{Type: genai.TypeString},
-				MinItems: int64Ptr(3),
-				MaxItems: int64Ptr(3),
-			},
-			"difficulty": {Type: genai.TypeInteger},
-			"xp_reward":  {Type: genai.TypeInteger},
-			"tags": {
-				Type:  genai.TypeArray,
-				Items: &genai.Schema{Type: genai.TypeString},
-			},
-			"test_cases": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type: genai.TypeObject,
-					Properties: map[string]*genai.Schema{
-"input_json": {
-	Type:        genai.TypeString,
-	Description: "JSON array of function arguments as a string. Example: \"[1, \\\"hello\\\", true]\"",
-},
-						"expected":  {Type: genai.TypeString},
-						"is_hidden": {Type: genai.TypeBoolean},
-						"ordinal":   {Type: genai.TypeInteger},
-					},
-					Required: []string{"input_json", "expected", "ordinal"},
-				},
-			},
-			"language_versions": {
-				Type: genai.TypeObject,
-				Properties: map[string]*genai.Schema{
-					"go":     languageSpecSchema(),
-					"python": languageSpecSchema(),
-				},
-				Required: []string{"go"},
-			},
-		},
-		Required: []string{"title", "statement", "func_name", "return_type", "param_types", "hints", "difficulty", "xp_reward", "tags", "test_cases", "language_versions"},
-	}
 }
 
 func normalizeTestCaseInput(raw any) ([]byte, error) {
@@ -686,14 +882,6 @@ func validateEnrichedProblem(problem *store.Problem, testCases []store.TestCase)
 	}
 
 	return nil
-}
-
-func float32Ptr(value float32) *float32 {
-	return &value
-}
-
-func int64Ptr(value int64) *int64 {
-	return &value
 }
 
 // toSnakeCase converts PascalCase or camelCase to snake_case for Python function names.

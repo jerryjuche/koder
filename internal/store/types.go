@@ -46,6 +46,29 @@ func (b *FlexibleBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// FlexibleStrings accepts both a single JSON string and an array of strings.
+type FlexibleStrings []string
+
+func (fs *FlexibleStrings) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if data[0] == '[' {
+		var arr []string
+		if err := json.Unmarshal(data, &arr); err != nil {
+			return err
+		}
+		*fs = FlexibleStrings(arr)
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*fs = FlexibleStrings{s}
+	return nil
+}
+
 // GoogleUserInfo represents the user info from Google's ID token.
 type GoogleUserInfo struct {
 	Sub           string       `json:"sub"`
@@ -109,9 +132,9 @@ type Problem struct {
 
 // LanguageSpec holds per-language function metadata for a problem.
 type LanguageSpec struct {
-	FuncName   string   `json:"func_name"`
-	ReturnType string   `json:"return_type"`
-	ParamTypes []string `json:"param_types"`
+	FuncName   string         `json:"func_name"`
+	ReturnType string         `json:"return_type"`
+	ParamTypes FlexibleStrings `json:"param_types"`
 }
 
 // TestCase represents a single problem test case.
@@ -165,6 +188,8 @@ type AdminStats struct {
 	TotalProblems    int `json:"total_problems"`
 	ActiveProblems   int `json:"active_problems"`
 	TotalSubmissions int `json:"total_submissions"`
+	TotalAICalls     int `json:"total_ai_calls"`
+	AICallsToday     int `json:"ai_calls_today"`
 }
 
 // LeaderboardUser represents the embedded user in a leaderboard entry.
@@ -334,4 +359,37 @@ type CommunitySolution struct {
 	Likes       int         `json:"likes"`
 	HasLiked    bool        `json:"has_liked"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+// AIUsageLog records a single AI assist call for monitoring and billing.
+type AIUsageLog struct {
+	ID             pgtype.UUID `db:"id" json:"id"`
+	UserID         pgtype.UUID `db:"user_id" json:"user_id"`
+	Action         string      `db:"action" json:"action"`
+	ProblemSlug    string      `db:"problem_slug" json:"problem_slug"`
+	TokensIn       int         `db:"tokens_in" json:"tokens_in"`
+	TokensOut      int         `db:"tokens_out" json:"tokens_out"`
+	ResponseTimeMs int         `db:"response_time_ms" json:"response_time_ms"`
+	Success        bool        `db:"success" json:"success"`
+	ErrorMessage   *string     `db:"error_message" json:"error_message,omitempty"`
+	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
+}
+
+// RefreshToken represents a stored refresh token for token rotation.
+type RefreshToken struct {
+	ID        pgtype.UUID `db:"id" json:"id"`
+	UserID    pgtype.UUID `db:"user_id" json:"user_id"`
+	TokenHash string      `db:"token_hash" json:"-"`
+	ExpiresAt time.Time   `db:"expires_at" json:"expires_at"`
+	Revoked   bool        `db:"revoked" json:"revoked"`
+	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+}
+
+// AIUsageStats holds aggregate AI usage counts for the admin dashboard.
+type AIUsageStats struct {
+	TotalAICalls      int     `json:"total_ai_calls"`
+	AICallsToday      int     `json:"ai_calls_today"`
+	AICallsThisWeek   int     `json:"ai_calls_this_week"`
+	SuccessRate       float64 `json:"success_rate"`
+	AvgResponseTimeMs float64 `json:"avg_response_time_ms"`
 }

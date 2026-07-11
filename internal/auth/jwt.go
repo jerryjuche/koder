@@ -1,12 +1,33 @@
 package auth
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
+
+// GenerateRefreshToken creates a cryptographically random refresh token string
+// and returns the raw token (to give to the client) and its SHA-256 hash (to store).
+func GenerateRefreshToken() (string, string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+	raw := hex.EncodeToString(b)
+	hash := sha256.Sum256([]byte(raw))
+	return raw, hex.EncodeToString(hash[:]), nil
+}
+
+// SHA256Hash returns the hex-encoded SHA-256 hash of the input.
+func SHA256Hash(input string) string {
+	h := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(h[:])
+}
 
 // Claims represents the JWT claims.
 type Claims struct {

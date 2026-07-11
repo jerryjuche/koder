@@ -16,19 +16,16 @@ type Config struct {
 	DatabaseURL string
 
 	// Auth
-	JWTSecret      string
-	JWTExpiryHours int
+	JWTSecret         string
+	JWTExpiryHours    int
+	AccessTokenMinutes int
+	RefreshTokenDays   int
 
-	// AI Provider (gemini or groq)
+	// AI Provider (nvidia — DeepSeek V4 Flash via NVIDIA NIM)
 	EnrichmentProvider string
 
-	// Gemini
-	GeminiAPIKey string
-	GeminiModel  string
-
-	// Groq
-	GroqAPIKey string
-	GroqModel  string
+	// NVIDIA NIM (DeepSeek V4 Flash)
+	NVIDIAAPIKey string
 
 	// Execution
 	ExecutorMaxConcurrency int
@@ -128,43 +125,46 @@ func Load() (*Config, error) {
 	}
 	cfg.JWTExpiryHours = jwtExpiry
 
-	// AI Provider Selection
+	accessTokenMinutesStr := os.Getenv("ACCESS_TOKEN_EXPIRY_MINUTES")
+	if accessTokenMinutesStr == "" {
+		accessTokenMinutesStr = "15"
+	}
+	accessTokenMinutes, err := strconv.Atoi(accessTokenMinutesStr)
+	if err != nil {
+		return nil, fmt.Errorf("ACCESS_TOKEN_EXPIRY_MINUTES must be a valid integer: %w", err)
+	}
+	if accessTokenMinutes <= 0 {
+		return nil, fmt.Errorf("ACCESS_TOKEN_EXPIRY_MINUTES must be > 0")
+	}
+	cfg.AccessTokenMinutes = accessTokenMinutes
+
+	refreshTokenDaysStr := os.Getenv("REFRESH_TOKEN_EXPIRY_DAYS")
+	if refreshTokenDaysStr == "" {
+		refreshTokenDaysStr = "7"
+	}
+	refreshTokenDays, err := strconv.Atoi(refreshTokenDaysStr)
+	if err != nil {
+		return nil, fmt.Errorf("REFRESH_TOKEN_EXPIRY_DAYS must be a valid integer: %w", err)
+	}
+	if refreshTokenDays <= 0 {
+		return nil, fmt.Errorf("REFRESH_TOKEN_EXPIRY_DAYS must be > 0")
+	}
+	cfg.RefreshTokenDays = refreshTokenDays
+
+	// AI Provider Selection — DeepSeek V4 Flash via NVIDIA NIM
 	cfg.EnrichmentProvider = os.Getenv("ENRICHMENT_PROVIDER")
-	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
-
 	if cfg.EnrichmentProvider == "" {
-		if cfg.GroqAPIKey != "" {
-			cfg.EnrichmentProvider = "groq"
-		} else {
-			cfg.EnrichmentProvider = "gemini"
-		}
+		cfg.EnrichmentProvider = "nvidia"
 	}
+	cfg.NVIDIAAPIKey = os.Getenv("NVIDIA_API_KEY")
 
-	cfg.GroqModel = os.Getenv("GROQ_MODEL")
-	if cfg.GroqModel == "" {
-		cfg.GroqModel = "llama-3.3-70b-versatile"
+	if cfg.EnrichmentProvider != "nvidia" {
+		return nil, fmt.Errorf("ENRICHMENT_PROVIDER must be 'nvidia', got %q", cfg.EnrichmentProvider)
 	}
-
-	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
-	cfg.GeminiModel = os.Getenv("GEMINI_MODEL")
-	if cfg.GeminiModel == "" {
-		cfg.GeminiModel = "gemini-2.5-pro"
+	if cfg.NVIDIAAPIKey == "" {
+		return nil, fmt.Errorf("NVIDIA_API_KEY is required for DeepSeek V4 Flash via NVIDIA NIM")
 	}
-
-	switch cfg.EnrichmentProvider {
-	case "gemini":
-		if cfg.GeminiAPIKey == "" {
-			return nil, fmt.Errorf("GEMINI_API_KEY is required when ENRICHMENT_PROVIDER is gemini")
-		}
-		slog.Info("config: using Gemini for problem enrichment", "model", cfg.GeminiModel)
-	case "groq":
-		if cfg.GroqAPIKey == "" {
-			return nil, fmt.Errorf("GROQ_API_KEY is required when ENRICHMENT_PROVIDER is groq")
-		}
-		slog.Info("config: using Groq for problem enrichment", "model", cfg.GroqModel)
-	default:
-		return nil, fmt.Errorf("ENRICHMENT_PROVIDER must be 'gemini' or 'groq', got %q", cfg.EnrichmentProvider)
-	}
+	slog.Info("config: using NVIDIA NIM (DeepSeek V4 Flash) for problem enrichment")
 
 	// Execution
 	executorMaxConcurrencyStr := os.Getenv("EXECUTOR_MAX_CONCURRENCY")
@@ -304,4 +304,14 @@ func (c *Config) PythonTimeout() time.Duration {
 // JWTExpiry returns the JWT expiry as a time.Duration.
 func (c *Config) JWTExpiry() time.Duration {
 	return time.Duration(c.JWTExpiryHours) * time.Hour
+}
+
+// AccessTokenExpiry returns the access token expiry as a time.Duration.
+func (c *Config) AccessTokenExpiry() time.Duration {
+	return time.Duration(c.AccessTokenMinutes) * time.Minute
+}
+
+// RefreshTokenExpiry returns the refresh token expiry as a time.Duration.
+func (c *Config) RefreshTokenExpiry() time.Duration {
+	return time.Duration(c.RefreshTokenDays) * (24 * time.Hour)
 }

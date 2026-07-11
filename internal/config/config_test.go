@@ -1,6 +1,5 @@
 package config
 
-
 import (
 	"os"
 	"testing"
@@ -10,7 +9,7 @@ import (
 func TestLoadConfig_Success(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("GEMINI_API_KEY", "test-api-key")
+	os.Setenv("NVIDIA_API_KEY", "test-api-key")
 	os.Setenv("PORT", "8080")
 
 	cfg, err := Load()
@@ -28,7 +27,7 @@ func TestLoadConfig_Success(t *testing.T) {
 	// Clean up
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 	os.Unsetenv("PORT")
 }
 
@@ -75,7 +74,7 @@ func TestLoadConfig_JWTSecretTooShort(t *testing.T) {
 func TestLoadConfig_InvalidPort(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("GEMINI_API_KEY", "test-api-key")
+	os.Setenv("NVIDIA_API_KEY", "test-api-key")
 	os.Setenv("PORT", "invalid")
 
 	_, err := Load()
@@ -85,14 +84,14 @@ func TestLoadConfig_InvalidPort(t *testing.T) {
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 	os.Unsetenv("PORT")
 }
 
 func TestLoadConfig_Defaults(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("GEMINI_API_KEY", "test-api-key")
+	os.Setenv("NVIDIA_API_KEY", "test-api-key")
 	os.Unsetenv("PORT")
 	os.Unsetenv("EXECUTOR_MAX_CONCURRENCY")
 	os.Unsetenv("EXECUTOR_TIMEOUT_SECONDS")
@@ -114,88 +113,41 @@ func TestLoadConfig_Defaults(t *testing.T) {
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 }
 
-func TestLoadConfig_MissingGeminiKey(t *testing.T) {
+func TestLoadConfig_MissingNvidiaKey(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 
 	_, err := Load()
 	if err == nil {
-		t.Fatal("expected error for missing GEMINI_API_KEY")
+		t.Fatal("expected error for missing NVIDIA_API_KEY")
 	}
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
 }
 
-func TestLoadConfig_GroqDefaults(t *testing.T) {
+func TestLoadConfig_DefaultProviderIsNvidia(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("ENRICHMENT_PROVIDER", "groq")
-	os.Setenv("GROQ_API_KEY", "test-groq-key")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Setenv("NVIDIA_API_KEY", "test-nvidia-key")
+	os.Unsetenv("ENRICHMENT_PROVIDER")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if cfg.EnrichmentProvider != "groq" {
-		t.Errorf("expected groq, got %s", cfg.EnrichmentProvider)
-	}
-	if cfg.GroqModel != "llama-3.3-70b-versatile" {
-		t.Errorf("expected default groq model, got %s", cfg.GroqModel)
+	if cfg.EnrichmentProvider != "nvidia" {
+		t.Errorf("expected default nvidia, got %s", cfg.EnrichmentProvider)
 	}
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("ENRICHMENT_PROVIDER")
-	os.Unsetenv("GROQ_API_KEY")
-}
-
-func TestLoadConfig_DefaultProviderSelection(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
-	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Unsetenv("ENRICHMENT_PROVIDER")
-	os.Unsetenv("GROQ_API_KEY")
-	os.Setenv("GEMINI_API_KEY", "test-gemini-key")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if cfg.EnrichmentProvider != "gemini" {
-		t.Errorf("expected default gemini, got %s", cfg.EnrichmentProvider)
-	}
-
-	os.Unsetenv("DATABASE_URL")
-	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
-}
-
-func TestLoadConfig_ProviderSwitchToGroq(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
-	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Unsetenv("ENRICHMENT_PROVIDER")
-	os.Unsetenv("GEMINI_API_KEY")
-	os.Setenv("GROQ_API_KEY", "test-groq-key")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if cfg.EnrichmentProvider != "groq" {
-		t.Errorf("expected groq since GROQ_API_KEY is set, got %s", cfg.EnrichmentProvider)
-	}
-
-	os.Unsetenv("DATABASE_URL")
-	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GROQ_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 }
 
 func TestExecutorTimeout(t *testing.T) {
@@ -225,7 +177,7 @@ func TestJWTExpiry(t *testing.T) {
 func TestLoadConfig_InvalidJWTExpiry(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("GEMINI_API_KEY", "test-api-key")
+	os.Setenv("NVIDIA_API_KEY", "test-api-key")
 	os.Setenv("JWT_EXPIRY_HOURS", "not-a-number")
 
 	_, err := Load()
@@ -235,14 +187,14 @@ func TestLoadConfig_InvalidJWTExpiry(t *testing.T) {
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 	os.Unsetenv("JWT_EXPIRY_HOURS")
 }
 
 func TestLoadConfig_EmptyAllowedOrigin(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
-	os.Setenv("GEMINI_API_KEY", "test-api-key")
+	os.Setenv("NVIDIA_API_KEY", "test-api-key")
 	os.Unsetenv("ALLOWED_ORIGIN")
 
 	cfg, err := Load()
@@ -255,5 +207,5 @@ func TestLoadConfig_EmptyAllowedOrigin(t *testing.T) {
 
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("GEMINI_API_KEY")
+	os.Unsetenv("NVIDIA_API_KEY")
 }

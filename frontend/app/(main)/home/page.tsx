@@ -463,7 +463,11 @@ export default function Dashboard() {
                         1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
                       };
                       const d = problem.difficulty as keyof typeof diffColor;
-                      const langs = problem.language_versions ? Object.keys(problem.language_versions) : [];
+                      const langs = problem.language_versions
+                          ? Object.entries(problem.language_versions)
+                              .filter(([_, spec]) => spec.func_name)
+                              .map(([lang]) => lang)
+                          : [];
 
                       return (
                       <Link
