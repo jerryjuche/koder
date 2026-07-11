@@ -54,7 +54,12 @@ export default function BroadcastPanel({ compact }: Props) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    fetchAllBroadcasts().then(res => {
+      if (res.success && res.data) setBroadcasts(res.data);
+      setLoading(false);
+    });
+  }, []);
 
   // Live WebSocket updates
   useWebSocket({

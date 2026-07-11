@@ -14,6 +14,7 @@ export type User = {
   google_avatar_url?: string;
   google_linked?: boolean;
   usernameSet?: boolean;
+  primaryLanguage?: string;
 };
 
 export type ProblemDifficulty =
@@ -49,6 +50,11 @@ export type Problem = {
   success_rate?: number;
   author_id?: string;
   author_name?: string;
+  language_versions?: Record<string, {
+    func_name: string;
+    return_type: string;
+    param_types: string[];
+  }>;
 };
 
 export type UserProblemTestCase = {
@@ -248,6 +254,11 @@ export type UpdateProblemPayload = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  language_versions?: Record<string, {
+    func_name: string;
+    return_type: string;
+    param_types: string[];
+  }>;
   hints?: string[];
   difficulty?: number;
   xp_reward?: number;

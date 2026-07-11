@@ -31,6 +31,7 @@ type meResponse struct {
 	SolvedCount     int     `json:"solved_count"`
 	AttemptedCount  int     `json:"attempted_count"`
 	StreakDays      int     `json:"current_streak_days"`
+	PrimaryLanguage string  `json:"primary_language"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 	GoogleLinked    bool    `json:"google_linked"`
 	UsernameSet     bool    `json:"username_set"`
@@ -92,6 +93,11 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		streakDays = stats.CurrentStreakDays
 	}
 
+	primaryLanguage := user.PrimaryLanguage
+	if primaryLanguage == "" {
+		primaryLanguage = "go"
+	}
+
 	resp := meResponse{
 		ID:              idStr,
 		StudentID:       user.StudentID,
@@ -104,6 +110,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		SolvedCount:     solvedCount,
 		AttemptedCount:  attemptedCount,
 		StreakDays:      streakDays,
+		PrimaryLanguage: primaryLanguage,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
 		UsernameSet:     user.UsernameSet,
@@ -197,6 +204,99 @@ func (h *MeHandler) SetUsername(w http.ResponseWriter, r *http.Request) {
 	InvalidateUserCache(claims.UserID)
 
 	RespondSuccess(w, map[string]string{"message": "Username set successfully"})
+}
+
+// updateLanguageRequest is the payload for changing the user's primary language.
+type updateLanguageRequest struct {
+	Language string `json:"language"`
+}
+
+// UpdateLanguage updates the authenticated user's primary language preference.
+// PUT /me/language
+func (h *MeHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	var req updateLanguageRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if req.Language != "go" && req.Language != "python" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Language must be 'go' or 'python'", nil)
+		return
+	}
+
+	if err := h.store.UpdateUserPrimaryLanguage(r.Context(), userUUID, req.Language); err != nil {
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update language preference", nil)
+		return
+	}
+
+	InvalidateUserCache(claims.UserID)
+
+	// Return updated user
+	user, solvedCount, err := h.store.GetUserWithSolvedCount(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	stats, err := h.store.GetUserStats(r.Context(), userUUID)
+	if err != nil {
+		stats = nil
+	}
+
+	idStr, err := uuidStringFromPGType(user.ID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
+		return
+	}
+
+	level := (user.XP / 1000) + 1
+	googleLinked := user.GoogleID != nil && *user.GoogleID != ""
+	attemptedCount := 0
+	streakDays := 0
+	if stats != nil {
+		attemptedCount = stats.AttemptedCount
+		streakDays = stats.CurrentStreakDays
+	}
+
+	primaryLanguage := user.PrimaryLanguage
+	if primaryLanguage == "" {
+		primaryLanguage = "go"
+	}
+
+	resp := meResponse{
+		ID:              idStr,
+		StudentID:       user.StudentID,
+		Username:        user.Username,
+		Name:            user.Name,
+		Role:            user.Role,
+		ColorIndex:      clampColorIndex(user.ColorIndex),
+		XP:              user.XP,
+		Level:           level,
+		SolvedCount:     solvedCount,
+		AttemptedCount:  attemptedCount,
+		StreakDays:      streakDays,
+		PrimaryLanguage: primaryLanguage,
+		GoogleAvatarURL: user.GoogleAvatarURL,
+		GoogleLinked:    googleLinked,
+		UsernameSet:     user.UsernameSet,
+	}
+
+	RespondSuccess(w, resp)
 }
 
 // DeleteAccount permanently removes the authenticated user and all their data.

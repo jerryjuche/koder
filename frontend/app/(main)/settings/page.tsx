@@ -42,7 +42,12 @@ function SettingsPageContent() {
   const [saving, setSaving] = useState(false);
 
   // Preferences states (local storage)
-  const [theme, setTheme] = useState("vs-dark");
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("koder_theme") || "vs-dark";
+    }
+    return "vs-dark";
+  });
 
   // Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -125,9 +130,6 @@ function SettingsPageContent() {
     };
     loadProfile();
 
-    // Load local preference
-    setTheme(localStorage.getItem("koder_theme") || "vs-dark");
-
     const onUserUpdated = () => {
       fetchUser().then((res) => {
         if (mounted && res.success && res.data) {
@@ -147,12 +149,10 @@ function SettingsPageContent() {
   // Fetch notifications when tab is active
   useEffect(() => {
     if (activeTab !== "notifications") return;
-    setNotifLoading(true);
     fetchRecentNotifications().then((res) => {
       if (res.success && res.data) {
         setNotifications(res.data);
       }
-      setNotifLoading(false);
     });
   }, [activeTab]);
 
@@ -549,7 +549,7 @@ function SettingsPageContent() {
                       <Bell size={32} className="text-brand-offwhite-muted/40 mb-3" />
                       <p className="text-sm text-brand-offwhite-muted font-medium">No recent notifications</p>
                       <p className="text-xs text-brand-offwhite-muted/60 mt-1">
-                        When an admin reviews your contributions or you earn achievements, they'll appear here.
+                        When an admin reviews your contributions or you earn achievements, they&apos;ll appear here.
                       </p>
                     </div>
                   ) : (

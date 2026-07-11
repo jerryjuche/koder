@@ -69,18 +69,25 @@ function ensureInitialized(clientId: string) {
 
 export function useGoogleOneTap(onSuccess: OneTapCallback) {
   const cbRef = useRef<OneTapCallback>(onSuccess);
-  cbRef.current = onSuccess;
+
+  useEffect(() => {
+    cbRef.current = onSuccess;
+  }, [onSuccess]);
 
   const canLoad = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(initialized);
+
+  // Sync ready with initialized state during render (avoids setState in effect)
+  const [prevInitSync, setPrevInitSync] = useState(initialized);
+  if (initialized !== prevInitSync && canLoad) {
+    setPrevInitSync(initialized);
+    if (initialized) setReady(true);
+  }
 
   useEffect(() => {
     if (!canLoad) return;
 
-    if (initialized) {
-      setReady(true);
-      return;
-    }
+    if (initialized) return;
 
     globalCallback = (response) => {
       cbRef.current(response);

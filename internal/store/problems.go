@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -15,7 +17,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
 		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''), p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions,
 		       p.created_at, p.updated_at,
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
 		       COALESCE(s.total_subs, 0)::int,
@@ -46,6 +48,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 	for rows.Next() {
 		var problem Problem
 		var successfulSubs int
+		var lvBytes []byte
 		if err := rows.Scan(
 			&problem.ID,
 			&problem.Slug,
@@ -65,6 +68,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.Tags,
 			&problem.Visible,
 			&problem.SourceHash,
+			&lvBytes,
 			&problem.CreatedAt,
 			&problem.UpdatedAt,
 			&problem.Solved,
@@ -75,6 +79,9 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.AvgRuntimeMs,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan problem row: %w", err)
+		}
+		if len(lvBytes) > 0 {
+			unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "ListVisibleProblems")
 		}
 		if problem.TotalSubmissions > 0 {
 			problem.SuccessRate = float64(successfulSubs) / float64(problem.TotalSubmissions) * 100
@@ -102,7 +109,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+			   p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 			   p.created_at, p.updated_at,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs,
@@ -115,6 +122,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 
 	var problem Problem
 	var successfulSubs int
+	var lvBytes []byte
 	if err := s.pool.QueryRow(ctx, query, slug, userID).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -134,6 +142,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 		&problem.Tags,
 		&problem.Visible,
 		&problem.SourceHash,
+		&lvBytes,
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
@@ -145,6 +154,9 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 		&problem.Attempts,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
+	}
+	if len(lvBytes) > 0 {
+		unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "problems")
 	}
 
 	if problem.TotalSubmissions > 0 {
@@ -185,12 +197,12 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 		INSERT INTO problems (
 		    slug, module, type, language, title, statement, func_name,
 		    return_type, param_types, hints, difficulty, xp_reward, tags,
-		    visible, source_hash, raw_readme, created_at, updated_at
+		    visible, source_hash, raw_readme, language_versions, created_at, updated_at
 		)
 		VALUES (
 		    $1, $2, $3, $4, $5, $6, $7,
 		    $8, $9, $10, $11, $12, $13,
-		    $14, $15, $16, NOW(), NOW()
+		    $14, $15, $16, $17, NOW(), NOW()
 		)
 		ON CONFLICT (slug) DO UPDATE SET
 		    module = EXCLUDED.module,
@@ -208,10 +220,16 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 		    visible = EXCLUDED.visible,
 		    source_hash = EXCLUDED.source_hash,
 		    raw_readme = EXCLUDED.raw_readme,
+		    language_versions = EXCLUDED.language_versions,
 		    updated_at = NOW()
 	`
 
-	_, err := s.pool.Exec(ctx, query,
+	lvJSON, err := json.Marshal(problem.LanguageVersions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal language_versions: %w", err)
+	}
+
+	_, err = s.pool.Exec(ctx, query,
 		problem.Slug,
 		problem.Module,
 		problem.Type,
@@ -228,6 +246,7 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 		problem.Visible,
 		problem.SourceHash,
 		problem.RawReadme,
+		lvJSON,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert problem: %w", err)
@@ -258,12 +277,12 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 		INSERT INTO problems (
 		    slug, module, type, language, title, statement, func_name,
 		    return_type, param_types, hints, difficulty, xp_reward, tags,
-		    visible, source_hash, raw_readme, created_at, updated_at
+		    visible, source_hash, raw_readme, language_versions, created_at, updated_at
 		)
 		VALUES (
 		    $1, $2, $3, $4, $5, $6, $7,
 		    $8, $9, $10, $11, $12, $13,
-		    $14, $15, $16, NOW(), NOW()
+		    $14, $15, $16, $17, NOW(), NOW()
 		)
 		ON CONFLICT (slug) DO UPDATE SET
 		    module = EXCLUDED.module,
@@ -281,14 +300,20 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 		    visible = EXCLUDED.visible,
 		    source_hash = EXCLUDED.source_hash,
 		    raw_readme = EXCLUDED.raw_readme,
+		    language_versions = EXCLUDED.language_versions,
 		    updated_at = NOW()
 	`
+
+	lvJSON, err := json.Marshal(problem.LanguageVersions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal language_versions: %w", err)
+	}
 
 	if _, err := tx.Exec(ctx, upsertQuery,
 		problem.Slug, problem.Module, problem.Type, problem.Language,
 		problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
 		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward,
-		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme,
+		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme, lvJSON,
 	); err != nil {
 		return fmt.Errorf("failed to upsert enriched problem: %w", err)
 	}
@@ -334,13 +359,14 @@ func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Prob
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 		       p.created_at, p.updated_at
 		FROM problems p
 		WHERE p.id = $1
 	`
 
 	var problem Problem
+	var lvBytes []byte
 	if err := s.pool.QueryRow(ctx, query, id).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -360,11 +386,15 @@ func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Prob
 		&problem.Tags,
 		&problem.Visible,
 		&problem.SourceHash,
+		&lvBytes,
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by ID: %w", err)
+	}
+	if len(lvBytes) > 0 {
+		unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "problems")
 	}
 
 	return &problem, nil
@@ -380,7 +410,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-			   p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+			   p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 			   p.created_at, p.updated_at,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id AND status = 'passed') as successful_subs,
@@ -391,6 +421,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 
 	var problem Problem
 	var successfulSubs int
+	var lvBytes []byte
 	if err := s.pool.QueryRow(ctx, query, slug).Scan(
 		&problem.ID,
 		&problem.Slug,
@@ -410,6 +441,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.Tags,
 		&problem.Visible,
 		&problem.SourceHash,
+		&lvBytes,
 		&problem.RawReadme,
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
@@ -418,6 +450,9 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.AvgRuntimeMs,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get problem by slug: %w", err)
+	}
+	if len(lvBytes) > 0 {
+		unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "problems")
 	}
 
 	if problem.TotalSubmissions > 0 {
@@ -451,7 +486,7 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash, p.raw_readme,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 		       p.created_at, p.updated_at
 		FROM problems p
 		WHERE p.visible = false
@@ -468,6 +503,7 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 	var problems []Problem
 	for rows.Next() {
 		var problem Problem
+		var lvBytes []byte
 		if err := rows.Scan(
 			&problem.ID,
 			&problem.Slug,
@@ -487,11 +523,15 @@ func (s *PostgresStore) ListProblemsNeedingEnrichment(ctx context.Context) ([]Pr
 			&problem.Tags,
 			&problem.Visible,
 			&problem.SourceHash,
+			&lvBytes,
 			&problem.RawReadme,
 			&problem.CreatedAt,
 			&problem.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan problem row: %w", err)
+		}
+		if len(lvBytes) > 0 {
+			unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "problems")
 		}
 		problems = append(problems, problem)
 	}
@@ -579,7 +619,7 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
 		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
 		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
-		       p.xp_reward, p.tags, p.visible, p.source_hash,
+		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions,
 		       p.created_at, p.updated_at
 		FROM problems p
 		ORDER BY p.module, p.difficulty ASC
@@ -595,6 +635,7 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 	var problems []Problem
 	for rows.Next() {
 		var problem Problem
+		var lvBytes []byte
 		if err := rows.Scan(
 			&problem.ID,
 			&problem.Slug,
@@ -614,10 +655,14 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 			&problem.Tags,
 			&problem.Visible,
 			&problem.SourceHash,
+			&lvBytes,
 			&problem.CreatedAt,
 			&problem.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan problem: %w", err)
+		}
+		if len(lvBytes) > 0 {
+			unmarshalLanguageVersions(lvBytes, &problem.LanguageVersions, "problems")
 		}
 		problems = append(problems, problem)
 	}
@@ -646,16 +691,23 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		    language = $7, func_name = $8, return_type = $9,
 		    param_types = $10, hints = $11, difficulty = $12,
 		    xp_reward = $13, tags = $14, visible = $15,
+		    language_versions = $16,
 		    updated_at = NOW()
-		WHERE id = $16
+		WHERE id = $17
 		RETURNING id, slug, module, type, language, title, statement,
 		          constraints, learning_objective,
 		          func_name, return_type, param_types, hints, difficulty,
-		          xp_reward, tags, visible, source_hash,
+		          xp_reward, tags, visible, source_hash, language_versions,
 		          created_at, updated_at
 	`
 
+	lvJSON, err := json.Marshal(problem.LanguageVersions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal language_versions: %w", err)
+	}
+
 	var updated Problem
+	var lvBytes []byte
 	if err := s.pool.QueryRow(ctx, query,
 		problem.Title,
 		problem.Statement,
@@ -672,6 +724,7 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		problem.XPReward,
 		problem.Tags,
 		problem.Visible,
+		lvJSON,
 		problem.ID,
 	).Scan(
 		&updated.ID,
@@ -692,11 +745,26 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		&updated.Tags,
 		&updated.Visible,
 		&updated.SourceHash,
+		&lvBytes,
 		&updated.CreatedAt,
 		&updated.UpdatedAt,
 	); err != nil {
 		return nil, fmt.Errorf("failed to update problem: %w", err)
 	}
+	if len(lvBytes) > 0 {
+		if err := json.Unmarshal(lvBytes, &updated.LanguageVersions); err != nil {
+			slog.Warn("failed to unmarshal language_versions", "id", updated.ID, "error", err)
+		}
+	}
 
 	return &updated, nil
+}
+
+// unmarshalLanguageVersions safely unmarshals language_versions JSONB data, logging on failure.
+func unmarshalLanguageVersions(data []byte, target interface{}, context string) {
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, target); err != nil {
+			slog.Warn("failed to unmarshal language_versions", "context", context, "error", err)
+		}
+	}
 }

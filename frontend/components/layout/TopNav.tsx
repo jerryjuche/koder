@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
 import { useNotifications } from "@/lib/useNotifications";
-import { logout } from "@/lib/api";
+import { logout, updatePrimaryLanguage } from "@/lib/api";
 import { Avatar } from "@/components/base/avatar/avatar";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -33,16 +33,25 @@ import {
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, refreshUser } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
   const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
+  const [prevGoogleUrl, setPrevGoogleUrl] = React.useState(user?.google_avatar_url);
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
 
   // Reset avatarError when user data changes (e.g. after Google sync)
-  React.useEffect(() => {
+  if (user?.google_avatar_url !== prevGoogleUrl) {
+    setPrevGoogleUrl(user?.google_avatar_url);
     setAvatarError(false);
-  }, [user?.google_avatar_url]);
+  }
+
+  // Close notification menu on route change
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setNotifMenuOpen(false);
+  }
 
   // Close notification menu on outside click
   React.useEffect(() => {
@@ -54,11 +63,6 @@ export default function TopNav() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Close notification menu on route change
-  React.useEffect(() => {
-    setNotifMenuOpen(false);
-  }, [pathname]);
 
   const navLinks = [
     { name: "Problems", href: "/", icon: LayoutDashboard },
@@ -150,12 +154,14 @@ export default function TopNav() {
             {(user.role === "verified_contributor" || user.role === "admin") && (
               <Link
                 href="/contribute"
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-background bg-primary hover:bg-primary/90 rounded-md transition-colors mr-2"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-background bg-primary hover:bg-primary/90 rounded-md transition-colors mr-2 shrink-0 w-[130px]"
               >
-                <PlusCircle size={16} />
-                <span>Add Problem</span>
+                <PlusCircle size={16} className="shrink-0" />
+                <span className="truncate">Add Problem</span>
               </Link>
             )}
+
+
 
             {/* Notifications */}
             <div className="relative" ref={notifRef}>

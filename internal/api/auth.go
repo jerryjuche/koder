@@ -260,12 +260,27 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// No existing user found — return an error instead of auto-creating a duplicate.
-	// The user should sign in with their existing password-based account first
-	// and link Google from their settings.
-	RespondError(w, http.StatusNotFound, "GOOGLE_NOT_LINKED",
-		"No account is linked to this Google profile. Please sign in with your password and link your Google account in Settings.",
-		nil)
+	// No existing user found — auto-create a new account from Google info
+	user, err = h.store.CreateUserFromGoogle(r.Context(), info)
+	if err != nil {
+		if code, friendly, ok := store.IsFriendlyError(err); ok {
+			RespondError(w, http.StatusConflict, code, friendly, nil)
+			return
+		}
+		slog.Error("google_auth: failed to create user from Google", "error", err)
+		RespondError(w, http.StatusInternalServerError, "USER_CREATION_FAILED", "Unable to create account from Google profile", nil)
+		return
+	}
+
+	userID, _ := uuidStringFromPGType(user.ID)
+	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		return
+	}
+
+	SetAuthCookie(w, r, token, h.config)
+	RespondCreated(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
 }
 
 // CompleteOnboarding completes the onboarding flow by setting a username and student_id.

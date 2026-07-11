@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -32,14 +33,30 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+    setGoogleLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await googleLogin(response.credential);
+      if (res.success && res.data) {
+        router.push(res.data.onboarding ? '/onboarding' : '/');
+      } else {
+        setErrorMsg(res.error?.message || 'Google sign-in failed');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [router]);
+
   const { prompt, ready } = useGoogleOneTap(
     useCallback((response: { credential: string }) => {
       handleGoogleResponse(response);
-    }, []),
+    }, [handleGoogleResponse]),
   );
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useHasMounted();
 
   const {
     register,
@@ -50,26 +67,7 @@ export default function LoginPage() {
     defaultValues: { loginId: '', password: '' },
   });
 
-  const handleGoogleResponse = async (response: { credential: string }) => {
-    setGoogleLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await googleLogin(response.credential);
-      if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/');
-      } else if (res.error?.code === 'GOOGLE_NOT_LINKED') {
-        setErrorMsg('This Google account is not linked to any Koder profile. Please sign in with your password below, then link Google in your Settings.');
-      } else {
-        setErrorMsg(res.error?.message || 'Google sign-in failed');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to connect. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const onSubmit = async (data: LoginForm) => {
+  async function onSubmit(data: LoginForm) {
     setLoading(true);
     setErrorMsg('');
     try {

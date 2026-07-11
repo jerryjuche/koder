@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,8 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,7 +87,15 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		return nil, fmt.Errorf("failed to fetch problem and test cases: %w", err)
 	}
 
-	// 3. Format test cases as Go literals and prepare template data
+	// 3. Resolve language-specific function metadata from LanguageVersions
+	resolveProblemLanguageMeta(problem, req.Language)
+
+	// 4. Route to language-specific executor
+	if req.Language == "python" {
+		return e.executePython(ctx, req, problem, testCases, true)
+	}
+
+	// 4. Format test cases as Go literals and prepare template data
 	var needsReflect bool
 	if !IsPrimitiveType(problem.ReturnType) && problem.ReturnType != "" {
 		needsReflect = true
@@ -164,7 +175,8 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		output        string
 		runtimeMs     int
 		cmdErr        error
-		sandboxStatus string // non-empty = use sandbox result directly
+		sandboxStatus string
+		sandboxError  string
 		runCtx        context.Context
 		runCancel     context.CancelFunc
 	)
@@ -179,13 +191,19 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
+		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}
 		output = resp.Stdout
 		runtimeMs = resp.RuntimeMs
 		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
+		sandboxError = resp.Error
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
 		defer runCancel()
@@ -251,10 +269,18 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
-			friendlyMessage = parseCompilerError(output)
+			if sandboxError != "" {
+				friendlyMessage = sandboxError
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
 		case "security_error":
 			status = "compiler_error"
-			friendlyMessage = "Your code was blocked for security reasons."
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
 		}
 	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
@@ -353,24 +379,161 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 	}, nil
 }
 
+func formatExecutionErrorMessage(errText string) string {
+	reason := strings.TrimSpace(strings.TrimPrefix(errText, "security:"))
+	if reason == "" {
+		reason = "restricted or unsafe behavior"
+	}
+	return fmt.Sprintf("Your code was blocked by the sandbox security checks: %s — Tip: Keep your solution within the allowed built-ins and avoid file, network, process, and dynamic execution features.", reason)
+}
+
 func parseCompilerError(output string) string {
 	lines := strings.Split(output, "\n")
+
+	// Try Go error format first
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
 			parts := strings.SplitN(line, "solution.go:", 2)
 			return "Line " + strings.TrimSpace(parts[1])
 		}
 	}
-	
+
+	// Try Python traceback format — scan bottom-up for the error line
+	for i := len(lines) - 1; i >= 0; i-- {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			continue
+		}
+		if !isPythonErrorLine(trimmed) {
+			continue
+		}
+		// Found the error line; look backwards for File "..." context
+		if fileInfo := extractPyErrorContext(lines[:i]); fileInfo != "" {
+			return EnhancePythonError(fmt.Sprintf("%s: %s", fileInfo, trimmed))
+		}
+		return EnhancePythonError(trimmed)
+	}
+
 	// Fallback to first meaningful line
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") {
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") && !strings.HasPrefix(trimmed, "Traceback") && !strings.HasPrefix(trimmed, "File ") {
 			return trimmed
 		}
 	}
-	
+
 	return "Compilation failed due to a syntax error."
+}
+
+var pyFileLineRe = regexp.MustCompile(`File "(.+?)", line (\d+)`)
+
+// isPythonErrorLine detects Python error lines like "NameError: ..." or
+// "TypeError: ...". It uses a colon-based heuristic: the word before the
+// first colon must end with "Error" or "Exception" and be a single token
+// (no spaces/quotes), which matches all Python builtin and custom exceptions
+// while rejecting Go file paths, indented code, and traceback headers.
+func isPythonErrorLine(line string) bool {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return false
+	}
+	colonIdx := strings.IndexByte(line, ':')
+	if colonIdx <= 0 {
+		return false
+	}
+	errorType := line[:colonIdx]
+	// Must be a single word token — reject paths, indented code, headers
+	if strings.ContainsAny(errorType, " \t\"'") {
+		return false
+	}
+	return strings.HasSuffix(errorType, "Error") || strings.HasSuffix(errorType, "Exception")
+}
+
+// EnhancePythonError takes an error string and formats it to be human-readable,
+// adding helpful tips for common Python exceptions.
+func EnhancePythonError(errStr string) string {
+	// Convert "solution.py:3:" prefix to "Line 3:"
+	if strings.HasPrefix(errStr, "solution.py:") {
+		parts := strings.SplitN(errStr, ":", 3)
+		if len(parts) >= 3 {
+			errStr = fmt.Sprintf("Line %s: %s", parts[1], strings.TrimSpace(parts[2]))
+		}
+	}
+
+	// Extract the error type to determine the appropriate tip
+	var errType string
+	if strings.HasPrefix(errStr, "Line ") {
+		parts := strings.SplitN(errStr, ":", 3)
+		if len(parts) >= 2 {
+			errType = strings.TrimSpace(parts[1])
+		}
+	} else {
+		parts := strings.SplitN(errStr, ":", 2)
+		if len(parts) >= 1 {
+			errType = strings.TrimSpace(parts[0])
+		}
+	}
+
+	var tip string
+	switch errType {
+	case "SyntaxError":
+		tip = "Check for missing colons, unclosed brackets, or incorrect syntax."
+	case "IndentationError", "TabError":
+		tip = "Check your indentation. Python requires consistent spaces (usually 4)."
+	case "NameError":
+		tip = "Check that the variable or function is defined and spelled correctly."
+	case "TypeError":
+		tip = "Check that you are using compatible data types for this operation."
+	case "IndexError":
+		tip = "Check that your list index is within the valid range."
+	case "KeyError":
+		tip = "Check that the dictionary key exists before accessing it."
+	case "AttributeError":
+		tip = "Check that the object actually has this method or property."
+	case "ZeroDivisionError":
+		tip = "Check that your denominator is not zero."
+	case "RecursionError":
+		tip = "Ensure your recursive function has a valid base case to stop."
+	case "ValueError":
+		tip = "Check that the function arguments have the correct value."
+	case "ModuleNotFoundError", "ImportError":
+		tip = "That module is either not allowed or not available in the sandbox."
+	}
+
+	if tip != "" {
+		return errStr + " — Tip: " + tip
+	}
+	return errStr
+}
+
+// extractPyErrorContext scans lines before a Python error looking for the
+// File "...", line N context, preferring solution.py files over run_tests.py.
+func extractPyErrorContext(lines []string) string {
+	var bestFile string
+	var bestLine string
+	for j := len(lines) - 1; j >= 0 && j >= len(lines)-20; j-- {
+		ctx := strings.TrimSpace(lines[j])
+		if !strings.HasPrefix(ctx, "File \"") {
+			continue
+		}
+		m := pyFileLineRe.FindStringSubmatch(ctx)
+		if len(m) < 3 {
+			continue
+		}
+		basename := filepath.Base(m[1])
+		lineNum := m[2]
+		// Prefer solution.py over run_tests.py for more relevant errors
+		if basename == "solution.py" {
+			return fmt.Sprintf("%s:%s", basename, lineNum)
+		}
+		if bestFile == "" {
+			bestFile, bestLine = basename, lineNum
+		}
+	}
+	if bestFile != "" {
+		return fmt.Sprintf("%s:%s", bestFile, bestLine)
+	}
+	return ""
 }
 
 // ExecuteVisibleOnly executes code against visible test cases only (used for testing without submission).
@@ -391,12 +554,20 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		return nil, fmt.Errorf("failed to fetch problem and test cases: %w", err)
 	}
 
-	// 3. Filter to only visible test cases
+	// 3. Resolve language-specific function metadata from LanguageVersions
+	resolveProblemLanguageMeta(problem, req.Language)
+
+	// Filter to only visible test cases
 	var testCases []store.TestCase
 	for _, tc := range allTestCases {
 		if !tc.IsHidden {
 			testCases = append(testCases, tc)
 		}
+	}
+
+	// Route to language-specific executor
+	if req.Language == "python" {
+		return e.executePython(ctx, req, problem, testCases, false)
 	}
 	var needsReflect bool
 	if !IsPrimitiveType(problem.ReturnType) && problem.ReturnType != "" {
@@ -478,6 +649,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		runtimeMs     int
 		cmdErr        error
 		sandboxStatus string
+		sandboxError  string
 		runCtx        context.Context
 		runCancel     context.CancelFunc
 	)
@@ -492,13 +664,19 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
 		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
-		resp, err := client.execute(ctx, string(codeBytes), string(testBytes), e.cfg.GoVersion)
+		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
 		}
 		output = resp.Stdout
 		runtimeMs = resp.RuntimeMs
 		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
+		sandboxError = resp.Error
 	} else {
 		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.ExecutorTimeout())
 		defer runCancel()
@@ -564,10 +742,18 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 			slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
 			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
 		case "compiler_error":
-			friendlyMessage = parseCompilerError(output)
+			if sandboxError != "" {
+				friendlyMessage = EnhancePythonError(sandboxError)
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
 		case "security_error":
 			status = "compiler_error"
-			friendlyMessage = "Your code was blocked for security reasons."
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
 		}
 	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
 		slog.Error("executor: execution timed out", "output", output, "runtime_ms", runtimeMs)
@@ -731,4 +917,390 @@ func formatGoLiteral(paramType string, data []byte) (string, error) {
 	}
 
 	return "", fmt.Errorf("unsupported Go type %q: cannot format %s as a Go literal", paramType, string(data))
+}
+
+// goToSnakeCase converts Go camelCase to Python snake_case as a fallback
+// when LanguageVersions["python"].FuncName is not available.
+func goToSnakeCase(name string) string {
+	var result strings.Builder
+	for i, r := range name {
+		if r >= 'A' && r <= 'Z' {
+			if i > 0 {
+				result.WriteByte('_')
+			}
+			result.WriteRune(r + 32) // to lower
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
+
+// formatPythonLiteral converts a JSON value to a Python literal string.
+// Maps Go type names to Python literal syntax.
+func formatPythonLiteral(paramType string, data []byte) (string, error) {
+	paramType = strings.TrimSpace(paramType)
+
+	// Detect JSON null early — always becomes Python None
+	if bytes.Equal(data, []byte("null")) {
+		return "None", nil
+	}
+
+	switch paramType {
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "rune", "byte":
+		var val int64
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return strconv.FormatInt(val, 10), nil
+	case "float32", "float64":
+		var val float64
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return strconv.FormatFloat(val, 'f', -1, 64), nil
+	case "string":
+		var val string
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%q", val), nil
+	case "bool":
+		var val bool
+		if err := json.Unmarshal(data, &val); err != nil {
+			return "", err
+		}
+		if val {
+			return "True", nil
+		}
+		return "False", nil
+	}
+	return "", fmt.Errorf("unsupported type %q for Python literal", paramType)
+}
+
+// executePython runs Python code execution: prepares sandbox files,
+// executes, parses output, optionally records submission + progress, and returns the result.
+func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, problem *store.Problem, testCases []store.TestCase, recordSubmission bool) (*ExecutionResult, error) {
+	// 1. Build Python-formatted test cases using formatPythonLiteral for each input arg.
+	//    Raw JSON embeds true/false/null which are invalid Python (needs True/False/None).
+	pyCases := make([]PyTestCaseRenderData, len(testCases))
+	paramTypes := problem.ParamTypes
+	for i, tc := range testCases {
+		var rawArgs []json.RawMessage
+		if err := json.Unmarshal(tc.Input, &rawArgs); err != nil {
+			return nil, fmt.Errorf("failed to parse test case input: %w", err)
+		}
+		// Format each argument as a Python literal
+		pyArgParts := make([]string, len(rawArgs))
+		for j, rawArg := range rawArgs {
+			pt := "any"
+			if j < len(paramTypes) {
+				pt = paramTypes[j]
+			}
+			formatted, err := formatPythonLiteral(pt, rawArg)
+			if err != nil {
+				// Fallback: treat as JSON and let json.loads handle it in the template
+				formatted = string(rawArg)
+			}
+			pyArgParts[j] = formatted
+		}
+		// Build Python tuple literal: (a,) for single arg, (a, b) for multiple
+		var pyInputs string
+		if len(pyArgParts) == 1 {
+			pyInputs = "(" + pyArgParts[0] + ",)"
+		} else {
+			pyInputs = "(" + strings.Join(pyArgParts, ", ") + ")"
+		}
+		pyCases[i] = PyTestCaseRenderData{
+			Ordinal:  tc.Ordinal,
+			PyInputs: pyInputs,
+			Expected: tc.Expected,
+		}
+	}
+
+	// Resolve the Python function name from language_versions
+	// resolveProblemLanguageMeta(problem, "python") was already called in Execute(),
+	// so problem.FuncName may already be the Python name if LanguageVersions["python"] exists.
+	// As a fallback, convert Go camelCase to snake_case for problems missing the python spec.
+	pythonFuncName := problem.FuncName
+	if problem.LanguageVersions != nil {
+		if spec, ok := problem.LanguageVersions["python"]; ok && spec.FuncName != "" {
+			pythonFuncName = spec.FuncName
+		}
+	}
+	// goToSnakeCase is idempotent for already-snake_case names
+	pythonFuncName = goToSnakeCase(pythonFuncName)
+	renderData := &TemplateRenderData{
+		FuncName:    pythonFuncName,
+		PyTestCases: pyCases,
+	}
+
+	// 2. Create isolated sandbox directory
+	uuidStr := uuid.NewString()
+	sandboxPath := filepath.Join(e.cfg.SandboxBaseDir, uuidStr)
+	if err := os.MkdirAll(sandboxPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create sandbox directory: %w", err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll(sandboxPath); err != nil {
+			slog.Error("executor: failed to clean up sandbox directory", "path", sandboxPath, "error", err)
+		}
+	}()
+
+	slog.Info("executor: python sandbox created", "path", sandboxPath)
+
+	// 3. Write solution.py
+	cleanCode := strings.TrimSpace(req.Code)
+	if err := os.WriteFile(filepath.Join(sandboxPath, "solution.py"), []byte(cleanCode), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write solution.py: %w", err)
+	}
+
+	// 4. Render and write run_tests.py from Python template
+	tmpl, err := template.New("run_tests").Parse(pythonTestTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Python test template: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, renderData); err != nil {
+		return nil, fmt.Errorf("failed to render run_tests.py: %w", err)
+	}
+	slog.Debug("executor: generated run_tests.py", "content", buf.String())
+	if err := os.WriteFile(filepath.Join(sandboxPath, "run_tests.py"), buf.Bytes(), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write run_tests.py: %w", err)
+	}
+
+	// 5. Execute: remote sandbox or local Docker
+	var (
+		output        string
+		runtimeMs     int
+		cmdErr        error
+		sandboxStatus string
+		sandboxError  string
+		runCtx        context.Context
+		runCancel     context.CancelFunc
+	)
+
+	sandboxURL := e.cfg.SandboxURL
+	if e.cfg.PythonSandboxURL != "" {
+		sandboxURL = e.cfg.PythonSandboxURL
+	}
+	if sandboxURL != "" {
+		codeBytes, err := os.ReadFile(filepath.Join(sandboxPath, "solution.py"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read solution.py: %w", err)
+		}
+		testBytes, err := os.ReadFile(filepath.Join(sandboxPath, "run_tests.py"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read run_tests.py: %w", err)
+		}
+		client := newSandboxClient(sandboxURL, e.cfg.PythonExecutorTimeout)
+		resp, err := client.execute(ctx, "python", string(codeBytes), string(testBytes), "")
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: %w", err)
+		}
+		output = resp.Stdout
+		runtimeMs = resp.RuntimeMs
+		sandboxStatus = resp.Status
+		if resp.Error != "" && sandboxStatus == "compiler_error" {
+			if output == "" {
+				output = resp.Error
+			}
+		}
+		// Store sandbox error for friendly_message, preserving full output for logs
+		sandboxError = resp.Error
+	} else {
+		runCtx, runCancel = context.WithTimeout(ctx, e.cfg.PythonTimeout())
+		defer runCancel()
+
+		start := time.Now()
+		cmd := exec.CommandContext(runCtx, "docker", "run",
+			"--rm",
+			"--user=65534:65534",
+			"--cap-drop=ALL",
+			"--security-opt=no-new-privileges",
+			"--network=none",
+			"--memory=512m",
+			"--cpus=1.0",
+			"--pids-limit=512",
+			"--read-only",
+			"--env", "PYTHONDONTWRITEBYTECODE=1",
+			"-v", fmt.Sprintf("%s:/app:ro", sandboxPath),
+			"-w", "/app",
+			e.cfg.PythonDockerImage,
+			"python3", "-u", "run_tests.py",
+		)
+
+		outputBytes, execErr := cmd.CombinedOutput()
+
+		if len(outputBytes) > 100*1024 {
+			outputBytes = outputBytes[:100*1024]
+		}
+		output = string(outputBytes)
+		cmdErr = execErr
+
+		if runCtx.Err() == context.DeadlineExceeded {
+			output = "timeout"
+		}
+
+		runtimeMs = int(time.Since(start).Milliseconds())
+	}
+
+	// 6. Parse go test -v output (Python runner emits Go-compatible format)
+	parsed := ParseTestOutput(output)
+	passedMap := parsed.passedMap
+	gotMap := parsed.gotMap
+	wantMap := parsed.wantMap
+
+	// 7. Classify submission status
+	var status string
+	var passedCount int
+	totalCount := len(testCases)
+
+	for _, tc := range testCases {
+		if passed, found := passedMap[tc.Ordinal]; found && passed {
+			passedCount++
+		}
+	}
+
+	var friendlyMessage string
+
+	if sandboxStatus != "" {
+		status = sandboxStatus
+		switch status {
+		case "timeout":
+			slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
+			friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+		case "compiler_error":
+			if sandboxError != "" {
+				friendlyMessage = EnhancePythonError(sandboxError)
+			} else {
+				friendlyMessage = parseCompilerError(output)
+			}
+		case "security_error":
+			status = "compiler_error"
+			if sandboxError != "" {
+				friendlyMessage = formatExecutionErrorMessage(sandboxError)
+			} else {
+				friendlyMessage = formatExecutionErrorMessage("security: blocked by sandbox security checks")
+			}
+		}
+	} else if runCtx != nil && runCtx.Err() == context.DeadlineExceeded {
+		slog.Error("executor: python execution timed out", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout"
+		friendlyMessage = "Execution timed out. Ensure there are no infinite loops and your algorithm is efficient."
+	} else if cmdErr != nil && strings.Contains(cmdErr.Error(), "exit status 137") {
+		slog.Error("executor: python execution OOM", "output", output, "runtime_ms", runtimeMs)
+		status = "timeout"
+		friendlyMessage = "Your code used too much memory. Try optimizing your solution."
+	} else if cmdErr != nil && len(passedMap) == 0 {
+		status = "compiler_error"
+		friendlyMessage = parseCompilerError(output)
+	} else if totalCount > 0 && passedCount == totalCount {
+		status = "passed"
+	} else {
+		status = "failed"
+	}
+
+	slog.Info("executor: python execution finished", "status", status, "passed", passedCount, "total", totalCount, "runtime_ms", runtimeMs)
+
+	if recordSubmission {
+		// 8. Record submission in DB
+		sub := &store.Submission{
+			UserID:      pgtype.UUID{Bytes: req.UserID, Valid: true},
+			ProblemID:   pgtype.UUID{Bytes: req.ProblemID, Valid: true},
+			Language:    req.Language,
+			Code:        req.Code,
+			Status:      status,
+			PassedCount: passedCount,
+			TotalCount:  totalCount,
+			OutputLogs:  output,
+			RuntimeMs:   runtimeMs,
+		}
+
+		if err := e.store.CreateSubmission(ctx, sub); err != nil {
+			return nil, fmt.Errorf("failed to save python submission: %w", err)
+		}
+
+		// 9. Update user progress in DB
+		prog := &store.Progress{
+			UserID:      pgtype.UUID{Bytes: req.UserID, Valid: true},
+			ProblemID:   pgtype.UUID{Bytes: req.ProblemID, Valid: true},
+			Solved:      status == "passed",
+			BestRuntime: runtimeMs,
+		}
+
+		if err := e.store.UpsertProgress(ctx, prog); err != nil {
+			return nil, fmt.Errorf("failed to update progress: %w", err)
+		}
+	}
+
+	// 10. Map results back to execution response
+	var results []TestResult
+	for _, tc := range testCases {
+		passed := passedMap[tc.Ordinal]
+		var got, want string
+
+		if parsedGot, exists := gotMap[tc.Ordinal]; exists {
+			got = parsedGot
+		} else if !passed {
+			got = "(no output captured)"
+		} else {
+			got = tc.Expected
+		}
+
+		if parsedWant, exists := wantMap[tc.Ordinal]; exists {
+			want = parsedWant
+		} else {
+			want = tc.Expected
+		}
+
+		if tc.IsHidden && !passed {
+			got = "(hidden test case)"
+			want = "(hidden)"
+		}
+
+		results = append(results, TestResult{
+			TestCaseID: uuid.UUID(tc.ID.Bytes),
+			Ordinal:    tc.Ordinal,
+			Passed:     passed,
+			Got:        got,
+			Expected:   want,
+			IsHidden:   tc.IsHidden,
+		})
+	}
+
+	return &ExecutionResult{
+		Status:          status,
+		FriendlyMessage: friendlyMessage,
+		PassedCount:     passedCount,
+		TotalCount:      totalCount,
+		OutputLogs:      output,
+		RuntimeMs:       runtimeMs,
+		TestResults:     results,
+	}, nil
+}
+
+// resolveProblemLanguageMeta sets language-specific FuncName/ReturnType/ParamTypes
+// from LanguageVersions when available, falling back to top-level fields.
+func resolveProblemLanguageMeta(problem *store.Problem, language string) {
+	if language == "" {
+		return
+	}
+	if problem.LanguageVersions == nil {
+		return
+	}
+	spec, ok := problem.LanguageVersions[language]
+	if !ok {
+		return
+	}
+	if spec.FuncName != "" {
+		problem.FuncName = spec.FuncName
+	}
+	if spec.ReturnType != "" {
+		problem.ReturnType = spec.ReturnType
+	}
+	if len(spec.ParamTypes) > 0 {
+		problem.ParamTypes = spec.ParamTypes
+	}
 }

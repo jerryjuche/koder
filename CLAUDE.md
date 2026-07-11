@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Koder** is a zero-cost, production-grade automated code-grading platform for Go programming curricula. Students solve problems in a Monaco editor workspace, submit code, and receive instant pass/fail results with diff output. AI (Gemini/Groq) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
+**Koder** is a zero-cost, production-grade automated code-grading platform for Go (and now Python) programming curricula. Students solve problems in a Monaco editor workspace, submit code, and receive instant pass/fail results with diff output. AI (Gemini/Groq) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote Go sandbox on Railway + Supabase Postgres + Vercel frontend
@@ -18,11 +18,11 @@
 | **Database** | PostgreSQL 15 (Supabase), pgx/v5 | Raw SQL, connection pooling (10 max) |
 | **Auth** | golang-jwt/v5, bcrypt, Google Identity Services | JWT tokens, password hashing, OAuth |
 | **AI** | Gemini API (genai), Groq API (Llama) | Test case generation from problem specs |
-| **Execution** | Docker (local) or remote Go sandbox | Isolated `go test` execution |
+| **Execution** | Docker (local) or remote sandbox | Isolated `go test` / `python3` execution |
 | **Real-time** | gorilla/websocket, in-memory pub/sub | Live admin dashboard updates |
 | **Frontend** | Next.js 15, React 19, Tailwind CSS 4 | App Router, server components, shadcn/ui |
-| **Editor** | Monaco Editor (local workers) | In-browser Go code editing |
-| **Sandbox** | Standalone Go binary (zero deps) | Railway-hosted `go test` execution |
+| **Editor** | Monaco Editor (local workers) | In-browser Go & Python code editing |
+| **Sandbox** | Standalone Go binary (zero deps) | Railway-hosted Go + Python execution |
 
 ---
 
@@ -172,6 +172,7 @@ koder/
 │   │       └── multi-step-loader.tsx
 │   ├── hooks/
 │   │   ├── use-google-one-tap.ts              # Shared GIS singleton (init once, prompt + renderButton)
+│   │   ├── use-has-mounted.ts                 # SSR-safe mounted check (replaces useState+useEffect pattern)
 │   │   └── use-mobile.ts                      # Mobile viewport detection
 │   ├── lib/
 │   │   ├── api.ts                             # fetchApi wrapper + all endpoint functions
@@ -627,6 +628,36 @@ npm run build   # Builds static + server components
 
 ## Session Log
 
+### 2026-07-09 — Full codebase indexing on python-curricula branch
+
+**Context:** Switched from `update` branch to `origin/python-curricula`. All 12 multi-language phases complete. 122 tests, `go vet` clean.
+
+**Key differences from `update`:**
+- `sandbox/pyrunner.go` — Python test runner with AST validation
+- `sandbox/runtest_go.go` — Extracted Go runner
+- `internal/executor/executor.go` — `executePython`, `formatPythonLiteral`, `resolveProblemLanguageMeta`
+- `internal/executor/templates.go` — `pythonTestTemplate`
+- `internal/enricher/enricher.go` — Dual Go/Python system prompt, `toSnakeCase`, `toPythonType`, fallback
+- `internal/store/types.go` — `PrimaryLanguage`, `LanguageVersions`, `LanguageSpec`
+- `migrations/027_language_versions.sql` — Schema for multi-language
+- `migrations/028_backfill_language_versions.sql` — Backfill for 180 seed problems
+- `internal/api/me.go` — `UpdateLanguage` handler
+- `internal/api/problems.go` — `?language=` query filter
+- `internal/api/submissions.go`, `test.go` — Language validation/inference
+- `internal/api/admin.go` — `language_versions` in write paths
+- `frontend/components/LanguageSelector.tsx` — Onboarding language selection
+- `frontend/lib/types.ts`, `api.ts`, `UserContext.tsx` — Language-aware state
+- `frontend/components/layout/TopNav.tsx` — Language switcher dropdown
+- `frontend/app/(main)/home/page.tsx` — Language filter tabs (All/Go/Python)
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Dynamic Monaco language/scaffold
+- `PROGRESS.txt` — Completion tracking
+
+**Sandbox Python additions:**
+- `sandbox/Dockerfile` — Added `python3` install
+- `sandbox/secure.go` — `pythonDangerousPatterns` + `validatePythonCode`
+- `sandbox/secure_unix.go` — `setPythonRlimits` (RLIMIT_AS=512MB)
+- `sandbox/main.go` — Language routing in `executeHandler`
+
 ### 2026-07-08 — Professional UI polish & fixes
 
 **Changes:**
@@ -637,3 +668,217 @@ npm run build   # Builds static + server components
 - **Settings page** — Professional polish: profile preview card with avatar, icon-labeled form sections, char counter on bio, username setup flow with info box, framer-motion tab animations, Security section redesigned with icon headers, polished Danger Zone
 - **Contribution graph year fix** — `index.tsx`: changed `data[0].date` → `data[data.length - 1].date` to show current year (2026) instead of last year
 - **Notification cache bug** — `useNotifications.ts`: added `clearCache("/notifications")` after `markAsRead`/`markAllAsRead` to prevent stale sessionStorage cache from restoring old unread notification state after mutation
+
+### 2026-07-08 — Multi-language audit bugfixes
+
+**Changes:**
+- **Phase 11 bugfix** — `ProblemWorkspaceClient.tsx:56`: fixed `DEFAULT_CODE` → `GO_CODE` (undefined constant)
+- **Phase 3 critical gap** — `submit.go:89-96`, `test.go:73-80`: infer language from `LanguageVersions` when `problem.Language` is empty (handles Python-only problems)
+- **Phase 2 Gap 1** — `problems.go:99`: added `language_versions` to `GetProblemBySlug` JSON response payload
+- **Phase 2 language filter** — `problems.go:44-53`: `ListVisibleProblems` now checks `LanguageVersions` when `Language` column is empty
+
+### 2026-07-08 — Professional fixes for multi-language pipeline
+
+**Changes:**
+- **Silent error handling** — All 7 `json.Unmarshal` calls for `language_versions` now log failures via `slog.Warn` instead of silently ignoring errors (added `unmarshalLanguageVersions` helper)
+- **Deterministic language inference** — `submit.go` + `test.go`: when inferring language from `LanguageVersions`, prefer "go" → "python" → first key instead of non-deterministic map iteration
+- **Write path completeness** — Added `language_versions` column to `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`, and community contribution insert queries (was missing from all write paths)
+- **Executor metadata resolution** — Added `resolveProblemLanguageMeta()` helper called in both `Execute` and `ExecuteVisibleOnly`; resolves `FuncName`/`ReturnType`/`ParamTypes` from `LanguageVersions` before routing to language-specific executor
+- **Admin handler** — `UpdateProblem` now accepts and persists `language_versions` field
+
+### 2026-07-08 — Bugfix sweep: Phase 4 enricher + 8 error fixes
+
+**Phase 4 — Enricher now populates `LanguageVersions`:**
+- Added `LanguageVersions` field to `enrichedResponse` struct (`enricher.go:44`)
+- Updated system prompt example JSON and production rules to include `language_versions`
+- `EnrichProblem` builds `LanguageVersions` from AI response or falls back to top-level Go fields (`enricher.go:187-197`)
+- Added validation requiring Go entry with non-empty `func_name` (`enricher.go:601-608`)
+
+**Bug fixes from comprehensive audit:**
+
+| Severity | File | Bug | Fix |
+|---|---|---|---|
+| **CRITICAL** | `admin.go:154-163` | Enrich/EnrichAll discard AI-generated `LanguageVersions` | Added copy to problem before save |
+| **CRITICAL** | `templates.go:44` | Python `str(result) == str(expected)` fails for bools/strings/complex types | Switched to `json.loads(expected)` + `==` |
+| **BUG** | `ProblemWorkspaceClient.tsx:702` | Language toggle doesn't reset code scaffold | Added `setCode(newLang === "python" ? PYTHON_CODE : GO_CODE)` |
+| **BUG** | `ProblemWorkspaceClient.tsx:320` | Bug report always uses ```go fencing | Changed to `` ```${activeLanguage} `` |
+| **MEDIUM** | `submissions.go:83-88` | Unmarshal runs before Scan error check | Moved after `if err != nil` |
+| **MEDIUM** | `ProblemWorkspaceClient.tsx:706` | `updatePrimaryLanguage()` called without `await` | Added `await` |
+| **LOW** | `LanguageSelector.tsx:41` | Skip doesn't persist language to backend | Changed to `await setPrimaryLanguage("go")` |
+| **LOW** | `user_problems.go:207` | `json.Marshal` error discarded | Now checks err
+
+### 2026-07-08 — Phase 12: Multi-language enrichment
+
+**Changes:**
+- **System prompt** — Rewrote from "Go curriculum author" → "programming curriculum author"; example JSON now includes Python entry (`fish_and_chips`, `str`, `["int"]`) alongside Go
+- **Production rules** — Rule #11 now **REQUIRED** with both `go` and `python` entries, includes Go→Python type translation table
+- **Gemini ResponseSchema** — Added `language_versions` as `TypeObject` with `go` (required) and `python` (optional) sub-objects via reusable `languageSpecSchema()` helper
+- **Fallback generation** — AI-provided `language_versions` used when available; fallback now auto-generates Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go types→Python equivalents)
+- **Validation** — Requires `language_versions` with at least a `go` entry that has non-empty `func_name` |
+
+### 2026-07-09 — Python compiler_error: formatPythonLiteral + snake_case fallback
+
+**Bug:** All Python submissions returned `compiler_error` even for valid code like `def double_it(x): return x * 2`. Sandbox logs showed "compiler didnt output anything".
+
+**Root causes & fixes:**
+1. **Raw JSON → Python literal mismatch** (`executor.go` + `templates.go`): The Python test template embedded raw JSON directly via `test_cases = {{.TestCasesJSON}}`. JSON uses `true`/`false`/`null` but Python requires `True`/`False`/`None`, causing `NameError` at module load time for any boolean/null inputs. The `formatPythonLiteral()` function existed but was dead code (never called). Fixed by replacing `TestCasesJSON` (raw JSON) with `PyTestCases` (pre-formatted Python tuple literals using `formatPythonLiteral()`).
+2. **Go camelCase → snake_case fallback** (`executor.go`): When `LanguageVersions["python"]` is missing (e.g., seeds without backfill migration), `problem.FuncName` retained the Go camelCase name (e.g., `doubleIt`), causing `ImportError` since student code uses `def double_it(...)`. Added `goToSnakeCase()` as fallback that's idempotent for already-snake_case names.
+
+### 2026-07-09 — ESLint rule compliance sweep
+
+**Changes:** Fixed 0→0 ESLint errors across the entire frontend (`npx eslint --quiet` passes clean on `app/`, `components/`, `hooks/`, `lib/`).
+
+**Patterns fixed:**
+- **`react-hooks/set-state-in-effect`** (~15 files): Replaced synchronous `setState` in `useEffect` bodies with either lazy `useState` initializers (for `localStorage`/`sessionStorage`/URL param reads) or render-time `useState` tracking of previous values for prop-derived state (e.g., `[prevKey, setPrevKey] = useState(prop)` + `if (prop !== prevKey) { setPrevKey(prop); setDerived(…); }`).
+- **`react-hooks/refs`** (2 files): Replaced `useRef`-based previous-value tracking with `useState` tracking (refs cannot be accessed during render per React 19 rules).
+- **`react-hooks/no-hoisted-functions`** (2 files): Converted hoisted `async function` declarations into `useCallback` defined before use, or into `function` declarations (which are properly hoisted).
+- **`react/no-unescaped-entities`** (1 file): Escaped `'` → `&apos;` in JSX.
+
+**New shared hook:** `hooks/use-has-mounted.ts` — SSR-safe mount detection extracted from the repeated `useState(false)` + `useEffect({ setMounted(true) })` pattern found in 4 auth/profile components. Uses a single `// eslint-disable-next-line react-hooks/set-state-in-effect` suppression.
+
+### 2026-07-08 — Comprehensive test suite audit & expansion
+
+**Changes:**
+- **`internal/broker/broker_test.go`** (new, 10 tests) — Subscribe uniqueness, Publish delivery to 1/N subscribers, PublishEvent, Unsubscribe (remove + non-existent), slow client buffer overflow, timestamp on publish, concurrent pub/sub
+- **`internal/parser/parser_test.go`** (new, 13 tests) — isReadmeFile, detectProblemType, normalizeSlug/module, computeSourceHash, cleanRepoURL, parseGitHubURL (tree/blob/SSH), parseRepoMetadata, parseGitSSHURL, NewParser, IngestGitHubRepo empty URL
+- **`internal/auth/oauth_test.go`** (new, 5 tests) — isExpectedAudience, isExpectedIssuer, jwksKeyToPublicKey (real RSA round-trip, invalid base64 modulus/exponent)
+- **`internal/store/errors_test.go`** (new, 7 tests) — FriendlyError, NewDuplicate/NotFound/Validation, IsFriendlyError (nil/plain/wrapped), IsUniqueViolation (non-pg/nil)
+- **`internal/store/types_test.go`** (new, 2 tests) — FlexibleBool valid + invalid UnmarshalJSON
+- **`internal/api/middleware_test.go`** (expanded +23 tests) — RateLimiter (under/over/isolation/window/stop), IPRateLimiter, GetClaims, AdminOnly, VerifiedContributorOnly, BodySizeLimit, SecurityHeaders, RecoveryMiddleware, CORSMiddleware (wildcard/specific/no-origin/OPTIONS/null/multi-origin), IPRateLimiter.Middleware (under/over/extraction), RateLimitMiddleware (no-claims/admin-bypass/under/over)
+- **`internal/api/responses_test.go`** (new, 10 tests) — RespondSuccess, RespondCreated, RespondError (with/without details), isHTTPS, SetAuthCookie (HTTP/HTTPS), ClearAuthCookie, ContentType
+- **`internal/config/config_test.go`** (expanded +7 tests) — MissingGeminiKey, GroqDefaults, ProviderSelection, ProviderSwitch, InvalidJWTExpiry, EmptyAllowedOrigin, ExecutorTimeout, PythonTimeout, JWTExpiry
+
+**Result:** 122 tests, 0 failures, `go vet` clean across all 8 internal packages
+
+### 2026-07-08 — CI/CD pipeline
+
+**Changes:**
+- **`.github/workflows/ci.yml`** (new) — 4-job GitHub Actions workflow:
+  - `backend` — `go vet`, `go test` (with minimal env vars), `go build` (main + sandbox)
+  - `frontend` — `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm run build` (with minimal env vars)
+  - `deploy-backend` — Render deploy hook trigger (main branch only, after backend tests pass)
+  - `deploy-sandbox` — Railway deploy hook trigger (main branch only, after backend tests pass)
+- **`build.sh`** — Updated to build both backend and sandbox with explicit GOOS/GOARCH
+
+### 2026-07-08 — Dual-language seed backfill migration
+
+**Changes:**
+- **`migrations/028_backfill_language_versions.sql`** (new) — Backfills the `language_versions` JSONB column for all 180 seed problems that were inserted without it (migration 027 added the column but seeds ran before the backfill could populate them). Adds two PL/pgSQL helpers:
+  - `koder_to_snake_case()` — converts PascalCase Go function names to Python snake_case
+  - `koder_go_type_to_python()` — translates Go type annotations to Python equivalents
+- Runs as an idempotent UPDATE targeting problems with `language = 'go'` that lack a `'python'` key in `language_versions`
+
+### 2026-07-09 — Python sandbox: python3 availability check + meaningful error messages
+
+**Bug:** Railway sandbox returned `compiler_error` with empty `output_logs` when `python3` was unavailable. The sandbox hardcoded `"python3"` everywhere with no fallback, and the `Error` field was never populated in the `ExecuteResponse` for Python (only Go had it via `compileErrorMessage`). The backend had no way to surface the real error.
+
+**Fixes:**
+
+| File | Change |
+|---|---|
+| `sandbox/pyrunner.go` | Added `findPythonBin()` helper: checks `PATH` for `python3`, falls back to `python`, returns empty string if neither |
+| `sandbox/pyrunner.go` | `validatePythonAST()` uses `findPythonBin()` instead of hardcoded `"python3"` |
+| `sandbox/pyrunner.go` | `runPythonTests()` uses `findPythonBin()` with early return + clear error response when Python missing; logs binary used; adds `Error` field via `compileErrorMessage()` matching `runGoTests` |
+| `internal/executor/executor.go` | Forwards sandbox `Error` to output when `compiler_error` with empty stdout |
+
+**Verification:**
+- Go: `go test -count=1 ./...` — 122 tests, 0 failures, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors, `npm run build` — clean
+
+### 2026-07-09 — Audit-driven critical fixes (sessions 14)
+
+**Context:** Comprehensive audit identified 5 critical issues. 2 were false alarms (rate limiting already present on `/test`, community approval flow correctly preserves `language_versions`). 3 real issues fixed.
+
+**Changes:**
+
+| Issue | File | Fix |
+|---|---|---|
+| `formatPythonLiteral` null → `NameError` | `internal/executor/executor.go:809-812` | Added early `bytes.Equal(data, []byte("null"))` → `"None"` before type dispatch |
+| No timeout on `validatePythonAST` | `sandbox/pyrunner.go:78-80` | Added `context.WithTimeout(context.Background(), 10*time.Second)` with deferred cancel |
+| Language toggle loses unsaved code | `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Added `scaffoldAtToggle` tracking; shows confirmation dialog when code differs from scaffold; only switches on explicit confirmation |
+
+**Audit findings (2 false alarms):**
+- `/test` rate limiting: Already had `RateLimitMiddleware(rateLimiter)` at `router.go:135` (same 5 req/45s as `/submit`)
+- Community approvals wiping `language_versions`: Code correctly preserves `language_versions` through approval transaction (only falls back to `generateDualLanguageSpec` when nil/empty)
+
+**New test:** `TestFormatPythonLiteral` (9 cases inc. null/None for all types)
+
+**Verification:**
+- Go: `go test -count=1 ./...` — **123 tests, 0 failures**, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors
+
+### 2026-07-09 — Production Polish: Monitoring, Performance, Error UX, Security (Session 15)
+
+**Monitoring & Observability:**
+- **`cmd/server/main.go`** — Switched from `TextHandler` to `JSONHandler` for machine-parseable logs. Added `commit`/`buildAt` ldflags vars. Startup log now includes commit, build time, Go version, arch, OS.
+- **`internal/api/middleware.go`** — Added `RequestLoggingMiddleware` (logs method, path, status code, duration_ms, correlation ID via `X-Request-ID` header, remote IP). Uses `generateRequestID()` with crypto/rand (8 bytes → hex). `loggingResponseWriter` wrapper captures status code from `WriteHeader`.
+- **`internal/api/router.go`** — `/health` endpoint now includes `db_status` (ping result), `db_ms` (latency), `sandbox_url`, `environment`. New `/version` endpoint returns `commit`, `build`, `go` version.
+- **`internal/store/store.go`** — Added `Ping(ctx)` method to `Store` interface and `PostgresStore` (wraps `pool.Ping`).
+
+**Performance:**
+- **`internal/api/cache.go`** — Added `leaderboardCache` (30s TTL) and `InvalidateLeaderboardCache()`. Keyed by period (all/weekly/monthly).
+- **`internal/api/leaderboard.go`** — Cache-first pattern: returns cached leaderboard when fresh, falls back to DB query.
+- **`internal/api/submissions.go`** — `InvalidateLeaderboardCache()` called on solved submission (alongside existing `InvalidateUserCache`).
+- **`frontend/lib/useNotifications.ts`** — Polling interval reduced from 5s to 15s (3x fewer DB queries).
+- **`frontend/components/BroadcastBanner.tsx`** — Polling interval reduced from 5s to 30s (6x fewer DB queries).
+
+**Error UX:**
+- Added 7 new `error.tsx` boundaries: `(main)/`, `home/`, `settings/`, `contribute/`, `admin/`, `problems/[slug]/`, and `global-error.tsx` at root level.
+- Added `home/loading.tsx` with skeleton grid (6 problem cards, filter pills, title).
+
+**Security:**
+- **`internal/api/middleware.go`** — Added `Content-Security-Policy` header to `SecurityHeadersMiddleware` (default-src 'self'; script/style/font/img/connect-src with Google OAuth support).|
+
+**Verification:**
+- Go: `go test -count=1 ./...` — 123 tests, 0 failures, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+- Frontend: ESLint — 0 errors, TypeScript — 0 errors|
+
+### 2026-07-09 — Python compiler error context extraction fix
+
+**Context:** Python compiler errors and tracebacks were lacking line numbers in the backend because the fallback regex was bypassed.
+
+**Changes:**
+- `sandbox/main.go`: Updated `isPythonErrorLine` with a robust colon-based heuristic. `compileErrorMessage` now scans bottom-up and extracts exact file/line context via `extractPyFileLine` to match Go's output format.
+- `internal/executor/executor.go`: Fixed a variable shadowing bug in the `executePython` path where `sandboxError` was inadvertently scoped to an `if` block, preventing the properly formatted sandbox error from being propagated to the frontend.
+
+**Verification:**
+- Go: `go test -count=1 ./...` — **124 tests, 0 failures**, `go vet` clean
+- Sandbox: `go vet ./...` + `go build` — clean
+
+### 2026-07-09 — Professional codebase indexing & final polish
+
+**Context:** Comprehensive full-codebase indexing session. Pulled latest (9 new commits since last index: sandbox error messaging, Go logo icons, Python sandbox isolation alignment, language filter bugfix, migration 029, fullscreen toggle, logo fixes).
+
+**New/modified files since last session log:**
+| File | Change |
+|---|---|
+| `sandbox/main.go` | Python error messaging improvements, `use Out.String()` for Go output capture |
+| `sandbox/pyrunner.go` | `validatePythonAST` output capture, process group isolation alignment |
+| `sandbox/runtest_go.go` | `use Out.String()` for stdout capture |
+| `sandbox/secure_unix.go` | Align Python `Setpgid` with Go runner pattern |
+| `sandbox/sandbox-runner` | Binary updated (new) |
+| `sandbox/security_message_test.go` | New: validates sandbox security messages |
+| `internal/executor/executor.go` | `EnhancePythonError` for human-readable Python exceptions with debugging tips |
+| `frontend/components/TestResultPanel.tsx` | Show server-provided Python debugging tips |
+| `frontend/components/LanguageLogo.tsx` | New: renders Go/Python SVG icons |
+| `frontend/public/icons/go.svg` | New: real Go gopher logo (SVG) |
+| `frontend/public/icons/python.svg` | New: real Python logo (SVG) |
+| `frontend/app/(main)/home/page.tsx` | Language filter bugfix |
+| `migrations/029_ensure_language_versions.sql` | New: guarantees every problem has both Go and Python entries |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Fullscreen toggle |
+
+**Frontend file inventory (post-indexing):**
+- **52 app router files** across 12 route groups (root, landing, oauth, auth, main, home, leaderboard, profile, settings, contribute, admin, problems, legal)
+- **37 shared components** (14 shadcn/ui, 5 auth, 3 kibo-ui, 2 base, 7 feature, 1 dashboard, 1 layout, 2 language, 1 demo, 1 test result)
+- **3 custom hooks** (use-google-one-tap, use-has-mounted, use-mobile)
+- **10 lib modules** (api client w/ 40+ endpoints, types, utils, cache, event/WebSocket, UserContext, useNotifications, toast, achievements, index)
+- **3 style files** (globals, theme vars 856 lines, typography 430 lines)
+
+**Backend file inventory (post-indexing):**
+- **7 internal packages**: api (24 source files), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (18 source files)
+- **13 test files** across 7 packages, 124 tests total
+- **29 migrations** from 001_init to 029_ensure_language_versions
+- **Sandbox**: 8 source files (zero external dependencies), standalone Go binary
