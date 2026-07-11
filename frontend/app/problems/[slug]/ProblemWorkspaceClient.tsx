@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
 import { setupMonacoTheme, refreshLanguageTokens } from "@/lib/monaco-themes";
-// This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
+loader.init().then(setupMonacoTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
