@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-import { setupMonacoTheme, refreshLanguageTokens } from "@/lib/monaco-themes";
+// This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
-loader.init().then(setupMonacoTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -196,9 +195,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setCode(scaffold);
     setScaffoldAtToggle(scaffold);
     localStorage.setItem("koder_language", newLang);
-    if (monacoRef.current) {
-      refreshLanguageTokens(monacoRef.current, newLang);
-    }
     try {
       await updatePrimaryLanguage(newLang);
     } catch {
@@ -872,7 +868,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="koder-vscode"
+              theme="vs-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -891,8 +887,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
-
-                setupMonacoTheme(monaco);
 
                 const pkgMethods: Record<
                   string,
