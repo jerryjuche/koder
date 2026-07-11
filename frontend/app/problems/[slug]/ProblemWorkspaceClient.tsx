@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-import { registerCustomTokenizers } from "@/lib/custom-tokenizers";
+import { setupMonacoTheme, refreshLanguageTokens } from "@/lib/monaco-themes";
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
 import Markdown from "react-markdown";
@@ -196,6 +196,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setCode(scaffold);
     setScaffoldAtToggle(scaffold);
     localStorage.setItem("koder_language", newLang);
+    if (monacoRef.current) {
+      refreshLanguageTokens(monacoRef.current, newLang);
+    }
     try {
       await updatePrimaryLanguage(newLang);
     } catch {
@@ -889,49 +892,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
 
-                monaco.editor.defineTheme("koder-vscode", {
-                  base: "vs-dark",
-                  inherit: true,
-                  rules: [
-                    { token: "", foreground: "D4D4D4", background: "1E1E1E" },
-                    { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "keyword", foreground: "C586C0" },
-                    { token: "identifier.function", foreground: "DCDCAA" },
-                    { token: "identifier.type", foreground: "4EC9B0" },
-                    { token: "identifier.variable", foreground: "9CDCFE" },
-                    { token: "identifier.module", foreground: "CE9178" },
-                    { token: "variable.language.self", foreground: "9CDCFE" },
-                    { token: "type", foreground: "4EC9B0" },
-                    { token: "string", foreground: "CE9178" },
-                    { token: "number", foreground: "B5CEA8" },
-                    { token: "delimiter", foreground: "D4D4D4" },
-                    { token: "tag", foreground: "569CD6" },
-                    { token: "attribute.name", foreground: "9CDCFE" },
-                    { token: "attribute.value", foreground: "CE9178" },
-                  ],
-                  colors: {
-                    "editor.background": "#1E1E1E",
-                    "editor.foreground": "#D4D4D4",
-                    "editor.lineHighlightBackground": "#2A2D2E",
-                    "editor.selectionBackground": "#264F78",
-                    "editor.inactiveSelectionBackground": "#3A3D41",
-                    "editorCursor.foreground": "#AEAFAD",
-                    "editorLineNumber.foreground": "#858585",
-                    "editorLineNumber.activeForeground": "#C6C6C6",
-                    "editor.selectionHighlightBackground": "#3A3D41",
-                    "editorBracketMatch.background": "#3A3D41",
-                    "editorBracketMatch.border": "#888888",
-                    "editorGutter.background": "#1E1E1E",
-                    "editorWidget.background": "#252526",
-                    "editorWidget.border": "#454545",
-                    "editorSuggestWidget.background": "#252526",
-                    "editorSuggestWidget.border": "#454545",
-                    "editorSuggestWidget.selectedBackground": "#094771",
-                    "minimap.background": "#1E1E1E",
-                  },
-                });
-                monaco.editor.setTheme("koder-vscode");
-                registerCustomTokenizers(monaco);
+                setupMonacoTheme(monaco);
 
                 const pkgMethods: Record<
                   string,
