@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -17,12 +18,25 @@ import (
 	"github.com/jerryjuche/koder/internal/store"
 )
 
+var (
+	commit  = "dev"
+	buildAt = "unknown"
+)
+
 func main() {
-	// Set up structured logging
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// Set up structured JSON logging for production observability
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+	slog.Info("starting",
+		"commit", commit,
+		"build_at", buildAt,
+		"go_version", runtime.Version(),
+		"arch", runtime.GOARCH,
+		"os", runtime.GOOS,
+	)
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -94,7 +108,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-sigChan
-	slog.Info("received shutdown signal", "signal", sig)
+	slog.Info("shutdown: received signal", "signal", sig)
 
 	// Graceful shutdown with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)

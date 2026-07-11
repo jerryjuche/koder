@@ -37,6 +37,24 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	languageFilter := r.URL.Query().Get("language")
+	if languageFilter != "" && languageFilter != "go" && languageFilter != "python" {
+		languageFilter = ""
+	}
+	if languageFilter != "" {
+		var filtered []store.Problem
+		for _, p := range problems {
+			if p.Language == languageFilter {
+				filtered = append(filtered, p)
+			} else if p.LanguageVersions != nil {
+				if _, ok := p.LanguageVersions[languageFilter]; ok {
+					filtered = append(filtered, p)
+				}
+			}
+		}
+		problems = filtered
+	}
+
 	RespondSuccess(w, problems)
 }
 
@@ -82,6 +100,7 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		"module": problem.Module,
 		"type": problem.Type,
 		"language": problem.Language,
+		"language_versions": problem.LanguageVersions,
 		"title": problem.Title,
 		"statement": problem.Statement,
 		"constraints": problem.Constraints,

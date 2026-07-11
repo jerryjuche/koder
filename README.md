@@ -1,6 +1,6 @@
 # Koder
 
-> A zero-cost, production-grade automated code-grading platform for Go programming curricula.  
+> A zero-cost, production-grade automated code-grading platform for Go and Python programming curricula.  
 > Built for constraint. Engineered for correctness. Designed for scale within those constraints.
 
 ---

@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/jerryjuche/koder/internal/store"
 )
 
 type cacheEntry[T any] struct {
@@ -83,11 +85,19 @@ func (c *userCache[T]) Stop() {
 	}
 }
 
-// Global caches for user and profile data
+// Global caches for user, profile, leaderboard, and problems data
 var (
-	profileCache = newUserCache[profileResponse](30 * time.Second)
-	userCacheMap = newUserCache[meResponse](30 * time.Second)
+	profileCache    = newUserCache[profileResponse](30 * time.Second)
+	userCacheMap    = newUserCache[meResponse](30 * time.Second)
+	leaderboardCache = newUserCache[[]store.LeaderboardEntry](30 * time.Second)
 )
+
+// InvalidateLeaderboardCache clears all leaderboard caches on new submissions.
+func InvalidateLeaderboardCache() {
+	leaderboardCache.invalidate("all")
+	leaderboardCache.invalidate("weekly")
+	leaderboardCache.invalidate("monthly")
+}
 
 var cacheCtxKey = struct{}{}
 
@@ -118,4 +128,5 @@ func InvalidateUserCache(userID string) {
 func StopCaches() {
 	profileCache.Stop()
 	userCacheMap.Stop()
+	leaderboardCache.Stop()
 }

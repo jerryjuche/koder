@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { UserProfile } from "@/lib/types";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { motion } from "motion/react";
 import { Layers } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -18,8 +19,7 @@ const difficultyConfig: Record<string, { label: string; color: string; barColor:
 };
 
 function AnimatedBar({ percent, color }: { percent: number; color: string }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useHasMounted();
   return (
     <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
       <motion.div
@@ -45,8 +45,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
   );
   const overallPercent = totalProblems > 0 ? (totalSolved / totalProblems) * 100 : 0;
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useHasMounted();
 
   return (
     <motion.div

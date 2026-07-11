@@ -106,7 +106,10 @@ export function useWebSocket(
   deps: any[] = [],
 ) {
   const handlerRef = useRef(handlers);
-  handlerRef.current = handlers;
+
+  useEffect(() => {
+    handlerRef.current = handlers;
+  });
 
   useEffect(() => {
     const unsubs: (() => void)[] = [];

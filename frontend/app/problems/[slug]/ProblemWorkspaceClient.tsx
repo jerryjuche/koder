@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Copy,
   Expand,
+  Shrink,
   CheckCircle2,
   Bug,
   Send,
@@ -30,25 +31,77 @@ import {
   Activity,
 } from "lucide-react";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
-import { fetchProblem, submitSolution, testCode, submitFeedback } from "@/lib/api";
+import {
+  fetchProblem,
+  submitSolution,
+  testCode,
+  submitFeedback,
+  updatePrimaryLanguage,
+} from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Problem, TestResult, ExecutionResult } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { LanguageLogo } from "@/components/LanguageLogo";
 
-const DEFAULT_CODE = `package piscine
+const GO_CODE = `package koder
 
 // Write your solution here.
 // The backend will test your exported function automatically.
 `;
 
+const PYTHON_CODE = `def solution():
+    # Write your solution here.
+    pass
+`;
+
 const STORE_KEY = (s: string) => `koder_code_${s}`;
+
+function generateScaffold(problem: Problem | null, lang: string): string {
+  const lv = problem?.language_versions?.[lang];
+  if (lv?.func_name) {
+    const params =
+      lv.param_types
+        ?.map((t, i) =>
+          lang === "python" ? `arg${i + 1}` : `arg${i + 1} ${t}`,
+        )
+        .join(", ") || "";
+    if (lang === "python") {
+      return `def ${lv.func_name}(${params}):\n    pass\n`;
+    }
+    const ret = lv.return_type ? ` ${lv.return_type}` : "";
+    return `package koder\n\nfunc ${lv.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+  }
+  // Fallback: try top-level Go fields
+  if (lang !== "python" && problem?.func_name) {
+    const params =
+      problem.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
+    const ret = problem.return_type ? ` ${problem.return_type}` : "";
+    return `package koder\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
+  }
+  // Default constants
+  return lang === "python" ? PYTHON_CODE : GO_CODE;
+}
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [code, setCode] = useState(DEFAULT_CODE);
+  const [code, setCode] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORE_KEY(slug));
+      if (saved) return saved;
+    }
+    return GO_CODE;
+  });
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
   const [hintsOpen, setHintsOpen] = useState<boolean[]>(Array(10).fill(false));
   const [submitting, setSubmitting] = useState(false);
@@ -57,25 +110,27 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [lastExecution, setLastExecution] = useState<any>(null);
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
+  const [activeLanguage, setActiveLanguage] = useState<string>("go");
   const [cooldown, setCooldown] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportSending, setReportSending] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
+  const [languageConfirmOpen, setLanguageConfirmOpen] = useState(false);
+  const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
+  const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
-        const p = res.data;
-        if (p.func_name) {
-          const params =
-            p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
-          const ret = p.return_type ? ` ${p.return_type}` : "";
-          const scaffold = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
-          setCode(scaffold);
-          setSaved(true);
-        }
+        const lang = localStorage.getItem("koder_language") || "go";
+        const scaffold = generateScaffold(res.data, lang);
+        setActiveLanguage(lang);
+        setCode(scaffold);
+        setScaffoldAtToggle(scaffold);
+        setSaved(true);
       }
     });
   }, [slug]);
@@ -99,17 +154,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [code, slug, problem]);
 
-  // Restore saved code on mount
-  useEffect(() => {
-    if (!problem || !problem.func_name) return;
-    const savedCode = localStorage.getItem(STORE_KEY(slug));
-    if (savedCode) {
-      setCode(savedCode);
-      setSaved(true);
-    }
-  }, [problem, slug]);
-
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -124,19 +169,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, []);
 
   const handleReset = () => {
-    const p = problem;
-    let fresh: string;
-    if (p?.func_name) {
-      const params =
-        p.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
-      const ret = p.return_type ? ` ${p.return_type}` : "";
-      fresh = `package piscine\n\nfunc ${p.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
-    } else {
-      fresh = DEFAULT_CODE;
-    }
+    let fresh = generateScaffold(problem, activeLanguage);
     setCode(fresh);
     setSaved(true);
     setResults(null);
@@ -147,17 +183,35 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     toast.success("Reset to original scaffold");
   };
 
-  const handleFormat = () => {
+  async function applyLanguageSwitch(newLang: string) {
+    const scaffold = generateScaffold(problem, newLang);
+    setActiveLanguage(newLang);
+    setCode(scaffold);
+    setScaffoldAtToggle(scaffold);
+    localStorage.setItem("koder_language", newLang);
+    try {
+      await updatePrimaryLanguage(newLang);
+    } catch {
+      // Non-critical: backend language preference update can fail silently
+    }
+    window.dispatchEvent(new Event("user-updated"));
+  }
+
+  function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
     const raw = ed.getValue();
-    const formatted = raw
-      .split("\n")
-      .map((l: string) => l.replace(/[ \t]+$/, ""))
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/^(\t*) +/gm, (_: string, tabs: string) => tabs + " ".repeat(4))
-      .trimEnd() + "\n";
+    const formatted =
+      raw
+        .split("\n")
+        .map((l: string) => l.replace(/[ \t]+$/, ""))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(
+          /^(\t*) +/gm,
+          (_: string, tabs: string) => tabs + " ".repeat(4),
+        )
+        .trimEnd() + "\n";
     ed.executeEdits("format", [
       {
         range: ed.getModel().getFullModelRange(),
@@ -168,15 +222,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setCode(formatted);
     setSaved(true);
     toast.success("Code formatted");
-  };
+  }
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     setSubmitting(true);
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
 
-    const res = await submitSolution(slug, code);
+    const res = await submitSolution(slug, code, activeLanguage);
 
     if (res.success && res.data) {
       const executionResult = res.data;
@@ -188,7 +242,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       ) {
         setErrorMsg(null); // Clear generic errorMsg, we use lastExecution
         setResults(null);
-        toast.error(`Execution failed: ${executionResult.friendly_message || executionResult.status}`);
+        toast.error(
+          `Execution failed: ${executionResult.friendly_message || executionResult.status}`,
+        );
       } else {
         const mappedResults: TestResult[] = (
           executionResult.test_results || []
@@ -210,7 +266,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.success("Solution accepted!");
           window.dispatchEvent(new Event("user-updated"));
           sessionStorage.setItem(`koder_solution_${slug}`, code);
-          if (problem) sessionStorage.setItem(`koder_problem_${slug}`, JSON.stringify(problem));
+          if (problem)
+            sessionStorage.setItem(
+              `koder_problem_${slug}`,
+              JSON.stringify(problem),
+            );
           router.push(`/problems/${slug}/success`);
         } else {
           toast.error("Some test cases failed.");
@@ -237,15 +297,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
 
     setSubmitting(false);
-  };
+  }
 
-  const handleTest = async () => {
+  async function handleTest() {
     setSubmitting(true);
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
 
-    const res = await testCode(slug, code);
+    const res = await testCode(slug, code, activeLanguage);
 
     if (res.success && res.data) {
       const executionResult = res.data;
@@ -257,7 +317,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       ) {
         setErrorMsg(null);
         setResults(null);
-        toast.error(`Test failed: ${executionResult.friendly_message || executionResult.status}`);
+        toast.error(
+          `Test failed: ${executionResult.friendly_message || executionResult.status}`,
+        );
       } else {
         const mappedResults: TestResult[] = (
           executionResult.test_results || []
@@ -297,13 +359,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
 
     setSubmitting(false);
-  };
+  }
 
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
-    const baseDesc = `Error encountered while solving "${problem.title}" (${problem.slug}).\n\nError: ${errorMsg || lastExecution?.friendly_message || "Unknown error"}\n\nCode:\n\`\`\`go\n${code}\n\`\`\``;
-    const fullDesc = reportDescription.trim() ? `${baseDesc}\n\nAdditional notes:\n${reportDescription.trim()}` : baseDesc;
+    const baseDesc = `Error encountered while solving "${problem.title}" (${problem.slug}).\n\nError: ${errorMsg || lastExecution?.friendly_message || "Unknown error"}\n\nCode:\n\`\`\`${activeLanguage}\n${code}\n\`\`\``;
+    const fullDesc = reportDescription.trim()
+      ? `${baseDesc}\n\nAdditional notes:\n${reportDescription.trim()}`
+      : baseDesc;
     const res = await submitFeedback({
       type: "bug",
       title: `Problem: ${problem.title}`,
@@ -343,9 +407,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </Link>
           <div className="w-px h-5 bg-brand-charcoal-border"></div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-brand-offwhite-muted">
-              #{problem.slug === "hello-world" ? "001" : "002"}
-            </span>
             <span className="font-bold">{problem.title}</span>
             <span
               className={cn(
@@ -355,6 +416,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             >
               {getDifficultyLabel(problem.difficulty)}
             </span>
+            
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
               {problem.module}
             </span>
@@ -383,7 +445,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Lightbulb size={16} /> Hints
           </button>
           <button
-            onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
+            onClick={() => {
+              setReportOpen(true);
+              setReportSubmitted(false);
+              setReportDescription("");
+            }}
             className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
             title="Report a problem with this exercise"
           >
@@ -402,7 +468,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
           >
             {cooldown > 0 ? (
-              <span className="text-brand-muted-gold font-mono">{cooldown}s</span>
+              <span className="text-brand-muted-gold font-mono">
+                {cooldown}s
+              </span>
             ) : submitting ? (
               <div className="w-4 h-4 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
             ) : (
@@ -438,250 +506,303 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       {/* Main Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Problem Statement */}
-        <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
-          <div className="p-6">
-            {/* Problem Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-brand-offwhite mb-3">
-                {problem.title}
-              </h1>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className={cn(
-                    "text-sm font-bold px-3 py-1 rounded-full",
-                    getDifficultyColor(problem.difficulty),
-                  )}
-                >
-                  {getDifficultyLabel(problem.difficulty)}
-                </span>
-                <span className="text-xs font-mono text-brand-offwhite-muted bg-brand-charcoal-hover px-2.5 py-1 rounded border border-brand-charcoal-border">
-                  Go
-                </span>
-                {problem.solved && (
-                  <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
-                    ✓ Solved
+        {!fullscreen && (
+          <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
+            <div className="p-6">
+              {/* Problem Header */}
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-brand-offwhite mb-3">
+                  {problem.title}
+                </h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span
+                    className={cn(
+                      "text-sm font-bold px-3 py-1 rounded-full",
+                      getDifficultyColor(problem.difficulty),
+                    )}
+                  >
+                    {getDifficultyLabel(problem.difficulty)}
                   </span>
-                )}
-              </div>
-            </div>
-
-            {/* Statistics Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-6 pb-6 border-b border-brand-charcoal-border/50">
-              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
-                <div className="text-lg font-bold text-brand-offwhite">
-                  {problem.success_rate !== undefined
-                    ? Math.round(problem.success_rate)
-                    : 0}
-                  %
-                </div>
-                <div className="text-xs text-brand-offwhite-muted font-medium">
-                  Acceptance
-                </div>
-              </div>
-              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
-                <div className="text-lg font-bold text-brand-offwhite">
-                  {problem.total_submissions || 0}
-                </div>
-                <div className="text-xs text-brand-offwhite-muted font-medium">
-                  Submissions
-                </div>
-              </div>
-              <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
-                <div className="text-lg font-bold text-brand-muted-gold">
-                  {problem.estTimeMinutes ||
-                    (problem as any).EstTimeMinutes ||
-                    (problem.difficulty === 1
-                      ? 15
-                      : problem.difficulty === 2
-                        ? 30
-                        : 60)}
-                  m
-                </div>
-                <div className="text-xs text-brand-offwhite-muted font-medium">
-                  Time
-                </div>
-              </div>
-            </div>
-
-            {/* Problem Description */}
-            <div className="mb-8">
-              <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-muted-gold shadow-[0_0_8px_rgba(238,197,126,0.8)]"></span>
-                Description
-              </div>
-              <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
-                <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
-                  <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                    {problem?.statement ||
-                      problem?.descriptionMarkdown ||
-                      "No problem statement available yet. This exercise is pending enrichment."}
-                  </Markdown>
-                </div>
-              </div>
-            </div>
-
-            {/* Examples Section */}
-            {problem.examples && problem.examples.length > 0 && (
-              <div className="mb-8">
-                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-success shadow-[0_0_8px_rgba(62,207,142,0.8)]"></span>
-                  Examples
-                </div>
-                <div className="space-y-4">
-                  {problem.examples.map((ex, idx) => (
-                    <div
-                      key={ex.id}
-                      className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-[#0F1115] to-[#0A0C0F] overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
-                    >
-                      <div className="px-5 py-2.5 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50 flex items-center justify-between">
-                        <div className="text-xs font-bold tracking-wide text-brand-offwhite/80 uppercase">
-                          Example {idx + 1}
-                        </div>
-                      </div>
-                      <div className="p-5 space-y-4">
-                        <div>
-                          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
-                            Input
-                          </div>
-                          <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
-                            {ex.input}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
-                            Expected Output
-                          </div>
-                          <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
-                            {ex.expected}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Constraints Section */}
-            <div className="mb-8">
-              <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border shadow-[0_0_8px_rgba(255,255,255,0.2)]"></span>
-                Constraints
-              </div>
-              <div className="rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-card/80 to-transparent p-5 backdrop-blur-sm">
-                <ul className="space-y-3 text-sm text-brand-offwhite-muted">
-                  {problem.param_types && problem.param_types.length > 0 && (
-                    <li className="flex items-start gap-3">
-                      <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
-                      <span>
-                        <span className="font-mono text-brand-offwhite/90">
-                          Parameters:
-                        </span>{" "}
-                        {problem.param_types.map((t) => `${t}`).join(", ")}
-                      </span>
-                    </li>
-                  )}
-                  {problem.return_type && (
-                    <li className="flex items-start gap-3">
-                      <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
-                      <span>
-                        <span className="font-mono text-brand-offwhite/90">
-                          Return Type:
-                        </span>{" "}
-                        {problem.return_type}
-                      </span>
-                    </li>
-                  )}
-                  <li className="flex items-start gap-3">
-                    <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
-                    <span>
-                      <span className="font-mono text-brand-offwhite/90">
-                        Difficulty:
-                      </span>{" "}
-                      {getDifficultyLabel(problem.difficulty)}
+                  
+                  {problem.solved && (
+                    <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
+                      ✓ Solved
                     </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
-                    <span>
-                      <span className="font-mono text-brand-offwhite/90">
-                        Time Limit:
-                      </span>{" "}
-                      {problem.estTimeMinutes ||
-                        (problem.difficulty === 1
-                          ? 15
-                          : problem.difficulty === 2
-                            ? 30
-                            : 60)}{" "}
-                      minutes
-                    </span>
-                  </li>
-                  {problem.constraints && (
-                    <li className="flex items-start gap-3">
-                      <span className="text-brand-muted-gold mt-1 text-xs">◆</span>
-                      <span className="whitespace-pre-line">
-                        {problem.constraints}
-                      </span>
-                    </li>
                   )}
-                </ul>
-              </div>
-            </div>
-
-            {/* Learning Objective */}
-            {problem.learningObjective && (
-              <div className="mb-8">
-                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
-                  Learning Objective
                 </div>
-                <div className="relative rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-5 shadow-lg backdrop-blur-sm overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-transparent opacity-60"></div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                      <Target size={16} className="text-emerald-400" />
-                    </div>
-                    <p className="text-sm text-brand-offwhite-muted leading-relaxed pt-1">
-                      {problem.learningObjective}
-                    </p>
+              </div>
+
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-3 gap-3 mb-6 pb-6 border-b border-brand-charcoal-border/50">
+                <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                  <div className="text-lg font-bold text-brand-offwhite">
+                    {problem.success_rate !== undefined
+                      ? Math.round(problem.success_rate)
+                      : 0}
+                    %
+                  </div>
+                  <div className="text-xs text-brand-offwhite-muted font-medium">
+                    Acceptance
+                  </div>
+                </div>
+                <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                  <div className="text-lg font-bold text-brand-offwhite">
+                    {problem.total_submissions || 0}
+                  </div>
+                  <div className="text-xs text-brand-offwhite-muted font-medium">
+                    Submissions
+                  </div>
+                </div>
+                <div className="bg-brand-charcoal-card rounded-lg p-3 border border-brand-charcoal-border">
+                  <div className="text-lg font-bold text-brand-muted-gold">
+                    {problem.estTimeMinutes ||
+                      (problem as any).EstTimeMinutes ||
+                      (problem.difficulty === 1
+                        ? 15
+                        : problem.difficulty === 2
+                          ? 30
+                          : 60)}
+                    m
+                  </div>
+                  <div className="text-xs text-brand-offwhite-muted font-medium">
+                    Time
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Tags Section */}
-            {problem.tags && problem.tags.length > 0 && (
+              {/* Problem Description */}
               <div className="mb-8">
                 <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-offwhite/50 shadow-[0_0_8px_rgba(255,255,255,0.4)]"></span>
-                  Topics
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-muted-gold shadow-[0_0_8px_rgba(238,197,126,0.8)]"></span>
+                  Description
                 </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {problem.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[11px] uppercase tracking-wider bg-brand-muted-gold/5 text-brand-muted-gold px-3.5 py-1.5 rounded-full border border-brand-muted-gold/20 font-bold hover:bg-brand-muted-gold/10 hover:border-brand-muted-gold/40 transition-colors cursor-default"
+                <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
+                  <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
+                    <Markdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeSanitize]}
                     >
-                      {tag}
-                    </span>
-                  ))}
+                      {problem?.statement ||
+                        problem?.descriptionMarkdown ||
+                        "No problem statement available yet. This exercise is pending enrichment."}
+                    </Markdown>
+                  </div>
                 </div>
               </div>
-            )}
+
+              {/* Examples Section */}
+              {problem.examples && problem.examples.length > 0 && (
+                <div className="mb-8">
+                  <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-success shadow-[0_0_8px_rgba(62,207,142,0.8)]"></span>
+                    Examples
+                  </div>
+                  <div className="space-y-4">
+                    {problem.examples.map((ex, idx) => (
+                      <div
+                        key={ex.id}
+                        className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-[#0F1115] to-[#0A0C0F] overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
+                      >
+                        <div className="px-5 py-2.5 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50 flex items-center justify-between">
+                          <div className="text-xs font-bold tracking-wide text-brand-offwhite/80 uppercase">
+                            Example {idx + 1}
+                          </div>
+                        </div>
+                        <div className="p-5 space-y-4">
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
+                              Input
+                            </div>
+                            <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
+                              {ex.input}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
+                              Expected Output
+                            </div>
+                            <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
+                              {ex.expected}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Constraints Section */}
+              <div className="mb-8">
+                <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border shadow-[0_0_8px_rgba(255,255,255,0.2)]"></span>
+                  Constraints
+                </div>
+                <div className="rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-card/80 to-transparent p-5 backdrop-blur-sm">
+                  <ul className="space-y-3 text-sm text-brand-offwhite-muted">
+                    {problem.param_types && problem.param_types.length > 0 && (
+                      <li className="flex items-start gap-3">
+                        <span className="text-brand-muted-gold mt-1 text-xs">
+                          ◆
+                        </span>
+                        <span>
+                          <span className="font-mono text-brand-offwhite/90">
+                            Parameters:
+                          </span>{" "}
+                          {problem.param_types.map((t) => `${t}`).join(", ")}
+                        </span>
+                      </li>
+                    )}
+                    {problem.return_type && (
+                      <li className="flex items-start gap-3">
+                        <span className="text-brand-muted-gold mt-1 text-xs">
+                          ◆
+                        </span>
+                        <span>
+                          <span className="font-mono text-brand-offwhite/90">
+                            Return Type:
+                          </span>{" "}
+                          {problem.return_type}
+                        </span>
+                      </li>
+                    )}
+                    <li className="flex items-start gap-3">
+                      <span className="text-brand-muted-gold mt-1 text-xs">
+                        ◆
+                      </span>
+                      <span>
+                        <span className="font-mono text-brand-offwhite/90">
+                          Difficulty:
+                        </span>{" "}
+                        {getDifficultyLabel(problem.difficulty)}
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="text-brand-muted-gold mt-1 text-xs">
+                        ◆
+                      </span>
+                      <span>
+                        <span className="font-mono text-brand-offwhite/90">
+                          Time Limit:
+                        </span>{" "}
+                        {problem.estTimeMinutes ||
+                          (problem.difficulty === 1
+                            ? 15
+                            : problem.difficulty === 2
+                              ? 30
+                              : 60)}{" "}
+                        minutes
+                      </span>
+                    </li>
+                    {problem.constraints && (
+                      <li className="flex items-start gap-3">
+                        <span className="text-brand-muted-gold mt-1 text-xs">
+                          ◆
+                        </span>
+                        <span className="whitespace-pre-line">
+                          {problem.constraints}
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Learning Objective */}
+              {problem.learningObjective && (
+                <div className="mb-8">
+                  <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
+                    Learning Objective
+                  </div>
+                  <div className="relative rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-5 shadow-lg backdrop-blur-sm overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-transparent opacity-60"></div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <Target size={16} className="text-emerald-400" />
+                      </div>
+                      <p className="text-sm text-brand-offwhite-muted leading-relaxed pt-1">
+                        {problem.learningObjective}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags Section */}
+              {problem.tags && problem.tags.length > 0 && (
+                <div className="mb-8">
+                  <div className="text-xs font-bold uppercase tracking-widest text-brand-offwhite mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-offwhite/50 shadow-[0_0_8px_rgba(255,255,255,0.4)]"></span>
+                    Topics
+                  </div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {problem.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[11px] uppercase tracking-wider bg-brand-muted-gold/5 text-brand-muted-gold px-3.5 py-1.5 rounded-full border border-brand-muted-gold/20 font-bold hover:bg-brand-muted-gold/10 hover:border-brand-muted-gold/40 transition-colors cursor-default"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Middle: Editor & Results */}
         <div className="flex-1 flex flex-col min-w-0 bg-[#0F1115]">
           {/* Editor Header */}
           <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
-              <div className="text-xs font-mono font-bold bg-brand-charcoal-hover text-brand-offwhite px-2 py-1 rounded-md border border-brand-charcoal-border">
-                Go
+              <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
+                <button
+                  onClick={async () => {
+                    if (activeLanguage === "go") return;
+                    if (code !== scaffoldAtToggle) {
+                      setPendingLanguage("go");
+                      setLanguageConfirmOpen(true);
+                    } else {
+                      await applyLanguageSwitch("go");
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                    activeLanguage === "go"
+                      ? "bg-[#00ADD8]/15 text-[#00ADD8]"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                  )}
+                >
+                  <LanguageLogo language="go" size={18} />
+                  Go
+                </button>
+                <div className="w-px bg-brand-charcoal-border self-stretch" />
+                <button
+                  onClick={async () => {
+                    if (activeLanguage === "python") return;
+                    if (code !== scaffoldAtToggle) {
+                      setPendingLanguage("python");
+                      setLanguageConfirmOpen(true);
+                    } else {
+                      await applyLanguageSwitch("python");
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
+                    activeLanguage === "python"
+                      ? "bg-[#FFD43B]/15 text-[#FFD43B]"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                  )}
+                >
+                  <LanguageLogo language="python" size={18} />
+                  Python
+                </button>
               </div>
               <span className="text-xs font-mono text-brand-offwhite-muted">
-                solution.go
+                {activeLanguage === "python" ? "solution.py" : "solution.go"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -690,11 +811,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   ● Unsaved
                 </span>
               )}
-              {saved && code !== DEFAULT_CODE && (
-                <span className="text-[10px] text-brand-success/60">
-                  ● Saved
-                </span>
-              )}
+              {saved &&
+                code !==
+                  (activeLanguage === "python" ? PYTHON_CODE : GO_CODE) && (
+                  <span className="text-[10px] text-brand-success/60">
+                    ● Saved
+                  </span>
+                )}
               <button
                 onClick={handleFormat}
                 className="text-xs text-brand-offwhite-muted hover:text-brand-offwhite px-2 py-1 rounded hover:bg-brand-charcoal-hover transition-colors border border-brand-charcoal-border font-mono"
@@ -702,11 +825,28 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               >
                 {`{ }`}
               </button>
-              <button className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors">
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(code)
+                    .then(() => {
+                      toast.success("Code copied to clipboard");
+                    })
+                    .catch(() => {
+                      toast.error("Failed to copy code");
+                    });
+                }}
+                className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+                title="Copy code"
+              >
                 <Copy size={16} />
               </button>
-              <button className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors">
-                <Expand size={16} />
+              <button
+                onClick={() => setFullscreen(!fullscreen)}
+                className="text-brand-offwhite-muted hover:text-brand-offwhite p-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+                title={fullscreen ? "Exit fullscreen" : "Fullscreen editor"}
+              >
+                {fullscreen ? <Shrink size={16} /> : <Expand size={16} />}
               </button>
             </div>
           </div>
@@ -715,13 +855,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <div className="flex-1 overflow-hidden relative">
             <Editor
               height="100%"
-              defaultLanguage="go"
+              language={activeLanguage}
               theme="vs-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
-                    <p className="text-sm text-brand-offwhite-muted">Loading editor...</p>
+                    <p className="text-sm text-brand-offwhite-muted">
+                      Loading editor...
+                    </p>
                   </div>
                 </div>
               }
@@ -733,130 +875,478 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
-                const pkgMethods: Record<string, { label: string; detail: string; insertText: string }[]> = {
+                const pkgMethods: Record<
+                  string,
+                  { label: string; detail: string; insertText: string }[]
+                > = {
                   fmt: [
-                    { label: "Println(a ...any)", detail: "fmt.Println", insertText: "Println(${1:})" },
-                    { label: "Printf(format string, a ...any)", detail: "fmt.Printf", insertText: "Printf(\"${1:}\\n\", ${2:})" },
-                    { label: "Sprintf(format string, a ...any)", detail: "fmt.Sprintf", insertText: "Sprintf(\"${1:}\\n\", ${2:})" },
-                    { label: "Fprint(w io.Writer, a ...any)", detail: "fmt.Fprint", insertText: "Fprint(${1:w}, ${2:})" },
-                    { label: "Fprintln(w io.Writer, a ...any)", detail: "fmt.Fprintln", insertText: "Fprintln(${1:w}, ${2:})" },
-                    { label: "Errorf(format string, a ...any)", detail: "fmt.Errorf", insertText: "Errorf(\"${1:}\\n\", ${2:})" },
-                    { label: "Scan(a ...any)", detail: "fmt.Scan", insertText: "Scan(${1:})" },
-                    { label: "Scanf(format string, a ...any)", detail: "fmt.Scanf", insertText: "Scanf(\"${1:}\", ${2:})" },
-                    { label: "Sscan(str string, a ...any)", detail: "fmt.Sscan", insertText: "Sscan(\"${1:}\", ${2:})" },
+                    {
+                      label: "Println(a ...any)",
+                      detail: "fmt.Println",
+                      insertText: "Println(${1:})",
+                    },
+                    {
+                      label: "Printf(format string, a ...any)",
+                      detail: "fmt.Printf",
+                      insertText: 'Printf("${1:}\\n", ${2:})',
+                    },
+                    {
+                      label: "Sprintf(format string, a ...any)",
+                      detail: "fmt.Sprintf",
+                      insertText: 'Sprintf("${1:}\\n", ${2:})',
+                    },
+                    {
+                      label: "Fprint(w io.Writer, a ...any)",
+                      detail: "fmt.Fprint",
+                      insertText: "Fprint(${1:w}, ${2:})",
+                    },
+                    {
+                      label: "Fprintln(w io.Writer, a ...any)",
+                      detail: "fmt.Fprintln",
+                      insertText: "Fprintln(${1:w}, ${2:})",
+                    },
+                    {
+                      label: "Errorf(format string, a ...any)",
+                      detail: "fmt.Errorf",
+                      insertText: 'Errorf("${1:}\\n", ${2:})',
+                    },
+                    {
+                      label: "Scan(a ...any)",
+                      detail: "fmt.Scan",
+                      insertText: "Scan(${1:})",
+                    },
+                    {
+                      label: "Scanf(format string, a ...any)",
+                      detail: "fmt.Scanf",
+                      insertText: 'Scanf("${1:}", ${2:})',
+                    },
+                    {
+                      label: "Sscan(str string, a ...any)",
+                      detail: "fmt.Sscan",
+                      insertText: 'Sscan("${1:}", ${2:})',
+                    },
                   ],
                   strings: [
-                    { label: "Contains(s, substr string) bool", detail: "strings.Contains", insertText: "Contains(${1:s}, ${2:substr})" },
-                    { label: "Count(s, substr string) int", detail: "strings.Count", insertText: "Count(${1:s}, ${2:substr})" },
-                    { label: "HasPrefix(s, prefix string) bool", detail: "strings.HasPrefix", insertText: "HasPrefix(${1:s}, ${2:prefix})" },
-                    { label: "HasSuffix(s, suffix string) bool", detail: "strings.HasSuffix", insertText: "HasSuffix(${1:s}, ${2:suffix})" },
-                    { label: "Index(s, substr string) int", detail: "strings.Index", insertText: "Index(${1:s}, ${2:substr})" },
-                    { label: "Join(elems []string, sep string) string", detail: "strings.Join", insertText: "Join(${1:elems}, \"${2:sep}\")" },
-                    { label: "Split(s, sep string) []string", detail: "strings.Split", insertText: "Split(${1:s}, \"${2:sep}\")" },
-                    { label: "ToLower(s string) string", detail: "strings.ToLower", insertText: "ToLower(${1:s})" },
-                    { label: "ToUpper(s string) string", detail: "strings.ToUpper", insertText: "ToUpper(${1:s})" },
-                    { label: "Trim(s, cutset string) string", detail: "strings.Trim", insertText: "Trim(${1:s}, \"${2:cutset}\")" },
-                    { label: "TrimSpace(s string) string", detail: "strings.TrimSpace", insertText: "TrimSpace(${1:s})" },
-                    { label: "Replace(s, old, new string, n int) string", detail: "strings.Replace", insertText: "Replace(${1:s}, \"${2:old}\", \"${3:new}\", ${4:n})" },
-                    { label: "Fields(s string) []string", detail: "strings.Fields", insertText: "Fields(${1:s})" },
+                    {
+                      label: "Contains(s, substr string) bool",
+                      detail: "strings.Contains",
+                      insertText: "Contains(${1:s}, ${2:substr})",
+                    },
+                    {
+                      label: "Count(s, substr string) int",
+                      detail: "strings.Count",
+                      insertText: "Count(${1:s}, ${2:substr})",
+                    },
+                    {
+                      label: "HasPrefix(s, prefix string) bool",
+                      detail: "strings.HasPrefix",
+                      insertText: "HasPrefix(${1:s}, ${2:prefix})",
+                    },
+                    {
+                      label: "HasSuffix(s, suffix string) bool",
+                      detail: "strings.HasSuffix",
+                      insertText: "HasSuffix(${1:s}, ${2:suffix})",
+                    },
+                    {
+                      label: "Index(s, substr string) int",
+                      detail: "strings.Index",
+                      insertText: "Index(${1:s}, ${2:substr})",
+                    },
+                    {
+                      label: "Join(elems []string, sep string) string",
+                      detail: "strings.Join",
+                      insertText: 'Join(${1:elems}, "${2:sep}")',
+                    },
+                    {
+                      label: "Split(s, sep string) []string",
+                      detail: "strings.Split",
+                      insertText: 'Split(${1:s}, "${2:sep}")',
+                    },
+                    {
+                      label: "ToLower(s string) string",
+                      detail: "strings.ToLower",
+                      insertText: "ToLower(${1:s})",
+                    },
+                    {
+                      label: "ToUpper(s string) string",
+                      detail: "strings.ToUpper",
+                      insertText: "ToUpper(${1:s})",
+                    },
+                    {
+                      label: "Trim(s, cutset string) string",
+                      detail: "strings.Trim",
+                      insertText: 'Trim(${1:s}, "${2:cutset}")',
+                    },
+                    {
+                      label: "TrimSpace(s string) string",
+                      detail: "strings.TrimSpace",
+                      insertText: "TrimSpace(${1:s})",
+                    },
+                    {
+                      label: "Replace(s, old, new string, n int) string",
+                      detail: "strings.Replace",
+                      insertText:
+                        'Replace(${1:s}, "${2:old}", "${3:new}", ${4:n})',
+                    },
+                    {
+                      label: "Fields(s string) []string",
+                      detail: "strings.Fields",
+                      insertText: "Fields(${1:s})",
+                    },
                   ],
                   math: [
-                    { label: "Abs(x float64) float64", detail: "math.Abs", insertText: "Abs(${1:x})" },
-                    { label: "Pow(x, y float64) float64", detail: "math.Pow", insertText: "Pow(${1:x}, ${2:y})" },
-                    { label: "Sqrt(x float64) float64", detail: "math.Sqrt", insertText: "Sqrt(${1:x})" },
-                    { label: "Max(x, y float64) float64", detail: "math.Max", insertText: "Max(${1:x}, ${2:y})" },
-                    { label: "Min(x, y float64) float64", detail: "math.Min", insertText: "Min(${1:x}, ${2:y})" },
-                    { label: "Floor(x float64) float64", detail: "math.Floor", insertText: "Floor(${1:x})" },
-                    { label: "Ceil(x float64) float64", detail: "math.Ceil", insertText: "Ceil(${1:x})" },
-                    { label: "Round(x float64) float64", detail: "math.Round", insertText: "Round(${1:x})" },
-                    { label: "Sin(x float64) float64", detail: "math.Sin", insertText: "Sin(${1:x})" },
-                    { label: "Cos(x float64) float64", detail: "math.Cos", insertText: "Cos(${1:x})" },
-                    { label: "Exp(x float64) float64", detail: "math.Exp", insertText: "Exp(${1:x})" },
-                    { label: "Log(x float64) float64", detail: "math.Log", insertText: "Log(${1:x})" },
+                    {
+                      label: "Abs(x float64) float64",
+                      detail: "math.Abs",
+                      insertText: "Abs(${1:x})",
+                    },
+                    {
+                      label: "Pow(x, y float64) float64",
+                      detail: "math.Pow",
+                      insertText: "Pow(${1:x}, ${2:y})",
+                    },
+                    {
+                      label: "Sqrt(x float64) float64",
+                      detail: "math.Sqrt",
+                      insertText: "Sqrt(${1:x})",
+                    },
+                    {
+                      label: "Max(x, y float64) float64",
+                      detail: "math.Max",
+                      insertText: "Max(${1:x}, ${2:y})",
+                    },
+                    {
+                      label: "Min(x, y float64) float64",
+                      detail: "math.Min",
+                      insertText: "Min(${1:x}, ${2:y})",
+                    },
+                    {
+                      label: "Floor(x float64) float64",
+                      detail: "math.Floor",
+                      insertText: "Floor(${1:x})",
+                    },
+                    {
+                      label: "Ceil(x float64) float64",
+                      detail: "math.Ceil",
+                      insertText: "Ceil(${1:x})",
+                    },
+                    {
+                      label: "Round(x float64) float64",
+                      detail: "math.Round",
+                      insertText: "Round(${1:x})",
+                    },
+                    {
+                      label: "Sin(x float64) float64",
+                      detail: "math.Sin",
+                      insertText: "Sin(${1:x})",
+                    },
+                    {
+                      label: "Cos(x float64) float64",
+                      detail: "math.Cos",
+                      insertText: "Cos(${1:x})",
+                    },
+                    {
+                      label: "Exp(x float64) float64",
+                      detail: "math.Exp",
+                      insertText: "Exp(${1:x})",
+                    },
+                    {
+                      label: "Log(x float64) float64",
+                      detail: "math.Log",
+                      insertText: "Log(${1:x})",
+                    },
                   ],
                   sort: [
-                    { label: "Ints(a []int)", detail: "sort.Ints", insertText: "Ints(${1:a})" },
-                    { label: "Strings(a []string)", detail: "sort.Strings", insertText: "Strings(${1:a})" },
-                    { label: "Float64s(a []float64)", detail: "sort.Float64s", insertText: "Float64s(${1:a})" },
-                    { label: "SearchInts(a []int, x int) int", detail: "sort.SearchInts", insertText: "SearchInts(${1:a}, ${2:x})" },
-                    { label: "SearchStrings(a []string, x string) int", detail: "sort.SearchStrings", insertText: "SearchStrings(${1:a}, \"${2:x}\")" },
-                    { label: "Slice(x any, less func(i, j int) bool)", detail: "sort.Slice", insertText: "Slice(${1:x}, func(i, j int) bool { return ${2:} })" },
-                    { label: "IsSorted(data Interface) bool", detail: "sort.IsSorted", insertText: "IsSorted(${1:data})" },
-                    { label: "Reverse(data Interface) Interface", detail: "sort.Reverse", insertText: "Reverse(${1:data})" },
+                    {
+                      label: "Ints(a []int)",
+                      detail: "sort.Ints",
+                      insertText: "Ints(${1:a})",
+                    },
+                    {
+                      label: "Strings(a []string)",
+                      detail: "sort.Strings",
+                      insertText: "Strings(${1:a})",
+                    },
+                    {
+                      label: "Float64s(a []float64)",
+                      detail: "sort.Float64s",
+                      insertText: "Float64s(${1:a})",
+                    },
+                    {
+                      label: "SearchInts(a []int, x int) int",
+                      detail: "sort.SearchInts",
+                      insertText: "SearchInts(${1:a}, ${2:x})",
+                    },
+                    {
+                      label: "SearchStrings(a []string, x string) int",
+                      detail: "sort.SearchStrings",
+                      insertText: 'SearchStrings(${1:a}, "${2:x}")',
+                    },
+                    {
+                      label: "Slice(x any, less func(i, j int) bool)",
+                      detail: "sort.Slice",
+                      insertText:
+                        "Slice(${1:x}, func(i, j int) bool { return ${2:} })",
+                    },
+                    {
+                      label: "IsSorted(data Interface) bool",
+                      detail: "sort.IsSorted",
+                      insertText: "IsSorted(${1:data})",
+                    },
+                    {
+                      label: "Reverse(data Interface) Interface",
+                      detail: "sort.Reverse",
+                      insertText: "Reverse(${1:data})",
+                    },
                   ],
                   os: [
-                    { label: "Getenv(key string) string", detail: "os.Getenv", insertText: "Getenv(\"${1:key}\")" },
-                    { label: "Setenv(key, value string) error", detail: "os.Setenv", insertText: "Setenv(\"${1:key}\", \"${2:value}\")" },
-                    { label: "Getwd() (string, error)", detail: "os.Getwd", insertText: "Getwd()" },
-                    { label: "Chdir(dir string) error", detail: "os.Chdir", insertText: "Chdir(\"${1:dir}\")" },
-                    { label: "Exit(code int)", detail: "os.Exit", insertText: "Exit(${1:code})" },
-                    { label: "ReadFile(name string) ([]byte, error)", detail: "os.ReadFile", insertText: "ReadFile(\"${1:name}\")" },
-                    { label: "WriteFile(name string, data []byte, perm FileMode) error", detail: "os.WriteFile", insertText: "WriteFile(\"${1:name}\", ${2:data}, ${3:0644})" },
+                    {
+                      label: "Getenv(key string) string",
+                      detail: "os.Getenv",
+                      insertText: 'Getenv("${1:key}")',
+                    },
+                    {
+                      label: "Setenv(key, value string) error",
+                      detail: "os.Setenv",
+                      insertText: 'Setenv("${1:key}", "${2:value}")',
+                    },
+                    {
+                      label: "Getwd() (string, error)",
+                      detail: "os.Getwd",
+                      insertText: "Getwd()",
+                    },
+                    {
+                      label: "Chdir(dir string) error",
+                      detail: "os.Chdir",
+                      insertText: 'Chdir("${1:dir}")',
+                    },
+                    {
+                      label: "Exit(code int)",
+                      detail: "os.Exit",
+                      insertText: "Exit(${1:code})",
+                    },
+                    {
+                      label: "ReadFile(name string) ([]byte, error)",
+                      detail: "os.ReadFile",
+                      insertText: 'ReadFile("${1:name}")',
+                    },
+                    {
+                      label:
+                        "WriteFile(name string, data []byte, perm FileMode) error",
+                      detail: "os.WriteFile",
+                      insertText:
+                        'WriteFile("${1:name}", ${2:data}, ${3:0644})',
+                    },
                   ],
                   strconv: [
-                    { label: "Atoi(s string) (int, error)", detail: "strconv.Atoi", insertText: "Atoi(${1:s})" },
-                    { label: "Itoa(i int) string", detail: "strconv.Itoa", insertText: "Itoa(${1:i})" },
-                    { label: "ParseFloat(s string, bitSize int) (float64, error)", detail: "strconv.ParseFloat", insertText: "ParseFloat(\"${1:s}\", ${2:bitSize})" },
-                    { label: "FormatFloat(f float64, fmt byte, prec, bitSize int) string", detail: "strconv.FormatFloat", insertText: "FormatFloat(${1:f}, '${2:f}', ${3:-1}, ${4:64})" },
+                    {
+                      label: "Atoi(s string) (int, error)",
+                      detail: "strconv.Atoi",
+                      insertText: "Atoi(${1:s})",
+                    },
+                    {
+                      label: "Itoa(i int) string",
+                      detail: "strconv.Itoa",
+                      insertText: "Itoa(${1:i})",
+                    },
+                    {
+                      label:
+                        "ParseFloat(s string, bitSize int) (float64, error)",
+                      detail: "strconv.ParseFloat",
+                      insertText: 'ParseFloat("${1:s}", ${2:bitSize})',
+                    },
+                    {
+                      label:
+                        "FormatFloat(f float64, fmt byte, prec, bitSize int) string",
+                      detail: "strconv.FormatFloat",
+                      insertText:
+                        "FormatFloat(${1:f}, '${2:f}', ${3:-1}, ${4:64})",
+                    },
                   ],
                   time: [
-                    { label: "Now() Time", detail: "time.Now", insertText: "Now()" },
-                    { label: "Since(t Time) Duration", detail: "time.Since", insertText: "Since(${1:t})" },
-                    { label: "Sleep(d Duration)", detail: "time.Sleep", insertText: "Sleep(${1:d})" },
-                    { label: "Parse(layout, value string) (Time, error)", detail: "time.Parse", insertText: "Parse(\"${1:2006-01-02}\", \"${2:value}\")" },
+                    {
+                      label: "Now() Time",
+                      detail: "time.Now",
+                      insertText: "Now()",
+                    },
+                    {
+                      label: "Since(t Time) Duration",
+                      detail: "time.Since",
+                      insertText: "Since(${1:t})",
+                    },
+                    {
+                      label: "Sleep(d Duration)",
+                      detail: "time.Sleep",
+                      insertText: "Sleep(${1:d})",
+                    },
+                    {
+                      label: "Parse(layout, value string) (Time, error)",
+                      detail: "time.Parse",
+                      insertText: 'Parse("${1:2006-01-02}", "${2:value}")',
+                    },
                   ],
                   errors: [
-                    { label: "New(text string) error", detail: "errors.New", insertText: "New(\"${1:text}\")" },
-                    { label: "As(err error, target any) bool", detail: "errors.As", insertText: "As(${1:err}, ${2:target})" },
-                    { label: "Is(err, target error) bool", detail: "errors.Is", insertText: "Is(${1:err}, ${2:target})" },
-                    { label: "Unwrap(err error) error", detail: "errors.Unwrap", insertText: "Unwrap(${1:err})" },
+                    {
+                      label: "New(text string) error",
+                      detail: "errors.New",
+                      insertText: 'New("${1:text}")',
+                    },
+                    {
+                      label: "As(err error, target any) bool",
+                      detail: "errors.As",
+                      insertText: "As(${1:err}, ${2:target})",
+                    },
+                    {
+                      label: "Is(err, target error) bool",
+                      detail: "errors.Is",
+                      insertText: "Is(${1:err}, ${2:target})",
+                    },
+                    {
+                      label: "Unwrap(err error) error",
+                      detail: "errors.Unwrap",
+                      insertText: "Unwrap(${1:err})",
+                    },
                   ],
                   "encoding/json": [
-                    { label: "Marshal(v any) ([]byte, error)", detail: "json.Marshal", insertText: "Marshal(${1:v})" },
-                    { label: "Unmarshal(data []byte, v any) error", detail: "json.Unmarshal", insertText: "Unmarshal(${1:data}, ${2:v})" },
-                    { label: "NewDecoder(r io.Reader) *Decoder", detail: "json.NewDecoder", insertText: "NewDecoder(${1:r})" },
-                    { label: "NewEncoder(w io.Writer) *Encoder", detail: "json.NewEncoder", insertText: "NewEncoder(${1:w})" },
+                    {
+                      label: "Marshal(v any) ([]byte, error)",
+                      detail: "json.Marshal",
+                      insertText: "Marshal(${1:v})",
+                    },
+                    {
+                      label: "Unmarshal(data []byte, v any) error",
+                      detail: "json.Unmarshal",
+                      insertText: "Unmarshal(${1:data}, ${2:v})",
+                    },
+                    {
+                      label: "NewDecoder(r io.Reader) *Decoder",
+                      detail: "json.NewDecoder",
+                      insertText: "NewDecoder(${1:r})",
+                    },
+                    {
+                      label: "NewEncoder(w io.Writer) *Encoder",
+                      detail: "json.NewEncoder",
+                      insertText: "NewEncoder(${1:w})",
+                    },
                   ],
                 };
 
                 const allPackages = [
-                  "fmt", "strings", "io", "os", "time", "math", "sort",
-                  "encoding/json", "net/http", "context", "errors",
-                  "bufio", "bytes", "crypto", "database/sql", "flag",
-                  "hash", "html", "image", "log", "mime", "net", "path",
-                  "regexp", "sync", "syscall", "testing", "text/template",
-                  "unicode", "archive/tar", "archive/zip", "compress/gzip",
-                  "strconv", "reflect",
+                  "fmt",
+                  "strings",
+                  "io",
+                  "os",
+                  "time",
+                  "math",
+                  "sort",
+                  "encoding/json",
+                  "net/http",
+                  "context",
+                  "errors",
+                  "bufio",
+                  "bytes",
+                  "crypto",
+                  "database/sql",
+                  "flag",
+                  "hash",
+                  "html",
+                  "image",
+                  "log",
+                  "mime",
+                  "net",
+                  "path",
+                  "regexp",
+                  "sync",
+                  "syscall",
+                  "testing",
+                  "text/template",
+                  "unicode",
+                  "archive/tar",
+                  "archive/zip",
+                  "compress/gzip",
+                  "strconv",
+                  "reflect",
                 ];
 
                 const keywords = [
-                  "func", "var", "const", "if", "else", "for", "switch",
-                  "case", "default", "break", "continue", "return", "defer",
-                  "go", "chan", "select", "range", "type", "struct",
-                  "interface", "map", "slice", "array", "import", "package",
-                  "fallthrough", "goto", "panic", "recover", "nil", "true", "false",
-                  "int", "string", "bool", "float64", "byte", "rune", "error",
-                  "int8", "int16", "int32", "int64", "uint", "uint8", "uint16",
-                  "uint32", "uint64", "float32", "complex64", "complex128",
+                  "func",
+                  "var",
+                  "const",
+                  "if",
+                  "else",
+                  "for",
+                  "switch",
+                  "case",
+                  "default",
+                  "break",
+                  "continue",
+                  "return",
+                  "defer",
+                  "go",
+                  "chan",
+                  "select",
+                  "range",
+                  "type",
+                  "struct",
+                  "interface",
+                  "map",
+                  "slice",
+                  "array",
+                  "import",
+                  "package",
+                  "fallthrough",
+                  "goto",
+                  "panic",
+                  "recover",
+                  "nil",
+                  "true",
+                  "false",
+                  "int",
+                  "string",
+                  "bool",
+                  "float64",
+                  "byte",
+                  "rune",
+                  "error",
+                  "int8",
+                  "int16",
+                  "int32",
+                  "int64",
+                  "uint",
+                  "uint8",
+                  "uint16",
+                  "uint32",
+                  "uint64",
+                  "float32",
+                  "complex64",
+                  "complex128",
                 ];
 
                 monaco.languages.registerHoverProvider("go", {
                   provideHover: (model: any, position: any) => {
                     const word = model.getWordAtPosition(position);
                     if (!word) return null;
-                    const lineContent = model.getLineContent(position.lineNumber);
-                    const beforeMatch = lineContent.slice(0, word.startColumn - 1).match(/(\w+)\.\s*$/);
+                    const lineContent = model.getLineContent(
+                      position.lineNumber,
+                    );
+                    const beforeMatch = lineContent
+                      .slice(0, word.startColumn - 1)
+                      .match(/(\w+)\.\s*$/);
                     if (beforeMatch) {
                       const pkgName = beforeMatch[1];
                       const fnName = word.word;
                       const methods = pkgMethods[pkgName];
                       if (methods) {
-                        const match = methods.find((m) => m.label.startsWith(fnName));
+                        const match = methods.find((m) =>
+                          m.label.startsWith(fnName),
+                        );
                         if (match) {
                           return {
                             contents: [
                               { value: `**${match.detail}**` },
-                              { value: `\`\`\`go\nfunc ${match.label}\n\`\`\`` },
+                              {
+                                value: `\`\`\`go\nfunc ${match.label}\n\`\`\``,
+                              },
                             ],
                           };
                         }
@@ -895,7 +1385,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                             label: m.label,
                             kind: monaco.languages.CompletionItemKind.Function,
                             insertText: m.insertText,
-                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            insertTextRules:
+                              monaco.languages.CompletionItemInsertTextRule
+                                .InsertAsSnippet,
                             range,
                             detail: m.detail,
                           })),
@@ -922,6 +1414,173 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     ];
 
                     return { suggestions };
+                  },
+                });
+
+                const pythonKeywords = [
+                  "False",
+                  "None",
+                  "True",
+                  "and",
+                  "as",
+                  "assert",
+                  "async",
+                  "await",
+                  "break",
+                  "class",
+                  "continue",
+                  "def",
+                  "del",
+                  "elif",
+                  "else",
+                  "except",
+                  "finally",
+                  "for",
+                  "from",
+                  "global",
+                  "if",
+                  "import",
+                  "in",
+                  "is",
+                  "lambda",
+                  "nonlocal",
+                  "not",
+                  "or",
+                  "pass",
+                  "raise",
+                  "return",
+                  "try",
+                  "while",
+                  "with",
+                  "yield",
+                ];
+
+                const pythonBuiltins = [
+                  "abs",
+                  "all",
+                  "any",
+                  "bin",
+                  "bool",
+                  "chr",
+                  "dict",
+                  "dir",
+                  "enumerate",
+                  "filter",
+                  "float",
+                  "format",
+                  "frozenset",
+                  "getattr",
+                  "hasattr",
+                  "hash",
+                  "hex",
+                  "id",
+                  "input",
+                  "int",
+                  "isinstance",
+                  "issubclass",
+                  "iter",
+                  "len",
+                  "list",
+                  "map",
+                  "max",
+                  "min",
+                  "next",
+                  "object",
+                  "oct",
+                  "open",
+                  "ord",
+                  "pow",
+                  "print",
+                  "range",
+                  "repr",
+                  "reversed",
+                  "round",
+                  "set",
+                  "slice",
+                  "sorted",
+                  "str",
+                  "sum",
+                  "tuple",
+                  "type",
+                  "vars",
+                  "zip",
+                ];
+
+                const pythonStdlibHints: Record<string, string> = {
+                  len: "Return the number of items in a container.",
+                  range:
+                    "Return an object that produces a sequence of integers from start (inclusive) to stop (exclusive).",
+                  enumerate:
+                    "Return an enumerate object yielding pairs of index and value.",
+                  zip: "Iterate over several iterables in parallel.",
+                  map: "Return an iterator that applies function to every item of iterable.",
+                  filter:
+                    "Return an iterator yielding items of iterable for which function returns true.",
+                  sorted:
+                    "Return a new sorted list from the items in iterable.",
+                  reversed: "Return a reverse iterator.",
+                  print:
+                    "Prints values to a stream, or to sys.stdout by default.",
+                  isinstance:
+                    "Return whether an object is an instance of a class or of a subclass thereof.",
+                  int: "Return an integer object constructed from a number or string.",
+                  str: "Return a string object.",
+                  bool: "Return a Boolean value.",
+                  list: "Rather than being a function, list is a mutable sequence type.",
+                  dict: "Rather than being a function, dict is a mapping type.",
+                };
+
+                monaco.languages.registerCompletionItemProvider("python", {
+                  triggerCharacters: ["."],
+                  provideCompletionItems: (model: any, position: any) => {
+                    const word = model.getWordUntilPosition(position);
+                    const range = {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: word.startColumn,
+                      endColumn: position.column,
+                    };
+                    const suggestions = [
+                      ...pythonKeywords.map((kw) => ({
+                        label: kw,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: kw,
+                        range,
+                        detail: "Python keyword",
+                      })),
+                      ...pythonBuiltins.map((fn) => ({
+                        label: fn,
+                        kind: monaco.languages.CompletionItemKind.Function,
+                        insertText: fn,
+                        range,
+                        detail: pythonStdlibHints[fn] || "Python built-in",
+                      })),
+                    ];
+                    return { suggestions };
+                  },
+                });
+
+                monaco.languages.registerHoverProvider("python", {
+                  provideHover: (model: any, position: any) => {
+                    const word = model.getWordAtPosition(position);
+                    if (!word) return null;
+                    const hint = pythonStdlibHints[word.word];
+                    if (hint) {
+                      return {
+                        contents: [
+                          { value: `**${word.word}**` },
+                          { value: `\`\`\`\n${hint}\n\`\`\`` },
+                        ],
+                      };
+                    }
+                    if (pythonKeywords.includes(word.word)) {
+                      return {
+                        contents: [
+                          { value: `**${word.word}** — Python keyword` },
+                        ],
+                      };
+                    }
+                    return null;
                   },
                 });
               }}
@@ -952,7 +1611,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             expanded={testsExpanded}
             onToggle={() => setTestsExpanded(!testsExpanded)}
           />
-
         </div>
 
         {/* Right: Hints Panel (Collapsible) */}
@@ -963,15 +1621,19 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 <Lightbulb size={18} /> Progressive Hints
               </div>
               <span className="text-xs text-brand-offwhite-muted bg-brand-charcoal-base px-2 py-1 rounded">
-                ({hintsOpen.filter(Boolean).length}/{problem.hints?.length || 3} viewed)
+                ({hintsOpen.filter(Boolean).length}/{problem.hints?.length || 3}{" "}
+                viewed)
               </span>
             </div>
             <div className="p-5 space-y-4">
-              {(problem.hints && problem.hints.length > 0 ? problem.hints : [
-                "Think about using the standard fmt package in Go. Which function prints with a newline?",
-                "You don't need to return a value from main(), simply call the print function.",
-                'The exact syntax is `fmt.Println("Hello, World!")` inside the main function.',
-              ]).map((hintText, idx) => {
+              {(problem.hints && problem.hints.length > 0
+                ? problem.hints
+                : [
+                    "Think about using the standard fmt package in Go. Which function prints with a newline?",
+                    "You don't need to return a value from main(), simply call the print function.",
+                    'The exact syntax is `fmt.Println("Hello, World!")` inside the main function.',
+                  ]
+              ).map((hintText, idx) => {
                 const isOpen = hintsOpen[idx];
                 const isLocked = idx > 0 && !hintsOpen[idx - 1];
                 return (
@@ -1044,16 +1706,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       {/* Report Issue Dialog */}
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setReportOpen(false); setReportDescription(""); }} />
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setReportOpen(false);
+              setReportDescription("");
+            }}
+          />
           <div className="relative w-full max-w-lg rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             {reportSubmitted ? (
               <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
                 <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-success/10 border border-brand-success/20">
                   <CheckCircle2 className="h-8 w-8 text-brand-success" />
                 </div>
-                <h3 className="text-xl font-bold text-brand-offwhite mb-2">Thank You</h3>
+                <h3 className="text-xl font-bold text-brand-offwhite mb-2">
+                  Thank You
+                </h3>
                 <p className="text-sm text-brand-offwhite-muted max-w-sm leading-relaxed">
-                  Your report has been submitted. The admin will review the issue and fix it as soon as possible.
+                  Your report has been submitted. The admin will review the
+                  issue and fix it as soon as possible.
                 </p>
                 <button
                   onClick={() => setReportOpen(false)}
@@ -1070,11 +1741,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       <Bug size={18} className="text-brand-error" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-brand-offwhite">Report Issue</h2>
-                      <p className="text-xs text-brand-offwhite-muted">Help us fix this problem</p>
+                      <h2 className="text-lg font-bold text-brand-offwhite">
+                        Report Issue
+                      </h2>
+                      <p className="text-xs text-brand-offwhite-muted">
+                        Help us fix this problem
+                      </p>
                     </div>
                   </div>
-                  <button onClick={() => { setReportOpen(false); setReportDescription(""); }} className="rounded-lg p-1.5 text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors">
+                  <button
+                    onClick={() => {
+                      setReportOpen(false);
+                      setReportDescription("");
+                    }}
+                    className="rounded-lg p-1.5 text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
+                  >
                     <X size={18} />
                   </button>
                 </div>
@@ -1082,22 +1763,40 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   <div className="rounded-lg bg-brand-charcoal-base border border-brand-charcoal-border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
                       <Target size={12} />
-                      <span>Problem: <span className="text-brand-offwhite font-medium">{problem.title}</span></span>
+                      <span>
+                        Problem:{" "}
+                        <span className="text-brand-offwhite font-medium">
+                          {problem.title}
+                        </span>
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
                       <Code2 size={12} />
-                      <span>Slug: <span className="font-mono text-brand-offwhite">{problem.slug}</span></span>
+                      <span>
+                        Slug:{" "}
+                        <span className="font-mono text-brand-offwhite">
+                          {problem.slug}
+                        </span>
+                      </span>
                     </div>
                     {(errorMsg || lastExecution?.friendly_message) && (
                       <div className="flex items-start gap-2 text-xs text-brand-offwhite-muted">
-                        <AlertTriangle size={12} className="mt-0.5 shrink-0 text-brand-warning" />
-                        <span className="text-brand-warning font-mono text-[11px] leading-relaxed break-all">{errorMsg || lastExecution?.friendly_message}</span>
+                        <AlertTriangle
+                          size={12}
+                          className="mt-0.5 shrink-0 text-brand-warning"
+                        />
+                        <span className="text-brand-warning font-mono text-[11px] leading-relaxed break-all">
+                          {errorMsg || lastExecution?.friendly_message}
+                        </span>
                       </div>
                     )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">
-                      Additional Details <span className="text-brand-offwhite-muted/50">(optional)</span>
+                      Additional Details{" "}
+                      <span className="text-brand-offwhite-muted/50">
+                        (optional)
+                      </span>
                     </label>
                     <textarea
                       id="report-description"
@@ -1111,7 +1810,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
                 <div className="flex justify-end gap-3 border-t border-brand-charcoal-border px-5 py-4">
                   <button
-                    onClick={() => { setReportOpen(false); setReportDescription(""); }}
+                    onClick={() => {
+                      setReportOpen(false);
+                      setReportDescription("");
+                    }}
                     className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
                   >
                     Cancel
@@ -1134,6 +1836,42 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      <Dialog open={languageConfirmOpen} onOpenChange={setLanguageConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Switch language?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes in your current code. Switching languages
+              will replace the editor content with a scaffold for the new
+              language. Any unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setLanguageConfirmOpen(false);
+                setPendingLanguage(null);
+              }}
+              className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (pendingLanguage) {
+                  await applyLanguageSwitch(pendingLanguage);
+                }
+                setLanguageConfirmOpen(false);
+                setPendingLanguage(null);
+              }}
+              className="rounded-lg bg-brand-muted-gold px-5 py-2 text-sm font-semibold text-black transition-all duration-300 hover:bg-brand-muted-gold/90"
+            >
+              Switch anyway
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

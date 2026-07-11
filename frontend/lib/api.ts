@@ -197,6 +197,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         google_avatar_url: res.data.google_avatar_url,
         google_linked: res.data.google_linked ?? false,
         usernameSet: res.data.username_set ?? true,
+        primaryLanguage: res.data.primary_language ?? "go",
       },
     };
   }
@@ -208,6 +209,13 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
   };
 }
 
+export async function updatePrimaryLanguage(language: string): Promise<ApiResponse<User>> {
+  return fetchApi<User>("/me/language", {
+    method: "PUT",
+    body: JSON.stringify({ language }),
+  });
+}
+
 export async function updateUsername(
   username: string,
 ): Promise<ApiResponse<{ message: string }>> {
@@ -217,8 +225,9 @@ export async function updateUsername(
   });
 }
 
-export async function fetchProblems(): Promise<ApiResponse<Problem[]>> {
-  return fetchApi<Problem[]>("/problems");
+export async function fetchProblems(language?: string): Promise<ApiResponse<Problem[]>> {
+  const params = language ? `?language=${language}` : "";
+  return fetchApi<Problem[]>(`/problems${params}`);
 }
 
 export async function fetchProblem(
@@ -230,20 +239,22 @@ export async function fetchProblem(
 export async function submitSolution(
   slug: string,
   code: string,
+  language?: string,
 ): Promise<ApiResponse<ExecutionResult>> {
   return fetchApi<ExecutionResult>(`/submit`, {
     method: "POST",
-    body: JSON.stringify({ problem_slug: slug, code: code }),
+    body: JSON.stringify({ problem_slug: slug, code: code, language }),
   });
 }
 
 export async function testCode(
   slug: string,
   code: string,
+  language?: string,
 ): Promise<ApiResponse<ExecutionResult>> {
   return fetchApi<ExecutionResult>(`/test`, {
     method: "POST",
-    body: JSON.stringify({ problem_slug: slug, code: code }),
+    body: JSON.stringify({ problem_slug: slug, code: code, language }),
   });
 }
 

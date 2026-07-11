@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   ChevronDown,
@@ -10,7 +11,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   CheckCircle2,
-  Circle,
   Clock,
   Flame,
   BarChart2,
@@ -20,8 +20,9 @@ import {
   ArrowLeft,
   BookOpen,
 } from "lucide-react";
+import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, API_BASE } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -58,17 +59,28 @@ export default function Dashboard() {
 
   // View state
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const moduleParam = new URLSearchParams(window.location.search).get("module");
+    return moduleParam || null;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "solved" | "unsolved">("all");
+  const [languageFilter, setLanguageFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    return tabParam === "go" || tabParam === "python" ? tabParam : "all";
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 18;
 
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
-      Promise.all([fetchProblems(), fetchUser(), fetchBestPractices(20)]).then(
+      const langParam = new URLSearchParams(window.location.search).get("tab");
+      const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20)]).then(
         ([probRes, userRes, bpRes]) => {
           if (!mounted) return;
           if (probRes.success) {
@@ -84,17 +96,12 @@ export default function Dashboard() {
 
     loadData();
 
-    // Restore module from query param on initial load
-    const params = new URLSearchParams(window.location.search);
-    const moduleParam = params.get("module");
-    if (moduleParam) setSelectedModule(moduleParam);
-
     // Debounced reload on user-updated — clear stale cache, then fetch fresh data
     let debounceTimer: ReturnType<typeof setTimeout>;
     const handleUserUpdated = () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        clearCache("/problems");
+        clearCache("/problems" + (languageFilter !== "all" ? `?language=${languageFilter}` : ""));
         clearCache("/me");
         clearCache("/best-practices");
         loadData();
@@ -166,9 +173,13 @@ export default function Dashboard() {
 
   const solvedCount = problems.filter((p) => p.solved).length;
 
-  useEffect(() => {
+  // Reset to page 1 when filters change
+  const filtersKey = `${selectedModule}-${searchQuery}-${difficultyFilter}-${statusFilter}`;
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (filtersKey !== prevFiltersKey) {
+    setPrevFiltersKey(filtersKey);
     setCurrentPage(1);
-  }, [selectedModule, searchQuery, difficultyFilter, statusFilter]);
+  }
 
   const handleSelectModule = useCallback((mod: string) => {
     setSelectedModule(mod);
@@ -332,6 +343,43 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Language Filter Tabs */}
+              <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
+                {(["all", "go", "python"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      setLanguageFilter(lang);
+                      setCurrentPage(1);
+                      const params = new URLSearchParams(window.location.search);
+                      if (lang === "all") {
+                        params.delete("tab");
+                      } else {
+                        params.set("tab", lang);
+                      }
+                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                      window.history.replaceState({}, "", newUrl);
+                      clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
+                      setLoading(true);
+                      fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
+                        if (res.success) setProblems(res.data || []);
+                        setLoading(false);
+                      });
+                    }}
+                    className={cn(
+                      "px-4 py-1.5 rounded text-sm font-medium transition-all capitalize flex items-center gap-1.5",
+                      languageFilter === lang
+                        ? "bg-muted text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {lang === "go" && <LanguageLogo language="go" size={16} />}
+                    {lang === "python" && <LanguageLogo language="python" size={16} />}
+                    {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
+                  </button>
+                ))}
+              </div>
+
               {/* Filters (no module dropdown) */}
               <Card className="p-4 flex flex-col lg:flex-row gap-4">
                 <div className="relative flex-1">
@@ -404,16 +452,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     paginatedProblems.map((problem, i) => {
-                      const diffGradients: Record<number, { from: string; to: string }> = {
-                        1: { from: "from-emerald-500", to: "to-teal-400" },
-                        2: { from: "from-sky-500", to: "to-blue-400" },
-                        3: { from: "from-amber-500", to: "to-yellow-400" },
-                        4: { from: "from-red-500", to: "to-rose-400" },
-                        5: { from: "from-purple-500", to: "to-fuchsia-400" },
-                      };
-                      const diff = problem.difficulty as keyof typeof diffGradients;
-                      const grad = diffGradients[diff] || diffGradients[3];
-                      const diffColors: Record<number, string> = {
+                      const diffColor: Record<number, string> = {
                         1: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
                         2: "text-sky-400 bg-sky-500/10 border-sky-500/25",
                         3: "text-amber-400 bg-amber-500/10 border-amber-500/25",
@@ -423,12 +462,14 @@ export default function Dashboard() {
                       const diffLabel: Record<number, string> = {
                         1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
                       };
+                      const d = problem.difficulty as keyof typeof diffColor;
+                      const langs = problem.language_versions ? Object.keys(problem.language_versions) : [];
 
                       return (
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
-                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
+                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                         style={{
                           animationFillMode: "both",
                           animationDelay: i * 50 + "ms",
@@ -436,124 +477,119 @@ export default function Dashboard() {
                       >
                         <Card
                           className={cn(
-                            "group relative overflow-hidden transition-all duration-300",
-                            "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5",
+                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
+                            "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/6",
                             "animate-in fade-in slide-in-from-bottom-2",
+                            problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
                           )}
                         >
-                          {/* Top accent bar */}
+                          {/* Background image with gradient fade */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            <Image
+                              src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
+                              alt=""
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background" />
+                          </div>
+
+                          {/* Solved accent line */}
                           <div className={cn(
-                            "absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-80",
-                            grad.from, grad.to,
+                            "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300 z-10",
+                            problem.solved ? "bg-emerald-500" : "bg-transparent",
                           )} />
 
-                          {/* Solved glow */}
-                          {problem.solved && (
-                            <div className="absolute -top-8 -right-8 w-16 h-16 rounded-full bg-emerald-500/10 blur-xl" />
-                          )}
-
-                          <CardHeader className="flex-row items-center justify-between p-5 pb-0 space-y-0 relative z-10">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-mono text-muted-foreground/60 font-medium tabular-nums">
+                          {/* Header */}
+                          <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0 relative z-10">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
                               <span className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide uppercase",
-                                diffColors[diff] || diffColors[3],
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                diffColor[d] || diffColor[3],
                               )}>
-                                {diffLabel[diff] || "Medium"}
+                                {diffLabel[d] || "Medium"}
                               </span>
                             </div>
                             {problem.solved ? (
-                              <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                <CheckCircle2 className="text-emerald-400" size={16} />
-                              </div>
+                              <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
                             ) : (
-                              <Circle
-                                className="text-muted-foreground/20 group-hover:text-primary/30 transition-colors"
-                                size={16}
-                              />
+                              <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/15 mt-0.5 shrink-0" />
                             )}
                           </CardHeader>
 
-                          <CardContent className="p-5 pt-3 relative z-10">
-                            <CardTitle className="text-base font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors leading-snug">
-                              {problem.title}
-                            </CardTitle>
+                          {/* Body */}
+                          <CardContent className="px-5 pb-3 flex-1 flex flex-col relative z-10">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <CardTitle className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                                {problem.title}
+                              </CardTitle>
+                              {langs.length > 0 && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {langs.map((lang) => (
+                                    <span key={lang} className="flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-background/40 backdrop-blur-[2px]">
+                                      <LanguageLogo language={lang as "go" | "python"} size={20} />
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
-                            {/* Statement excerpt */}
-                            <p className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 mb-3.5 min-h-[2.5em]">
+                            <p className="text-xs text-muted-foreground/60 leading-relaxed line-clamp-2 mb-auto">
                               {problem.statement ? (
-                                <span>
-                                  {problem.statement
-                                    .replace(/<[^>]*>/g, "")
-                                    .replace(/^#+\s+/gm, "")
-                                    .replace(/\*\*/g, "")
-                                    .replace(/```[\s\S]*?```/g, "")
-                                    .split("\n")
-                                    .filter(Boolean)
-                                    .slice(0, 2)
-                                    .join(" ")
-                                    .trim()
-                                    .substring(0, 120)}
-                                </span>
+                                problem.statement
+                                  .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
+                                  .replace(/\*\*/g, "").replace(/```[\s\S]*?```/g, "")
+                                  .split("\n").filter(Boolean).slice(0, 2).join(" ").trim().substring(0, 120)
                               ) : (
                                 <span className="italic">No description</span>
                               )}
                             </p>
 
-                            {/* Tags */}
                             {problem.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mb-0">
-                                {problem.tags.slice(0, 4).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[10px] font-medium bg-muted/40 text-muted-foreground/60 px-2 py-0.5 rounded-md border border-border/40"
-                                  >
+                              <div className="flex flex-wrap gap-1 mt-3">
+                                {problem.tags.slice(0, 3).map((tag) => (
+                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
                                     {tag}
                                   </span>
                                 ))}
-                                {problem.tags.length > 4 && (
-                                  <span className="text-[10px] text-muted-foreground/40 font-medium px-1">
-                                    +{problem.tags.length - 4}
-                                  </span>
+                                {problem.tags.length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground/30 font-medium px-1">+{problem.tags.length - 3}</span>
                                 )}
                               </div>
                             )}
                           </CardContent>
 
-                          <CardFooter className="p-5 pt-3 border-t border-border/40 relative z-10">
+                          {/* Footer */}
+                          <CardFooter className="px-5 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
                             <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60 font-medium">
+                              <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium">
                                 <span className="flex items-center gap-1">
-                                  <Code size={12} className="shrink-0" />
+                                  <Code size={11} className="shrink-0 text-muted-foreground/30" />
                                   {problem.total_submissions || 0}
                                 </span>
                                 <span className="flex items-center gap-1">
-                                  <BarChart2 size={12} className="shrink-0" />
+                                  <BarChart2 size={11} className="shrink-0 text-muted-foreground/30" />
                                   {Math.round(problem.success_rate || 0)}%
                                 </span>
                                 <span className="flex items-center gap-1">
-                                  <Clock size={12} className="shrink-0" />
+                                  <Clock size={11} className="shrink-0 text-muted-foreground/30" />
                                   {problem.estTimeMinutes || 0}m
                                 </span>
                               </div>
                               <div className={cn(
-                                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors",
-                                "bg-primary/5 border border-primary/15 group-hover:bg-primary/10 group-hover:border-primary/25",
+                                "flex items-center gap-1 px-2 py-1 rounded-md transition-all",
+                                problem.solved
+                                  ? "bg-emerald-500/10 text-emerald-400"
+                                  : "bg-primary/5 text-primary group-hover:bg-primary/10",
                               )}>
-                                <svg
-                                  width="12"
-                                  height="15"
-                                  viewBox="0 0 12 16"
-                                  fill="currentColor"
-                                  className="text-primary shrink-0"
-                                >
+                                <svg width="10" height="13" viewBox="0 0 12 16" fill="currentColor" className="shrink-0">
                                   <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
                                 </svg>
-                                <span className="font-bold text-xs text-primary tabular-nums">
-                                  +{problem.xpReward ?? 0}
-                                </span>
+                                <span className="font-bold text-[11px] tabular-nums">+{problem.xpReward ?? 0}</span>
                               </div>
                             </div>
                           </CardFooter>

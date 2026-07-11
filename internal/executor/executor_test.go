@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"text/template"
+
+	"github.com/jerryjuche/koder/internal/store"
 )
 
 func TestTemplateReflectImport(t *testing.T) {
@@ -71,6 +73,35 @@ func TestIsPrimitiveType(t *testing.T) {
 	for _, tc := range tests {
 		if got := IsPrimitiveType(tc.typ); got != tc.want {
 			t.Errorf("IsPrimitiveType(%q) = %v, want %v", tc.typ, got, tc.want)
+		}
+	}
+}
+
+func TestFormatPythonLiteral(t *testing.T) {
+	tests := []struct {
+		typ  string
+		json string
+		want string
+	}{
+		{"int", "42", "42"},
+		{"string", `"hello"`, `"hello"`},
+		{"bool", "true", "True"},
+		{"bool", "false", "False"},
+		{"float64", "3.14", "3.14"},
+		{"any", "null", "None"},
+		{"int", "null", "None"},
+		{"string", "null", "None"},
+		{"", "null", "None"},
+	}
+
+	for _, tc := range tests {
+		got, err := formatPythonLiteral(tc.typ, []byte(tc.json))
+		if err != nil {
+			t.Errorf("formatPythonLiteral(%s, %s) error: %v", tc.typ, tc.json, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("formatPythonLiteral(%s, %s) = %q, want %q", tc.typ, tc.json, got, tc.want)
 		}
 	}
 }
@@ -186,10 +217,10 @@ func TestParseTestOutput_MultiLineGotWant(t *testing.T) {
 }
 
 func TestParseTestOutput_CompilerError(t *testing.T) {
-	output := `# piscine
+	output := `# koder
 ./solution.go:5:10: syntax error: unexpected newline, expecting comma or }
 FAIL
-piscine [build failed]
+koder [build failed]
 `
 	res := ParseTestOutput(output)
 
@@ -267,3 +298,236 @@ FAIL
 		t.Errorf("expected no want for case 1, got %q", res.wantMap[1])
 	}
 }
+
+func TestPythonTemplate_Renders(t *testing.T) {
+	tmpl, err := template.New("python_test").Parse(pythonTestTemplate)
+	if err != nil {
+		t.Fatalf("failed to parse python template: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		funcName  string
+		pyCases   []PyTestCaseRenderData
+	}{
+		{
+			name:     "basic function",
+			funcName: "fish_and_chips",
+			pyCases: []PyTestCaseRenderData{
+				{Ordinal: 1, PyInputs: "(4,)", Expected: "\"fish\""},
+			},
+		},
+		{
+			name:     "multiple cases",
+			funcName: "is_prime",
+			pyCases: []PyTestCaseRenderData{
+				{Ordinal: 1, PyInputs: "(2,)", Expected: "true"},
+				{Ordinal: 2, PyInputs: "(4,)", Expected: "false"},
+			},
+		},
+		{
+			name:     "no test cases",
+			funcName: "do_nothing",
+			pyCases: []PyTestCaseRenderData{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := tmpl.Execute(&buf, &TemplateRenderData{
+				FuncName:   tc.funcName,
+				PyTestCases: tc.pyCases,
+			})
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+
+			output := buf.String()
+			if !strings.Contains(output, "from solution import "+tc.funcName) {
+				t.Errorf("template missing import line")
+			}
+			if !strings.Contains(output, "=== RUN TestSolution") {
+				t.Errorf("template missing RUN line")
+			}
+			if strings.Count(output, "print(\"---") == 0 {
+				t.Errorf("template missing PASS/FAIL print statements")
+			}
+		})
+	}
+}
+
+func TestPythonTemplate_ComparisonLogic(t *testing.T) {
+	// Verify the template uses json.loads + == (not str() comparison)
+	content := pythonTestTemplate
+	if strings.Contains(content, "str(result) == str(expected)") {
+		t.Error("template still uses str() comparison instead of json.loads")
+	}
+	if !strings.Contains(content, "json.loads(expected)") {
+		t.Error("template missing json.loads(expected)")
+	}
+	if !strings.Contains(content, "result == expected_val") {
+		t.Error("template missing result == expected_val")
+	}
+}
+
+func TestResolveProblemLanguageMeta(t *testing.T) {
+	t.Run("empty language returns early", func(t *testing.T) {
+		p := &store.Problem{FuncName: "Original", ReturnType: "string", ParamTypes: []string{"int"}}
+		resolveProblemLanguageMeta(p, "")
+		if p.FuncName != "Original" {
+			t.Error("should not modify FuncName when language is empty")
+		}
+	})
+
+	t.Run("nil LanguageVersions returns early", func(t *testing.T) {
+		p := &store.Problem{FuncName: "Original", ReturnType: "string", ParamTypes: []string{"int"}}
+		resolveProblemLanguageMeta(p, "go")
+		if p.FuncName != "Original" {
+			t.Error("should not modify FuncName when LanguageVersions is nil")
+		}
+	})
+
+	t.Run("resolves go metadata", func(t *testing.T) {
+		p := &store.Problem{
+			FuncName:   "OldName",
+			ReturnType: "old",
+			ParamTypes: []string{"old"},
+			LanguageVersions: map[string]store.LanguageSpec{
+				"go": {FuncName: "GoFunc", ReturnType: "string", ParamTypes: []string{"int"}},
+			},
+		}
+		resolveProblemLanguageMeta(p, "go")
+		if p.FuncName != "GoFunc" {
+			t.Errorf("expected FuncName 'GoFunc', got %q", p.FuncName)
+		}
+		if p.ReturnType != "string" {
+			t.Errorf("expected ReturnType 'string', got %q", p.ReturnType)
+		}
+		if len(p.ParamTypes) != 1 || p.ParamTypes[0] != "int" {
+			t.Errorf("expected ParamTypes ['int'], got %v", p.ParamTypes)
+		}
+	})
+
+	t.Run("resolves python metadata", func(t *testing.T) {
+		p := &store.Problem{
+			FuncName:   "OldName",
+			ReturnType: "old",
+			ParamTypes: []string{"old"},
+			LanguageVersions: map[string]store.LanguageSpec{
+				"go":     {FuncName: "GoFunc", ReturnType: "string", ParamTypes: []string{"int"}},
+				"python": {FuncName: "go_func", ReturnType: "str", ParamTypes: []string{"int"}},
+			},
+		}
+		resolveProblemLanguageMeta(p, "python")
+		if p.FuncName != "go_func" {
+			t.Errorf("expected FuncName 'go_func', got %q", p.FuncName)
+		}
+		if p.ReturnType != "str" {
+			t.Errorf("expected ReturnType 'str', got %q", p.ReturnType)
+		}
+	})
+
+	t.Run("unknown language returns early", func(t *testing.T) {
+		p := &store.Problem{
+			FuncName: "Original",
+			LanguageVersions: map[string]store.LanguageSpec{
+				"go": {FuncName: "GoFunc", ReturnType: "string", ParamTypes: []string{"int"}},
+			},
+		}
+		resolveProblemLanguageMeta(p, "rust")
+		if p.FuncName != "Original" {
+			t.Error("should not modify FuncName for unknown language")
+		}
+	})
+
+	t.Run("empty fields in spec do not override", func(t *testing.T) {
+		p := &store.Problem{
+			FuncName:   "KeepMe",
+			ReturnType: "string",
+			ParamTypes: []string{"int"},
+			LanguageVersions: map[string]store.LanguageSpec{
+				"python": {FuncName: "", ReturnType: "str", ParamTypes: nil},
+			},
+		}
+		resolveProblemLanguageMeta(p, "python")
+		if p.FuncName != "KeepMe" {
+			t.Error("should keep original FuncName when python entry has empty FuncName")
+		}
+		if p.ReturnType != "str" {
+			t.Errorf("should override ReturnType, got %q", p.ReturnType)
+		}
+		if len(p.ParamTypes) != 1 || p.ParamTypes[0] != "int" {
+			t.Error("should keep original ParamTypes when python entry has nil ParamTypes")
+		}
+	})
+}
+
+func TestParseTestOutput_PythonFormat(t *testing.T) {
+	tests := []struct {
+		name     string
+		output   string
+		wantPass map[int]bool
+		wantGot  map[int]string
+		wantWant map[int]string
+	}{
+		{
+			name: "all pass",
+			output: `=== RUN TestSolution
+--- PASS: TestSolution/case_1
+--- PASS: TestSolution/case_2
+--- PASS: TestSolution
+`,
+			wantPass: map[int]bool{1: true, 2: true},
+		},
+		{
+			name: "mixed pass fail",
+			output: `=== RUN TestSolution
+--- PASS: TestSolution/case_1
+=== FAIL: Case 2
+GOT: 5
+WANT: 4
+--- FAIL: TestSolution/case_2
+--- FAIL: TestSolution
+`,
+			wantPass: map[int]bool{1: true, 2: false},
+			wantGot:  map[int]string{2: "5"},
+			wantWant: map[int]string{2: "4"},
+		},
+		{
+			name: "string comparison with embedded quotes",
+			output: `=== RUN TestSolution
+=== FAIL: Case 1
+GOT: fish
+WANT: "fish"
+--- FAIL: TestSolution/case_1
+--- FAIL: TestSolution
+`,
+			wantPass: map[int]bool{1: false},
+			wantGot:  map[int]string{1: "fish"},
+			wantWant: map[int]string{1: `"fish"`},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := ParseTestOutput(tc.output)
+			for ord, passed := range tc.wantPass {
+				if res.passedMap[ord] != passed {
+					t.Errorf("case %d: expected pass=%v, got pass=%v", ord, passed, res.passedMap[ord])
+				}
+			}
+			for ord, got := range tc.wantGot {
+				if res.gotMap[ord] != got {
+					t.Errorf("case %d: expected got=%q, got got=%q", ord, got, res.gotMap[ord])
+				}
+			}
+			for ord, want := range tc.wantWant {
+				if res.wantMap[ord] != want {
+					t.Errorf("case %d: expected want=%q, got want=%q", ord, want, res.wantMap[ord])
+				}
+			}
+		})
+	}
+}
+

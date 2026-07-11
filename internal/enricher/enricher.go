@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
@@ -31,16 +32,17 @@ type Enricher struct {
 }
 
 type enrichedResponse struct {
-	Title      string             `json:"title"`
-	Statement  string             `json:"statement"`
-	FuncName   string             `json:"func_name"`
-	ReturnType string             `json:"return_type"`
-	ParamTypes []string           `json:"param_types"`
-	Hints      []string           `json:"hints"`
-	Difficulty int                `json:"difficulty"`
-	XPReward   int                `json:"xp_reward"`
-	Tags       []string           `json:"tags"`
-	TestCases  []enrichedTestCase `json:"test_cases"`
+	Title           string                        `json:"title"`
+	Statement       string                        `json:"statement"`
+	FuncName        string                        `json:"func_name"`
+	ReturnType      string                        `json:"return_type"`
+	ParamTypes      []string                      `json:"param_types"`
+	Hints           []string                      `json:"hints"`
+	Difficulty      int                           `json:"difficulty"`
+	XPReward        int                           `json:"xp_reward"`
+	Tags            []string                      `json:"tags"`
+	TestCases       []enrichedTestCase            `json:"test_cases"`
+	LanguageVersions *map[string]store.LanguageSpec `json:"language_versions,omitempty"`
 }
 
 type enrichedTestCase struct {
@@ -84,13 +86,13 @@ func (e *Enricher) EnrichProblem(ctx context.Context, rawReadme string) (*store.
 
 	code := "```"
 
-	systemPrompt := `You are an expert Go curriculum author. You output only valid JSON. No markdown fences, no comments, no extra text.
+	systemPrompt := `You are an expert programming curriculum author. You output only valid JSON. No markdown fences, no comments, no extra text.
 
-You generate professional, educational programming exercises. Respond with exactly this JSON structure:
+You generate professional, educational programming exercises from existing README files. Respond with exactly this JSON structure:
 
 {
   "title": "fishandchips",
-  "statement": "## FishAndChips\n\n### Instructions\n\nWrite a function **FishAndChips()** that takes an **int** and returns a **string**.\n\nThe function should return:\n- \"fish and chips\" if the number is divisible by both **2 and 3**\n- \"fish\" if the number is divisible by **2**\n- \"chips\" if the number is divisible by **3**\n- \"number is negative\" if the number is **negative**\n- \"non divisible\" if the number is **not divisible** by 2 or 3\n\n### Expected function\n\n` + code + `go\nfunc FishAndChips(n int) string {\n\n}\n` + code + `\n\n### Usage\n\n` + code + `go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"piscine\"\n)\n\nfunc main() {\n\tfmt.Println(piscine.FishAndChips(4))\n\tfmt.Println(piscine.FishAndChips(9))\n\tfmt.Println(piscine.FishAndChips(6))\n}\n` + code + `\n\nAnd its output:\n\n` + code + `\n$ go run . | cat -e\nfish$\nchips$\nfish and chips$\n` + code + `\n",
+  "statement": "## FishAndChips\n\n### Instructions\n\nWrite a function **FishAndChips()** that takes an **int** and returns a **string**.\n\nThe function should return:\n- \"fish and chips\" if the number is divisible by both **2 and 3**\n- \"fish\" if the number is divisible by **2**\n- \"chips\" if the number is divisible by **3**\n- \"number is negative\" if the number is **negative**\n- \"non divisible\" if the number is **not divisible** by 2 or 3\n\n### Expected function\n\n` + code + `go\nfunc FishAndChips(n int) string {\n\n}\n` + code + `\n\n### Usage\n\n` + code + `go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"koder\"\n)\n\nfunc main() {\n\tfmt.Println(koder.FishAndChips(4))\n\tfmt.Println(koder.FishAndChips(9))\n\tfmt.Println(koder.FishAndChips(6))\n}\n` + code + `\n\nAnd its output:\n\n` + code + `\n$ go run . | cat -e\nfish$\nchips$\nfish and chips$\n` + code + `\n",
   "func_name": "FishAndChips",
   "return_type": "string",
   "param_types": ["int"],
@@ -104,7 +106,19 @@ You generate professional, educational programming exercises. Respond with exact
     {"input_json": "[6]", "expected": "\"fish and chips\"", "is_hidden": false, "ordinal": 3},
     {"input_json": "[-1]", "expected": "\"number is negative\"", "is_hidden": true, "ordinal": 4},
     {"input_json": "[7]", "expected": "\"non divisible\"", "is_hidden": true, "ordinal": 5}
-  ]
+  ],
+  "language_versions": {
+    "go": {
+      "func_name": "FishAndChips",
+      "return_type": "string",
+      "param_types": ["int"]
+    },
+    "python": {
+      "func_name": "fish_and_chips",
+      "return_type": "str",
+      "param_types": ["int"]
+    }
+  }
 }
 
 PRODUCTION RULES — follow these exactly for every exercise:
@@ -130,13 +144,19 @@ PRODUCTION RULES — follow these exactly for every exercise:
     - input_json: JSON string of arguments as array, e.g. "[4]" or "[4, \"hello\"]"
     - expected: Go string literal. Wrap strings in escaped quotes: "\"fish\"". For non-string types: raw value like "42" or "true"
     - ordinal: sequential starting at 1
+11. **language_versions** (REQUIRED): Per-language function metadata. Must include at least a "go" entry. Also include a "python" entry with:
+    - **func_name**: snake_case equivalent of the Go function name (e.g. "fish_and_chips")
+    - **return_type**: Python return type as a string (e.g. "str", "int", "bool", "list", "dict")
+    - **param_types**: Array of Python parameter type strings (e.g. ["int"], ["str", "int"])
+    Translate Go types to Python: string→str, int→int, bool→bool, float64→float, []T→list, map[K]V→dict, error→no return/raise exception
 
-IMPORTANT: Every field is REQUIRED. Do not omit any field. Do not add extra fields.
+IMPORTANT: All 11 fields are REQUIRED. Do not omit any field. Do not add extra fields.
 Use only Go standard library. If the exercise refers to z01.PrintRune, rewrite it as fmt.Printf("%c", r).`
 
 	userPrompt := fmt.Sprintf(`Generate a complete, professional exercise from this README. Follow the schema and production rules exactly.
 
-Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, and at least 5 test_cases.
+Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, at least 5 test_cases, and language_versions.
+The language_versions field must include both a "go" entry (matching func_name/return_type/param_types) and a "python" entry (snake_case name, Python types).
 
 The statement must be a full markdown document with instructions, function signature, usage example, and expected output. Do not abbreviate.
 
@@ -171,6 +191,30 @@ README:
 		Difficulty: parsed.Difficulty,
 		XPReward:   parsed.XPReward,
 		Tags:       parsed.Tags,
+	}
+
+	// Populate language_versions: prefer AI-provided, fall back to Go + inferred Python
+	if parsed.LanguageVersions != nil && len(*parsed.LanguageVersions) > 0 {
+		problem.LanguageVersions = *parsed.LanguageVersions
+	} else {
+		pythonFuncName := toSnakeCase(parsed.FuncName)
+		pythonReturnType := toPythonType(parsed.ReturnType)
+		pythonParamTypes := make([]string, len(parsed.ParamTypes))
+		for i, pt := range parsed.ParamTypes {
+			pythonParamTypes[i] = toPythonType(pt)
+		}
+		problem.LanguageVersions = map[string]store.LanguageSpec{
+			"go": {
+				FuncName:   parsed.FuncName,
+				ReturnType: parsed.ReturnType,
+				ParamTypes: parsed.ParamTypes,
+			},
+			"python": {
+				FuncName:   pythonFuncName,
+				ReturnType: pythonReturnType,
+				ParamTypes: pythonParamTypes,
+			},
+		}
 	}
 
 	testCases := make([]store.TestCase, 0, len(parsed.TestCases))
@@ -493,6 +537,21 @@ func cleanResponse(s string) string {
 	return s[start : end+1]
 }
 
+func languageSpecSchema() *genai.Schema {
+	return &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"func_name":   {Type: genai.TypeString},
+			"return_type": {Type: genai.TypeString},
+			"param_types": {
+				Type:  genai.TypeArray,
+				Items: &genai.Schema{Type: genai.TypeString},
+			},
+		},
+		Required: []string{"func_name", "return_type", "param_types"},
+	}
+}
+
 func enrichmentSchema() *genai.Schema {
 	return &genai.Schema{
 		Type: genai.TypeObject,
@@ -533,8 +592,16 @@ func enrichmentSchema() *genai.Schema {
 					Required: []string{"input_json", "expected", "ordinal"},
 				},
 			},
+			"language_versions": {
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"go":     languageSpecSchema(),
+					"python": languageSpecSchema(),
+				},
+				Required: []string{"go"},
+			},
 		},
-		Required: []string{"title", "statement", "func_name", "return_type", "param_types", "hints", "difficulty", "xp_reward", "tags", "test_cases"},
+		Required: []string{"title", "statement", "func_name", "return_type", "param_types", "hints", "difficulty", "xp_reward", "tags", "test_cases", "language_versions"},
 	}
 }
 
@@ -592,6 +659,16 @@ func validateEnrichedProblem(problem *store.Problem, testCases []store.TestCase)
 	if len(problem.Tags) == 0 {
 		return fmt.Errorf("enriched problem must include at least one tag")
 	}
+	if problem.LanguageVersions == nil || len(problem.LanguageVersions) == 0 {
+		return fmt.Errorf("enriched problem missing language_versions")
+	}
+	goSpec, hasGo := problem.LanguageVersions["go"]
+	if !hasGo {
+		return fmt.Errorf("enriched problem language_versions missing 'go' entry")
+	}
+	if strings.TrimSpace(goSpec.FuncName) == "" {
+		return fmt.Errorf("enriched problem language_versions 'go' entry missing func_name")
+	}
 	if len(testCases) == 0 {
 		return fmt.Errorf("enriched problem must include at least one test case")
 	}
@@ -617,4 +694,55 @@ func float32Ptr(value float32) *float32 {
 
 func int64Ptr(value int64) *int64 {
 	return &value
+}
+
+// toSnakeCase converts PascalCase or camelCase to snake_case for Python function names.
+func toSnakeCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	var result strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				result.WriteRune('_')
+			}
+			result.WriteRune(unicode.ToLower(r))
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
+
+// toPythonType converts Go type strings to their Python equivalents.
+func toPythonType(goType string) string {
+	switch goType {
+	case "string":
+		return "str"
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
+		return "int"
+	case "float32", "float64":
+		return "float"
+	case "bool":
+		return "bool"
+	case "byte", "rune":
+		return "int"
+	case "error":
+		return "None"
+	default:
+		if strings.HasPrefix(goType, "[]") {
+			return "list"
+		}
+		if strings.HasPrefix(goType, "map[") {
+			return "dict"
+		}
+		if strings.HasPrefix(goType, "*") {
+			return toPythonType(goType[1:])
+		}
+		if strings.HasPrefix(goType, "[]*") {
+			return "list"
+		}
+		return "any"
+	}
 }

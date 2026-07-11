@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Tag, Layers, Beaker } from 'lucide-react';
 import { Problem, UpdateProblemPayload } from '@/lib/types';
+import { toast } from '@/lib/toast';
 
 interface ProblemEditPanelProps {
   problem: Problem;
@@ -49,6 +50,10 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
   const [hint1, setHint1] = useState((problem.hints || [])[0] || '');
   const [hint2, setHint2] = useState((problem.hints || [])[1] || '');
   const [hint3, setHint3] = useState((problem.hints || [])[2] || '');
+  const [lvJSON, setLvJSON] = useState(() => {
+    const lv = (problem as any).language_versions;
+    return lv ? JSON.stringify(lv, null, 2) : '';
+  });
   const [saving, setSaving] = useState(false);
   const [livePreview, setLivePreview] = useState(false);
 
@@ -58,6 +63,17 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
       const hints = [hint1, hint2, hint3].filter(h => h.trim() !== '');
       const parsedParamTypes = paramTypes.split(',').map(s => s.trim()).filter(Boolean);
       const parsedTags = tags.split(',').map(s => s.trim()).filter(Boolean);
+
+      let parsedLV: UpdateProblemPayload['language_versions'] | undefined;
+      if (lvJSON.trim()) {
+        try {
+          parsedLV = JSON.parse(lvJSON.trim());
+        } catch {
+          toast.error('Invalid JSON in Language Versions');
+          setSaving(false);
+          return;
+        }
+      }
 
       await onSave({
         title: title || undefined,
@@ -73,6 +89,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
         xp_reward: xpReward,
         tags: parsedTags.length > 0 ? parsedTags : undefined,
         visible,
+        language_versions: parsedLV,
       });
     } finally {
       setSaving(false);
@@ -213,6 +230,18 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                     <input value={paramTypes} onChange={e => setParamTypes(e.target.value)} className="input-field font-mono" placeholder="int, string" />
                   </Field>
                 </div>
+              </Section>
+
+              {/* Language Versions */}
+              <Section icon={<Code2 size={16} />} title="Language Versions (JSON)">
+                <Field label="Per-language function specs (Go + Python)">
+                  <textarea
+                    value={lvJSON}
+                    onChange={e => setLvJSON(e.target.value)}
+                    className="input-field min-h-[150px] font-mono text-xs leading-relaxed"
+                    placeholder={'{\n  "go": {\n    "func_name": "...",\n    "return_type": "int",\n    "param_types": ["int"]\n  },\n  "python": {\n    "func_name": "...",\n    "return_type": "int",\n    "param_types": ["int"]\n  }\n}'}
+                  />
+                </Field>
               </Section>
 
               {/* Hints */}
