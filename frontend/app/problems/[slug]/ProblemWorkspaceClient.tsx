@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
+import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
+
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
+loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -868,7 +871,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="vs-dark"
+              theme="vs-dark-plus"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -888,6 +891,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
 
+                registerVSCodeDarkPlusTheme(monaco);
                 const pkgMethods: Record<
                   string,
                   { label: string; detail: string; insertText: string }[]
