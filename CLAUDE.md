@@ -1027,3 +1027,14 @@ npm run build   # Builds static + server components
 - **`internal/api/me.go`** — `GetMe` returns refresh token expiry info.
 
 **Verification:** All backend test packages pass, `go build` clean, `go vet` clean. Frontend: ESLint 0 errors, TypeScript 0 errors.
+
+### 2026-07-11 — Google auto-registration, navigation fix, refresh token fix
+
+**Context:** Google users got 404 instead of auto-registration. Browser back button from workspace skipped `/problems` listing. New Google users had no refresh token (logged out after 15 min).
+
+**Changes:**
+- **Google auto-registration**: `GoogleAuth` auto-creates accounts via `CreateUserFromGoogle` instead of returning `404 GOOGLE_NOT_LINKED`. All three branches (existing Google, email-linked, new) now use `issueTokens()` — fixes the critical missing-refresh-token bug in the new-user branch
+- **Navigation**: All `router.push('/')` → `router.push('/home')` across login, register, admin, OAuth callback. TopNav "Problems" link `/` → `/problems`. Created `/problems` listing page with search/lang filter/pagination. Created `problems/layout.tsx` with TopNav + FeedbackButton for workspace
+- **Bug fixes**: Settings logout redirect `/auth/login` (404) → `/login`. Success page language dynamic from localStorage. Removed unused `ChevronRight`, `getDifficultyLabel` imports
+
+**Verification:** `go vet` clean, 124 tests pass, `go build` clean, pushed `ef86884` to `python-curricula`

@@ -24,20 +24,26 @@ const ITEMS_PER_PAGE = 18;
 export default function ProblemsPage() {
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [languageFilter, setLanguageFilter] = useState<"all" | "go" | "python">("all");
+  const [languageFilter, setLanguageFilter] = useState<"all" | "go" | "python">(
+    () => {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab") as "all" | "go" | "python" | null;
+        if (tab && ["all", "go", "python"].includes(tab)) return tab;
+      }
+      return "all";
+    }
+  );
+  const [prevFilter, setPrevFilter] = useState(languageFilter);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab") as "all" | "go" | "python" | null;
-    if (tab && ["all", "go", "python"].includes(tab)) {
-      setLanguageFilter(tab);
-    }
-  }, []);
+  if (languageFilter !== prevFilter) {
+    setPrevFilter(languageFilter);
+    setLoading(true);
+  }
 
   useEffect(() => {
-    setLoading(true);
     const lang = languageFilter !== "all" ? languageFilter : undefined;
     fetchProblems(lang).then((res) => {
       if (res.success) setAllProblems(res.data || []);
