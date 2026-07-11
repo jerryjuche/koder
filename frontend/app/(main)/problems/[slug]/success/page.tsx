@@ -17,7 +17,6 @@ import {
 import type { BundledLanguage } from "@/components/kibo-ui/code-block";
 import {
   CheckCircle2,
-  ChevronRight,
   Heart,
   LayoutDashboard,
   Trophy,
@@ -45,6 +44,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     }
     return "";
   });
+  const lang =
+    typeof window !== "undefined"
+      ? localStorage.getItem("koder_language") || "go"
+      : "go";
+  const displayLang = lang === "python" ? "python" : "go";
+  const extension = displayLang === "python" ? "py" : "go";
   const [nextProblem, setNextProblem] = useState<Problem | null>(null);
   const [communitySolutions, setCommunitySolutions] = useState<
     CommunitySolution[]
@@ -244,12 +249,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
           <CodeBlock
             data={[
               {
-                language: "go",
-                filename: "solution.go",
+                language: displayLang,
+                filename: `solution.${extension}`,
                 code,
               },
             ]}
-            defaultValue="go"
+            defaultValue={displayLang}
             className="h-[400px]"
           >
             <CodeBlockHeader>
@@ -332,12 +337,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                   <CodeBlock
                     data={[
                       {
-                        language: "go",
-                        filename: "solution.go",
+                        language: sol.language || displayLang,
+                        filename: `solution.${sol.language === "python" ? "py" : "go"}`,
                         code: sol.code,
                       },
                     ]}
-                    defaultValue="go"
+                    defaultValue={sol.language || displayLang}
                     className="h-[200px]"
                   >
                     <CodeBlockHeader>

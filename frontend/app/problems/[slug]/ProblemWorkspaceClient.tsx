@@ -869,7 +869,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="koder-dark"
+              theme="koder-vscode"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -889,25 +889,68 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
 
-                monaco.editor.defineTheme("koder-dark", {
+                monaco.editor.defineTheme("koder-vscode", {
                   base: "vs-dark",
                   inherit: true,
                   rules: [
+                    { token: "", foreground: "D4D4D4", background: "1E1E1E" },
                     { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.line", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.block", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "keyword.control", foreground: "C586C0" },
-                    { token: "keyword.other", foreground: "569CD6" },
-                    { token: "keyword", foreground: "569CD6" },
-                    { token: "string", foreground: "CE9178" },
-                    { token: "string.quoted", foreground: "CE9178" },
-                    { token: "number", foreground: "B5CEA8" },
-                    { token: "type", foreground: "4EC9B0" },
-                    { token: "type.identifier", foreground: "4EC9B0" },
-                    { token: "entity.name.function", foreground: "DCDCAA" },
-                    { token: "identifier", foreground: "9CDCFE" },
-                    { token: "variable", foreground: "9CDCFE" },
-                    { token: "variable.other", foreground: "9CDCFE" },
+                    { token: "comment.line.double-slash.go", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "comment.block.go", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "comment.line.number-sign.python", foreground: "6A9955", fontStyle: "italic" },
+                    { token: "keyword.package.go", foreground: "C586C0" },
+                    { token: "keyword.control.go", foreground: "C586C0" },
+                    { token: "keyword.function.go", foreground: "C586C0" },
+                    { token: "keyword.channel.go", foreground: "C586C0" },
+                    { token: "keyword.const.go", foreground: "C586C0" },
+                    { token: "keyword.var.go", foreground: "C586C0" },
+                    { token: "keyword.control.flow.python", foreground: "C586C0" },
+                    { token: "keyword.control.import.python", foreground: "C586C0" },
+                    { token: "keyword.control.import.from.python", foreground: "C586C0" },
+                    { token: "storage.type.function.python", foreground: "C586C0" },
+                    { token: "storage.type.class.python", foreground: "C586C0" },
+                    { token: "entity.name.function.go", foreground: "DCDCAA" },
+                    { token: "support.function.go", foreground: "DCDCAA" },
+                    { token: "entity.name.function.python", foreground: "DCDCAA" },
+                    { token: "meta.function-call.generic.python", foreground: "DCDCAA" },
+                    { token: "meta.method-call.python", foreground: "DCDCAA" },
+                    { token: "support.function.builtin.python", foreground: "DCDCAA" },
+                    { token: "entity.name.type.go", foreground: "4EC9B0" },
+                    { token: "storage.type.string.go", foreground: "4EC9B0" },
+                    { token: "storage.type.numeric.go", foreground: "4EC9B0" },
+                    { token: "storage.type.boolean.go", foreground: "4EC9B0" },
+                    { token: "storage.type.go", foreground: "4EC9B0" },
+                    { token: "entity.name.type.class.python", foreground: "4EC9B0" },
+                    { token: "support.type.python", foreground: "4EC9B0" },
+                    { token: "support.class.builtin.python", foreground: "4EC9B0" },
+                    { token: "string.quoted.double.go", foreground: "CE9178" },
+                    { token: "string.quoted.raw.go", foreground: "CE9178" },
+                    { token: "entity.name.import.go", foreground: "CE9178" },
+                    { token: "string.quoted.double.block.python", foreground: "CE9178" },
+                    { token: "string.quoted.single.block.python", foreground: "CE9178" },
+                    { token: "string.quoted.double.single-line.python", foreground: "CE9178" },
+                    { token: "string.quoted.single.single-line.python", foreground: "CE9178" },
+                    { token: "variable.other.go", foreground: "9CDCFE" },
+                    { token: "variable.other.assignment.go", foreground: "9CDCFE" },
+                    { token: "variable.other.declaration.go", foreground: "9CDCFE" },
+                    { token: "variable.parameter.function.language.python", foreground: "9CDCFE" },
+                    { token: "variable.parameter.function.python", foreground: "9CDCFE" },
+                    { token: "variable.language.special.self.python", foreground: "9CDCFE" },
+                    { token: "variable.other.readwrite.python", foreground: "9CDCFE" },
+                    { token: "constant.numeric.go", foreground: "B5CEA8" },
+                    { token: "constant.language.boolean.go", foreground: "B5CEA8" },
+                    { token: "constant.language.go", foreground: "B5CEA8" },
+                    { token: "constant.numeric.dec.python", foreground: "B5CEA8" },
+                    { token: "constant.numeric.float.python", foreground: "B5CEA8" },
+                    { token: "constant.language.python", foreground: "B5CEA8" },
+                    { token: "keyword.operator.go", foreground: "D4D4D4" },
+                    { token: "keyword.operator.assignment.go", foreground: "D4D4D4" },
+                    { token: "punctuation.definition.bracket.go", foreground: "D4D4D4" },
+                    { token: "keyword.operator.assignment.python", foreground: "D4D4D4" },
+                    { token: "keyword.operator.comparison.python", foreground: "D4D4D4" },
+                    { token: "keyword.operator.arithmetic.python", foreground: "D4D4D4" },
+                    { token: "punctuation.definition.arguments.begin.python", foreground: "D4D4D4" },
+                    { token: "punctuation.definition.arguments.end.python", foreground: "D4D4D4" },
                     { token: "delimiter", foreground: "D4D4D4" },
                     { token: "delimiter.bracket", foreground: "D4D4D4" },
                     { token: "operator", foreground: "D4D4D4" },
@@ -936,7 +979,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     "minimap.background": "#1E1E1E",
                   },
                 });
-                monaco.editor.setTheme("koder-dark");
+                monaco.editor.setTheme("koder-vscode");
 
                 const pkgMethods: Record<
                   string,

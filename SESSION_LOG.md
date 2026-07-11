@@ -984,11 +984,86 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 
 ### Build Verification
 - ✅ `go build ./...`
-- ✅ Google Sign-In works in production (confirmed)
+- ✅ `npx tsc --noEmit`
 
 ---
 
 ## 37. Session 26 (July 6) — Module Card Images: Key Alignment, Local Image, All Modules
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
+| `c093540` | Replace arrays-strings module image with professional version |
+| `0ecd5ef` | Use local image for all module cards |
+
+### Root Cause
+`MODULE_META` keys were display names (`"Arrays & Slices"`) but the API returns lowercase hypenated slugs (`"arrays-strings"`). Every module fell through to the Unsplash fallback — module images never showed for any module.
+
+### Fixes
+| File | Change |
+|------|--------|
+| `frontend/components/dashboard/ModuleCards.tsx` | Changed all `MODULE_META` keys from display names to lowercase-hyphenated slugs; added `MODULE_DISPLAY_NAMES` mapping for card titles; replaced all Unsplash URLs with `MODULE_IMAGE` constant pointing to `/modules/arrays-strings.png`; updated fallback to use same local image |
+| `frontend/public/modules/arrays-strings.png` | Replaced with professional ChatGPT-generated image |
+
+### Build Verification
+- ✅ Pushed to `update` branch (`0ecd5ef`)
+
+---
+
+## 38. Session 27 (July 11) — Google Auto-Registration, Navigation Redux, Refresh Token Fix
+
+### Goal
+Enable Google auto-registration for new users (no 404) while keeping email/password auth intact. Fix browser back button navigation to behave as a proper stack (not skipping to home).
+
+### Changes
+
+#### Google Auto-Registration
+| File | Change |
+|------|--------|
+| `internal/api/auth.go:257-278` | Auto-create branch now uses `h.issueTokens(...)` instead of raw `auth.SignToken` — fixes **critical bug** where new Google users got no refresh token and were logged out after 15 min |
+| `internal/store/users.go:81-142` | `CreateUserFromGoogle()` — creates account with temp username, no PIN, `username_set=false` |
+| `internal/store/store.go:44` | Added `CreateUserFromGoogle` to Store interface |
+| `internal/store/types.go:82-93` | `NewUser` struct with `GoogleID`, `GoogleAvatarURL` fields |
+
+#### Navigation Fixes
+| File | Change |
+|------|--------|
+| `frontend/app/(auth)/login/page.tsx` | `router.push('/')` → `router.push('/home')` (2 places) |
+| `frontend/app/(auth)/register/page.tsx` | `router.push('/')` → `router.push('/home')` (2 places) |
+| `frontend/app/(main)/admin/page.tsx` | `router.push('/')` → `router.push('/home')` |
+| `frontend/app/oauth/callback/page.tsx` | `router.push('/')` → `router.push('/home')` |
+| `frontend/components/layout/TopNav.tsx:68` | Problems link href changed from `/` → `/problems` |
+| `frontend/app/(main)/contribute/page.tsx` | Removed `router.replace`+`setTimeout` chain, direct `router.push("/profile")` |
+
+#### New `/problems` Listing Page
+| File | Change |
+|------|--------|
+| `frontend/app/(main)/problems/page.tsx` | **NEW** — 282-line client component with search, language filter tabs (All/Go/Python), pagination (18/page), header image |
+
+#### Workspace Layout
+| File | Change |
+|------|--------|
+| `frontend/app/problems/layout.tsx` | **NEW** — minimal layout with `UserProvider` + `TopNav` + `FeedbackButton` (no max-width container for full-screen editor) |
+
+#### Bug Fixes (Audit-Driven)
+| Fix | File |
+|-----|------|
+| Settings logout redirect `/auth/login` (404) → `/login` | `settings/page.tsx:226,234` |
+| Success page hardcoded `language: "go"` → dynamic from localStorage | `success/page.tsx:247-248, 335-336` |
+| Removed unused `ChevronRight` import | `success/page.tsx:20` |
+| Removed unused `getDifficultyLabel` import | `problems/page.tsx:17` |
+
+### Verification
+- ✅ `go vet ./internal/...` — clean
+- ✅ `go test ./internal/...` — all 124 pass, 0 failures
+- ✅ `go build ./cmd/server/...` — clean
+- ✅ `go vet ./sandbox/...` + `go build ./sandbox/...` — clean
+- ✅ Commit `ef86884` pushed to `python-curricula`
+
+---
+
+## Known Issues & Next Steps
 
 ### Commits
 | Hash | Description |

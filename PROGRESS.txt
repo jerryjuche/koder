@@ -202,8 +202,10 @@ SESSION 16: Python compiler error context extraction fix (sandbox/main.go, execu
 SESSION 17: Enhancement batch: EnhancePythonError for human-readable tips, Go/Python SVG logo icons, LanguageLogo component, Python sandbox process group alignment, language filter bugfix, fullscreen toggle, migration 029 (ensures both languages on every problem). 9 commits pulled.
 
 ---
+SESSION 18: Google auto-registration + nav fix + refresh token fix (save). Fixed critical bug where new Google users got no refresh token. Fixed router.push('/') → /home across all pages. Created /problems listing page. Changed TopNav Problems link to /problems. Created problems layout with TopNav + FeedbackButton. Fixed settings redirect /auth/login (404) → /login. Dynamic language on success page. Removed unused imports.
+
 Backend: 7 packages, 24 API source files, 13 test files, 124 tests, 29 migrations
-Frontend: 52 app-router files, 37 components, 3 hooks, 10 lib modules, 3 style sheets
+Frontend: 54 app-router files (new: problems listing, problems layout), 37 components, 3 hooks, 10 lib modules, 3 style sheets
 Sandbox: 8 source files, zero external dependencies, standalone Go binary
 
 LEGEND
