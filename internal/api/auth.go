@@ -267,14 +267,12 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, _ := uuidStringFromPGType(user.ID)
-	token, err := auth.SignToken(userID, user.StudentID, user.Username, user.Role, h.config.JWTSecret, h.config.JWTExpiry(), !user.UsernameSet)
+	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate JWT", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
 		return
 	}
-
-	SetAuthCookie(w, r, token, h.config)
-	RespondCreated(w, authResponse{Token: token, Onboarding: !user.UsernameSet})
+	RespondCreated(w, resp)
 }
 
 // CompleteOnboarding completes the onboarding flow by setting a username and student_id.

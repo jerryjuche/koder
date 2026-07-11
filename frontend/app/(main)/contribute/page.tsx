@@ -104,12 +104,9 @@ function ContributeContent() {
       toast.success("Contribution submitted successfully!");
       setIsSuccess(true);
       
-      // If we were editing, remove query param and redirect
+      // Redirect to profile after successful edit
       if (editId) {
-        router.replace("/contribute");
-        setTimeout(() => {
-          router.push("/profile");
-        }, 1500);
+        router.push("/profile");
       }
     } catch (err: any) {
       setError(err.message || "Failed to submit contribution");

@@ -65,7 +65,7 @@ export default function TopNav() {
   }, []);
 
   const navLinks = [
-    { name: "Problems", href: "/", icon: LayoutDashboard },
+    { name: "Problems", href: "/problems", icon: LayoutDashboard },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
     { name: "Admin", href: "/admin", icon: Settings },
   ];

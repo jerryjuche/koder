@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       if (cancelled) return;
       
       if (!userRes.success || userRes.data?.role !== 'admin') {
-        router.push('/');
+        router.push('/home');
         return;
       }
       setIsAuthorized(true);

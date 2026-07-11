@@ -223,7 +223,7 @@ function SettingsPageContent() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/auth/login";
+    window.location.href = "/login";
   };
 
   const handleDelete = async () => {
@@ -231,7 +231,7 @@ function SettingsPageContent() {
     try {
       const res = await deleteAccount();
       if (res.success) {
-        window.location.href = "/auth/login";
+        window.location.href = "/login";
       } else {
         throw new Error(res.error?.message || "Failed to delete account");
       }
