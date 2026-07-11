@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
-import { LanguageLogo } from "@/components/LanguageLogo";
+import { LanguageLogo, type Language } from "@/components/LanguageLogo";
 import { fetchProblems } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem } from "@/lib/types";
@@ -146,7 +146,7 @@ export default function ProblemsPage() {
           const langs = problem.language_versions
             ? Object.entries(problem.language_versions)
                 .filter(([_, spec]) => spec.func_name)
-                .map(([lang]) => lang)
+                .map(([lang]) => lang as Language)
             : [];
 
           return (
