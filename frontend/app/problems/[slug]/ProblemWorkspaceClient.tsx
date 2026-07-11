@@ -869,7 +869,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="koder-dark"
+              theme="vs-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -888,55 +888,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
-
-                monaco.editor.defineTheme("koder-dark", {
-                  base: "vs-dark",
-                  inherit: true,
-                  rules: [
-                    { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.line", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.block", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "keyword.control", foreground: "C586C0" },
-                    { token: "keyword.other", foreground: "569CD6" },
-                    { token: "keyword", foreground: "569CD6" },
-                    { token: "string", foreground: "CE9178" },
-                    { token: "string.quoted", foreground: "CE9178" },
-                    { token: "number", foreground: "B5CEA8" },
-                    { token: "type", foreground: "4EC9B0" },
-                    { token: "type.identifier", foreground: "4EC9B0" },
-                    { token: "entity.name.function", foreground: "DCDCAA" },
-                    { token: "identifier", foreground: "9CDCFE" },
-                    { token: "variable", foreground: "9CDCFE" },
-                    { token: "variable.other", foreground: "9CDCFE" },
-                    { token: "delimiter", foreground: "D4D4D4" },
-                    { token: "delimiter.bracket", foreground: "D4D4D4" },
-                    { token: "operator", foreground: "D4D4D4" },
-                    { token: "tag", foreground: "569CD6" },
-                    { token: "attribute.name", foreground: "9CDCFE" },
-                    { token: "attribute.value", foreground: "CE9178" },
-                  ],
-                  colors: {
-                    "editor.background": "#1E1E1E",
-                    "editor.foreground": "#D4D4D4",
-                    "editor.lineHighlightBackground": "#2A2D2E",
-                    "editor.selectionBackground": "#264F78",
-                    "editor.inactiveSelectionBackground": "#3A3D41",
-                    "editorCursor.foreground": "#AEAFAD",
-                    "editorLineNumber.foreground": "#858585",
-                    "editorLineNumber.activeForeground": "#C6C6C6",
-                    "editor.selectionHighlightBackground": "#3A3D41",
-                    "editorBracketMatch.background": "#3A3D41",
-                    "editorBracketMatch.border": "#888888",
-                    "editorGutter.background": "#1E1E1E",
-                    "editorWidget.background": "#252526",
-                    "editorWidget.border": "#454545",
-                    "editorSuggestWidget.background": "#252526",
-                    "editorSuggestWidget.border": "#454545",
-                    "editorSuggestWidget.selectedBackground": "#094771",
-                    "minimap.background": "#1E1E1E",
-                  },
-                });
-                monaco.editor.setTheme("koder-dark");
 
                 const pkgMethods: Record<
                   string,
