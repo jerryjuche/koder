@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
   const csp = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval';
+    worker-src 'self' blob:;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self' data:;
