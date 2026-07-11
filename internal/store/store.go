@@ -41,6 +41,7 @@ type Store interface {
 
 	// User operations
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
+	CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error)
 	GetUserExportData(ctx context.Context, userID uuid.UUID) (map[string]any, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByUsername(ctx context.Context, username string) (*User, error)

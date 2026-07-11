@@ -79,6 +79,68 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	}, nil
 }
 
+// CreateUserFromGoogle creates a new user from Google OAuth info (no password, no PIN).
+func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error) {
+	if info == nil {
+		return nil, fmt.Errorf("google user info cannot be nil")
+	}
+
+	tempUsername := "u_" + uuid.New().String()[:8]
+
+	colorIndexBig, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to assign color index: %w", err)
+	}
+	colorIndex := int(colorIndexBig.Int64())
+
+	var userID pgtype.UUID
+	var createdAt pgtype.Timestamp
+
+	query := `
+		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, primary_language, google_id, google_email, google_avatar_url, created_at)
+		VALUES ($1, $2, $3, $4, '', '', 'student', $5, 0, false, 'go', $6, $7, $8, NOW())
+		RETURNING id, created_at
+	`
+
+	err = s.pool.QueryRow(ctx, query,
+		tempUsername,
+		tempUsername,
+		info.Name,
+		info.Email,
+		colorIndex,
+		info.Sub,
+		info.Email,
+		info.Picture,
+	).Scan(&userID, &createdAt)
+	if err != nil {
+		if msg, ok := IsUniqueViolation(err); ok {
+			return nil, NewDuplicateError(msg)
+		}
+		return nil, fmt.Errorf("failed to create google user: %w", err)
+	}
+
+	googleEmail := info.Email
+	googleAvatar := info.Picture
+
+	return &User{
+		ID:               userID,
+		StudentID:        tempUsername,
+		Username:         tempUsername,
+		Name:             info.Name,
+		Email:            &info.Email,
+		Password:         "",
+		Role:             "student",
+		ColorIndex:       colorIndex,
+		XP:               0,
+		CreatedAt:        createdAt.Time,
+		UsernameSet:      false,
+		PrimaryLanguage:  "go",
+		GoogleID:         &info.Sub,
+		GoogleEmail:      &googleEmail,
+		GoogleAvatarURL:  &googleAvatar,
+	}, nil
+}
+
 // GetUserByStudentID retrieves a user by their student ID.
 func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string) (*User, error) {
 	if studentID == "" {
