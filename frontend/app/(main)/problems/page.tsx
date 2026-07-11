@@ -133,7 +133,7 @@ export default function ProblemsPage() {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
-            {lang !== "all" && <LanguageLogo lang={lang} size={14} />}
+            {lang !== "all" && <LanguageLogo language={lang} size={14} />}
             {lang === "all" ? "All" : lang}
           </button>
         ))}
@@ -200,7 +200,7 @@ export default function ProblemsPage() {
                           key={lang}
                           className="w-[34px] h-[34px] flex items-center justify-center rounded-lg border border-border/50 bg-background/40 backdrop-blur-sm"
                         >
-                          <LanguageLogo lang={lang} size={18} />
+                          <LanguageLogo language={lang} size={18} />
                         </div>
                       ))}
                     </div>
