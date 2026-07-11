@@ -40,8 +40,6 @@ export default function LoginPage() {
       const res = await googleLogin(response.credential);
       if (res.success && res.data) {
         router.push(res.data.onboarding ? '/onboarding' : '/');
-      } else if (res.error?.code === 'GOOGLE_NOT_LINKED') {
-        setErrorMsg('This Google account is not linked to any Koder profile. Please sign in with your password below, then link Google in your Settings.');
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }

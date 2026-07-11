@@ -58,15 +58,17 @@ type GoogleUserInfo struct {
 
 // NewUser represents a user creation request.
 type NewUser struct {
-	StudentID   string
-	Username    string
-	Name        string
-	Email       *string
-	Password    string // plaintext, will be hashed
-	PINHash     string // bcrypt hash of 6-digit PIN
-	Role            string // "student" | "admin"
-	UsernameSet     bool
-	PrimaryLanguage string // default "go"
+	StudentID        string
+	Username         string
+	Name             string
+	Email            *string
+	Password         string // plaintext, will be hashed (empty for Google-only users)
+	PINHash          string // bcrypt hash of 6-digit PIN (empty for Google-only users)
+	Role             string // "student" | "admin"
+	UsernameSet      bool
+	PrimaryLanguage  string  // default "go"
+	GoogleID         string  // Google sub for OAuth users
+	GoogleAvatarURL  string  // Google avatar URL
 }
 
 // Problem represents an exercise definition stored in the database.
