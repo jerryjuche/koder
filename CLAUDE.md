@@ -1038,3 +1038,62 @@ npm run build   # Builds static + server components
 - **Bug fixes**: Settings logout redirect `/auth/login` (404) → `/login`. Success page language dynamic from localStorage. Removed unused `ChevronRight`, `getDifficultyLabel` imports
 
 **Verification:** `go vet` clean, 124 tests pass, `go build` clean, pushed `ef86884` to `python-curricula`
+
+---
+
+### 2026-07-12 — Monaco theme, workspace layout, admin edit problem, ESLint sweep
+
+**Monaco Editor VS Code Dark+ Theme:**
+- Created `frontend/lib/monaco-theme.ts` with `registerVSCodeDarkPlusTheme()` — exact VS Code Dark+ colors (no custom tokenizers or semantic tokens)
+- Registered eagerly via `loader.init().then(registerVSCodeDarkPlusTheme)` and in `onMount` callback
+- Theme prop changed from `"koder-dark"` (custom) to `"vs-dark-plus"`
+- Removed `frontend/lib/monaco-themes.ts` (529 lines) and `frontend/lib/custom-tokenizers.ts` — all custom Monarch tokenizers and `defineTheme` code
+- Added `worker-src 'self' blob:` to `frontend/middleware.ts` for Monaco web workers
+
+**Confetti Fix:**
+- Removed `ready`-gated separate `useEffect`; confetti now fires directly when `loading` flips to `false` with 200ms `setTimeout` for DOM paint
+
+**TopNav Updates:**
+- Added "Dashboard" → `/home` (LayoutDashboard icon), "Problems" → Code2 icon, Admin link conditional on `user?.role === "admin"`
+
+**Formatter Fix:**
+- `handleFormat()` uses Monaco's built-in `editor.action.formatDocument` with whitespace cleanup fallback (removed custom formatting code)
+
+**Pagination Fix (Problems page):**
+- Removed `<<` first page and `>>` last page buttons; clean prev/next + "Page X of Y"
+
+**Problems Page Rewrite:**
+- Side panel filters: solved status (default unsolved), difficulty (1-5), XP range (sliders)
+- Strict language tabs (All/Go/Python) filtering by `language_versions[lang].func_name`
+- Solved problems hidden by default
+- Mobile-responsive filter overlay with slide-out panel
+- Active filter count badge + Reset filters button
+- Problem count display
+- Fixed `FilterPanel` component → `renderFilterPanel()` function (ESLint `react-hooks/static-components`)
+
+**ESLint Warning Fixes (8 warnings):**
+- `FeedbackPanel.tsx`, `ProblemReports.tsx`, `avatar.tsx`, `ModuleCards.tsx` — `<img>` → `<Image />` with `next/image`
+- `home/page.tsx` — added `languageFilter` to useEffect deps
+- `LeaderboardClient.tsx` — added `loadData` to useEffect deps
+- `AIAssistantPanel.tsx` — added missing deps
+
+**Pre-existing TS Error Fix:**
+- `AIAssistantPanel.tsx` — moved `handleApplyPreview` `useCallback` definition before `useEffect` that referenced it (was "used before declared" error blocking CI)
+
+**Workspace Layout:**
+- Removed TopNav from `problems/layout.tsx` — workspace has only the problem content area + FeedbackButton
+- The problems listing at `/problems` retains TopNav from `(main)/layout.tsx`
+
+**Admin Edit Problem:**
+- Added "Edit" button (Edit3 icon) in workspace header, visible only for `user.role === "admin"`
+- Opens a modal dialog with editable fields: title, statement (textarea), difficulty (1-5), XP reward, module, tags (comma-separated), constraints (textarea), learning objective (textarea)
+- Calls `PUT /admin/problems/{id}` via `updateProblem()` API
+- Form initializes from current `problem` state on dialog open
+- Save handler typed with `UpdateProblemPayload`, error handling extracts `.message` from API error objects
+
+**UPDATE_FAILED Bugfix:**
+- **Root cause:** `LanguageVersions` could be `nil` in Go when `unmarshalLanguageVersions` failed silently or stored JSONB was null. `json.Marshal(nilMap)` produces `"null"` which pgx sends as SQL NULL, violating the `NOT NULL` constraint on `language_versions`
+- **Fix 1** (`internal/store/problems.go:686`): `UpdateProblem` now guards with `if problem.LanguageVersions == nil { problem.LanguageVersions = make(map[string]LanguageSpec) }` before `json.Marshal`
+- **Fix 2** (`internal/store/problems.go:767`): `unmarshalLanguageVersions` now initializes target map to empty when unmarshal fails and map is nil — prevents silent nil propagation
+
+**Verification:** Go build clean (`go build ./internal/...`). Pushed `bf364bf` to `python-curricula`.
