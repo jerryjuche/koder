@@ -437,14 +437,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         toast.success("Problem updated successfully");
         setProblem({
           ...problem,
-          title: payload.title,
-          statement: payload.statement,
-          difficulty: payload.difficulty,
-          xpReward: payload.xp_reward,
-          tags: payload.tags,
-          module: payload.module || problem.module,
-          constraints: payload.constraints || problem.constraints,
-          learningObjective: payload.learning_objective || problem.learningObjective,
+          title: payload.title ?? problem.title,
+          statement: payload.statement ?? problem.statement,
+          difficulty: payload.difficulty ?? problem.difficulty,
+          xpReward: payload.xp_reward ?? problem.xpReward,
+          tags: payload.tags ?? problem.tags,
+          module: payload.module ?? problem.module,
+          constraints: payload.constraints ?? problem.constraints,
+          learningObjective: payload.learning_objective ?? problem.learningObjective,
         });
         setEditOpen(false);
       } else {
