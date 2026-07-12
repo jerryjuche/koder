@@ -146,7 +146,7 @@ export default function LeaderboardClient() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       window.removeEventListener("user-updated", onUserUpdated);
     };
-  }, [period, loadData]);
+  }, [period]); // loadData intentionally omitted — recreates on every render, would cause infinite loop
 
   // Reset avatar errors when user data changes (e.g. after Google sync)
   const [prevAvatarUrl, setPrevAvatarUrl] = useState(user?.google_avatar_url);
