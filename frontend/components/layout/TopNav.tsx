@@ -14,6 +14,7 @@ import {
   PlusCircle,
   CheckCheck,
   ChevronDown,
+  Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -65,10 +66,14 @@ export default function TopNav() {
   }, []);
 
   const navLinks = [
-    { name: "Problems", href: "/problems", icon: LayoutDashboard },
+    { name: "Dashboard", href: "/home", icon: LayoutDashboard },
+    { name: "Problems", href: "/problems", icon: Code2 },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
-    { name: "Admin", href: "/admin", icon: Settings },
   ];
+
+  if (user?.role === "admin") {
+    navLinks.push({ name: "Admin", href: "/admin", icon: Settings });
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
