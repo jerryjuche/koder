@@ -536,7 +536,6 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 	var entries []LeaderboardEntry
 	rank := 1
-	userIDs := []uuid.UUID{}
 	for rows.Next() {
 		var uID pgtype.UUID
 		var u LeaderboardUser
@@ -551,9 +550,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 		}
 
 		if uID.Valid {
-			id := uuid.UUID(uID.Bytes)
-			u.ID = id.String()
-			userIDs = append(userIDs, id)
+			u.ID = uuid.UUID(uID.Bytes).String()
 		}
 
 		u.Level = (u.XP / 1000) + 1
@@ -569,46 +566,6 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("leaderboard rows iteration error: %w", err)
-	}
-
-	// Batch compute streaks for all leaderboard users
-	if len(userIDs) > 0 {
-		streakQuery := `
-			WITH dates AS (
-				SELECT user_id, DATE(created_at) AS d
-				FROM submissions
-				WHERE user_id = ANY($1) AND status = 'passed'
-				GROUP BY user_id, DATE(created_at)
-			),
-			ordered AS (
-				SELECT user_id, d, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY d DESC) as rn
-				FROM dates
-			),
-			streaks AS (
-				SELECT user_id, COUNT(*) as streak
-				FROM ordered
-				WHERE d = CURRENT_DATE - rn + 1
-				GROUP BY user_id
-			)
-			SELECT user_id, streak FROM streaks
-		`
-		sRows, err := s.pool.Query(ctx, streakQuery, userIDs)
-		if err == nil {
-			defer sRows.Close()
-			streakMap := make(map[string]int, len(userIDs))
-			for sRows.Next() {
-				var sid pgtype.UUID
-				var streak int
-				if err := sRows.Scan(&sid, &streak); err == nil && sid.Valid {
-					streakMap[uuid.UUID(sid.Bytes).String()] = streak
-				}
-			}
-			for i := range entries {
-				if s, ok := streakMap[entries[i].User.ID]; ok {
-					entries[i].User.Streak = s
-				}
-			}
-		}
 	}
 
 	return entries, nil
