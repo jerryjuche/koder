@@ -1095,5 +1095,7 @@ npm run build   # Builds static + server components
 - **Root cause:** `LanguageVersions` could be `nil` in Go when `unmarshalLanguageVersions` failed silently or stored JSONB was null. `json.Marshal(nilMap)` produces `"null"` which pgx sends as SQL NULL, violating the `NOT NULL` constraint on `language_versions`
 - **Fix 1** (`internal/store/problems.go:686`): `UpdateProblem` now guards with `if problem.LanguageVersions == nil { problem.LanguageVersions = make(map[string]LanguageSpec) }` before `json.Marshal`
 - **Fix 2** (`internal/store/problems.go:767`): `unmarshalLanguageVersions` now initializes target map to empty when unmarshal fails and map is nil — prevents silent nil propagation
+- **Fix 3** (all `lvJSON` params): Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `ERROR: invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL tries to cast from `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
+- Returns actual DB error in response for easier debugging
 
-**Verification:** Go build clean (`go build ./internal/...`). Pushed `bf364bf` to `python-curricula`.
+**Verification:** Go build clean (`go build ./internal/...`). Pushed `3c4b2a6` to `python-curricula`.
