@@ -81,8 +81,6 @@ function formatCode(code: string, lang: string): string {
 
   if (lang === "go") {
     // Go: tabs for indent, brace on same line, block-aware
-    // Track paren depth separately from brace depth for multi-line function signatures
-    let parenBlock = false;
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       if (raw === "") { out.push(""); continue; }
