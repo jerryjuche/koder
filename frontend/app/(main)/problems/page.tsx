@@ -243,15 +243,6 @@ export default function ProblemsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
-            onClick={() => setCurrentPage(1)}
-            disabled={safePage <= 1}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="First page"
-          >
-            <ChevronLeft size={16} className="opacity-50" />
-            <ChevronLeft size={16} className="-ml-2.5" />
-          </button>
-          <button
             onClick={() => setCurrentPage(safePage - 1)}
             disabled={safePage <= 1}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -271,15 +262,6 @@ export default function ProblemsPage() {
             aria-label="Next page"
           >
             <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={safePage >= totalPages}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="Last page"
-          >
-            <ChevronRight size={16} className="opacity-50" />
-            <ChevronRight size={16} className="-ml-2.5" />
           </button>
         </div>
       )}
