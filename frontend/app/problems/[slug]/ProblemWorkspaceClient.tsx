@@ -1386,97 +1386,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   ],
                 };
 
-                const allPackages = [
-                  "fmt",
-                  "strings",
-                  "io",
-                  "os",
-                  "time",
-                  "math",
-                  "sort",
-                  "encoding/json",
-                  "net/http",
-                  "context",
-                  "errors",
-                  "bufio",
-                  "bytes",
-                  "crypto",
-                  "database/sql",
-                  "flag",
-                  "hash",
-                  "html",
-                  "image",
-                  "log",
-                  "mime",
-                  "net",
-                  "path",
-                  "regexp",
-                  "sync",
-                  "syscall",
-                  "testing",
-                  "text/template",
-                  "unicode",
-                  "archive/tar",
-                  "archive/zip",
-                  "compress/gzip",
-                  "strconv",
-                  "reflect",
-                ];
-
-                const keywords = [
-                  "func",
-                  "var",
-                  "const",
-                  "if",
-                  "else",
-                  "for",
-                  "switch",
-                  "case",
-                  "default",
-                  "break",
-                  "continue",
-                  "return",
-                  "defer",
-                  "go",
-                  "chan",
-                  "select",
-                  "range",
-                  "type",
-                  "struct",
-                  "interface",
-                  "map",
-                  "slice",
-                  "array",
-                  "import",
-                  "package",
-                  "fallthrough",
-                  "goto",
-                  "panic",
-                  "recover",
-                  "nil",
-                  "true",
-                  "false",
-                  "int",
-                  "string",
-                  "bool",
-                  "float64",
-                  "byte",
-                  "rune",
-                  "error",
-                  "int8",
-                  "int16",
-                  "int32",
-                  "int64",
-                  "uint",
-                  "uint8",
-                  "uint16",
-                  "uint32",
-                  "uint64",
-                  "float32",
-                  "complex64",
-                  "complex128",
-                ];
-
                 monaco.languages.registerHoverProvider("go", {
                   provideHover: (model: any, position: any) => {
                     const word = model.getWordAtPosition(position);
@@ -1555,7 +1464,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 ];
 
                 monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: [".", " "],
+                  triggerCharacters: ["."],
                   provideCompletionItems: (model: any, position: any) => {
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -1594,35 +1503,17 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       return { suggestions: [] };
                     }
 
-                    const goSnippetLabels = new Set(goSnippets.map((s) => s.label));
-                    const suggestions = [
-                      ...goSnippets.map((s) => ({
-                        label: s.label,
-                        kind: monaco.languages.CompletionItemKind.Snippet,
-                        insertText: s.insertText,
-                        insertTextRules:
-                          monaco.languages.CompletionItemInsertTextRule
-                            .InsertAsSnippet,
-                        range,
-                        detail: s.detail,
-                      })),
-                      ...allPackages.map((pkg) => ({
-                        label: pkg,
-                        kind: monaco.languages.CompletionItemKind.Module,
-                        insertText: pkg,
-                        range,
-                        detail: "Go package",
-                      })),
-                      ...keywords
-                        .filter((kw) => !goSnippetLabels.has(kw))
-                        .map((kw) => ({
-                          label: kw,
-                          kind: monaco.languages.CompletionItemKind.Keyword,
-                          insertText: kw,
-                          range,
-                          detail: "Go keyword",
-                        })),
-                    ];
+                    // Snippets available via Ctrl+Space
+                    const suggestions = goSnippets.map((s) => ({
+                      label: s.label,
+                      kind: monaco.languages.CompletionItemKind.Snippet,
+                      insertText: s.insertText,
+                      insertTextRules:
+                        monaco.languages.CompletionItemInsertTextRule
+                          .InsertAsSnippet,
+                      range,
+                      detail: s.detail,
+                    }));
 
                     return { suggestions };
                   },
@@ -1814,7 +1705,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       startColumn: word.startColumn,
                       endColumn: position.column,
                     };
-                    const pySnippetLabels = new Set(pythonSnippets.map((s) => s.label));
                     const suggestions = [
                       ...pythonSnippets.map((s) => ({
                         label: s.label,
@@ -1826,15 +1716,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         range,
                         detail: s.detail,
                       })),
-                      ...pythonKeywords
-                        .filter((kw) => !pySnippetLabels.has(kw))
-                        .map((kw) => ({
-                          label: kw,
-                          kind: monaco.languages.CompletionItemKind.Keyword,
-                          insertText: kw,
-                          range,
-                          detail: "Python keyword",
-                        })),
                       ...pythonBuiltins.map((fn) => ({
                         label: fn,
                         kind: monaco.languages.CompletionItemKind.Function,
