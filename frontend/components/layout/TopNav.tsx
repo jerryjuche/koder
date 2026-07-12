@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
-  PlusCircle,
   CheckCheck,
   ChevronDown,
   Code2,
@@ -155,19 +154,7 @@ export default function TopNav() {
               </span>
             </div>
 
-            {/* Add Problem Button */}
-            {(user.role === "verified_contributor" || user.role === "admin") && (
-              <Link
-                href="/contribute"
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-background bg-primary hover:bg-primary/90 rounded-md transition-colors mr-2 shrink-0 w-[130px]"
-              >
-                <PlusCircle size={16} className="shrink-0" />
-                <span className="truncate">Add Problem</span>
-              </Link>
-            )}
-
-
-
+            </div>
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
