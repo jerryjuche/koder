@@ -1099,3 +1099,16 @@ npm run build   # Builds static + server components
 - Returns actual DB error in response for easier debugging
 
 **Verification:** Go build clean (`go build ./internal/...`). Pushed `3c4b2a6` to `python-curricula`.
+
+---
+
+### 2026-07-12 — Go fundamentals seed + multi-return fix, JSONB encoding fix, edit state preservation
+
+**JSONB Encoding Fix:**
+- Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites: `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL casts `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
+
+**Edit State Preservation:**
+- Changed `setProblem({...problem, ...res.data})` to only merge the 8 edited fields — was spreading raw DB response which has zero-value `examples`, `solved`, `stars`, etc.
+
+**Go Fundamentals Seed:**
+- `migrations/037_seed_go_fundamentals.sql` — 5 Go-only problems in new `go-fundamentals` module: `even-squares` (slices+filter, diff 2), `word-count` (maps, diff 3), `fizzbuzz` (control-flow, diff 1), `unique` (map-set idiom, diff 3), `max-min` (slice iteration, diff 2). All have only `go` key in `language_versions`.
