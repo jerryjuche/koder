@@ -120,7 +120,7 @@ export default function ProblemsPage() {
     setCurrentPage(1);
   }
 
-  function FilterPanel() {
+  function renderFilterPanel() {
     const btnBase = "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors border";
 
     return (
@@ -235,7 +235,7 @@ export default function ProblemsPage() {
               </span>
             )}
           </h3>
-          <FilterPanel />
+          {renderFilterPanel()}
         </div>
       </aside>
 
@@ -258,7 +258,7 @@ export default function ProblemsPage() {
                 <X size={18} />
               </button>
             </div>
-            <FilterPanel />
+            {renderFilterPanel()}
           </div>
         </div>
       )}
