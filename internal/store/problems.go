@@ -684,6 +684,10 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		return nil, fmt.Errorf("problem cannot be nil")
 	}
 
+	if problem.LanguageVersions == nil {
+		problem.LanguageVersions = make(map[string]LanguageSpec)
+	}
+
 	query := `
 		UPDATE problems SET
 		    title = $1, statement = $2, constraints = $3,
@@ -765,6 +769,9 @@ func unmarshalLanguageVersions(data []byte, target interface{}, context string) 
 	if len(data) > 0 {
 		if err := json.Unmarshal(data, target); err != nil {
 			slog.Warn("failed to unmarshal language_versions", "context", context, "error", err)
+			if m, ok := target.(*map[string]LanguageSpec); ok && *m == nil {
+				*m = make(map[string]LanguageSpec)
+			}
 		}
 	}
 }
