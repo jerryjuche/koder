@@ -116,7 +116,7 @@ export function ProfileHoverCard({ children, user, userId, side = "top", align =
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-2">
               <Stat value={info.xp.toLocaleString()} label="XP" icon={Zap} color="text-amber-400" />
-              <Stat value={`#${info.level}`} label="Level" icon={Hash} color="text-[#7B8CBB]" />
+              <Stat value={info.level} label="Level" icon={Hash} color="text-[#7B8CBB]" />
               <Stat value={info.solvedCount} label="Solved" icon={CheckCircle2} color="text-emerald-400" />
               <Stat value={info.streak} label="Day Streak" icon={Flame} color="text-orange-400" />
             </div>

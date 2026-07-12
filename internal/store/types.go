@@ -194,15 +194,16 @@ type AdminStats struct {
 
 // LeaderboardUser represents the embedded user in a leaderboard entry.
 type LeaderboardUser struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	StudentID      string  `json:"studentId"`
-	Username       string  `json:"username"`
-	Role           string  `json:"role"`
-	ColorIndex     int     `json:"colorIndex"`
-	XP             int     `json:"xp"`
-	Level          int     `json:"level"`
-	SolvedCount    int     `json:"solvedCount"`
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	StudentID       string  `json:"studentId"`
+	Username        string  `json:"username"`
+	Role            string  `json:"role"`
+	ColorIndex      int     `json:"colorIndex"`
+	XP              int     `json:"xp"`
+	Level           int     `json:"level"`
+	SolvedCount     int     `json:"solvedCount"`
+	Streak          int     `json:"streak"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 }
 
@@ -363,17 +364,18 @@ type NewBroadcast struct {
 
 // CommunitySolution represents a submission returned for the community solutions/best practices view.
 type CommunitySolution struct {
-	ID          pgtype.UUID `json:"id"`
-	UserID      pgtype.UUID `json:"user_id"`
-	UserName    string      `json:"user_name"`
-	ProblemID   pgtype.UUID `json:"problem_id"`
-	ProblemSlug string      `json:"problem_slug,omitempty"`
-	Language    string      `json:"language"`
-	Code        string      `json:"code"`
-	RuntimeMs   int         `json:"runtime_ms"`
-	Likes       int         `json:"likes"`
-	HasLiked    bool        `json:"has_liked"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID            pgtype.UUID `json:"id"`
+	UserID        pgtype.UUID `json:"user_id"`
+	UserName      string      `json:"user_name"`
+	UserAvatarURL *string     `json:"user_avatar_url,omitempty"`
+	ProblemID     pgtype.UUID `json:"problem_id"`
+	ProblemSlug   string      `json:"problem_slug,omitempty"`
+	Language      string      `json:"language"`
+	Code          string      `json:"code"`
+	RuntimeMs     int         `json:"runtime_ms"`
+	Likes         int         `json:"likes"`
+	HasLiked      bool        `json:"has_liked"`
+	CreatedAt     time.Time   `json:"created_at"`
 }
 
 // AIUsageLog records a single AI assist call for monitoring and billing.

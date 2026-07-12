@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
+import { Avatar } from "@/components/base/avatar/avatar";
 import confetti from "canvas-confetti";
 import {
   CodeBlock,
@@ -16,6 +17,7 @@ import {
   CodeBlockItem,
 } from "@/components/kibo-ui/code-block";
 import type { BundledLanguage } from "@/components/kibo-ui/code-block";
+import { Avatar } from "@/components/base/avatar/avatar";
 import {
   CheckCircle2,
   Heart,
@@ -303,9 +305,11 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                   <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30">
                     <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
                       <div className="flex items-center gap-3 cursor-pointer">
-                        <div className="w-8 h-8 rounded-full bg-brand-muted-gold/10 text-brand-muted-gold flex items-center justify-center font-bold text-xs border border-brand-muted-gold/20">
-                          {sol.user_name.charAt(0).toUpperCase()}
-                        </div>
+                        <Avatar
+                        src={sol.user_avatar_url}
+                        name={sol.user_name}
+                        size="sm"
+                      />
                         <div>
                           <div className="font-bold text-sm">{sol.user_name}</div>
                           <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2">

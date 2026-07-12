@@ -136,12 +136,13 @@ func (s *PostgresStore) GetTopCommunitySolutionsForProblem(ctx context.Context, 
 			sub.id, sub.user_id, u.name as user_name, sub.problem_id,
 			sub.language, sub.code, sub.runtime_ms, sub.created_at,
 			COUNT(sl.id) as likes,
-			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $2) as has_liked
+			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $2) as has_liked,
+			u.google_avatar_url
 		FROM submissions sub
 		JOIN users u ON sub.user_id = u.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.problem_id = $1 AND sub.status = 'passed'
-		GROUP BY sub.id, u.name
+		GROUP BY sub.id, u.name, u.google_avatar_url
 		ORDER BY likes DESC, sub.runtime_ms ASC, sub.created_at DESC
 		LIMIT $3
 	`
@@ -158,7 +159,7 @@ func (s *PostgresStore) GetTopCommunitySolutionsForProblem(ctx context.Context, 
 		err := rows.Scan(
 			&cs.ID, &cs.UserID, &cs.UserName, &cs.ProblemID,
 			&cs.Language, &cs.Code, &cs.RuntimeMs, &cs.CreatedAt,
-			&cs.Likes, &cs.HasLiked,
+			&cs.Likes, &cs.HasLiked, &cs.UserAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan community solution: %w", err)
@@ -184,14 +185,15 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 			sub.id, sub.user_id, u.name as user_name, sub.problem_id, p.slug as problem_slug,
 			sub.language, sub.code, sub.runtime_ms, sub.created_at,
 			COUNT(sl.id) as likes,
-			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1) as has_liked
+			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1) as has_liked,
+			u.google_avatar_url
 		FROM submissions sub
 		JOIN users u ON sub.user_id = u.id
 		JOIN problems p ON sub.problem_id = p.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.status = 'passed' AND p.visible = true
 		  AND EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)
-		GROUP BY sub.id, u.name, p.slug
+		GROUP BY sub.id, u.name, p.slug, u.google_avatar_url
 		ORDER BY likes DESC, sub.created_at DESC
 		LIMIT $2
 	`
@@ -208,7 +210,7 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		err := rows.Scan(
 			&cs.ID, &cs.UserID, &cs.UserName, &cs.ProblemID, &cs.ProblemSlug,
 			&cs.Language, &cs.Code, &cs.RuntimeMs, &cs.CreatedAt,
-			&cs.Likes, &cs.HasLiked,
+			&cs.Likes, &cs.HasLiked, &cs.UserAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan best practice: %w", err)
