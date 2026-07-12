@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Trophy,
@@ -115,7 +115,7 @@ export default function LeaderboardClient() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialLoad = useRef(true);
 
-  const loadData = async (currentPeriod: Period = period) => {
+  const loadData = useCallback(async (currentPeriod: Period = period) => {
     try {
       const [lbRes, userRes] = await Promise.all([
         fetchLeaderboard(currentPeriod),
@@ -130,7 +130,7 @@ export default function LeaderboardClient() {
         initialLoad.current = false;
       }
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     mounted.current = true;
@@ -147,7 +147,7 @@ export default function LeaderboardClient() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       window.removeEventListener("user-updated", onUserUpdated);
     };
-  }, [period]); // loadData intentionally omitted — recreates on every render, would cause infinite loop
+  }, [period, loadData]);
 
   // Reset avatar errors when user data changes (e.g. after Google sync)
   const [prevAvatarUrl, setPrevAvatarUrl] = useState(user?.google_avatar_url);

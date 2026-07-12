@@ -6,7 +6,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { fetchUserById } from "@/lib/api";
 import { PublicUserData, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Zap, Trophy, CheckCircle2, Flame, Hash } from "lucide-react";
+import { Zap, CheckCircle2, Flame, Hash } from "lucide-react";
 
 function Stat({ value, label, icon: Icon, color }: {
   value: string | number;
@@ -33,17 +33,15 @@ interface ProfileHoverCardProps {
 
 export function ProfileHoverCard({ children, user, userId, side = "top", align = "center" }: ProfileHoverCardProps) {
   const [data, setData] = useState<PublicUserData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const needsFetch = !user && !!userId;
 
   useEffect(() => {
-    if (userId && !user) {
-      setLoading(true);
-      fetchUserById(userId).then((res) => {
+    if (needsFetch) {
+      fetchUserById(userId!).then((res) => {
         if (res.success && res.data) setData(res.data);
-        setLoading(false);
       });
     }
-  }, [userId, user]);
+  }, [needsFetch, userId, user]);
 
   const info = user
     ? {
@@ -73,21 +71,19 @@ export function ProfileHoverCard({ children, user, userId, side = "top", align =
         }
       : null;
 
-  if (!info) {
-    return <>{children}</>;
-  }
+  const loading = needsFetch && !data;
 
   return (
     <HoverCard openDelay={400} closeDelay={150}>
       <HoverCardTrigger asChild>
-        <span className="cursor-pointer">{children}</span>
+        <span className={info ? "cursor-pointer" : ""}>{children}</span>
       </HoverCardTrigger>
       <HoverCardContent side={side} align={align}>
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-5 h-5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
           </div>
-        ) : (
+        ) : info ? (
           <div className="p-4 space-y-3">
             {/* Avatar + Name row */}
             <div className="flex items-center gap-3">
