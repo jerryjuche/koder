@@ -114,7 +114,7 @@ export default function Dashboard() {
       window.removeEventListener("user-updated", handleUserUpdated);
       clearTimeout(debounceTimer);
     };
-  }, []);
+  }, [languageFilter]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];

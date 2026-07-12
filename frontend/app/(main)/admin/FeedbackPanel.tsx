@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { MessageSquareText, Bug, Lightbulb, Search, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchAdminFeedback, fetchAdminFeedbackCounts, updateFeedbackStatus } from "@/lib/api";
@@ -216,10 +217,13 @@ export default function FeedbackPanel({ compact }: Props) {
                             {fb.screenshot_url && (
                               <div>
                                 <p className="text-xs font-medium text-brand-offwhite-muted mb-1">Screenshot:</p>
-                                <img
+                                <Image
                                   src={`data:image/png;base64,${fb.screenshot_url}`}
                                   alt="Screenshot"
-                                  className="max-h-48 rounded-lg border border-brand-charcoal-border"
+                                  width={400}
+                                  height={300}
+                                  className="max-h-48 rounded-lg border border-brand-charcoal-border w-auto"
+                                  unoptimized
                                 />
                               </div>
                             )}

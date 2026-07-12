@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import NextImage from "next/image";
 import {
   Bug,
   CheckCircle2,
@@ -356,10 +357,13 @@ export default function ProblemReports({ compact }: Props) {
                       <Image size={12} /> Screenshot
                     </span>
                     <div className="relative inline-block max-w-full">
-                      <img
+                      <NextImage
                         src={`data:image/png;base64,${report.screenshot_url}`}
                         alt="Bug screenshot"
-                        className="max-h-64 rounded-lg border border-brand-charcoal-border object-contain bg-brand-charcoal-card"
+                        width={400}
+                        height={300}
+                        className="max-h-64 rounded-lg border border-brand-charcoal-border object-contain bg-brand-charcoal-card w-auto"
+                        unoptimized
                       />
                     </div>
                   </div>

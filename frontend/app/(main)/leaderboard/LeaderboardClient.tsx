@@ -145,7 +145,7 @@ export default function LeaderboardClient() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       window.removeEventListener("user-updated", onUserUpdated);
     };
-  }, [period]);
+  }, [period, loadData]);
 
   // Reset avatar errors when user data changes (e.g. after Google sync)
   const [prevAvatarUrl, setPrevAvatarUrl] = useState(user?.google_avatar_url);

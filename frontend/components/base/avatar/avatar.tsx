@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn, getUserColor } from "@/lib";
 
 const sizeMap = {
@@ -56,10 +57,13 @@ export function Avatar({
         )}
       >
         {src ? (
-          <img
+          <Image
             src={src}
             alt={alt}
             className="h-full w-full object-cover"
+            width={100}
+            height={100}
+            unoptimized
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
               (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");

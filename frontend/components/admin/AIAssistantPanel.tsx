@@ -125,7 +125,7 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, activePreview, handleApplyPreview]);
 
   const sendMessage = useCallback(async (
     content: string,
