@@ -85,6 +85,7 @@ export function ProfileHoverCard({ children, user, userId, side = "top", align =
           </div>
         ) : info ? (
           <div className="p-4 space-y-3">
+          
             {/* Avatar + Name row */}
             <div className="flex items-center gap-3">
               <Avatar
@@ -120,7 +121,7 @@ export function ProfileHoverCard({ children, user, userId, side = "top", align =
               <Stat value={info.streak} label="Day Streak" icon={Flame} color="text-orange-400" />
             </div>
           </div>
-        )}
+        ) : null}
       </HoverCardContent>
     </HoverCard>
   );
