@@ -435,7 +435,17 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       const res = await updateProblem(String(problem.id), payload);
       if (res.success) {
         toast.success("Problem updated successfully");
-        setProblem({ ...problem, ...res.data });
+        setProblem({
+          ...problem,
+          title: payload.title,
+          statement: payload.statement,
+          difficulty: payload.difficulty,
+          xpReward: payload.xp_reward,
+          tags: payload.tags,
+          module: payload.module || problem.module,
+          constraints: payload.constraints || problem.constraints,
+          learningObjective: payload.learning_objective || problem.learningObjective,
+        });
         setEditOpen(false);
       } else {
         toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
