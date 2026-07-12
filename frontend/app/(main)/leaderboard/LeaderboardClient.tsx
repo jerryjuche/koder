@@ -44,8 +44,9 @@ function getInitials(name: string): string {
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "—";
+  if (ms < 1000) return `${ms}ms`;
   const seconds = ms / 1000;
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  if (seconds < 60) return `${seconds.toFixed(2)}s`;
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds - minutes * 60;
   if (remainder < 0.5) return `${minutes}m`;
