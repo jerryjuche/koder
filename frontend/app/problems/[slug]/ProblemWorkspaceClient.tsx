@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
@@ -13,6 +14,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import {
+  ChevronLeft,
   Play,
   RotateCcw,
   Lightbulb,
@@ -207,25 +209,28 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
-    const action = ed.getAction("editor.action.formatDocument");
-    if (action) {
-      action.run().then(() => {
-        setCode(ed.getValue());
-        setSaved(true);
-        toast.success("Code formatted");
-      });
-    } else {
-      const raw = ed.getValue();
-      const formatted = raw.replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
-      ed.executeEdits("format", [{
-        range: ed.getModel()!.getFullModelRange(),
+    const raw = ed.getValue();
+    const formatted =
+      raw
+        .split("\n")
+        .map((l: string) => l.replace(/[ \t]+$/, ""))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(
+          /^(\t*) +/gm,
+          (_: string, tabs: string) => tabs + " ".repeat(4),
+        )
+        .trimEnd() + "\n";
+    ed.executeEdits("format", [
+      {
+        range: ed.getModel().getFullModelRange(),
         text: formatted,
         forceMoveMarkers: true,
-      }]);
-      setCode(formatted);
-      setSaved(true);
-      toast.success("Code formatted");
-    }
+      },
+    ]);
+    setCode(formatted);
+    setSaved(true);
+    toast.success("Code formatted");
   }
 
   async function handleSubmit() {
@@ -416,6 +421,113 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
+      {/* Workspace Header */}
+      <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/home?module=${encodeURIComponent(problem.module)}`}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
+          >
+            <ChevronLeft size={16} /> Problems
+          </Link>
+          <div className="w-px h-5 bg-brand-charcoal-border"></div>
+          <div className="flex items-center gap-3">
+            <span className="font-bold">{problem.title}</span>
+            <span
+              className={cn(
+                "text-xs font-bold",
+                getDifficultyColor(problem.difficulty),
+              )}
+            >
+              {getDifficultyLabel(problem.difficulty)}
+            </span>
+            
+            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
+              {problem.module}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold bg-brand-muted-gold/10 px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 mr-2">
+            <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
+              <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+            </svg>
+            +{problem.xpReward} XP
+          </div>
+
+          <button
+            onClick={() =>
+              setPanelMode(panelMode === "hints" ? "tests" : "hints")
+            }
+            className={cn(
+              "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
+              panelMode === "hints"
+                ? "bg-brand-muted-gold/10 text-brand-muted-gold border-brand-muted-gold/30"
+                : "text-brand-offwhite-muted border-transparent hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+            )}
+          >
+            <Lightbulb size={16} /> Hints
+          </button>
+          <button
+            onClick={() => {
+              setReportOpen(true);
+              setReportSubmitted(false);
+              setReportDescription("");
+            }}
+            className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
+            title="Report a problem with this exercise"
+          >
+            <Bug size={15} /> Report Bug
+          </button>
+          <button
+            onClick={handleReset}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover"
+            title="Reset code to original"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
+            onClick={handleTest}
+            disabled={submitting || cooldown > 0}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
+          >
+            {cooldown > 0 ? (
+              <span className="text-brand-muted-gold font-mono">
+                {cooldown}s
+              </span>
+            ) : submitting ? (
+              <div className="w-4 h-4 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
+            ) : (
+              <Play size={16} fill="currentColor" />
+            )}
+            {cooldown > 0 ? "Wait" : "Test"}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || cooldown > 0 || problem.solved}
+            className={cn(
+              "px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all",
+              problem.solved
+                ? "bg-brand-success/10 text-brand-success border border-brand-success/30 cursor-not-allowed"
+                : "bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base shadow-brand-muted-gold/10",
+              (submitting || cooldown > 0) && "opacity-70",
+            )}
+          >
+            {problem.solved ? (
+              <CheckCircle2 size={16} />
+            ) : cooldown > 0 ? (
+              <span className="font-mono">{cooldown}s</span>
+            ) : submitting ? (
+              <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+            ) : (
+              <Play size={16} fill="currentColor" />
+            )}
+            {problem.solved ? "Solved" : cooldown > 0 ? "Wait" : "Submit"}
+          </button>
+        </div>
+      </header>
+
       {/* Main Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Problem Statement */}
@@ -1953,81 +2065,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Action Footer */}
-      <footer className="h-12 shrink-0 border-t border-brand-charcoal-border bg-brand-charcoal-card flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-brand-muted-gold text-xs font-bold bg-brand-muted-gold/10 px-2.5 py-1 rounded-lg border border-brand-muted-gold/20">
-            <svg width="8" height="10" viewBox="0 0 12 16" fill="currentColor">
-              <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-            </svg>
-            +{problem.xpReward} XP
-          </div>
-          <button
-            onClick={() => setPanelMode(panelMode === "hints" ? "tests" : "hints")}
-            className={cn(
-              "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors border",
-              panelMode === "hints"
-                ? "bg-brand-muted-gold/10 text-brand-muted-gold border-brand-muted-gold/30"
-                : "text-brand-offwhite-muted border-transparent hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
-            )}
-          >
-            <Lightbulb size={14} /> Hints
-          </button>
-          <button
-            onClick={handleReset}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite transition-colors p-1.5 rounded-lg hover:bg-brand-charcoal-hover"
-            title="Reset code to original"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setReportOpen(true); setReportSubmitted(false); setReportDescription(""); }}
-            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
-            title="Report a problem with this exercise"
-          >
-            <Bug size={14} /> Report Bug
-          </button>
-          <button
-            onClick={handleTest}
-            disabled={submitting || cooldown > 0}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
-          >
-            {cooldown > 0 ? (
-              <span className="text-brand-muted-gold font-mono">{cooldown}s</span>
-            ) : submitting ? (
-              <div className="w-3.5 h-3.5 border-2 border-brand-charcoal-border border-t-brand-offwhite rounded-full animate-spin" />
-            ) : (
-              <Play size={14} fill="currentColor" />
-            )}
-            {cooldown > 0 ? "Wait" : "Test"}
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || cooldown > 0 || problem.solved}
-            className={cn(
-              "px-4 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all",
-              problem.solved
-                ? "bg-brand-success/10 text-brand-success border border-brand-success/30 cursor-not-allowed"
-                : "bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base shadow-brand-muted-gold/10",
-              (submitting || cooldown > 0) && "opacity-70",
-            )}
-          >
-            {problem.solved ? (
-              <CheckCircle2 size={14} />
-            ) : cooldown > 0 ? (
-              <span className="font-mono">{cooldown}s</span>
-            ) : submitting ? (
-              <div className="w-3.5 h-3.5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-            ) : (
-              <Play size={14} fill="currentColor" />
-            )}
-            {problem.solved ? "Solved" : cooldown > 0 ? "Wait" : "Submit"}
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }
