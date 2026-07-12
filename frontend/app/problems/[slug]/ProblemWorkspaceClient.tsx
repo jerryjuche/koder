@@ -70,6 +70,60 @@ const PYTHON_CODE = `def solution():
 
 const STORE_KEY = (s: string) => `koder_code_${s}`;
 
+function formatCode(code: string, lang: string): string {
+  // Shared: normalize line endings, strip trailing whitespace, collapse excessive blank lines
+  let result = code.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "");
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  const lines = result.split("\n");
+  const out: string[] = [];
+  let indent = 0;
+
+  if (lang === "go") {
+    // Go: tabs for indent, brace on same line, block-aware
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      if (raw === "") { out.push(""); continue; }
+
+      const trimmed = raw.trimStart();
+      const stripped = trimmed.replace(/\/\/.*$/, "").trimEnd();
+
+      // Dedent before closing brace/bracket/paren (including } else {)
+      if (/^[})\]]/.test(trimmed)) indent = Math.max(0, indent - 1);
+
+      out.push("\t".repeat(indent) + trimmed);
+
+      // Increase indent after opening block
+      if (stripped.endsWith("{") || stripped.endsWith("(") || stripped.endsWith("[")) indent++;
+    }
+
+    result = out.join("\n") + "\n";
+  } else if (lang === "python") {
+    // Python: 4-space indent, PEP 8 de-indent rules
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      if (raw === "") { out.push(""); continue; }
+
+      const trimmed = raw.trimStart();
+
+      // Dedent before keywords that close a block
+      if (/^(return\b|elif\b|else:|except\b|finally:|raise\b|pass$|break$|continue$)/.test(trimmed))
+        indent = Math.max(0, indent - 1);
+
+      out.push(" ".repeat(indent * 4) + trimmed);
+
+      // Increase indent after colon (block start)
+      if (trimmed.endsWith(":") && !trimmed.startsWith("#")) indent++;
+    }
+
+    result = out.join("\n") + "\n";
+  }
+
+  // Ensure single trailing newline
+  result = result.replace(/\n+$/, "\n");
+  return result;
+}
+
 function generateScaffold(problem: Problem | null, lang: string): string {
   const lv = problem?.language_versions?.[lang];
   if (lv?.func_name) {
@@ -158,7 +212,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
-        setCode(scaffold);
+        // Only overwrite code with scaffold if no saved code exists in localStorage
+        const stored = localStorage.getItem(STORE_KEY(slug));
+        if (!stored) {
+          setCode(scaffold);
+        }
         setScaffoldAtToggle(scaffold);
         setSaved(true);
       }
@@ -226,25 +284,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
-    const action = ed.getAction("editor.action.formatDocument");
-    if (action) {
-      action.run().then(() => {
-        setCode(ed.getValue());
-        setSaved(true);
-        toast.success("Code formatted");
-      });
-    } else {
-      const raw = ed.getValue();
-      const formatted = raw.replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
-      ed.executeEdits("format", [{
-        range: ed.getModel()!.getFullModelRange(),
-        text: formatted,
-        forceMoveMarkers: true,
-      }]);
-      setCode(formatted);
-      setSaved(true);
-      toast.success("Code formatted");
-    }
+    const raw = ed.getValue();
+    const formatted = formatCode(raw, activeLanguage);
+    ed.executeEdits("format", [{
+      range: ed.getModel()!.getFullModelRange(),
+      text: formatted,
+      forceMoveMarkers: true,
+    }]);
+    setCode(formatted);
+    setSaved(true);
+    toast.success("Code formatted");
   }
 
   async function handleSubmit() {
