@@ -17,7 +17,6 @@ import {
   CodeBlockItem,
 } from "@/components/kibo-ui/code-block";
 import type { BundledLanguage } from "@/components/kibo-ui/code-block";
-import { Avatar } from "@/components/base/avatar/avatar";
 import {
   CheckCircle2,
   Heart,
