@@ -498,7 +498,7 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	updated, err := h.store.UpdateProblem(r.Context(), existing)
 	if err != nil {
 		slog.Error("admin: failed to update problem", "id", problemID, "error", err)
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to update problem", nil)
+		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", err.Error(), nil)
 		return
 	}
 
