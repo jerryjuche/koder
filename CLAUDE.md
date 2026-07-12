@@ -1112,3 +1112,40 @@ npm run build   # Builds static + server components
 
 **Go Fundamentals Seed:**
 - `migrations/037_seed_go_fundamentals.sql` — 5 Go-only problems in new `go-fundamentals` module: `even-squares` (slices+filter, diff 2), `word-count` (maps, diff 3), `fizzbuzz` (control-flow, diff 1), `unique` (map-set idiom, diff 3), `max-min` (slice iteration, diff 2). All have only `go` key in `language_versions`.
+
+---
+
+### 2026-07-12 — Save & Switch, Monaco theme, leaderboard infinite loop, profile rate mismatch
+
+**Save & Switch (language toggle):**
+- Per-language localStorage keys (`koder_code_{slug}_{lang}`) so auto-save doesn't overwrite saved code with scaffold
+- `applyLanguageSwitch` restores saved code for target language if available
+- Language-aware `featuredFormatter` (tab-based Go, 4-space block-aware Python)
+- Auto-complete: removed `" "` trigger character, redundant keyword/package lists
+- Confirmation dialog when code differs from scaffold at toggle time
+
+**Monaco Editor:**
+- Replaced custom `koder-dark` theme (529 lines + custom Monarch tokenizers) with VS Code Dark+ via `defineTheme`
+- Removed `monaco-themes.ts`, `custom-tokenizers.ts`
+- Added `worker-src 'self' blob:` to CSP for Monaco web workers
+
+**TopNav:**
+- Removed "Add Problem" button (was visible to admin + verified_contributor)
+- Fixed stray `</div>` causing parse error
+- Added "Dashboard" and "Problems" links with icons
+
+**Leaderboard:**
+- Fixed infinite re-fetch loop: `loadData` was a plain function (no `useCallback`) in `useEffect` deps → recreated every render → effect refired → API call → re-render → loop
+- Show raw ms (< 1000) instead of rounding to 1 decimal (`0.3s` hid real differences)
+
+**Profile:**
+- Fixed `attempted_count` mismatch: `get_full_profile` stored procedure counted total submissions (`COUNT(DISTINCT s.id)`) instead of distinct problems — caused "Rate" (ProfileHeader) and "Success Rate" (StatsOverview) to show different values
+- Fixed in 3 migration copies (009, 012, 013)
+
+**Other:**
+- Disabled "Share Profile" button, removed unused copy-to-clipboard code
+- Admin edit problem dialog (PUT /admin/problems/{id})
+- CompileErrorMessage fix: collect all `solution.go:` error lines instead of returning on first match
+- JSONB encoding fix: `[]byte` → `json.RawMessage` for `language_versions` params (pgx encodes `[]byte` as `bytea`, not `jsonb`)
+
+**Verification:** All changes pushed to `python-curricula`. Backend go vet/build clean. Frontend ESLint+TS clean after fixes.
