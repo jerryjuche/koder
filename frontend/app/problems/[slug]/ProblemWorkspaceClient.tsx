@@ -81,39 +81,51 @@ function formatCode(code: string, lang: string): string {
 
   if (lang === "go") {
     // Go: tabs for indent, brace on same line, block-aware
+    // Track paren depth separately from brace depth for multi-line function signatures
+    let parenBlock = false;
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       if (raw === "") { out.push(""); continue; }
 
       const trimmed = raw.trimStart();
+      // Strip inline comments before checking ending characters
       const stripped = trimmed.replace(/\/\/.*$/, "").trimEnd();
 
-      // Dedent before closing brace/bracket/paren (including } else {)
+      // Dedent before closing tokens
       if (/^[})\]]/.test(trimmed)) indent = Math.max(0, indent - 1);
+
+      // Dedent for case/default labels (they align with switch body, then re-indent content)
+      const isGoLabel = /^(case .+:|default:)/.test(stripped);
+      if (isGoLabel) indent = Math.max(0, indent - 1);
 
       out.push("\t".repeat(indent) + trimmed);
 
-      // Increase indent after opening block
+      // Increase indent after opening tokens
       if (stripped.endsWith("{") || stripped.endsWith("(") || stripped.endsWith("[")) indent++;
+      if (isGoLabel) indent++;
     }
 
     result = out.join("\n") + "\n";
   } else if (lang === "python") {
-    // Python: 4-space indent, PEP 8 de-indent rules
+    // Python: 4-space indent, PEP 8
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       if (raw === "") { out.push(""); continue; }
 
       const trimmed = raw.trimStart();
 
-      // Dedent before keywords that close a block
-      if (/^(return\b|elif\b|else:|except\b|finally:|raise\b|pass$|break$|continue$)/.test(trimmed))
+      // Dedent only for continuation keywords (elif/else/except/finally) that
+      // align with the parent block. return/pass/break/continue/raise are body
+      // statements that stay at the current indent level.
+      if (/^(elif\b|else:|except\b|finally:)/.test(trimmed))
         indent = Math.max(0, indent - 1);
 
       out.push(" ".repeat(indent * 4) + trimmed);
 
       // Increase indent after colon (block start)
-      if (trimmed.endsWith(":") && !trimmed.startsWith("#")) indent++;
+      const hasComment = trimmed.includes("#");
+      const codePart = hasComment ? trimmed.split("#")[0] : trimmed;
+      if (codePart.trimEnd().endsWith(":")) indent++;
     }
 
     result = out.join("\n") + "\n";
