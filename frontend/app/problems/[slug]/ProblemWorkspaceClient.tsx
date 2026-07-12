@@ -2054,12 +2054,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <DialogHeader>
             <DialogTitle>Switch language?</DialogTitle>
             <DialogDescription>
-              You have unsaved changes in your current code. Switching languages
-              will replace the editor content with a scaffold for the new
-              language. Any unsaved changes will be lost.
+              Switching languages will replace the editor content with a scaffold for the new
+              language. You can save your current code before switching.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex gap-2">
             <button
               onClick={() => {
                 setLanguageConfirmOpen(false);
@@ -2068,6 +2067,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
             >
               Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (pendingLanguage) {
+                  const currentCode = editorRef.current?.getValue() ?? code;
+                  localStorage.setItem(STORE_KEY(slug), currentCode);
+                  setSaved(true);
+                  await applyLanguageSwitch(pendingLanguage);
+                }
+                setLanguageConfirmOpen(false);
+                setPendingLanguage(null);
+              }}
+              className="rounded-lg bg-brand-charcoal-hover px-4 py-2 text-sm font-medium text-brand-offwhite hover:bg-brand-charcoal-panel border border-brand-charcoal-border transition-colors"
+            >
+              Save &amp; Switch
             </button>
             <button
               onClick={async () => {
