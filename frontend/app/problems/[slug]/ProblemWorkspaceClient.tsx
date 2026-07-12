@@ -31,7 +31,10 @@ import {
   Code2,
   AlertTriangle,
   Activity,
+  Edit3,
+  Save,
 } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
 import {
   fetchProblem,
@@ -39,9 +42,10 @@ import {
   testCode,
   submitFeedback,
   updatePrimaryLanguage,
+  updateProblem,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { Problem, TestResult, ExecutionResult } from "@/lib/types";
+import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
   Dialog,
@@ -125,6 +129,19 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
   const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
   const [fullscreen, setFullscreen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    statement: "",
+    difficulty: 1,
+    xp_reward: 0,
+    tags: "",
+    module: "",
+    constraints: "",
+    learning_objective: "",
+  });
+  const { user } = useUser();
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -398,6 +415,38 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     handleTestRef.current = handleTest;
   });
 
+  const handleEditSave = async () => {
+    if (!problem) return;
+    setEditSaving(true);
+    try {
+      const payload: UpdateProblemPayload = {
+        title: editForm.title,
+        statement: editForm.statement,
+        difficulty: editForm.difficulty,
+        xp_reward: editForm.xp_reward,
+        tags: editForm.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        module: editForm.module || undefined,
+        constraints: editForm.constraints || undefined,
+        learning_objective: editForm.learning_objective || undefined,
+      };
+      const res = await updateProblem(String(problem.id), payload);
+      if (res.success) {
+        toast.success("Problem updated successfully");
+        setProblem({ ...problem, ...res.data });
+        setEditOpen(false);
+      } else {
+        toast.error(res.error || "Failed to update problem");
+      }
+    } catch {
+      toast.error("Failed to update problem");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   if (!problem) {
     return (
       <div className="h-screen w-screen bg-brand-charcoal-base flex items-center justify-center">
@@ -466,6 +515,29 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           >
             <Lightbulb size={16} /> Hints
           </button>
+          {user?.role === "admin" && problem && (
+            <button
+              onClick={() => {
+                if (problem) {
+                  setEditForm({
+                    title: problem.title || "",
+                    statement: problem.statement || "",
+                    difficulty: problem.difficulty || 1,
+                    xp_reward: problem.xpReward || 0,
+                    tags: (problem.tags || []).join(", "),
+                    module: problem.module || "",
+                    constraints: problem.constraints || "",
+                    learning_objective: problem.learningObjective || "",
+                  });
+                }
+                setEditOpen(true);
+              }}
+              className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-accent-teal hover:border-brand-accent-teal/30 hover:bg-brand-accent-teal/5"
+              title="Edit problem"
+            >
+              <Edit3 size={15} /> Edit
+            </button>
+          )}
           <button
             onClick={() => {
               setReportOpen(true);
@@ -2062,6 +2134,138 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEditOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-accent-teal/10 border border-brand-accent-teal/20 flex items-center justify-center">
+                  <Edit3 size={18} className="text-brand-accent-teal" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-brand-offwhite">
+                    Edit Problem
+                  </h2>
+                  <p className="text-xs text-brand-offwhite-muted">
+                    {problem.slug}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Title</label>
+                <input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Statement</label>
+                <textarea
+                  value={editForm.statement}
+                  onChange={(e) => setEditForm({ ...editForm, statement: e.target.value })}
+                  rows={6}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">Difficulty (1-5)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={editForm.difficulty}
+                    onChange={(e) => setEditForm({ ...editForm, difficulty: Math.min(5, Math.max(1, Number(e.target.value))) })}
+                    className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">XP Reward</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editForm.xp_reward}
+                    onChange={(e) => setEditForm({ ...editForm, xp_reward: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Module</label>
+                <input
+                  value={editForm.module}
+                  onChange={(e) => setEditForm({ ...editForm, module: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Tags (comma-separated)</label>
+                <input
+                  value={editForm.tags}
+                  onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Constraints</label>
+                <textarea
+                  value={editForm.constraints}
+                  onChange={(e) => setEditForm({ ...editForm, constraints: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Learning Objective</label>
+                <textarea
+                  value={editForm.learning_objective}
+                  onChange={(e) => setEditForm({ ...editForm, learning_objective: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-brand-charcoal-border px-5 py-4">
+              <button
+                onClick={() => setEditOpen(false)}
+                className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving}
+                className="rounded-lg bg-brand-accent-teal px-5 py-2 text-sm font-semibold text-black transition-all duration-300 hover:bg-brand-accent-teal/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {editSaving ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
