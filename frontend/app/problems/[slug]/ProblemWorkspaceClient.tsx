@@ -284,7 +284,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   async function applyLanguageSwitch(newLang: string) {
     const scaffold = generateScaffold(problem, newLang);
     setActiveLanguage(newLang);
-    setCode(scaffold);
+    // Restore saved code for the target language if available
+    const saved = localStorage.getItem(STORE_KEY(slug, newLang));
+    setCode(saved || scaffold);
     setScaffoldAtToggle(scaffold);
     localStorage.setItem("koder_language", newLang);
     try {
