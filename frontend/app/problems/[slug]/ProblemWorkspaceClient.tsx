@@ -209,28 +209,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
-    const raw = ed.getValue();
-    const formatted =
-      raw
-        .split("\n")
-        .map((l: string) => l.replace(/[ \t]+$/, ""))
-        .join("\n")
-        .replace(/\n{3,}/g, "\n\n")
-        .replace(
-          /^(\t*) +/gm,
-          (_: string, tabs: string) => tabs + " ".repeat(4),
-        )
-        .trimEnd() + "\n";
-    ed.executeEdits("format", [
-      {
-        range: ed.getModel().getFullModelRange(),
+    const action = ed.getAction("editor.action.formatDocument");
+    if (action) {
+      action.run().then(() => {
+        setCode(ed.getValue());
+        setSaved(true);
+        toast.success("Code formatted");
+      });
+    } else {
+      const raw = ed.getValue();
+      const formatted = raw.replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+      ed.executeEdits("format", [{
+        range: ed.getModel()!.getFullModelRange(),
         text: formatted,
         forceMoveMarkers: true,
-      },
-    ]);
-    setCode(formatted);
-    setSaved(true);
-    toast.success("Code formatted");
+      }]);
+      setCode(formatted);
+      setSaved(true);
+      toast.success("Code formatted");
+    }
   }
 
   async function handleSubmit() {
