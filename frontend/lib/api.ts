@@ -17,6 +17,7 @@ import {
   UpdateProblemPayload,
   AIAssistRequest,
   AIAssistResponse,
+  PublicUserData,
 } from "./types";
 import { getCache, setCache } from "./cache";
 
