@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { fetchAdminFeedback, fetchAdminFeedbackCounts, updateFeedbackStatus } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { FeedbackItem } from "@/lib/types";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 
 const STATUS_TABS = [
   { id: "", label: "All", icon: MessageSquareText },
@@ -186,7 +187,15 @@ export default function FeedbackPanel({ compact }: Props) {
                         <div className="font-medium text-brand-offwhite">{fb.title}</div>
                       </td>
                       <td className="px-5 py-3 text-brand-offwhite-muted text-xs">
-                        {fb.is_anonymous ? "Anonymous" : fb.user_name || "—"}
+                        {fb.is_anonymous ? (
+                          "Anonymous"
+                        ) : fb.user_id ? (
+                          <ProfileHoverCard userId={fb.user_id} side="bottom" align="start">
+                            <span className="cursor-pointer">{fb.user_name || "—"}</span>
+                          </ProfileHoverCard>
+                        ) : (
+                          fb.user_name || "—"
+                        )}
                       </td>
                       <td className="px-5 py-3">
                         <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", PRIORITY_COLORS[fb.priority])}>

@@ -48,6 +48,7 @@ type Store interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByLogin(ctx context.Context, login string) (*User, error) // checks username, email, student_id
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error)
 	GetUserByGoogleID(ctx context.Context, googleID string) (*User, error)
 	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { fetchAllBroadcasts, createBroadcast, deleteBroadcast, deactivateBroadcast, activateBroadcast } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { Broadcast } from "@/lib/types";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 import { useWebSocket } from "@/lib/event";
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bg: string }> = {
@@ -275,7 +276,13 @@ export default function BroadcastPanel({ compact }: Props) {
                       </span>
                       <span className="text-[10px] text-brand-offwhite-muted/50 flex items-center gap-1">
                         <User size={9} />
-                        {b.user_name || "Admin"}
+                        {b.created_by ? (
+                          <ProfileHoverCard userId={b.created_by} side="bottom" align="start">
+                            <span className="cursor-pointer">{b.user_name || "Admin"}</span>
+                          </ProfileHoverCard>
+                        ) : (
+                          b.user_name || "Admin"
+                        )}
                       </span>
                     </div>
                   </div>

@@ -30,6 +30,7 @@ import {
 import { toast } from "@/lib/toast";
 import { FeedbackItem, Problem, UpdateProblemPayload } from "@/lib/types";
 import ProblemEditPanel from "./ProblemEditPanel";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 
 const STATUS_TABS = [
   { id: "", label: "All", icon: Bug },
@@ -286,11 +287,19 @@ export default function ProblemReports({ compact }: Props) {
               <div className="flex items-center gap-4 px-4 py-2 bg-brand-charcoal-panel/30 border-b border-brand-charcoal-border/50 text-[11px] text-brand-offwhite-muted">
                 <span>
                   by{" "}
-                  <span className="text-brand-offwhite/80">
-                    {report.is_anonymous
-                      ? "Anonymous"
-                      : report.user_name || "Unknown"}
-                  </span>
+                  {report.is_anonymous ? (
+                    <span className="text-brand-offwhite/80">Anonymous</span>
+                  ) : report.user_id ? (
+                    <ProfileHoverCard userId={report.user_id} side="bottom" align="start">
+                      <span className="text-brand-offwhite/80 cursor-pointer">
+                        {report.user_name || "Unknown"}
+                      </span>
+                    </ProfileHoverCard>
+                  ) : (
+                    <span className="text-brand-offwhite/80">
+                      {report.user_name || "Unknown"}
+                    </span>
+                  )}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-brand-charcoal-border" />
                 <span>

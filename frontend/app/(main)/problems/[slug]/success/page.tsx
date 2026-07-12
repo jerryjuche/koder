@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 import confetti from "canvas-confetti";
 import {
   CodeBlock,
@@ -300,17 +301,19 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                   className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden hover:border-brand-charcoal-border/80 transition-colors"
                 >
                   <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-muted-gold/10 text-brand-muted-gold flex items-center justify-center font-bold text-xs border border-brand-muted-gold/20">
-                        {sol.user_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm">{sol.user_name}</div>
-                        <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2">
-                          <span>{sol.runtime_ms}ms</span>
+                    <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
+                      <div className="flex items-center gap-3 cursor-pointer">
+                        <div className="w-8 h-8 rounded-full bg-brand-muted-gold/10 text-brand-muted-gold flex items-center justify-center font-bold text-xs border border-brand-muted-gold/20">
+                          {sol.user_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm">{sol.user_name}</div>
+                          <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2">
+                            <span>{sol.runtime_ms}ms</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ProfileHoverCard>
                     <button
                       onClick={() => handleLike(sol.id, sol.has_liked)}
                       className={cn(

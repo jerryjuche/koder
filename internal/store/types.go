@@ -230,6 +230,21 @@ type UserStats struct {
 	ProgressByDiff    map[string]DifficultyProgress `json:"progress_by_difficulty"`
 }
 
+// PublicUserData is a safe subset of user data for the hover card endpoint.
+type PublicUserData struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Username    string  `json:"username"`
+	Role        string  `json:"role"`
+	ColorIndex  int     `json:"color_index"`
+	XP          int     `json:"xp"`
+	Level       int     `json:"level"`
+	SolvedCount int     `json:"solved_count"`
+	Streak      int     `json:"streak"`
+	AvatarURL   *string `json:"google_avatar_url,omitempty"`
+	Verified    bool    `json:"verified"`
+}
+
 // UserProblemTestCase represents an embedded test case in a UserProblem payload.
 type UserProblemTestCase struct {
 	Input    json.RawMessage `json:"input"`

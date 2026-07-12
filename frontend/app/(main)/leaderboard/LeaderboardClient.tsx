@@ -21,6 +21,7 @@ import { cn, getUserColor } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 import { Input } from "@/components/ui/input";
 import {
   Tooltip,
@@ -297,23 +298,18 @@ export default function LeaderboardClient() {
 
                   {/* Name + Stats */}
                   <div className="text-center space-y-1.5 w-full">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p
-                          className={cn(
-                            "font-bold truncate max-w-[12rem] mx-auto",
-                            isFirst
-                              ? "text-[15px] text-foreground"
-                              : "text-sm text-muted-foreground"
-                          )}
-                        >
-                          {entry.user.name}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                        {entry.user.username && `@${entry.user.username}`}
-                      </TooltipContent>
-                    </Tooltip>
+                    <ProfileHoverCard user={entry.user}>
+                      <p
+                        className={cn(
+                          "font-bold truncate max-w-[12rem] mx-auto cursor-pointer",
+                          isFirst
+                            ? "text-[15px] text-foreground"
+                            : "text-sm text-muted-foreground"
+                        )}
+                      >
+                        {entry.user.name}
+                      </p>
+                    </ProfileHoverCard>
 
                     <div className="flex items-center justify-center gap-1.5 text-primary font-semibold">
                       <Zap size={12} className="shrink-0" />
@@ -582,16 +578,15 @@ export default function LeaderboardClient() {
                             )}
                             <div>
                               <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="font-mono cursor-default">
-                                      {rowUser?.username || rowUser?.name || "Unknown"}
+                                {rowUser ? (
+                                  <ProfileHoverCard user={rowUser} side="bottom" align="start">
+                                    <span className="font-mono cursor-pointer">
+                                      {rowUser.username || rowUser.name || "Unknown"}
                                     </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                                    {rowUser?.name || "Unknown"}
-                                  </TooltipContent>
-                                </Tooltip>
+                                  </ProfileHoverCard>
+                                ) : (
+                                  <span className="font-mono text-muted-foreground">Unknown</span>
+                                )}
                                 {isMe && (
                                   <Badge
                                     variant="outline"

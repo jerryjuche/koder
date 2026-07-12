@@ -153,6 +153,20 @@ export type UserProfile = {
   recent_submissions: Submission[];
 };
 
+export type PublicUserData = {
+  id: string;
+  name: string;
+  username: string;
+  role: string;
+  color_index: number;
+  xp: number;
+  level: number;
+  solved_count: number;
+  streak: number;
+  google_avatar_url?: string;
+  verified: boolean;
+};
+
 export type CommunitySolution = {
   id: string;
   user_id: string;

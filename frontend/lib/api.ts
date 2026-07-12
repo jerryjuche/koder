@@ -342,6 +342,10 @@ export async function fetchLeaderboard(
   return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
 }
 
+export async function fetchUserById(id: string): Promise<ApiResponse<PublicUserData>> {
+  return fetchApi<PublicUserData>(`/users/${id}`);
+}
+
 export async function ingestGitHubRepo(url: string): Promise<ApiResponse<any>> {
   return fetchApi<any>("/admin/ingest", {
     method: "POST",

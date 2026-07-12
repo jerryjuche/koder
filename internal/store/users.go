@@ -230,6 +230,52 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	return user, nil
 }
 
+// GetUserPublicData returns a safe public subset of user data for hover cards.
+func (s *PostgresStore) GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("id cannot be nil")
+	}
+
+	data := &PublicUserData{}
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.id::text, u.name, u.username, u.role, u.color_index, u.xp,
+		       (u.xp / 1000) + 1 as level,
+		       COALESCE((SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved), 0) as solved_count,
+		       u.google_avatar_url,
+		       u.verified
+		FROM users u
+		WHERE u.id = $1
+	`, id).Scan(
+		&data.ID, &data.Name, &data.Username, &data.Role, &data.ColorIndex,
+		&data.XP, &data.Level, &data.SolvedCount, &data.AvatarURL, &data.Verified,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user public data: %w", err)
+	}
+
+	var streak int
+	s.pool.QueryRow(ctx, `
+		WITH daily AS (
+			SELECT DISTINCT DATE(created_at) AS d
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		groups AS (
+			SELECT d, d - (DENSE_RANK() OVER (ORDER BY d))::integer AS grp
+			FROM daily
+		)
+		SELECT COUNT(*)
+		FROM groups
+		WHERE grp = (SELECT grp FROM groups WHERE d >= CURRENT_DATE - INTERVAL '1 day' ORDER BY d DESC LIMIT 1)
+	`, id).Scan(&streak)
+	data.Streak = streak
+
+	return data, nil
+}
+
 // GetUserByUsername retrieves a user by their username.
 func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	if username == "" {
