@@ -14,11 +14,11 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
-  Image,
   X,
   List,
   Group,
   ArrowUpRight,
+  Image as ImageLucide,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -363,7 +363,7 @@ export default function ProblemReports({ compact }: Props) {
                 {report.screenshot_url && (
                   <div>
                     <span className="text-[11px] font-medium text-brand-offwhite-muted uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                      <Image size={12} /> Screenshot
+                      <ImageLucide size={12} /> Screenshot
                     </span>
                     <div className="relative inline-block max-w-full">
                       <NextImage
