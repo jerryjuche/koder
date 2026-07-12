@@ -68,7 +68,7 @@ const PYTHON_CODE = `def solution():
     pass
 `;
 
-const STORE_KEY = (s: string) => `koder_code_${s}`;
+const STORE_KEY = (s: string, lang?: string) => lang ? `koder_code_${s}_${lang}` : `koder_code_${s}`;
 
 function formatCode(code: string, lang: string): string {
   // Shared: normalize line endings, strip trailing whitespace, collapse excessive blank lines
@@ -170,6 +170,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
+      const lang = localStorage.getItem("koder_language") || "go";
+      const perLang = localStorage.getItem(STORE_KEY(slug, lang));
+      if (perLang) return perLang;
       const saved = localStorage.getItem(STORE_KEY(slug));
       if (saved) return saved;
     }
@@ -223,7 +226,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
         // Only overwrite code with scaffold if no saved code exists in localStorage
-        const stored = localStorage.getItem(STORE_KEY(slug));
+        const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
         if (!stored) {
           setCode(scaffold);
         }
@@ -246,11 +249,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!problem) return;
     const timer = setTimeout(() => {
-      localStorage.setItem(STORE_KEY(slug), code);
+      localStorage.setItem(STORE_KEY(slug, activeLanguage), code);
       setSaved(true);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [code, slug, problem]);
+  }, [code, slug, problem, activeLanguage]);
 
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
@@ -273,6 +276,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setErrorMsg(null);
     setLastExecution(null);
     setHintsOpen(Array(10).fill(false));
+    localStorage.removeItem(STORE_KEY(slug, activeLanguage));
     localStorage.removeItem(STORE_KEY(slug));
     toast.success("Reset to original scaffold");
   };
@@ -2072,7 +2076,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onClick={async () => {
                 if (pendingLanguage) {
                   const currentCode = editorRef.current?.getValue() ?? code;
-                  localStorage.setItem(STORE_KEY(slug), currentCode);
+                  localStorage.setItem(STORE_KEY(slug, activeLanguage), currentCode);
                   setSaved(true);
                   await applyLanguageSwitch(pendingLanguage);
                 }
