@@ -438,7 +438,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         setProblem({ ...problem, ...res.data });
         setEditOpen(false);
       } else {
-        toast.error(res.error || "Failed to update problem");
+        toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
       }
     } catch {
       toast.error("Failed to update problem");
