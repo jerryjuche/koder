@@ -154,7 +154,6 @@ export default function TopNav() {
               </span>
             </div>
 
-            </div>
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
