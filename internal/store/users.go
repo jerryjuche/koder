@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -573,11 +574,17 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 	// Batch-fill streak for all leaderboard users
 	if len(userIDs) > 0 {
-		sRows, err := s.pool.Query(ctx, `
+		uuidList := make([]string, len(userIDs))
+		for i, id := range userIDs {
+			uuidList[i] = fmt.Sprintf("'%s'", id)
+		}
+		inClause := strings.Join(uuidList, ",")
+
+		sRows, err := s.pool.Query(ctx, fmt.Sprintf(`
 			WITH dates AS (
 				SELECT user_id, DATE(created_at) AS d
 				FROM submissions
-				WHERE user_id = ANY($1::uuid[]) AND status = 'passed'
+				WHERE user_id IN (%s) AND status = 'passed'
 				GROUP BY user_id, DATE(created_at)
 			),
 			ordered AS (
@@ -591,7 +598,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				GROUP BY user_id
 			)
 			SELECT user_id, streak FROM streaks
-		`, userIDs)
+		`, inClause))
 		if err != nil {
 			return nil, fmt.Errorf("failed to query leaderboard streaks: %w", err)
 		}
