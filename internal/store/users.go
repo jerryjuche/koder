@@ -496,19 +496,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
 				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
-				u.google_avatar_url,
-				COALESCE((
-					WITH dates AS (
-						SELECT DISTINCT DATE(created_at) AS d
-						FROM submissions
-						WHERE user_id = u.id AND status = 'passed'
-					),
-					ordered AS (
-						SELECT d, ROW_NUMBER() OVER (ORDER BY d DESC) as rn
-						FROM dates
-					)
-					SELECT COUNT(*) FROM ordered WHERE d = CURRENT_DATE - rn + 1
-				), 0) as streak
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -530,19 +518,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
 				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
-				u.google_avatar_url,
-				COALESCE((
-					WITH dates AS (
-						SELECT DISTINCT DATE(created_at) AS d
-						FROM submissions
-						WHERE user_id = u.id AND status = 'passed'
-					),
-					ordered AS (
-						SELECT d, ROW_NUMBER() OVER (ORDER BY d DESC) as rn
-						FROM dates
-					)
-					SELECT COUNT(*) FROM ordered WHERE d = CURRENT_DATE - rn + 1
-				), 0) as streak
+				u.google_avatar_url
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin' AND u.xp > 0
@@ -560,6 +536,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 	var entries []LeaderboardEntry
 	rank := 1
+	userIDs := []uuid.UUID{}
 	for rows.Next() {
 		var uID pgtype.UUID
 		var u LeaderboardUser
@@ -567,14 +544,16 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 		err := rows.Scan(
 			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL, &u.Streak,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
 		}
 
 		if uID.Valid {
-			u.ID = uuid.UUID(uID.Bytes).String()
+			id := uuid.UUID(uID.Bytes)
+			u.ID = id.String()
+			userIDs = append(userIDs, id)
 		}
 
 		u.Level = (u.XP / 1000) + 1
@@ -583,13 +562,53 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			Rank:       rank,
 			User:       u,
 			BestTimeMs: bestTime,
-			RankDelta:  0, // RankDelta would require historical snapshots, just pass 0 for now.
+			RankDelta:  0,
 		})
 		rank++
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("leaderboard rows iteration error: %w", err)
+	}
+
+	// Batch compute streaks for all leaderboard users
+	if len(userIDs) > 0 {
+		streakQuery := `
+			WITH dates AS (
+				SELECT user_id, DATE(created_at) AS d
+				FROM submissions
+				WHERE user_id = ANY($1) AND status = 'passed'
+				GROUP BY user_id, DATE(created_at)
+			),
+			ordered AS (
+				SELECT user_id, d, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY d DESC) as rn
+				FROM dates
+			),
+			streaks AS (
+				SELECT user_id, COUNT(*) as streak
+				FROM ordered
+				WHERE d = CURRENT_DATE - rn + 1
+				GROUP BY user_id
+			)
+			SELECT user_id, streak FROM streaks
+		`
+		sRows, err := s.pool.Query(ctx, streakQuery, userIDs)
+		if err == nil {
+			defer sRows.Close()
+			streakMap := make(map[string]int, len(userIDs))
+			for sRows.Next() {
+				var sid pgtype.UUID
+				var streak int
+				if err := sRows.Scan(&sid, &streak); err == nil && sid.Valid {
+					streakMap[uuid.UUID(sid.Bytes).String()] = streak
+				}
+			}
+			for i := range entries {
+				if s, ok := streakMap[entries[i].User.ID]; ok {
+					entries[i].User.Streak = s
+				}
+			}
+		}
 	}
 
 	return entries, nil
