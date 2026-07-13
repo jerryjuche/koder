@@ -61,6 +61,7 @@ export default function OnboardingPage() {
     if (user.usernameSet && user.primaryLanguage) {
       router.push('/home');
     } else if (user.usernameSet && !user.primaryLanguage) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep(2);
     }
   }, [user, router]);
