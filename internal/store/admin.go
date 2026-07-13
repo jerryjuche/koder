@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // LogActivity inserts a new activity log event into the database.
@@ -94,4 +96,57 @@ func (s *PostgresStore) GetAdminStats(ctx context.Context) (*AdminStats, error) 
 
 func isRelationNotExist(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "does not exist")
+}
+
+// SearchUsers finds users by name or username using case-insensitive matching.
+func (s *PostgresStore) SearchUsers(ctx context.Context, query string, limit int) ([]UserSearchResult, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+
+	sql := `
+		SELECT id, name, username, email, role, verified, google_avatar_url, created_at
+		FROM users
+		WHERE name ILIKE $1 OR username ILIKE $1
+		ORDER BY name ASC
+		LIMIT $2
+	`
+	pattern := "%" + query + "%"
+
+	rows, err := s.pool.Query(ctx, sql, pattern, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []UserSearchResult
+	for rows.Next() {
+		var u UserSearchResult
+		if err := rows.Scan(
+			&u.ID, &u.Name, &u.Username, &u.Email, &u.Role,
+			&u.Verified, &u.GoogleAvatarURL, &u.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan user search result: %w", err)
+		}
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("user search rows error: %w", err)
+	}
+	if users == nil {
+		users = make([]UserSearchResult, 0)
+	}
+	return users, nil
+}
+
+// ToggleUserVerified flips the verified flag for a user and returns the new state.
+func (s *PostgresStore) ToggleUserVerified(ctx context.Context, userID uuid.UUID) (bool, error) {
+	var verified bool
+	err := s.pool.QueryRow(ctx, `
+		UPDATE users SET verified = NOT verified WHERE id = $1 RETURNING verified
+	`, userID).Scan(&verified)
+	if err != nil {
+		return false, fmt.Errorf("failed to toggle user verified: %w", err)
+	}
+	return verified, nil
 }

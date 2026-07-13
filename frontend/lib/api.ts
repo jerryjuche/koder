@@ -18,6 +18,7 @@ import {
   AIAssistRequest,
   AIAssistResponse,
   PublicUserData,
+  UserSearchResult,
 } from "./types";
 import { getCache, setCache } from "./cache";
 
@@ -591,6 +592,16 @@ export async function setPin(pin: string, confirmPin: string): Promise<ApiRespon
 
 export async function fetchAIUsageStats(): Promise<ApiResponse<AIUsageStats>> {
   return fetchApi<AIUsageStats>("/admin/ai/usage");
+}
+
+export async function searchUsers(q: string): Promise<ApiResponse<UserSearchResult[]>> {
+  return fetchApi<UserSearchResult[]>(`/admin/users/search?q=${encodeURIComponent(q)}`);
+}
+
+export async function toggleUserVerified(id: string): Promise<ApiResponse<{ verified: boolean }>> {
+  return fetchApi<{ verified: boolean }>(`/admin/users/${id}/verified`, {
+    method: "PATCH",
+  });
 }
 
 

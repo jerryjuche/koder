@@ -357,3 +357,14 @@ export interface ChatMessage {
   error?: string;
   applied?: boolean;
 }
+
+export interface UserSearchResult {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  verified: boolean;
+  google_avatar_url?: string;
+  created_at: string;
+}

@@ -604,3 +604,52 @@ func (h *AdminHandler) GetAIUsage(w http.ResponseWriter, r *http.Request) {
 	}
 	RespondSuccess(w, stats)
 }
+
+// SearchUsers handles GET /admin/users/search?q=...
+func (h *AdminHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if query == "" {
+		RespondError(w, http.StatusBadRequest, "MISSING_QUERY", "Search query is required", nil)
+		return
+	}
+	if len(query) < 2 {
+		RespondError(w, http.StatusBadRequest, "QUERY_TOO_SHORT", "Query must be at least 2 characters", nil)
+		return
+	}
+
+	users, err := h.store.SearchUsers(r.Context(), query, 20)
+	if err != nil {
+		slog.Error("admin: failed to search users", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to search users", nil)
+		return
+	}
+	RespondSuccess(w, users)
+}
+
+// ToggleUserVerified handles PATCH /admin/users/{id}/verified
+func (h *AdminHandler) ToggleUserVerified(w http.ResponseWriter, r *http.Request) {
+	userID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid user ID", nil)
+		return
+	}
+
+	verified, err := h.store.ToggleUserVerified(r.Context(), userID)
+	if err != nil {
+		slog.Error("admin: failed to toggle user verified", "error", err, "user_id", userID)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update user verification status", nil)
+		return
+	}
+
+	// Log activity
+	action := "verified"
+	if !verified {
+		action = "unverified"
+	}
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Admin %s user %s", action, userID.String()),
+		"text-brand-success", "ShieldCheck",
+	)
+
+	RespondSuccess(w, map[string]bool{"verified": verified})
+}

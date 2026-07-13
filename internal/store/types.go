@@ -403,6 +403,18 @@ type RefreshToken struct {
 	CreatedAt time.Time   `db:"created_at" json:"created_at"`
 }
 
+// UserSearchResult is a lightweight user record returned by admin user search.
+type UserSearchResult struct {
+	ID              pgtype.UUID `json:"id"`
+	Name            string      `json:"name"`
+	Username        string      `json:"username"`
+	Email           string      `json:"email"`
+	Role            string      `json:"role"`
+	Verified        bool        `json:"verified"`
+	GoogleAvatarURL *string     `json:"google_avatar_url,omitempty"`
+	CreatedAt       time.Time   `json:"created_at"`
+}
+
 // AIUsageStats holds aggregate AI usage counts for the admin dashboard.
 type AIUsageStats struct {
 	TotalAICalls      int     `json:"total_ai_calls"`

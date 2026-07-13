@@ -103,6 +103,8 @@ type Store interface {
 	GetAdminStats(ctx context.Context) (*AdminStats, error)
 	LogActivity(ctx context.Context, logType, message, color, icon string) error
 	GetRecentActivity(ctx context.Context, limit int) ([]ActivityLog, error)
+	SearchUsers(ctx context.Context, query string, limit int) ([]UserSearchResult, error)
+	ToggleUserVerified(ctx context.Context, userID uuid.UUID) (bool, error)
 
 	// Community Contributions
 	CreateUserProblem(ctx context.Context, userID uuid.UUID, problem *NewUserProblem) (*UserProblem, error)
