@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { Search, ShieldCheck, ShieldOff, User, Mail, Hash, Loader2, X } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, User, Mail, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchUsers, toggleUserVerified } from "@/lib/api";
 import { toast } from "@/lib/toast";
