@@ -368,6 +368,7 @@ type CommunitySolution struct {
 	UserID        pgtype.UUID `json:"user_id"`
 	UserName      string      `json:"user_name"`
 	UserAvatarURL *string     `json:"user_avatar_url,omitempty"`
+	Verified      bool        `json:"verified"`
 	ProblemID     pgtype.UUID `json:"problem_id"`
 	ProblemSlug   string      `json:"problem_slug,omitempty"`
 	Language      string      `json:"language"`

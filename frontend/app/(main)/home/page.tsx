@@ -704,6 +704,7 @@ export default function Dashboard() {
                         src={sol.user_avatar_url}
                         name={sol.user_name}
                         size="sm"
+                        verified={sol.verified}
                       />
                       <div>
                         <div className="font-bold text-sm text-foreground flex items-center gap-2">

@@ -308,6 +308,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                         src={sol.user_avatar_url}
                         name={sol.user_name}
                         size="sm"
+                        verified={sol.verified}
                       />
                         <div>
                           <div className="font-bold text-sm">{sol.user_name}</div>

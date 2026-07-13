@@ -89,7 +89,7 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
                 name={profile.name}
                 colorIndex={profile.color_index}
                 size="xl"
-                verified={user?.role === "admin"}
+                verified={user?.verified}
                 className="border-2 border-amber-400/30 shadow-lg rounded-full"
               />
             </div>

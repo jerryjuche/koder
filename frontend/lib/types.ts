@@ -172,6 +172,7 @@ export type CommunitySolution = {
   user_id: string;
   user_name: string;
   user_avatar_url?: string;
+  verified: boolean;
   problem_id: string;
   problem_slug?: string;
   language: string;

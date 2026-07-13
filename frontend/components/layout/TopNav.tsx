@@ -226,7 +226,7 @@ export default function TopNav() {
                       name={user.name}
                       colorIndex={user.colorIndex}
                       size="md"
-                      verified={user.role === "admin"}
+                      verified={user.verified}
                       className="ring-1 ring-border/50"
                     />
                     <div className="hidden sm:flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function TopNav() {
                         name={user.name}
                         colorIndex={user.colorIndex}
                         size="sm"
-                        verified={user.role === "admin"}
+                        verified={user.verified}
                       />
                       <div>
                         <div className="flex items-center gap-1.5">
