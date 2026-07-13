@@ -270,6 +270,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         solvedCount: res.data.solved_count || 0,
         attemptedCount: res.data.attempted_count || 0,
         streak: res.data.current_streak_days ?? 0,
+        verified: res.data.verified ?? false,
         google_avatar_url: res.data.google_avatar_url,
         google_linked: res.data.google_linked ?? false,
         usernameSet: res.data.username_set ?? true,

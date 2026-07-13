@@ -597,6 +597,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	query := `
 		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
 		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set, u.primary_language,
+		       u.verified,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -619,6 +620,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.CreatedAt,
 		&user.UsernameSet,
 		&user.PrimaryLanguage,
+		&user.Verified,
 		&solvedCount,
 	)
 
