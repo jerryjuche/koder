@@ -220,14 +220,14 @@ export async function resetPasswordPin(
 
 export async function completeGoogleOnboarding(
   username: string,
-): Promise<ApiResponse<{ token: string }>> {
+): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
   return completeOnboarding(username);
 }
 
 export async function completeOnboarding(
   username: string,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/complete-onboarding", {
+): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
+  return fetchApi<{ token: string; refresh_token?: string }>("/auth/complete-onboarding", {
     method: "POST",
     body: JSON.stringify({ username }),
   });

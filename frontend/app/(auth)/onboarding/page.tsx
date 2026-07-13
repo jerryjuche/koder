@@ -50,8 +50,8 @@ export default function OnboardingPage() {
     try {
       const res = await completeOnboarding(username);
       if (res.success && res.data) {
-        if ((res.data as any)?.refresh_token) {
-          localStorage.setItem("refresh_token", (res.data as any).refresh_token);
+        if (res.data.refresh_token) {
+          localStorage.setItem("refresh_token", res.data.refresh_token);
         }
         window.dispatchEvent(new Event("user-updated"));
         setStep('language');
