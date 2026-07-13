@@ -7,13 +7,14 @@ export function middleware(request: NextRequest) {
   // Set strict CSP
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live;
     worker-src 'self' blob:;
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
+    style-src 'self' 'unsafe-inline' https://accounts.google.com;
+    style-src-elem 'self' 'unsafe-inline' https://accounts.google.com;
+    img-src 'self' data: blob: https:;
     font-src 'self' data:;
     connect-src 'self' https: wss:;
-    frame-src https://vercel.live;
+    frame-src https://accounts.google.com https://vercel.live;
     object-src 'none';
     base-uri 'self';
     frame-ancestors 'none';
