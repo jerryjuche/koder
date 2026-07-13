@@ -651,8 +651,9 @@ func (h *AdminHandler) ToggleUserVerified(w http.ResponseWriter, r *http.Request
 		"text-brand-success", "ShieldCheck",
 	)
 
-	// Invalidate leaderboard cache so the change is reflected immediately
+	// Invalidate caches so the change is reflected immediately
 	InvalidateLeaderboardCache()
+	InvalidateUserCache(userID.String())
 
 	RespondSuccess(w, map[string]bool{"verified": verified})
 }
