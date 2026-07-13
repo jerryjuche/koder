@@ -95,6 +95,7 @@ jobs:
 
     steps:
       - name: Trigger Render deploy hook
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
         run: |
           curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
 
@@ -107,5 +108,6 @@ jobs:
 
     steps:
       - name: Trigger Railway deploy hook
+        if: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL != '' }}
         run: |
           curl -fsSL -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"
