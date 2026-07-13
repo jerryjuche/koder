@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-// Load Monaco from the local public/vs directory instead of CDN
+import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
+
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
+loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -29,7 +31,10 @@ import {
   Code2,
   AlertTriangle,
   Activity,
+  Edit3,
+  Save,
 } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
 import {
   fetchProblem,
@@ -37,9 +42,10 @@ import {
   testCode,
   submitFeedback,
   updatePrimaryLanguage,
+  updateProblem,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { Problem, TestResult, ExecutionResult } from "@/lib/types";
+import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
   Dialog,
@@ -62,7 +68,71 @@ const PYTHON_CODE = `def solution():
     pass
 `;
 
-const STORE_KEY = (s: string) => `koder_code_${s}`;
+const STORE_KEY = (s: string, lang?: string) => lang ? `koder_code_${s}_${lang}` : `koder_code_${s}`;
+
+function formatCode(code: string, lang: string): string {
+  // Shared: normalize line endings, strip trailing whitespace, collapse excessive blank lines
+  let result = code.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "");
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  const lines = result.split("\n");
+  const out: string[] = [];
+  let indent = 0;
+
+  if (lang === "go") {
+    // Go: tabs for indent, brace on same line, block-aware
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      if (raw === "") { out.push(""); continue; }
+
+      const trimmed = raw.trimStart();
+      // Strip inline comments before checking ending characters
+      const stripped = trimmed.replace(/\/\/.*$/, "").trimEnd();
+
+      // Dedent before closing tokens
+      if (/^[})\]]/.test(trimmed)) indent = Math.max(0, indent - 1);
+
+      // Dedent for case/default labels (they align with switch body, then re-indent content)
+      const isGoLabel = /^(case .+:|default:)/.test(stripped);
+      if (isGoLabel) indent = Math.max(0, indent - 1);
+
+      out.push("\t".repeat(indent) + trimmed);
+
+      // Increase indent after opening tokens
+      if (stripped.endsWith("{") || stripped.endsWith("(") || stripped.endsWith("[")) indent++;
+      if (isGoLabel) indent++;
+    }
+
+    result = out.join("\n") + "\n";
+  } else if (lang === "python") {
+    // Python: 4-space indent, PEP 8
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      if (raw === "") { out.push(""); continue; }
+
+      const trimmed = raw.trimStart();
+
+      // Dedent only for continuation keywords (elif/else/except/finally) that
+      // align with the parent block. return/pass/break/continue/raise are body
+      // statements that stay at the current indent level.
+      if (/^(elif\b|else:|except\b|finally:)/.test(trimmed))
+        indent = Math.max(0, indent - 1);
+
+      out.push(" ".repeat(indent * 4) + trimmed);
+
+      // Increase indent after colon (block start)
+      const hasComment = trimmed.includes("#");
+      const codePart = hasComment ? trimmed.split("#")[0] : trimmed;
+      if (codePart.trimEnd().endsWith(":")) indent++;
+    }
+
+    result = out.join("\n") + "\n";
+  }
+
+  // Ensure single trailing newline
+  result = result.replace(/\n+$/, "\n");
+  return result;
+}
 
 function generateScaffold(problem: Problem | null, lang: string): string {
   const lv = problem?.language_versions?.[lang];
@@ -100,6 +170,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
+      const lang = localStorage.getItem("koder_language") || "go";
+      const perLang = localStorage.getItem(STORE_KEY(slug, lang));
+      if (perLang) return perLang;
       const saved = localStorage.getItem(STORE_KEY(slug));
       if (saved) return saved;
     }
@@ -123,6 +196,19 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
   const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
   const [fullscreen, setFullscreen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    statement: "",
+    difficulty: 1,
+    xp_reward: 0,
+    tags: "",
+    module: "",
+    constraints: "",
+    learning_objective: "",
+  });
+  const { user } = useUser();
 
   useEffect(() => {
     fetchProblem(slug).then((res) => {
@@ -139,7 +225,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
-        setCode(scaffold);
+        // Only overwrite code with scaffold if no saved code exists in localStorage
+        const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
+        if (!stored) {
+          setCode(scaffold);
+        }
         setScaffoldAtToggle(scaffold);
         setSaved(true);
       }
@@ -159,11 +249,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!problem) return;
     const timer = setTimeout(() => {
-      localStorage.setItem(STORE_KEY(slug), code);
+      localStorage.setItem(STORE_KEY(slug, activeLanguage), code);
       setSaved(true);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [code, slug, problem]);
+  }, [code, slug, problem, activeLanguage]);
 
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
@@ -186,6 +276,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setErrorMsg(null);
     setLastExecution(null);
     setHintsOpen(Array(10).fill(false));
+    localStorage.removeItem(STORE_KEY(slug, activeLanguage));
     localStorage.removeItem(STORE_KEY(slug));
     toast.success("Reset to original scaffold");
   };
@@ -193,7 +284,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   async function applyLanguageSwitch(newLang: string) {
     const scaffold = generateScaffold(problem, newLang);
     setActiveLanguage(newLang);
-    setCode(scaffold);
+    // Restore saved code for the target language if available
+    const saved = localStorage.getItem(STORE_KEY(slug, newLang));
+    setCode(saved || scaffold);
     setScaffoldAtToggle(scaffold);
     localStorage.setItem("koder_language", newLang);
     try {
@@ -208,24 +301,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     const ed = editorRef.current;
     if (!ed) return;
     const raw = ed.getValue();
-    const formatted =
-      raw
-        .split("\n")
-        .map((l: string) => l.replace(/[ \t]+$/, ""))
-        .join("\n")
-        .replace(/\n{3,}/g, "\n\n")
-        .replace(
-          /^(\t*) +/gm,
-          (_: string, tabs: string) => tabs + " ".repeat(4),
-        )
-        .trimEnd() + "\n";
-    ed.executeEdits("format", [
-      {
-        range: ed.getModel().getFullModelRange(),
-        text: formatted,
-        forceMoveMarkers: true,
-      },
-    ]);
+    const formatted = formatCode(raw, activeLanguage);
+    ed.executeEdits("format", [{
+      range: ed.getModel()!.getFullModelRange(),
+      text: formatted,
+      forceMoveMarkers: true,
+    }]);
     setCode(formatted);
     setSaved(true);
     toast.success("Code formatted");
@@ -399,6 +480,48 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     handleTestRef.current = handleTest;
   });
 
+  const handleEditSave = async () => {
+    if (!problem) return;
+    setEditSaving(true);
+    try {
+      const payload: UpdateProblemPayload = {
+        title: editForm.title,
+        statement: editForm.statement,
+        difficulty: editForm.difficulty,
+        xp_reward: editForm.xp_reward,
+        tags: editForm.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        module: editForm.module || undefined,
+        constraints: editForm.constraints || undefined,
+        learning_objective: editForm.learning_objective || undefined,
+      };
+      const res = await updateProblem(String(problem.id), payload);
+      if (res.success) {
+        toast.success("Problem updated successfully");
+        setProblem({
+          ...problem,
+          title: payload.title ?? problem.title,
+          statement: payload.statement ?? problem.statement,
+          difficulty: payload.difficulty ?? problem.difficulty,
+          xpReward: payload.xp_reward ?? problem.xpReward,
+          tags: payload.tags ?? problem.tags,
+          module: payload.module ?? problem.module,
+          constraints: payload.constraints ?? problem.constraints,
+          learningObjective: payload.learning_objective ?? problem.learningObjective,
+        });
+        setEditOpen(false);
+      } else {
+        toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
+      }
+    } catch {
+      toast.error("Failed to update problem");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   if (!problem) {
     return (
       <div className="h-screen w-screen bg-brand-charcoal-base flex items-center justify-center">
@@ -467,6 +590,29 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           >
             <Lightbulb size={16} /> Hints
           </button>
+          {user?.role === "admin" && problem && (
+            <button
+              onClick={() => {
+                if (problem) {
+                  setEditForm({
+                    title: problem.title || "",
+                    statement: problem.statement || "",
+                    difficulty: problem.difficulty || 1,
+                    xp_reward: problem.xpReward || 0,
+                    tags: (problem.tags || []).join(", "),
+                    module: problem.module || "",
+                    constraints: problem.constraints || "",
+                    learning_objective: problem.learningObjective || "",
+                  });
+                }
+                setEditOpen(true);
+              }}
+              className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-accent-teal hover:border-brand-accent-teal/30 hover:bg-brand-accent-teal/5"
+              title="Edit problem"
+            >
+              <Edit3 size={15} /> Edit
+            </button>
+          )}
           <button
             onClick={() => {
               setReportOpen(true);
@@ -869,7 +1015,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="koder-vscode"
+              theme="vs-dark-plus"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -889,98 +1035,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
 
-                monaco.editor.defineTheme("koder-vscode", {
-                  base: "vs-dark",
-                  inherit: true,
-                  rules: [
-                    { token: "", foreground: "D4D4D4", background: "1E1E1E" },
-                    { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.line.double-slash.go", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.block.go", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "comment.line.number-sign.python", foreground: "6A9955", fontStyle: "italic" },
-                    { token: "keyword.package.go", foreground: "C586C0" },
-                    { token: "keyword.control.go", foreground: "C586C0" },
-                    { token: "keyword.function.go", foreground: "C586C0" },
-                    { token: "keyword.channel.go", foreground: "C586C0" },
-                    { token: "keyword.const.go", foreground: "C586C0" },
-                    { token: "keyword.var.go", foreground: "C586C0" },
-                    { token: "keyword.control.flow.python", foreground: "C586C0" },
-                    { token: "keyword.control.import.python", foreground: "C586C0" },
-                    { token: "keyword.control.import.from.python", foreground: "C586C0" },
-                    { token: "storage.type.function.python", foreground: "C586C0" },
-                    { token: "storage.type.class.python", foreground: "C586C0" },
-                    { token: "entity.name.function.go", foreground: "DCDCAA" },
-                    { token: "support.function.go", foreground: "DCDCAA" },
-                    { token: "entity.name.function.python", foreground: "DCDCAA" },
-                    { token: "meta.function-call.generic.python", foreground: "DCDCAA" },
-                    { token: "meta.method-call.python", foreground: "DCDCAA" },
-                    { token: "support.function.builtin.python", foreground: "DCDCAA" },
-                    { token: "entity.name.type.go", foreground: "4EC9B0" },
-                    { token: "storage.type.string.go", foreground: "4EC9B0" },
-                    { token: "storage.type.numeric.go", foreground: "4EC9B0" },
-                    { token: "storage.type.boolean.go", foreground: "4EC9B0" },
-                    { token: "storage.type.go", foreground: "4EC9B0" },
-                    { token: "entity.name.type.class.python", foreground: "4EC9B0" },
-                    { token: "support.type.python", foreground: "4EC9B0" },
-                    { token: "support.class.builtin.python", foreground: "4EC9B0" },
-                    { token: "string.quoted.double.go", foreground: "CE9178" },
-                    { token: "string.quoted.raw.go", foreground: "CE9178" },
-                    { token: "entity.name.import.go", foreground: "CE9178" },
-                    { token: "string.quoted.double.block.python", foreground: "CE9178" },
-                    { token: "string.quoted.single.block.python", foreground: "CE9178" },
-                    { token: "string.quoted.double.single-line.python", foreground: "CE9178" },
-                    { token: "string.quoted.single.single-line.python", foreground: "CE9178" },
-                    { token: "variable.other.go", foreground: "9CDCFE" },
-                    { token: "variable.other.assignment.go", foreground: "9CDCFE" },
-                    { token: "variable.other.declaration.go", foreground: "9CDCFE" },
-                    { token: "variable.parameter.function.language.python", foreground: "9CDCFE" },
-                    { token: "variable.parameter.function.python", foreground: "9CDCFE" },
-                    { token: "variable.language.special.self.python", foreground: "9CDCFE" },
-                    { token: "variable.other.readwrite.python", foreground: "9CDCFE" },
-                    { token: "constant.numeric.go", foreground: "B5CEA8" },
-                    { token: "constant.language.boolean.go", foreground: "B5CEA8" },
-                    { token: "constant.language.go", foreground: "B5CEA8" },
-                    { token: "constant.numeric.dec.python", foreground: "B5CEA8" },
-                    { token: "constant.numeric.float.python", foreground: "B5CEA8" },
-                    { token: "constant.language.python", foreground: "B5CEA8" },
-                    { token: "keyword.operator.go", foreground: "D4D4D4" },
-                    { token: "keyword.operator.assignment.go", foreground: "D4D4D4" },
-                    { token: "punctuation.definition.bracket.go", foreground: "D4D4D4" },
-                    { token: "keyword.operator.assignment.python", foreground: "D4D4D4" },
-                    { token: "keyword.operator.comparison.python", foreground: "D4D4D4" },
-                    { token: "keyword.operator.arithmetic.python", foreground: "D4D4D4" },
-                    { token: "punctuation.definition.arguments.begin.python", foreground: "D4D4D4" },
-                    { token: "punctuation.definition.arguments.end.python", foreground: "D4D4D4" },
-                    { token: "delimiter", foreground: "D4D4D4" },
-                    { token: "delimiter.bracket", foreground: "D4D4D4" },
-                    { token: "operator", foreground: "D4D4D4" },
-                    { token: "tag", foreground: "569CD6" },
-                    { token: "attribute.name", foreground: "9CDCFE" },
-                    { token: "attribute.value", foreground: "CE9178" },
-                  ],
-                  colors: {
-                    "editor.background": "#1E1E1E",
-                    "editor.foreground": "#D4D4D4",
-                    "editor.lineHighlightBackground": "#2A2D2E",
-                    "editor.selectionBackground": "#264F78",
-                    "editor.inactiveSelectionBackground": "#3A3D41",
-                    "editorCursor.foreground": "#AEAFAD",
-                    "editorLineNumber.foreground": "#858585",
-                    "editorLineNumber.activeForeground": "#C6C6C6",
-                    "editor.selectionHighlightBackground": "#3A3D41",
-                    "editorBracketMatch.background": "#3A3D41",
-                    "editorBracketMatch.border": "#888888",
-                    "editorGutter.background": "#1E1E1E",
-                    "editorWidget.background": "#252526",
-                    "editorWidget.border": "#454545",
-                    "editorSuggestWidget.background": "#252526",
-                    "editorSuggestWidget.border": "#454545",
-                    "editorSuggestWidget.selectedBackground": "#094771",
-                    "minimap.background": "#1E1E1E",
-                  },
-                });
-                monaco.editor.setTheme("koder-vscode");
-
+                registerVSCodeDarkPlusTheme(monaco);
                 const pkgMethods: Record<
                   string,
                   { label: string; detail: string; insertText: string }[]
@@ -1337,97 +1392,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   ],
                 };
 
-                const allPackages = [
-                  "fmt",
-                  "strings",
-                  "io",
-                  "os",
-                  "time",
-                  "math",
-                  "sort",
-                  "encoding/json",
-                  "net/http",
-                  "context",
-                  "errors",
-                  "bufio",
-                  "bytes",
-                  "crypto",
-                  "database/sql",
-                  "flag",
-                  "hash",
-                  "html",
-                  "image",
-                  "log",
-                  "mime",
-                  "net",
-                  "path",
-                  "regexp",
-                  "sync",
-                  "syscall",
-                  "testing",
-                  "text/template",
-                  "unicode",
-                  "archive/tar",
-                  "archive/zip",
-                  "compress/gzip",
-                  "strconv",
-                  "reflect",
-                ];
-
-                const keywords = [
-                  "func",
-                  "var",
-                  "const",
-                  "if",
-                  "else",
-                  "for",
-                  "switch",
-                  "case",
-                  "default",
-                  "break",
-                  "continue",
-                  "return",
-                  "defer",
-                  "go",
-                  "chan",
-                  "select",
-                  "range",
-                  "type",
-                  "struct",
-                  "interface",
-                  "map",
-                  "slice",
-                  "array",
-                  "import",
-                  "package",
-                  "fallthrough",
-                  "goto",
-                  "panic",
-                  "recover",
-                  "nil",
-                  "true",
-                  "false",
-                  "int",
-                  "string",
-                  "bool",
-                  "float64",
-                  "byte",
-                  "rune",
-                  "error",
-                  "int8",
-                  "int16",
-                  "int32",
-                  "int64",
-                  "uint",
-                  "uint8",
-                  "uint16",
-                  "uint32",
-                  "uint64",
-                  "float32",
-                  "complex64",
-                  "complex128",
-                ];
-
                 monaco.languages.registerHoverProvider("go", {
                   provideHover: (model: any, position: any) => {
                     const word = model.getWordAtPosition(position);
@@ -1506,7 +1470,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 ];
 
                 monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: [".", " "],
+                  triggerCharacters: ["."],
                   provideCompletionItems: (model: any, position: any) => {
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -1545,35 +1509,17 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       return { suggestions: [] };
                     }
 
-                    const goSnippetLabels = new Set(goSnippets.map((s) => s.label));
-                    const suggestions = [
-                      ...goSnippets.map((s) => ({
-                        label: s.label,
-                        kind: monaco.languages.CompletionItemKind.Snippet,
-                        insertText: s.insertText,
-                        insertTextRules:
-                          monaco.languages.CompletionItemInsertTextRule
-                            .InsertAsSnippet,
-                        range,
-                        detail: s.detail,
-                      })),
-                      ...allPackages.map((pkg) => ({
-                        label: pkg,
-                        kind: monaco.languages.CompletionItemKind.Module,
-                        insertText: pkg,
-                        range,
-                        detail: "Go package",
-                      })),
-                      ...keywords
-                        .filter((kw) => !goSnippetLabels.has(kw))
-                        .map((kw) => ({
-                          label: kw,
-                          kind: monaco.languages.CompletionItemKind.Keyword,
-                          insertText: kw,
-                          range,
-                          detail: "Go keyword",
-                        })),
-                    ];
+                    // Snippets available via Ctrl+Space
+                    const suggestions = goSnippets.map((s) => ({
+                      label: s.label,
+                      kind: monaco.languages.CompletionItemKind.Snippet,
+                      insertText: s.insertText,
+                      insertTextRules:
+                        monaco.languages.CompletionItemInsertTextRule
+                          .InsertAsSnippet,
+                      range,
+                      detail: s.detail,
+                    }));
 
                     return { suggestions };
                   },
@@ -1765,7 +1711,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       startColumn: word.startColumn,
                       endColumn: position.column,
                     };
-                    const pySnippetLabels = new Set(pythonSnippets.map((s) => s.label));
                     const suggestions = [
                       ...pythonSnippets.map((s) => ({
                         label: s.label,
@@ -1777,15 +1722,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         range,
                         detail: s.detail,
                       })),
-                      ...pythonKeywords
-                        .filter((kw) => !pySnippetLabels.has(kw))
-                        .map((kw) => ({
-                          label: kw,
-                          kind: monaco.languages.CompletionItemKind.Keyword,
-                          insertText: kw,
-                          range,
-                          detail: "Python keyword",
-                        })),
                       ...pythonBuiltins.map((fn) => ({
                         label: fn,
                         kind: monaco.languages.CompletionItemKind.Function,
@@ -2124,12 +2060,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <DialogHeader>
             <DialogTitle>Switch language?</DialogTitle>
             <DialogDescription>
-              You have unsaved changes in your current code. Switching languages
-              will replace the editor content with a scaffold for the new
-              language. Any unsaved changes will be lost.
+              Switching languages will replace the editor content with a scaffold for the new
+              language. You can save your current code before switching.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex gap-2">
             <button
               onClick={() => {
                 setLanguageConfirmOpen(false);
@@ -2138,6 +2073,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
             >
               Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (pendingLanguage) {
+                  const currentCode = editorRef.current?.getValue() ?? code;
+                  localStorage.setItem(STORE_KEY(slug, activeLanguage), currentCode);
+                  setSaved(true);
+                  await applyLanguageSwitch(pendingLanguage);
+                }
+                setLanguageConfirmOpen(false);
+                setPendingLanguage(null);
+              }}
+              className="rounded-lg bg-brand-charcoal-hover px-4 py-2 text-sm font-medium text-brand-offwhite hover:bg-brand-charcoal-panel border border-brand-charcoal-border transition-colors"
+            >
+              Save &amp; Switch
             </button>
             <button
               onClick={async () => {
@@ -2154,6 +2104,138 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEditOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-accent-teal/10 border border-brand-accent-teal/20 flex items-center justify-center">
+                  <Edit3 size={18} className="text-brand-accent-teal" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-brand-offwhite">
+                    Edit Problem
+                  </h2>
+                  <p className="text-xs text-brand-offwhite-muted">
+                    {problem.slug}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Title</label>
+                <input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Statement</label>
+                <textarea
+                  value={editForm.statement}
+                  onChange={(e) => setEditForm({ ...editForm, statement: e.target.value })}
+                  rows={6}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">Difficulty (1-5)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={editForm.difficulty}
+                    onChange={(e) => setEditForm({ ...editForm, difficulty: Math.min(5, Math.max(1, Number(e.target.value))) })}
+                    className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">XP Reward</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editForm.xp_reward}
+                    onChange={(e) => setEditForm({ ...editForm, xp_reward: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Module</label>
+                <input
+                  value={editForm.module}
+                  onChange={(e) => setEditForm({ ...editForm, module: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Tags (comma-separated)</label>
+                <input
+                  value={editForm.tags}
+                  onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Constraints</label>
+                <textarea
+                  value={editForm.constraints}
+                  onChange={(e) => setEditForm({ ...editForm, constraints: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">Learning Objective</label>
+                <textarea
+                  value={editForm.learning_objective}
+                  onChange={(e) => setEditForm({ ...editForm, learning_objective: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-brand-charcoal-border px-5 py-4">
+              <button
+                onClick={() => setEditOpen(false)}
+                className="rounded-lg border border-brand-charcoal-border px-4 py-2 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving}
+                className="rounded-lg bg-brand-accent-teal px-5 py-2 text-sm font-semibold text-black transition-all duration-300 hover:bg-brand-accent-teal/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {editSaving ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

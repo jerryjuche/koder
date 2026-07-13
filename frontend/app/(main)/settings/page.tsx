@@ -327,7 +327,7 @@ function SettingsPageContent() {
                     name={name || user?.name}
                     colorIndex={user?.colorIndex ?? 0}
                     size="lg"
-                    verified={user?.role === "admin"}
+                    verified={user?.verified}
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

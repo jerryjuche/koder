@@ -96,6 +96,18 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  const handleApplyPreview = useCallback(() => {
+    if (!activePreview) return;
+    onApply(activePreview);
+    if (activePreview.test_cases && activePreview.test_cases.length > 0) {
+      toast.success(`${activePreview.test_cases.length} test cases saved automatically`);
+    }
+    setActivePreview(null);
+    setMessages((prev) =>
+      prev.map((m) => (m.response ? { ...m, applied: true } : m))
+    );
+  }, [activePreview, onApply]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -125,7 +137,7 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, activePreview, handleApplyPreview]);
 
   const sendMessage = useCallback(async (
     content: string,
@@ -226,18 +238,6 @@ export default function AIAssistantPanel({ problem, onApply, onClose }: AIAssist
       { difficulty: targetDifficulty }
     );
   }, [targetDifficulty, sendMessage]);
-
-  const handleApplyPreview = useCallback(() => {
-    if (!activePreview) return;
-    onApply(activePreview);
-    if (activePreview.test_cases && activePreview.test_cases.length > 0) {
-      toast.success(`${activePreview.test_cases.length} test cases saved automatically`);
-    }
-    setActivePreview(null);
-    setMessages((prev) =>
-      prev.map((m) => (m.response ? { ...m, applied: true } : m))
-    );
-  }, [activePreview, onApply]);
 
   const handleRevert = useCallback(() => {
     setActivePreview(null);

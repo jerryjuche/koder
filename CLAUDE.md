@@ -1038,3 +1038,174 @@ npm run build   # Builds static + server components
 - **Bug fixes**: Settings logout redirect `/auth/login` (404) → `/login`. Success page language dynamic from localStorage. Removed unused `ChevronRight`, `getDifficultyLabel` imports
 
 **Verification:** `go vet` clean, 124 tests pass, `go build` clean, pushed `ef86884` to `python-curricula`
+
+---
+
+### 2026-07-12 — Monaco theme, workspace layout, admin edit problem, ESLint sweep
+
+**Monaco Editor VS Code Dark+ Theme:**
+- Created `frontend/lib/monaco-theme.ts` with `registerVSCodeDarkPlusTheme()` — exact VS Code Dark+ colors (no custom tokenizers or semantic tokens)
+- Registered eagerly via `loader.init().then(registerVSCodeDarkPlusTheme)` and in `onMount` callback
+- Theme prop changed from `"koder-dark"` (custom) to `"vs-dark-plus"`
+- Removed `frontend/lib/monaco-themes.ts` (529 lines) and `frontend/lib/custom-tokenizers.ts` — all custom Monarch tokenizers and `defineTheme` code
+- Added `worker-src 'self' blob:` to `frontend/middleware.ts` for Monaco web workers
+
+**Confetti Fix:**
+- Removed `ready`-gated separate `useEffect`; confetti now fires directly when `loading` flips to `false` with 200ms `setTimeout` for DOM paint
+
+**TopNav Updates:**
+- Added "Dashboard" → `/home` (LayoutDashboard icon), "Problems" → Code2 icon, Admin link conditional on `user?.role === "admin"`
+
+**Formatter Fix:**
+- `handleFormat()` uses Monaco's built-in `editor.action.formatDocument` with whitespace cleanup fallback (removed custom formatting code)
+
+**Pagination Fix (Problems page):**
+- Removed `<<` first page and `>>` last page buttons; clean prev/next + "Page X of Y"
+
+**Problems Page Rewrite:**
+- Side panel filters: solved status (default unsolved), difficulty (1-5), XP range (sliders)
+- Strict language tabs (All/Go/Python) filtering by `language_versions[lang].func_name`
+- Solved problems hidden by default
+- Mobile-responsive filter overlay with slide-out panel
+- Active filter count badge + Reset filters button
+- Problem count display
+- Fixed `FilterPanel` component → `renderFilterPanel()` function (ESLint `react-hooks/static-components`)
+
+**ESLint Warning Fixes (8 warnings):**
+- `FeedbackPanel.tsx`, `ProblemReports.tsx`, `avatar.tsx`, `ModuleCards.tsx` — `<img>` → `<Image />` with `next/image`
+- `home/page.tsx` — added `languageFilter` to useEffect deps
+- `LeaderboardClient.tsx` — added `loadData` to useEffect deps
+- `AIAssistantPanel.tsx` — added missing deps
+
+**Pre-existing TS Error Fix:**
+- `AIAssistantPanel.tsx` — moved `handleApplyPreview` `useCallback` definition before `useEffect` that referenced it (was "used before declared" error blocking CI)
+
+**Workspace Layout:**
+- Removed TopNav from `problems/layout.tsx` — workspace has only the problem content area + FeedbackButton
+- The problems listing at `/problems` retains TopNav from `(main)/layout.tsx`
+
+**Admin Edit Problem:**
+- Added "Edit" button (Edit3 icon) in workspace header, visible only for `user.role === "admin"`
+- Opens a modal dialog with editable fields: title, statement (textarea), difficulty (1-5), XP reward, module, tags (comma-separated), constraints (textarea), learning objective (textarea)
+- Calls `PUT /admin/problems/{id}` via `updateProblem()` API
+- Form initializes from current `problem` state on dialog open
+- Save handler typed with `UpdateProblemPayload`, error handling extracts `.message` from API error objects
+
+**UPDATE_FAILED Bugfix:**
+- **Root cause:** `LanguageVersions` could be `nil` in Go when `unmarshalLanguageVersions` failed silently or stored JSONB was null. `json.Marshal(nilMap)` produces `"null"` which pgx sends as SQL NULL, violating the `NOT NULL` constraint on `language_versions`
+- **Fix 1** (`internal/store/problems.go:686`): `UpdateProblem` now guards with `if problem.LanguageVersions == nil { problem.LanguageVersions = make(map[string]LanguageSpec) }` before `json.Marshal`
+- **Fix 2** (`internal/store/problems.go:767`): `unmarshalLanguageVersions` now initializes target map to empty when unmarshal fails and map is nil — prevents silent nil propagation
+- **Fix 3** (all `lvJSON` params): Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `ERROR: invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL tries to cast from `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
+- Returns actual DB error in response for easier debugging
+
+**Verification:** Go build clean (`go build ./internal/...`). Pushed `3c4b2a6` to `python-curricula`.
+
+---
+
+### 2026-07-12 — Go fundamentals seed + multi-return fix, JSONB encoding fix, edit state preservation
+
+**JSONB Encoding Fix:**
+- Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites: `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL casts `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
+
+**Edit State Preservation:**
+- Changed `setProblem({...problem, ...res.data})` to only merge the 8 edited fields — was spreading raw DB response which has zero-value `examples`, `solved`, `stars`, etc.
+
+**Go Fundamentals Seed:**
+- `migrations/037_seed_go_fundamentals.sql` — 5 Go-only problems in new `go-fundamentals` module: `even-squares` (slices+filter, diff 2), `word-count` (maps, diff 3), `fizzbuzz` (control-flow, diff 1), `unique` (map-set idiom, diff 3), `max-min` (slice iteration, diff 2). All have only `go` key in `language_versions`.
+
+---
+
+### 2026-07-12 — Save & Switch, Monaco theme, leaderboard infinite loop, profile rate mismatch
+
+**Save & Switch (language toggle):**
+- Per-language localStorage keys (`koder_code_{slug}_{lang}`) so auto-save doesn't overwrite saved code with scaffold
+- `applyLanguageSwitch` restores saved code for target language if available
+- Language-aware `featuredFormatter` (tab-based Go, 4-space block-aware Python)
+- Auto-complete: removed `" "` trigger character, redundant keyword/package lists
+- Confirmation dialog when code differs from scaffold at toggle time
+
+**Monaco Editor:**
+- Replaced custom `koder-dark` theme (529 lines + custom Monarch tokenizers) with VS Code Dark+ via `defineTheme`
+- Removed `monaco-themes.ts`, `custom-tokenizers.ts`
+- Added `worker-src 'self' blob:` to CSP for Monaco web workers
+
+**TopNav:**
+- Removed "Add Problem" button (was visible to admin + verified_contributor)
+- Fixed stray `</div>` causing parse error
+- Added "Dashboard" and "Problems" links with icons
+
+**Leaderboard:**
+- Fixed infinite re-fetch loop: `loadData` was a plain function (no `useCallback`) in `useEffect` deps → recreated every render → effect refired → API call → re-render → loop
+- Show raw ms (< 1000) instead of rounding to 1 decimal (`0.3s` hid real differences)
+
+**Profile:**
+- Fixed `attempted_count` mismatch: `get_full_profile` stored procedure counted total submissions (`COUNT(DISTINCT s.id)`) instead of distinct problems — caused "Rate" (ProfileHeader) and "Success Rate" (StatsOverview) to show different values
+- Fixed in 3 migration copies (009, 012, 013)
+
+**Other:**
+- Disabled "Share Profile" button, removed unused copy-to-clipboard code
+- Admin edit problem dialog (PUT /admin/problems/{id})
+- CompileErrorMessage fix: collect all `solution.go:` error lines instead of returning on first match
+- JSONB encoding fix: `[]byte` → `json.RawMessage` for `language_versions` params (pgx encodes `[]byte` as `bytea`, not `jsonb`)
+
+**Verification:** All changes pushed to `python-curricula`. Backend go vet/build clean. Frontend ESLint+TS clean after fixes.
+
+---
+
+### 2026-07-13 — ProfileHoverCard redesign: XP progress bar, professional polish
+
+**Changes:**
+- Removed unreliable `streak` from hover card (leaderboard always returns 0)
+- Added XP progress bar: `xpInLevel / 1,000 → next level` with gradient bar
+- 3-column stat layout (XP / Level / Solved) with `text-base font-extrabold` values
+- Gradient accent bar at card top + gradient divider
+- `p-5 space-y-4` for more breathing room
+- Verified status shown as inline "Verified" text label alongside avatar name
+- Fixed `user?.role === "admin"` → `user?.verified` for verified badge on TopNav, Settings, ProfileHeader
+- Centralized `cn()` import (removed local duplicate)
+
+### 2026-07-13 — Verified badge propagation complete (4-layer fix)
+
+**Gaps found and closed:**
+
+| Layer | File | Issue | Fix |
+|---|---|---|---|
+| Leaderboard struct | `internal/store/types.go:195-208` | `LeaderboardUser` missing `Verified` field | Added `Verified bool \`json:"verified"\`` |
+| Leaderboard SQL | `internal/store/users.go:493-528` | Both queries missing `u.verified` | Added to SELECT + `&u.Verified` to scan |
+| Community solutions | `internal/store/submissions.go:128-226` | `u.verified` missing from SELECT | Added `u.verified` + `&cs.Verified` scan |
+| Community solution struct | `internal/store/types.go:365-380` | Missing `Verified` field | Added `Verified bool` |
+| Frontend CommunitySolution | `frontend/lib/types.ts:170-183` | Missing `verified` | Added `verified: boolean` |
+| GET /me store | `internal/store/users.go:589-633` | `GetUserWithSolvedCount` didn't SELECT `u.verified` | Added to SQL + scan |
+| GET /me response | `internal/api/me.go:25-41` | `meResponse` missing `Verified` | Added field + set in both GetMe & UpdateLanguage |
+| Frontend fetchUser | `frontend/lib/api.ts:256-286` | Didn't map `verified` | Added `verified: res.data.verified ?? false` |
+| Cache invalidation | `internal/api/admin.go:629-655` | `ToggleUserVerified` didn't invalidate user cache | Added `InvalidateUserCache()` |
+| Leaderboard cache | `internal/api/admin.go:629-655` | Already had cache invalidation | Added `InvalidateLeaderboardCache()` (already present) |
+
+**All 40 audit items pass.** The gold checkmark badge now appears on every Avatar across the app — TopNav, profile page, leaderboard podium + table, community solutions, settings — not just on hover.
+
+### 2026-07-13 — Admin user verification panel
+
+**Backend:**
+- `POSTGRES` — `SearchUsers` (ILIKE name/username, 20 result limit)
+- `POSTGRES` — `ToggleUserVerified` (NOT verified RETURNING)
+- `Store interface` — `SearchUsers`, `ToggleUserVerified` methods
+- `Store types` — `UserSearchResult` struct (ID, name, username, email, role, verified, avatar, created_at)
+- `API` — `GET /admin/users/search?q=` with min 2 char validation
+- `API` — `PATCH /admin/users/{id}/verified` with activity logging + cache invalidation
+- `Router` — Both routes in AdminOnly group
+
+**Frontend:**
+- `UserVerificationPanel` — Search input with 300ms debounce, results with user info card, verified toggle button, ProfileHoverCard
+- Loading spinner, empty states (no search / no results), error toasts
+- Wired into admin page below Problem Reports
+
+### 2026-07-13 — Leaderboard custom Avatar with verified checkmark
+
+**Problem:** Leaderboard used shadcn `Avatar` (no `verified` prop) with manual `<Image>` fallback. Gold checkmark never appeared on podium or table rows.
+
+**Fix:**
+- Replaced all shadcn Avatar + manual Image branches with single custom `<Avatar>` component
+- Added `"podium"` size (h-16 w-16) to the custom Avatar's `sizeMap` for top-3 (was 64px)
+- All 3 locations now pass `verified={entry.user.verified}`
+- Removed `avatarsFailed` state (custom Avatar handles image errors internally)
+- Removed unused imports: `Image`, `getUserColor`, `getInitials`, `AvatarFallback`

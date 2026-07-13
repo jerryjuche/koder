@@ -230,6 +230,52 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	return user, nil
 }
 
+// GetUserPublicData returns a safe public subset of user data for hover cards.
+func (s *PostgresStore) GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("id cannot be nil")
+	}
+
+	data := &PublicUserData{}
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.id::text, u.name, u.username, u.role, u.color_index, u.xp,
+		       (u.xp / 1000) + 1 as level,
+		       COALESCE((SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved), 0) as solved_count,
+		       u.google_avatar_url,
+		       u.verified
+		FROM users u
+		WHERE u.id = $1
+	`, id).Scan(
+		&data.ID, &data.Name, &data.Username, &data.Role, &data.ColorIndex,
+		&data.XP, &data.Level, &data.SolvedCount, &data.AvatarURL, &data.Verified,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user public data: %w", err)
+	}
+
+	var streak int
+	s.pool.QueryRow(ctx, `
+		WITH daily AS (
+			SELECT DISTINCT DATE(created_at) AS d
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		groups AS (
+			SELECT d, d - (DENSE_RANK() OVER (ORDER BY d))::integer AS grp
+			FROM daily
+		)
+		SELECT COUNT(*)
+		FROM groups
+		WHERE grp = (SELECT grp FROM groups WHERE d >= CURRENT_DATE - INTERVAL '1 day' ORDER BY d DESC LIMIT 1)
+	`, id).Scan(&streak)
+	data.Streak = streak
+
+	return data, nil
+}
+
 // GetUserByUsername retrieves a user by their username.
 func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	if username == "" {
@@ -450,7 +496,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
 				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -472,7 +519,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
 				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin' AND u.xp > 0
@@ -497,7 +545,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 		err := rows.Scan(
 			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL, &u.Verified,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
@@ -513,7 +561,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			Rank:       rank,
 			User:       u,
 			BestTimeMs: bestTime,
-			RankDelta:  0, // RankDelta would require historical snapshots, just pass 0 for now.
+			RankDelta:  0,
 		})
 		rank++
 	}
@@ -549,6 +597,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	query := `
 		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
 		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set, u.primary_language,
+		       u.verified,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -571,6 +620,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.CreatedAt,
 		&user.UsernameSet,
 		&user.PrimaryLanguage,
+		&user.Verified,
 		&solvedCount,
 	)
 

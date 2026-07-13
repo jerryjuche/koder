@@ -10,7 +10,6 @@ import {
   Trophy,
   Settings,
   Share2,
-  Check,
   Calendar,
   Target,
   Flame,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/base/avatar/avatar";
-import { toast } from "sonner";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -41,20 +39,8 @@ function MiniStat({ value, label, icon: Icon, accent }: {
 }
 
 export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
-  const [copied, setCopied] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const mounted = useHasMounted();
-
-  const copyProfileLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      toast.success("Profile link copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  };
 
   const joinDate = new Date(profile.created_at).toLocaleDateString("en-US", {
     month: "long",
@@ -103,7 +89,7 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
                 name={profile.name}
                 colorIndex={profile.color_index}
                 size="xl"
-                verified={user?.role === "admin"}
+                verified={user?.verified}
                 className="border-2 border-amber-400/30 shadow-lg rounded-full"
               />
             </div>
@@ -202,12 +188,8 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
                     Edit Profile
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={copyProfileLink} className="text-white/50 hover:text-white hover:bg-white/5">
-                  {copied ? (
-                    <><Check size={14} className="text-amber-400" /> Copied</>
-                  ) : (
-                    <><Share2 size={14} /> Share Profile</>
-                  )}
+                <Button variant="ghost" size="sm" disabled className="text-white/30 cursor-not-allowed">
+                  <><Share2 size={14} /> Share Profile</>
                 </Button>
               </div>
             </div>

@@ -17,6 +17,8 @@ import {
   UpdateProblemPayload,
   AIAssistRequest,
   AIAssistResponse,
+  PublicUserData,
+  UserSearchResult,
 } from "./types";
 import { getCache, setCache } from "./cache";
 
@@ -268,6 +270,7 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
         solvedCount: res.data.solved_count || 0,
         attemptedCount: res.data.attempted_count || 0,
         streak: res.data.current_streak_days ?? 0,
+        verified: res.data.verified ?? false,
         google_avatar_url: res.data.google_avatar_url,
         google_linked: res.data.google_linked ?? false,
         usernameSet: res.data.username_set ?? true,
@@ -340,6 +343,10 @@ export async function fetchLeaderboard(
   period: string = "all",
 ): Promise<ApiResponse<LeaderboardEntry[]>> {
   return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
+}
+
+export async function fetchUserById(id: string): Promise<ApiResponse<PublicUserData>> {
+  return fetchApi<PublicUserData>(`/users/${id}`);
 }
 
 export async function ingestGitHubRepo(url: string): Promise<ApiResponse<any>> {
@@ -586,6 +593,16 @@ export async function setPin(pin: string, confirmPin: string): Promise<ApiRespon
 
 export async function fetchAIUsageStats(): Promise<ApiResponse<AIUsageStats>> {
   return fetchApi<AIUsageStats>("/admin/ai/usage");
+}
+
+export async function searchUsers(q: string): Promise<ApiResponse<UserSearchResult[]>> {
+  return fetchApi<UserSearchResult[]>(`/admin/users/search?q=${encodeURIComponent(q)}`);
+}
+
+export async function toggleUserVerified(id: string): Promise<ApiResponse<{ verified: boolean }>> {
+  return fetchApi<{ verified: boolean }>(`/admin/users/${id}/verified`, {
+    method: "PATCH",
+  });
 }
 
 

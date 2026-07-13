@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
+import { Avatar } from "@/components/base/avatar/avatar";
 import confetti from "canvas-confetti";
 import {
   CodeBlock,
@@ -55,44 +57,6 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     CommunitySolution[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!ready) return;
-
-    const burst = () => {
-      try {
-        confetti({
-          particleCount: 60,
-          angle: 60,
-          spread: 90,
-          origin: { x: 0, y: 0.6 },
-          colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-          startVelocity: 45,
-        });
-        confetti({
-          particleCount: 60,
-          angle: 120,
-          spread: 90,
-          origin: { x: 1, y: 0.6 },
-          colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-          startVelocity: 45,
-        });
-      } catch (e) {
-        console.error("Confetti failed", e);
-      }
-    };
-
-    burst();
-
-    const interval = setInterval(burst, 150);
-    const timeout = setTimeout(() => clearInterval(interval), 3500);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [ready]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -147,12 +111,44 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         console.error("Failed to load success page data", err);
       } finally {
         setLoading(false);
-        setReady(true);
       }
     };
 
     loadData();
   }, [slug]);
+
+  function burstConfetti() {
+    try {
+      confetti({
+        particleCount: 60,
+        angle: 60,
+        spread: 90,
+        origin: { x: 0, y: 0.6 },
+        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+        startVelocity: 45,
+      });
+      confetti({
+        particleCount: 60,
+        angle: 120,
+        spread: 90,
+        origin: { x: 1, y: 0.6 },
+        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+        startVelocity: 45,
+      });
+    } catch (e) {
+      console.error("Confetti failed", e);
+    }
+  }
+
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => {
+      burstConfetti();
+      const interval = setInterval(burstConfetti, 150);
+      setTimeout(() => clearInterval(interval), 3500);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const originalSolutions = [...communitySolutions];
@@ -306,17 +302,22 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                   className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden hover:border-brand-charcoal-border/80 transition-colors"
                 >
                   <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-muted-gold/10 text-brand-muted-gold flex items-center justify-center font-bold text-xs border border-brand-muted-gold/20">
-                        {sol.user_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm">{sol.user_name}</div>
-                        <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2">
-                          <span>{sol.runtime_ms}ms</span>
+                    <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
+                      <div className="flex items-center gap-3 cursor-pointer">
+                        <Avatar
+                        src={sol.user_avatar_url}
+                        name={sol.user_name}
+                        size="sm"
+                        verified={sol.verified}
+                      />
+                        <div>
+                          <div className="font-bold text-sm">{sol.user_name}</div>
+                          <div className="text-xs text-brand-offwhite-muted font-mono flex items-center gap-2">
+                            <span>{sol.runtime_ms}ms</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ProfileHoverCard>
                     <button
                       onClick={() => handleLike(sol.id, sol.has_liked)}
                       className={cn(

@@ -2,7 +2,7 @@ KODER MULTI-LANGUAGE CURRICULUM INTEGRATION — PROGRESS
 ======================================================
 
 Branch: python-curricula
-Updated: 2026-07-09
+Updated: 2026-07-13
 
 SESSION 1: Phase 1 implemented and verified (go vet: clean).
 SESSION 2: Phase 2 implemented and verified (go vet: clean).
@@ -24,6 +24,16 @@ SESSION 15: Production polish phase — monitoring, performance, error UX, secur
   - Error UX: Added 7 error.tsx boundaries (home, settings, contribute, admin, problems/[slug], (main) layout, global-error.tsx), home loading skeleton.
   - Security: CSP header on all responses (middleware.go).
 SESSION 16: Python compiler error context extraction fix. Fixed bug in sandbox/main.go for identifying exception lines. Fixed variable shadowing in internal/executor/executor.go preventing sandboxError propagation.
+SESSION 17: Enhancement batch: EnhancePythonError for human-readable tips, Go/Python SVG logo icons, LanguageLogo component, Python sandbox process group alignment, language filter bugfix, fullscreen toggle, migration 029 (ensures both languages on every problem). 9 commits pulled.
+SESSION 18: Google auto-registration + nav fix + refresh token fix (save). Fixed critical bug where new Google users got no refresh token. Fixed router.push('/') → /home across all pages. Created /problems listing page. Changed TopNav Problems link to /problems. Created problems layout with TopNav + FeedbackButton. Fixed settings redirect /auth/login (404) → /login. Dynamic language on success page. Removed unused imports.
+SESSION 19 (2026-07-12): Save & Switch, Monaco theme, leaderboard perf, profile rate fix.
+  - Save & Switch: per-language localStorage keys, applyLanguageSwitch restores saved code, confirmation dialog
+  - Monaco: replaced custom koder-dark (529 lines) with VS Code Dark+ via defineTheme
+  - Leaderboard: fixed infinite re-fetch loop (loadData in useEffect deps); show raw ms instead of rounded 0.3s
+  - Profile: fixed attempted_count mismatch (stored procedure counted total submissions, not distinct problems); fixed in 3 migration copies
+  - TopNav: removed Add Problem button, fixed stray </div> parse error
+  - Disabled Share Profile button, admin edit problem dialog, compileErrorMessage collect all error lines
+  - JSONB encoding fix ([]byte → json.RawMessage for all language_versions params)
 
 ---
 
@@ -203,10 +213,46 @@ SESSION 17: Enhancement batch: EnhancePythonError for human-readable tips, Go/Py
 
 ---
 SESSION 18: Google auto-registration + nav fix + refresh token fix (save). Fixed critical bug where new Google users got no refresh token. Fixed router.push('/') → /home across all pages. Created /problems listing page. Changed TopNav Problems link to /problems. Created problems layout with TopNav + FeedbackButton. Fixed settings redirect /auth/login (404) → /login. Dynamic language on success page. Removed unused imports.
+SESSION 19 (2026-07-12): Save & Switch, Monaco theme, leaderboard perf, profile rate fix, TopNav cleanup.
+  - Save & Switch: per-language localStorage keys, restore saved code on toggle, confirmation dialog
+  - Monaco: replaced custom koder-dark (529 lines) with VS Code Dark+ via defineTheme
+  - Leaderboard: fixed infinite re-fetch loop (loadData in useEffect deps); show raw ms instead of rounded 0.3s
+  - Profile: fixed attempted_count mismatch (stored procedure counted total submissions); fixed in 3 migrations
+  - TopNav: removed Add Problem button, fixed stray </div> parse error
+  - Disabled Share Profile button, admin edit problem dialog, compileErrorMessage collect all error lines
+  - JSONB encoding fix ([]byte → json.RawMessage for all language_versions params)
 
-Backend: 7 packages, 24 API source files, 13 test files, 124 tests, 29 migrations
-Frontend: 54 app-router files (new: problems listing, problems layout), 37 components, 3 hooks, 10 lib modules, 3 style sheets
-Sandbox: 8 source files, zero external dependencies, standalone Go binary
+SESSION 20 (2026-07-13): ProfileHoverCard polish + verified audit.
+  - ProfileHoverCard: removed streak (unreliable), added XP progress bar toward next level
+  - 3-column stat layout with gradient accent bar + divider
+  - Fixed verified badge: 4 sites using role===admin → actual user.verified field
+  - Added u.verified to community solution queries + CommunitySolution struct
+  - Frontend CommunitySolution type now includes verified
+  - Admin ToggleUserVerified invalidates user + leaderboard caches
+
+SESSION 21 (2026-07-13): Admin user verification panel.
+  - Backend: SearchUsers (ILIKE) + ToggleUserVerified (NOT verified RETURNING)
+  - Frontend: UserVerificationPanel with 300ms debounced search, toggle button, ProfileHoverCard
+  - Wired into admin page as standalone panel
+
+SESSION 22 (2026-07-13): Verified badge propagation across all 9 layers.
+  - Store.GetUserWithSolvedCount: added u.verified to SQL + scan (was missing entirely)
+  - meResponse struct: added Verified bool field (was missing)
+  - GetMe + UpdateLanguage handlers: set Verified: user.Verified
+  - Frontend fetchUser(): added verified: res.data.verified ?? false
+  - LeaderboardUser struct: added Verified bool (was missing)
+  - Both leaderboard queries + scan: added u.verified
+  - ToggleUserVerified: adds InvalidateUserCache() + InvalidateLeaderboardCache()
+  - All 40 audit items pass end-to-end
+
+SESSION 23 (2026-07-13): Leaderboard custom Avatar with verified checkmark.
+  - Replaced shadcn Avatar (no verified support) with custom Avatar in all 3 locations
+  - Added 'podium' size (h-16 w-16) to custom Avatar sizeMap
+  - Removed avatarsFailed state, manual Image fallback, unused imports
+  - Gold checkmark now shows on leaderboard podium + table rows + Your Ranking
+
+Backend: 7 packages, 24 API source files, 13 test files, 124 tests, 37 migrations
+Frontend: 55 app-router files, 38 components, 3 hooks, 10 lib modules, 3 style sheets
 
 LEGEND
 ======

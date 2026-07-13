@@ -54,7 +54,7 @@ func (s *PostgresStore) CreateUserProblem(ctx context.Context, userID uuid.UUID,
 	var lvBytes []byte
 	err = s.pool.QueryRow(ctx, query,
 		userID, problem.Slug, problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
-		problem.ParamTypes, lvJSON, problem.Hints, problem.Difficulty, problem.XPReward, problem.Tags, testCasesJSON,
+		problem.ParamTypes, json.RawMessage(lvJSON), problem.Hints, problem.Difficulty, problem.XPReward, problem.Tags, testCasesJSON,
 	).Scan(
 		&up.ID, &up.UserID, &up.Slug, &up.Title, &up.Statement, &up.FuncName, &up.ReturnType,
 		&up.ParamTypes, &lvBytes, &up.Hints, &up.Difficulty, &up.XPReward, &up.Tags, &up.Status, &up.CreatedAt,
@@ -245,7 +245,7 @@ func (s *PostgresStore) ApproveUserProblem(ctx context.Context, id uuid.UUID, ad
 	err = tx.QueryRow(ctx, insertProbQuery,
 		up.Slug, "Community", "algorithm", "go", up.Title, up.Statement, up.FuncName, up.ReturnType,
 		up.ParamTypes, up.Hints, up.Difficulty, up.XPReward, up.Tags, true, "COMMUNITY:"+uuid.UUID(up.ID.Bytes).String(),
-		"Community Contribution", lvJSON, up.UserID, authorName,
+		"Community Contribution", json.RawMessage(lvJSON), up.UserID, authorName,
 	).Scan(&newProblemID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to insert problem: %w", err)
