@@ -1149,3 +1149,63 @@ npm run build   # Builds static + server components
 - JSONB encoding fix: `[]byte` → `json.RawMessage` for `language_versions` params (pgx encodes `[]byte` as `bytea`, not `jsonb`)
 
 **Verification:** All changes pushed to `python-curricula`. Backend go vet/build clean. Frontend ESLint+TS clean after fixes.
+
+---
+
+### 2026-07-13 — ProfileHoverCard redesign: XP progress bar, professional polish
+
+**Changes:**
+- Removed unreliable `streak` from hover card (leaderboard always returns 0)
+- Added XP progress bar: `xpInLevel / 1,000 → next level` with gradient bar
+- 3-column stat layout (XP / Level / Solved) with `text-base font-extrabold` values
+- Gradient accent bar at card top + gradient divider
+- `p-5 space-y-4` for more breathing room
+- Verified status shown as inline "Verified" text label alongside avatar name
+- Fixed `user?.role === "admin"` → `user?.verified` for verified badge on TopNav, Settings, ProfileHeader
+- Centralized `cn()` import (removed local duplicate)
+
+### 2026-07-13 — Verified badge propagation complete (4-layer fix)
+
+**Gaps found and closed:**
+
+| Layer | File | Issue | Fix |
+|---|---|---|---|
+| Leaderboard struct | `internal/store/types.go:195-208` | `LeaderboardUser` missing `Verified` field | Added `Verified bool \`json:"verified"\`` |
+| Leaderboard SQL | `internal/store/users.go:493-528` | Both queries missing `u.verified` | Added to SELECT + `&u.Verified` to scan |
+| Community solutions | `internal/store/submissions.go:128-226` | `u.verified` missing from SELECT | Added `u.verified` + `&cs.Verified` scan |
+| Community solution struct | `internal/store/types.go:365-380` | Missing `Verified` field | Added `Verified bool` |
+| Frontend CommunitySolution | `frontend/lib/types.ts:170-183` | Missing `verified` | Added `verified: boolean` |
+| GET /me store | `internal/store/users.go:589-633` | `GetUserWithSolvedCount` didn't SELECT `u.verified` | Added to SQL + scan |
+| GET /me response | `internal/api/me.go:25-41` | `meResponse` missing `Verified` | Added field + set in both GetMe & UpdateLanguage |
+| Frontend fetchUser | `frontend/lib/api.ts:256-286` | Didn't map `verified` | Added `verified: res.data.verified ?? false` |
+| Cache invalidation | `internal/api/admin.go:629-655` | `ToggleUserVerified` didn't invalidate user cache | Added `InvalidateUserCache()` |
+| Leaderboard cache | `internal/api/admin.go:629-655` | Already had cache invalidation | Added `InvalidateLeaderboardCache()` (already present) |
+
+**All 40 audit items pass.** The gold checkmark badge now appears on every Avatar across the app — TopNav, profile page, leaderboard podium + table, community solutions, settings — not just on hover.
+
+### 2026-07-13 — Admin user verification panel
+
+**Backend:**
+- `POSTGRES` — `SearchUsers` (ILIKE name/username, 20 result limit)
+- `POSTGRES` — `ToggleUserVerified` (NOT verified RETURNING)
+- `Store interface` — `SearchUsers`, `ToggleUserVerified` methods
+- `Store types` — `UserSearchResult` struct (ID, name, username, email, role, verified, avatar, created_at)
+- `API` — `GET /admin/users/search?q=` with min 2 char validation
+- `API` — `PATCH /admin/users/{id}/verified` with activity logging + cache invalidation
+- `Router` — Both routes in AdminOnly group
+
+**Frontend:**
+- `UserVerificationPanel` — Search input with 300ms debounce, results with user info card, verified toggle button, ProfileHoverCard
+- Loading spinner, empty states (no search / no results), error toasts
+- Wired into admin page below Problem Reports
+
+### 2026-07-13 — Leaderboard custom Avatar with verified checkmark
+
+**Problem:** Leaderboard used shadcn `Avatar` (no `verified` prop) with manual `<Image>` fallback. Gold checkmark never appeared on podium or table rows.
+
+**Fix:**
+- Replaced all shadcn Avatar + manual Image branches with single custom `<Avatar>` component
+- Added `"podium"` size (h-16 w-16) to the custom Avatar's `sizeMap` for top-3 (was 64px)
+- All 3 locations now pass `verified={entry.user.verified}`
+- Removed `avatarsFailed` state (custom Avatar handles image errors internally)
+- Removed unused imports: `Image`, `getUserColor`, `getInitials`, `AvatarFallback`

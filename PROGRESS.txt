@@ -2,7 +2,7 @@ KODER MULTI-LANGUAGE CURRICULUM INTEGRATION — PROGRESS
 ======================================================
 
 Branch: python-curricula
-Updated: 2026-07-12
+Updated: 2026-07-13
 
 SESSION 1: Phase 1 implemented and verified (go vet: clean).
 SESSION 2: Phase 2 implemented and verified (go vet: clean).
@@ -222,8 +222,37 @@ SESSION 19 (2026-07-12): Save & Switch, Monaco theme, leaderboard perf, profile 
   - Disabled Share Profile button, admin edit problem dialog, compileErrorMessage collect all error lines
   - JSONB encoding fix ([]byte → json.RawMessage for all language_versions params)
 
+SESSION 20 (2026-07-13): ProfileHoverCard polish + verified audit.
+  - ProfileHoverCard: removed streak (unreliable), added XP progress bar toward next level
+  - 3-column stat layout with gradient accent bar + divider
+  - Fixed verified badge: 4 sites using role===admin → actual user.verified field
+  - Added u.verified to community solution queries + CommunitySolution struct
+  - Frontend CommunitySolution type now includes verified
+  - Admin ToggleUserVerified invalidates user + leaderboard caches
+
+SESSION 21 (2026-07-13): Admin user verification panel.
+  - Backend: SearchUsers (ILIKE) + ToggleUserVerified (NOT verified RETURNING)
+  - Frontend: UserVerificationPanel with 300ms debounced search, toggle button, ProfileHoverCard
+  - Wired into admin page as standalone panel
+
+SESSION 22 (2026-07-13): Verified badge propagation across all 9 layers.
+  - Store.GetUserWithSolvedCount: added u.verified to SQL + scan (was missing entirely)
+  - meResponse struct: added Verified bool field (was missing)
+  - GetMe + UpdateLanguage handlers: set Verified: user.Verified
+  - Frontend fetchUser(): added verified: res.data.verified ?? false
+  - LeaderboardUser struct: added Verified bool (was missing)
+  - Both leaderboard queries + scan: added u.verified
+  - ToggleUserVerified: adds InvalidateUserCache() + InvalidateLeaderboardCache()
+  - All 40 audit items pass end-to-end
+
+SESSION 23 (2026-07-13): Leaderboard custom Avatar with verified checkmark.
+  - Replaced shadcn Avatar (no verified support) with custom Avatar in all 3 locations
+  - Added 'podium' size (h-16 w-16) to custom Avatar sizeMap
+  - Removed avatarsFailed state, manual Image fallback, unused imports
+  - Gold checkmark now shows on leaderboard podium + table rows + Your Ranking
+
 Backend: 7 packages, 24 API source files, 13 test files, 124 tests, 37 migrations
-Frontend: 54 app-router files, 37 components, 3 hooks, 10 lib modules, 3 style sheets
+Frontend: 55 app-router files, 38 components, 3 hooks, 10 lib modules, 3 style sheets
 
 LEGEND
 ======
