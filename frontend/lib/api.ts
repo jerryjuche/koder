@@ -36,6 +36,7 @@ async function tryRefreshToken(): Promise<boolean> {
   }
   isRefreshing = true;
 
+  let success = false;
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: "POST",
@@ -45,21 +46,23 @@ async function tryRefreshToken(): Promise<boolean> {
     });
     if (!res.ok) {
       localStorage.removeItem("refresh_token");
-      return false;
+      success = false;
+    } else {
+      const data = await res.json();
+      if (data?.data?.refresh_token) {
+        localStorage.setItem("refresh_token", data.data.refresh_token);
+      }
+      success = true;
     }
-    const data = await res.json();
-    if (data?.data?.refresh_token) {
-      localStorage.setItem("refresh_token", data.data.refresh_token);
-    }
-    return true;
   } catch {
     localStorage.removeItem("refresh_token");
-    return false;
+    success = false;
   } finally {
     isRefreshing = false;
-    refreshQueue.forEach((q) => q.resolve(true));
+    refreshQueue.forEach((q) => q.resolve(success));
     refreshQueue = [];
   }
+  return success;
 }
 
 export async function fetchApi<T>(
@@ -217,14 +220,14 @@ export async function resetPasswordPin(
 
 export async function completeGoogleOnboarding(
   username: string,
-): Promise<ApiResponse<{ token: string }>> {
+): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
   return completeOnboarding(username);
 }
 
 export async function completeOnboarding(
   username: string,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/complete-onboarding", {
+): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
+  return fetchApi<{ token: string; refresh_token?: string }>("/auth/complete-onboarding", {
     method: "POST",
     body: JSON.stringify({ username }),
   });

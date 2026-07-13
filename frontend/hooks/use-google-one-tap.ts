@@ -44,6 +44,10 @@ function loadGsiScript() {
     loadListeners.forEach((fn) => fn());
     loadListeners.length = 0;
   };
+  script.onerror = () => {
+    scriptLoading = false;
+    loadListeners.length = 0;
+  };
   document.head.appendChild(script);
 }
 

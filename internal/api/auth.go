@@ -212,15 +212,22 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	if err == nil && user != nil {
 		// Existing Google user — sync avatar
 		if info.Picture != "" && (user.GoogleAvatarURL == nil || *user.GoogleAvatarURL != info.Picture) {
-			idStr, _ := uuidStringFromPGType(user.ID)
-			if idStr != "" {
-				userUUID, _ := uuid.Parse(idStr)
-				_ = h.store.UpdateUserGoogleAvatar(r.Context(), userUUID, info.Picture)
-				InvalidateUserCache(idStr)
+			if idStr, err := uuidStringFromPGType(user.ID); err == nil {
+				if userUUID, err := uuid.Parse(idStr); err == nil {
+					if err := h.store.UpdateUserGoogleAvatar(r.Context(), userUUID, info.Picture); err != nil {
+						slog.Error("google_auth: failed to sync avatar", "error", err)
+					}
+					InvalidateUserCache(idStr)
+				}
 			}
 		}
 
-		userID, _ := uuidStringFromPGType(user.ID)
+		userID, err := uuidStringFromPGType(user.ID)
+		if err != nil {
+			slog.Error("google_auth: invalid user ID for existing Google user", "error", err)
+			RespondError(w, http.StatusInternalServerError, "USER_ID_ERROR", "Invalid user ID", nil)
+			return
+		}
 		resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
@@ -234,17 +241,22 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	existingUser, emailErr := h.store.GetUserByEmail(r.Context(), info.Email)
 	if emailErr == nil && existingUser != nil {
 		// Link Google to existing account
-		existingID, _ := uuidStringFromPGType(existingUser.ID)
-		if existingID != "" {
-			existingUUID, _ := uuid.Parse(existingID)
-			if err := h.store.LinkGoogleToUser(r.Context(), existingUUID, info); err != nil {
-				slog.Error("google_auth: failed to auto-link Google to existing user", "error", err, "email", info.Email)
-			} else {
-				InvalidateUserCache(existingID)
+		if existingID, err := uuidStringFromPGType(existingUser.ID); err == nil {
+			if existingUUID, err := uuid.Parse(existingID); err == nil {
+				if err := h.store.LinkGoogleToUser(r.Context(), existingUUID, info); err != nil {
+					slog.Error("google_auth: failed to auto-link Google to existing user", "error", err, "email", info.Email)
+				} else {
+					InvalidateUserCache(existingID)
+				}
 			}
 		}
 
-		userID, _ := uuidStringFromPGType(existingUser.ID)
+		userID, err := uuidStringFromPGType(existingUser.ID)
+		if err != nil {
+			slog.Error("google_auth: invalid user ID for email-linked user", "error", err)
+			RespondError(w, http.StatusInternalServerError, "USER_ID_ERROR", "Invalid user ID", nil)
+			return
+		}
 		resp, err := h.issueTokens(r.Context(), userID, existingUser.StudentID, existingUser.Username, existingUser.Role, !existingUser.UsernameSet, true, w, r)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
@@ -266,7 +278,12 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := uuidStringFromPGType(user.ID)
+	userID, err := uuidStringFromPGType(user.ID)
+	if err != nil {
+		slog.Error("google_auth: invalid user ID for new Google user", "error", err)
+		RespondError(w, http.StatusInternalServerError, "USER_ID_ERROR", "Invalid user ID", nil)
+		return
+	}
 	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
