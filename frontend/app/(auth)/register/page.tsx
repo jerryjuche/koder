@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { useHasMounted } from '@/hooks/use-has-mounted';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowRight, Mail, ArrowLeft, Shield, CheckCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { register as registerUser, completeOnboarding, googleLogin, checkUsername } from '@/lib/api';
-import { useGoogleOneTap } from '@/hooks/use-google-one-tap';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleButton } from '@/components/auth/google-button';
@@ -31,11 +29,11 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+  const handleGoogleResponse = useCallback(async (credential: string) => {
     setGoogleLoading(true);
     setErrorMsg('');
     try {
-      const res = await googleLogin(response.credential);
+      const res = await googleLogin(credential);
       if (res.success && res.data) {
         router.push(res.data.onboarding ? '/onboarding' : '/home');
       } else {
@@ -47,14 +45,6 @@ export default function RegisterPage() {
       setGoogleLoading(false);
     }
   }, [router]);
-
-  const { prompt, ready } = useGoogleOneTap(
-    useCallback((response: { credential: string }) => {
-      handleGoogleResponse(response);
-    }, [handleGoogleResponse]),
-  );
-
-  const mounted = useHasMounted();
 
   // Step 1 fields
   const [firstName, setFirstName] = useState('');
@@ -81,10 +71,6 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
-
-  const handleGoogleClick = () => {
-    if (ready) prompt();
-  };
 
   const validateStep1 = (): boolean => {
     const errors: string[] = [];
@@ -304,9 +290,9 @@ export default function RegisterPage() {
                   transition={{ delay: 0.2, duration: 0.4 }}
                 >
                   <GoogleButton
-                    onClick={handleGoogleClick}
+                    onCredential={handleGoogleResponse}
                     loading={googleLoading}
-                    disabled={!mounted || !ready}
+                    disabled={false}
                   />
                 </motion.div>
               )}

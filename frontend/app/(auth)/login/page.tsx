@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import { useHasMounted } from '@/hooks/use-has-mounted';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -11,7 +10,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion } from 'framer-motion';
 import { login, googleLogin } from '@/lib/api';
-import { useGoogleOneTap } from '@/hooks/use-google-one-tap';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleButton } from '@/components/auth/google-button';
@@ -33,11 +31,11 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+  const handleGoogleResponse = useCallback(async (credential: string) => {
     setGoogleLoading(true);
     setErrorMsg('');
     try {
-      const res = await googleLogin(response.credential);
+      const res = await googleLogin(credential);
       if (res.success && res.data) {
         router.push(res.data.onboarding ? '/onboarding' : '/home');
       } else {
@@ -49,14 +47,6 @@ export default function LoginPage() {
       setGoogleLoading(false);
     }
   }, [router]);
-
-  const { prompt, ready } = useGoogleOneTap(
-    useCallback((response: { credential: string }) => {
-      handleGoogleResponse(response);
-    }, [handleGoogleResponse]),
-  );
-
-  const mounted = useHasMounted();
 
   const {
     register,
@@ -82,10 +72,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleClick = () => {
-    if (ready) prompt();
   };
 
   return (
@@ -124,9 +110,9 @@ export default function LoginPage() {
             transition={{ delay: 0.2, duration: 0.4 }}
           >
             <GoogleButton
-              onClick={handleGoogleClick}
+              onCredential={handleGoogleResponse}
               loading={googleLoading}
-              disabled={!mounted || !ready}
+              disabled={false}
             />
           </motion.div>
         )}
