@@ -152,6 +152,9 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		leaderboardHandler := NewLeaderboardHandler(store)
 		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
 
+		usersHandler := NewUsersHandler(store)
+		r.Get("/users/{id}", usersHandler.GetUserPublicData)
+
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
 
@@ -191,6 +194,8 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/feedback/{id}", feedbackHandler.UpdateStatus)
 
 			r.Get("/admin/problem-reports", feedbackHandler.ListProblemReports)
+			r.Get("/admin/users/search", adminHandler.SearchUsers)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 		})
 
 		wsHandler := NewWSHandler(b)

@@ -43,11 +43,13 @@ type Store interface {
 	CreateUser(ctx context.Context, user *NewUser) (*User, error)
 	CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error)
 	GetUserExportData(ctx context.Context, userID uuid.UUID) (map[string]any, error)
+	CheckUsernameAvailable(ctx context.Context, username string) (bool, error)
 	GetUserByStudentID(ctx context.Context, studentID string) (*User, error)
 	GetUserByUsername(ctx context.Context, username string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByLogin(ctx context.Context, login string) (*User, error) // checks username, email, student_id
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error)
 	GetUserByGoogleID(ctx context.Context, googleID string) (*User, error)
 	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
 	UpdateUserRole(ctx context.Context, id uuid.UUID, role string) error
@@ -102,6 +104,8 @@ type Store interface {
 	GetAdminStats(ctx context.Context) (*AdminStats, error)
 	LogActivity(ctx context.Context, logType, message, color, icon string) error
 	GetRecentActivity(ctx context.Context, limit int) ([]ActivityLog, error)
+	SearchUsers(ctx context.Context, query string, limit int) ([]UserSearchResult, error)
+	ToggleUserVerified(ctx context.Context, userID uuid.UUID) (bool, error)
 
 	// Community Contributions
 	CreateUserProblem(ctx context.Context, userID uuid.UUID, problem *NewUserProblem) (*UserProblem, error)

@@ -223,7 +223,7 @@ function SettingsPageContent() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/auth/login";
+    window.location.href = "/login";
   };
 
   const handleDelete = async () => {
@@ -231,7 +231,7 @@ function SettingsPageContent() {
     try {
       const res = await deleteAccount();
       if (res.success) {
-        window.location.href = "/auth/login";
+        window.location.href = "/login";
       } else {
         throw new Error(res.error?.message || "Failed to delete account");
       }
@@ -327,7 +327,7 @@ function SettingsPageContent() {
                     name={name || user?.name}
                     colorIndex={user?.colorIndex ?? 0}
                     size="lg"
-                    verified={user?.role === "admin"}
+                    verified={user?.verified}
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

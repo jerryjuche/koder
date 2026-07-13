@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Trophy,
   TrendingUp,
@@ -17,10 +16,11 @@ import {
 } from "lucide-react";
 import { fetchLeaderboard, fetchUser } from "@/lib/api";
 import { LeaderboardEntry, User } from "@/lib/types";
-import { cn, getUserColor } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/base/avatar/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 import { Input } from "@/components/ui/input";
 import {
   Tooltip,
@@ -44,8 +44,9 @@ function getInitials(name: string): string {
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "—";
+  if (ms < 1000) return `${ms}ms`;
   const seconds = ms / 1000;
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  if (seconds < 60) return `${seconds.toFixed(2)}s`;
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds - minutes * 60;
   if (remainder < 0.5) return `${minutes}m`;
@@ -108,12 +109,11 @@ export default function LeaderboardClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<Period>("all");
-  const [avatarsFailed, setAvatarsFailed] = useState<Set<string>>(new Set());
   const mounted = useRef(true);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialLoad = useRef(true);
 
-  const loadData = async (currentPeriod: Period = period) => {
+  const loadData = useCallback(async (currentPeriod: Period = period) => {
     try {
       const [lbRes, userRes] = await Promise.all([
         fetchLeaderboard(currentPeriod),
@@ -128,7 +128,7 @@ export default function LeaderboardClient() {
         initialLoad.current = false;
       }
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     mounted.current = true;
@@ -145,14 +145,7 @@ export default function LeaderboardClient() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       window.removeEventListener("user-updated", onUserUpdated);
     };
-  }, [period]);
-
-  // Reset avatar errors when user data changes (e.g. after Google sync)
-  const [prevAvatarUrl, setPrevAvatarUrl] = useState(user?.google_avatar_url);
-  if (user?.google_avatar_url !== prevAvatarUrl) {
-    setPrevAvatarUrl(user?.google_avatar_url);
-    setAvatarsFailed(new Set());
-  }
+  }, [period, loadData]);
 
   const filtered = useMemo(() => {
     const all = leaderboard;
@@ -257,62 +250,33 @@ export default function LeaderboardClient() {
 
                   {/* Avatar */}
                   <div className="mb-3">
-                    {entry.user.google_avatar_url &&
-                    !avatarsFailed.has(entry.user.id) ? (
-                      <div
-                        className={cn(
-                          "w-16 h-16 rounded-full overflow-hidden shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
-                          config.avatarRing
-                        )}
-                      >
-                        <Image
-                          src={entry.user.google_avatar_url}
-                          alt={entry.user.username ?? "Avatar"}
-                          width={64}
-                          height={64}
-                          className="w-full h-full object-cover"
-                          onError={() =>
-                            setAvatarsFailed(
-                              (prev) => new Set(prev).add(entry.user.id)
-                            )
-                          }
-                        />
-                      </div>
-                    ) : (
-                      <Avatar
-                        className={cn(
-                          "w-16 h-16 text-lg shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
-                          config.avatarRing
-                        )}
-                      >
-                        <AvatarFallback
-                          className={getUserColor(entry.user.colorIndex || 0)}
-                        >
-                          {getInitials(entry.user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+                    <Avatar
+                      src={entry.user.google_avatar_url}
+                      name={entry.user.name}
+                      colorIndex={entry.user.colorIndex || 0}
+                      size="podium"
+                      verified={entry.user.verified}
+                      className={cn(
+                        "shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
+                        config.avatarRing
+                      )}
+                    />
                   </div>
 
                   {/* Name + Stats */}
                   <div className="text-center space-y-1.5 w-full">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p
-                          className={cn(
-                            "font-bold truncate max-w-[12rem] mx-auto",
-                            isFirst
-                              ? "text-[15px] text-foreground"
-                              : "text-sm text-muted-foreground"
-                          )}
-                        >
-                          {entry.user.name}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                        {entry.user.username && `@${entry.user.username}`}
-                      </TooltipContent>
-                    </Tooltip>
+                    <ProfileHoverCard user={entry.user}>
+                      <p
+                        className={cn(
+                          "font-bold truncate max-w-[12rem] mx-auto cursor-pointer",
+                          isFirst
+                            ? "text-[15px] text-foreground"
+                            : "text-sm text-muted-foreground"
+                        )}
+                      >
+                        {entry.user.name}
+                      </p>
+                    </ProfileHoverCard>
 
                     <div className="flex items-center justify-center gap-1.5 text-primary font-semibold">
                       <Zap size={12} className="shrink-0" />
@@ -337,26 +301,14 @@ export default function LeaderboardClient() {
               <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center font-mono font-bold text-primary text-lg shrink-0">
                 {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
               </div>
-              {user.google_avatar_url && !avatarsFailed.has(user.id) ? (
-                <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
-                  <Image
-                    src={user.google_avatar_url}
-                    alt={user.username ?? "Avatar"}
-                    width={44}
-                    height={44}
-                    className="w-full h-full object-cover"
-                    onError={() =>
-                      setAvatarsFailed((prev) => new Set(prev).add(user.id))
-                    }
-                  />
-                </div>
-              ) : (
-                <Avatar className="w-11 h-11 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0">
-                  <AvatarFallback className={getUserColor(user.colorIndex)}>
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-              )}
+              <Avatar
+                src={user.google_avatar_url}
+                name={user.name}
+                colorIndex={user.colorIndex}
+                size="md"
+                verified={user.verified}
+                className="ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0"
+              />
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">
                   Your Ranking
@@ -473,7 +425,6 @@ export default function LeaderboardClient() {
                     const rank = entry.rank ?? idx + 1;
                     const rowUser = entry.user;
                     const isMe = user?.id === rowUser?.id;
-                    const initials = getInitials(rowUser?.name || "?");
 
                     return (
                       <tr
@@ -551,46 +502,25 @@ export default function LeaderboardClient() {
                         {/* Student - Username primary, name on hover */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            {rowUser?.google_avatar_url &&
-                            !avatarsFailed.has(rowUser.id) ? (
-                              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                                <Image
-                                  src={rowUser.google_avatar_url}
-                                  alt={rowUser.username ?? "Avatar"}
-                                  width={32}
-                                  height={32}
-                                  className="w-full h-full object-cover"
-                                  onError={() =>
-                                    setAvatarsFailed(
-                                      (prev) =>
-                                        new Set(prev).add(rowUser.id)
-                                    )
-                                  }
-                                />
-                              </div>
-                            ) : (
-                              <Avatar className="w-8 h-8 text-xs shrink-0">
-                                <AvatarFallback
-                                  className={getUserColor(
-                                    rowUser?.colorIndex || 0
-                                  )}
-                                >
-                                  {initials}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                            <Avatar
+                              src={rowUser?.google_avatar_url}
+                              name={rowUser?.name}
+                              colorIndex={rowUser?.colorIndex || 0}
+                              size="sm"
+                              verified={rowUser?.verified}
+                              className="shrink-0"
+                            />
                             <div>
                               <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="font-mono cursor-default">
-                                      {rowUser?.username || rowUser?.name || "Unknown"}
+                                {rowUser ? (
+                                  <ProfileHoverCard user={rowUser} side="bottom" align="start">
+                                    <span className="font-mono cursor-pointer">
+                                      {rowUser.username || rowUser.name || "Unknown"}
                                     </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                                    {rowUser?.name || "Unknown"}
-                                  </TooltipContent>
-                                </Tooltip>
+                                  </ProfileHoverCard>
+                                ) : (
+                                  <span className="font-mono text-muted-foreground">Unknown</span>
+                                )}
                                 {isMe && (
                                   <Badge
                                     variant="outline"

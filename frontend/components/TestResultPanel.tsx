@@ -257,7 +257,7 @@ export default function TestResultPanel({
   expanded,
   onToggle,
 }: Props) {
-  const [showRawLogs, setShowRawLogs] = useState(false);
+  const [showRawLogs, setShowRawLogs] = useState(execution?.status === "compiler_error");
 
   const testsPassed = results?.filter((r) => r.passed).length ?? 0;
   const testsTotal = results?.length ?? 0;

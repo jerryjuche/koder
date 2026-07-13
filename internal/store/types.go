@@ -194,15 +194,17 @@ type AdminStats struct {
 
 // LeaderboardUser represents the embedded user in a leaderboard entry.
 type LeaderboardUser struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	StudentID      string  `json:"studentId"`
-	Username       string  `json:"username"`
-	Role           string  `json:"role"`
-	ColorIndex     int     `json:"colorIndex"`
-	XP             int     `json:"xp"`
-	Level          int     `json:"level"`
-	SolvedCount    int     `json:"solvedCount"`
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	StudentID       string  `json:"studentId"`
+	Username        string  `json:"username"`
+	Role            string  `json:"role"`
+	ColorIndex      int     `json:"colorIndex"`
+	XP              int     `json:"xp"`
+	Level           int     `json:"level"`
+	SolvedCount     int     `json:"solvedCount"`
+	Streak          int     `json:"streak"`
+	Verified        bool    `json:"verified"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 }
 
@@ -228,6 +230,21 @@ type UserStats struct {
 	BestRuntimeMs     int                           `json:"best_runtime_ms"`
 	CurrentStreakDays int                           `json:"current_streak_days"`
 	ProgressByDiff    map[string]DifficultyProgress `json:"progress_by_difficulty"`
+}
+
+// PublicUserData is a safe subset of user data for the hover card endpoint.
+type PublicUserData struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Username    string  `json:"username"`
+	Role        string  `json:"role"`
+	ColorIndex  int     `json:"color_index"`
+	XP          int     `json:"xp"`
+	Level       int     `json:"level"`
+	SolvedCount int     `json:"solved_count"`
+	Streak      int     `json:"streak"`
+	AvatarURL   *string `json:"google_avatar_url,omitempty"`
+	Verified    bool    `json:"verified"`
 }
 
 // UserProblemTestCase represents an embedded test case in a UserProblem payload.
@@ -348,17 +365,19 @@ type NewBroadcast struct {
 
 // CommunitySolution represents a submission returned for the community solutions/best practices view.
 type CommunitySolution struct {
-	ID          pgtype.UUID `json:"id"`
-	UserID      pgtype.UUID `json:"user_id"`
-	UserName    string      `json:"user_name"`
-	ProblemID   pgtype.UUID `json:"problem_id"`
-	ProblemSlug string      `json:"problem_slug,omitempty"`
-	Language    string      `json:"language"`
-	Code        string      `json:"code"`
-	RuntimeMs   int         `json:"runtime_ms"`
-	Likes       int         `json:"likes"`
-	HasLiked    bool        `json:"has_liked"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID            pgtype.UUID `json:"id"`
+	UserID        pgtype.UUID `json:"user_id"`
+	UserName      string      `json:"user_name"`
+	UserAvatarURL *string     `json:"user_avatar_url,omitempty"`
+	Verified      bool        `json:"verified"`
+	ProblemID     pgtype.UUID `json:"problem_id"`
+	ProblemSlug   string      `json:"problem_slug,omitempty"`
+	Language      string      `json:"language"`
+	Code          string      `json:"code"`
+	RuntimeMs     int         `json:"runtime_ms"`
+	Likes         int         `json:"likes"`
+	HasLiked      bool        `json:"has_liked"`
+	CreatedAt     time.Time   `json:"created_at"`
 }
 
 // AIUsageLog records a single AI assist call for monitoring and billing.
@@ -383,6 +402,18 @@ type RefreshToken struct {
 	ExpiresAt time.Time   `db:"expires_at" json:"expires_at"`
 	Revoked   bool        `db:"revoked" json:"revoked"`
 	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+}
+
+// UserSearchResult is a lightweight user record returned by admin user search.
+type UserSearchResult struct {
+	ID              pgtype.UUID `json:"id"`
+	Name            string      `json:"name"`
+	Username        string      `json:"username"`
+	Email           string      `json:"email"`
+	Role            string      `json:"role"`
+	Verified        bool        `json:"verified"`
+	GoogleAvatarURL *string     `json:"google_avatar_url,omitempty"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 // AIUsageStats holds aggregate AI usage counts for the admin dashboard.

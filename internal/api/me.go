@@ -35,6 +35,7 @@ type meResponse struct {
 	AttemptedCount  int     `json:"attempted_count"`
 	StreakDays      int     `json:"current_streak_days"`
 	PrimaryLanguage string  `json:"primary_language"`
+	Verified        bool    `json:"verified"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 	GoogleLinked    bool    `json:"google_linked"`
 	UsernameSet     bool    `json:"username_set"`
@@ -114,6 +115,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		AttemptedCount:  attemptedCount,
 		StreakDays:      streakDays,
 		PrimaryLanguage: primaryLanguage,
+		Verified:        user.Verified,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
 		UsernameSet:     user.UsernameSet,
@@ -294,6 +296,7 @@ func (h *MeHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
 		AttemptedCount:  attemptedCount,
 		StreakDays:      streakDays,
 		PrimaryLanguage: primaryLanguage,
+		Verified:        user.Verified,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
 		UsernameSet:     user.UsernameSet,

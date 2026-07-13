@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { MessageSquareText, Bug, Lightbulb, Search, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchAdminFeedback, fetchAdminFeedbackCounts, updateFeedbackStatus } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { FeedbackItem } from "@/lib/types";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 
 const STATUS_TABS = [
   { id: "", label: "All", icon: MessageSquareText },
@@ -185,7 +187,15 @@ export default function FeedbackPanel({ compact }: Props) {
                         <div className="font-medium text-brand-offwhite">{fb.title}</div>
                       </td>
                       <td className="px-5 py-3 text-brand-offwhite-muted text-xs">
-                        {fb.is_anonymous ? "Anonymous" : fb.user_name || "—"}
+                        {fb.is_anonymous ? (
+                          "Anonymous"
+                        ) : fb.user_id ? (
+                          <ProfileHoverCard userId={fb.user_id} side="bottom" align="start">
+                            <span className="cursor-pointer">{fb.user_name || "—"}</span>
+                          </ProfileHoverCard>
+                        ) : (
+                          fb.user_name || "—"
+                        )}
                       </td>
                       <td className="px-5 py-3">
                         <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", PRIORITY_COLORS[fb.priority])}>
@@ -216,10 +226,13 @@ export default function FeedbackPanel({ compact }: Props) {
                             {fb.screenshot_url && (
                               <div>
                                 <p className="text-xs font-medium text-brand-offwhite-muted mb-1">Screenshot:</p>
-                                <img
+                                <Image
                                   src={`data:image/png;base64,${fb.screenshot_url}`}
                                   alt="Screenshot"
-                                  className="max-h-48 rounded-lg border border-brand-charcoal-border"
+                                  width={400}
+                                  height={300}
+                                  className="max-h-48 rounded-lg border border-brand-charcoal-border w-auto"
+                                  unoptimized
                                 />
                               </div>
                             )}
