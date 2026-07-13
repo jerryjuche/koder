@@ -86,26 +86,4 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:8080
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-test-placeholder
 
-  deploy-backend:
-    name: Deploy — Backend
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [backend]
-    runs-on: ubuntu-latest
-    environment: production
 
-    steps:
-      - name: Trigger Render deploy hook
-        run: |
-          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
-  deploy-sandbox:
-    name: Deploy — Sandbox
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [backend]
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - name: Trigger Railway deploy hook
-        run: |
-          curl -fsSL -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"

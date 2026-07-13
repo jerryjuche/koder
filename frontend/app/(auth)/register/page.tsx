@@ -164,8 +164,8 @@ export default function RegisterPage() {
       // Now set the username via onboarding endpoint
       const onboardingRes = await completeOnboarding(username);
       if (!onboardingRes.success) {
-        setErrorMsg(onboardingRes.error?.message || 'Failed to set username');
-        setLoading(false);
+        // Account created but username failed — redirect to onboarding to retry
+        router.push('/onboarding');
         return;
       }
 
