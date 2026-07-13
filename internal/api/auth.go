@@ -436,8 +436,6 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, resp)
 }
 
-// CheckUsername always returns available: true to prevent username enumeration.
-// Actual uniqueness validation happens on submission during onboarding.
 // GET /auth/check-username?username=xxx
 func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("username")
@@ -446,9 +444,15 @@ func (h *AuthHandler) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	available, err := h.store.CheckUsernameAvailable(r.Context(), username)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "failed to check username", nil)
+		return
+	}
+
 	RespondSuccess(w, map[string]interface{}{
 		"username":  username,
-		"available": true,
+		"available": available,
 	})
 }
 

@@ -142,6 +142,15 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 }
 
 // GetUserByStudentID retrieves a user by their student ID.
+func (s *PostgresStore) CheckUsernameAvailable(ctx context.Context, username string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check username: %w", err)
+	}
+	return !exists, nil
+}
+
 func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string) (*User, error) {
 	if studentID == "" {
 		return nil, fmt.Errorf("studentID cannot be empty")
