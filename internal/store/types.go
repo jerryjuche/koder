@@ -204,6 +204,7 @@ type LeaderboardUser struct {
 	Level           int     `json:"level"`
 	SolvedCount     int     `json:"solvedCount"`
 	Streak          int     `json:"streak"`
+	Verified        bool    `json:"verified"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 }
 

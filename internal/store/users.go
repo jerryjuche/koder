@@ -496,7 +496,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
 				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -518,7 +519,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
 				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin' AND u.xp > 0
@@ -543,7 +545,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 		err := rows.Scan(
 			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL, &u.Verified,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
