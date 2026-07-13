@@ -471,14 +471,17 @@ func SecurityHeadersMiddleware(cfg *config.Config) func(http.Handler) http.Handl
 
 			csp := fmt.Sprintf(
 				"default-src 'self'; "+
-					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval'; "+
-					"style-src 'self' 'unsafe-inline'; "+
+					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval' 'unsafe-inline'; "+
+					"style-src 'self' 'unsafe-inline' https://accounts.google.com; "+
+					"style-src-elem 'self' 'unsafe-inline' https://accounts.google.com; "+
+					"worker-src 'self' blob:; "+
 					"img-src 'self' data: https:; "+
 					"font-src 'self' data:; "+
 					"connect-src 'self' https: wss:; "+
 					"object-src 'none'; "+
 					"base-uri 'self'; "+
 					"frame-ancestors 'none'; "+
+					"frame-src https://accounts.google.com https://vercel.live; "+
 					"form-action 'self';",
 				nonce,
 			)
