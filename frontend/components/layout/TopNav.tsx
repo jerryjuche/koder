@@ -11,9 +11,9 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
-  PlusCircle,
   CheckCheck,
   ChevronDown,
+  Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -65,10 +65,14 @@ export default function TopNav() {
   }, []);
 
   const navLinks = [
-    { name: "Problems", href: "/", icon: LayoutDashboard },
+    { name: "Dashboard", href: "/home", icon: LayoutDashboard },
+    { name: "Problems", href: "/problems", icon: Code2 },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
-    { name: "Admin", href: "/admin", icon: Settings },
   ];
+
+  if (user?.role === "admin") {
+    navLinks.push({ name: "Admin", href: "/admin", icon: Settings });
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
@@ -150,19 +154,6 @@ export default function TopNav() {
               </span>
             </div>
 
-            {/* Add Problem Button */}
-            {(user.role === "verified_contributor" || user.role === "admin") && (
-              <Link
-                href="/contribute"
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-background bg-primary hover:bg-primary/90 rounded-md transition-colors mr-2 shrink-0 w-[130px]"
-              >
-                <PlusCircle size={16} className="shrink-0" />
-                <span className="truncate">Add Problem</span>
-              </Link>
-            )}
-
-
-
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
@@ -235,7 +226,7 @@ export default function TopNav() {
                       name={user.name}
                       colorIndex={user.colorIndex}
                       size="md"
-                      verified={user.role === "admin"}
+                      verified={user.verified}
                       className="ring-1 ring-border/50"
                     />
                     <div className="hidden sm:flex items-center gap-2">
@@ -266,7 +257,7 @@ export default function TopNav() {
                         name={user.name}
                         colorIndex={user.colorIndex}
                         size="sm"
-                        verified={user.role === "admin"}
+                        verified={user.verified}
                       />
                       <div>
                         <div className="flex items-center gap-1.5">

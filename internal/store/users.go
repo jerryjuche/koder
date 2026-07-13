@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -141,6 +142,15 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 }
 
 // GetUserByStudentID retrieves a user by their student ID.
+func (s *PostgresStore) CheckUsernameAvailable(ctx context.Context, username string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check username: %w", err)
+	}
+	return !exists, nil
+}
+
 func (s *PostgresStore) GetUserByStudentID(ctx context.Context, studentID string) (*User, error) {
 	if studentID == "" {
 		return nil, fmt.Errorf("studentID cannot be empty")
@@ -227,6 +237,52 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	}
 
 	return user, nil
+}
+
+// GetUserPublicData returns a safe public subset of user data for hover cards.
+func (s *PostgresStore) GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("id cannot be nil")
+	}
+
+	data := &PublicUserData{}
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.id::text, u.name, u.username, u.role, u.color_index, u.xp,
+		       (u.xp / 1000) + 1 as level,
+		       COALESCE((SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved), 0) as solved_count,
+		       u.google_avatar_url,
+		       u.verified
+		FROM users u
+		WHERE u.id = $1
+	`, id).Scan(
+		&data.ID, &data.Name, &data.Username, &data.Role, &data.ColorIndex,
+		&data.XP, &data.Level, &data.SolvedCount, &data.AvatarURL, &data.Verified,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get user public data: %w", err)
+	}
+
+	var streak int
+	s.pool.QueryRow(ctx, `
+		WITH daily AS (
+			SELECT DISTINCT DATE(created_at) AS d
+			FROM submissions
+			WHERE user_id = $1 AND status = 'passed'
+		),
+		groups AS (
+			SELECT d, d - (DENSE_RANK() OVER (ORDER BY d))::integer AS grp
+			FROM daily
+		)
+		SELECT COUNT(*)
+		FROM groups
+		WHERE grp = (SELECT grp FROM groups WHERE d >= CURRENT_DATE - INTERVAL '1 day' ORDER BY d DESC LIMIT 1)
+	`, id).Scan(&streak)
+	data.Streak = streak
+
+	return data, nil
 }
 
 // GetUserByUsername retrieves a user by their username.
@@ -449,7 +505,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				COALESCE(SUM(pr.xp_reward), 0) as xp,
 				COUNT(DISTINCT sub.problem_id) as solved_count,
 				COALESCE(MIN(sub.runtime_ms), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN (
 				SELECT user_id, problem_id, MIN(runtime_ms) as runtime_ms
@@ -471,7 +528,8 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.id, u.name, u.student_id, u.username, u.role, u.color_index, u.xp,
 				COUNT(p.problem_id) FILTER (WHERE p.solved) as solved_count,
 				COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved), 0) as best_time_ms,
-				u.google_avatar_url
+				u.google_avatar_url,
+				u.verified
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
 			WHERE u.role != 'admin' AND u.xp > 0
@@ -496,7 +554,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 
 		err := rows.Scan(
 			&uID, &u.Name, &u.StudentID, &u.Username, &u.Role, &u.ColorIndex, &u.XP,
-			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL,
+			&u.SolvedCount, &bestTime, &u.GoogleAvatarURL, &u.Verified,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard row: %w", err)
@@ -512,7 +570,7 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 			Rank:       rank,
 			User:       u,
 			BestTimeMs: bestTime,
-			RankDelta:  0, // RankDelta would require historical snapshots, just pass 0 for now.
+			RankDelta:  0,
 		})
 		rank++
 	}
@@ -548,6 +606,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 	query := `
 		SELECT u.id, u.student_id, u.username, u.name, u.bio, u.email, u.password, u.role, u.color_index, u.xp,
 		       u.google_id, u.google_email, u.google_avatar_url, u.created_at, u.username_set, u.primary_language,
+		       u.verified,
 		       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id AND p.solved = true) as solved_count
 		FROM users u
 		WHERE u.id = $1
@@ -570,6 +629,7 @@ func (s *PostgresStore) GetUserWithSolvedCount(ctx context.Context, id uuid.UUID
 		&user.CreatedAt,
 		&user.UsernameSet,
 		&user.PrimaryLanguage,
+		&user.Verified,
 		&solvedCount,
 	)
 
@@ -1182,4 +1242,116 @@ func (s *PostgresStore) CalculateStreak(ctx context.Context, userID uuid.UUID) (
 		return 0, fmt.Errorf("failed to calculate streak: %w", err)
 	}
 	return days, nil
+}
+
+// GetUserExportData collects all user data for account export as a JSON-serializable map.
+func (s *PostgresStore) GetUserExportData(ctx context.Context, userID uuid.UUID) (map[string]any, error) {
+	result := make(map[string]any)
+
+	// User profile
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	result["user"] = map[string]any{
+		"id":              uuid.UUID(user.ID.Bytes).String(),
+		"username":        user.Username,
+		"student_id":      user.StudentID,
+		"name":            user.Name,
+		"email":           user.Email,
+		"role":            user.Role,
+		"xp":              user.XP,
+		"primary_language": user.PrimaryLanguage,
+		"created_at":      user.CreatedAt,
+	}
+
+	// Submissions
+	rows, err := s.pool.Query(ctx, `
+		SELECT s.id, s.problem_id, p.slug, s.language, s.status, s.passed_count, s.total_count,
+		       s.runtime_ms, s.created_at
+		FROM submissions s
+		LEFT JOIN problems p ON p.id = s.problem_id
+		WHERE s.user_id = $1
+		ORDER BY s.created_at DESC
+	`, userID)
+	if err == nil {
+		defer rows.Close()
+		var submissions []map[string]any
+		for rows.Next() {
+			var subID, probID pgtype.UUID
+			var slug, lang, status string
+			var passed, total, runtime int
+			var createdAt time.Time
+			if err := rows.Scan(&subID, &probID, &slug, &lang, &status, &passed, &total, &runtime, &createdAt); err == nil {
+				submissions = append(submissions, map[string]any{
+					"id":           uuid.UUID(subID.Bytes).String(),
+					"problem_slug": slug,
+					"language":     lang,
+					"status":       status,
+					"passed":       passed,
+					"total":        total,
+					"runtime_ms":   runtime,
+					"created_at":   createdAt,
+				})
+			}
+		}
+		result["submissions"] = submissions
+	}
+
+	// Progress
+	rows2, err := s.pool.Query(ctx, `
+		SELECT pr.problem_id, p.slug, pr.solved, pr.stars, pr.attempts, pr.xp_awarded
+		FROM progress pr
+		LEFT JOIN problems p ON p.id = pr.problem_id
+		WHERE pr.user_id = $1
+	`, userID)
+	if err == nil {
+		defer rows2.Close()
+		var progress []map[string]any
+		for rows2.Next() {
+			var probID pgtype.UUID
+			var slug string
+			var solved bool
+			var stars, attempts, xp int
+			if err := rows2.Scan(&probID, &slug, &solved, &stars, &attempts, &xp); err == nil {
+				progress = append(progress, map[string]any{
+					"problem_slug": slug,
+					"solved":       solved,
+					"stars":        stars,
+					"attempts":     attempts,
+					"xp_awarded":   xp,
+				})
+			}
+		}
+		result["progress"] = progress
+	}
+
+	// Feedback
+	rows3, err := s.pool.Query(ctx, `
+		SELECT id, type, title, status, created_at
+		FROM feedback
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`, userID)
+	if err == nil {
+		defer rows3.Close()
+		var feedback []map[string]any
+		for rows3.Next() {
+			var id pgtype.UUID
+			var ftype, title, status string
+			var createdAt time.Time
+			if err := rows3.Scan(&id, &ftype, &title, &status, &createdAt); err == nil {
+				feedback = append(feedback, map[string]any{
+					"id":         uuid.UUID(id.Bytes).String(),
+					"type":       ftype,
+					"title":      title,
+					"status":     status,
+					"created_at": createdAt,
+				})
+			}
+		}
+		result["feedback"] = feedback
+	}
+
+	return result, nil
 }

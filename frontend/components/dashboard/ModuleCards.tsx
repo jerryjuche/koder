@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -202,7 +203,7 @@ function ModuleImage({ src, alt, initial }: { src: string; alt: string; initial:
           </span>
         </div>
       )}
-      <img
+      <Image
         src={src}
         alt={alt}
         width={400}
@@ -212,7 +213,6 @@ function ModuleImage({ src, alt, initial }: { src: string; alt: string; initial:
         onError={() => setError(true)}
         className={cn(
           "h-full w-full object-cover transition-all duration-500 group-hover:scale-105",
-          loaded ? "opacity-100" : "opacity-0",
         )}
       />
     </div>

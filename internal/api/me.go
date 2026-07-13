@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jerryjuche/koder/internal/store"
@@ -32,6 +35,7 @@ type meResponse struct {
 	AttemptedCount  int     `json:"attempted_count"`
 	StreakDays      int     `json:"current_streak_days"`
 	PrimaryLanguage string  `json:"primary_language"`
+	Verified        bool    `json:"verified"`
 	GoogleAvatarURL *string `json:"google_avatar_url,omitempty"`
 	GoogleLinked    bool    `json:"google_linked"`
 	UsernameSet     bool    `json:"username_set"`
@@ -111,6 +115,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		AttemptedCount:  attemptedCount,
 		StreakDays:      streakDays,
 		PrimaryLanguage: primaryLanguage,
+		Verified:        user.Verified,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
 		UsernameSet:     user.UsernameSet,
@@ -291,12 +296,39 @@ func (h *MeHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
 		AttemptedCount:  attemptedCount,
 		StreakDays:      streakDays,
 		PrimaryLanguage: primaryLanguage,
+		Verified:        user.Verified,
 		GoogleAvatarURL: user.GoogleAvatarURL,
 		GoogleLinked:    googleLinked,
 		UsernameSet:     user.UsernameSet,
 	}
 
 	RespondSuccess(w, resp)
+}
+
+// ExportData returns all user data as a JSON export before account operations.
+// GET /me/export-data
+func (h *MeHandler) ExportData(w http.ResponseWriter, r *http.Request) {
+	claims := GetClaims(r.Context())
+	if claims == nil {
+		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+		return
+	}
+
+	userUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID in token", nil)
+		return
+	}
+
+	data, err := h.store.GetUserExportData(r.Context(), userUUID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "EXPORT_FAILED", "Failed to export user data", nil)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=koder-export-%s.json", time.Now().Format("2006-01-02")))
+	RespondSuccess(w, data)
 }
 
 // DeleteAccount permanently removes the authenticated user and all their data.
@@ -313,10 +345,16 @@ func (h *MeHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Revoke all refresh tokens before deletion
+	if err := h.store.RevokeAllUserRefreshTokens(r.Context(), userUUID); err != nil {
+		slog.Error("me: failed to revoke refresh tokens on delete", "error", err)
+	}
+
 	if err := h.store.DeleteUser(r.Context(), userUUID); err != nil {
 		RespondError(w, http.StatusInternalServerError, "DELETE_FAILED", "Failed to delete account", nil)
 		return
 	}
 
+	ClearAuthCookie(w, r)
 	RespondSuccess(w, map[string]string{"message": "Account permanently deleted"})
 }

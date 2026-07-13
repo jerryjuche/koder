@@ -13,8 +13,8 @@ function OAuthCallbackInner() {
 
     if (token) {
       // Scrub token from URL bar and browser history immediately
-      window.history.replaceState({}, document.title, '/');
-      router.push('/');
+      window.history.replaceState({}, document.title, '/home');
+      router.push('/home');
     } else {
       window.history.replaceState({}, document.title, '/login');
       if (error === 'invalid_state') {

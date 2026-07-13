@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { cn, getUserColor } from "@/lib";
 
 const sizeMap = {
   sm: "h-8 w-8 text-xs",
   md: "h-10 w-10 text-sm",
   lg: "h-14 w-14 text-base",
+  podium: "h-16 w-16 text-lg",
   xl: "h-20 w-20 sm:h-24 sm:w-24 text-3xl sm:text-4xl",
 };
 
@@ -13,6 +15,7 @@ const badgeConfig: Record<string, { size: number; ring: string }> = {
   sm: { size: 14, ring: "ring-2" },
   md: { size: 16, ring: "ring-2" },
   lg: { size: 20, ring: "ring-[3px]" },
+  podium: { size: 22, ring: "ring-[3px]" },
   xl: { size: 24, ring: "ring-[3px]" },
 };
 
@@ -21,7 +24,7 @@ interface AvatarProps {
   alt?: string;
   name?: string;
   colorIndex?: number;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "podium" | "xl";
   verified?: boolean;
   className?: string;
 }
@@ -56,10 +59,13 @@ export function Avatar({
         )}
       >
         {src ? (
-          <img
+          <Image
             src={src}
             alt={alt}
             className="h-full w-full object-cover"
+            width={100}
+            height={100}
+            unoptimized
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
               (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
@@ -70,7 +76,7 @@ export function Avatar({
           className={cn(
             "font-bold text-white select-none",
             src ? "hidden" : "",
-            size === "sm" ? "text-[10px]" : size === "md" ? "text-xs" : size === "lg" ? "text-sm" : "",
+            size === "sm" ? "text-[10px]" : size === "md" ? "text-xs" : size === "lg" || size === "podium" ? "text-sm" : "",
           )}
         >
           {initials}

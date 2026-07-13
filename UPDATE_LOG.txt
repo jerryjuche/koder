@@ -251,3 +251,15 @@ Date: 2026-07-09
 Python compiler error context extraction fix:
 1. sandbox/main.go: updated isPythonErrorLine to robustly detect all Python builtin and custom exceptions (SyntaxError, NameError, etc.) and extract file and line context.
 2. internal/executor/executor.go: fixed variable shadowing bug where `sandboxError` was scoped only to an `if` block, ensuring Python traceback and syntax errors properly surface to the frontend.
+
+Date: 2026-07-11
+
+Google auto-registration + navigation + refresh token fix:
+1. GoogleAuth auto-create branch now uses issueTokens() instead of auth.SignToken — new Google users now get a refresh token (previously logged out after 15 min).
+2. All router.push('/') changed to /home across login, register, admin, OAuth callback (was redirect-looping to landing page, breaking browser back button).
+3. Settings page logout/delete redirect /auth/login (404) → /login.
+4. TopNav Problems link href from / → /problems for proper navigation stack.
+5. New /problems listing page with search, language tabs, pagination.
+6. New problems layout with TopNav + FeedbackButton for workspace.
+7. Success page language derived from localStorage (not hardcoded go).
+8. Unused imports (ChevronRight, getDifficultyLabel) removed.

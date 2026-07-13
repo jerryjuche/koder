@@ -7,7 +7,7 @@ import {
   User as UserIcon, Settings as SettingsIcon, Bell, Shield,
   Palette, LogOut, CheckCircle2, Chrome, CheckCheck,
   GitPullRequest, XCircle, Eye, EyeOff, Info, AlertTriangle,
-  AtSign, FileText, KeyRound, Trash2, Calendar,
+  AtSign, FileText, KeyRound, Trash2, Calendar, Download,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -223,7 +223,7 @@ function SettingsPageContent() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/auth/login";
+    window.location.href = "/login";
   };
 
   const handleDelete = async () => {
@@ -231,7 +231,7 @@ function SettingsPageContent() {
     try {
       const res = await deleteAccount();
       if (res.success) {
-        window.location.href = "/auth/login";
+        window.location.href = "/login";
       } else {
         throw new Error(res.error?.message || "Failed to delete account");
       }
@@ -327,7 +327,7 @@ function SettingsPageContent() {
                     name={name || user?.name}
                     colorIndex={user?.colorIndex ?? 0}
                     size="lg"
-                    verified={user?.role === "admin"}
+                    verified={user?.verified}
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1053,17 +1053,31 @@ function SettingsPageContent() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-brand-error/80">
-                          Permanently remove your account and all associated data.
-                        </p>
-                        <button
-                          onClick={() => setConfirmDelete(true)}
-                          className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0"
-                        >
-                          <Trash2 size={14} className="inline mr-1.5" />
-                          Delete Account
-                        </button>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-brand-error/80">
+                            Permanently remove your account and all associated data.
+                          </p>
+                          <button
+                            onClick={() => setConfirmDelete(true)}
+                            className="bg-brand-error/10 border border-brand-error/30 hover:bg-brand-error/20 text-brand-error px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0"
+                          >
+                            <Trash2 size={14} className="inline mr-1.5" />
+                            Delete Account
+                          </button>
+                        </div>
+                        <div className="border-t border-brand-error/10 pt-3 flex items-center justify-between">
+                          <p className="text-sm text-brand-offwhite-muted">
+                            Download your data before account deletion.
+                          </p>
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/me/export-data`}
+                            className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0 inline-flex items-center gap-2"
+                          >
+                            <Download size={14} />
+                            Export My Data
+                          </a>
+                        </div>
                       </div>
                     )}
                   </div>

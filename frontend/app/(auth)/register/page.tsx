@@ -37,7 +37,7 @@ export default function RegisterPage() {
     try {
       const res = await googleLogin(response.credential);
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/');
+        router.push(res.data.onboarding ? '/onboarding' : '/home');
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }
@@ -164,8 +164,8 @@ export default function RegisterPage() {
       // Now set the username via onboarding endpoint
       const onboardingRes = await completeOnboarding(username);
       if (!onboardingRes.success) {
-        setErrorMsg(onboardingRes.error?.message || 'Failed to set username');
-        setLoading(false);
+        // Account created but username failed — redirect to onboarding to retry
+        router.push('/onboarding');
         return;
       }
 
@@ -633,7 +633,7 @@ export default function RegisterPage() {
             className="text-center"
           >
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/home')}
               className="inline-flex items-center gap-2 bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-8 h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20"
             >
               Go to Dashboard

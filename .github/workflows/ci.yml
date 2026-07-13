@@ -31,15 +31,22 @@ jobs:
         run: go vet ./internal/...
 
       - name: Go test (main module)
-        run: go test ./internal/... -count=1 -timeout 120s
+        run: go test ./internal/... -count=1 -timeout 120s -v
         env:
           DATABASE_URL: postgres://placeholder:placeholder@localhost:5432/test
           JWT_SECRET: ci-test-jwt-secret-that-is-at-least-32-chars!!
-          GEMINI_API_KEY: ci-test-placeholder
-          GROQ_API_KEY: ""
+          NVIDIA_API_KEY: ci-test-placeholder
 
       - name: Build (main module)
         run: go build -o /dev/null ./cmd/server
+
+      - name: Go vet (sandbox)
+        working-directory: ./sandbox
+        run: go vet ./...
+
+      - name: Go test (sandbox)
+        working-directory: ./sandbox
+        run: go test ./... -count=1 -timeout 30s -v
 
       - name: Build (sandbox)
         working-directory: ./sandbox
@@ -79,26 +86,4 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:8080
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-test-placeholder
 
-  deploy-backend:
-    name: Deploy — Backend
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [backend]
-    runs-on: ubuntu-latest
-    environment: production
 
-    steps:
-      - name: Trigger Render deploy hook
-        run: |
-          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
-  deploy-sandbox:
-    name: Deploy — Sandbox
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [backend]
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - name: Trigger Railway deploy hook
-        run: |
-          curl -fsSL -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"

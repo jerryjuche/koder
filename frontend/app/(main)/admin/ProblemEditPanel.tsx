@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -8,9 +9,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Tag, Layers, Beaker } from 'lucide-react';
-import { Problem, UpdateProblemPayload } from '@/lib/types';
+import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit } from 'lucide-react';
+import { Problem, UpdateProblemPayload, AIAssistResponse } from '@/lib/types';
+import { enrichProblem } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import AIAssistantPanel from '@/components/admin/AIAssistantPanel';
 
 interface ProblemEditPanelProps {
   problem: Problem;
@@ -55,7 +58,59 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
     return lv ? JSON.stringify(lv, null, 2) : '';
   });
   const [saving, setSaving] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [livePreview, setLivePreview] = useState(false);
+
+  const handleAIApply = useCallback((response: AIAssistResponse) => {
+    if (response.statement) setStatement(response.statement);
+    if (response.hints) {
+      setHint1(response.hints[0] || '');
+      setHint2(response.hints[1] || '');
+      setHint3(response.hints[2] || '');
+    }
+    if (response.constraints !== undefined) setConstraints(response.constraints);
+    if (response.learning_objective !== undefined) setLearningObjective(response.learning_objective);
+    if (response.func_name) setFuncName(response.func_name);
+    if (response.return_type) setReturnType(response.return_type);
+    if (response.param_types) setParamTypes(response.param_types.join(', '));
+    if (response.language_versions) setLvJSON(JSON.stringify(response.language_versions, null, 2));
+    if (response.difficulty) setDifficulty(response.difficulty);
+    if (response.xp_reward) setXpReward(response.xp_reward);
+    toast.success('AI suggestion applied — review before saving');
+  }, []);
+
+  const handleEnrich = async () => {
+    setEnriching(true);
+    try {
+      const res = await enrichProblem(problem.slug);
+      if (res.success && res.data) {
+        const p = res.data;
+        setTitle(p.title || '');
+        setStatement(p.statement || '');
+        setConstraints(p.constraints || '');
+        setLearningObjective(p.learningObjective || '');
+        setModule(p.module || '');
+        setFuncName(p.func_name || '');
+        setReturnType(p.return_type || '');
+        setParamTypes((p.param_types || []).join(', '));
+        setDifficulty(p.difficulty || 1);
+        setXpReward(p.xpReward || 10);
+        setTags((p.tags || []).join(', '));
+        setHint1((p.hints || [])[0] || '');
+        setHint2((p.hints || [])[1] || '');
+        setHint3((p.hints || [])[2] || '');
+        const lv = (p as any).language_versions;
+        setLvJSON(lv ? JSON.stringify(lv, null, 2) : '');
+        setVisible(p.visible ?? true);
+        toast.success(`"${p.title}" enriched by AI`);
+      } else {
+        toast.error(res.error?.message || 'Enrichment failed');
+      }
+    } finally {
+      setEnriching(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -101,7 +156,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite">
+      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-4xl")}>
         <DialogHeader className="shrink-0 border-b border-brand-charcoal-border pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -133,7 +188,11 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin space-y-6 py-5 px-1">
+        <div className="flex-1 flex overflow-hidden">
+          <div className={cn(
+            "flex-1 overflow-y-auto scrollbar-thin space-y-6 py-5 px-1 transition-all duration-300",
+            aiPanelOpen && "pr-0"
+          )}>
           {livePreview ? (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-6">
@@ -289,6 +348,17 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
           )}
         </div>
 
+        <AnimatePresence>
+          {aiPanelOpen && (
+            <AIAssistantPanel
+              problem={problem}
+              onApply={handleAIApply}
+              onClose={() => setAiPanelOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
         {/* Footer */}
         <div className="shrink-0 border-t border-brand-charcoal-border pt-4 flex justify-between items-center">
           <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
@@ -296,6 +366,27 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
             <span>ID: <span className="font-mono">{problem.id.substring(0, 8)}...</span></span>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => setAiPanelOpen(!aiPanelOpen)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-2",
+                aiPanelOpen
+                  ? "bg-brand-cool-accent/10 text-brand-cool-accent border-brand-cool-accent/30"
+                  : "bg-brand-charcoal-base text-brand-offwhite-muted hover:text-brand-offwhite border-brand-charcoal-border hover:bg-brand-charcoal-hover"
+              )}
+              aria-label={aiPanelOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
+            >
+              <BrainCircuit size={16} />
+              AI Assistant
+            </button>
+            <button
+              onClick={handleEnrich}
+              disabled={enriching}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-[#1A2521] text-brand-success border border-brand-success/30 hover:bg-brand-success/10 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {enriching ? <Activity size={16} className="animate-spin" /> : <Wand2 size={16} />}
+              {enriching ? 'Enriching...' : 'Enrich with AI'}
+            </button>
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-brand-offwhite-muted hover:text-brand-offwhite border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors flex items-center gap-2">
               <X size={16} /> Cancel
             </button>
