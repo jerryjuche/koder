@@ -155,8 +155,8 @@ export default function RegisterPage() {
         return;
       }
 
-      setLoading(false);
-      setStep(4);
+      // Username set successfully — redirect to onboarding for language selection
+      router.push('/onboarding');
     } catch (err: any) {
       setErrorMsg(err.message || 'Unable to connect. Please try again.');
       setLoading(false);

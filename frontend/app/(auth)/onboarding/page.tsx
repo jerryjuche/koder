@@ -57,8 +57,11 @@ export default function OnboardingPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (user?.usernameSet && user?.primaryLanguage) {
+    if (!user) return;
+    if (user.usernameSet && user.primaryLanguage) {
       router.push('/home');
+    } else if (user.usernameSet && !user.primaryLanguage) {
+      setStep(2);
     }
   }, [user, router]);
 
