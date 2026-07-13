@@ -170,12 +170,16 @@ func compileErrorMessage(status, output string) string {
 		return "The sandbox ran out of memory while executing your code. Try simplifying your solution or reducing the amount of data processed."
 	}
 
-	// Try Go error format first
+	// Try Go error format first — collect ALL solution.go errors
+	var goErrors []string
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
 			parts := strings.SplitN(line, "solution.go:", 2)
-			return strings.TrimSpace(parts[1])
+			goErrors = append(goErrors, strings.TrimSpace(parts[1]))
 		}
+	}
+	if len(goErrors) > 0 {
+		return strings.Join(goErrors, "\n")
 	}
 
 	// Try Python traceback format: find the last error line and its file context

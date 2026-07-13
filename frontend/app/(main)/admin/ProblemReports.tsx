@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import NextImage from "next/image";
 import {
   Bug,
   CheckCircle2,
@@ -13,11 +14,11 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
-  Image,
   X,
   List,
   Group,
   ArrowUpRight,
+  Image as ImageLucide,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +30,7 @@ import {
 import { toast } from "@/lib/toast";
 import { FeedbackItem, Problem, UpdateProblemPayload } from "@/lib/types";
 import ProblemEditPanel from "./ProblemEditPanel";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 
 const STATUS_TABS = [
   { id: "", label: "All", icon: Bug },
@@ -285,11 +287,19 @@ export default function ProblemReports({ compact }: Props) {
               <div className="flex items-center gap-4 px-4 py-2 bg-brand-charcoal-panel/30 border-b border-brand-charcoal-border/50 text-[11px] text-brand-offwhite-muted">
                 <span>
                   by{" "}
-                  <span className="text-brand-offwhite/80">
-                    {report.is_anonymous
-                      ? "Anonymous"
-                      : report.user_name || "Unknown"}
-                  </span>
+                  {report.is_anonymous ? (
+                    <span className="text-brand-offwhite/80">Anonymous</span>
+                  ) : report.user_id ? (
+                    <ProfileHoverCard userId={report.user_id} side="bottom" align="start">
+                      <span className="text-brand-offwhite/80 cursor-pointer">
+                        {report.user_name || "Unknown"}
+                      </span>
+                    </ProfileHoverCard>
+                  ) : (
+                    <span className="text-brand-offwhite/80">
+                      {report.user_name || "Unknown"}
+                    </span>
+                  )}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-brand-charcoal-border" />
                 <span>
@@ -353,13 +363,16 @@ export default function ProblemReports({ compact }: Props) {
                 {report.screenshot_url && (
                   <div>
                     <span className="text-[11px] font-medium text-brand-offwhite-muted uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                      <Image size={12} /> Screenshot
+                      <ImageLucide size={12} /> Screenshot
                     </span>
                     <div className="relative inline-block max-w-full">
-                      <img
+                      <NextImage
                         src={`data:image/png;base64,${report.screenshot_url}`}
                         alt="Bug screenshot"
-                        className="max-h-64 rounded-lg border border-brand-charcoal-border object-contain bg-brand-charcoal-card"
+                        width={400}
+                        height={300}
+                        className="max-h-64 rounded-lg border border-brand-charcoal-border object-contain bg-brand-charcoal-card w-auto"
+                        unoptimized
                       />
                     </div>
                   </div>

@@ -246,7 +246,7 @@ func (s *PostgresStore) UpsertProblem(ctx context.Context, problem *Problem) err
 		problem.Visible,
 		problem.SourceHash,
 		problem.RawReadme,
-		lvJSON,
+		json.RawMessage(lvJSON),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert problem: %w", err)
@@ -313,7 +313,7 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 		problem.Slug, problem.Module, problem.Type, problem.Language,
 		problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
 		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward,
-		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme, lvJSON,
+		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme, json.RawMessage(lvJSON),
 	); err != nil {
 		return fmt.Errorf("failed to upsert enriched problem: %w", err)
 	}
@@ -684,6 +684,10 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		return nil, fmt.Errorf("problem cannot be nil")
 	}
 
+	if problem.LanguageVersions == nil {
+		problem.LanguageVersions = make(map[string]LanguageSpec)
+	}
+
 	query := `
 		UPDATE problems SET
 		    title = $1, statement = $2, constraints = $3,
@@ -701,13 +705,13 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		          created_at, updated_at
 	`
 
-	lvJSON, err := json.Marshal(problem.LanguageVersions)
+	lvBytes, err := json.Marshal(problem.LanguageVersions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal language_versions: %w", err)
 	}
 
 	var updated Problem
-	var lvBytes []byte
+	var lvOut []byte
 	if err := s.pool.QueryRow(ctx, query,
 		problem.Title,
 		problem.Statement,
@@ -724,7 +728,7 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		problem.XPReward,
 		problem.Tags,
 		problem.Visible,
-		lvJSON,
+		json.RawMessage(lvBytes),
 		problem.ID,
 	).Scan(
 		&updated.ID,
@@ -745,14 +749,14 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		&updated.Tags,
 		&updated.Visible,
 		&updated.SourceHash,
-		&lvBytes,
+		&lvOut,
 		&updated.CreatedAt,
 		&updated.UpdatedAt,
 	); err != nil {
 		return nil, fmt.Errorf("failed to update problem: %w", err)
 	}
-	if len(lvBytes) > 0 {
-		if err := json.Unmarshal(lvBytes, &updated.LanguageVersions); err != nil {
+	if len(lvOut) > 0 {
+		if err := json.Unmarshal(lvOut, &updated.LanguageVersions); err != nil {
 			slog.Warn("failed to unmarshal language_versions", "id", updated.ID, "error", err)
 		}
 	}
@@ -765,6 +769,9 @@ func unmarshalLanguageVersions(data []byte, target interface{}, context string) 
 	if len(data) > 0 {
 		if err := json.Unmarshal(data, target); err != nil {
 			slog.Warn("failed to unmarshal language_versions", "context", context, "error", err)
+			if m, ok := target.(*map[string]LanguageSpec); ok && *m == nil {
+				*m = make(map[string]LanguageSpec)
+			}
 		}
 	}
 }

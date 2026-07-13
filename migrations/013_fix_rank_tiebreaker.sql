@@ -40,7 +40,7 @@ BEGIN
     base_stats AS (
       SELECT
         COUNT(DISTINCT p.problem_id) FILTER (WHERE p.solved) AS solved_count,
-        COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN s.id END) AS attempted_count,
+        COUNT(DISTINCT p.problem_id) AS attempted_count,
         COALESCE(AVG(p.stars) FILTER (WHERE p.solved), 0.0)::float AS avg_stars,
         COALESCE(MIN(p.best_runtime) FILTER (WHERE p.solved AND p.best_runtime > 0), 0) AS best_runtime
       FROM progress p

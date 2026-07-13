@@ -49,6 +49,8 @@ import {
 import type { BundledLanguage } from "@/components/kibo-ui/code-block";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
+import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
+import { Avatar } from "@/components/base/avatar/avatar";
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -114,7 +116,7 @@ export default function Dashboard() {
       window.removeEventListener("user-updated", handleUserUpdated);
       clearTimeout(debounceTimer);
     };
-  }, []);
+  }, [languageFilter]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
@@ -463,7 +465,11 @@ export default function Dashboard() {
                         1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
                       };
                       const d = problem.difficulty as keyof typeof diffColor;
-                      const langs = problem.language_versions ? Object.keys(problem.language_versions) : [];
+                      const langs = problem.language_versions
+                          ? Object.entries(problem.language_versions)
+                              .filter(([_, spec]) => spec.func_name)
+                              .map(([lang]) => lang)
+                          : [];
 
                       return (
                       <Link
@@ -692,13 +698,17 @@ export default function Dashboard() {
                 className="overflow-hidden flex flex-col gap-0 p-0"
               >
                 <CardHeader className="p-4 flex-row items-center justify-between space-y-0 border-b border-border/50 bg-muted/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
-                      {sol.user_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm text-foreground flex items-center gap-2">
-                        {sol.user_name}
+                  <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
+                    <div className="flex items-center gap-3 cursor-pointer">
+                      <Avatar
+                        src={sol.user_avatar_url}
+                        name={sol.user_name}
+                        size="sm"
+                        verified={sol.verified}
+                      />
+                      <div>
+                        <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                          {sol.user_name}
                         {sol.problem_slug && (
                           <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-primary hover:underline font-mono">
                             in {sol.problem_slug}
@@ -710,6 +720,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
+                  </ProfileHoverCard>
                   <button
                     onClick={() => handleLike(sol.id, sol.has_liked)}
                     className={cn(

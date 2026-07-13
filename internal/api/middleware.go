@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -62,6 +64,13 @@ type loggingResponseWriter struct {
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func (lrw *loggingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hijacker, ok := lrw.ResponseWriter.(http.Hijacker); ok {
+		return hijacker.Hijack()
+	}
+	return nil, nil, fmt.Errorf("websocket: response does not implement http.Hijacker")
 }
 
 // RateLimiter implements a per-user sliding window rate limiter.
@@ -158,7 +167,7 @@ func RateLimitMiddleware(rl *RateLimiter) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Exempt admin users from rate limiting
+			// Exempt admin users from rate limiting on student endpoints
 			if claims.Role == "admin" {
 				next.ServeHTTP(w, r)
 				return
@@ -170,6 +179,31 @@ func RateLimitMiddleware(rl *RateLimiter) func(http.Handler) http.Handler {
 				msg := fmt.Sprintf("Too many submissions. Try again in %d seconds.", seconds)
 				slog.Warn("rate_limit: denied", "user_id", claims.UserID, "retry_after_seconds", seconds)
 				RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", msg, nil)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// AIRateLimitMiddleware enforces per-admin rate limits on AI assist calls.
+// Unlike RateLimitMiddleware, admin users are NOT exempt — they are the target.
+func AIRateLimitMiddleware(rl *RateLimiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := GetClaims(r.Context())
+			if claims == nil {
+				RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
+				return
+			}
+
+			allowed, retryAfter := rl.Allow(claims.UserID)
+			if !allowed {
+				seconds := int(retryAfter.Seconds()) + 1
+				msg := fmt.Sprintf("AI rate limit exceeded. Try again in %d seconds.", seconds)
+				slog.Warn("ai_rate_limit: denied", "user_id", claims.UserID, "retry_after_seconds", seconds)
+				RespondError(w, http.StatusTooManyRequests, "AI_RATE_LIMITED", msg, nil)
 				return
 			}
 
@@ -421,17 +455,44 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// generateCSPNonce creates a cryptographically random nonce for CSP.
+func generateCSPNonce() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
 // SecurityHeadersMiddleware sets standard security headers on every response.
-func SecurityHeadersMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "0")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com wss://koder-update.onrender.com wss://koder.onrender.com wss://koder-py.onrender.com ws://localhost:8080; frame-src https://accounts.google.com;")
-		next.ServeHTTP(w, r)
-	})
+// Each response gets a unique CSP nonce exposed via X-CSP-Nonce header.
+func SecurityHeadersMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			nonce := generateCSPNonce()
+
+			csp := fmt.Sprintf(
+				"default-src 'self'; "+
+					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval'; "+
+					"style-src 'self' 'unsafe-inline'; "+
+					"img-src 'self' data: https:; "+
+					"font-src 'self' data:; "+
+					"connect-src 'self' https: wss:; "+
+					"object-src 'none'; "+
+					"base-uri 'self'; "+
+					"frame-ancestors 'none'; "+
+					"form-action 'self';",
+				nonce,
+			)
+
+			w.Header().Set("Content-Security-Policy", csp)
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			w.Header().Set("X-CSP-Nonce", nonce)
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // GetClaims extracts JWT claims from the request context.

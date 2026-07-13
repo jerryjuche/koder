@@ -390,12 +390,16 @@ func formatExecutionErrorMessage(errText string) string {
 func parseCompilerError(output string) string {
 	lines := strings.Split(output, "\n")
 
-	// Try Go error format first
+	// Try Go error format first — collect ALL solution.go errors
+	var goErrors []string
 	for _, line := range lines {
 		if strings.Contains(line, "solution.go:") {
 			parts := strings.SplitN(line, "solution.go:", 2)
-			return "Line " + strings.TrimSpace(parts[1])
+			goErrors = append(goErrors, "Line "+strings.TrimSpace(parts[1]))
 		}
+	}
+	if len(goErrors) > 0 {
+		return strings.Join(goErrors, "\n")
 	}
 
 	// Try Python traceback format — scan bottom-up for the error line
@@ -414,12 +418,16 @@ func parseCompilerError(output string) string {
 		return EnhancePythonError(trimmed)
 	}
 
-	// Fallback to first meaningful line
+	// Fallback — collect ALL meaningful non-toolchain lines
+	var fallbackLines []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "FAIL") && !strings.HasPrefix(trimmed, "exit status") && !strings.HasPrefix(trimmed, "Traceback") && !strings.HasPrefix(trimmed, "File ") {
-			return trimmed
+			fallbackLines = append(fallbackLines, trimmed)
 		}
+	}
+	if len(fallbackLines) > 0 {
+		return strings.Join(fallbackLines, "\n")
 	}
 
 	return "Compilation failed due to a syntax error."
