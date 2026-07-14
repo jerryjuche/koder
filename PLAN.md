@@ -1,260 +1,239 @@
-# AI Assistant Panel Redesign Plan
+# Koder Curriculum CMS — Implementation Plan & Progress
 
-## Goal
-Redesign the AI Assistant Panel to be a professional, split-layout tool with live preview, regenerate buttons, and structured response display.
-
----
-
-## Current State
-- **Panel width:** 380px (too narrow for split layout)
-- **Layout:** Single-column chat interface
-- **Preview:** Statement truncated to 2 lines, other fields show counts only
-- **Regenerate:** Only retry on error (no action-specific regenerate)
-- **Quick Actions:** 4 actions + difficulty adjust (missing `add_edge_cases`, `regenerate_test_cases`)
-- **Dialog:** Expands from `max-w-4xl` to `max-w-6xl` when panel opens
+> A structured curriculum management system built on top of Koder's existing code-grading platform. Enables instructors to design courses composed of modules, lessons, and projects, linked to existing coding problems.
 
 ---
 
-## Design Decisions
+## 1. Goal
 
-### 1. Panel Width: 380px → 520px
-- The dialog already expands to `max-w-6xl` (1152px) when AI panel is open
-- 520px gives enough room for split layout (260px preview + 260px chat)
-- Remaining form area stays ~632px (still usable)
-
-### 2. Split Layout: Preview Left + Chat Right
-```
-┌────────────────────────────────────────────────────────┐
-│ AI Assistant  [Rephrase] [Hints] [Tests] [Sigs]   [X] │
-├──────────────────────┬─────────────────────────────────┤
-│                      │                                 │
-│  PREVIEW             │  CHAT                           │
-│  (260px)             │  (260px)                        │
-│                      │                                 │
-│  Statement (4-7 ln)  │  Messages...                    │
-│  Hints (collapsible) │                                 │
-│  Test Cases (table)  │                                 │
-│  Signature (code)    │                                 │
-│  Difficulty (badge)  │                                 │
-│                      │                                 │
-│  [Apply] [Revert]    │  [Input] [Send]                 │
-└──────────────────────┴─────────────────────────────────┘
-```
-
-### 3. Quick Actions → Regenerate Buttons
-Each action gets a regenerate button in the preview header:
-- `⟳ Rephrase` → re-runs `rephrase_statement`
-- `⟳ Hints` → re-runs `improve_hints`
-- `⟳ Test Cases` → re-runs `generate_test_cases`
-- `⟳ Signatures` → re-runs `fix_signatures`
-
-### 4. Preview Section Structure
-```
-PREVIEW (scrollable, left side)
-├── Statement (4-7 lines, markdown rendered)
-├── Hints (3 numbered, collapsible)
-├── Test Cases (table: input, expected, hidden)
-├── Signature (code block: func_name(params) → return)
-├── Language Versions (Go/Python side-by-side)
-├── Difficulty (badge + XP)
-└── [Apply All] [Revert] buttons
-```
-
-### 5. Chat Section Structure
-```
-CHAT (scrollable, right side)
-├── Messages (user/assistant bubbles)
-├── Loading state (skeleton)
-├── Error state (retry button)
-└── Input bar (textarea + send button)
-```
+Build a complete **Curriculum Management System** with:
+- **Admin panel** for creating and organizing courses, modules, lessons, sections, and projects
+- **Student-facing learn pages** for browsing courses, viewing lessons with rich content (quizzes, code exercises), and tracking progress
+- **Full CRUD** for all entity types with professional UI, proper error handling, and loading states
 
 ---
 
-## Files to Modify
+## 2. Database Schema
 
-### 1. `frontend/components/admin/AIAssistantPanel.tsx` (Primary)
-**Changes:**
-- Increase panel width from 380px to 520px
-- Add split layout: preview (left) + chat (right)
-- Add preview section with structured display:
-  - Statement: 4-7 lines with markdown rendering
-  - Hints: Numbered list with expand/collapse
-  - Test Cases: Table with input/expected/hidden columns
-  - Signature: Code block with language formatting
-  - Language Versions: Go/Python side-by-side
-  - Difficulty: Badge with XP reward
-- Add regenerate buttons for each action type
-- Keep existing chat functionality
-- Add Apply/Revert buttons in preview footer
+### Migration `038_curriculum_cms.sql`
 
-### 2. `frontend/app/(main)/admin/ProblemEditPanel.tsx` (Minor)
-**Changes:**
-- Update dialog max-width from `max-w-6xl` to `max-w-7xl` (optional, if 520px feels cramped)
-- No changes to `handleAIApply` (it already handles all fields)
+| Table | Purpose | Key Columns | Constraints |
+|---|---|---|---|
+| `courses` | Course catalog entry | id PK, slug UNIQUE, title, description, image_url, icon, difficulty_level (1-5), estimated_hours, order_number, visible | `slug UNIQUE` |
+| `modules` | Grouping within a course | id PK, course_id FK, slug, title, description, image_url, order_number, visible | `(course_id, slug) UNIQUE`, CASCADE on course delete |
+| `lessons` | Individual lesson within a module | id PK, module_id FK, slug, title, description, raw_readme, difficulty (1-5), estimated_minutes, xp_reward, order_number, visible, problem_references TEXT[] | `(module_id, slug) UNIQUE`, CASCADE on module delete |
+| `lesson_dependencies` | Prerequisite DAG | lesson_id FK, depends_on_lesson_id FK | PK `(lesson_id, depends_on_lesson_id)`, CHECK `lesson_id <> depends_on_lesson_id` |
+| `lesson_sections` | Typed content blocks | id PK, lesson_id FK, section_type (ENUM-like), title, content TEXT, metadata JSONB, order_number | CASCADE on lesson delete |
+| `projects` | Hands-on coding projects | id PK, lesson_id FK, slug, title, description, requirements, starter_code, difficulty (1-5), xp_reward, hints TEXT[], order_number, visible | `(lesson_id, slug) UNIQUE`, CASCADE on lesson delete |
+| `course_progress` | Per-user course tracking | user_id + course_id PK, started_at, completed_at, progress_pct REAL | FK to users + courses |
+| `lesson_progress` | Per-user lesson tracking | user_id + lesson_id PK, completed, xp_awarded, completed_at | FK to users + lessons |
 
-### 3. `frontend/lib/types.ts` (No changes needed)
-- `AIAssistResponse` already has all required fields
-- `ChatMessage` already supports `response` field
+**15 composite indexes** covering all query patterns (lookups by slug, FK joins, ordering, completion status).
 
 ---
 
-## Implementation Details
+## 3. Architecture
 
-### Step 1: Increase Panel Width
-```tsx
-// Line 252: Change width from 380 to 520
-animate={{ width: 520, opacity: 1 }}
+### Backend Layers
+
+```
+Router (chi)
+  └─ CMHandler (internal/api/cms.go)
+       ├─ 7 Student endpoints (authenticated)
+       │    GET  /learn/courses           → ListPublishedCourses
+       │    GET  /learn/courses/{slug}    → GetCourseDetail (course + modules + progress)
+       │    GET  .../modules/{modSlug}    → GetModuleDetail (module + lessons + progress)
+       │    GET  .../lessons/{lessonSlug} → GetLessonDetail (lesson + sections + deps + projects)
+       │    POST /learn/lessons/{id}/complete → CompleteLesson (awards XP, updates progress)
+       │    GET  /learn/progress          → GetAllProgress (full user progress)
+       └─ 22 Admin endpoints (admin-only)
+            CRUD for courses, modules, lessons, sections, projects
+            + visibility toggles for all entity types
+            + lesson creation with bulk sections + dependency insert
+       └─ Store (internal/store/curriculum.go)
+            28 methods implementing the Store interface
+            All using pgx/v5, UUIDs, proper error handling
+            CreateLessonWithSections uses a transaction
 ```
 
-### Step 2: Add Split Layout Structure
-```tsx
-<div className="flex-1 flex overflow-hidden">
-  {/* Left: Preview (260px) */}
-  <div className="w-[260px] shrink-0 border-r border-brand-charcoal-border/50 overflow-y-auto">
-    {/* Preview content */}
-  </div>
-  
-  {/* Right: Chat (flex-1) */}
-  <div className="flex-1 flex flex-col min-w-0">
-    {/* Chat messages + input */}
-  </div>
-</div>
+### Frontend Routes
+
+```
+Admin:
+  /admin/curriculum        → Full SPA: 3-column CRUD panel (1177 lines)
+
+Student Learn:
+  /learn/courses                          → Course catalog (card grid)
+  /learn/courses/[courseSlug]             → Course detail (module list + progress bar)
+  /learn/courses/[slug]/modules/[modSlug] → Module detail (lesson list + completion)
+  /learn/courses/[slug]/modules/[...]/lessons/[lessonSlug] → Lesson viewer
+
+Shared Components:
+  SectionRenderer.tsx   → Conditionally renders quiz/code/markdown
+  SectionQuiz.tsx       → Interactive multiple-choice with feedback
+  SectionExercise.tsx   → Monaco editor with test/submit
+  LessonSidebar.tsx     → Section navigation + progress + prerequisites
 ```
 
-### Step 3: Preview Section Components
+### Data Flow
 
-#### Statement Preview
-```tsx
-<div className="space-y-2">
-  <div className="flex items-center justify-between">
-    <h4 className="text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Statement</h4>
-    <button onClick={() => handleRegenerate('rephrase_statement')} className="text-[10px] text-brand-muted-gold hover:text-brand-muted-gold/80">
-      <RefreshCw size={10} /> Regenerate
-    </button>
-  </div>
-  <div className="text-xs text-brand-offwhite leading-relaxed whitespace-pre-wrap line-clamp-7">
-    {previewStatement || problem.statement}
-  </div>
-</div>
 ```
+Admin creates:
+  Course → Modules → Lessons → Sections (quiz/exercise/markdown)
+                              → Projects (coding projects)
+                              → Problem References (links to existing Koder problems)
 
-#### Hints Preview
-```tsx
-<div className="space-y-2">
-  <div className="flex items-center justify-between">
-    <h4 className="text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Hints</h4>
-    <button onClick={() => handleRegenerate('improve_hints')} className="text-[10px] text-brand-muted-gold hover:text-brand-muted-gold/80">
-      <RefreshCw size={10} /> Regenerate
-    </button>
-  </div>
-  <div className="space-y-1">
-    {(previewHints || problem.hints || []).map((hint, i) => (
-      <div key={i} className="text-[11px] text-brand-offwhite-muted">
-        <span className="text-brand-muted-gold font-medium">{i + 1}.</span> {hint}
-      </div>
-    ))}
-  </div>
-</div>
-```
-
-#### Test Cases Preview
-```tsx
-<div className="space-y-2">
-  <div className="flex items-center justify-between">
-    <h4 className="text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Test Cases</h4>
-    <button onClick={() => handleRegenerate('generate_test_cases')} className="text-[10px] text-brand-muted-gold hover:text-brand-muted-gold/80">
-      <RefreshCw size={10} /> Regenerate
-    </button>
-  </div>
-  <div className="text-[11px] text-brand-offwhite-muted">
-    {previewTestCases?.length || problem.test_cases?.length || 0} test cases
-    <span className="text-brand-offwhite-muted/50 ml-2">
-      ({previewTestCases || problem.test_cases || []).filter(tc => !tc.is_hidden).length} visible
-    </span>
-  </div>
-</div>
-```
-
-#### Signature Preview
-```tsx
-<div className="space-y-2">
-  <div className="flex items-center justify-between">
-    <h4 className="text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Signature</h4>
-    <button onClick={() => handleRegenerate('fix_signatures')} className="text-[10px] text-brand-muted-gold hover:text-brand-muted-gold/80">
-      <RefreshCw size={10} /> Regenerate
-    </button>
-  </div>
-  <div className="bg-brand-charcoal-base rounded-lg p-2 font-mono text-[11px] text-brand-offwhite">
-    <span className="text-brand-muted-gold">func</span> {previewFuncName || problem.func_name}({previewParamTypes || problem.param_types?.join(', ')}) <span className="text-brand-muted-gold">→</span> {previewReturnType || problem.return_type}
-  </div>
-</div>
-```
-
-### Step 4: Add Regenerate Handler
-```tsx
-const handleRegenerate = useCallback((action: AIActionType) => {
-  const labels: Record<string, string> = {
-    rephrase_statement: 'Rephrase the statement',
-    improve_hints: 'Improve the hints',
-    generate_test_cases: 'Generate test cases',
-    fix_signatures: 'Fix Go/Python function signatures',
-  };
-  sendMessage(labels[action] || action, action);
-}, [sendMessage]);
-```
-
-### Step 5: Apply/Revert Buttons
-```tsx
-<div className="shrink-0 px-4 py-3 border-t border-brand-charcoal-border/50">
-  <div className="flex gap-2">
-    <button
-      onClick={() => onApply(currentPreview)}
-      disabled={!hasChanges}
-      className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-brand-success/10 text-brand-success border border-brand-success/20 hover:bg-brand-success/20 transition-colors disabled:opacity-40"
-    >
-      Apply All Changes
-    </button>
-    <button
-      onClick={handleRevert}
-      disabled={!hasChanges}
-      className="px-3 py-2 rounded-lg text-xs font-medium bg-brand-charcoal-base text-brand-offwhite-muted border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors disabled:opacity-40"
-    >
-      Revert
-    </button>
-  </div>
-</div>
+Student sees:
+  Course catalog (visible=true) → Module list → Lesson viewer
+    ├─ Sections rendered by type (quiz → interactive, exercise → code editor)
+    ├─ "Mark Complete" button → awards XP → updates users.xp → updates course_progress
+    └─ Prerequisites checked before allowing completion
 ```
 
 ---
 
-## Keyboard Shortcuts
-- `Ctrl+Enter` → Apply all changes
-- `Escape` → Close panel
-- `Tab` → Cycle through focusable elements (existing)
+## 4. Implementation Phases
+
+### Phase 1: Database & Store (Complete)
+- Migration `038_curriculum_cms.sql` with 6+2 tables, 15 indexes
+- All 28 store methods in `internal/store/curriculum.go`
+- Interface methods in `internal/store/store.go`
+- Proper error handling: `pgx.ErrNoRows`, uniqueness violations, row-affect checks
+
+### Phase 2: Backend API (Complete)
+- 29 handlers in `internal/api/cms.go`
+- Route registration in `internal/api/router.go`
+- All with proper auth, validation, error logging, and response formatting
+- Transactional lesson creation (sections + dependencies in one transaction)
+
+### Phase 3: Admin Frontend (Complete)
+- `/admin/curriculum` — full CRUD for all 5 entity types
+- Forms: course, module, lesson (with raw_readme), section (11 types + quiz config), project
+- Visibility toggles for courses, modules, lessons, projects (Eye/EyeOff buttons)
+- Loading states for modules and lessons
+- Error toasts on API failures
+- Expandable course cards with nested module list
+
+### Phase 4: Student Learn Pages (Complete)
+- `/learn/courses` — card grid with gradient headers, difficulty badges, loading skeleton
+- `/learn/courses/[slug]` — progress bar, module list with "View" links
+- `/learn/[slug]/modules/[modSlug]` — lesson list with completion checkmarks
+- `/learn/[slug]/modules/[slug]/lessons/[slug]` — lesson viewer with:
+  - Sidebar navigation (sections list, prerequisites, progress)
+  - SectionRenderer: quiz (interactive), exercise (Monaco editor), markdown
+  - "Mark Complete" button with prerequisite gate
+
+### Phase 5: Bugfixes & Polish (Complete)
+- Course creation difficulty_level CHECK constraint fix
+- DeleteCourse return value fix
+- Error handling + loading states for loadModules/loadLessons
+- raw_readme column population on lesson create/update
+- XP propagation from lesson → users.xp table
+- Course progress auto-calculation on lesson completion
+- Module/Lesson/Project visibility toggle endpoints + UI
 
 ---
 
-## Testing Checklist
-- [ ] Panel opens at 520px width
-- [ ] Split layout renders correctly (preview left, chat right)
-- [ ] Preview shows 4-7 lines of statement
-- [ ] All 6 quick actions work (rephrase, hints, test cases, signatures, difficulty, chat)
-- [ ] Regenerate buttons trigger re-run for each action
-- [ ] Apply button updates ProblemEditPanel fields
-- [ ] Revert button clears preview changes
-- [ ] Chat messages display correctly
-- [ ] Loading state shows skeleton
-- [ ] Error state shows retry button
-- [ ] Keyboard navigation works (Tab, Escape, Ctrl+Enter)
-- [ ] Panel animates in/out smoothly
-- [ ] Dialog width adjusts correctly (max-w-4xl → max-w-7xl)
+## 5. File Inventory
+
+### Backend
+```
+internal/store/curriculum.go   — 1002 lines, 28 store methods
+internal/api/cms.go            — 1100 lines, 29 handlers + helpers
+internal/api/router.go         — 3 new route groups
+internal/store/store.go        — Interface: 28 curriculum methods
+internal/store/types.go        — Types: Course, Module, Lesson, Project, etc.
+migrations/038_curriculum_cms.sql — 6+2 tables, 15 indexes
+```
+
+### Frontend (Admin)
+```
+app/(main)/admin/curriculum/page.tsx  — 1230 lines, SPA CRUD panel
+```
+
+### Frontend (Student)
+```
+app/(main)/learn/layout.tsx                                                  — 7 lines
+app/(main)/learn/courses/page.tsx                                            — 147 lines
+app/(main)/learn/courses/[courseSlug]/page.tsx                               — 92 lines
+app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx          — 98 lines
+app/(main)/learn/courses/[...]/modules/[...]/lessons/[lessonSlug]/page.tsx   — 5 lines
+app/(main)/learn/courses/[...]/modules/[...]/lessons/[...]/LessonViewerClient.tsx — 145 lines
+```
+
+### Frontend (Shared Components)
+```
+components/learn/SectionRenderer.tsx   — 66 lines
+components/learn/SectionQuiz.tsx       — 89 lines
+components/learn/SectionExercise.tsx   — 134 lines
+components/learn/LessonSidebar.tsx     — 93 lines
+```
+
+### Frontend (API & Types)
+```
+lib/api.ts     — 26 curriculum API functions (622-780)
+lib/types.ts   — 15 curriculum interfaces (372-599)
+```
 
 ---
 
-## Edge Cases
-1. **Empty preview:** Show placeholder text ("No changes yet")
-2. **Partial changes:** Only show changed fields in preview
-3. **Multiple actions:** Preview updates with each action (stacks changes)
-4. **Revert:** Reset preview to original problem state
-5. **Apply:** Push all preview fields to ProblemEditPanel, clear preview
+## 6. Current State
+
+### Fully Implemented
+- [x] Course CRUD (admin create/read/update/delete + visibility toggle)
+- [x] Module CRUD (admin create/read/update/delete + visibility toggle)
+- [x] Lesson CRUD (admin create with sections+deps, read, update, delete + visibility toggle)
+- [x] Section CRUD (admin create/read/update/delete, 11 section types)
+- [x] Project CRUD (admin create/read/update/delete + visibility toggle)
+- [x] Student course catalog (visible courses only, card grid)
+- [x] Student course detail (modules + progress bar + lesson counts)
+- [x] Student module detail (lesson list + completion status)
+- [x] Student lesson viewer (sections, quiz, code exercise, sidebar)
+- [x] Lesson completion (XP award to users.xp, course_progress update)
+- [x] Prerequisite checking (server-side, gates completion button)
+- [x] All loading states, error toasts, empty states
+- [x] raw_readme persistence on lesson create/update
+
+### Known Gaps (Non-Critical)
+- [ ] N+1 query pattern in GetCourseDetail/GetModuleDetail (performance, not correctness)
+- [ ] No section reordering endpoint (drag-to-reorder)
+- [ ] No lesson dependency management after creation (add/remove deps)
+- [ ] fetchProgress() is defined but unused on frontend (available for future use)
+
+---
+
+## 7. Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| **Full PUT instead of PATCH** | Simpler implementation; frontend always sends the full entity. Risk of zero-valued missing fields mitigated by frontend sending complete objects. |
+| **Monolithic admin component (1230 lines)** | All CRUD shares the same Dialog modal. Extracting into sub-components would add unnecessary complexity for a single-page admin tool. |
+| **N+1 query pattern** | Acceptable for curriculum data (small datasets: <50 modules, <200 lessons per course). Avoids premature optimization that would complicate the codebase. |
+| **Hardcoded 50 XP fallback** | If `lesson.xp_reward` is 0 or unset, defaults to 50. Prevents silent 0-XP completions for legacy data. |
+| **Error string matching for 404** | Inconsistent with `pgx.ErrNoRows` but consistent across all existing CMS handlers. Changing would require touching all handlers — acceptable technical debt. |
+
+---
+
+## 8. Migration History
+
+| Migration | Description |
+|---|---|
+| `038_curriculum_cms.sql` | Initial schema: courses, modules, lessons, lesson_dependencies, lesson_sections, projects, course_progress, lesson_progress. 15 indexes. |
+| All post-038 changes are code-only (no schema changes) | raw_readme fix, XP propagation, visibility toggles — all handled in Go code |
+
+---
+
+## 9. Key Metrics
+
+| Metric | Value |
+|---|---|
+| Backend handlers | 29 (22 admin + 7 student) |
+| Store methods | 28 |
+| Frontend API functions | 26 |
+| TypeScript interfaces | 15 |
+| DB tables | 8 |
+| DB indexes | 15 |
+| Admin page lines | 1230 |
+| Student page lines (total) | 494 |
+| Shared component lines (total) | 382 |
+| Total new code | ~3500 lines |

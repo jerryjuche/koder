@@ -774,6 +774,46 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/health` | None | Service health (db ping, env info) |
 | GET | `/version` | None | Build commit + time + Go version |
 
+### Curriculum — Student Learn
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/learn/courses` | Student | List visible courses ordered by order_number |
+| GET | `/learn/courses/{courseSlug}` | Student | Course detail with modules, progress bar, lesson counts |
+| GET | `/learn/courses/{courseSlug}/modules/{moduleSlug}` | Student | Module detail with lesson list + completion status |
+| GET | `/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}` | Student | Full lesson with sections, deps, projects, progress |
+| POST | `/learn/lessons/{lessonId}/complete` | Student | Mark lesson complete → award XP → update course progress |
+| GET | `/learn/progress` | Student | Full aggregate progress across all courses |
+
+### Curriculum — Admin CRUD
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/admin/courses` | Admin | List all courses (visible + hidden) |
+| POST | `/admin/courses` | Admin | Create course (slug, title, difficulty, estimated_hours) |
+| PUT | `/admin/courses/{courseId}` | Admin | Update course (full entity) |
+| DELETE | `/admin/courses/{courseId}` | Admin | Delete course (CASCADE to modules + lessons) |
+| PATCH | `/admin/courses/{courseId}/visibility` | Admin | Toggle course visible flag |
+| GET | `/admin/courses/{courseId}/modules` | Admin | List modules for a course |
+| POST | `/admin/courses/{courseId}/modules` | Admin | Create module |
+| PUT | `/admin/modules/{moduleId}` | Admin | Update module |
+| DELETE | `/admin/modules/{moduleId}` | Admin | Delete module (CASCADE to lessons) |
+| PATCH | `/admin/modules/{moduleId}/visibility` | Admin | Toggle module visible flag |
+| GET | `/admin/modules/{moduleId}/lessons` | Admin | List lessons for a module |
+| POST | `/admin/modules/{moduleId}/lessons` | Admin | Create lesson with sections + dependencies (transactional) |
+| PUT | `/admin/lessons/{lessonId}` | Admin | Update lesson |
+| DELETE | `/admin/lessons/{lessonId}` | Admin | Delete lesson (CASCADE to sections) |
+| PATCH | `/admin/lessons/{lessonId}/visibility` | Admin | Toggle lesson visible flag |
+| GET | `/admin/lessons/{lessonId}/projects` | Admin | List projects for a lesson |
+| POST | `/admin/lessons/{lessonId}/projects` | Admin | Create project (slug, title, requirements, starter_code, hints) |
+| PUT | `/admin/projects/{projectId}` | Admin | Update project |
+| DELETE | `/admin/projects/{projectId}` | Admin | Delete project |
+| PATCH | `/admin/projects/{projectId}/visibility` | Admin | Toggle project visible flag |
+| GET | `/admin/lessons/{lessonId}/sections` | Admin | List sections for a lesson |
+| POST | `/admin/lessons/{lessonId}/sections` | Admin | Create section (type: overview, quiz, exercise, etc.) |
+| PUT | `/admin/sections/{sectionId}` | Admin | Update section |
+| DELETE | `/admin/sections/{sectionId}` | Admin | Delete section |
+
 ### Response Envelope
 
 ```json
@@ -875,6 +915,10 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | Python sandbox | AST validation, snake_case fallback, meaningful error messages |
 | Refresh token rotation | Reuse detection revokes all sessions on compromise |
 | NVIDIA NIM migration | Replaced Gemini/Groq with DeepSeek V4 Flash via NVIDIA NIM |
+| Curriculum CMS | Full CRUD for courses/modules/lessons/sections/projects with admin panel |
+| Student learn pages | Course catalog, lesson viewer with quizzes/code exercises, progress tracking |
+| XP propagation | Lesson completion awards XP to users.xp and updates course_progress |
+| Visibility toggles | PATCH endpoints + frontend buttons for courses, modules, lessons, projects |
 | AI usage logging | Per-user/action tracking with success/failure rates |
 | Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
 | CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
