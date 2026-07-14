@@ -398,6 +398,8 @@ export interface Module {
   created_at: string;
   updated_at: string;
   lessons?: Lesson[];
+  lesson_count?: number;
+  completed_lessons?: number;
 }
 
 export interface Lesson {
@@ -559,6 +561,7 @@ export interface NewLesson {
   xp_reward: number;
   order_number: number;
   problem_references?: string[];
+  visible?: boolean;
 }
 
 export interface NewLessonSection {

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
+
+const MarkdownPreview = dynamic(() => import("@/components/admin/curriculum/MarkdownPreview"), { ssr: false });
 import {
   fetchAllCourses, createCourse, updateCourse, deleteCourse,
   fetchModules, createModule, updateModule, deleteModule,
   fetchLessons, createLesson, updateLesson, deleteLesson,
   fetchProjects, createProject, updateProject, deleteProject,
-  createSection, updateSection, deleteSection,
+  createSection, updateSection, deleteSection, reorderSections,
   toggleCourseVisibility,
   toggleModuleVisibility,
   toggleLessonVisibility,
@@ -22,12 +26,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProblemBank from "@/components/admin/curriculum/ProblemBank";
 import { toast } from "@/lib/toast";
 import { clearCache } from "@/lib/cache";
 import {
   Plus, Edit3, Trash2, BookOpen, Layers, FileText, Beaker, Layout,
   ChevronRight, ChevronDown, Clock, Zap, Eye, EyeOff, Image, Hash,
-  ArrowRight, GraduationCap, ListOrdered, Lightbulb, Code, Database,
+  ArrowRight, GraduationCap, ListOrdered, Lightbulb, Database,
+  GripVertical, ArrowUp, ArrowDown, BookText, Puzzle,
+  FlaskConical, AlertTriangle, Sparkles, ScrollText, BrainCircuit,
+  Target, FileCode, Star,
 } from "lucide-react";
 
 type Panel = "courses" | "modules" | "lessons" | "projects" | "sections";
@@ -37,6 +46,34 @@ const SECTION_TYPES = [
   "common_mistakes", "summary", "quiz", "exercises",
   "mini_project", "assessment", "ai_review",
 ];
+
+const SECTION_TYPE_ICONS: Record<string, React.ReactNode> = {
+  overview: <BookText className="h-3.5 w-3.5" />,
+  explanation: <FileText className="h-3.5 w-3.5" />,
+  examples: <Puzzle className="h-3.5 w-3.5" />,
+  best_practices: <Star className="h-3.5 w-3.5" />,
+  common_mistakes: <AlertTriangle className="h-3.5 w-3.5" />,
+  summary: <ScrollText className="h-3.5 w-3.5" />,
+  quiz: <BrainCircuit className="h-3.5 w-3.5" />,
+  exercises: <FlaskConical className="h-3.5 w-3.5" />,
+  mini_project: <Target className="h-3.5 w-3.5" />,
+  assessment: <FileCode className="h-3.5 w-3.5" />,
+  ai_review: <Sparkles className="h-3.5 w-3.5" />,
+};
+
+const SECTION_TYPE_COLORS: Record<string, string> = {
+  overview: "border-l-blue-400 bg-blue-50/30",
+  explanation: "border-l-sky-400 bg-sky-50/30",
+  examples: "border-l-violet-400 bg-violet-50/30",
+  best_practices: "border-l-emerald-400 bg-emerald-50/30",
+  common_mistakes: "border-l-rose-400 bg-rose-50/30",
+  summary: "border-l-amber-400 bg-amber-50/30",
+  quiz: "border-l-orange-400 bg-orange-50/30",
+  exercises: "border-l-teal-400 bg-teal-50/30",
+  mini_project: "border-l-purple-400 bg-purple-50/30",
+  assessment: "border-l-indigo-400 bg-indigo-50/30",
+  ai_review: "border-l-fuchsia-400 bg-fuchsia-50/30",
+};
 
 export default function CurriculumAdminPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -60,6 +97,13 @@ export default function CurriculumAdminPage() {
   const [showSectionForm, setShowSectionForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [quizQuestionForm, setQuizQuestionForm] = useState({
+    question: "",
+    optionsRaw: "",
+    correctIndex: 0,
+    points: 1,
+    explanation: "",
+  });
 
   const loadCourses = useCallback(async () => {
     const res = await fetchAllCourses();
@@ -259,7 +303,20 @@ export default function CurriculumAdminPage() {
 
   const handleCreateLesson = async () => {
     if (!selectedModule) return;
-    const payload = { lesson: { ...formData, module_id: selectedModule.id } };
+    const lessonFields: Record<string, any> = {
+      slug: formData.slug || "",
+      title: formData.title || "",
+      description: formData.description || "",
+      raw_readme: formData.raw_readme || "",
+      difficulty: formData.difficulty ?? 1,
+      estimated_minutes: formData.estimated_minutes ?? 10,
+      xp_reward: formData.xp_reward ?? 50,
+      order_number: formData.order_number ?? 0,
+      visible: formData.visible !== false,
+      problem_references: formData.problem_references || [],
+      module_id: selectedModule.id,
+    };
+    const payload = { lesson: lessonFields };
     const res = await createLesson(selectedModule.id, payload);
     if (res.success) {
       toast.success("Lesson created");
@@ -273,7 +330,19 @@ export default function CurriculumAdminPage() {
 
   const handleUpdateLesson = async () => {
     if (!editingItem) return;
-    const res = await updateLesson(editingItem.id, formData as any);
+    const lessonFields: Record<string, any> = {
+      slug: formData.slug || editingItem.slug,
+      title: formData.title || editingItem.title,
+      description: formData.description ?? editingItem.description,
+      raw_readme: formData.raw_readme ?? editingItem.raw_readme,
+      difficulty: formData.difficulty ?? editingItem.difficulty ?? 1,
+      estimated_minutes: formData.estimated_minutes ?? editingItem.estimated_minutes ?? 10,
+      xp_reward: formData.xp_reward ?? editingItem.xp_reward ?? 50,
+      order_number: formData.order_number ?? editingItem.order_number ?? 0,
+      visible: formData.visible !== false,
+      problem_references: formData.problem_references || editingItem.problem_references || [],
+    };
+    const res = await updateLesson(editingItem.id, lessonFields);
     if (res.success) {
       toast.success("Lesson updated");
       setEditingItem(null);
@@ -381,11 +450,42 @@ export default function CurriculumAdminPage() {
     }
   };
 
+  // ── Quiz handlers ──
+
+  const handleAddQuizQuestion = () => {
+    const options = quizQuestionForm.optionsRaw.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (!quizQuestionForm.question.trim()) {
+      toast.error("Question is required");
+      return;
+    }
+    if (options.length < 2) {
+      toast.error("At least 2 options are required");
+      return;
+    }
+    const updated = [...(formData.quiz_questions || []), {
+      question: quizQuestionForm.question.trim(),
+      options,
+      correct_index: quizQuestionForm.correctIndex,
+      points: quizQuestionForm.points,
+      explanation: quizQuestionForm.explanation.trim(),
+    }];
+    updateField("quiz_questions", updated);
+    setQuizQuestionForm({ question: "", optionsRaw: "", correctIndex: 0, points: 1, explanation: "" });
+    toast.success("Quiz question added");
+  };
+
   // ── Form helpers ──
 
   const openCreateForm = (panel: Panel) => {
     setEditingItem(null);
-    setFormData({ slug: "", title: "", order_number: 0 });
+    const defaults: Record<string, any> = { slug: "", title: "", order_number: 0 };
+    if (panel === "lessons") {
+      defaults.visible = true;
+      defaults.difficulty = 1;
+      defaults.xp_reward = 50;
+      defaults.estimated_minutes = 10;
+    }
+    setFormData(defaults);
     if (panel === "courses") setShowCourseForm(true);
     else if (panel === "modules") setShowModuleForm(true);
     else if (panel === "lessons") setShowLessonForm(true);
@@ -395,7 +495,15 @@ export default function CurriculumAdminPage() {
 
   const openEditForm = (item: any, panel: Panel) => {
     setEditingItem(item);
-    setFormData({ ...item, content: item.content || "", section_type: item.section_type || "explanation" });
+    const base = { ...item };
+    if (panel === "sections") {
+      base.content = item.content || "";
+      base.section_type = item.section_type || "explanation";
+    } else {
+      delete base.content;
+      delete base.section_type;
+    }
+    setFormData(base);
     if (panel === "courses") setShowCourseForm(true);
     else if (panel === "modules") setShowModuleForm(true);
     else if (panel === "lessons") setShowLessonForm(true);
@@ -698,15 +806,60 @@ export default function CurriculumAdminPage() {
                       <p className="text-xs text-muted-foreground text-center py-4">No sections yet</p>
                     )}
                     {sections.map((sec, idx) => (
-                      <div key={sec.id} className="flex items-center justify-between p-2 rounded-lg border bg-muted/20">
+                      <div
+                        key={sec.id}
+                        className={`flex items-center justify-between p-2 rounded-lg border-l-2 transition-colors group hover:bg-muted/10 ${SECTION_TYPE_COLORS[sec.section_type] || "border-l-gray-300 bg-muted/20"}`}
+                      >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-[11px] text-muted-foreground font-mono shrink-0">{idx + 1}.</span>
+                          <GripVertical className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                          <span className="text-[10px] text-muted-foreground font-mono shrink-0 w-4 text-right">{idx + 1}</span>
+                          <span className="shrink-0 text-muted-foreground/60">
+                            {SECTION_TYPE_ICONS[sec.section_type] || <FileText className="h-3.5 w-3.5" />}
+                          </span>
                           <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{sec.section_type}</Badge>
                           <span className="truncate text-xs">{sec.title || "Untitled"}</span>
                         </div>
-                        <div className="flex gap-1 shrink-0 ml-2">
-                          <button onClick={() => openEditForm(sec, "sections")}><Edit3 className="h-3 w-3 opacity-50 hover:opacity-100" /></button>
-                          <button onClick={() => handleDeleteSection(sec.id)}><Trash2 className="h-3 w-3 text-red-400 opacity-50 hover:opacity-100" /></button>
+                        <div className="flex gap-0.5 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={async () => {
+                              if (idx === 0) return;
+                              const reordered = [...sections];
+                              [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+                              setSections(reordered);
+                              if (selectedLesson) {
+                                const ids = reordered.map((s) => s.id);
+                                await reorderSections(selectedLesson.id, ids);
+                              }
+                            }}
+                            disabled={idx === 0}
+                            className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-20"
+                            title="Move up"
+                          >
+                            <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (idx === sections.length - 1) return;
+                              const reordered = [...sections];
+                              [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+                              setSections(reordered);
+                              if (selectedLesson) {
+                                const ids = reordered.map((s) => s.id);
+                                await reorderSections(selectedLesson.id, ids);
+                              }
+                            }}
+                            disabled={idx === sections.length - 1}
+                            className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-20"
+                            title="Move down"
+                          >
+                            <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <button onClick={() => openEditForm(sec, "sections")} className="p-1 rounded hover:bg-muted transition-colors">
+                            <Edit3 className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <button onClick={() => handleDeleteSection(sec.id)} className="p-1 rounded hover:bg-red-50 transition-colors">
+                            <Trash2 className="h-3 w-3 text-red-400" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -780,8 +933,8 @@ export default function CurriculumAdminPage() {
 
       {/* ── Dialogs ── */}
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeAllForms(); }}>
-        <DialogContent className={`sm:max-w-2xl ${showCourseForm ? "sm:max-w-2xl" : showLessonForm ? "sm:max-w-2xl" : showProjectForm ? "sm:max-w-xl" : "sm:max-w-lg"}`}>
-          <DialogHeader>
+        <DialogContent className={`sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden ${showCourseForm ? "sm:max-w-2xl" : showLessonForm ? "sm:max-w-2xl" : showProjectForm ? "sm:max-w-xl" : "sm:max-w-lg"}`}>
+          <DialogHeader className="shrink-0 border-b pb-3">
             <DialogTitle className="flex items-center gap-2 text-lg">
               {showCourseForm && <BookOpen className="h-5 w-5 text-primary" />}
               {showModuleForm && <Layers className="h-5 w-5 text-primary" />}
@@ -792,7 +945,7 @@ export default function CurriculumAdminPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="flex-1 overflow-y-auto py-4 min-h-0">
             {/* ── Course Form ── */}
             {showCourseForm && (
               <div className="grid grid-cols-2 gap-4">
@@ -925,96 +1078,366 @@ export default function CurriculumAdminPage() {
               </div>
             )}
 
-            {/* ── Lesson Form ── */}
+            {/* ── Lesson Form (5-Tab Premium) ── */}
             {showLessonForm && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Title *</label>
-                  <Input
-                    placeholder="e.g. Working with Strings"
-                    value={formData.title || ""}
-                    onChange={(e) => updateField("title", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Slug *</label>
-                  <Input
-                    placeholder="e.g. working-with-strings"
-                    value={formData.slug || ""}
-                    onChange={(e) => updateField("slug", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Order Number</label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={formData.order_number ?? 0}
-                    onChange={(e) => updateField("order_number", parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Difficulty</label>
-                  <Select
-                    value={String(formData.difficulty ?? 1)}
-                    onValueChange={(v) => updateField("difficulty", parseInt(v))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Difficulty" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5].map((d) => (
-                        <SelectItem key={d} value={String(d)}>{d}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-1">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">XP Reward</label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={formData.xp_reward ?? 50}
-                    onChange={(e) => updateField("xp_reward", parseInt(e.target.value) || 50)}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Est. Minutes</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={formData.estimated_minutes ?? 10}
-                    onChange={(e) => updateField("estimated_minutes", parseInt(e.target.value) || 10)}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
-                  <Textarea
-                    placeholder="Lesson description and learning objectives..."
-                    className="min-h-[80px]"
-                    value={formData.description || ""}
-                    onChange={(e) => updateField("description", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Raw Readme</label>
-                  <Textarea
-                    placeholder="Full lesson content in markdown (used for AI enrichment and student reference)..."
-                    className="min-h-[120px] font-mono text-xs"
-                    value={formData.raw_readme || ""}
-                    onChange={(e) => updateField("raw_readme", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Problem References</label>
-                  <Input
-                    placeholder="Comma-separated problem slugs: itoa, fizzbuzz, fibonacci"
-                    value={Array.isArray(formData.problem_references) ? formData.problem_references.join(", ") : (formData.problem_references || "")}
-                    onChange={(e) => updateField("problem_references", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">Link existing problems to exercise sections</p>
-                </div>
-              </div>
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto gap-0">
+                  {["General","Sections","Exercises","Quiz","Settings"].map((tab) => (
+                    <TabsTrigger
+                      key={tab.toLowerCase()}
+                      value={tab.toLowerCase()}
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground pb-2.5 px-4 text-sm hover:text-foreground transition-colors"
+                    >
+                      {tab}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {/* ── General ── */}
+                <TabsContent value="general" className="pt-4 outline-none">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Title *</label>
+                        <Input
+                          placeholder="e.g. Working with Strings"
+                          value={formData.title || ""}
+                          onChange={(e) => updateField("title", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Slug *</label>
+                        <Input
+                          placeholder="e.g. working-with-strings"
+                          value={formData.slug || ""}
+                          onChange={(e) => updateField("slug", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Difficulty</label>
+                        <Select
+                          value={String(formData.difficulty ?? 1)}
+                          onValueChange={(v) => updateField("difficulty", parseInt(v))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Difficulty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5].map((d) => (
+                              <SelectItem key={d} value={String(d)}>
+                                {d} — {["Beginner", "Easy", "Intermediate", "Hard", "Expert"][d - 1]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">XP Reward</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={formData.xp_reward ?? 50}
+                          onChange={(e) => updateField("xp_reward", parseInt(e.target.value) || 50)}
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Est. Minutes</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={formData.estimated_minutes ?? 10}
+                          onChange={(e) => updateField("estimated_minutes", parseInt(e.target.value) || 10)}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
+                        <Textarea
+                          placeholder="Lesson description and learning objectives..."
+                          className="min-h-[80px]"
+                          value={formData.description || ""}
+                          onChange={(e) => updateField("description", e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Collapsible markdown content */}
+                    <details className="mt-4 group border rounded-lg overflow-hidden">
+                      <summary className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground hover:bg-muted/20 transition-colors select-none">
+                        <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90 shrink-0" />
+                        Lesson Content (Markdown)
+                      </summary>
+                      <div className="border-t">
+                        <div className="grid grid-cols-2 gap-0 h-[40vh] min-h-[200px]">
+                          <div className="flex flex-col border-r">
+                            <div className="px-4 py-2 bg-muted/10 border-b">
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Editor</span>
+                            </div>
+                            <Textarea
+                              placeholder="Full lesson content in markdown..."
+                              className="flex-1 min-h-0 font-mono text-xs resize-none rounded-none border-0 focus-visible:ring-0"
+                              value={formData.raw_readme || ""}
+                              onChange={(e) => updateField("raw_readme", e.target.value)}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="px-4 py-2 bg-muted/10 border-b">
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Preview</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4">
+                              <MarkdownPreview content={formData.raw_readme || ""} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </motion.div>
+                </TabsContent>
+
+                {/* ── Sections ── */}
+                <TabsContent value="sections" className="pt-4 outline-none">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.05 }}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-muted-foreground">{sections.length} section{sections.length !== 1 ? "s" : ""}</p>
+                        <Button size="sm" variant="outline" onClick={() => openCreateForm("sections")}>
+                          <Plus className="h-3 w-3 mr-1" /> Add Section
+                        </Button>
+                      </div>
+                      <div className="space-y-1.5 max-h-[40vh] min-h-[100px] overflow-y-auto pr-1">
+                        {sections.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-xl">No sections yet. Add one to get started.</p>
+                        )}
+                        {sections.map((sec, idx) => (
+                          <motion.div
+                            key={sec.id}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className={`flex items-center justify-between p-2.5 rounded-lg border-l-2 group hover:bg-muted/10 ${SECTION_TYPE_COLORS[sec.section_type] || "border-l-gray-300 bg-muted/10"}`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                              <span className="shrink-0 text-muted-foreground/60">
+                                {SECTION_TYPE_ICONS[sec.section_type] || <FileText className="h-3.5 w-3.5" />}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono shrink-0 w-4 text-right">{idx + 1}</span>
+                              <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{sec.section_type}</Badge>
+                              <span className="truncate text-xs text-foreground/80">{sec.title || "Untitled"}</span>
+                            </div>
+                            <div className="flex gap-0.5 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={async () => {
+                                  if (idx === 0) return;
+                                  const reordered = [...sections];
+                                  [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+                                  setSections(reordered);
+                                  if (selectedLesson) {
+                                    const ids = reordered.map((s) => s.id);
+                                    await reorderSections(selectedLesson.id, ids);
+                                  }
+                                }}
+                                disabled={idx === 0}
+                                className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-20"
+                                title="Move up"
+                              >
+                                <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (idx === sections.length - 1) return;
+                                  const reordered = [...sections];
+                                  [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+                                  setSections(reordered);
+                                  if (selectedLesson) {
+                                    const ids = reordered.map((s) => s.id);
+                                    await reorderSections(selectedLesson.id, ids);
+                                  }
+                                }}
+                                disabled={idx === sections.length - 1}
+                                className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-20"
+                                title="Move down"
+                              >
+                                <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                              <button onClick={() => openEditForm(sec, "sections")} className="p-1 rounded hover:bg-muted transition-colors">
+                                <Edit3 className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                              <button onClick={() => handleDeleteSection(sec.id)} className="p-1 rounded hover:bg-red-50 transition-colors">
+                                <Trash2 className="h-3 w-3 text-red-400" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+
+                {/* ── Exercises ── */}
+                <TabsContent value="exercises" className="pt-4 outline-none">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.1 }}>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Attach Problems</h4>
+                        <p className="text-xs text-muted-foreground">Search and select problems to attach to this lesson. Students will practice these in exercise sections.</p>
+                      </div>
+                      <ProblemBank
+                        selectedSlugs={formData.problem_references || []}
+                        onToggleSlug={(slug: string) => {
+                          const current: string[] = formData.problem_references || [];
+                          const idx = current.indexOf(slug);
+                          if (idx >= 0) {
+                            updateField("problem_references", current.filter((s) => s !== slug));
+                          } else {
+                            updateField("problem_references", [...current, slug]);
+                          }
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                </TabsContent>
+
+                {/* ── Quiz ── */}
+                <TabsContent value="quiz" className="pt-4 outline-none">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.15 }}>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Quiz Questions</h4>
+                        <p className="text-xs text-muted-foreground">Manage quiz questions for this lesson.</p>
+                      </div>
+                      <div className="space-y-2 max-h-[40vh] min-h-[100px] overflow-y-auto pr-1">
+                        {(formData.quiz_questions?.length ?? 0) === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-xl">No quiz questions yet. Add one below.</p>
+                        )}
+                        {(formData.quiz_questions || []).map((q: any, i: number) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 rounded-lg border space-y-2 bg-muted/5 group"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-xs font-medium">
+                                <span className="text-muted-foreground font-mono mr-1.5">Q{i + 1}.</span>
+                                {q.question}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  const updated = [...(formData.quiz_questions || [])];
+                                  updated.splice(i, 1);
+                                  updateField("quiz_questions", updated);
+                                }}
+                                className="p-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                              >
+                                <Trash2 className="h-3 w-3 text-red-400" />
+                              </button>
+                            </div>
+                            <div className="space-y-0.5 ml-4">
+                              {q.options.map((opt: string, oi: number) => (
+                                <p key={oi} className={`text-[11px] ${oi === q.correct_index ? "text-green-600 font-medium" : "text-muted-foreground"}`}>
+                                  <span className="mr-1">{oi === q.correct_index ? "✓" : "·"}</span>
+                                  {opt}
+                                </p>
+                              ))}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      {/* Add question inline form */}
+                      <div className="border rounded-lg p-4 space-y-3 bg-muted/5">
+                        <p className="text-xs font-semibold flex items-center gap-1.5">
+                          <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                          New Question
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="col-span-2">
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Question</label>
+                            <Input
+                              placeholder="What does the following code output?"
+                              value={quizQuestionForm.question}
+                              onChange={(e) => setQuizQuestionForm((prev) => ({ ...prev, question: e.target.value }))}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Options (one per line)</label>
+                            <Textarea
+                              placeholder={`Option A\nOption B\nOption C\nOption D`}
+                              className="min-h-[72px] font-mono text-xs"
+                              value={quizQuestionForm.optionsRaw}
+                              onChange={(e) => setQuizQuestionForm((prev) => ({ ...prev, optionsRaw: e.target.value }))}
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Correct Index (0-based)</label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={quizQuestionForm.correctIndex}
+                              onChange={(e) => setQuizQuestionForm((prev) => ({ ...prev, correctIndex: parseInt(e.target.value) || 0 }))}
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Points</label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={quizQuestionForm.points}
+                              onChange={(e) => setQuizQuestionForm((prev) => ({ ...prev, points: parseInt(e.target.value) || 1 }))}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Explanation</label>
+                            <Textarea
+                              placeholder="Explain why the correct answer is right..."
+                              className="min-h-[60px]"
+                              value={quizQuestionForm.explanation}
+                              onChange={(e) => setQuizQuestionForm((prev) => ({ ...prev, explanation: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button size="sm" onClick={handleAddQuizQuestion} className="gap-1">
+                            <Plus className="h-3 w-3" /> Add Question
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+
+                {/* ── Settings ── */}
+                <TabsContent value="settings" className="pt-4 outline-none">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.2 }}>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 rounded-xl border bg-card">
+                        <div>
+                          <p className="text-sm font-medium">Published</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Make this lesson visible to students</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.visible !== false}
+                            onChange={(e) => updateField("visible", e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-10 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm" />
+                        </label>
+                      </div>
+                      <div className="p-4 rounded-xl border bg-card">
+                        <label className="text-xs font-medium text-muted-foreground mb-2 block">Order Number</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={formData.order_number ?? 0}
+                          onChange={(e) => updateField("order_number", parseInt(e.target.value) || 0)}
+                          className="w-24"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1.5">Controls the display order among lessons in this module</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+              </Tabs>
             )}
 
             {/* ── Project Form ── */}
@@ -1213,7 +1636,7 @@ export default function CurriculumAdminPage() {
             )}
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 shrink-0 border-t pt-3">
             <Button variant="outline" onClick={closeAllForms}>Cancel</Button>
             <Button onClick={() => {
               if (showCourseForm) editingItem ? handleUpdateCourse() : handleCreateCourse();
@@ -1227,6 +1650,7 @@ export default function CurriculumAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

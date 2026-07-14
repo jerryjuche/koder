@@ -234,6 +234,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/sections", cmHandler.CreateSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/sections/{sectionId}", cmHandler.UpdateSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/sections/{sectionId}", cmHandler.DeleteSection)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/sections/reorder", cmHandler.ReorderSections)
 		})
 
 		wsHandler := NewWSHandler(b)

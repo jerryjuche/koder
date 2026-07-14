@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Editor from "@monaco-editor/react";
+import { useState, useEffect } from "react";
+import Editor, { loader } from "@monaco-editor/react";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Play, CheckCircle2, XCircle, Code2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { useHasMounted } from "@/hooks/use-has-mounted";
+import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
+
+loader.config({ paths: { vs: "/vs" } });
 
 interface SectionExerciseProps {
   problemReferences: string[];
@@ -18,10 +22,11 @@ export default function SectionExercise({ problemReferences, miniProject, langua
   const [code, setCode] = useState("");
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<{ passed: boolean; output: string } | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
-  // Defer Monaco render to avoid SSR issues
-  useState(() => { setMounted(true); });
+  useEffect(() => {
+    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
+  }, []);
 
   const defaultCode = miniProject
     ? '# Write your mini project code here\n\n'
@@ -90,7 +95,8 @@ export default function SectionExercise({ problemReferences, miniProject, langua
           language={language === "go" ? "go" : "python"}
           value={code}
           onChange={(value) => setCode(value || "")}
-          theme="vs-dark"
+          theme="vs-dark-plus"
+          onMount={(_editor, monaco) => { if (monaco) registerVSCodeDarkPlusTheme(monaco); }}
           options={{
             minimap: { enabled: false },
             lineNumbers: "on",

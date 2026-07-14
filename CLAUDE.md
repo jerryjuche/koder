@@ -34,251 +34,367 @@ koder/
 ├── internal/
 │   ├── api/                                   # HTTP handlers (chi router)
 │   │   ├── router.go                          # Route registration, middleware wiring, lifecycle
-│   │   ├── auth.go                            # POST /auth/register, /login, /google, /logout, check-username, complete-onboarding
-│   │   ├── me.go                              # GET /me, PUT /me/username, PUT /me/language, POST /me/delete-account
+│   │   │                                        ~55 student routes + ~34 admin routes
+│   │   ├── auth.go                            # POST /auth/register, /login, /google, /refresh
+│   │   │                                        /logout, check-username, complete-onboarding, link-google
+│   │   ├── me.go                              # GET /me, PUT /me/username, /language, /delete-account, /export-data
 │   │   ├── change_password.go                 # POST /auth/change-password, /verify-pin, /set-pin
+│   │   │                                        (pinRateLimiter: 5 attempts/15min)
 │   │   ├── pin_reset.go                       # POST /auth/forgot-password-pin, /reset-password-pin
-│   │   ├── password_reset.go                  # POST /auth/forgot-password, /reset-password (email-based via Resend)
-│   │   ├── problems.go                        # GET /problems?language=, GET /problems/:slug (language_versions-aware)
+│   │   │                                        (domain-separated JWT: HMAC-SHA256(JWTSecret, "koder-pin-reset-v1"))
+│   │   ├── password_reset.go                  # POST /auth/forgot-password, /reset-password (Resend API)
+│   │   ├── problems.go                        # GET /problems?language=, GET /problems/:slug
+│   │   │                                        (language_versions-aware, func_name empty check)
 │   │   ├── submissions.go                     # POST /submit (rate-limited, scoring, language validation)
-│   │   ├── test.go                            # POST /test (no-scoring execution, language inference)
-│   │   ├── admin.go                           # Admin: ingest, enrich, enrich-all, stats, publish, visibility, update
+│   │   │                                        (infer: go → python → first with non-empty FuncName)
+│   │   ├── test.go                            # POST /test (no-scoring execution, ExecuteVisibleOnly)
+│   │   ├── admin.go                           # Admin: ingest, enrich, enrich-all, stats, publish
+│   │   │                                        AI assist, user search/verify, visibility, update
 │   │   ├── leaderboard.go                     # GET /leaderboard?period= (30s cache)
-│   │   ├── profile.go                         # GET/PUT /me/profile
-│   │   ├── community.go                       # GET community solutions, GET best-practices, POST/DELETE likes
-│   │   ├── contributions.go                   # POST /user-problems (verified_contributor+), GET /me/contributions
+│   │   ├── profile.go                         # GET/PUT /me/profile (30s cache, stored procedure)
+│   │   ├── community.go                       # GET community solutions, best-practices
+│   │   │                                        POST/DELETE likes
+│   │   ├── contributions.go                   # POST /user-problems (verified_contributor+)
+│   │   │                                        GET /me/contributions
 │   │   ├── activity.go                        # GET /me/activity?year=
-│   │   ├── notifications.go                   # GET /notifications, GET /notifications/recent, POST read-all, POST read
-│   │   ├── feedback.go                        # POST /feedback (10MB), GET admin/mine, PATCH status, GET problem-reports
+│   │   ├── users.go                           # GET /users/{id} public data
+│   │   ├── notifications.go                   # GET /notifications, /recent, POST read-all, read
+│   │   ├── feedback.go                        # POST /feedback (10MB, Resend email notify)
+│   │   │                                        GET admin/mine, PATCH status, GET problem-reports
 │   │   ├── broadcasts.go                      # CRUD + dismiss for broadcast announcements
-│   │   ├── cache.go                           # In-memory caches: profileCache, userCacheMap, leaderboardCache (30s TTL)
-│   │   ├── ws.go                              # WebSocket upgrade handler (gorilla/websocket, broker pub/sub)
-│   │   ├── middleware.go                      # RequestLogging, Recovery, CORS, SecurityHeaders, Auth, AdminOnly,
-│   │   │                                        VerifiedContributorOnly, RateLimit(5/45s), IPRateLimiter(10/min), BodySizeLimit
-│   │   ├── middleare_test.go                  # RateLimiter, IPRateLimiter, Auth, AdminOnly, CORS, Recovery tests
-│   │   ├── responses.go                       # RespondSuccess, RespondCreated, RespondError, SetAuthCookie, ClearAuthCookie
-│   │   ├── responses_test.go                  # Response helpers tests
-│   │   └── handlers/                          # Handler-specific sub-package (future extraction)
+│   │   │                                        (broker events for real-time updates)
+│   │   ├── cache.go                           # In-memory caches: profile, user, leaderboard (30s TTL)
+│   │   ├── ws.go                              # WebSocket upgrade (gorilla, broker pub/sub)
+│   │   ├── middleware.go                      # RequestLogging (crypto/rand IDs), Recovery, CORS,
+│   │   │                                        SecurityHeaders (CSP nonces), Auth, AdminOnly,
+│   │   │                                        VerifiedContributorOnly, RateLimit(5/45s),
+│   │   │                                        IPRateLimiter(10/min), AIRateLimit(15/60s),
+│   │   │                                        BodySizeLimit (loggingResponseWriter impl Hijacker)
+│   │   ├── middleware_test.go                 # 23+ test functions for all middleware
+│   │   ├── responses.go                       # RespondSuccess, RespondCreated, RespondError
+│   │   │                                        SetAuthCookie, ClearAuthCookie
+│   │   ├── responses_test.go                  # 10 test functions
+│   │   └── cms.go                             # Curriculum CMS: 6 student + 22 admin endpoints
+│   │                                            Courses/Modules/Lessons/Sections/Projects CRUD
+│   │                                            Progress tracking, prerequisite checks
 │   ├── store/                                 # Database access layer (pgx/v5)
-│   │   ├── store.go                           # Store interface (full DB contract) + PostgresStore impl
-│   │   ├── types.go                           # All data types: User, Problem, Submission, Progress, etc.
-│   │   ├── errors.go                          # FriendlyError type, unique constraint violation mapping
-│   │   ├── users.go                           # CreateUser, GetUserBy*, LinkGoogleToUser, DeleteUser
-│   │   ├── problems.go                        # ListVisibleProblems, GetProblemBySlug, Upsert/Update
-│   │   ├── submissions.go                     # CreateSubmission, get for community/reports
-│   │   ├── progress.go                        # UpsertProgress, GetSolvedCount, CalculateStreak
-│   │   ├── testcases.go                       # GetTestCasesForProblem, UpsertTestCasesForProblem
-│   │   ├── admin.go                           # GetAdminStats, LogActivity, PublishAllDrafts
-│   │   ├── ai_usage.go                        # LogAIUsage, GetAIUsageStats (graceful on missing table)
-│   │   ├── feedback.go                        # CreateFeedback, GetAdmin/User Feedback, Counts, ProblemReports
-│   │   ├── broadcasts.go                      # Create/Get/Deactivate/Activate/Delete/Dismiss broadcasts
-│   │   ├── notifications.go                   # Create, GetUnread, GetRecent, MarkRead, NotifyAllUsers
-│   │   ├── user_problems.go                   # Community contribution CRUD + approve/reject
-│   │   ├── profile.go                         # GetFullProfile, GetModuleProficiency, GetRecentSubmissions
-│   │   ├── token_blacklist.go                 # JWT revocation for logout
-│   │   ├── refresh_tokens.go                  # Create/Get/Revoke/RevokeAll refresh tokens
-│   │   └── password_reset.go                  # PIN + email password reset tokens
-│   ├── executor/                              # Code execution engine
-│   │   ├── executor.go                        # Execute() and ExecuteVisibleOnly() — orchestrator
-│   │   │                                        (formatGoLiteral, formatPythonLiteral, executePython,
-│   │   │                                         resolveProblemLanguageMeta, goToSnakeCase,
-│   │   │                                         EnhancePythonError, isPythonErrorLine)
-│   │   ├── parser.go                          # ParseTestOutput — GOT/WANT regex extraction
-│   │   ├── sandbox.go                         # PrepareSandbox — temp dir setup, file writes
+│   │   ├── store.go                           # Store interface (~125 methods) + PostgresStore struct
+│   │   │                                        pgxpool: MaxConns=10, MinConns=2, 30m lifetime
+│   │   │                                        QueryExecModeSimpleProtocol (PgBouncer compat)
+│   │   ├── types.go                           # All data types (~40 structs, ~620 lines)
+│   │   │                                        User, Problem, Submission, Progress, Feedback
+│   │   │                                        Broadcast, UserProblem, AIUsageLog, RefreshToken
+│   │   │                                        Course, Module, Lesson, LessonSection, Project
+│   │   │                                        LanguageSpec, FlexibleBool, FlexibleStrings
+│   │   │                                        QuizMetadata, CourseWithModules, LessonWithSections
+│   │   ├── errors.go                          # FriendlyError (Code + Message)
+│   │   │                                        IsUniqueViolation (pg 23505), constraint->message map
+│   │   │                                        NewDuplicateError, NewNotFoundError, NewValidationError
+│   │   ├── users.go                           # 30+ CRUD functions (1357 lines)
+│   │   │                                        CreateUser (bcrypt cost=12), GetUserByLogin (3-field)
+│   │   │                                        GetUserPublicData (hover cards), GetLeaderboard (period)
+│   │   │                                        CalculateStreak (gaps-and-islands DENSE_RANK)
+│   │   │                                        DeleteUser (cascade), GetUserExportData
+│   │   │                                        CompleteUserOnboarding (atomic tx)
+│   │   ├── problems.go                        # 12+ CRUD functions (777 lines)
+│   │   │                                        ListVisibleProblems (LATERAL JOIN for stats)
+│   │   │                                        UpsertEnrichedProblem (atomic tx)
+│   │   │                                        unmarshalLanguageVersions (slog.Warn on fail)
+│   │   │                                        json.RawMessage for JSONB (NOT []byte — pgx codec)
+│   │   ├── submissions.go                     # CreateSubmission (90d TTL), GetProblemWithTestCases
+│   │   │                                        LikeSubmission, UnlikeSubmission
+│   │   │                                        GetTopCommunitySolutions, GetBestPractices
+│   │   ├── progress.go                        # UpsertProgress (153 lines)
+│   │   │                                        pg_advisory_xact_lock for race prevention
+│   │   │                                        Stars: 3 (1st), 2 (2nd), 1 (rest); XP only on first solve
+│   │   ├── admin.go                           # LogActivity, GetAdminStats, SearchUsers, ToggleUserVerified
+│   │   │                                        isRelationNotExist graceful degradation
+│   │   ├── testcases.go                       # GetTestCasesForProblem, GetVisibleTestCasesForProblem
+│   │   ├── curriculum.go                      # ~30 CMS functions (1014 lines)
+│   │   │                                        Course/Module/Lesson/Section/Project CRUD
+│   │   │                                        CreateLessonWithSections (tx: insert + bulk sections + deps)
+│   │   │                                        Progress: UpsertCourseProgress, UpsertLessonProgress
+│   │   │                                        AddUserXP (GREATEST for never-decrease)
+│   │   ├── profile.go                         # GetFullProfile (stored proc), GetUserActivity
+│   │   ├── feedback.go                        # CreateFeedback, GetAdminFeedback (dynamic WHERE)
+│   │   │                                        GetProblemReports, CountFeedbackByStatus
+│   │   ├── broadcasts.go                      # Create/Get/Deactivate/Activate/Delete/Dismiss
+│   │   │                                        GetActiveBroadcasts (latest 1 only)
+│   │   ├── notifications.go                   # Create, GetUnread (50), GetRecent (20)
+│   │   │                                        MarkRead, MarkAll, NotifyAdmins, NotifyAllUsers
+│   │   │                                        ReplaceBroadcastNotifications
+│   │   ├── user_problems.go                   # Community contribution CRUD + approve/reject (358 lines)
+│   │   │                                        ApproveUserProblem (5-step tx with FOR UPDATE)
+│   │   │                                        generateDualLanguageSpec, pascalToSnake, goTypeToPython
+│   │   ├── token_blacklist.go                  # JWT revocation (ON CONFLICT DO NOTHING)
+│   │   ├── refresh_tokens.go                   # Token rotation (SHA-256 hash, revoke/revoke-all)
+│   │   ├── ai_usage.go                         # LogAIUsage, GetAIUsageStats (graceful on missing table)
+│   │   ├── password_reset.go                   # Create/Get/MarkUsed/Cleanup reset tokens
+│   │   ├── errors_test.go, types_test.go, users_test.go
+│   │   └── curriculum.go                       # [already listed above]
+│   ├── executor/                              # Code execution engine (7 files, ~2400 lines)
+│   │   ├── executor.go                        # Execute/ExecuteVisibleOnly (semaphore=6)
+│   │   │                                        formatGoLiteral (recursive, primitives/slices/maps)
+│   │   │                                        formatPythonLiteral (null→None, bool→True/False)
+│   │   │                                        executePython (resolve func name, templates)
+│   │   │                                        resolveProblemLanguageMeta (LanguageVersions lookup)
+│   │   │                                        goToSnakeCase (camelCase→snake_case, idempotent)
+│   │   │                                        EnhancePythonError (tips for NameError/TypeError/SyntaxError)
+│   │   │                                        isPythonErrorLine, extractPyErrorContext
+│   │   ├── parser.go                          # ParseTestOutput — state machine for GOT/WANT
+│   │   │                                        5 regex patterns, multi-line buffer accumulation
+│   │   ├── sandbox.go                         # PrepareSandbox — temp dir, go.mod, solution.go, main_test.go
+│   │   │                                        package regex: force package koder
 │   │   ├── sandbox_client.go                  # HTTP client for remote Railway sandbox
-│   │   ├── templates.go                       # Go text/template + pythonTestTemplate templates
-│   │   └── types.go                           # ExecutionRequest, ExecutionResult, TestResult
-│   ├── enricher/enricher.go                   # AI test generation (NVIDIA NIM / DeepSeek V4 Flash)
-│   ├── broker/broker.go                       # In-memory pub/sub for WebSocket events
-│   ├── parser/parser.go                       # GitHub YAML curriculum parser
-│   ├── auth/
-│   │   ├── jwt.go                             # GenerateToken, ValidateToken, SetAuthCookie
-│   │   ├── oauth.go                           # Google ID token verification (JWKS)
-│   │   └── password.go                        # HashPassword, CheckPassword (bcrypt)
-│   └── config/config.go                       # Env var loading, startup validation, defaults
+│   │   │                                        3 attempts, exponential backoff (2^attempt*500ms)
+│   │   │                                        FormatFriendlySandboxError (user-friendly messages)
+│   │   ├── templates.go                       # mainTestTemplate (Go: reflect.DeepEqual for non-primitives)
+│   │   │                                        pythonTestTemplate (Python: json.loads(expected) == result)
+│   │   ├── types.go                           # ExecutionRequest, ExecutionResult, TestResult
+│   │   └── executor_test.go                   # 14 test functions (533 lines)
+│   ├── enricher/                              # AI test generation (2 files, ~1167 lines)
+│   │   ├── enricher.go                        # EnrichProblem, AIAssistProblem
+│   │   │                                        NVIDIA NIM provider: HTTP POST, 120s timeout
+│   │   │                                        Retry: 3 attempts, backoff 2/4/8s on 429/503
+│   │   │                                        Rate limit: 1s between requests (mutex)
+│   │   │                                        cleanResponse (markdown fence stripping)
+│   │   │                                        normalizeTestCaseInput (string/object/array)
+│   │   │                                        validateEnrichedProblem (14 checks)
+│   │   │                                        toSnakeCase, toPythonType (comprehensive mapping)
+│   │   │                                        8 AIAssistAction types for targeted AI editing
+│   │   └── enricher_test.go                    # 4 test functions (231 lines)
+│   ├── broker/                                # In-memory pub/sub (2 files, ~254 lines)
+│   │   ├── broker.go                          # Subscribe (UUID, cap 32), Publish (non-blocking)
+│   │   │                                        Unsubscribe, PublishEvent
+│   │   └── broker_test.go                     # 10 test functions
+│   ├── parser/                                # GitHub YAML curriculum parser (2 files, ~717 lines)
+│   │   ├── parser.go                          # IngestGitHubRepo (git clone --depth 1)
+│   │   │                                        Sparse checkout for subpath URLs
+│   │   │                                        SHA-256 idempotency, URL parsing (HTTPS+SSH)
+│   │   │                                        isReadmeFile, detectProblemType, computeSourceHash
+│   │   │                                        normalizeSlug, normalizeModule, cleanRepoURL
+│   │   └── parser_test.go                     # 13 test functions (346 lines)
+│   ├── auth/                                  # Auth primitives (5 files, ~684 lines)
+│   │   ├── jwt.go                             # SignToken (HS256), VerifyToken, GenerateRefreshToken
+│   │   │                                        SHA256Hash, strict parameter validation
+│   │   ├── oauth.go                           # VerifyGoogleToken (JWKS, 1h cache)
+│   │   │                                        jwksKeyToPublicKey (RSA round-trip)
+│   │   │                                        isExpectedAudience, isExpectedIssuer
+│   │   ├── password.go                        # HashPassword (bcrypt cost=12), ComparePassword
+│   │   ├── auth_test.go                       # 15 test functions
+│   │   └── oauth_test.go                      # 5 test functions
+│   └── config/config.go                       # Env loading, fails-fast validation
+│                                            .env file support, defaults for 30+ vars
 ├── frontend/                                  # Next.js 15 App Router
 │   ├── app/
-│   │   ├── layout.tsx                         # Root layout: fonts, metadata, providers
-│   │   ├── page.tsx                           # Landing page (redirects to /landing)
+│   │   ├── layout.tsx                         # Root: fonts (Inter, Fira Code), UserProvider, Toast
+│   │   ├── page.tsx                           # Loading guard → /landing
 │   │   ├── not-found.tsx                      # Custom 404 with Terminal icon + actions
-│   │   ├── globals.css                        # Tailwind CSS 4 imports + theme variables
+│   │   ├── global-error.tsx                   # Root error boundary
+│   │   ├── globals.css                        # Tailwind CSS 4 + theme variables
 │   │   ├── landing/page.tsx                   # Marketing landing page
-│   │   ├── oauth/callback/page.tsx            # OAuth callback handler
+│   │   ├── oauth/callback/page.tsx            # OAuth callback → /home
 │   │   ├── (auth)/                            # Unauthenticated routes
-│   │   │   ├── layout.tsx                     # Auth pages layout
-│   │   │   ├── login/page.tsx                 # Login page (Google-first + email form)
-│   │   │   ├── register/page.tsx              # Register page (Google-first + form)
-│   │   │   ├── forgot-password/page.tsx       # PIN-based forgot password flow
-│   │   │   ├── reset-password/page.tsx        # Password reset from token
-│   │   │   └── onboarding/page.tsx            # Post-registration username/student_id setup
-│   │   ├── (main)/                            # Authenticated routes (UserProvider wrapper)
-│   │   │   ├── layout.tsx                     # Main layout: TopNav + BroadcastBanner + FeedbackButton
+│   │   │   ├── layout.tsx                     # Centered card layout
+│   │   │   ├── login/page.tsx                 # Google-first + email form
+│   │   │   ├── register/page.tsx              # Google-first + registration form
+│   │   │   ├── forgot-password/page.tsx       # PIN-based flow
+│   │   │   ├── reset-password/page.tsx        # Token-based reset
+│   │   │   └── onboarding/page.tsx            # Username/student_id/language setup
+│   │   ├── (main)/                            # Authenticated routes
+│   │   │   ├── layout.tsx                     # TopNav + BroadcastBanner + FeedbackButton
 │   │   │   ├── error.tsx                      # Main error boundary
-│   │   │   ├── home/page.tsx                  # Dashboard: problem grid, module cards, pagination
-│   │   │   ├── home/loading.tsx               # Dashboard skeleton loading state
+│   │   │   ├── home/page.tsx                  # Dashboard: problem grid, language filter, pagination
+│   │   │   ├── home/loading.tsx               # Skeleton grid
+│   │   │   ├── home/error.tsx                 # Dashboard error boundary
+│   │   │   ├── problems/                      # Problems listing page
+│   │   │   │   ├── page.tsx                   # /problems: search, lang filter, solved filter, difficulty/XP sliders
+│   │   │   │   └── layout.tsx                 # With TopNav + FeedbackButton
 │   │   │   ├── leaderboard/
-│   │   │   │   ├── page.tsx                   # Leaderboard server component
-│   │   │   │   ├── LeaderboardClient.tsx      # Client component with period filter
-│   │   │   │   ├── loading.tsx                # Skeleton loading state
+│   │   │   │   ├── page.tsx                   # Server component
+│   │   │   │   ├── LeaderboardClient.tsx      # Period filter, podium, custom Avatar
+│   │   │   │   ├── loading.tsx                # Skeleton
 │   │   │   │   └── error.tsx                  # Error boundary
 │   │   │   ├── profile/
-│   │   │   │   ├── page.tsx                   # Profile server component
-│   │   │   │   ├── ProfileClient.tsx          # Profile with tabs, stats, activity
-│   │   │   │   ├── loading.tsx                # Skeleton loading
-│   │   │   │   ├── error.tsx                  # Error boundary
-│   │   │   │   └── components/
-│   │   │   │       ├── ProfileHeader.tsx      # Avatar, name, rank, XP
-│   │   │   │       ├── StatsOverview.tsx      # Solved, streak, best runtime
-│   │   │   │       ├── ProgressMetrics.tsx    # Difficulty breakdown charts
-│   │   │   │       ├── Achievements.tsx       # Achievement badges grid
-│   │   │   │       ├── RecentActivity.tsx     # Last submissions list
-│   │   │   │       ├── ActivityFeed.tsx       # User activity timeline
-│   │   │   │       ├── ContributionGraphSection.tsx  # GitHub-style heatmap
-│   │   │   │       └── MyContributions.tsx    # User-submitted problem list
-│   │   │   ├── settings/page.tsx              # Settings: profile, security, notifications tabs
-│   │   │   ├── settings/error.tsx             # Settings error boundary
-│   │   │   ├── contribute/page.tsx            # Community problem contribution form
-│   │   │   ├── contribute/error.tsx           # Contribute error boundary
-│   │   │   ├── problems/[slug]/success/page.tsx  # Post-submission success screen
-│   │   │   ├── problems/[slug]/error.tsx      # Workspace error boundary
-│   │   │   └── admin/
-│   │   │       ├── page.tsx                   # Admin dashboard: tabs for each section
-│   │   │       ├── FeedbackPanel.tsx          # Feedback list with status filters
-│   │   │       ├── BroadcastPanel.tsx         # Broadcast CRUD with toggle switches
-│   │   │       ├── PendingContributions.tsx   # Community problem approval queue
-│   │   │       ├── ProblemEditPanel.tsx       # Full problem editor with preview
-│   │   │       └── ProblemReports.tsx         # Bug reports grouped by problem
-│   │   ├── problems/[slug]/
-│   │   │   ├── page.tsx                       # Workspace server component
-│   │   │   ├── DynamicWorkspace.tsx           # Client component wrapper (next/dynamic)
-│   │   │   └── ProblemWorkspaceClient.tsx     # Monaco editor, submit/test, results
+│   │   │   │   ├── page.tsx                   # Server component
+│   │   │   │   ├── ProfileClient.tsx          # Tabs: stats, activity, achievements, contributions
+│   │   │   │   ├── loading.tsx, error.tsx
+│   │   │   │   └── components/               # ProfileHeader, StatsOverview, ProgressMetrics
+│   │   │   │       Achievements, RecentActivity, ActivityFeed, ContributionGraphSection, MyContributions
+│   │   │   ├── settings/page.tsx              # Profile/Security/Notifications tabs
+│   │   │   ├── settings/error.tsx
+│   │   │   ├── contribute/page.tsx            # Community problem submission
+│   │   │   ├── contribute/error.tsx
+│   │   │   ├── admin/
+│   │   │   │   ├── page.tsx                   # Dashboard: stats + tabs (Feedback, Broadcasts,
+│   │   │   │   │                                Pending Contributions, Problem Edit, Reports,
+│   │   │   │   │                                User Verification, AI Usage, Curriculum link)
+│   │   │   │   ├── FeedbackPanel.tsx          # Status filters, inline resolve
+│   │   │   │   ├── BroadcastPanel.tsx         # Create/edit, toggle switches
+│   │   │   │   ├── PendingContributions.tsx   # Approval/rejection queue
+│   │   │   │   ├── ProblemEditPanel.tsx       # Full problem editor + preview
+│   │   │   │   ├── ProblemReports.tsx         # Grouped/flat, search, resolved filter
+│   │   │   │   ├── UserVerificationPanel.tsx  # Search users, toggle verified (300ms debounce)
+│   │   │   │   ├── AIAssistantPanel.tsx       # AI chat with 8 action types
+│   │   │   │   ├── error.tsx
+│   │   │   │   └── curriculum/page.tsx        # 3-panel CMS: course/module/lesson editor
+│   │   │   └── learn/                         # Curriculum CMS (student view)
+│   │   │       ├── layout.tsx                 # Minimal wrapper
+│   │   │       ├── courses/page.tsx           # Course catalog grid
+│   │   │       ├── courses/[courseSlug]/page.tsx  # Modules timeline + progress
+│   │   │       ├── courses/[courseSlug]/modules/[moduleSlug]/page.tsx # Lesson list
+│   │   │       └── courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/
+│   │   │           ├── page.tsx               # Lesson server shell
+│   │   │           └── LessonViewerClient.tsx # Sections + sidebar + complete
+│   │   ├── problems/[slug]/                   # Problem workspace
+│   │   │   ├── page.tsx                       # Server component
+│   │   │   ├── DynamicWorkspace.tsx           # next/dynamic wrapper
+│   │   │   ├── ProblemWorkspaceClient.tsx     # Monaco editor, submit, test, results
+│   │   │   │                                    Language toggle with save & switch
+│   │   │   │                                    Scaffold preservation, confirmation dialog
+│   │   │   │                                    Per-language localStorage (koder_code_{slug}_{lang})
+│   │   │   ├── error.tsx                      # Workspace error boundary
+│   │   │   └── success/page.tsx               # Post-submission success screen
 │   │   └── (legal)/
 │   │       ├── layout.tsx                     # Legal pages layout
 │   │       ├── privacy/page.tsx               # Privacy policy
 │   │       └── terms/page.tsx                 # Terms of service
 │   ├── components/
-│   │   ├── BroadcastBanner.tsx                # Color-coded dismissable banner with 30s polling
-│   │   ├── FeedbackButton.tsx                 # Floating feedback modal (general/bug/feature)
-│   │   ├── GoogleLinkBanner.tsx               # Amber banner to link Google account
-│   │   ├── LandingContent.tsx                 # Landing page marketing content
+│   │   ├── layout/TopNav.tsx                  # Logo, Dashboard/Problems/Learn links, notif bell
+│   │   │                                        Avatar menu (admin verified badge, settings, logout)
+│   │   ├── BroadcastBanner.tsx                # Color-coded, 30s polling, per-user dismiss
+│   │   ├── FeedbackButton.tsx                 # Floating FAB, 3 tabs (General/Bug/Feature)
+│   │   │                                        Screenshot upload (base64, 5MB), priority selector
+│   │   ├── GoogleLinkBanner.tsx               # Amber banner to link Google
+│   │   ├── LandingContent.tsx                 # Landing page content
 │   │   ├── LanguageLogo.tsx                   # Go/Python SVG icon renderer
-│   │   ├── LanguageSelector.tsx               # Onboarding language selection dropdown
-│   │   ├── TestResultPanel.tsx                # LCS-based unified diff display with debug tips
-│   │   ├── multi-step-loader-demo.tsx         # Loading animation demo
-│   │   ├── auth/                              # Auth form components
-│   │   │   ├── google-button.tsx              # Dark Google Sign-In button with SVG
-│   │   │   ├── bottom-gradient.tsx            # Amber gradient hover animation
-│   │   │   ├── label-input-container.tsx      # Input + label spacing (Aceternity)
-│   │   │   ├── auth-divider.tsx               # "or" divider with border
-│   │   │   └── index.ts                       # Re-exports
-│   │   ├── base/avatar/avatar.tsx             # Avatar with src/initials fallback + verified gold badge
-│   │   ├── base/input/pin-input.tsx           # OTP-based PIN input with mask support
-│   │   ├── dashboard/ModuleCards.tsx          # Module grid with images, loading skeleton
+│   │   ├── TestResultPanel.tsx                # LCS unified diff, green/red line highlighting
+│   │   │                                        Python debug tips from EnhancePythonError
+│   │   ├── multi-step-loader-demo.tsx
+│   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
+│   │   │                                        auth-divider, index.ts (re-exports)
+│   │   ├── base/avatar/avatar.tsx             # src/initials fallback, sizes sm/md/lg/xl/podium
+│   │   │                                        Verified gold badge (SVG circle + checkmark)
+│   │   ├── base/input/pin-input.tsx           # OTP PIN input with mask
+│   │   ├── dashboard/ModuleCards.tsx          # Image grid, skeleton, WebP
 │   │   ├── kibo-ui/
-│   │   │   ├── code-block/index.tsx           # Shiki syntax highlighting component
-│   │   │   ├── code-block/server.tsx          # Server-side code block rendering
-│   │   │   └── contribution-graph/index.tsx   # GitHub-style contribution heatmap
-│   │   ├── layout/TopNav.tsx                  # Top navigation: logo, links, notifications, user menu
-│   │   └── ui/                                # shadcn/ui components
-│   │       ├── avatar.tsx, badge.tsx, button.tsx, card.tsx
-│   │       ├── dialog.tsx, dropdown-menu.tsx, input.tsx
-│   │       ├── input-otp.tsx, label.tsx, progress.tsx
-│   │       ├── select.tsx, tabs.tsx, textarea.tsx
-│   │       ├── tooltip.tsx, activity-gauge.tsx
-│   │       └── multi-step-loader.tsx
+│   │   │   ├── code-block/index.tsx           # Shiki syntax highlighting
+│   │   │   ├── code-block/server.tsx          # Server-side rendering
+│   │   │   └── contribution-graph/index.tsx   # GitHub-style heatmap
+│   │   ├── profile/ProfileHoverCard.tsx       # XP bar, stats, verified badge
+│   │   ├── landing/                           # Hero, Features, Stats, HowItWorks, Testimonials, Footer
+│   │   ├── learn/                             # Curriculum CMS components
+│   │   │   ├── SectionRenderer.tsx            # Routes section_type → sub-renderer
+│   │   │   ├── SectionQuiz.tsx                # Inline quiz from metadata JSONB
+│   │   │   ├── SectionExercise.tsx            # Monaco Editor + POST /test
+│   │   │   └── LessonSidebar.tsx              # Progress + sections + prereqs
+│   │   └── ui/                                # 15 shadcn/ui components
+│   │       avatar, badge, button, card, dialog, dropdown-menu, input, input-otp
+│   │       label, progress, select, tabs, textarea, tooltip, activity-gauge
+│   │       hover-card, multi-step-loader
 │   ├── hooks/
-│   │   ├── use-google-one-tap.ts              # Shared GIS singleton (init once, prompt + renderButton)
-│   │   ├── use-has-mounted.ts                 # SSR-safe mounted check (replaces useState+useEffect pattern)
+│   │   ├── use-google-one-tap.ts              # GIS singleton (init once, prompt + renderButton)
+│   │   ├── use-has-mounted.ts                 # SSR-safe mount detection
 │   │   └── use-mobile.ts                      # Mobile viewport detection
 │   ├── lib/
-│   │   ├── api.ts                             # fetchApi wrapper + all endpoint functions
-│   │   ├── types.ts                           # TypeScript interfaces matching backend
+│   │   ├── api.ts                             # fetchApi wrapper, 60+ endpoint functions
+│   │   │                                        tryRefreshToken (singleton queue, 401 interceptor)
+│   │   │                                        handleAuthResponse (stores refresh_token)
+│   │   ├── types.ts                           # 40+ TypeScript interfaces matching backend
 │   │   ├── utils.ts                           # cn(), getUserColor(), format helpers
-│   │   ├── cache.ts                           # sessionStorage cache with 30s TTL
-│   │   ├── event.ts                           # useWebSocket hook with auto-reconnect
-│   │   ├── achievements.ts                    # Achievement definitions and logic
-│   │   ├── UserContext.tsx                     # Auth state context provider
-│   │   ├── useNotifications.ts                # Notification polling hook
+│   │   ├── cache.ts                           # sessionStorage with 30s TTL
+│   │   ├── event.ts                           # useWebSocket (auto-reconnect, exponential backoff)
+│   │   ├── achievements.ts                    # Achievement definitions
+│   │   ├── UserContext.tsx                     # Auth state provider + fetchUser
+│   │   ├── useNotifications.ts                # 15s polling, cache invalidation on markRead
 │   │   ├── toast.tsx                          # Sonner toast setup
 │   │   └── index.ts                           # Re-exports
-│   ├── styles/
-│   │   ├── globals.css                        # Global styles
-│   │   ├── theme.css                          # Theme variables
-│   │   └── typography.css                     # Typography scale
+│   ├── styles/                                # globals.css, theme.css (856 vars), typography.css (430 lines)
 │   ├── scripts/copy-monaco.mjs                # Copy Monaco workers to public/vs/
-│   ├── public/
-│   │   ├── logo.png                           # App logo
-│   │   ├── modules/*.webp                     # Module card images (13 modules, WebP)
-│   │   └── vs/                                # Local Monaco Editor workers
-│   ├── middleware.ts                          # CSP headers, frame-src vercel.live, 'unsafe-inline' for scripts
-│   ├── next.config.ts                         # Next.js config with CSP headers
-│   ├── tailwind.config.ts                     # Tailwind config (v4 via v3 compat)
-│   ├── tsconfig.json                          # TypeScript config
-│   ├── postcss.config.mjs                     # PostCSS config
+│   ├── public/                                # logo.png, modules/*.webp, vs/ (Monaco workers)
+│   ├── middleware.ts                          # CSP headers (nonce, worker-src blob:)
+│   ├── next.config.ts                         # with strict CSP via headers()
+│   ├── tailwind.config.ts, tsconfig.json, postcss.config.mjs
 │   ├── components.json                        # shadcn/ui config
-│   └── package.json                           # Dependencies and scripts
-├── sandbox/                                   # Remote code execution service (Railway)
-│   ├── main.go                                # HTTP server: /health, /version, /execute, language routing
-│   ├── ratelimit.go                           # Per-IP sliding window: 10 req/min
-│   ├── secure.go                              # Pre-exec malicious code validation (Go + Python patterns)
-│   ├── secure_unix.go                         # setrlimit, process group isolation, Python RLIMIT_AS
-│   ├── secure_other.go                        # Noop for non-Unix platforms
-│   ├── runtest_go.go                          # Go test runner (go.mod, solution.go, main_test.go)
-│   ├── pyrunner.go                            # Python test runner (AST validation, run_tests.py)
-│   ├── security_message_test.go               # Validates sandbox security messages
-│   ├── Dockerfile                             # Two-stage ARM64 build (includes python3)
-│   └── go.mod                                 # Standalone module, zero external deps
-├── migrations/                                # Database migrations (ordered, idempotent)
-│   ├── 001_init.sql                           # Core schema: users, problems, submissions, progress
-│   ├── 002_indexes.sql                        # Performance indexes
+│   └── package.json                           # Dependencies
+├── sandbox/                                   # Standalone Go binary (zero deps)
+│   ├── main.go                                # HTTP server: /health, /version, /execute
+│   │                                            Dispatches by language (python→pyrunner, fallback→Go)
+│   │                                            compileErrorMessage (3-pass: Go errors, Python traceback, fallback)
+│   │                                            classifyOutput (4 regex patterns)
+│   ├── ratelimit.go                           # Per-IP sliding window, 10 req/min, 5min cleanup
+│   ├── secure.go                              # 14 Go dangerous patterns, 17 Python patterns
+│   │                                            validateCode (Go), validatePythonCode
+│   ├── secure_unix.go                         # Setpgid isolate, resourceLimits: NPROC=6, NOFILE=1024, FSIZE=64MB
+│   │                                            killProcessGroup (SIGKILL to -PID), reapProcess
+│   ├── secure_other.go                        # No-op stubs for non-Unix
+│   ├── runtest_go.go                          # Go runner: go.mod, solution.go, main_test.go, go test -v
+│   │                                            GOPROXY=off, GOTOOLCHAIN=local, CGO_ENABLED=0
+│   ├── pyrunner.go                            # Python runner: 2-layer security (regex + AST)
+│   │                                            findPythonBin (python3→python fallback)
+│   │                                            cappedBuffer (64KB output cap)
+│   │                                            validatePythonAST (ast.parse subprocess, 10s timeout)
+│   ├── security_message_test.go               # 3 test cases
+│   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
+│   └── go.mod                                 # Zero external deps
+├── migrations/                                # 39 migrations (38 numbered + 999 test seed)
+│   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
+│   ├── 002_indexes.sql                        # 17 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
-│   ├── 005_community_contributions.sql        # user_problems table
+│   ├── 005_community_contributions.sql        # user_problems, verified flag, author_id
 │   ├── 006_notifications.sql                  # notifications table
-│   ├── 007_submission_likes.sql               # submission_likes table
-│   ├── 008_user_profile.sql                   # Profile fields (bio, etc.)
-│   ├── 009_get_full_profile.sql               # Full profile stored proc
-│   ├── 010_add_gitea_auth.sql                 # Gitea OAuth fields (legacy) [obsolete]
-│   ├── 011_add_gitea_token.sql                # Gitea token storage [obsolete]
-│   ├── 012_add_google_auth.sql                # Google OAuth fields
-│   ├── 013_fix_rank_tiebreaker.sql            # Rank ordering fix
-│   ├── 014_feedback.sql                       # feedback table with type/priority/status/screenshot
-│   ├── 015_broadcasts.sql                     # broadcasts + user_broadcast_status tables
-│   ├── 016_add_streak_index.sql               # Composite index for streak queries
-│   ├── 017_optimization_indexes.sql           # 16 performance indexes
+│   ├── 007_submission_likes.sql               # submission_likes (UNIQUE pair)
+│   ├── 008_user_profile.sql                   # bio on users
+│   ├── 009_get_full_profile.sql               # Stored proc: full profile + activity heatmap
+│   ├── 010_add_gitea_auth.sql                 # [OBSOLETE] Gitea OAuth fields
+│   ├── 011_add_gitea_token.sql                # [OBSOLETE] Gitea PAT storage
+│   ├── 012_add_google_auth.sql                # Google OAuth + username/email columns
+│   ├── 013_fix_rank_tiebreaker.sql            # Rank: xp DESC, solved_count DESC, id ASC
+│   ├── 014_feedback.sql                       # feedback table (type/priority/status CHECK)
+│   ├── 015_broadcasts.sql                     # broadcasts + user_broadcast_status
+│   ├── 016_add_streak_index.sql               # submissions(user_id, status, created_at)
+│   ├── 017_optimization_indexes.sql           # 16 composite indexes
 │   ├── 019_seed_problems1.sql                 # 45 problems: math-recursion, arrays-strings, data-structures
 │   ├── 019_seed_problems2.sql                 # 45 problems: bit-manipulation, sorting-searching, pointers
-│   ├── 019_seed_problems3.sql                 # 45 problems: strings-runes, concurrency, dynamic-programming
-│   ├── 019_seed_problems4.sql                 # 45 problems: error-handling, hashmaps-sets, linked-lists, trees-graphs
-│   ├── 020_token_blacklist.sql                # JWT blacklist table
-│   ├── 021_password_reset.sql                 # Password reset tokens table
-│   ├── 022_add_pin_hash.sql                   # pin_hash column for PIN auth
-│   ├── 023_split_problem_fields.sql           # constraints + learning_objective columns
-│   ├── 024_add_username_set.sql               # username_set flag for onboarding
+│   ├── 019_seed_problems3.sql                 # 45 problems: error-handling, interfaces-generics
+│   ├── 019_seed_problems4.sql                 # 60 problems: hashmaps-sets, linked-lists, trees-graphs, DP
+│   ├── 020_token_blacklist.sql                # JWT blacklist (jti PK)
+│   ├── 021_password_reset.sql                 # password_reset_tokens
+│   ├── 022_add_pin_hash.sql                   # pin_hash on users
+│   ├── 023_split_problem_fields.sql           # constraints + learning_objective
+│   ├── 024_add_username_set.sql               # username_set flag
 │   ├── 025_report_issue_fields.sql            # problem_slug, code_snippet, error_message on feedback
-│   ├── 026_output_logs_ttl.sql                # TTL cleanup for old output logs
-│   ├── 027_language_versions.sql              # Multi-language: language_versions JSONB column
-│   ├── 028_backfill_language_versions.sql     # Backfill Python entries for 180 seed problems
-│   ├── 029_ensure_language_versions.sql       # Guarantees every problem has Go + Python entries
+│   ├── 026_output_logs_ttl.sql                # output_logs_expires_at (90d)
+│   ├── 027_language_versions.sql              # language_versions JSONB + primary_language
+│   ├── 028_backfill_language_versions.sql     # PL/pgSQL: koder_to_snake_case, koder_go_type_to_python
+│   ├── 029_ensure_language_versions.sql       # Guarantees Go+Python entries for ALL problems
 │   ├── 031_python_intermediate_seed.sql       # 10 Python intermediate problems
-│   ├── 032_python_variables_math_seed.sql     # Python variables & math operators seed
-│   ├── 033_add_user_problems_language_versions.sql  # language_versions on community contributions
+│   ├── 032_python_variables_math_seed.sql     # 1 Python variables & math problem
+│   ├── 033_add_user_problems_language_versions.sql  # language_versions on user_problems
 │   ├── 034_python_arrays_strings_seed.sql     # 7 Python arrays & strings problems
-│   ├── 035_ai_usage_logs.sql                  # AI usage tracking table
-│   ├── 036_refresh_tokens.sql                 # Refresh token storage & rotation
-│   └── 999_seed_python_test.sql               # Python seed test migration
+│   ├── 035_ai_usage_logs.sql                  # ai_usage_logs table
+│   ├── 036_refresh_tokens.sql                 # refresh_tokens table
+│   ├── 037_seed_go_fundamentals.sql           # 5 Go fundamentals problems
+│   ├── 038_curriculum_cms.sql                 # 8 tables: courses, modules, lessons, sections, deps, projects, progress
+│   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
-│   ├── reset_data.sql                         # Safe DELETE-order data reset (keeps users)
-│   ├── setup-docker-cache.sh                  # Docker build cache setup
-│   └── transform-seeds.mjs                    # Seed data transformation script
-├── cmd/server/main.go                         #[symlink] Entry point
-├── go.mod                                     # Go module definition
-├── go.sum                                     # Go dependency checksums
-├── Procfile                                   # Render/Heroku process definition
-├── build.sh                                   # Deployment build script
-├── .env.example                               # Environment variable template
-├── .github/workflows/ci.yml                   # CI pipeline
-├── .github/copilot-instructions.md            # GitHub Copilot context
-└── BRAIN.md                                   # Architecture decisions log
+│   ├── reset_data.sql                         # Safe DELETE-order data reset
+│   ├── setup-docker-cache.sh                  # Go build cache pre-warm
+│   └── transform-seeds.mjs                   # Seed transformation (statement splitting)
+├── go.mod, go.sum                             # Go module definition
+├── Procfile                                   # Render: web: ./koder
+├── build.sh                                   # Cross-compile backend + sandbox
+├── .env.example                               # 20 documented env vars
+├── .github/workflows/ci.yml                   # 4-job CI (backend, frontend, deploy-backend, deploy-sandbox)
+├── .github/copilot-instructions.md            # AI coding standards [PARTIALLY OUTDATED]
+├── BRAIN.md                                   # Agent session protocol
+├── PLAN.md                                    # Curriculum CMS plan (all phases complete)
+├── implementation.md                          # CMS implementation plan (all done)
+├── CODEBASE_INDEX.md                          # Line-level file inventory
+├── CODEBASE_ANALYSIS.md                       # Architectural analysis
+├── SESSION_LOG.md                             # 38+ session log (June 28 - July 13)
+├── progress.md                                # Curriculum CMS progress tracker
+└── CLAUDE.md                                  # This file — professional codebase index
 ```
 
 ---
@@ -298,17 +414,17 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | Middleware | Source | Purpose |
 |---|---|---|
-| `RequestLoggingMiddleware` | `middleware.go:15` | Logs method/path/status/duration/correlation ID |
-| `RecoveryMiddleware` | `middleware.go:15` | Catches panics → JSON 500 |
-| `CORSMiddleware` | `middleware.go:62` | Cross-origin headers for frontend |
-| `SecurityHeadersMiddleware` | `middleware.go:120` | CSP, X-Frame-Options, etc. |
-| `BodySizeLimitMiddleware` | `middleware.go:143` | Per-route body size limits (256KB–10MB) |
-| `AuthMiddleware` | `middleware.go:29` | JWT validation, sets `user_id` in context |
-| `AdminOnly` | `middleware.go:105` | Role check: admin required |
-| `VerifiedContributorOnly` | `middleware.go:113` | Role check: verified_contributor+ |
-| `RateLimitMiddleware` | `middleware.go:195` | Per-user sliding window (5 req/45s) |
-| `IPRateLimiter` | `middleware.go:170` | Per-IP auth endpoint limiter (10 req/min) |
-| `AIRateLimitMiddleware` | `middleware.go:210` | Per-admin AI assist limiter (15 req/60s, no bypass) |
+| `RequestLoggingMiddleware` | `middleware.go:38` | Logs method/path/status/duration/correlation ID (8-byte crypto/rand hex) |
+| `RecoveryMiddleware` | `middleware.go:446` | Catches panics → JSON 500 |
+| `CORSMiddleware` | `middleware.go:217` | Wildcard/specific/multi-origin, OPTIONS 200, null origin support |
+| `SecurityHeadersMiddleware` | `middleware.go:467` | CSP (nonce per-request), XFO DENY, XCTO nosniff, HSTS, Referrer-Policy |
+| `BodySizeLimitMiddleware` | `middleware.go:433` | Per-route body size limits (256KB–10MB) |
+| `AuthMiddleware` | `middleware.go:256` | JWT validation from Bearer header or koder_token cookie; checks blacklist |
+| `AdminOnly` | `middleware.go:305` | Role check: admin required |
+| `VerifiedContributorOnly` | `middleware.go:317` | Role check: verified_contributor+ |
+| `RateLimitMiddleware` | `middleware.go:161` | Per-user sliding window (5 req/45s), admin bypass |
+| `IPRateLimiter` | `middleware.go:406` | Per-IP auth endpoint limiter (10 req/min) |
+| `AIRateLimitMiddleware` | `middleware.go:192` | Per-admin AI assist limiter (15 req/60s, NO bypass) |
 
 ---
 
@@ -317,7 +433,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 ### 1. Ingest Pipeline (`admin.go` → `parser.go` → `store.go`)
 ```
 POST /admin/ingest { repo_url }
-  → Fetch GitHub YAML curriculum
+  → Fetch GitHub YAML curriculum (sparse checkout if subpath)
   → Parse YAML into Problem structs
   → SHA256 hash for idempotency check
   → Upsert into `problems` table (visible=false, draft)
@@ -345,197 +461,270 @@ POST /submit (scoring) | POST /test (no-score)
   → Route to language-specific executor (Go or Python):
 
   Go path:
-  → Format test case inputs as Go literals (formatGoLiteral)
+  → Format test case inputs as Go literals (formatGoLiteral — recursive)
   → Generate main_test.go via text/template
-  → Write solution.go + main_test.go to temp dir
+  → Write solution.go (force package koder) + main_test.go to temp dir
 
   Python path:
-  → Format test case inputs as Python literals (formatPythonLiteral)
+  → Format test case inputs as Python literals (formatPythonLiteral — null→None)
   → Generate run_tests.py via pythonTestTemplate
   → Write solution.py + run_tests.py to temp dir
 
   → Execute:
-      PRIMARY: HTTP POST to remote sandbox (Railway)
-      FALLBACK: docker run golang:1.23-alpine / python:3.12-slim (local)
-  → Parse Go-compatible test output (GOT/WANT regex)
+      PRIMARY: HTTP POST to remote sandbox (3 retries, exponential backoff)
+      FALLBACK: docker run (--network=none --memory=256m --cpus=1.0)
+  → Parse Go-compatible test output (GOT/WANT regex state machine)
   → Classify: passed/failed/compiler_error/timeout
-  → Record submission + update progress in DB
+  → Record submission + update progress in DB (advisory lock for race prevention)
   → Return ExecutionResult with per-test-case diff
 ```
 
 ---
 
-## Database Schema
+## Database Schema (39 migrations, 38 numbered)
 
-### Tables (`migrations/001_init.sql` + incremental)
+### Core Tables (`001_init.sql` + incremental)
 
 | Table | Purpose | Key Columns |
 |---|---|---|
-| `users` | Accounts & auth | id, username, email, password, role, xp, pin_hash, google_id, username_set, color_index |
-| `problems` | Exercise definitions | id, slug, module, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, visible, source_hash, constraints, learning_objective |
-| `test_cases` | AI-generated test data | id, problem_id, input (JSON), expected, is_hidden, ordinal |
-| `submissions` | Student solution attempts | id, user_id, problem_id, code, status, passed_count, total_count, output_logs, runtime_ms |
+| `users` | Accounts & auth | id, username, email, password, role, xp, pin_hash, google_id, username_set, color_index, verified, primary_language |
+| `problems` | Exercise definitions | id, slug, module, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, visible, source_hash, constraints, learning_objective, language_versions (JSONB) |
+| `test_cases` | AI-generated test data | id, problem_id, input (JSONB), expected, is_hidden, ordinal |
+| `submissions` | Student solution attempts | id, user_id, problem_id, code, status, passed_count, total_count, output_logs, runtime_ms, output_logs_expires_at |
 | `progress` | Per-user problem state | user_id + problem_id (PK), solved, stars, attempts, best_runtime, xp_awarded |
-| `activity_logs` | Admin audit trail | id, type, message, color, icon |
-| `user_problems` | Community contributions | id, user_id, slug, title, statement, test_cases (JSON), status (pending/approved/rejected), language_versions (JSONB) |
-| `notifications` | User alerts | id, user_id, type, message, related_id, is_read |
-| `submission_likes` | Community solution likes | user_id + submission_id (PK) |
-| `feedback` | Bug reports & feature requests | id, type, priority, status, screenshot_url, problem_slug, code_snippet, error_message, problem_title |
-| `broadcasts` | System-wide announcements | id, type, priority, title, message, action_label/url, active |
-| `user_broadcast_status` | Per-user dismissal tracking | user_id + broadcast_id (PK), dismissed_at |
-| `password_reset_tokens` | Email-based password reset | email, token_hash, expires_at, used |
-| `token_blacklist` | JWT revocation | jti, expires_at |
+
+### Secondary Tables
+
+| Table | Purpose | Key Feature |
+|---|---|---|
+| `activity_logs` | Admin audit trail | type, message, color, icon |
+| `user_problems` | Community contributions | status (pending/approved/rejected), language_versions JSONB |
+| `notifications` | User alerts | is_read, related_id, 50-count unread limit |
+| `submission_likes` | Community solution likes | UNIQUE(submission_id, user_id) |
+| `feedback` | Bug reports & feature requests | type CHECK, priority CHECK, status CHECK, screenshot_url, problem_slug |
+| `broadcasts` | System announcements | active, priority, action_label/action_url, type CHECK |
+| `user_broadcast_status` | Per-user dismissal | PK(user_id, broadcast_id) |
+| `token_blacklist` | JWT revocation | jti PK, ON CONFLICT DO NOTHING |
+| `password_reset_tokens` | Email password reset | token_hash PK, used flag, 1h expiry |
+| `refresh_tokens` | Token rotation | token_hash UNIQUE, revoked, cleanup |
+| `ai_usage_logs` | AI usage monitoring | user_id, action, tokens, success, response_time_ms |
+
+### Curriculum CMS Tables (`038_curriculum_cms.sql`)
+
+| Table | Purpose | Key Columns |
+|---|---|---|
+| `courses` | Top-level curriculum | slug UNIQUE, difficulty_level (1-5), visible=false default |
+| `modules` | Course chapters | UNIQUE(course_id, slug), visible=false default |
+| `lessons` | Individual lessons | UNIQUE(module_id, slug), visible=false default, problem_references TEXT[] |
+| `lesson_dependencies` | Prerequisite DAG | PK(lesson_id, depends_on_lesson_id), CHECK no self-ref |
+| `lesson_sections` | Typed content blocks | section_type ENUM (11 types), metadata JSONB, order_number |
+| `projects` | Hands-on coding | UNIQUE(lesson_id, slug), difficulty (1-5), hints TEXT[], visible=false |
+| `course_progress` | User course progress | PK(user_id, course_id), progress_pct REAL (0-100) |
+| `lesson_progress` | User lesson completion | PK(user_id, lesson_id), completed, xp_awarded |
 
 ### Storage Rules
 - 500MB hard limit: no JSONB bloat, normalized schema
 - All SELECT queries have LIMIT (100-200 per table)
-- Composite indexes for all query patterns (migration 017)
+- Composite indexes for all query patterns (migrations 002 + 017 + 038)
+- See `scripts/reset_data.sql` for safe delete order (11 tables)
 
 ---
 
 ## API Endpoints
 
-### Auth (IP rate-limited: 10 req/min)
+### Auth (IP rate-limited: 10 req/min, body size: 256KB)
 | Method | Path | Handler | Description |
 |---|---|---|---|
 | POST | /auth/register | `auth.go:Register` | Create account (name, email, password, PIN); returns JWT + refresh_token with onboarding=true |
 | POST | /auth/login | `auth.go:Login` | JWT token (accepts username/email/student_id) |
-| POST | /auth/google | `auth.go:GoogleAuth` | Google Sign-In with ID token; 404 if not linked |
+| POST | /auth/google | `auth.go:GoogleAuth` | Google Sign-In with ID token; auto-creates or links |
 | POST | /auth/complete-onboarding | `auth.go:CompleteOnboarding` | Set username + student_id post-registration |
 | POST | /auth/complete-google | (alias) | Delegates to CompleteOnboarding |
 | POST | /auth/link-google | `auth.go:LinkGoogle` | Link Google to existing authenticated user |
-| POST | /auth/forgot-password | `password_reset.go:ForgotPassword` | Email-based reset (Resend API) |
-| POST | /auth/reset-password | `password_reset.go:ResetPassword` | Complete email reset with token |
+| POST | /auth/forgot-password | `password_reset.go:ForgotPassword` | Email-based reset (Resend API); always returns success |
+| POST | /auth/reset-password | `password_reset.go:ResetPassword` | Complete email reset with token (SHA-256, 1h expiry) |
 | POST | /auth/forgot-password-pin | `pin_reset.go:ForgotPasswordPin` | PIN-based: email + PIN → short-lived JWT (5 min) |
 | POST | /auth/reset-password-pin | `pin_reset.go:ResetPasswordPin` | PIN-based: JWT + new password |
 | POST | /auth/change-password | `change_password.go:ChangePassword` | Authenticated: verify PIN + set new password |
-| POST | /auth/verify-pin | `change_password.go:VerifyPin` | Verify current PIN |
+| POST | /auth/verify-pin | `change_password.go:VerifyPin` | Verify current PIN (rate-limited: 5/15min) |
 | POST | /auth/set-pin | `change_password.go:SetPin` | Set initial PIN |
-| POST | /auth/refresh | `auth.go:RefreshToken` | Rotate refresh token; reuse detection revokes all sessions |
+| POST | /auth/refresh | `auth.go:RefreshToken` | Rotate refresh token; reuse detection revokes ALL sessions |
 | POST | /auth/logout | `auth.go:Logout` | Revoke JWT + all refresh tokens |
 | GET | /auth/check-username | `auth.go:CheckUsername` | Username availability (public) |
 
 ### User (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /me | `me.go:GetMe` | Current user with stats, google_linked, username_set, primary_language |
+| GET | /me | `me.go:GetMe` | Current user with stats, cached (30s), level = xp/1000 + 1 |
 | PUT | /me/username | `me.go:SetUsername` | One-time username set (403 if already set) |
-| PUT | /me/language | `me.go:UpdateLanguage` | Set primary language preference | |
-| POST | /me/delete-account | `me.go:DeleteAccount` | Transactional cascade delete (revokes refresh tokens) |
-| GET | /me/profile | `profile.go:GetProfile` | Full profile with rank, stats, module proficiency |
+| PUT | /me/language | `me.go:UpdateLanguage` | Set primary language preference |
+| POST | /me/delete-account | `me.go:DeleteAccount` | Transactional cascade delete (revokes refresh tokens first) |
+| GET | /me/profile | `profile.go:GetProfile` | Full profile (stored proc), cached (30s) |
 | PUT | /me/profile | `profile.go:UpdateProfile` | Update name and bio |
 | GET | /me/activity | `activity.go:GetActivity` | Contribution graph data by year |
 | GET | /me/contributions | `contributions.go:GetMyContributions` | User's submitted problems |
 | GET | /me/export-data | `me.go:ExportData` | Full account data export (JSON attachment) |
 
-### Problems (authenticated)
+### Problems (authenticated, body: 10MB for submit/test)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /problems | `problems.go:ListVisibleProblems` | All visible problems (paginated, with solved status) |
-| GET | /problems/:slug | `problems.go:GetProblemBySlug` | Problem details + test cases + user progress |
-| POST | /submit | `submissions.go:Submit` | Submit code for scoring (rate-limited: 5 req/45s) |
+| GET | /problems | `problems.go:ListVisibleProblems` | All visible problems with solved status, LATERAL JOIN stats; ?language= filter |
+| GET | /problems/:slug | `problems.go:GetProblemBySlug` | Problem details + test case examples + user progress |
+| POST | /submit | `submissions.go:Submit` | Submit code for scoring (rate-limited: 5/45s); blocks if already solved |
 | POST | /test | `test.go:Test` | Test code without scoring or progress update |
 
 ### Community (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /problems/:slug/community-solutions | `community.go:GetCommunitySolutions` | Top solutions for a problem |
-| GET | /best-practices | `community.go:GetBestPractices` | Best practice solutions across all problems |
-| POST | /submissions/:id/like | `community.go:LikeSubmission` | Like a solution |
+| GET | /problems/:slug/community-solutions | `community.go:GetCommunitySolutions` | Top solutions for a problem (default 3, ?limit=N) |
+| GET | /best-practices | `community.go:GetBestPractices` | Best practice solutions across all problems (default 20) |
+| POST | /submissions/:id/like | `community.go:LikeSubmission` | Like a solution (ON CONFLICT DO NOTHING) |
 | DELETE | /submissions/:id/like | `community.go:UnlikeSubmission` | Unlike a solution |
 
 ### Contributions (verified_contributor+)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| POST | /user-problems | `contributions.go:PostContribution` | Submit a community problem |
+| POST | /user-problems | `contributions.go:PostContribution` | Submit a community problem (body: 5MB) |
 
 ### Notifications (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /notifications | `notifications.go:GetUnreadNotifications` | Unread notifications count + list |
+| GET | /notifications | `notifications.go:GetUnreadNotifications` | Unread notifications count + list (max 50) |
 | GET | /notifications/recent | `notifications.go:GetRecentNotifications` | Last 20 notifications (read + unread) |
 | POST | /notifications/read-all | `notifications.go:MarkAllAsRead` | Mark all as read |
 | POST | /notifications/:id/read | `notifications.go:MarkAsRead` | Mark single as read |
 
-### Broadcasts
+### Broadcasts (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /me/broadcasts | `broadcasts.go:ListActive` | Active non-dismissed broadcasts |
+| GET | /me/broadcasts | `broadcasts.go:ListActive` | Active non-dismissed broadcasts (latest 1) |
 | POST | /me/broadcasts/:id/dismiss | `broadcasts.go:Dismiss` | Dismiss broadcast for current user |
 
-### Feedback (authenticated)
+### Feedback (authenticated, body: 10MB)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| POST | /feedback | `feedback.go:Submit` | Submit feedback/bug report (10MB limit) |
+| POST | /feedback | `feedback.go:Submit` | Submit feedback/bug report; notifies admins (email + in-app) |
 | GET | /feedback/mine | `feedback.go:ListMine` | User's own submissions |
+
+### Users (public)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| GET | /users/{id} | `users.go:GetUserPublicData` | Public user data for hover cards |
+
+### Curriculum CMS (authenticated, student)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| GET | /learn/courses | `cms.go:ListPublishedCourses` | Only visible courses |
+| GET | /learn/courses/{courseSlug} | `cms.go:GetCourseDetail` | Course with modules + user progress |
+| GET | /learn/courses/{courseSlug}/modules/{moduleSlug} | `cms.go:GetModuleDetail` | Module with lessons + completion |
+| GET | /learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug} | `cms.go:GetLessonDetail` | Full lesson with sections, deps, projects, prereq check |
+| POST | /learn/lessons/{lessonId}/complete | `cms.go:CompleteLesson` | Mark lesson complete + award XP |
+| GET | /learn/progress | `cms.go:GetAllProgress` | All courses with progress |
 
 ### Leaderboard (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /leaderboard | `leaderboard.go:GetLeaderboard` | Top 100 by XP; ?period=all|weekly|monthly |
+| GET | /leaderboard | `leaderboard.go:GetLeaderboard` | Top 100 by XP; ?period=all\|weekly\|monthly (30s cache) |
 
 ### WebSocket (authenticated)
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| GET | /ws | `ws.go:ServeHTTP` | WebSocket upgrade, subscribes to broker events |
+| GET | /ws | `ws.go:ServeHTTP` | WebSocket upgrade; gorilla/websocket with broker pub/sub |
 
 ### Admin (admin-only)
+
 | Method | Path | Handler | Description |
 |---|---|---|---|
-| POST | /admin/ingest | `admin.go:Ingest` | Trigger GitHub YAML ingest |
-| POST | /admin/enrich | `admin.go:Enrich` | Enrich single problem via AI |
-| POST | /admin/enrich-all | `admin.go:EnrichAll` | Batch enrich all pending problems |
-| POST | /admin/ai/assist | `admin.go:AIAssist` | AI admin assistant (rate-limited: 15 req/60s, no bypass) |
+| POST | /admin/ingest | `admin.go:Ingest` | GitHub YAML ingest (SHA256 dedup) |
+| POST | /admin/enrich | `admin.go:Enrich` | Single problem AI enrichment |
+| POST | /admin/enrich-all | `admin.go:EnrichAll` | Batch enrich all pending; continues on per-problem failure |
+| POST | /admin/ai/assist | `admin.go:AIAssist` | AI admin assistant (15 req/60s); logs usage on success + failure |
+| GET | /admin/ai/usage | `admin.go:GetAIUsage` | AI usage statistics |
 | GET | /admin/stats | `admin.go:GetAdminStats` | Dashboard stats (includes AI call counts) |
-| GET | /admin/activity | `admin.go:GetAdminActivity` | Recent activity log |
-| GET | /admin/ai/usage | `admin.go:GetAIUsage` | AI usage statistics (per-user, action, success/failure) |
-| GET | /admin/problems | `admin.go:ListAllProblems` | All problems (including invisible) |
-| PATCH | /admin/problems/:id/visibility | `admin.go:ToggleVisibility` | Toggle problem visibility |
-| PUT | /admin/problems/:id | `admin.go:UpdateProblem` | Update problem fields (partial) |
+| GET | /admin/activity | `admin.go:GetAdminActivity` | Recent activity log (50) |
+| GET | /admin/problems | `admin.go:ListAllProblems` | All problems including invisible |
+| PATCH | /admin/problems/{id}/visibility | `admin.go:ToggleVisibility` | Toggle visibility (publishes broker event) |
+| PUT | /admin/problems/{id} | `admin.go:UpdateProblem` | Partial update (16 fields, merge semantics) |
 | POST | /admin/problems/publish-all | `admin.go:PublishAllDrafts` | Single UPDATE all invisible → visible |
 | GET | /admin/user-problems/pending | `admin.go:ListPendingUserProblems` | Pending community submissions |
-| PATCH | /admin/user-problems/:id/approve | `admin.go:ApproveUserProblem` | Approve + notify all users |
-| PATCH | /admin/user-problems/:id/reject | `admin.go:RejectUserProblem` | Reject with admin notes |
-| POST | /admin/broadcasts | `broadcasts.go:Create` | Create broadcast + notify all users |
+| PATCH | /admin/user-problems/{id}/approve | `admin.go:ApproveUserProblem` | Approve + notify all users |
+| PATCH | /admin/user-problems/{id}/reject | `admin.go:RejectUserProblem` | Reject with required admin notes |
+| GET | /admin/users/search | `admin.go:SearchUsers` | ILIKE search (min 2 chars, max 20 results) |
+| PATCH | /admin/users/{id}/verified | `admin.go:ToggleUserVerified` | Toggle verified status + cache invalidation |
 | GET | /admin/broadcasts | `broadcasts.go:ListAll` | All broadcasts (200 limit) |
-| PATCH | /admin/broadcasts/:id/deactivate | `broadcasts.go:Deactivate` | Deactivate broadcast |
-| PATCH | /admin/broadcasts/:id/activate | `broadcasts.go:Activate` | Activate broadcast |
-| DELETE | /admin/broadcasts/:id | `broadcasts.go:Delete` | Delete broadcast permanently |
-| GET | /admin/feedback | `feedback.go:ListAdmin` | Feedback with status filter |
+| POST | /admin/broadcasts | `broadcasts.go:Create` | Create + notify all users |
+| PATCH | /admin/broadcasts/{id}/deactivate | `broadcasts.go:Deactivate` | Deactivate |
+| PATCH | /admin/broadcasts/{id}/activate | `broadcasts.go:Activate` | Activate |
+| DELETE | /admin/broadcasts/{id} | `broadcasts.go:Delete` | Permanent delete |
+| GET | /admin/feedback | `feedback.go:ListAdmin` | Feedback with status filter (100) |
 | GET | /admin/feedback/counts | `feedback.go:Counts` | Feedback counts by status |
-| PATCH | /admin/feedback/:id | `feedback.go:UpdateStatus` | Update feedback status + notes |
+| PATCH | /admin/feedback/{id} | `feedback.go:UpdateStatus` | Update status + admin notes |
 | GET | /admin/problem-reports | `feedback.go:ListProblemReports` | Bug reports grouped by slug |
+| GET | /admin/courses | `cms.go:ListAllCourses` | All courses (including invisible) |
+| POST | /admin/courses | `cms.go:CreateCourse` | Create course |
+| PUT | /admin/courses/{courseId} | `cms.go:UpdateCourse` | Update course |
+| DELETE | /admin/courses/{courseId} | `cms.go:DeleteCourse` | Delete course (CASCADE) |
+| PATCH | /admin/courses/{courseId}/visibility | `cms.go:ToggleCourseVisibility` | Toggle course visibility |
+| GET | /admin/courses/{courseId}/modules | `cms.go:ListModules` | List modules for course |
+| POST | /admin/courses/{courseId}/modules | `cms.go:CreateModule` | Create module (visible=false default) |
+| PUT | /admin/modules/{moduleId} | `cms.go:UpdateModule` | Update module |
+| DELETE | /admin/modules/{moduleId} | `cms.go:DeleteModule` | Delete module |
+| PATCH | /admin/modules/{moduleId}/visibility | `cms.go:ToggleModuleVisibility` | Toggle module visibility |
+| GET | /admin/modules/{moduleId}/lessons | `cms.go:ListLessons` | List lessons for module |
+| POST | /admin/modules/{moduleId}/lessons | `cms.go:CreateLesson` | Create lesson with sections + dependencies |
+| PUT | /admin/lessons/{lessonId} | `cms.go:UpdateLesson` | Update lesson |
+| DELETE | /admin/lessons/{lessonId} | `cms.go:DeleteLesson` | Delete lesson |
+| PATCH | /admin/lessons/{lessonId}/visibility | `cms.go:ToggleLessonVisibility` | Toggle lesson visibility |
+| GET | /admin/lessons/{lessonId}/sections | `cms.go:ListLessonSections` | List sections for lesson |
+| POST | /admin/lessons/{lessonId}/sections | `cms.go:CreateSection` | Create section |
+| PUT | /admin/sections/{sectionId} | `cms.go:UpdateSection` | Update section |
+| DELETE | /admin/sections/{sectionId} | `cms.go:DeleteSection` | Delete section |
+| GET | /admin/lessons/{lessonId}/projects | `cms.go:ListProjects` | List projects for lesson |
+| POST | /admin/lessons/{lessonId}/projects | `cms.go:CreateProject` | Create project |
+| PUT | /admin/projects/{projectId} | `cms.go:UpdateProject` | Update project |
+| DELETE | /admin/projects/{projectId} | `cms.go:DeleteProject` | Delete project |
+| PATCH | /admin/projects/{projectId}/visibility | `cms.go:ToggleProjectVisibility` | Toggle project visibility |
+
+### Utility (no auth)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| GET | /health | inline | DB ping, sandbox URL, environment, response time |
+| GET | /version | inline | Build commit, time, Go version |
 
 ---
 
 ## Key Engine Components
 
-### Enricher (`internal/enricher/enricher.go`)
-- **Provider:** NVIDIA NIM (DeepSeek V4 Flash) via HTTP POST to `https://ai.api.nvidia.com/v1/chat/completions`
+### Enricher (`internal/enricher/enricher.go`, 936 lines)
+- **Provider:** NVIDIA NIM (DeepSeek V4 Flash) via HTTP POST
 - **Dual-language schema:** Generates both Go + Python entries in `language_versions` via system prompt
 - **Response format:** System prompt enforces JSON (no `response_format: json_object` — unreliable on DeepSeek)
-- **Rate limiting:** No provider-side rate limit (NVIDIA NIM handles internally); backend respects partial_response
-- **Retry:** 3 attempts with exponential backoff (2s/4s/8s) on 429 (rate-limited) and 503 (service unavailable)
-- **FlexibleStrings:** Custom unmarshaler accepts both `"int"` and `["int"]` for `param_types` in language_versions JSONB
-- **Schema validation:** Requires title, func_name, 3 hints, 5+ test cases, difficulty 1-5, language_versions
+- **Rate limiting:** 1 second minimum between requests (mutex)
+- **Retry:** 3 attempts with exponential backoff (2s/4s/8s) on 429 and 503
+- **FlexibleStrings:** Custom unmarshaler accepts both `"int"` and `["int"]` for `param_types`
+- **Schema validation:** 14 checks: non-nil, title, func_name, 3 hints, difficulty 1-5, XP > 0, ≥1 tag, `language_versions` with "go" entry with non-empty func_name, ≥1 test case
 - **Input normalization:** Handles string/object/array test case inputs via recursive JSON marshaling
 - **Output cleaning:** Strips markdown fences, extracts first `{...}` JSON block
+- **AIAssist:** 8 action types: rephrase_statement, improve_hints, generate_test_cases, regenerate_test_cases, adjust_difficulty, fix_signatures, add_edge_cases, chat
 
-### Executor (`internal/executor/executor.go`)
+### Executor (`internal/executor/executor.go`, 1314 lines)
 - **Semaphore:** Buffered channel (default 6) controls concurrency
-- **Type system:** Recursive `formatGoLiteral()` handles primitives, slices, maps
+- **Type system:** Recursive `formatGoLiteral()` handles primitives, slices, maps; `formatPythonLiteral()` handles null→None, bool→True/False
 - **Template engine:** Go `text/template` generates deterministic `main_test.go` with `reflect.DeepEqual` for non-primitives
-- **Output parsing:** Regex extracts PASS/FAIL, GOT/WANT per ordinal from `go test -v`
-- **Sandbox directory:** Per-execution UUID temp dir with `solution.go` + `main_test.go`
+- **Output parsing:** State machine regex extracts PASS/FAIL, GOT/WANT per ordinal (5 regex patterns, multi-line buffer accumulation)
+- **Sandbox directory:** Per-execution UUID temp dir with `solution.go` + `main_test.go` or `solution.py` + `run_tests.py`
 - **Build cache isolation:** Per-execution cache directory prevents cross-user poisoning
 - **Cleanup:** Deferred `os.RemoveAll` for sandbox + cache directories
+- **Language routing:** Simple `if req.Language == "python"` check; defaults to Go
+- **Output capping:** All outputs capped at 100KB
+- **Status classification:** sandbox status → timeout → OOM (137) → compiler_error → passed → failed
 
-### Remote Sandbox (`sandbox/main.go`)
-- **Zero external deps:** Standalone Go binary, only std library
-- **Pre-exec security:** Blocks `os/exec`, `syscall`, `unsafe`, `net`, filesystem writes
-- **Unix isolation:** `setrlimit` (NPROC=6, NOFILE=1024, FSIZE=64MB) + `Setpgid` process group
-- **Rate limiter:** Per-IP sliding window, 10 req/min, HTTP 429 with `Retry-After`
+### Remote Sandbox (`sandbox/`, 8 source files, zero deps)
+- **10-layer defense-in-depth:** regex blocklist → AST validation (Python) → setrlimit (NPROC=6, NOFILE=1024, FSIZE=64MB) → Setpgid → GOPROXY=off → cappedBuffer (64KB) → MaxBytesReader (100KB) → rate limiter (10 req/min) → temp dir randomization → deferred cleanup
 - **Health endpoints:** `/health` and `/version` bypass rate limiter
+- **Python runner:** 2-layer security (regex + subprocess AST parse), `python3` → `python` fallback
+- **Go runner:** `go test -v -count=1 -gcflags=-l`, GOFLAGS=-buildvcs=false, GOTOOLCHAIN=local
+- **Error classification:** `classifyOutput()` with 4 regex patterns, `compileErrorMessage()` 3-pass extraction
 
 ### Broker (`internal/broker/broker.go`)
 - **In-memory pub/sub:** Map of client ID → buffered channel (32)
@@ -548,29 +737,40 @@ POST /submit (scoring) | POST /test (no-score)
 - **Write loop:** Selects on broker channel + ticker for periodic pings
 - **Cleanup:** Defers Unsubscribe + close connection
 
+### Parser (`internal/parser/parser.go`)
+- **Ingest:** `git clone --depth 1` (standard), `--filter=blob:none --sparse` + `sparse-checkout set` for subpath URLs
+- **Idempotency:** SHA-256 hash of raw README content
+- **URL parsing:** Handles HTTPS, SSH, tree/blob subpaths
+
 ---
 
 ## Frontend Architecture
 
 ### App Router Structure
-- **Root layout** (`layout.tsx`): Providers (UserContext), fonts, metadata, Toast, preconnect
+- **Root layout** (`layout.tsx`): UserContext provider, Inter + Fira Code fonts, Toast (Sonner)
 - **Auth layout** (`(auth)/layout.tsx`): Centered card layout for login/register/onboarding
-- **Main layout** (`(main)/layout.tsx`): TopNav, BroadcastBanner, FeedbackButton, sidebar
+- **Main layout** (`(main)/layout.tsx`): TopNav, BroadcastBanner, FeedbackButton
+- **Problems layout** (`problems/layout.tsx`): TopNav (listing page only; workspace has no TopNav)
+- **Learn layout** (`(main)/learn/layout.tsx`): Minimal wrapper for CMS pages
 - **Legal layout** (`(legal)/layout.tsx`): Simple prose layout for privacy/terms
 
 ### State Management
 - **UserContext:** React context with user state, fetchUser on mount, periodic refresh
-- **useNotifications:** 5s polling for unread count, markAsRead helper
-- **useWebSocket:** Auto-reconnect with exponential backoff (event.ts)
-- **SessionStorage cache:** 30s TTL for GET responses (cache.ts)
+- **useNotifications:** 15s polling for unread count; cache invalidation on markAsRead
+- **useWebSocket:** Auto-reconnect with exponential backoff (`event.ts`)
+- **SessionStorage cache:** 30s TTL for GET responses (`cache.ts`)
+- **Per-language localStorage:** `koder_code_{slug}_{lang}` for save & switch
 
 ### Key Components
-- **ProblemWorkspaceClient:** Monaco editor (Go language), split pane with TestResultPanel, submit/test buttons with solved guard, confetti on success, report bug dialog
-- **ModuleCards:** Image grid with loading skeleton, WebP images, fade-in on load
-- **TestResultPanel:** LCS-based unified diff with green/red line highlighting, side-by-side for single-line
-- **BroadcastBanner:** Color-coded by type, fit-to-content, 5s polling, per-user dismiss
-- **FeedbackButton:** Floating action button, 3-tab modal (General/Bug/Feature), screenshot upload, priority selector
-- **TopNav:** Logo, nav links, notification bell with count, user avatar/menu
+- **ProblemWorkspaceClient:** Monaco Editor (Go/Python), split pane with TestResultPanel, submit/test with solved guard (409), confetti on success, report bug dialog, language toggle with scaffold preservation + confirmation dialog, admin edit button (modal with 9 fields)
+- **Admin curriculum page (1230 lines):** 3-panel CMS: course list (left) → module list (center) → lesson editor (right); full section CRUD with type dropdown, quiz metadata editor, dependency management
+- **Admin dashboard:** 4-column stats grid + tabbed panels (Feedback, Broadcasts, Contributions, Problem Edit, Reports, User Verification, AI Assistant, Curriculum link)
+- **Leaderboard:** Cache-first top 100, period filter (all/weekly/monthly), podium (top 3), custom Avatar with verified badge, raw ms display
+- **Profile:** Server component shell → client tabs (Stats, Activity, Achievements, Contributions), stored procedure data, XP progress bar (xpInLevel/1000)
+- **BroadcastBanner:** Color-coded by type, 30s polling, per-user dismiss
+- **FeedbackButton:** Floating FAB, 3 tabs, screenshot upload (base64 data URI, 5MB limit), priority selector, problem context
+- **TopNav:** Logo, Dashboard/Problems/Learn links, notification bell with count, user avatar/menu with admin verified badge, language switcher
+- **TestResultPanel:** LCS unified diff, green/red highlighting, single-line side-by-side, Python debug tips from backend EnhancePythonError
 
 ---
 
@@ -579,24 +779,32 @@ POST /submit (scoring) | POST /test (no-score)
 ### Backend (`config.go`)
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | — | Supabase PostgreSQL connection string |
-| `JWT_SECRET` | — | HS256 signing key (min 32 chars) |
-| `NVIDIA_API_KEY` | — | NVIDIA NIM API key (required for enricher + AI assist) |
-| `NVIDIA_MODEL` | `deepseek-ai/deepseek-v4-flash` | NVIDIA NIM model name |
-| `ENRICHMENT_PROVIDER` | `nvidia` | `nvidia` only (Gemini/Groq removed) |
+| `DATABASE_URL` | — | Supabase PostgreSQL connection string (required) |
+| `JWT_SECRET` | — | HS256 signing key (min 32 chars, required) |
+| `JWT_EXPIRY_HOURS` | `24` | Legacy JWT expiry (unused with refresh tokens) |
+| `ACCESS_TOKEN_EXPIRY_MINUTES` | `15` | JWT access token lifetime (> 0) |
+| `REFRESH_TOKEN_EXPIRY_DAYS` | `7` | Refresh token lifetime (> 0, rotated on use) |
+| `ENRICHMENT_PROVIDER` | `nvidia` | Must be `nvidia` (only supported) |
+| `NVIDIA_API_KEY` | — | NVIDIA NIM API key (required) |
+| `NVIDIA_MODEL` | deepseek-ai/deepseek-v4-flash | Fixed model name |
+| `EXECUTOR_MAX_CONCURRENCY` | `6` | Max concurrent code executions |
+| `EXECUTOR_TIMEOUT_SECONDS` | `30` | Per-execution timeout |
+| `PYTHON_EXECUTOR_TIMEOUT_SECONDS` | `60` | Python timeout |
+| `DOCKER_IMAGE` | `golang:1.23-alpine` | Sandbox Docker image |
+| `PYTHON_DOCKER_IMAGE` | `python:3.12-slim` | Python Docker image |
+| `SANDBOX_URL` | — | Remote sandbox URL (empty = local Docker) |
+| `PYTHON_SANDBOX_URL` | — | Optional separate Python sandbox URL |
+| `GO_VERSION` | `1.23` | Go version for go.mod generation |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `ADMIN_EMAIL` | — | Admin account email |
 | `ADMIN_PASSWORD` | — | Admin account password |
-| `SANDBOX_URL` | — | Remote sandbox URL (empty = local Docker) |
-| `RESEND_API_KEY` | — | Resend email API key |
-| `GO_VERSION` | `1.23` | Go version for sandbox execution |
-| `EXECUTOR_MAX_CONCURRENCY` | `6` | Max concurrent code executions |
-| `EXECUTOR_TIMEOUT_SECONDS` | `30` | Per-execution timeout |
-| `DOCKER_IMAGE` | `golang:1.23-alpine` | Sandbox Docker image |
-| `SANDBOX_BASE_DIR` | `/tmp/koder-sandbox` | Temp directory for sandbox files |
-| `BUILD_CACHE_DIR` | `/tmp/koder-cache` | Go build cache directory |
-| `ACCESS_TOKEN_EXPIRY_MINUTES` | `15` | JWT access token lifetime |
-| `REFRESH_TOKEN_EXPIRY_DAYS` | `7` | Refresh token lifetime (rotated on use) |
+| `RESEND_API_KEY` | — | Resend email API key (optional) |
+| `FRONTEND_URL` | `http://localhost:3000` | Frontend URL for reset links |
+| `ALLOWED_ORIGIN` | `http://localhost:3000` | CORS origin (comma-separated) |
+| `ENVIRONMENT` | `development` | `development` or `production` |
+| `PORT` | `8080` | Server port (1-65535) |
+| `SANDBOX_BASE_DIR` | `/tmp/koder` | Temp directory for sandbox files |
+| `BUILD_CACHE_DIR` | `/tmp/go-build-cache` | Go build cache directory |
 
 ### Frontend (`next.config.ts`)
 | Variable | Default | Description |
@@ -623,23 +831,27 @@ npm run dev                 # Starts on :3000
 
 ### Testing
 ```bash
-go test ./internal/...              # Unit tests
+go test ./internal/...              # 124 tests, 8 packages
 go test ./internal/executor/...     # Integration tests (requires Docker)
-npm run lint                        # ESLint frontend
+go vet ./internal/...               # 0 issues
+cd sandbox && go test ./... && go build ./...  # Sandbox tests + build
+cd frontend && npm run lint && npx tsc --noEmit  # ESLint 0, TS 0
+cd frontend && npm run build        # Next.js build
 ```
 
 ### Database Migrations
 ```bash
-# Add new migration file to migrations/
+# Add new migration file to migrations/ (next number)
 # Apply via Supabase dashboard SQL editor or CLI
 # Never delete/reorder existing migrations
+# Run 038_curriculum_cms.sql last (depends on all previous)
 ```
 
 ### Build & Deploy
 ```bash
 # Backend
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o server cmd/server/main.go
-./build.sh  # Full deployment script
+./build.sh  # Full deployment script (builds backend + sandbox)
 
 # Frontend
 cd frontend
@@ -653,17 +865,20 @@ npm run build   # Builds static + server components
 | Constraint | Mitigation |
 |---|---|
 | **NVIDIA NIM API quota** | SHA256 change detection, cached results, skip-reenrich |
-| **AI rate limits** | 15 req/min per-admin on `/admin/ai/assist` via `AIRateLimitMiddleware` |
-| **6 concurrent executions** | Buffered channel semaphore |
-| **10 DB pool connections** | pgxpool MaxConns=10, MinConns=2, 30m lifetime |
-| **500MB Postgres limit** | Normalized schema, no JSONB bloat, LIMIT on all queries |
-| **Unbounded output** | 100KB cap on execution output, output_logs TTL |
-| **ARM64 only** | All Docker images multi-arch or explicitly ARM64 |
-| **5 req/45s submissions** | Per-user sliding window rate limiter |
+| **AI rate limits** | 15 req/min per-admin on `/admin/ai/assist` (AIRateLimitMiddleware); 1s client-side gap in enricher |
+| **6 concurrent executions** | Buffered channel semaphore; 100KB output cap |
+| **10 DB pool connections** | pgxpool MaxConns=10, MinConns=2, 30m lifetime, QueryExecModeSimpleProtocol |
+| **500MB Postgres limit** | Normalized schema, no JSONB bloat, LIMIT on all queries, 90d output_logs TTL |
+| **Unbounded output** | 100KB cap on execution output; cappedBuffer (64KB) in sandbox |
+| **ARM64 only** | All Docker images multi-arch or explicitly ARM64; build.sh targets both |
+| **5 req/45s submissions** | Per-user sliding window rate limiter; admin bypass |
+| **10 req/min auth** | Per-IP sliding window rate limiter |
 | **JWT revocation** | Token blacklist table with cleanup goroutine |
-| **Refresh token rotation** | Old token revoked on use; reuse detection revokes all sessions |
-| **Cache invalidation** | user-updated event clears sessionStorage keys |
-| **WebSocket reliability** | Exponential backoff reconnect, 60s fallback polling |
+| **Refresh token rotation** | Old token revoked on use; reuse detection revokes ALL sessions |
+| **Cache invalidation** | user-updated event clears profile + leaderboard caches; notifications clear sessionStorage |
+| **WebSocket reliability** | Exponential backoff reconnect (event.ts); broker non-blocking publish (cap 32) |
+| **Concurrent first-solve** | pg_advisory_xact_lock + FOR UPDATE prevents XP double-award |
+| **Race conditions** | CompleteUserOnboarding explicit uniqueness check in tx; stale notifications from sessionStorage cleared on mutation |
 
 ---
 
@@ -674,538 +889,154 @@ npm run build   # Builds static + server components
 - **Backend:** Render/Oracle Cloud Ampere A1
 - **Database:** Supabase dashboard
 - **Issues:** Linear "KODER" project
+- **Current Branch:** `curriculum-cms` (based on `update`)
+- **AI Provider:** NVIDIA NIM DeepSeek V4 Flash (https://ai.api.nvidia.com/v1/chat/completions)
 
 ---
 
 ## Session Log
 
-### 2026-07-09 — Full codebase indexing on python-curricula branch
+### 2026-07-14 — Professional codebase indexing (curriculum-cms)
 
-**Context:** Switched from `update` branch to `origin/python-curricula`. All 12 multi-language phases complete. 122 tests, `go vet` clean.
+**Branch:** `curriculum-cms`
+**Context:** Comprehensive full-codebase indexing session. Read all Go source files (83 .go across internal/ + sandbox/), all TypeScript/React frontend files (105 files), all migration SQL files (39), all documentation and config files (18). Updated CLAUDE.md with complete Curriculum CMS architecture, all API endpoints (now 89 total), migration inventory, and frontend component catalog.
 
-**Key differences from `update`:**
-- `sandbox/pyrunner.go` — Python test runner with AST validation
-- `sandbox/runtest_go.go` — Extracted Go runner
-- `internal/executor/executor.go` — `executePython`, `formatPythonLiteral`, `resolveProblemLanguageMeta`
-- `internal/executor/templates.go` — `pythonTestTemplate`
-- `internal/enricher/enricher.go` — Dual Go/Python system prompt, `toSnakeCase`, `toPythonType`, fallback
-- `internal/store/types.go` — `PrimaryLanguage`, `LanguageVersions`, `LanguageSpec`
-- `migrations/027_language_versions.sql` — Schema for multi-language
-- `migrations/028_backfill_language_versions.sql` — Backfill for 180 seed problems
-- `internal/api/me.go` — `UpdateLanguage` handler
-- `internal/api/problems.go` — `?language=` query filter
-- `internal/api/submissions.go`, `test.go` — Language validation/inference
-- `internal/api/admin.go` — `language_versions` in write paths
-- `frontend/components/LanguageSelector.tsx` — Onboarding language selection
-- `frontend/lib/types.ts`, `api.ts`, `UserContext.tsx` — Language-aware state
-- `frontend/components/layout/TopNav.tsx` — Language switcher dropdown
-- `frontend/app/(main)/home/page.tsx` — Language filter tabs (All/Go/Python)
-- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Dynamic Monaco language/scaffold
-- `PROGRESS.txt` — Completion tracking
+**Key additions to CLAUDE.md:**
+- Curriculum CMS section: 8-table schema, 6 student + 22 admin endpoints, progress tracking with prerequisite checks
+- Admin endpoints completed: user verification search/toggle (300ms debounce), full curriculum CRUD (courses/modules/lessons/sections/projects)
+- CMS student pages: course catalog → module detail → lesson viewer with typed sections (SectionRenderer routes 11 section types), inline quizzes and exercises
+- Sandbox section expanded: 10-layer defense-in-depth, `classifyOutput` and `compileErrorMessage` algorithms, Go + Python runner details
+- Migration inventory: 39 migrations covering all schema evolution from 001_init through 038_curriculum_cms and 999_seed_python_test
+- Frontend component catalog: learn components (SectionRenderer, SectionQuiz, SectionExercise, LessonSidebar), admin components (7 panels), profile components (8 sub-components), landing page (6 components)
+- All ~89 API endpoints documented with method/path/handler/description; Admin section expanded with 34 routes
 
-**Sandbox Python additions:**
-- `sandbox/Dockerfile` — Added `python3` install
-- `sandbox/secure.go` — `pythonDangerousPatterns` + `validatePythonCode`
-- `sandbox/secure_unix.go` — `setPythonRlimits` (RLIMIT_AS=512MB)
-- `sandbox/main.go` — Language routing in `executeHandler`
+**Verification:**
+- Go: `go vet ./internal/...` — clean
+- Go: `go test ./internal/...` — all 8 packages pass
+- Frontend: ESLint — 0 errors
+- Frontend: TypeScript `tsc --noEmit` — 0 errors
+- Frontend: `npm run build` — compiles successfully
 
-### 2026-07-08 — Professional UI polish & fixes
+### 2026-07-14 — Audit-driven critical fixes (4 high-severity issues)
 
-**Changes:**
-- **ProblemReports.tsx** — Full redesign: grouped/flat view toggle, search, resolved filter, priority badges, inline status buttons (New/In Progress/Resolved), expanded detail cards with error/code/screenshot sections, `timeAgo` helper, collapsible problem groups
-- **Avatar component** — Created `components/base/avatar/avatar.tsx` with `src`/`initials` fallback, `size` (sm/md/lg/xl), `verified` prop (custom gold SVG circle badge with white checkmark, dark ring overlap)
-- **TopNav.tsx** — Replaced inline avatar rendering with Avatar component, added gold "Admin" label + verified badge for admin users
-- **ProfileHeader.tsx** — Replaced inline avatar with Avatar component, shows verified badge for admin users
-- **Settings page** — Professional polish: profile preview card with avatar, icon-labeled form sections, char counter on bio, username setup flow with info box, framer-motion tab animations, Security section redesigned with icon headers, polished Danger Zone
-- **Contribution graph year fix** — `index.tsx`: changed `data[0].date` → `data[data.length - 1].date` to show current year (2026) instead of last year
-- **Notification cache bug** — `useNotifications.ts`: added `clearCache("/notifications")` after `markAsRead`/`markAllAsRead` to prevent stale sessionStorage cache from restoring old unread notification state after mutation
-
-### 2026-07-08 — Multi-language audit bugfixes
-
-**Changes:**
-- **Phase 11 bugfix** — `ProblemWorkspaceClient.tsx:56`: fixed `DEFAULT_CODE` → `GO_CODE` (undefined constant)
-- **Phase 3 critical gap** — `submit.go:89-96`, `test.go:73-80`: infer language from `LanguageVersions` when `problem.Language` is empty (handles Python-only problems)
-- **Phase 2 Gap 1** — `problems.go:99`: added `language_versions` to `GetProblemBySlug` JSON response payload
-- **Phase 2 language filter** — `problems.go:44-53`: `ListVisibleProblems` now checks `LanguageVersions` when `Language` column is empty
-
-### 2026-07-08 — Professional fixes for multi-language pipeline
-
-**Changes:**
-- **Silent error handling** — All 7 `json.Unmarshal` calls for `language_versions` now log failures via `slog.Warn` instead of silently ignoring errors (added `unmarshalLanguageVersions` helper)
-- **Deterministic language inference** — `submit.go` + `test.go`: when inferring language from `LanguageVersions`, prefer "go" → "python" → first key instead of non-deterministic map iteration
-- **Write path completeness** — Added `language_versions` column to `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`, and community contribution insert queries (was missing from all write paths)
-- **Executor metadata resolution** — Added `resolveProblemLanguageMeta()` helper called in both `Execute` and `ExecuteVisibleOnly`; resolves `FuncName`/`ReturnType`/`ParamTypes` from `LanguageVersions` before routing to language-specific executor
-- **Admin handler** — `UpdateProblem` now accepts and persists `language_versions` field
-
-### 2026-07-08 — Bugfix sweep: Phase 4 enricher + 8 error fixes
-
-**Phase 4 — Enricher now populates `LanguageVersions`:**
-- Added `LanguageVersions` field to `enrichedResponse` struct (`enricher.go:44`)
-- Updated system prompt example JSON and production rules to include `language_versions`
-- `EnrichProblem` builds `LanguageVersions` from AI response or falls back to top-level Go fields (`enricher.go:187-197`)
-- Added validation requiring Go entry with non-empty `func_name` (`enricher.go:601-608`)
-
-**Bug fixes from comprehensive audit:**
-
-| Severity | File | Bug | Fix |
-|---|---|---|---|
-| **CRITICAL** | `admin.go:154-163` | Enrich/EnrichAll discard AI-generated `LanguageVersions` | Added copy to problem before save |
-| **CRITICAL** | `templates.go:44` | Python `str(result) == str(expected)` fails for bools/strings/complex types | Switched to `json.loads(expected)` + `==` |
-| **BUG** | `ProblemWorkspaceClient.tsx:702` | Language toggle doesn't reset code scaffold | Added `setCode(newLang === "python" ? PYTHON_CODE : GO_CODE)` |
-| **BUG** | `ProblemWorkspaceClient.tsx:320` | Bug report always uses ```go fencing | Changed to `` ```${activeLanguage} `` |
-| **MEDIUM** | `submissions.go:83-88` | Unmarshal runs before Scan error check | Moved after `if err != nil` |
-| **MEDIUM** | `ProblemWorkspaceClient.tsx:706` | `updatePrimaryLanguage()` called without `await` | Added `await` |
-| **LOW** | `LanguageSelector.tsx:41` | Skip doesn't persist language to backend | Changed to `await setPrimaryLanguage("go")` |
-| **LOW** | `user_problems.go:207` | `json.Marshal` error discarded | Now checks err |
-
-### 2026-07-08 — Phase 12: Multi-language enrichment
-
-**Changes:**
-- **System prompt** — Rewrote from "Go curriculum author" → "programming curriculum author"; example JSON now includes Python entry (`fish_and_chips`, `str`, `["int"]`) alongside Go
-- **Production rules** — Rule #11 now **REQUIRED** with both `go` and `python` entries, includes Go→Python type translation table
-- **Gemini ResponseSchema** — Added `language_versions` as `TypeObject` with `go` (required) and `python` (optional) sub-objects via reusable `languageSpecSchema()` helper
-- **Fallback generation** — AI-provided `language_versions` used when available; fallback now auto-generates Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go types→Python equivalents)
-- **Validation** — Requires `language_versions` with at least a `go` entry that has non-empty `func_name`
-
-### 2026-07-09 — Python compiler_error: formatPythonLiteral + snake_case fallback
-
-**Bug:** All Python submissions returned `compiler_error` even for valid code like `def double_it(x): return x * 2`. Sandbox logs showed "compiler didnt output anything".
-
-**Root causes & fixes:**
-1. **Raw JSON → Python literal mismatch** (`executor.go` + `templates.go`): The Python test template embedded raw JSON directly via `test_cases = {{.TestCasesJSON}}`. JSON uses `true`/`false`/`null` but Python requires `True`/`False`/`None`, causing `NameError` at module load time for any boolean/null inputs. The `formatPythonLiteral()` function existed but was dead code (never called). Fixed by replacing `TestCasesJSON` (raw JSON) with `PyTestCases` (pre-formatted Python tuple literals using `formatPythonLiteral()`).
-2. **Go camelCase → snake_case fallback** (`executor.go`): When `LanguageVersions["python"]` is missing (e.g., seeds without backfill migration), `problem.FuncName` retained the Go camelCase name (e.g., `doubleIt`), causing `ImportError` since student code uses `def double_it(...)`. Added `goToSnakeCase()` as fallback that's idempotent for already-snake_case names.
-
-### 2026-07-09 — ESLint rule compliance sweep
-
-**Changes:** Fixed 0→0 ESLint errors across the entire frontend (`npx eslint --quiet` passes clean on `app/`, `components/`, `hooks/`, `lib/`).
-
-**Patterns fixed:**
-- **`react-hooks/set-state-in-effect`** (~15 files): Replaced synchronous `setState` in `useEffect` bodies with either lazy `useState` initializers (for `localStorage`/`sessionStorage`/URL param reads) or render-time `useState` tracking of previous values for prop-derived state (e.g., `[prevKey, setPrevKey] = useState(prop)` + `if (prop !== prevKey) { setPrevKey(prop); setDerived(…); }`).
-- **`react-hooks/refs`** (2 files): Replaced `useRef`-based previous-value tracking with `useState` tracking (refs cannot be accessed during render per React 19 rules).
-- **`react-hooks/no-hoisted-functions`** (2 files): Converted hoisted `async function` declarations into `useCallback` defined before use, or into `function` declarations (which are properly hoisted).
-- **`react/no-unescaped-entities`** (1 file): Escaped `'` → `&apos;` in JSX.
-
-**New shared hook:** `hooks/use-has-mounted.ts` — SSR-safe mount detection extracted from the repeated `useState(false)` + `useEffect({ setMounted(true) })` pattern found in 4 auth/profile components. Uses a single `// eslint-disable-next-line react-hooks/set-state-in-effect` suppression.
-
-### 2026-07-08 — Comprehensive test suite audit & expansion
-
-**Changes:**
-- **`internal/broker/broker_test.go`** (new, 10 tests) — Subscribe uniqueness, Publish delivery to 1/N subscribers, PublishEvent, Unsubscribe (remove + non-existent), slow client buffer overflow, timestamp on publish, concurrent pub/sub
-- **`internal/parser/parser_test.go`** (new, 13 tests) — isReadmeFile, detectProblemType, normalizeSlug/module, computeSourceHash, cleanRepoURL, parseGitHubURL (tree/blob/SSH), parseRepoMetadata, parseGitSSHURL, NewParser, IngestGitHubRepo empty URL
-- **`internal/auth/oauth_test.go`** (new, 5 tests) — isExpectedAudience, isExpectedIssuer, jwksKeyToPublicKey (real RSA round-trip, invalid base64 modulus/exponent)
-- **`internal/store/errors_test.go`** (new, 7 tests) — FriendlyError, NewDuplicate/NotFound/Validation, IsFriendlyError (nil/plain/wrapped), IsUniqueViolation (non-pg/nil)
-- **`internal/store/types_test.go`** (new, 2 tests) — FlexibleBool valid + invalid UnmarshalJSON
-- **`internal/api/middleware_test.go`** (expanded +23 tests) — RateLimiter (under/over/isolation/window/stop), IPRateLimiter, GetClaims, AdminOnly, VerifiedContributorOnly, BodySizeLimit, SecurityHeaders, RecoveryMiddleware, CORSMiddleware (wildcard/specific/no-origin/OPTIONS/null/multi-origin), IPRateLimiter.Middleware (under/over/extraction), RateLimitMiddleware (no-claims/admin-bypass/under/over)
-- **`internal/api/responses_test.go`** (new, 10 tests) — RespondSuccess, RespondCreated, RespondError (with/without details), isHTTPS, SetAuthCookie (HTTP/HTTPS), ClearAuthCookie, ContentType
-- **`internal/config/config_test.go`** (expanded +7 tests) — MissingGeminiKey, GroqDefaults, ProviderSelection, ProviderSwitch, InvalidJWTExpiry, EmptyAllowedOrigin, ExecutorTimeout, PythonTimeout, JWTExpiry
-
-**Result:** 122 tests, 0 failures, `go vet` clean across all 8 internal packages
-
-### 2026-07-08 — CI/CD pipeline
-
-**Changes:**
-- **`.github/workflows/ci.yml`** (new) — 4-job GitHub Actions workflow:
-  - `backend` — `go vet`, `go test` (with minimal env vars), `go build` (main + sandbox)
-  - `frontend` — `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm run build` (with minimal env vars)
-  - `deploy-backend` — Render deploy hook trigger (main branch only, after backend tests pass)
-  - `deploy-sandbox` — Railway deploy hook trigger (main branch only, after backend tests pass)
-- **`build.sh`** — Updated to build both backend and sandbox with explicit GOOS/GOARCH
-
-### 2026-07-08 — Dual-language seed backfill migration
-
-**Changes:**
-- **`migrations/028_backfill_language_versions.sql`** (new) — Backfills the `language_versions` JSONB column for all 180 seed problems that were inserted without it (migration 027 added the column but seeds ran before the backfill could populate them). Adds two PL/pgSQL helpers:
-  - `koder_to_snake_case()` — converts PascalCase Go function names to Python snake_case
-  - `koder_go_type_to_python()` — translates Go type annotations to Python equivalents
-- Runs as an idempotent UPDATE targeting problems with `language = 'go'` that lack a `'python'` key in `language_versions`
-
-### 2026-07-09 — Python sandbox: python3 availability check + meaningful error messages
-
-**Bug:** Railway sandbox returned `compiler_error` with empty `output_logs` when `python3` was unavailable. The sandbox hardcoded `"python3"` everywhere with no fallback, and the `Error` field was never populated in the `ExecuteResponse` for Python (only Go had it via `compileErrorMessage`). The backend had no way to surface the real error.
+**Context:** Comprehensive audit found 4 high-severity issues. All fixed.
 
 **Fixes:**
 
-| File | Change |
-|---|---|
-| `sandbox/pyrunner.go` | Added `findPythonBin()` helper: checks `PATH` for `python3`, falls back to `python`, returns empty string if neither |
-| `sandbox/pyrunner.go` | `validatePythonAST()` uses `findPythonBin()` instead of hardcoded `"python3"` |
-| `sandbox/pyrunner.go` | `runPythonTests()` uses `findPythonBin()` with early return + clear error response when Python missing; logs binary used; adds `Error` field via `compileErrorMessage()` matching `runGoTests` |
-| `internal/executor/executor.go` | Forwards sandbox `Error` to output when `compiler_error` with empty stdout |
+| # | Severity | Issue | Fix |
+|---|---|---|---|
+| 1 | HIGH | Prerequisite check was a stub: `dependencies.length === 0` | Backend `GetLessonDetail` now checks `GetLessonProgress` per dependency; frontend reads `prerequisites_met` from response |
+| 2 | HIGH | Monaco imported but unused in SectionExercise | Swapped to `<Editor>` from `@monaco-editor/react` with SSR-safe fallback |
+| 3 | HIGH | Language hardcoded to `"python"` in `testCode()` call | Added `language` prop through SectionExercise → SectionRenderer → LessonViewerClient |
+| 4 | HIGH | Admin had no section builder UI | Added 4 backend endpoints + full section list/edit UI in admin page |
 
-**Verification:**
-- Go: `go test -count=1 ./...` — 122 tests, 0 failures, `go vet` clean
-- Sandbox: `go vet ./...` + `go build` — clean
-- Frontend: ESLint — 0 errors, TypeScript — 0 errors, `npm run build` — clean
+**Additional improvements:**
+- Added `NewCourse`, `NewModule`, `NewLesson`, `NewLessonSection`, `NewProject` payload types to frontend `types.ts`
+- Updated audit score from **7.5/10 → 8.5/10**
 
-### 2026-07-09 — Audit-driven critical fixes (sessions 14)
+### 2026-07-13 — Admin user verification panel + leaderboard Avatar
 
-**Context:** Comprehensive audit identified 5 critical issues. 2 were false alarms (rate limiting already present on `/test`, community approval flow correctly preserves `language_versions`). 3 real issues fixed.
+- **UserVerificationPanel:** Search with 300ms debounce, results with user info card, verified toggle button, ProfileHoverCard
+- **Backend:** `SearchUsers` (ILIKE, 20 limit), `ToggleUserVerified` (NOT verified RETURNING, cache invalidation)
+- **Leaderboard custom Avatar:** Replaced shadcn Avatar with custom base Avatar component, added `"podium"` size (h-16 w-16), verified checkmark on all 3 locations
 
-**Changes:**
+### 2026-07-13 — Verified badge propagation (4-layer fix)
 
-| Issue | File | Fix |
+**Gaps fixed across 10 files:**
+| Layer | Issue | Fix |
 |---|---|---|
-| `formatPythonLiteral` null → `NameError` | `internal/executor/executor.go:809-812` | Added early `bytes.Equal(data, []byte("null"))` → `"None"` before type dispatch |
-| No timeout on `validatePythonAST` | `sandbox/pyrunner.go:78-80` | Added `context.WithTimeout(context.Background(), 10*time.Second)` with deferred cancel |
-| Language toggle loses unsaved code | `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Added `scaffoldAtToggle` tracking; shows confirmation dialog when code differs from scaffold; only switches on explicit confirmation |
+| Leaderboard struct/query | Missing `Verified` field + SQL SELECT | Added to `LeaderboardUser` struct and both leaderboard queries |
+| Community solutions | Missing `u.verified` in SELECT + struct | Added to SQL scan + `CommunitySolution` struct |
+| Frontend types | Missing `verified` on `CommunitySolution` | Added `verified: boolean` |
+| GET /me | Missing SELECT + response field | Added to SQL, scan, and `meResponse` |
+| Cache invalidation | Admin `ToggleUserVerified` didn't clear user cache | Added `InvalidateUserCache()` |
 
-**Audit findings (2 false alarms):**
-- `/test` rate limiting: Already had `RateLimitMiddleware(rateLimiter)` at `router.go:135` (same 5 req/45s as `/submit`)
-- Community approvals wiping `language_versions`: Code correctly preserves `language_versions` through approval transaction (only falls back to `generateDualLanguageSpec` when nil/empty)
+### 2026-07-13 — ProfileHoverCard redesign
 
-**New test:** `TestFormatPythonLiteral` (9 cases inc. null/None for all types)
+- XP progress bar: `xpInLevel / 1,000 → next level` with gradient bar
+- 3-column stat layout (XP / Level / Solved)
+- Gradient accent bar + gradient divider
+- Verified status label alongside avatar name
 
-**Verification:**
-- Go: `go test -count=1 ./...` — **123 tests, 0 failures**, `go vet` clean
-- Sandbox: `go vet ./...` + `go build` — clean
-- Frontend: ESLint — 0 errors, TypeScript — 0 errors
+### 2026-07-12 — Save & Switch, Monaco theme, Go fundamentals seed, JSONB encoding fix
 
-### 2026-07-09 — Production Polish: Monitoring, Performance, Error UX, Security (Session 15)
+- **Save & Switch:** Per-language localStorage keys, `applyLanguageSwitch` restores saved code, confirmation dialog, language-aware formatter (Go tab, Python 4-space)
+- **Monaco:** Replaced custom `koder-dark` theme (529 lines) with VS Code Dark+ via `defineTheme`
+- **Go fundamentals seed** (037): 5 Go-only problems in `go-fundamentals` module
+- **JSONB encoding fix:** `[]byte` → `json.RawMessage` for all `language_versions` parameters (pgx bytea vs jsonb codec)
+- **Admin edit problem dialog:** PUT /admin/problems/{id} with 9 editable fields
+- **UPDATE_FAILED fix:** `LanguageVersions` nil guard in `UpdateProblem`; `json.Marshal(nilMap)` produces `"null"` which violates NOT NULL constraint
 
-**Monitoring & Observability:**
-- **`cmd/server/main.go`** — Switched from `TextHandler` to `JSONHandler` for machine-parseable logs. Added `commit`/`buildAt` ldflags vars. Startup log now includes commit, build time, Go version, arch, OS.
-- **`internal/api/middleware.go`** — Added `RequestLoggingMiddleware` (logs method, path, status code, duration_ms, correlation ID via `X-Request-ID` header, remote IP). Uses `generateRequestID()` with crypto/rand (8 bytes → hex). `loggingResponseWriter` wrapper captures status code from `WriteHeader`.
-- **`internal/api/router.go`** — `/health` endpoint now includes `db_status` (ping result), `db_ms` (latency), `sandbox_url`, `environment`. New `/version` endpoint returns `commit`, `build`, `go` version.
-- **`internal/store/store.go`** — Added `Ping(ctx)` method to `Store` interface and `PostgresStore` (wraps `pool.Ping`).
+### 2026-07-12 — Monaco editor, workspace layout, admin edit, ESLint sweep
 
-**Performance:**
-- **`internal/api/cache.go`** — Added `leaderboardCache` (30s TTL) and `InvalidateLeaderboardCache()`. Keyed by period (all/weekly/monthly).
-- **`internal/api/leaderboard.go`** — Cache-first pattern: returns cached leaderboard when fresh, falls back to DB query.
-- **`internal/api/submissions.go`** — `InvalidateLeaderboardCache()` called on solved submission (alongside existing `InvalidateUserCache`).
-- **`frontend/lib/useNotifications.ts`** — Polling interval reduced from 5s to 15s (3x fewer DB queries).
-- **`frontend/components/BroadcastBanner.tsx`** — Polling interval reduced from 5s to 30s (6x fewer DB queries).
-
-**Error UX:**
-- Added 7 new `error.tsx` boundaries: `(main)/`, `home/`, `settings/`, `contribute/`, `admin/`, `problems/[slug]/`, and `global-error.tsx` at root level.
-- Added `home/loading.tsx` with skeleton grid (6 problem cards, filter pills, title).
-
-**Security:**
-- **`internal/api/middleware.go`** — Added `Content-Security-Policy` header to `SecurityHeadersMiddleware` (default-src 'self'; script/style/font/img/connect-src with Google OAuth support).|
-
-**Verification:**
-- Go: `go test -count=1 ./...` — 123 tests, 0 failures, `go vet` clean
-- Sandbox: `go vet ./...` + `go build` — clean
-- Frontend: ESLint — 0 errors, TypeScript — 0 errors|
-
-### 2026-07-09 — Python compiler error context extraction fix
-
-**Context:** Python compiler errors and tracebacks were lacking line numbers in the backend because the fallback regex was bypassed.
-
-**Changes:**
-- `sandbox/main.go`: Updated `isPythonErrorLine` with a robust colon-based heuristic. `compileErrorMessage` now scans bottom-up and extracts exact file/line context via `extractPyFileLine` to match Go's output format.
-- `internal/executor/executor.go`: Fixed a variable shadowing bug in the `executePython` path where `sandboxError` was inadvertently scoped to an `if` block, preventing the properly formatted sandbox error from being propagated to the frontend.
-
-**Verification:**
-- Go: `go test -count=1 ./...` — **124 tests, 0 failures**, `go vet` clean
-- Sandbox: `go vet ./...` + `go build` — clean
-
-### 2026-07-09 — Professional codebase indexing & final polish
-
-**Context:** Comprehensive full-codebase indexing session. Pulled latest (9 new commits since last index: sandbox error messaging, Go logo icons, Python sandbox isolation alignment, language filter bugfix, migration 029, fullscreen toggle, logo fixes).
-
-**New/modified files since last session log:**
-| File | Change |
-|---|---|
-| `sandbox/main.go` | Python error messaging improvements, `use Out.String()` for Go output capture |
-| `sandbox/pyrunner.go` | `validatePythonAST` output capture, process group isolation alignment |
-| `sandbox/runtest_go.go` | `use Out.String()` for stdout capture |
-| `sandbox/secure_unix.go` | Align Python `Setpgid` with Go runner pattern |
-| `sandbox/sandbox-runner` | Binary updated (new) |
-| `sandbox/security_message_test.go` | New: validates sandbox security messages |
-| `internal/executor/executor.go` | `EnhancePythonError` for human-readable Python exceptions with debugging tips |
-| `frontend/components/TestResultPanel.tsx` | Show server-provided Python debugging tips |
-| `frontend/components/LanguageLogo.tsx` | New: renders Go/Python SVG icons |
-| `frontend/public/icons/go.svg` | New: real Go gopher logo (SVG) |
-| `frontend/public/icons/python.svg` | New: real Python logo (SVG) |
-| `frontend/app/(main)/home/page.tsx` | Language filter bugfix |
-| `migrations/029_ensure_language_versions.sql` | New: guarantees every problem has both Go and Python entries |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Fullscreen toggle |
-
-**Frontend file inventory (post-indexing):**
-- **52 app router files** across 12 route groups (root, landing, oauth, auth, main, home, leaderboard, profile, settings, contribute, admin, problems, legal)
-- **37 shared components** (14 shadcn/ui, 5 auth, 3 kibo-ui, 2 base, 7 feature, 1 dashboard, 1 layout, 2 language, 1 demo, 1 test result)
-- **3 custom hooks** (use-google-one-tap, use-has-mounted, use-mobile)
-- **10 lib modules** (api client w/ 40+ endpoints, types, utils, cache, event/WebSocket, UserContext, useNotifications, toast, achievements, index)
-- **3 style files** (globals, theme vars 856 lines, typography 430 lines)
-
-**Backend file inventory (post-indexing):**
-- **7 internal packages**: api (25 source files incl. handlers/), auth (3), broker (1), config (1), enricher (1), executor (6), parser (1), store (20 source files) = 63 total .go files
-- **12 test files** across 7 packages, 124 tests total, `go vet` clean
-- **37 migrations** from 001_init to 999_seed_python_test (includes 027-036, 999)
-- **Sandbox**: 8 source files (zero external deps), standalone Go binary
-
-### 2026-07-10 — Professional codebase indexing session
-
-**Context:** Full read-through of all source files across backend (Go 1.26), frontend (Next.js 15/React 19), sandbox (Go standalone), and 35 migrations. Verified all file inventories, route tables, type definitions, and component lists against actual filesystem.
-
-**Updated CLAUDE.md:**
-- Repository structure tree: added `handlers/`, `middleware_test.go`, `responses_test.go`, `runtest_go.go`, `pyrunner.go`, `security_message_test.go`, `LanguageLogo.tsx`, `LanguageSelector.tsx`, 5 `error.tsx` boundaries, `home/loading.tsx`
-- API endpoints: added `PUT /me/language`, `GET /me/contributions`, `GET /notifications/recent`, `GET /best-practices`, `PATCH /admin/feedback`, `GET /admin/problem-reports`, `/admin/broadcasts` CRUD
-- Middleware: documented full chain order with line numbers, added `RequestLoggingMiddleware`, `VerifiedContributorOnly`, `IPRateLimiter.Middleware`, `BodySizeLimitMiddleware`, `SecurityHeadersMiddleware` (CSP)
-- Executor pipeline: dual Go/Python paths with `formatGoLiteral`/`formatPythonLiteral`/`executePython`/`EnhancePythonError`
-- Enricher pipeline: dual-language schema, `language_versions` generation, Python fallback via `toSnakeCase()`/`toPythonType()`
-- Migration inventory: 35 migrations from `001_init` → `999_seed_python_test`
-- Config: added `PythonDockerImage`, `PythonExecutorTimeout`, `PythonSandboxURL`
-- Session log: entries through 2026-07-10
-
----
-
-### 2026-07-10 — Empty func_name filtering + python-intermediate seed push
-
-**Context:** Python-only problems showed Go language badge/toggle because `Object.keys(language_versions)` included the `go` key even when `func_name` was empty. Code execution failed with `unsupported Go type 'str'` because the frontend sent `language="go"` which routed to the Go formatter.
-
-**Changes pushed (db94c7d):**
-- **Frontend** (`ProblemWorkspaceClient.tsx` 2 locations, `home/page.tsx`): Changed `Object.keys()` to `Object.entries().filter(([_, spec]) => spec.func_name).map(...)` so only languages with non-empty `func_name` appear in the toggle/badge
-- **Backend** (`submissions.go`, `test.go`): Language inference now checks `spec.FuncName != ""` before preferring "go"/"python"/first. Added validation rejecting languages whose `LanguageVersions` entry has empty `func_name`
-- **Backend** (`problems.go`): Language filter on `ListVisibleProblems` also checks `spec.FuncName != ""`
-- **Seed** (`031_python_intermediate_seed.sql`): Removed empty `go` keys from all 10 `language_versions` values
-
-**Verification:** All 124 tests pass, `go vet` clean.
-
-### 2026-07-10 — Variables & Math Operators seed (module: python-variables-math)
-
-**Context:** User requested a Python beginner problem for the new `python-variables-math` module. The description must be purely educational — no function name or signature in the description text. Function metadata goes into the DB columns and `language_versions`.
-
-**New file:** `migrations/032_python_variables_math_seed.sql`
-- **Problem:** `py-vars-math-calc` — `calculate(a, b, operator)` → `float`
-- **10 test cases** (7 visible, 3 hidden) covering all 7 operators: `+`, `-`, `*`, `/`, `//`, `%`, `**` plus negative numbers
-- **Description** is pure conceptual prose about variables and arithmetic operators — no function signature in the `statement` column
-- **`raw_readme`** includes expected function, examples, constraints, and a reference solution with explanation
-- Difficulty 1, 70 XP
-- Verified: all 124 tests pass, `go vet` clean
-
-### 2026-07-10 — Arrays & Strings seed (module: python-arrays-strings)
-
-**Context:** User requested 7 Python-only problems for a new `python-arrays-strings` module paralleling the Go `arrays-strings` module.
-
-**New file:** `migrations/034_python_arrays_strings_seed.sql`
-- 7 problems covering list and string operations
-- Difficulty progression 1-2 (70-100 XP), 6 test cases each (4 visible + 2 hidden)
-- All descriptions are pure conceptual prose — no function signatures in `statement`
-- Problems: `find_max`, `reverse_string`, `count_vowels`, `is_palindrome`, `list_sum`, `count_words`, `remove_duplicates`
-- Verified: all 124 tests pass, `go vet` clean
-
-### 2026-07-10 — Production Polish: Refresh Tokens, AI Usage Logging, NVIDIA NIM, CSP/Security
-
-**Context:** Comprehensive production-hardening session: refresh token rotation with reuse detection, NVIDIA NIM replaces Gemini/Groq (old keys removed), AI usage logging + rate limiting, strict CSP/security headers, account data export, and fixes for runtime errors (WebSocket hijacker, NVIDIA API format, PG compatibility, missing table fallback).
-
-**Refresh Token System:**
-- **`internal/api/auth.go`** — `issueTokens()` helper generates access (15m) + refresh (7d) tokens. `RefreshToken` handler with rotation (revoke old on use) + reuse detection (revokes ALL sessions if compromised token reused). Logout revokes all refresh tokens. 7 call sites updated (register, login, Google auth, onboarding, PIN reset, password change, token refresh).
-- **`internal/store/refresh_tokens.go`** — `CreateRefreshToken` (SHA-256 hashed, raw to client), `GetRefreshTokenByHash`, `RevokeRefreshToken`, `RevokeAllUserRefreshTokens`.
-- **`internal/config/config.go`** — `AccessTokenMinutes` (default 15), `RefreshTokenDays` (default 7).
-- **`frontend/lib/api.ts`** — `tryRefreshToken()` singleton queue (prevents concurrent refresh storms), `fetchApi` 401 interceptor calls `tryRefreshToken()` then retries once. `handleAuthResponse()` stores `refresh_token` to localStorage, clears on logout.
-
-**AI Usage Logging & Rate Limiting:**
-- **`migrations/035_ai_usage_logs.sql`** — New `ai_usage_logs` table: user_id, action, problem_slug, tokens_in/out, response_time_ms, success, error_message.
-- **`internal/store/ai_usage.go`** — `LogAIUsage()` inserts record. `GetAIUsageStats()` returns per-user/action stats with success/failure rates (graceful on missing table).
-- **`internal/api/admin.go`** — `AIAssist` handler logs usage on success AND failure. `GetAIUsage` handler at `GET /admin/ai/usage`.
-- **`internal/store/admin.go`** — `GetAdminStats` extended with AI call subqueries (total calls, recent, success rate). Graceful when `ai_usage_logs` table doesn't exist via `isRelationNotExist()` helper (`pq.ErrorCode "42P01"`).
-- **`internal/api/middleware.go`** — `AIRateLimitMiddleware` (15 req/60s per admin, no bypass). Separate rate limiter for admin AI assist route.
-- **`frontend/app/(main)/admin/page.tsx`** — 4-column stats grid + AI Usage detail section showing calls, success rate, recent calls table.
-
-**NVIDIA NIM Migration:**
-- **`internal/enricher/enricher.go`** — Removed Gemini (genai SDK) and Groq (HTTP/JSON mode). Only NVIDIA NIM provider via `https://ai.api.nvidia.com/v1/chat/completions`. Removed `response_format: {"type": "json_object"}` from request body (DeepSeek via NVIDIA NIM doesn't support it — returns schema instead of data). System prompt alone enforces JSON output. Retry on 503 (Service Unavailable) with exponential backoff (2s, 4s, 8s) alongside existing 429 handling.
-- **`internal/store/types.go`** — `FlexibleStrings` custom unmarshaler accepts both `"int"` and `["int"]` for `language_versions.param_types` JSONB (some seeded data uses bare string).
-- **`.env.example`** — Removed `GEMINI_*`, `GROQ_*`. Added `NVIDIA_API_KEY`, `NVIDIA_MODEL`, `ACCESS_TOKEN_EXPIRY_MINUTES`, `REFRESH_TOKEN_EXPIRY_DAYS`.
-- **`internal/config/config.go`** — `NvidiaAPIKey`, `NvidiaModel` (default: `deepseek-ai/deepseek-v4-flash`), `EnrichmentProvider` fixed to `nvidia`.
-
-**CSP & Security Headers:**
-- **`frontend/middleware.ts`** (final, 35 lines) — `'unsafe-inline'` in script-src (Next.js runtime scripts cannot carry nonces), `frame-src https://vercel.live` (for Vercel analytics framing). No nonce, no `x-nonce` header. CSP covers: default-src, script-src, style-src, img-src, font-src, connect-src, frame-src, object-src, base-uri, frame-ancestors, form-action.
-- **`internal/api/middleware.go`** — `SecurityHeadersMiddleware(cfg)` factory pattern (reads `cfg.AllowedOrigins`). CSP: `default-src 'self'`, `script-src 'strict-dynamic' 'nonce-...'`, `frame-ancestors 'none'`, `form-action 'self'`, `connect-src 'self' wss:`. `loggingResponseWriter` implements `http.Hijacker` (gorilla/websocket needs it). `generateCSPNonce()` via `crypto/rand`.
-
-**WebSocket Hijacker Fix:**
-- **`internal/api/middleware.go`** — `loggingResponseWriter` now implements `http.Hijacker` interface. gorilla/websocket upgrade was failing with `response does not implement http.Hijacker` — the wrapped ResponseWriter lost the `Hijack()` method. Added `Hijack()` that delegates to the underlying `http.Hijacker`.
-
-**Account Data Export:**
-- **`internal/store/users.go`** — `GetUserExportData()` returns profile, submissions, progress, feedback in one query batch.
-- **`internal/api/me.go`** — `ExportData` handler at `GET /me/export-data`. Sets `Content-Disposition: attachment; filename="koder-export-{username}-{date}.json"`. `DeleteAccount` now revokes refresh tokens first.
-
-**Other Fixes:**
-- **`internal/store/admin.go`** — `GetAdminStats` returns zeros gracefully when `ai_usage_logs` table doesn't exist (catches "relation does not exist" error).
-- **`internal/store/ai_usage.go`** — `GetAIUsageStats` similarly graceful on missing table.
-- **`internal/api/auth.go`** — `AuthMiddleware` extracts `int` user_id from context correctly.
-- **`internal/api/me.go`** — `GetMe` returns refresh token expiry info.
-
-**Verification:** All backend test packages pass, `go build` clean, `go vet` clean. Frontend: ESLint 0 errors, TypeScript 0 errors.
+- VS Code Dark+ theme registration via `loader.init()`
+- Removed `monaco-themes.ts` (529 lines) and `custom-tokenizers.ts`
+- Added `worker-src 'self' blob:` to CSP
+- Created `/problems` listing page with search/lang filter/pagination/side panel filters
+- TopNav: Dashboard + Problems + conditional Admin links with icons
+- 8 ESLint warning fixes (`<img>` → `<Image />`, dep array completeness)
 
 ### 2026-07-11 — Google auto-registration, navigation fix, refresh token fix
 
-**Context:** Google users got 404 instead of auto-registration. Browser back button from workspace skipped `/problems` listing. New Google users had no refresh token (logged out after 15 min).
+- `GoogleAuth` auto-creates accounts via `CreateUserFromGoogle` (no more 404)
+- Refresh token issued for new Google users
+- All `router.push('/')` → `router.push('/home')`
+- Created `/problems` listing page
 
-**Changes:**
-- **Google auto-registration**: `GoogleAuth` auto-creates accounts via `CreateUserFromGoogle` instead of returning `404 GOOGLE_NOT_LINKED`. All three branches (existing Google, email-linked, new) now use `issueTokens()` — fixes the critical missing-refresh-token bug in the new-user branch
-- **Navigation**: All `router.push('/')` → `router.push('/home')` across login, register, admin, OAuth callback. TopNav "Problems" link `/` → `/problems`. Created `/problems` listing page with search/lang filter/pagination. Created `problems/layout.tsx` with TopNav + FeedbackButton for workspace
-- **Bug fixes**: Settings logout redirect `/auth/login` (404) → `/login`. Success page language dynamic from localStorage. Removed unused `ChevronRight`, `getDifficultyLabel` imports
+### 2026-07-10 — Production polish: refresh tokens, AI usage logging, CSP, data export
 
-**Verification:** `go vet` clean, 124 tests pass, `go build` clean, pushed `ef86884` to `python-curricula`
+- **Refresh token rotation** with reuse detection (revokes ALL sessions on reuse)
+- **AI usage logging** (migration 035) + `AIRateLimitMiddleware` (15 req/60s)
+- **NVIDIA NIM migration:** removed Gemini/Groq, flexible JSONB unmarshaler
+- **CSP/security headers:** nonce-based, worker-src blob:, gorilla/websocket Hijacker fix
+- **Account data export** at GET /me/export-data
+- **WebSocket Hijacker fix:** `loggingResponseWriter` implements `http.Hijacker`
 
----
+### 2026-07-10 — Python arrays & strings seed (034) + variables & math seed (032)
 
-### 2026-07-12 — Monaco theme, workspace layout, admin edit problem, ESLint sweep
+- 7 Python-only problems in `python-arrays-strings` (difficulty 1-2)
+- 1 Python problem in `python-variables-math` (difficulty 1, 10 test cases)
+- All descriptions are pure conceptual prose
 
-**Monaco Editor VS Code Dark+ Theme:**
-- Created `frontend/lib/monaco-theme.ts` with `registerVSCodeDarkPlusTheme()` — exact VS Code Dark+ colors (no custom tokenizers or semantic tokens)
-- Registered eagerly via `loader.init().then(registerVSCodeDarkPlusTheme)` and in `onMount` callback
-- Theme prop changed from `"koder-dark"` (custom) to `"vs-dark-plus"`
-- Removed `frontend/lib/monaco-themes.ts` (529 lines) and `frontend/lib/custom-tokenizers.ts` — all custom Monarch tokenizers and `defineTheme` code
-- Added `worker-src 'self' blob:` to `frontend/middleware.ts` for Monaco web workers
+### 2026-07-10 — Empty func_name filtering + python-intermediate seed
 
-**Confetti Fix:**
-- Removed `ready`-gated separate `useEffect`; confetti now fires directly when `loading` flips to `false` with 200ms `setTimeout` for DOM paint
+- Frontend/backend filter languages to only those with non-empty `func_name` in `LanguageVersions`
+- 10 Python intermediate problems seeded (031)
 
-**TopNav Updates:**
-- Added "Dashboard" → `/home` (LayoutDashboard icon), "Problems" → Code2 icon, Admin link conditional on `user?.role === "admin"`
+### 2026-07-09 — Python sandbox fixes, production polish, ESLint compliance
 
-**Formatter Fix:**
-- `handleFormat()` uses Monaco's built-in `editor.action.formatDocument` with whitespace cleanup fallback (removed custom formatting code)
+- `findPythonBin()` with `python3` → `python` fallback
+- `EnhancePythonError` for human-readable Python exceptions with debugging tips
+- `compileErrorMessage` 3-pass extraction, `formatPythonLiteral` null→None fix
+- AST validation timeout (10s)
+- Language toggle scaffold preservation with confirmation dialog
+- ESLint 0 errors across entire frontend (15 files fixed: set-state-in-effect, refs, hoisted functions)
+- 124 Go tests, 0 failures, `go vet` clean
 
-**Pagination Fix (Problems page):**
-- Removed `<<` first page and `>>` last page buttons; clean prev/next + "Page X of Y"
+### 2026-07-09 — Python compiler_error fix
 
-**Problems Page Rewrite:**
-- Side panel filters: solved status (default unsolved), difficulty (1-5), XP range (sliders)
-- Strict language tabs (All/Go/Python) filtering by `language_versions[lang].func_name`
-- Solved problems hidden by default
-- Mobile-responsive filter overlay with slide-out panel
-- Active filter count badge + Reset filters button
-- Problem count display
-- Fixed `FilterPanel` component → `renderFilterPanel()` function (ESLint `react-hooks/static-components`)
+- `formatPythonLiteral()` was dead code (never called); replaced `TestCasesJSON` with `PyTestCases`
+- `goToSnakeCase()` fallback when `LanguageVersions["python"]` is missing
 
-**ESLint Warning Fixes (8 warnings):**
-- `FeedbackPanel.tsx`, `ProblemReports.tsx`, `avatar.tsx`, `ModuleCards.tsx` — `<img>` → `<Image />` with `next/image`
-- `home/page.tsx` — added `languageFilter` to useEffect deps
-- `LeaderboardClient.tsx` — added `loadData` to useEffect deps
-- `AIAssistantPanel.tsx` — added missing deps
+### 2026-07-08 — Comprehensive CI/CD, test audit, multi-language seed backfill
 
-**Pre-existing TS Error Fix:**
-- `AIAssistantPanel.tsx` — moved `handleApplyPreview` `useCallback` definition before `useEffect` that referenced it (was "used before declared" error blocking CI)
+- GitHub Actions CI: 4 jobs (backend tests/lint → frontend tests/lint → deploy-backend → deploy-sandbox)
+- 122 total tests across 8 packages
+- Migration 028: PL/pgSQL backfill for 180 seed problems (koder_to_snake_case, koder_go_type_to_python)
 
-**Workspace Layout:**
-- Removed TopNav from `problems/layout.tsx` — workspace has only the problem content area + FeedbackButton
-- The problems listing at `/problems` retains TopNav from `(main)/layout.tsx`
+### 2026-07-08 — Multi-language pipeline (12 phases complete)
 
-**Admin Edit Problem:**
-- Added "Edit" button (Edit3 icon) in workspace header, visible only for `user.role === "admin"`
-- Opens a modal dialog with editable fields: title, statement (textarea), difficulty (1-5), XP reward, module, tags (comma-separated), constraints (textarea), learning objective (textarea)
-- Calls `PUT /admin/problems/{id}` via `updateProblem()` API
-- Form initializes from current `problem` state on dialog open
-- Save handler typed with `UpdateProblemPayload`, error handling extracts `.message` from API error objects
-
-**UPDATE_FAILED Bugfix:**
-- **Root cause:** `LanguageVersions` could be `nil` in Go when `unmarshalLanguageVersions` failed silently or stored JSONB was null. `json.Marshal(nilMap)` produces `"null"` which pgx sends as SQL NULL, violating the `NOT NULL` constraint on `language_versions`
-- **Fix 1** (`internal/store/problems.go:686`): `UpdateProblem` now guards with `if problem.LanguageVersions == nil { problem.LanguageVersions = make(map[string]LanguageSpec) }` before `json.Marshal`
-- **Fix 2** (`internal/store/problems.go:767`): `unmarshalLanguageVersions` now initializes target map to empty when unmarshal fails and map is nil — prevents silent nil propagation
-- **Fix 3** (all `lvJSON` params): Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `ERROR: invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL tries to cast from `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
-- Returns actual DB error in response for easier debugging
-
-**Verification:** Go build clean (`go build ./internal/...`). Pushed `3c4b2a6` to `python-curricula`.
+- Dual Go/Python language_versions in enricher, executor, store, API, frontend
+- `resolveProblemLanguageMeta()` for metadata resolution
+- Python test runner (`pyrunner.go`) with 2-layer security (regex + AST)
+- Language filter tabs on dashboard and workspace
 
 ---
 
-### 2026-07-12 — Go fundamentals seed + multi-return fix, JSONB encoding fix, edit state preservation
+## Known Issues & Stale Documentation
 
-**JSONB Encoding Fix:**
-- Changed `[]byte` → `json.RawMessage` for all `language_versions` JSONB parameters across `problems.go` (3 sites: `UpsertProblem`, `UpsertEnrichedProblem`, `UpdateProblem`) and `user_problems.go` (2 sites). pgx v5 encodes `[]byte` as `bytea` (OID 17), causing `invalid input syntax for type json (SQLSTATE 22P02)` when PostgreSQL casts `bytea` to `jsonb`. `json.RawMessage` uses the correct `jsonb` codec (OID 3802).
-
-**Edit State Preservation:**
-- Changed `setProblem({...problem, ...res.data})` to only merge the 8 edited fields — was spreading raw DB response which has zero-value `examples`, `solved`, `stars`, etc.
-
-**Go Fundamentals Seed:**
-- `migrations/037_seed_go_fundamentals.sql` — 5 Go-only problems in new `go-fundamentals` module: `even-squares` (slices+filter, diff 2), `word-count` (maps, diff 3), `fizzbuzz` (control-flow, diff 1), `unique` (map-set idiom, diff 3), `max-min` (slice iteration, diff 2). All have only `go` key in `language_versions`.
-
----
-
-### 2026-07-12 — Save & Switch, Monaco theme, leaderboard infinite loop, profile rate mismatch
-
-**Save & Switch (language toggle):**
-- Per-language localStorage keys (`koder_code_{slug}_{lang}`) so auto-save doesn't overwrite saved code with scaffold
-- `applyLanguageSwitch` restores saved code for target language if available
-- Language-aware `featuredFormatter` (tab-based Go, 4-space block-aware Python)
-- Auto-complete: removed `" "` trigger character, redundant keyword/package lists
-- Confirmation dialog when code differs from scaffold at toggle time
-
-**Monaco Editor:**
-- Replaced custom `koder-dark` theme (529 lines + custom Monarch tokenizers) with VS Code Dark+ via `defineTheme`
-- Removed `monaco-themes.ts`, `custom-tokenizers.ts`
-- Added `worker-src 'self' blob:` to CSP for Monaco web workers
-
-**TopNav:**
-- Removed "Add Problem" button (was visible to admin + verified_contributor)
-- Fixed stray `</div>` causing parse error
-- Added "Dashboard" and "Problems" links with icons
-
-**Leaderboard:**
-- Fixed infinite re-fetch loop: `loadData` was a plain function (no `useCallback`) in `useEffect` deps → recreated every render → effect refired → API call → re-render → loop
-- Show raw ms (< 1000) instead of rounding to 1 decimal (`0.3s` hid real differences)
-
-**Profile:**
-- Fixed `attempted_count` mismatch: `get_full_profile` stored procedure counted total submissions (`COUNT(DISTINCT s.id)`) instead of distinct problems — caused "Rate" (ProfileHeader) and "Success Rate" (StatsOverview) to show different values
-- Fixed in 3 migration copies (009, 012, 013)
-
-**Other:**
-- Disabled "Share Profile" button, removed unused copy-to-clipboard code
-- Admin edit problem dialog (PUT /admin/problems/{id})
-- CompileErrorMessage fix: collect all `solution.go:` error lines instead of returning on first match
-- JSONB encoding fix: `[]byte` → `json.RawMessage` for `language_versions` params (pgx encodes `[]byte` as `bytea`, not `jsonb`)
-
-**Verification:** All changes pushed to `python-curricula`. Backend go vet/build clean. Frontend ESLint+TS clean after fixes.
-
----
-
-### 2026-07-13 — ProfileHoverCard redesign: XP progress bar, professional polish
-
-**Changes:**
-- Removed unreliable `streak` from hover card (leaderboard always returns 0)
-- Added XP progress bar: `xpInLevel / 1,000 → next level` with gradient bar
-- 3-column stat layout (XP / Level / Solved) with `text-base font-extrabold` values
-- Gradient accent bar at card top + gradient divider
-- `p-5 space-y-4` for more breathing room
-- Verified status shown as inline "Verified" text label alongside avatar name
-- Fixed `user?.role === "admin"` → `user?.verified` for verified badge on TopNav, Settings, ProfileHeader
-- Centralized `cn()` import (removed local duplicate)
-
-### 2026-07-13 — Verified badge propagation complete (4-layer fix)
-
-**Gaps found and closed:**
-
-| Layer | File | Issue | Fix |
-|---|---|---|---|
-| Leaderboard struct | `internal/store/types.go:195-208` | `LeaderboardUser` missing `Verified` field | Added `Verified bool \`json:"verified"\`` |
-| Leaderboard SQL | `internal/store/users.go:493-528` | Both queries missing `u.verified` | Added to SELECT + `&u.Verified` to scan |
-| Community solutions | `internal/store/submissions.go:128-226` | `u.verified` missing from SELECT | Added `u.verified` + `&cs.Verified` scan |
-| Community solution struct | `internal/store/types.go:365-380` | Missing `Verified` field | Added `Verified bool` |
-| Frontend CommunitySolution | `frontend/lib/types.ts:170-183` | Missing `verified` | Added `verified: boolean` |
-| GET /me store | `internal/store/users.go:589-633` | `GetUserWithSolvedCount` didn't SELECT `u.verified` | Added to SQL + scan |
-| GET /me response | `internal/api/me.go:25-41` | `meResponse` missing `Verified` | Added field + set in both GetMe & UpdateLanguage |
-| Frontend fetchUser | `frontend/lib/api.ts:256-286` | Didn't map `verified` | Added `verified: res.data.verified ?? false` |
-| Cache invalidation | `internal/api/admin.go:629-655` | `ToggleUserVerified` didn't invalidate user cache | Added `InvalidateUserCache()` |
-| Leaderboard cache | `internal/api/admin.go:629-655` | Already had cache invalidation | Added `InvalidateLeaderboardCache()` (already present) |
-
-**All 40 audit items pass.** The gold checkmark badge now appears on every Avatar across the app — TopNav, profile page, leaderboard podium + table, community solutions, settings — not just on hover.
-
-### 2026-07-13 — Admin user verification panel
-
-**Backend:**
-- `POSTGRES` — `SearchUsers` (ILIKE name/username, 20 result limit)
-- `POSTGRES` — `ToggleUserVerified` (NOT verified RETURNING)
-- `Store interface` — `SearchUsers`, `ToggleUserVerified` methods
-- `Store types` — `UserSearchResult` struct (ID, name, username, email, role, verified, avatar, created_at)
-- `API` — `GET /admin/users/search?q=` with min 2 char validation
-- `API` — `PATCH /admin/users/{id}/verified` with activity logging + cache invalidation
-- `Router` — Both routes in AdminOnly group
-
-**Frontend:**
-- `UserVerificationPanel` — Search input with 300ms debounce, results with user info card, verified toggle button, ProfileHoverCard
-- Loading spinner, empty states (no search / no results), error toasts
-- Wired into admin page below Problem Reports
-
-### 2026-07-13 — Leaderboard custom Avatar with verified checkmark
-
-**Problem:** Leaderboard used shadcn `Avatar` (no `verified` prop) with manual `<Image>` fallback. Gold checkmark never appeared on podium or table rows.
-
-**Fix:**
-- Replaced all shadcn Avatar + manual Image branches with single custom `<Avatar>` component
-- Added `"podium"` size (h-16 w-16) to the custom Avatar's `sizeMap` for top-3 (was 64px)
-- All 3 locations now pass `verified={entry.user.verified}`
-- Removed `avatarsFailed` state (custom Avatar handles image errors internally)
-- Removed unused imports: `Image`, `getUserColor`, `getInitials`, `AvatarFallback`
+1. **`.github/copilot-instructions.md`** — References Gemini genai SDK (removed), httpOnly cookies (JWT in localStorage), semaphore cap=2 (now 6), timeout 5s (now 30s). Needs update to match codebase.
+2. **`frontend/README.md`** — Stale Gemini AI Studio reference. Needs update or removal.
+3. **`sandbox/secure_unix.go`** — `resourceLimits` function uses raw numeric values for `RLIMIT_NPROC` (6) and `RLIMIT_NOFILE` (7) instead of `syscall.RLIMIT_NPROC` / `syscall.RLIMIT_NOFILE` constants. Works on linux/arm64 but may need verification on other architectures.
+4. **`sandbox/main.go`** — `forcePackageKoder` regex is duplicated in both `sandbox/runtest_go.go` and `internal/executor/sandbox.go`. Should be shared.
+5. **Curriculum CMS sections** — No section reordering capability; no dependency management UI after lesson creation (only at creation time).

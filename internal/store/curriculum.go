@@ -443,14 +443,14 @@ func (s *PostgresStore) CreateLessonWithSections(ctx context.Context, nl *NewLes
 	var lesson Lesson
 	lessonQuery := `INSERT INTO lessons (module_id, slug, title, description, raw_readme, difficulty,
 		estimated_minutes, xp_reward, order_number, visible, problem_references, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, NOW(), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
 		RETURNING id, module_id, slug, title, description, raw_readme,
 			difficulty, estimated_minutes, xp_reward, order_number, visible,
 			problem_references, created_at, updated_at`
 
 	err = tx.QueryRow(ctx, lessonQuery,
 		moduleID, nl.Slug, nl.Title, nl.Description, nl.RawReadme, nl.Difficulty,
-		nl.EstimatedMinutes, nl.XPReward, nl.OrderNumber, nl.ProblemReferences,
+		nl.EstimatedMinutes, nl.XPReward, nl.OrderNumber, nl.Visible, nl.ProblemReferences,
 	).Scan(
 		&lesson.ID, &lesson.ModuleID, &lesson.Slug, &lesson.Title, &lesson.Description, &lesson.RawReadme,
 		&lesson.Difficulty, &lesson.EstimatedMinutes, &lesson.XPReward, &lesson.OrderNumber, &lesson.Visible,
@@ -786,6 +786,32 @@ func (s *PostgresStore) UpdateSection(ctx context.Context, section *LessonSectio
 		sec.Metadata = json.RawMessage(metadataBytes)
 	}
 	return &sec, nil
+}
+
+// ReorderLessonSections updates the order_number for sections in a lesson atomically.
+func (s *PostgresStore) ReorderLessonSections(ctx context.Context, lessonID uuid.UUID, orderedIDs []uuid.UUID) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	stmt, err := tx.Prepare(ctx, "reorder_section", `UPDATE lesson_sections SET order_number = $1 WHERE id = $2 AND lesson_id = $3`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+
+	for i, id := range orderedIDs {
+		tag, err := tx.Exec(ctx, stmt.Name, i, id, lessonID)
+		if err != nil {
+			return fmt.Errorf("failed to reorder section %s: %w", id, err)
+		}
+		if tag.RowsAffected() == 0 {
+			return fmt.Errorf("section %s not found or not in lesson %s", id, lessonID)
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 // DeleteSection removes a lesson section by ID.

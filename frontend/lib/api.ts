@@ -795,4 +795,11 @@ export async function deleteSection(id: string): Promise<ApiResponse<{ status: s
   });
 }
 
+export async function reorderSections(lessonId: string, orderedIds: string[]): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/sections/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}
+
 

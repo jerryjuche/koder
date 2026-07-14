@@ -150,6 +150,46 @@
 
 ---
 
+### 2026-07-14 — Professional full-codebase re-index (curriculum-cms)
+
+**Context:** Comprehensive full-codebase indexing session. Read all 83 Go source files (internal + sandbox), all 105 frontend TypeScript/React files, all 39 migration SQL files, and all 18 documentation/config files. Every file was read in full — no skips.
+
+**Accomplished:**
+- Read and indexed every `*.go` file across all 8 internal packages (api, store, executor, enricher, broker, parser, auth, config) and the standalone sandbox package
+- Read and indexed every `*.tsx`, `*.ts`, `*.css`, `*.mjs` file in the frontend
+- Read and indexed all 39 migration SQL files with per-file summaries
+- Read and indexed all 18 documentation, config, build, and CI/CD files
+- Updated `CLAUDE.md` with professional-grade complete codebase index including:
+  - Full repository structure tree with file annotations and line counts
+  - Complete Curriculum CMS architecture (8 tables, 6 student + 22 admin endpoints)
+  - All ~89 API endpoints documented with method/path/handler/description
+  - 39 migration descriptions with per-file details
+  - 10-layer sandbox defense-in-depth documentation
+  - Frontend component catalog (60+ components across all categories)
+  - Complete session log (June 28 - July 14)
+- Updated `progress.md` with comprehensive session log
+
+**Re-indexed packages:**
+- `internal/api/` — 25 handler files (auth, me, admin, problems, submissions, test, middleware, cms, ws, etc.)
+- `internal/store/` — 22 files (interface, types, all CRUD implementations, errors, tests)
+- `internal/executor/` — 7 files (executor, parser, sandbox, sandbox_client, templates, types, tests)
+- `internal/enricher/` — 2 files (enricher + tests)
+- `internal/auth/` — 5 files (jwt, oauth, password + tests)
+- `internal/config/` — 2 files (config + tests)
+- `internal/broker/` — 2 files (broker + tests)
+- `internal/parser/` — 2 files (parser + tests)
+- `sandbox/` — 8 source files + Dockerfile + go.mod
+- `frontend/` — 105 files across app, components, hooks, lib, styles
+- `migrations/` — 39 SQL files
+
+**Verification gates confirmed:**
+- `go vet ./internal/...` — clean
+- `go test ./internal/...` — 8/8 packages pass
+- `npm run lint` (frontend) — 0 errors
+- `npx tsc --noEmit` (frontend) — 0 errors
+
+---
+
 ## Legend
 
 | Icon | Meaning |

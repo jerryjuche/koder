@@ -201,6 +201,7 @@ type Store interface {
 	CreateSection(ctx context.Context, lessonID uuid.UUID, ns *NewLessonSection) (*LessonSection, error)
 	UpdateSection(ctx context.Context, section *LessonSection) (*LessonSection, error)
 	DeleteSection(ctx context.Context, id uuid.UUID) error
+	ReorderLessonSections(ctx context.Context, lessonID uuid.UUID, orderedIDs []uuid.UUID) error
 
 	// Project operations
 	ListProjects(ctx context.Context, lessonID uuid.UUID) ([]Project, error)

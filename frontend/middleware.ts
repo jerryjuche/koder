@@ -4,7 +4,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  // Set strict CSP
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Allow http: in dev for localhost backend; https: only in production
+  const connectSrc = isDev ? "'self' http: https: wss:" : "'self' https: wss:";
+
   const csp = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live;
@@ -13,7 +17,7 @@ export function middleware(request: NextRequest) {
     style-src-elem 'self' 'unsafe-inline' https://accounts.google.com;
     img-src 'self' data: blob: https:;
     font-src 'self' data:;
-    connect-src 'self' https: wss:;
+    connect-src ${connectSrc};
     frame-src https://accounts.google.com https://vercel.live;
     object-src 'none';
     base-uri 'self';

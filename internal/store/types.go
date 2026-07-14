@@ -556,6 +556,7 @@ type NewLesson struct {
 	XPReward          int      `json:"xp_reward"`
 	OrderNumber       int      `json:"order_number"`
 	ProblemReferences []string `json:"problem_references,omitempty"`
+	Visible           bool     `json:"visible"`
 }
 
 // NewLessonSection is the payload for creating a lesson section.

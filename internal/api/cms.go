@@ -82,42 +82,66 @@ func (h *CMHandler) GetCourseDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result := store.CourseWithModules{
+	// Enrich modules with per-module lesson counts and progress
+	type moduleWithProgress struct {
+		store.Module
+		LessonCount      int `json:"lesson_count"`
+		CompletedLessons int `json:"completed_lessons"`
+	}
+
+	enrichedMods := make([]moduleWithProgress, 0, len(visibleMods))
+	for _, m := range visibleMods {
+		mwp := moduleWithProgress{Module: m}
+		lessons, err := h.store.ListLessons(r.Context(), m.ID.Bytes)
+		if err == nil {
+			for _, l := range lessons {
+				if !l.Visible {
+					continue
+				}
+				mwp.LessonCount++
+				if userID != uuid.Nil {
+					lp, err := h.store.GetLessonProgress(r.Context(), userID, l.ID.Bytes)
+					if err == nil && lp.Completed {
+						mwp.CompletedLessons++
+					}
+				}
+			}
+		}
+		enrichedMods = append(enrichedMods, mwp)
+	}
+
+	type courseDetailResponse struct {
+		store.Course
+		Modules          []moduleWithProgress `json:"modules"`
+		Progress         *store.CourseProgress `json:"progress,omitempty"`
+		TotalLessons     int                  `json:"total_lessons"`
+		CompletedLessons int                  `json:"completed_lessons"`
+	}
+
+	response := courseDetailResponse{
 		Course:  *course,
-		Modules: visibleMods,
+		Modules: enrichedMods,
 	}
 
 	// Get progress if user is authenticated
 	if userID != uuid.Nil {
 		cp, err := h.store.GetCourseProgress(r.Context(), userID, course.ID.Bytes)
 		if err == nil {
-			result.Progress = cp
+			response.Progress = cp
 		}
 
 		// Count completed lessons across all modules
 		completedCount := 0
 		totalCount := 0
-		for _, m := range modules {
-			lessons, err := h.store.ListLessons(r.Context(), m.ID.Bytes)
-			if err != nil {
-				continue
-			}
-			for _, l := range lessons {
-				if !l.Visible {
-					continue
-				}
-				totalCount++
-				lp, err := h.store.GetLessonProgress(r.Context(), userID, l.ID.Bytes)
-				if err == nil && lp.Completed {
-					completedCount++
-				}
-			}
+		for _, m := range enrichedMods {
+			totalCount += m.LessonCount
+			completedCount += m.CompletedLessons
 		}
-		result.TotalLessons = totalCount
-		result.CompletedLessons = completedCount
+		response.TotalLessons = totalCount
+		response.CompletedLessons = completedCount
 	}
 
-	RespondSuccess(w, result)
+	RespondSuccess(w, response)
 }
 
 // GetModuleDetail returns a module with its lessons and progress.
@@ -216,7 +240,11 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("cms: failed to get lesson sections", "lesson_id", lesson.ID, "error", err)
 		result.Sections = []store.LessonSection{}
 	} else {
-		result.Sections = sections
+		if sections == nil {
+			result.Sections = []store.LessonSection{}
+		} else {
+			result.Sections = sections
+		}
 	}
 
 	deps, err := h.store.GetLessonDependencies(r.Context(), lesson.ID.Bytes)
@@ -224,13 +252,21 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("cms: failed to get lesson dependencies", "lesson_id", lesson.ID, "error", err)
 		result.Dependencies = []store.LessonPrereq{}
 	} else {
-		result.Dependencies = deps
+		if deps == nil {
+			result.Dependencies = []store.LessonPrereq{}
+		} else {
+			result.Dependencies = deps
+		}
 	}
 
 	// Fetch projects
 	projects, err := h.store.ListProjects(r.Context(), lesson.ID.Bytes)
 	if err == nil {
-		result.Projects = projects
+		if projects == nil {
+			result.Projects = []store.Project{}
+		} else {
+			result.Projects = projects
+		}
 	} else {
 		result.Projects = []store.Project{}
 	}
@@ -1092,6 +1128,47 @@ func (h *CMHandler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondSuccess(w, map[string]string{"status": "deleted"})
+}
+
+// ReorderSections reorders lesson sections (admin only).
+func (h *CMHandler) ReorderSections(w http.ResponseWriter, r *http.Request) {
+	lessonIDStr := chi.URLParam(r, "lessonId")
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid lesson ID", nil)
+		return
+	}
+
+	var req struct {
+		OrderedIDs []string `json:"ordered_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if len(req.OrderedIDs) == 0 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "ordered_ids must not be empty", nil)
+		return
+	}
+
+	ids := make([]uuid.UUID, len(req.OrderedIDs))
+	for i, idStr := range req.OrderedIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid section ID: "+idStr, nil)
+			return
+		}
+		ids[i] = id
+	}
+
+	if err := h.store.ReorderLessonSections(r.Context(), lessonID, ids); err != nil {
+		slog.Error("cms: failed to reorder sections", "lesson", lessonID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to reorder sections", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"status": "reordered"})
 }
 
 // pgtypeUUID creates a pgtype.UUID from a uuid.UUID.
