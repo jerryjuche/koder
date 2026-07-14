@@ -550,6 +550,7 @@ type NewLesson struct {
 	Slug              string   `json:"slug"`
 	Title             string   `json:"title"`
 	Description       string   `json:"description,omitempty"`
+	RawReadme         string   `json:"raw_readme,omitempty"`
 	Difficulty        int      `json:"difficulty"`
 	EstimatedMinutes  int      `json:"estimated_minutes"`
 	XPReward          int      `json:"xp_reward"`

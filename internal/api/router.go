@@ -217,14 +217,17 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses/{courseId}/modules", cmHandler.CreateModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/modules/{moduleId}", cmHandler.UpdateModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/modules/{moduleId}", cmHandler.DeleteModule)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/visibility", cmHandler.ToggleModuleVisibility)
 			r.Get("/admin/modules/{moduleId}/lessons", cmHandler.ListLessons)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/modules/{moduleId}/lessons", cmHandler.CreateLesson)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/lessons/{lessonId}", cmHandler.UpdateLesson)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/lessons/{lessonId}", cmHandler.DeleteLesson)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/lessons/{lessonId}/visibility", cmHandler.ToggleLessonVisibility)
 			r.Get("/admin/lessons/{lessonId}/projects", cmHandler.ListProjects)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/projects", cmHandler.CreateProject)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/projects/{projectId}", cmHandler.UpdateProject)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/projects/{projectId}", cmHandler.DeleteProject)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/projects/{projectId}/visibility", cmHandler.ToggleProjectVisibility)
 
 			// Section CRUD
 			r.Get("/admin/lessons/{lessonId}/sections", cmHandler.ListLessonSections)

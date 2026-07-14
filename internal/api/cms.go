@@ -283,15 +283,104 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	xp := 50
-	lp, err := h.store.UpsertLessonProgress(r.Context(), userID, lessonID, xp)
+	// Fetch lesson to get xp_reward and module_id
+	lesson, err := h.store.GetLessonByID(r.Context(), lessonID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
+			return
+		}
+		slog.Error("cms: failed to get lesson", "lesson_id", lessonID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to complete lesson", nil)
+		return
+	}
+
+	// Check if already completed — only award XP once
+	var xpAwarded int
+	existingProgress, _ := h.store.GetLessonProgress(r.Context(), userID, lessonID)
+	xpReward := lesson.XPReward
+	if xpReward <= 0 {
+		xpReward = 50
+	}
+
+	lp, err := h.store.UpsertLessonProgress(r.Context(), userID, lessonID, xpReward)
 	if err != nil {
 		slog.Error("cms: failed to complete lesson", "lesson_id", lessonID, "error", err)
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to complete lesson", nil)
 		return
 	}
 
-	RespondSuccess(w, lp)
+	// Award XP to user only if newly completed
+	if existingProgress == nil || !existingProgress.Completed {
+		xpToAward := xpReward
+		if existingProgress != nil {
+			xpToAward = xpReward - existingProgress.XPAwarded
+			if xpToAward < 0 {
+				xpToAward = 0
+			}
+		}
+		if xpToAward > 0 {
+			if err := h.store.AddUserXP(r.Context(), userID, xpToAward); err != nil {
+				slog.Error("cms: failed to award XP", "user_id", userID, "xp", xpToAward, "error", err)
+				// Non-fatal — lesson progress was already saved
+			}
+		}
+	}
+	xpAwarded = xpReward
+	if existingProgress != nil && existingProgress.Completed {
+		xpAwarded = 0
+	}
+
+	// Update course progress: find course_id from module, then count lessons
+	moduleID := uuid.UUID(lesson.ModuleID.Bytes)
+	mod, err := h.store.GetModuleByID(r.Context(), moduleID)
+	if err != nil {
+		slog.Error("cms: failed to get module for progress", "module_id", moduleID, "error", err)
+		RespondSuccess(w, lp)
+		return
+	}
+
+	courseID := uuid.UUID(mod.CourseID.Bytes)
+	modules, err := h.store.ListModules(r.Context(), courseID)
+	if err != nil {
+		slog.Error("cms: failed to list modules for progress", "course_id", courseID, "error", err)
+		RespondSuccess(w, lp)
+		return
+	}
+
+	totalLessons := 0
+	completedLessons := 0
+	for _, m := range modules {
+		lessons, err := h.store.ListLessons(r.Context(), m.ID.Bytes)
+		if err != nil {
+			continue
+		}
+		for _, l := range lessons {
+			if !l.Visible {
+				continue
+			}
+			totalLessons++
+			lp, err := h.store.GetLessonProgress(r.Context(), userID, l.ID.Bytes)
+			if err == nil && lp.Completed {
+				completedLessons++
+			}
+		}
+	}
+
+	if totalLessons > 0 {
+		pct := float32(completedLessons) / float32(totalLessons) * 100
+		completed := completedLessons >= totalLessons
+		if err := h.store.UpsertCourseProgress(r.Context(), userID, courseID, pct, completed); err != nil {
+			slog.Error("cms: failed to update course progress", "course_id", courseID, "error", err)
+		}
+	}
+
+	// Include xp_awarded in response
+	response := map[string]interface{}{
+		"lesson_progress": lp,
+		"xp_awarded":      xpAwarded,
+	}
+	RespondSuccess(w, response)
 }
 
 // GetAllProgress returns all course and lesson progress for the current user.
@@ -489,6 +578,75 @@ func (h *CMHandler) ToggleCourseVisibility(w http.ResponseWriter, r *http.Reques
 	}
 
 	RespondSuccess(w, course)
+}
+
+// ToggleModuleVisibility toggles the visible flag on a module.
+func (h *CMHandler) ToggleModuleVisibility(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleId")
+	moduleID, err := uuid.Parse(moduleIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid module ID", nil)
+		return
+	}
+
+	mod, err := h.store.ToggleModuleVisibility(r.Context(), moduleID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Module not found", nil)
+			return
+		}
+		slog.Error("cms: failed to toggle module visibility", "id", moduleID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle visibility", nil)
+		return
+	}
+
+	RespondSuccess(w, mod)
+}
+
+// ToggleLessonVisibility toggles the visible flag on a lesson.
+func (h *CMHandler) ToggleLessonVisibility(w http.ResponseWriter, r *http.Request) {
+	lessonIDStr := chi.URLParam(r, "lessonId")
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid lesson ID", nil)
+		return
+	}
+
+	lesson, err := h.store.ToggleLessonVisibility(r.Context(), lessonID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
+			return
+		}
+		slog.Error("cms: failed to toggle lesson visibility", "id", lessonID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle visibility", nil)
+		return
+	}
+
+	RespondSuccess(w, lesson)
+}
+
+// ToggleProjectVisibility toggles the visible flag on a project.
+func (h *CMHandler) ToggleProjectVisibility(w http.ResponseWriter, r *http.Request) {
+	projectIDStr := chi.URLParam(r, "projectId")
+	projectID, err := uuid.Parse(projectIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid project ID", nil)
+		return
+	}
+
+	project, err := h.store.ToggleProjectVisibility(r.Context(), projectID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Project not found", nil)
+			return
+		}
+		slog.Error("cms: failed to toggle project visibility", "id", projectID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle visibility", nil)
+		return
+	}
+
+	RespondSuccess(w, project)
 }
 
 // ListModules returns all modules for a course.

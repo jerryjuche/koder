@@ -8,6 +8,9 @@ import {
   fetchProjects, createProject, updateProject, deleteProject,
   createSection, updateSection, deleteSection,
   toggleCourseVisibility,
+  toggleModuleVisibility,
+  toggleLessonVisibility,
+  toggleProjectVisibility,
 } from "@/lib/api";
 import {
   Course, Module, Lesson, LessonSection, Project, NewLessonSection,
@@ -161,6 +164,36 @@ export default function CurriculumAdminPage() {
       loadCourses();
     } else {
       toast.error(res.error?.message || "Failed to delete course");
+    }
+  };
+
+  const handleToggleModuleVisibility = async (mod: Module) => {
+    const res = await toggleModuleVisibility(mod.id);
+    if (res.success) {
+      toast.success(mod.visible ? "Module hidden" : "Module published");
+      setModules((prev) => prev.map((m) => m.id === mod.id ? (res.data || m) : m));
+    } else {
+      toast.error(res.error?.message || "Failed to toggle visibility");
+    }
+  };
+
+  const handleToggleLessonVisibility = async (lesson: Lesson) => {
+    const res = await toggleLessonVisibility(lesson.id);
+    if (res.success) {
+      toast.success(lesson.visible ? "Lesson hidden" : "Lesson published");
+      setLessons((prev) => prev.map((l) => l.id === lesson.id ? (res.data || l) : l));
+    } else {
+      toast.error(res.error?.message || "Failed to toggle visibility");
+    }
+  };
+
+  const handleToggleProjectVisibility = async (proj: Project) => {
+    const res = await toggleProjectVisibility(proj.id);
+    if (res.success) {
+      toast.success(proj.visible ? "Project hidden" : "Project published");
+      setProjects((prev) => prev.map((p) => p.id === proj.id ? (res.data || p) : p));
+    } else {
+      toast.error(res.error?.message || "Failed to toggle visibility");
     }
   };
 
@@ -522,6 +555,10 @@ export default function CurriculumAdminPage() {
                           <span className="truncate text-xs font-medium">{mod.title}</span>
                         </div>
                         <div className="flex gap-0.5 shrink-0 ml-1">
+                          <button onClick={(e) => { e.stopPropagation(); handleToggleModuleVisibility(mod); }}
+                            className={mod.visible ? "text-green-500" : "text-muted-foreground"}>
+                            {mod.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                          </button>
                           <button onClick={(e) => { e.stopPropagation(); openEditForm(mod, "modules"); }}>
                             <Edit3 className="h-3 w-3 opacity-50 hover:opacity-100" />
                           </button>
@@ -603,11 +640,13 @@ export default function CurriculumAdminPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="font-medium text-sm truncate">{lesson.title}</span>
-                            {lesson.visible ? (
-                              <Eye className="h-3 w-3 text-green-500 shrink-0" />
-                            ) : (
-                              <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
-                            )}
+                            <button onClick={(e) => { e.stopPropagation(); handleToggleLessonVisibility(lesson); }}>
+                              {lesson.visible ? (
+                                <Eye className="h-3 w-3 text-green-500 shrink-0" />
+                              ) : (
+                                <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
+                              )}
+                            </button>
                           </div>
                           {lesson.description && (
                             <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{lesson.description}</p>
@@ -712,6 +751,10 @@ export default function CurriculumAdminPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 shrink-0">
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleProjectVisibility(proj); }}
+                        className={`p-1.5 rounded hover:bg-muted/50 ${proj.visible ? "text-green-500" : "text-muted-foreground"}`}>
+                        {proj.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      </button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditForm(proj, "projects")}>
                         <Edit3 className="h-3 w-3" />
                       </Button>
@@ -948,6 +991,15 @@ export default function CurriculumAdminPage() {
                     className="min-h-[80px]"
                     value={formData.description || ""}
                     onChange={(e) => updateField("description", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Raw Readme</label>
+                  <Textarea
+                    placeholder="Full lesson content in markdown (used for AI enrichment and student reference)..."
+                    className="min-h-[120px] font-mono text-xs"
+                    value={formData.raw_readme || ""}
+                    onChange={(e) => updateField("raw_readme", e.target.value)}
                   />
                 </div>
                 <div className="col-span-2">

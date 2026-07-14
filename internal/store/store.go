@@ -180,18 +180,22 @@ type Store interface {
 	// Module operations
 	ListModules(ctx context.Context, courseID uuid.UUID) ([]Module, error)
 	GetModuleBySlug(ctx context.Context, courseSlug, moduleSlug string) (*Module, error)
+	GetModuleByID(ctx context.Context, id uuid.UUID) (*Module, error)
 	CreateModule(ctx context.Context, nm *NewModule) (*Module, error)
 	UpdateModule(ctx context.Context, module *Module) (*Module, error)
 	DeleteModule(ctx context.Context, id uuid.UUID) error
+	ToggleModuleVisibility(ctx context.Context, id uuid.UUID) (*Module, error)
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)
 	GetLessonBySlug(ctx context.Context, moduleSlug, lessonSlug string) (*Lesson, error)
+	GetLessonByID(ctx context.Context, id uuid.UUID) (*Lesson, error)
 	GetLessonSections(ctx context.Context, lessonID uuid.UUID) ([]LessonSection, error)
 	GetLessonDependencies(ctx context.Context, lessonID uuid.UUID) ([]LessonPrereq, error)
 	CreateLessonWithSections(ctx context.Context, nl *NewLesson, sections []NewLessonSection, dependencyIDs []uuid.UUID) (*Lesson, error)
 	UpdateLesson(ctx context.Context, lesson *Lesson) (*Lesson, error)
 	DeleteLesson(ctx context.Context, id uuid.UUID) error
+	ToggleLessonVisibility(ctx context.Context, id uuid.UUID) (*Lesson, error)
 
 	// Section operations
 	CreateSection(ctx context.Context, lessonID uuid.UUID, ns *NewLessonSection) (*LessonSection, error)
@@ -203,12 +207,14 @@ type Store interface {
 	CreateProject(ctx context.Context, np *NewProject) (*Project, error)
 	UpdateProject(ctx context.Context, project *Project) (*Project, error)
 	DeleteProject(ctx context.Context, id uuid.UUID) error
+	ToggleProjectVisibility(ctx context.Context, id uuid.UUID) (*Project, error)
 
 	// Progress operations
 	GetCourseProgress(ctx context.Context, userID, courseID uuid.UUID) (*CourseProgress, error)
 	UpsertCourseProgress(ctx context.Context, userID, courseID uuid.UUID, pct float32, completed bool) error
 	GetLessonProgress(ctx context.Context, userID, lessonID uuid.UUID) (*LessonProgress, error)
 	UpsertLessonProgress(ctx context.Context, userID, lessonID uuid.UUID, xp int) (*LessonProgress, error)
+	AddUserXP(ctx context.Context, userID uuid.UUID, xp int) error
 }
 
 // PostgresStore implements Store using pgx and Postgres.

@@ -219,6 +219,26 @@ func (s *PostgresStore) GetModuleBySlug(ctx context.Context, courseSlug, moduleS
 	return &m, nil
 }
 
+// GetModuleByID returns a module by its ID.
+func (s *PostgresStore) GetModuleByID(ctx context.Context, id uuid.UUID) (*Module, error) {
+	query := `SELECT id, course_id, slug, title, description, image_url,
+		order_number, visible, created_at, updated_at
+		FROM modules WHERE id = $1`
+
+	var m Module
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
+		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("module not found")
+		}
+		return nil, fmt.Errorf("failed to get module by ID: %w", err)
+	}
+	return &m, nil
+}
+
 // CreateModule inserts a new module and returns it.
 func (s *PostgresStore) CreateModule(ctx context.Context, nm *NewModule) (*Module, error) {
 	if nm == nil {
@@ -296,6 +316,26 @@ func (s *PostgresStore) DeleteModule(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// ToggleModuleVisibility toggles the visible flag of a module.
+func (s *PostgresStore) ToggleModuleVisibility(ctx context.Context, id uuid.UUID) (*Module, error) {
+	query := `UPDATE modules SET visible = NOT visible, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, course_id, slug, title, description, image_url,
+			order_number, visible, created_at, updated_at`
+	var m Module
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
+		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("module not found")
+		}
+		return nil, fmt.Errorf("failed to toggle module visibility: %w", err)
+	}
+	return &m, nil
+}
+
 // ── Lesson Operations ──
 
 // ListLessons returns all lessons for a module ordered by order_number.
@@ -353,6 +393,28 @@ func (s *PostgresStore) GetLessonBySlug(ctx context.Context, moduleSlug, lessonS
 	return &l, nil
 }
 
+// GetLessonByID returns a lesson by its ID.
+func (s *PostgresStore) GetLessonByID(ctx context.Context, id uuid.UUID) (*Lesson, error) {
+	query := `SELECT id, module_id, slug, title, description, raw_readme,
+		difficulty, estimated_minutes, xp_reward, order_number, visible,
+		problem_references, created_at, updated_at
+		FROM lessons WHERE id = $1`
+
+	var l Lesson
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&l.ID, &l.ModuleID, &l.Slug, &l.Title, &l.Description, &l.RawReadme,
+		&l.Difficulty, &l.EstimatedMinutes, &l.XPReward, &l.OrderNumber, &l.Visible,
+		&l.ProblemReferences, &l.CreatedAt, &l.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("lesson not found")
+		}
+		return nil, fmt.Errorf("failed to get lesson by ID: %w", err)
+	}
+	return &l, nil
+}
+
 // CreateLessonWithSections creates a lesson with its sections and dependencies in a transaction.
 func (s *PostgresStore) CreateLessonWithSections(ctx context.Context, nl *NewLesson, sections []NewLessonSection, dependencyIDs []uuid.UUID) (*Lesson, error) {
 	if nl == nil {
@@ -379,15 +441,15 @@ func (s *PostgresStore) CreateLessonWithSections(ctx context.Context, nl *NewLes
 
 	// 1. Insert lesson
 	var lesson Lesson
-	lessonQuery := `INSERT INTO lessons (module_id, slug, title, description, difficulty,
+	lessonQuery := `INSERT INTO lessons (module_id, slug, title, description, raw_readme, difficulty,
 		estimated_minutes, xp_reward, order_number, visible, problem_references, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, $9, NOW(), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, NOW(), NOW())
 		RETURNING id, module_id, slug, title, description, raw_readme,
 			difficulty, estimated_minutes, xp_reward, order_number, visible,
 			problem_references, created_at, updated_at`
 
 	err = tx.QueryRow(ctx, lessonQuery,
-		moduleID, nl.Slug, nl.Title, nl.Description, nl.Difficulty,
+		moduleID, nl.Slug, nl.Title, nl.Description, nl.RawReadme, nl.Difficulty,
 		nl.EstimatedMinutes, nl.XPReward, nl.OrderNumber, nl.ProblemReferences,
 	).Scan(
 		&lesson.ID, &lesson.ModuleID, &lesson.Slug, &lesson.Title, &lesson.Description, &lesson.RawReadme,
@@ -454,17 +516,17 @@ func (s *PostgresStore) UpdateLesson(ctx context.Context, lesson *Lesson) (*Less
 		return nil, fmt.Errorf("lesson cannot be nil")
 	}
 
-	query := `UPDATE lessons SET slug=$1, title=$2, description=$3, difficulty=$4,
-		estimated_minutes=$5, xp_reward=$6, order_number=$7, visible=$8,
-		problem_references=$9, updated_at=NOW()
-		WHERE id=$10
+	query := `UPDATE lessons SET slug=$1, title=$2, description=$3, raw_readme=$4, difficulty=$5,
+		estimated_minutes=$6, xp_reward=$7, order_number=$8, visible=$9,
+		problem_references=$10, updated_at=NOW()
+		WHERE id=$11
 		RETURNING id, module_id, slug, title, description, raw_readme,
 			difficulty, estimated_minutes, xp_reward, order_number, visible,
 			problem_references, created_at, updated_at`
 
 	var l Lesson
 	err := s.pool.QueryRow(ctx, query,
-		lesson.Slug, lesson.Title, lesson.Description, lesson.Difficulty,
+		lesson.Slug, lesson.Title, lesson.Description, lesson.RawReadme, lesson.Difficulty,
 		lesson.EstimatedMinutes, lesson.XPReward, lesson.OrderNumber, lesson.Visible,
 		lesson.ProblemReferences, lesson.ID,
 	).Scan(
@@ -491,6 +553,28 @@ func (s *PostgresStore) DeleteLesson(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("lesson not found")
 	}
 	return nil
+}
+
+// ToggleLessonVisibility toggles the visible flag of a lesson.
+func (s *PostgresStore) ToggleLessonVisibility(ctx context.Context, id uuid.UUID) (*Lesson, error) {
+	query := `UPDATE lessons SET visible = NOT visible, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, module_id, slug, title, description, raw_readme,
+			difficulty, estimated_minutes, xp_reward, order_number, visible,
+			problem_references, created_at, updated_at`
+	var l Lesson
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&l.ID, &l.ModuleID, &l.Slug, &l.Title, &l.Description, &l.RawReadme,
+		&l.Difficulty, &l.EstimatedMinutes, &l.XPReward, &l.OrderNumber, &l.Visible,
+		&l.ProblemReferences, &l.CreatedAt, &l.UpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("lesson not found")
+		}
+		return nil, fmt.Errorf("failed to toggle lesson visibility: %w", err)
+	}
+	return &l, nil
 }
 
 // ── Project Operations ──
@@ -612,6 +696,26 @@ func (s *PostgresStore) DeleteProject(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("project not found")
 	}
 	return nil
+}
+
+// ToggleProjectVisibility toggles the visible flag of a project.
+func (s *PostgresStore) ToggleProjectVisibility(ctx context.Context, id uuid.UUID) (*Project, error) {
+	query := `UPDATE projects SET visible = NOT visible, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, lesson_id, slug, title, description, requirements, starter_code,
+			difficulty, xp_reward, hints, order_number, visible, created_at, updated_at`
+	var p Project
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&p.ID, &p.LessonID, &p.Slug, &p.Title, &p.Description, &p.Requirements, &p.StarterCode,
+		&p.Difficulty, &p.XPReward, &p.Hints, &p.OrderNumber, &p.Visible, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("project not found")
+		}
+		return nil, fmt.Errorf("failed to toggle project visibility: %w", err)
+	}
+	return &p, nil
 }
 
 // ── Section Operations ──
@@ -895,4 +999,16 @@ func getLessonDependenciesTx(ctx context.Context, tx pgx.Tx, lessonID pgtype.UUI
 		return nil, fmt.Errorf("row iteration error: %w", rows.Err())
 	}
 	return deps, nil
+}
+
+// AddUserXP awards XP to a user's total.
+func (s *PostgresStore) AddUserXP(ctx context.Context, userID uuid.UUID, xp int) error {
+	if xp <= 0 {
+		return nil
+	}
+	_, err := s.pool.Exec(ctx, `UPDATE users SET xp = xp + $1 WHERE id = $2`, xp, userID)
+	if err != nil {
+		return fmt.Errorf("failed to add user XP: %w", err)
+	}
+	return nil
 }
