@@ -44,6 +44,8 @@ export default function CurriculumAdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sections, setSections] = useState<LessonSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingModules, setLoadingModules] = useState(false);
+  const [loadingLessons, setLoadingLessons] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
 
   // Form states
@@ -67,18 +69,27 @@ export default function CurriculumAdminPage() {
   }, [loadCourses]);
 
   const loadModules = useCallback(async (courseId: string) => {
+    setLoadingModules(true);
+    setModules([]);
     const res = await fetchModules(courseId);
     if (res.success && res.data) setModules(res.data);
+    else toast.error(res.error?.message || "Failed to load modules");
+    setLoadingModules(false);
   }, []);
 
   const loadLessons = useCallback(async (moduleId: string) => {
+    setLoadingLessons(true);
+    setLessons([]);
     const res = await fetchLessons(moduleId);
     if (res.success && res.data) setLessons(res.data);
+    else toast.error(res.error?.message || "Failed to load lessons");
+    setLoadingLessons(false);
   }, []);
 
   const loadProjects = useCallback(async (lessonId: string) => {
     const res = await fetchProjects(lessonId);
     if (res.success && res.data) setProjects(res.data);
+    else toast.error(res.error?.message || "Failed to load projects");
   }, []);
 
   const loadSections = useCallback(async (lessonId: string) => {
@@ -488,9 +499,14 @@ export default function CurriculumAdminPage() {
                 {/* Modules nested under course */}
                 {expandedCourse === course.id && (
                   <div className="ml-3 mt-1 space-y-1 border-l-2 border-muted pl-3">
-                    {modules.length === 0 && (
+                    {loadingModules ? (
+                      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                        Loading modules...
+                      </div>
+                    ) : modules.length === 0 ? (
                       <p className="text-xs text-muted-foreground py-2 italic">No modules yet</p>
-                    )}
+                    ) : null}
                     {modules.map((mod) => (
                       <div
                         key={mod.id}
@@ -562,12 +578,17 @@ export default function CurriculumAdminPage() {
 
               {/* Lessons list */}
               <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                {lessons.length === 0 && (
+                {loadingLessons ? (
+                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                    Loading lessons...
+                  </div>
+                ) : lessons.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed rounded-xl">
                     <FileText className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
                     <p className="text-sm text-muted-foreground">No lessons in this module</p>
                   </div>
-                )}
+                ) : null}
                 {lessons.map((lesson) => (
                   <Card
                     key={lesson.id}
