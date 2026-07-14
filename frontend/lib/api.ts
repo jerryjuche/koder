@@ -703,6 +703,12 @@ export async function deleteModule(id: string): Promise<ApiResponse<{ status: st
   });
 }
 
+export async function toggleModuleVisibility(id: string): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchLessons(moduleId: string): Promise<ApiResponse<Lesson[]>> {
   return fetchApi<Lesson[]>(`/admin/modules/${moduleId}/lessons`);
 }
@@ -727,6 +733,12 @@ export async function deleteLesson(id: string): Promise<ApiResponse<{ status: st
   });
 }
 
+export async function toggleLessonVisibility(id: string): Promise<ApiResponse<Lesson>> {
+  return fetchApi<Lesson>(`/admin/lessons/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchProjects(lessonId: string): Promise<ApiResponse<Project[]>> {
   return fetchApi<Project[]>(`/admin/lessons/${lessonId}/projects`);
 }
@@ -748,6 +760,12 @@ export async function updateProject(id: string, data: Partial<Project>): Promise
 export async function deleteProject(id: string): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/projects/${id}`, {
     method: "DELETE",
+  });
+}
+
+export async function toggleProjectVisibility(id: string): Promise<ApiResponse<Project>> {
+  return fetchApi<Project>(`/admin/projects/${id}/visibility`, {
+    method: "PATCH",
   });
 }
 
