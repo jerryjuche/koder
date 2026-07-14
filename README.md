@@ -1,6 +1,6 @@
 # Koder
 
-> A zero-cost, production-grade automated code-grading platform for Go and Python programming curricula.  
+> A zero-cost, production-grade automated code-grading platform for **Go** and **Python** programming curricula.  
 > Built for constraint. Engineered for correctness. Designed for scale within those constraints.
 
 ---
@@ -28,7 +28,7 @@
 
 ## 1. Project Overview
 
-**Koder** is a self-hosted, automated programming assignment grader. It ingests a GitHub-based Go curriculum, processes raw exercise definitions through a generative AI enrichment pipeline, and evaluates student function submissions inside ephemeral, isolated Docker containers — all at **$0/month** operating cost.
+**Koder** is a self-hosted, automated programming assignment grader supporting **Go** and **Python** curricula. It ingests curriculum definitions, processes raw exercise definitions through an AI enrichment pipeline (NVIDIA NIM / DeepSeek V4 Flash), and evaluates student function submissions inside ephemeral, isolated sandboxes — all at **$0/month** operating cost.
 
 ### Primary Constraints (Non-Negotiable)
 
@@ -37,8 +37,8 @@
 | $0/month operating budget | Every infrastructure choice must target a free tier |
 | ARM64 host (Oracle Ampere A1) | All Docker images and binaries must be ARM64-compatible |
 | 500MB Supabase storage | No bloated JSONB, no redundant columns |
-| 50 Gemini API calls/day | Ingest + Enrich must be idempotent with SHA256 change detection |
-| 2 req/min Gemini rate | Sequential enrichment with enforced sleep between calls |
+| NVIDIA NIM API quota (DeepSeek V4 Flash) | Ingest + Enrich must be idempotent with SHA256 change detection |
+| 3 retries with exponential backoff | 429/503 retry handling with 2s/4s/8s backoff |
 | 6 concurrent executions max | Buffered-channel semaphore (configurable via EXECUTOR_MAX_CONCURRENCY) |
 | 5 submissions per 45s per user | Per-user sliding window rate limiter; admins exempt |
 
@@ -46,7 +46,7 @@
 
 - It is **not** a general-purpose LeetCode clone. It grades Go functions against a known, AI-enriched spec.
 - It is **not** async. The execution pipeline is synchronous and blocking by design. Adding Redis, queues, or goroutine pools would violate the simplicity and resource constraints.
-- It is **not** multi-language at launch. Language field exists for future extension; only `go` is implemented in Phase 1–4.
+- It is **not** a general-purpose LeetCode clone. It grades Go and Python functions against a known, AI-enriched spec.
 
 ---
 
@@ -64,9 +64,9 @@
 **Decision:** `os/exec` + `docker run` for sandboxed execution.  
 **Rationale:** gVisor requires kernel configuration the Oracle free tier does not support. WASM for Go is immature. Docker with `--network=none --memory=64m` provides sufficient isolation without custom kernel modules.
 
-### ADR-004: Structured Outputs over Prompt Parsing
-**Decision:** Use Gemini SDK's `ResponseSchema` configuration, never parse fenced markdown from raw text responses.  
-**Rationale:** Markdown-wrapped JSON parsing is brittle, breaks on model version updates, and introduces error surfaces on every field. Structured outputs give compile-time-equivalent guarantees on the shape of AI responses.
+### ADR-004: System Prompt JSON over Structured Outputs  
+**Decision:** Use system prompt enforcement of JSON output; NVIDIA NIM's DeepSeek V4 Flash does not reliably support `response_format: json_object` (returns schema instead of data).  
+**Rationale:** A well-crafted system prompt with example JSON output, combined with post-response validation and JSON extraction (strip markdown fences, extract first `{...}` block), provides equivalent reliability without depending on API-side structured output support.
 
 ### ADR-005: Go `text/template` for Test File Generation
 **Decision:** Generate `main_test.go` at runtime from a compiled Go template, not string concatenation.  
@@ -87,35 +87,33 @@
                           │ HTTPS
 ┌─────────────────────────▼───────────────────────────────────────┐
 │               Vercel Hobby Tier (Frontend)                      │
-│         Next.js 14 App Router + Tailwind + Monaco               │
+│         Next.js 15 App Router + Tailwind CSS 4 + Monaco         │
 └─────────────────────────┬───────────────────────────────────────┘
-                          │ HTTPS REST API
+                          │ HTTPS REST API + WebSocket
 ┌─────────────────────────▼───────────────────────────────────────┐
-│        Oracle Cloud Free Tier — Ampere A1 (ARM64)               │
+│            Go Monolith — Render / Oracle (ARM64)                │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │            Go Monolith (Port 8080)                       │   │
-│  │  ┌────────────┐  ┌───────────────┐  ┌────────────────┐  │   │
-│  │  │  Pipeline  │  │   Pipeline    │  │   Pipeline     │  │   │
-│  │  │  1: Ingest │  │  2: Enrich    │  │  3: Execute    │  │   │
-│  │  └────────────┘  └───────┬───────┘  └───────┬────────┘  │   │
-│  └──────────────────────────┼───────────────────┼──────────┘   │
-│                             │ Gemini API         │ docker run   │
-│  ┌──────────────────────────┼───────────────────▼──────────┐   │
-│  │                          │      Docker Daemon           │   │
-│  │                          │   golang:1.23-alpine         │   │
-│  │                          │   /tmp/koder/<uuid>/     │   │
-│  └──────────────────────────┼──────────────────────────────┘   │
-└──────────────────────────────┼──────────────────────────────────┘
-                               │ HTTPS
-┌──────────────────────────────▼──────────────────────────────────┐
-│              Supabase Free Tier (Postgres)                      │
-│         users / problems / test_cases / submissions / progress  │
+│  │  chi Router → Middleware → Handler → Store (pgx/v5)      │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐   │   │
+│  │  │ Ingest   │  │  Enrich  │  │     Execute           │   │   │
+│  │  │ (parser) │  │ (NVIDIA) │  │ Go / Python sandbox   │   │   │
+│  │  └──────────┘  └────┬─────┘  └──────────┬───────────┘   │   │
+│  └─────────────────────┼───────────────────┼────────────────┘   │
+│                        │ NVIDIA NIM API     │ HTTP              │
+│                        │ (DeepSeek V4)      │ (Railway)         │
+└────────────────────────┼───────────────────┼────────────────────┘
+                         │                   │
+┌────────────────────────▼───────────────────▼────────────────────┐
+│  NVIDIA NIM Cloud API            Railway Sandbox Service        │
+│  ai.api.nvidia.com              Go + Python execution          │
+│  /v1/chat/completions           setrlimit, AST validation      │
 └─────────────────────────────────────────────────────────────────┘
-                               │ REST
-┌──────────────────────────────▼──────────────────────────────────┐
-│            Google AI Studio Free Tier                           │
-│              gemini-2.5-pro (Structured Outputs)               │
-│         50 req/day · 2 req/min · 32k TPM                       │
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│              Supabase Free Tier (Postgres 500MB)                │
+│  users / problems / test_cases / submissions / progress         │
+│  feedback / broadcasts / notifications / ai_usage_logs          │
+│  refresh_tokens / curriculum CMS (courses→modules→lessons)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -126,182 +124,185 @@
 ```
 koder/
 ├── README.md                        # This file
-├── SESSION_LOG.md                   # Session logbook (AI pairing context)
 ├── CLAUDE.md                        # Project index for AI assistants
+├── audit.txt                        # Latest comprehensive audit report
+├── implementation.md                # Curriculum CMS implementation plan
+├── progress.md                      # Curriculum CMS progress tracker
 ├── .env.example                     # All required environment variables documented
-├── .gitignore
-├── go.mod                           # module github.com/jerryjuche/koder
-├── go.sum
+├── .github/workflows/ci.yml         # CI: go vet, test, build; frontend lint, tsc, build
+├── go.mod / go.sum                  # module github.com/jerryjuche/koder
 │
 ├── cmd/server/
-│   └── main.go                      # Entry point: wires deps, starts HTTP server
+│   └── main.go                      # Entry point: JSON logging, graceful shutdown
 │
 ├── internal/
-│   ├── config/
-│   │   └── config.go                # Loads and validates all env vars at startup
+│   ├── config/config.go             # Env var loading, startup validation, defaults
 │   │
 │   ├── store/                       # DATABASE LAYER — pure pgx/v5, no ORM
-│   │   ├── store.go                 # Store interface + postgres implementation
-│   │   ├── errors.go                # FriendlyError type + unique constraint violation detection
-│   │   ├── users.go                 # User CRUD, bcrypt auth, Google linking
-│   │   ├── problems.go              # Problem queries + visibility management
+│   │   ├── store.go                 # Store interface (80+ methods) + PostgresStore impl
+│   │   ├── errors.go                # FriendlyError type + unique constraint detection
+│   │   ├── types.go                 # All data types: User, Problem, Submission, etc.
+│   │   ├── users.go                 # User CRUD, bcrypt, Google linking, export, search
+│   │   ├── problems.go              # Problem queries, JSONB language_versions encoding
+│   │   ├── submissions.go           # Submission insert, community solutions, likes
+│   │   ├── progress.go              # Upsert progress, XP, streak calculation
 │   │   ├── testcases.go             # Test case queries with JSONB handling
-│   │   ├── submissions.go           # Submission insert + history queries
-│   │   ├── progress.go              # Upsert progress, XP logic
-│   │   ├── admin.go                 # Admin-level DB operations
+│   │   ├── admin.go                 # Admin stats, activity, publish, user verify
+│   │   ├── curriculum.go            # Curriculum CMS CRUD (courses→modules→lessons→sections)
 │   │   ├── feedback.go              # Feedback/bug report CRUD
 │   │   ├── broadcasts.go            # Broadcast CRUD store methods
-│   │   ├── user_problems.go         # User-submitted problem staging & approval
-│   │   └── types.go                 # FullProfile, ActivityEntry, LeaderboardUser, shared types
+│   │   ├── notifications.go         # Create, get, mark-read, notify-all
+│   │   ├── user_problems.go         # Community problem staging & approval
+│   │   ├── profile.go               # Full profile, module proficiency, recent submissions
+│   │   ├── ai_usage.go              # AI usage logging and stats (graceful missing table)
+│   │   ├── refresh_tokens.go        # Refresh token rotation + reuse detection
+│   │   ├── password_reset.go        # PIN + email password reset tokens
+│   │   └── token_blacklist.go       # JWT revocation for logout
 │   │
-│   ├── broker/                      # WebSocket event pub/sub
-│   │   └── broker.go                # In-memory pub/sub with Subscribe/Unsubscribe/Publish
+│   ├── auth/
+│   │   ├── jwt.go                   # JWT sign/verify (HS256), token refresh
+│   │   ├── password.go              # bcrypt hash/check
+│   │   └── oauth.go                 # Google ID token verification (JWKS)
 │   │
-│   ├── parser/                      # PIPELINE 1: Ingest
-│   │   ├── parser.go                # Git clone/pull, directory walk
-│   │   ├── extractor.go             # Markdown parsing, SHA256 hashing
-│   │   └── types.go                 # RawExercise struct
+│   ├── broker/broker.go             # In-memory pub/sub for WebSocket events
 │   │
-│   ├── enricher/                    # PIPELINE 2: Enrich
-│   │   ├── enricher.go              # Gemini API calls, structured output schema
-│   │   ├── schema.go                # ResponseSchema definitions for SDK
-│   │   ├── ratelimiter.go           # 2 req/min enforcer (time.Ticker)
-│   │   └── types.go                 # EnrichedProblem struct
+│   ├── parser/parser.go             # PIPELINE 1: GitHub YAML curriculum parsing
 │   │
-│   ├── executor/                    # PIPELINE 3: Execute
-│   │   ├── executor.go              # Semaphore, docker invocation, output parsing
-│   │   ├── templates.go             # Go text/template for main_test.go generation
-│   │   ├── sandbox.go               # File orchestration, cleanup
-│   │   └── types.go                 # ExecutionResult struct
+│   ├── enricher/enricher.go         # PIPELINE 2: NVIDIA NIM (DeepSeek V4 Flash) AI enrichment
+│   │                                #   Dual-language: Go + Python in language_versions
+│   │                                #   Fallback Python generation (toSnakeCase, toPythonType)
 │   │
-│   ├── api/                         # HTTP LAYER
-│   │   ├── router.go                # Route registration (chi)
-│   │   ├── middleware.go            # Auth JWT, rate limiting, CORS
-│   │   ├── auth.go                  # Login, register, Google Sign-In handlers
-│   │   ├── problems.go              # GET /problems, GET /problems/:slug
-│   │   ├── admin.go                 # POST /admin/ingest, POST /admin/enrich
-│   │   ├── leaderboard.go           # GET /leaderboard
-│   │   ├── profile.go               # GET /me/profile (single get_full_profile() call)
-│   │   ├── me.go                    # GET /me, GET /me/activity (cached)
-│   │   ├── feedback.go              # Feedback & bug report handlers
-│   │   ├── broadcasts.go            # Broadcast CRUD handlers
-│   │   ├── ws.go                    # WebSocket upgrade handler
-│   │   └── responses.go             # Standardized JSON response helpers
+│   ├── executor/                    # PIPELINE 3: Execute (Go + Python)
+│   │   ├── executor.go              # Semaphore, formatGoLiteral, formatPythonLiteral
+│   │   ├── templates.go             # Go text/template + pythonTestTemplate
+│   │   ├── sandbox.go               # Temp dir setup, file writes
+│   │   ├── sandbox_client.go        # HTTP client for remote Railway sandbox
+│   │   ├── parser.go                # GOT/WANT regex parsing
+│   │   └── types.go                 # ExecutionRequest/Result, TestResult
 │   │
-│   └── auth/
-│       ├── jwt.go                   # JWT sign/verify (HS256)
-│       ├── password.go              # bcrypt wrap
-│       └── oauth.go                 # Google ID token verification (oauth2.googleapis.com/tokeninfo)
+│   └── api/                         # HTTP LAYER — chi router
+│       ├── router.go                # Route registration, middleware wiring
+│       ├── middleware.go            # RequestLogging, Recovery, CORS, SecurityHeaders,
+│       │                               Auth, Admin, VerifiedContributor, RateLimit, IPRateLimit
+│       ├── middleware_test.go       # RateLimiter, Auth, CORS, Recovery tests
+│       ├── responses.go / _test.go  # Standardized JSON response helpers
+│       ├── auth.go                  # Register, login, Google, logout, refresh, onboarding
+│       ├── me.go                    # GET /me, set username/language, delete account, export
+│       ├── change_password.go       # PIN verification and password change
+│       ├── pin_reset.go             # PIN-based password recovery
+│       ├── password_reset.go        # Email-based password reset (Resend)
+│       ├── problems.go              # GET /problems, GET /problems/:slug (language_versions-aware)
+│       ├── submissions.go           # POST /submit (rate-limited, scored)
+│       ├── test.go                  # POST /test (no-scoring execution)
+│       ├── admin.go                 # Ingest, enrich, enrich-all, stats, publish, visibility,
+│       │                               AI assist, user search/verify, update
+│       ├── leaderboard.go           # GET /leaderboard (cached)
+│       ├── profile.go               # GET/PUT /me/profile
+│       ├── community.go             # Community solutions, best-practices, likes
+│       ├── contributions.go         # Community problem submissions
+│       ├── activity.go              # Contribution graph data
+│       ├── notifications.go         # Notifications CRUD
+│       ├── feedback.go              # Feedback submit, admin list, status update
+│       ├── broadcasts.go            # Broadcast CRUD + user dismiss
+│       ├── cms.go                   # Curriculum CMS: 26 endpoints (6 student + 20 admin)
+│       ├── cache.go                 # In-memory profile/leaderboard/user caches
+│       └── ws.go                    # WebSocket upgrade (gorilla/websocket)
 │
-├── sandbox/                         # Standalone Go execution sandbox (Railway)
-│   ├── main.go                      # HTTP server: /health, /version, /execute
-│   ├── ratelimit.go                 # Per-IP sliding window rate limiter (10 req/min)
-│   ├── secure.go                    # Pre-exec malicious code validation
-│   ├── secure_unix.go               # setrlimit sandboxing (NPROC/NOFILE/FSIZE)
+├── sandbox/                         # Standalone execution sandbox (Railway, zero external deps)
+│   ├── main.go                      # HTTP server: /health, /version, /execute (language routing)
+│   ├── ratelimit.go                 # Per-IP sliding window (10 req/min)
+│   ├── secure.go                    # Pre-exec malicious code validation (Go + Python)
+│   ├── secure_unix.go              # setrlimit NPROC/NOFILE/FSIZE, Setpgid
 │   ├── secure_other.go              # Noop for non-Unix
-│   ├── Dockerfile                   # Two-stage arm64 build with GIT_COMMIT
-│   └── go.mod                       # Standalone module, zero external deps
+│   ├── pyrunner.go                  # Python test runner (AST validation, run_tests.py)
+│   ├── runtest_go.go                # Go test runner (go.mod, solution.go, main_test.go)
+│   ├── security_message_test.go     # Sandbox security message tests
+│   ├── Dockerfile                   # Two-stage ARM64 build (includes python3)
+│   └── go.mod                       # Zero external deps
 │
-├── migrations/                     # SQL schema (Supabase migrations)
-│   ├── 001_init.sql                # Core schema: users, problems, test_cases, submissions, progress
-│   ├── 002_indexes.sql             # Performance indexes
-│   ├── 003_activity_logs.sql       # Activity logging
-│   ├── 005_community_contributions.sql  # User-submitted problems
-│   ├── 006_notifications.sql       # In-app notifications
-│   ├── 007_submission_likes.sql    # Community solution likes
-│   ├── 008_user_profile.sql        # Profile bio, avatar fields
-│   ├── 009_get_full_profile.sql    # Collapsed 7 queries into get_full_profile()
-│   ├── 010_add_gitea_auth.sql      # (archived) Gitea OAuth identity fields
-│   ├── 011_add_gitea_token.sql     # (archived) Gitea PAT encrypted token storage
-│   ├── 012_add_google_auth.sql     # Google OAuth fields + username + email
-│   ├── 013_fix_rank_tiebreaker.sql # Leaderboard rank tiebreaker fix
-│   ├── 014_feedback.sql            # Feedback & bug report table
-│   ├── 015_broadcasts.sql          # Broadcast announcements + user dismissal
-│   ├── 016_add_streak_index.sql    # Composite index for streak queries
-│   ├── 017_optimization_indexes.sql # 16 performance indexes
-│   ├── 019_seed_problems1.sql      # 45 Go problems (math, arrays, data-structures)
-│   ├── 019_seed_problems2.sql      # 45 Go problems (bit-manipulation, sorting, pointers)
-│   ├── 019_seed_problems3.sql      # 45 Go problems
-│   ├── 019_seed_problems4.sql      # 45 Go problems
-│   ├── 020_token_blacklist.sql     # JWT blacklist for logout
-│   ├── 021_password_reset.sql      # Password reset tokens
-│   ├── 022_add_pin_hash.sql        # PIN hash column for recovery
-│   ├── 023_split_problem_fields.sql # constraints + learning_objective columns
-│   ├── 024_add_username_set.sql    # username_set boolean column
-│   └── 025_report_issue_fields.sql # problem_slug, code_snippet, error_message on feedback
+├── migrations/                      # 37 ordered, idempotent SQL migrations
+│   ├── 001_init.sql                 # Core schema: users, problems, submissions, progress
+│   ├── 002_indexes.sql              # Performance indexes
+│   ├── 003_activity_logs.sql
+│   ├── 005_community_contributions.sql
+│   ├── 006_notifications.sql
+│   ├── 007_submission_likes.sql
+│   ├── 008_user_profile.sql
+│   ├── 009_get_full_profile.sql
+│   ├── 012_add_google_auth.sql
+│   ├── 013_fix_rank_tiebreaker.sql
+│   ├── 014_feedback.sql
+│   ├── 015_broadcasts.sql
+│   ├── 017_optimization_indexes.sql
+│   ├── 019_seed_problems{1-4}.sql   # 180 seed problems (Go)
+│   ├── 020_token_blacklist.sql
+│   ├── 021_password_reset.sql
+│   ├── 022_add_pin_hash.sql
+│   ├── 027_language_versions.sql    # Multi-language JSONB column
+│   ├── 028_backfill_language_versions.sql
+│   ├── 031_python_intermediate_seed.sql
+│   ├── 032_python_variables_math_seed.sql
+│   ├── 034_python_arrays_strings_seed.sql
+│   ├── 035_ai_usage_logs.sql
+│   ├── 036_refresh_tokens.sql
+│   ├── 037_seed_go_fundamentals.sql
+│   └── 038_curriculum_cms.sql       # Courses → Modules → Lessons → Sections
 │
-├── frontend/                        # Next.js App Router project
+├── frontend/                        # Next.js 15 App Router
 │   ├── app/
-│   │   ├── layout.tsx
-│   │   │   ├── oauth/                # OAuth callback (token capture + replaceState scrub)
-│   │   ├── (auth)/                  # Login/register pages
+│   │   ├── layout.tsx               # Root layout: fonts, metadata, UserContext
+│   │   ├── globals.css              # Tailwind CSS 4 + theme variables
+│   │   ├── not-found.tsx / error.tsx
+│   │   ├── landing/page.tsx         # Marketing landing page
+│   │   ├── oauth/callback/page.tsx
+│   │   ├── (auth)/                  # Login, register, forgot-password, reset-password, onboarding
 │   │   ├── (main)/
-│   │   │   ├── page.tsx             # Dashboard / problem grid
-│   │   │   ├── leaderboard/        # Leaderboard with podium + table
-│   │   │   │   ├── page.tsx         # Server wrapper
-│   │   │   │   ├── LeaderboardClient.tsx  # Full leaderboard UI
-│   │   │   │   ├── loading.tsx
-│   │   │   │   └── error.tsx
-│   │   │   ├── profile/            # Profile page with tabs
-│   │   │   │   ├── page.tsx         # Server wrapper
-│   │   │   │   ├── ProfileClient.tsx
-│   │   │   │   ├── components/
-│   │   │   │   │   ├── ProfileHeader.tsx
-│   │   │   │   │   ├── StatsOverview.tsx
-│   │   │   │   │   ├── ProgressMetrics.tsx
-│   │   │   │   │   ├── Achievements.tsx
-│   │   │   │   │   ├── MyContributions.tsx
-│   │   │   │   │   ├── ActivityFeed.tsx
-│   │   │   │   │   └── ContributionGraphSection.tsx
-│   │   │   │   ├── loading.tsx
-│   │   │   │   └── error.tsx
-│   │   │   └── admin/              # Admin panel
-│   │   │       ├── page.tsx         # Main dashboard with WebSocket live updates
-│   │   │       ├── BroadcastPanel.tsx    # Broadcast CRUD with toggle switch
-│   │   │       ├── FeedbackPanel.tsx     # Feedback management
-│   │   │       ├── PendingContributions.tsx
-│   │   │       ├── ProblemEditPanel.tsx  # Inline problem editor with preview
-│   │   │       └── ProblemReports.tsx    # Bug reports grouped by problem slug
-│   │   ├── problems/[slug]/         # Monaco Editor workspace
-│   │   ├── not-found.tsx            # Professional 404 page
-│   │   └── layout.tsx
+│   │   │   ├── layout.tsx           # TopNav + BroadcastBanner + FeedbackButton
+│   │   │   ├── home/page.tsx        # Dashboard with module cards + pagination
+│   │   │   ├── problems/            # Problem listing + [slug]/ workspace (Monaco)
+│   │   │   ├── leaderboard/         # Top 100 with podium + period filter
+│   │   │   ├── profile/             # Full profile: tabs, stats, activity heatmap
+│   │   │   ├── settings/            # Profile, security, notifications tabs
+│   │   │   ├── contribute/          # Community problem contribution form
+│   │   │   ├── admin/               # Dashboard, BroadcastPanel, FeedbackPanel,
+│   │   │   │                           PendingContributions, ProblemReports,
+│   │   │   │                           UserVerificationPanel, curriculum/ CMS
+│   │   │   └── learn/               # Curriculum CMS student view
+│   │   │       ├── layout.tsx
+│   │   │       ├── courses/         # Course catalog → detail → module → lesson viewer
+│   │   │       └── .../[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/
+│   │   └── (legal)/privacy, terms
 │   ├── components/
-│   │   ├── ui/                     # shadcn/ui primitives
-│   │   │   ├── activity-gauge.tsx   # Radial bar chart gauge (recharts)
-│   │   │   ├── avatar.tsx
-│   │   │   ├── badge.tsx
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── dialog.tsx
-│   │   │   ├── dropdown-menu.tsx
-│   │   │   ├── input.tsx
-│   │   │   ├── progress.tsx
-│   │   │   ├── tabs.tsx
-│   │   │   └── tooltip.tsx
-│   │   ├── Editor.tsx               # Monaco Editor wrapper
-│   │   ├── TestResultPanel.tsx
-│   │   ├── HintAccordion.tsx
-│   │   ├── ProblemCard.tsx
-│   │   └── kibo-ui/
-│   │       └── contribution-graph.tsx # GitHub-style activity graph
-│   ├── hooks/
-│   │   └── ...                      # Custom React hooks
+│   │   ├── ui/                      # shadcn/ui primitives (avatar, badge, button, card,
+│   │   │                               dialog, dropdown-menu, input, input-otp, label,
+│   │   │                               progress, select, tabs, textarea, tooltip, etc.)
+│   │   ├── auth/                    # Google button, label-input, divider, gradient
+│   │   ├── base/avatar.tsx          # Avatar with src/initials fallback + verified badge
+│   │   ├── base/input/pin-input.tsx # OTP PIN input
+│   │   ├── kibo-ui/                 # Code block (Shiki), contribution graph
+│   │   ├── learn/                   # SectionRenderer, SectionQuiz, SectionExercise
+│   │   │                               (Monaco), LessonSidebar
+│   │   ├── BroadcastBanner.tsx
+│   │   ├── FeedbackButton.tsx
+│   │   ├── LanguageLogo.tsx         # Go/Python SVG icons
+│   │   ├── LanguageSelector.tsx
+│   │   ├── TestResultPanel.tsx      # LCS unified diff display
+│   │   ├── layout/TopNav.tsx        # Nav: Dashboard, Problems, Learn, Leaderboard, Admin
+│   │   └── dashboard/ModuleCards.tsx
+│   ├── hooks/                       # use-google-one-tap, use-has-mounted, use-mobile
 │   ├── lib/
-│   │   ├── api.ts                   # Typed fetch wrappers for backend
-│   │   ├── event.ts                 # WebSocket hook with typed subscriptions
-│   │   ├── types.ts                 # Shared TypeScript types
-│   │   ├── utils.ts                 # cn(), getUserColor(), etc.
-│   │   └── UserContext.tsx          # Auth/user context provider
-│   ├── next.config.ts
+│   │   ├── api.ts                   # 40+ typed endpoint functions
+│   │   ├── types.ts                 # All TypeScript interfaces
+│   │   ├── UserContext.tsx           # Auth state provider
+│   │   ├── useNotifications.ts      # 15s polling for unread count
+│   │   ├── event.ts                 # WebSocket hook with auto-reconnect
+│   │   ├── cache.ts                 # sessionStorage cache with 30s TTL
+│   │   ├── achievements.ts / utils.ts / toast.tsx / index.ts
+│   │   └── monaco-theme.ts          # VS Code Dark+ theme registration
+│   ├── middleware.ts                 # CSP security headers
 │   └── package.json
 │
-├── scripts/
-│   ├── seed.sql                     # Dev seed data
-│   └── setup-docker-cache.sh        # Pre-warms /tmp/go-build-cache on host
-│
-└── docs/
-    ├── adr/                         # Architecture Decision Records
-    └── diagrams/                    # System diagrams (Mermaid source)
+└── scripts/                         # reset_data.sql, setup-docker-cache.sh
 ```
 
 ---
@@ -411,6 +412,27 @@ CREATE INDEX idx_submissions_problem ON submissions(problem_id);
 CREATE INDEX idx_progress_user       ON progress(user_id);
 ```
 
+### Additional Tables (Post-Phase 5)
+
+| Table | Purpose | Key Columns |
+|---|---|---|
+| `feedback` | Bug reports & feature requests | type, priority, status, screenshot_url, problem_slug |
+| `broadcasts` | System announcements | type, priority, title, message, action_label/url, active |
+| `user_broadcast_status` | Per-user dismissal tracking | user_id + broadcast_id PK, dismissed_at |
+| `notifications` | User alerts | type, message, related_id, is_read |
+| `password_reset_tokens` | Email-based password reset | email, token_hash, expires_at, used |
+| `token_blacklist` | JWT revocation | jti, expires_at |
+| `refresh_tokens` | Refresh token rotation | user_id, token_hash, expires_at, revoked |
+| `ai_usage_logs` | AI enrichment tracking | user_id, action, tokens_in/out, success |
+| `courses` | Curriculum: top-level groupings | slug, title, description, difficulty_level, order_number |
+| `modules` | Curriculum: course chapters | course_id FK, slug, title, order_number, visible |
+| `lessons` | Curriculum: individual lessons | module_id FK, slug, title, xp_reward, problem_references |
+| `lesson_sections` | Typed content blocks (11 types) | lesson_id FK, section_type ENUM, content, metadata JSONB |
+| `lesson_dependencies` | Prerequisite DAG | lesson_id + depends_on_lesson_id (composite PK) |
+| `projects` | Mini projects | lesson_id FK, slug, requirements, starter_code, hints |
+| `course_progress` | Per-user course tracking | user_id + course_id PK, progress_pct |
+| `lesson_progress` | Per-user lesson completion | user_id + lesson_id PK, completed, xp_awarded |
+
 ### Key Data Model Notes
 
 **`test_cases.input` (JSONB)**  
@@ -461,42 +483,32 @@ ON CONFLICT (slug) UPDATE raw_readme, source_hash, updated_at
 SELECT problems WHERE source_hash changed OR statement IS NULL
       │
       ▼
-For each problem (rate-limited: 1 call per 30s):
+For each problem (NVIDIA NIM, 3-retry exponential backoff):
       │
       ▼
-Gemini API Call:
-  System: "You are a Go programming tutor..."
+NVIDIA NIM API Call (DeepSeek V4 Flash):
+  System: "You are a programming curriculum author..."
+          (Dual-language prompt: Go + Python entries in language_versions)
   User: {raw_readme}
-  ResponseSchema: EnrichedProblem {
-    title: string
-    statement: string       -- Rephrased clean markdown
-    func_name: string
-    return_type: string
-    param_types: []string
-    test_cases: []TestCaseInput {
-      input: []any           -- Ordered args
-      expected: string
-      is_hidden: bool
-    }
-    hints: [3]string         -- Progressive difficulty
-    difficulty: int (1-5)
-    xp_reward: int
-    tags: []string
-  }
+  Response: {JSON in markdown fence — stripped and parsed}
       │
       ▼
-Validate response (non-empty func_name if type=function, len(hints)==3)
+Parse + validate JSON:
+  - Extract first {...} block from response
+  - Validate: title, func_name (Go), 3 hints, 5+ test cases
+  - Build LanguageVersions from AI output or fallback
       │
       ▼
-UPDATE problems SET statement, func_name, return_type, param_types,
-                    hints, difficulty, xp_reward, tags, updated_at
-DELETE + INSERT test_cases for this problem_id
+Auto-generate Python entry if AI omitted it:
+  - PascalCase → snake_case via toSnakeCase()
+  - Go types → Python types via toPythonType()
+      │
+      ▼
+Upsert enriched problem + test cases in single transaction:
+  UPDATE problems SET statement, func_name, return_type, param_types,
+                      hints, difficulty, xp_reward, tags, language_versions
+  DELETE + INSERT test_cases for this problem_id
 ```
-
-**Critical Gemini prompt rules:**
-- Explicitly instruct the model to replace all `z01.PrintRune` calls with `fmt.Printf("%c", r)`
-- Explicitly instruct the model to use only standard library imports in test inputs
-- Instruct the model that `expected` values are always stringified Go literals (e.g., `"42"` not `42`)
 
 ### Pipeline 3 — Execute (Student-Triggered, Real-Time)
 
@@ -504,62 +516,44 @@ DELETE + INSERT test_cases for this problem_id
 POST /submit {problem_slug, code, language}
       │
       ▼
-Solved guard: if problem.Solved → 409 ALREADY_SOLVED (submit only; test endpoint skips guard)
+Solved guard + rate limit check (5 req/45s per user)
       │
       ▼
 Acquire semaphore (buffered channel cap=6) — blocks if 6 workers active
       │
       ▼
 Load problem + test_cases from DB
+Resolve language metadata from LanguageVersions
       │
-      ▼
-Create /tmp/koder/<uuid>/
-Write solution.go:
-  package piscine
-  <student code>
-      │
-Write go.mod:
-  module sandbox
-  go 1.22
-      │
-Render main_test.go from template:
-  - Loops over test_cases
-  - Uses == for primitives, reflect.DeepEqual for slices
-  - Each test is a named subtest: t.Run("case_1", ...)
-      │
-      ▼
+      ├── Go ─────────────────────────────────────────────────────┐
+      │ Create /tmp/koder/<uuid>/                                  │
+      │ Write solution.go (package piscine) + go.mod               │
+      │ Render main_test.go from Go template:                      │
+      │   text/template with == for primitives,                    │
+      │   reflect.DeepEqual for slices                             │
+      │                                                            │
+      ├── Python ─────────────────────────────────────────────────┤
+      │ Create /tmp/koder/<uuid>/                                  │
+      │ Write solution.py                                          │
+      │ Render run_tests.py from pythonTestTemplate:               │
+      │   JSON tuple literals via formatPythonLiteral()            │
+      │   Handles bools, None, nested types correctly             │
+      │                                                            │
+      ▼                                                            ▼
 Is SANDBOX_URL set?
-      ├── YES ───────────────────────────────────────────────┐
-      │ POST /execute to remote sandbox                        │
-      │ {code, test_code, timeout_sec}                         │
-      │                                                         │
-      ▼                                                         ▼
-context.WithTimeout(30s)                             context.WithTimeout(30s)
-exec.CommandContext(ctx, "docker", "run",     HTTP POST to SANDBOX_URL/execute
-  "--rm", "--network=none", "--memory=64m",   with 2-retry exponential backoff
-  "-v", "/tmp/koder/<uuid>:/app",
-  "-v", "/tmp/go-build-cache:/root/.cache/go-build",
-  "-w", "/app",
-  "golang:1.23-alpine", "go", "test", "./...")
+  ├── YES → POST /execute with {code, test_code, timeout_sec, language}
+  │         2-retry exponential backoff
+  └── NO  → exec.CommandContext with language-specific Docker image:
+             golang:1.23-alpine or python:3.12-slim
       │                                         │
       ▼                                         ▼
-Parse stdout line by line:            Parse SandboxResponse JSON:
-  "--- PASS: TestCase_N"               status = "passed"|"failed"|"compiler_error"|"timeout"
-  "--- FAIL: TestCase_N"               passed_count / total_count / stdout
-  Exit code != 0 → compiler_error
-  Deadline exceeded → timeout
+Parse result:                              Parse SandboxResponse JSON:
+  GOT/WANT regex extraction                  status, passed/total, stdout
+  PASS/FAIL classification                   Error field for compile errors
       │                                         │
       └─────────────────┬───────────────────────┘
                         ▼
-INSERT submissions row
-UPSERT progress row (solved, stars, attempts, best_runtime, xp_awarded)
-UPDATE users.xp (if first solve)
-      │
-      ▼
-If Docker path: os.RemoveAll(/tmp/koder/<uuid>)
-Release semaphore
-      │
-      ▼
+Record submission + update progress in DB
 Return ExecutionResult JSON to client
 ```
 
@@ -666,27 +660,30 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | None | Create account (name + email + password + 6-digit PIN); JWT with `onboarding: true` |
-| POST | `/auth/login` | None | Returns JWT (accepts username/email/student_id) |
-| POST | `/auth/google` | None | Google Sign-In with ID token |
-| POST | `/auth/complete-google` | Student | Set username after Google onboarding (legacy, delegates to complete-onboarding) |
+| POST | `/auth/register` | None | Create account (name + email + password + 6-digit PIN); JWT + refresh_token |
+| POST | `/auth/login` | None | Returns JWT + refresh_token (accepts username/email/student_id) |
+| POST | `/auth/google` | None | Google Sign-In with ID token; auto-creates account if new |
 | POST | `/auth/complete-onboarding` | Student | Set username + student_id after any auth method |
 | POST | `/auth/link-google` | Student | Link Google account to existing authenticated user |
 | POST | `/auth/change-password` | Student | Verify PIN + set new password (authenticated) |
+| POST | `/auth/verify-pin` | Student | Verify current PIN |
+| POST | `/auth/set-pin` | Student | Set initial PIN |
 | POST | `/auth/forgot-password` | None | Email-based reset link (Resend API) |
 | POST | `/auth/reset-password` | None | Complete email-based reset with token |
 | POST | `/auth/forgot-password-pin` | None | PIN-based: email + 6-digit PIN → short-lived JWT (5 min, rate limited) |
 | POST | `/auth/reset-password-pin` | None | PIN-based: JWT + new password → update |
+| POST | `/auth/refresh` | Student | Rotate refresh token; reuse detection revokes all sessions |
+| POST | `/auth/logout` | Student | Revoke JWT + all refresh tokens |
 | GET | `/auth/check-username?username=xxx` | None | Username availability check (public) |
 
 ### Problems
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/problems` | Student | List visible problems with progress overlay |
-| GET | `/problems/:slug` | Student | Full problem detail + non-hidden test cases |
-| POST | `/submit` | Student | Submit code for grading (rate limited: 5 req/45s) |
-| POST | `/test` | Student | Test code without scoring |
+| GET | `/problems?language=` | Student | List visible problems with solved status; optional language filter |
+| GET | `/problems/:slug` | Student | Full problem detail + non-hidden test cases + language_versions |
+| POST | `/submit` | Student | Submit code for grading (rate limited: 5 req/45s, language validated) |
+| POST | `/test` | Student | Test code without scoring (rate limited: 5 req/45s) |
 
 ### User / Profile
 
@@ -696,9 +693,11 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/me/profile` | Student | Full profile (stats, modules, achievements, difficulty, contributions) |
 | PUT | `/me/profile` | Student | Update name and bio |
 | PUT | `/me/username` | Student | Set username (one-time, only when `username_set` is false) |
-| POST | `/me/delete-account` | Student | Permanently delete account and all data |
+| PUT | `/me/language` | Student | Set primary language preference (go/python) |
+| POST | `/me/delete-account` | Student | Transactional cascade delete, revokes refresh tokens |
 | GET | `/me/activity?year=2026` | Student | Daily activity entries for contribution graph |
 | GET | `/me/contributions` | Student | User's problem contribution submissions |
+| GET | `/me/export-data` | Student | Full account data export (JSON attachment) |
 | GET | `/profile/:username` | Student | Another user's profile |
 | GET | `/profile/:username/stats` | Student | Another user's performance stats |
 
@@ -750,11 +749,16 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | POST | `/admin/ingest` | Admin | Trigger Pipeline 1 against GitHub repo |
 | POST | `/admin/enrich` | Admin | Trigger Pipeline 2 for a single problem |
 | POST | `/admin/enrich-all` | Admin | Batch enrich all pending problems |
-| POST | `/admin/problems/publish-all` | Admin | Publish all draft (hidden) problems |
-| PATCH | `/admin/problems/{id}/visibility` | Admin | Toggle `visible` flag |
-| GET | `/admin/stats` | Admin | Dashboard statistics |
+| POST | `/admin/ai/assist` | Admin | AI admin assistant (rate-limited: 15 req/60s) |
+| GET | `/admin/stats` | Admin | Dashboard statistics (incl. AI call counts) |
 | GET | `/admin/activity` | Admin | Recent activity log |
+| GET | `/admin/ai/usage` | Admin | AI usage statistics (per-user, action, success/failure) |
 | GET | `/admin/problems` | Admin | All problems including hidden |
+| PATCH | `/admin/problems/{id}/visibility` | Admin | Toggle `visible` flag |
+| PUT | `/admin/problems/{id}` | Admin | Update a problem's editable fields (includes language_versions) |
+| POST | `/admin/problems/publish-all` | Admin | Publish all draft problems (single UPDATE) |
+| GET | `/admin/users/search?q=` | Admin | Search users by name/username (min 2 chars) |
+| PATCH | `/admin/users/{id}/verified` | Admin | Toggle user verified status |
 | GET | `/admin/user-problems/pending` | Admin | List pending user submissions |
 | PATCH | `/admin/user-problems/{id}/approve` | Admin | Approve user problem submission |
 | PATCH | `/admin/user-problems/{id}/reject` | Admin | Reject user problem submission |
@@ -763,9 +767,12 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | PATCH | `/admin/broadcasts/{id}/deactivate` | Admin | Deactivate a broadcast |
 | PATCH | `/admin/broadcasts/{id}/activate` | Admin | Activate a broadcast |
 | DELETE | `/admin/broadcasts/{id}` | Admin | Permanently delete a broadcast |
+| GET | `/admin/feedback` | Admin | List feedback with optional `?status=` filter |
+| GET | `/admin/feedback/counts` | Admin | Feedback counts by status |
+| PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 | GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
-| PUT | `/admin/problems/{id}` | Admin | Update a problem's editable fields |
-| POST | `/admin/problems/publish-all` | Admin | Publish all draft problems (single UPDATE) |
+| GET | `/health` | None | Service health (db ping, env info) |
+| GET | `/version` | None | Build commit + time + Go version |
 
 ### Response Envelope
 
@@ -794,273 +801,139 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 ### Stack
 
-- **Next.js 14** (App Router, Server Components where appropriate)
-- **Tailwind CSS** with CSS variables (brand primary `#D4AF37` mapped to `fill-primary`, `stroke-primary`, etc.)
-- **shadcn/ui** (component library — Card, Badge, Button, Avatar, Dialog, Tabs, Tooltip, DropdownMenu, Input, Progress)
+- **Next.js 15** (App Router, Server Components where appropriate, React 19)
+- **Tailwind CSS 4** with CSS variables
+- **shadcn/ui** (component library — Avatar, Badge, Button, Card, Dialog, DropdownMenu, Tabs, etc.)
 - **recharts** (radial bar charts for activity gauges)
-- **Monaco Editor** (VS Code editor engine, Go language support)
+- **Monaco Editor** (VS Code engine, Go + Python language support, VS Code Dark+ theme)
 - **Vercel Hobby Tier** (static/SSR hybrid deployment)
 
 ### State Management
 
-- `UserContext` (`lib/UserContext.tsx`) — wraps `fetchUser()` with `user-updated` event listener for reactive auth state
-- No Redux. React Server Components for read-heavy pages, `useState` + `fetch` for interactive flows
-- JWT stored in `localStorage`, sent via `Authorization: Bearer` header
+- `UserContext` — wraps `fetchUser()` with event listener for reactive auth state
+- No Redux. Server Components for read-heavy pages, `useState` + `fetch` for interactive flows
+- JWT in `localStorage`, refresh_token in `localStorage`, `Authorization: Bearer` header
+- Refresh token rotation with singleton retry queue (prevents concurrent refresh storms)
 
 ### Key Pages
 
-**`/` — Dashboard**  
-Problem grid filtered by module. Shows per-card: difficulty, XP reward, solved/unsolved state. Filterable by tag and module.
+**`/home` — Dashboard**  
+Problem grid with module cards, difficulty/XP tags, solved/unsolved state. Language filter tabs (All/Go/Python). Solved problems hidden by default.
 
-**`/problems/[slug]` — Problem Workspace**  
-Split-pane: left = problem statement (react-markdown), right = Monaco Editor. Below: Submit button, per-case pass/fail results, 3-level hint accordion.
+**`/problems` — Problem Listing**  
+Side panel filters: solved status, difficulty (1-5), XP range. Strict language tabs. Active filter count + reset.
 
-**`/leaderboard` — Rankings with Podium**  
-- Top 3 displayed as cards with gradient backgrounds, shadcn Avatars, rank badges (Crown/Medal)
-- Top 15 table with shadcn Avatar + name/ID, XP, solved count, best time
-- "You" badge on current user's row, rank delta tooltip (up/down/unchanged)
-- Weekly/Monthly/All Time period filter, search by name or student ID
-- Loading skeleton, error boundary, 30-second auto-polling
+**`/problems/[slug]` — Workspace**  
+Monaco Editor (Go or Python depending on language_versions). Language toggle with save-and-switch per language. Submit/test buttons. LCS unified diff results. Confetti on success. Report bug dialog.
 
-**`/profile` — User Profile with Tabs**  
-Two tabs: **Overview** | **My Contributions**
+**`/learn/courses/...` — Curriculum CMS Student View**  
+Course catalog → course detail with module timeline → module overview → lesson viewer (sidebar + Monaco exercises + quiz sections + progress tracking).
 
-Overview layout:
-1. **ProfileHeader** — Google avatar via `<img>` (fallback to colored initials circle), gradient accent bar, global rank badge, bio, copy link; shows `@{username}` badge
-2. **StatsOverview** — 6-column grid: Level (XP progress bar), Global Rank, Solved, Success Rate, Streak, Best Runtime (all with tooltips)
-3. **ContributionGraphSection** — GitHub-style activity heatmap (recharts-based `kibo-ui` graph)
-4. Two-column grid:
-   - **ProgressMetrics** — Difficulty breakdown (Easy/Medium/Hard bars) + Module Proficiency (2×3 radial activity gauges)
-   - **Achievements** — GitHub-style circular badge grid with tooltips on hover + detail dialog on click
+**`/profile` — User Profile**  
+XP progress bar, rank, solved/streak/best-runtime stats, difficulty breakdown, module proficiency gauges, achievements, contribution heatmap, community contributions.
 
-My Contributions layout:  
-3-column grid: `MyContributions` (user-submitted problems list, 2 cols) + `ActivityFeed` sidebar (achievement grid + recent activity timeline)
+**`/leaderboard` — Rankings**  
+Top 3 podium with gold/silver/bronze. Top 100 table. Weekly/Monthly/All Time filter. Search by name/ID. Custom Avatar component with verified gold checkmark.
 
 **`/settings` — Account Settings**  
-Single Profile tab with name, bio, and read-only username fields
+Profile tab (name, bio), security tab (PIN, password), notification tab. Preview card with custom Avatar.
 
 **`/admin` — Admin Dashboard**  
-Trigger ingest/enrich with live log streaming. Problem approval table with visibility toggle. Broadcast management with toggle switch. Inline problem editor with live preview. Bug reports grouped by problem slug. Only accessible if JWT role = `admin`. Real-time updates via WebSocket.
+Stats grid, ingest/enrich triggers, problem search + visibility toggle, broadcast CRUD, feedback management, user verification, AI usage stats, inline problem editor.
+
+**`/admin/curriculum` — Curriculum CMS**  
+Full-page course/module/lesson tree with inline editors. Section builder (11 types with metadata). Course progress tracking.
 
 ### Key Components
 
-#### TestResultPanel (`components/TestResultPanel.tsx`)
-- LCS-based unified diff (`TerminalDiff`) for multi-line got/want values with git-style `-/+` gutter markers and line numbers
-- Side-by-side grid for single-line values (Got → Expected)
-- System error, compiler error (with friendly_message), and timeout states with debugging tips
-- Circular progress indicator per test suite, per-test-case pass/fail cards
+#### TestResultPanel
+- LCS-based unified diff for multi-line got/want values with git-style markers
+- Side-by-side grid for single-line values
+- Compiler error, timeout states with Python-specific debugging tips
+- Circular progress indicator per test suite
 
-#### Activity Gauge (`components/ui/activity-gauge.tsx`)
-- `recharts` `RadialBarChart` with single gold color (`fill-primary`)
-- Percentage only in center (large `text-3xl font-bold`)
-- `innerRadius={48}`, `outerRadius={76}`, `startAngle={90}`, `endAngle={450}`, `barSize={12}`
-- 1200ms ease-out animation
-- Wrapped in shadcn `Card`, used in `ProgressMetrics` module proficiency section
+#### SectionRenderer + SectionExercise
+- `SectionRenderer` routes all 11 lesson section types (quiz, exercises, assessment, mini_project, etc.)
+- `SectionExercise` uses Monaco Editor (SSR-safe with textarea fallback), calls `POST /test`
+- Dynamic language prop (defaults to python) with language badge header
 
-#### Achievements (`profile/components/Achievements.tsx`)
-- 3-column grid of circular 52px badge buttons
-- **Unlocked:** `opacity-100 grayscale-0`, hover → `ring-2 ring-primary/50`
-- **Locked:** `opacity-30 grayscale`
-- Hover → shadcn `Tooltip` showing title + description + checkmark
-- Click → shadcn `Dialog` with icon, unlocked/locked badge, criteria, close button
-- 6 hardcoded achievements: First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist
-
-#### Contribution Graph (`profile/components/ContributionGraphSection.tsx`)
-- Uses `kibo-ui/contribution-graph` components
-- 5 activity levels mapped from daily submission counts
-- Each block wrapped in shadcn `Tooltip` (date, submissions, solved, tests_run)
+#### LanguageSelector + LanguageLogo
+- Language toggle for Go/Python with persistent per-language scaffold
+- SVG icons for Go gopher and Python logo
 
 ---
 
-## 10. Development Phases
+## 10. Current Phase: Production Polish & Curriculum CMS
 
-Each phase ends with a **Definition of Done** checklist. Do not begin the next phase until all checks pass.
+**Status:** All 6 foundational phases (Foundation, Auth/Problem Store, Ingest/Enrich, Execution Engine, Frontend, Hardening) completed. Current focus is on multi-language support, curriculum CMS, and production polish.
 
----
+### Key Milestones Completed
 
-### Phase 1 — Foundation & Database ✅ Gateway
-
-**Goal:** A running Go server that connects to Supabase and can execute raw queries.
-
-**Tasks:**
-1. Initialize Go module: `go mod init github.com/jerryjuche/koder`
-2. Add dependencies: `jackc/pgx/v5`, `golang-jwt/jwt/v5`, `golang.org/x/crypto`
-3. Implement `internal/config/config.go` — fail fast on missing env vars
-4. Implement `internal/store/store.go` — pgx connection pool, ping on startup
-5. Write and apply `migrations/001_init.sql` against Supabase
-6. Implement `internal/store/users.go` — `CreateUser`, `GetUserByStudentID`
-7. Implement `internal/auth/` — bcrypt wrap, JWT sign/verify
-
-**Definition of Done:**
-- [ ] `go build ./...` passes with zero errors
-- [ ] `cmd/server/main.go` starts, pings Supabase, logs `"database: connected"`
-- [ ] `CreateUser` and `GetUserByStudentID` have passing unit tests with `pgxmock`
-- [ ] JWT round-trip (sign → verify → extract claims) tested
-
----
-
-### Phase 2 — Auth API & Problem Store ✅ Gateway
-
-**Goal:** Working login/register endpoints, and the ability to CRUD problems from the database.
-
-**Tasks:**
-1. Implement `internal/api/router.go` using `net/http` + `chi` router
-2. Implement `internal/api/middleware.go` — JWT auth middleware, CORS
-3. Implement `internal/api/handlers/auth.go` — POST `/auth/register`, POST `/auth/login`
-4. Implement `internal/store/problems.go` — `ListVisibleProblems`, `GetProblemBySlug`, `UpsertProblem`
-5. Implement `internal/store/testcases.go` — `GetTestCasesForProblem`, `UpsertTestCasesForProblem`
-6. Implement `internal/api/handlers/problems.go` — GET `/problems`, GET `/problems/:slug`
-
-**Definition of Done:**
-- [ ] `POST /auth/register` creates a bcrypt-hashed user, returns JWT
-- [ ] `POST /auth/login` validates credentials, returns JWT
-- [ ] `GET /problems` returns empty array (no problems yet) with 200
-- [ ] JWT middleware rejects requests with missing/invalid tokens with 401
-- [ ] All handlers tested with `httptest.NewRecorder`
-
----
-
-### Phase 3 — Ingest & Enrich Pipelines ✅ Gateway
-
-**Goal:** Admin can trigger GitHub ingestion and Gemini enrichment. Problems appear in DB.
-
-**Tasks:**
-1. Implement `internal/parser/parser.go` — git clone/pull via `os/exec git`
-2. Implement `internal/parser/extractor.go` — README.md walk, SHA256 hash, type detection
-3. Implement `internal/enricher/schema.go` — Gemini `ResponseSchema` for `EnrichedProblem`
-4. Implement `internal/enricher/ratelimiter.go` — 2 req/min enforcer
-5. Implement `internal/enricher/enricher.go` — Gemini API call, validate response, store
-6. Implement `internal/api/handlers/admin.go` — POST `/admin/ingest`, POST `/admin/enrich`
-7. Test against a real 01-edu exercise to validate full Ingest→Enrich→DB flow
-
-**Definition of Done:**
-- [ ] `POST /admin/ingest` against a test repo populates `problems` table with `visible=false`
-- [ ] `POST /admin/enrich` enriches one problem: `func_name`, `return_type`, `param_types`, `hints` all non-empty
-- [ ] Re-running ingest on unchanged files skips processing (SHA256 check verified via logs)
-- [ ] Gemini call uses `ResponseSchema` — no string parsing of markdown blocks
-- [ ] Rate limiter enforces ≥30s between calls (tested with two rapid calls)
-
----
-
-### Phase 4 — Execution Engine ✅ Gateway
-
-**Goal:** Students can submit code and receive per-test-case graded results.
-
-**Tasks:**
-1. Implement `internal/executor/templates.go` — `main_test.go` template with primitive/slice branching
-2. Implement `internal/executor/sandbox.go` — directory creation, file writes, cleanup
-3. Implement `internal/executor/executor.go` — semaphore, docker invocation, output parsing
-4. Implement `internal/store/submissions.go` — insert submission row
-5. Implement `internal/store/progress.go` — upsert progress, XP award logic
-6. Implement `internal/api/handlers/submissions.go` — POST `/submit`
-7. Run `scripts/setup-docker-cache.sh` on host to warm build cache
-8. Test with a known-correct and known-incorrect Go function
-
-**Definition of Done:**
-- [ ] Correct `Itoa` implementation receives `status: "passed"`, all test cases green
-- [ ] Deliberate wrong implementation receives `status: "failed"` with specific failing cases
-- [ ] Code with syntax error receives `status: "compiler_error"`
-- [ ] Execution of an infinite loop receives `status: "timeout"` within 5s
-- [ ] Two concurrent submissions do not crash the VM (semaphore verified under load)
-- [ ] `/tmp/koder/<uuid>` directory is cleaned up after every execution path
-- [ ] Execution time logged; with warm cache, clean solution runs in <500ms
-
----
-
-### Phase 5 — Frontend ✅ Gateway
-
-**Goal:** Students can log in, browse problems, write code, and see results.
-
-**Tasks:**
-1. Initialize Next.js project in `frontend/` with Tailwind
-2. Install Monaco Editor (`@monaco-editor/react`)
-3. Implement `lib/api.ts` — typed fetch wrappers for all backend endpoints
-4. Build `app/page.tsx` — problem grid dashboard
-5. Build `app/problems/[slug]/page.tsx` — Monaco editor + problem statement + submit
-6. Build `components/TestResultPanel.tsx` — per-case pass/fail with icons
-7. Build `components/HintAccordion.tsx` — 3-level progressive hints
-8. Build `app/leaderboard/page.tsx`
-9. Build `app/admin/page.tsx` — ingest/enrich triggers + problem approval table
-10. Deploy to Vercel, configure `NEXT_PUBLIC_API_URL` environment variable
-
-**Definition of Done:**
-- [ ] Student can log in and see problem list
-- [ ] Monaco Editor loads with Go syntax highlighting
-- [ ] Submit flow shows loading state, then per-test-case results
-- [ ] Hints unlock progressively (hint 2 only after hint 1 viewed)
-- [ ] Admin page triggers ingest and shows live status
-- [ ] Vercel deployment succeeds; frontend talks to Oracle VM backend
-
----
-
-### Phase 6 — Hardening & Production Readiness
-
-**Goal:** The system is secure, observable, and survivable under real student load.
-
-**Tasks:**
-1. Add structured logging (`log/slog`) to all three pipelines and API handlers
-2. Add request ID middleware — propagate through logs
-3. Implement admin problem visibility toggle (`PATCH /admin/problems/:id/visibility`)
-4. Add submission history endpoint (`GET /submissions`)
-5. Add input validation on all handlers — reject oversized code submissions (>50KB)
-6. Set up Supabase Row Level Security policies for student data isolation
-7. Configure UFW firewall on Oracle VM — only expose ports 22, 80, 443, 8080
-8. Set up nginx reverse proxy with TLS (Let's Encrypt) in front of Go server
-9. Write `systemd` service unit for the Go binary with auto-restart
-10. Stress test: simulate 5 concurrent students submitting simultaneously
-
-**Definition of Done:**
-- [ ] All log lines include request ID, user ID where applicable
-- [ ] No student can read another student's submissions via API
-- [ ] Server survives 5 concurrent submission requests without OOM or crash
-- [ ] TLS termination working; all traffic over HTTPS
-- [ ] `systemd` service restarts automatically after crash
-- [ ] Submission code size >50KB rejected with 413
+| Milestone | Details |
+|-----------|---------|
+| Multi-language pipeline | Go + Python dual-language enrichment, execution, and editor support |
+| Python sandbox | AST validation, snake_case fallback, meaningful error messages |
+| Refresh token rotation | Reuse detection revokes all sessions on compromise |
+| NVIDIA NIM migration | Replaced Gemini/Groq with DeepSeek V4 Flash via NVIDIA NIM |
+| AI usage logging | Per-user/action tracking with success/failure rates |
+| Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
+| CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
+| Test suite | 124 tests across 8 internal packages, `go vet` clean |
+| Security hardening | CSP headers, account data export, user search/verify, admin AI rate limiting |
 
 ---
 
 ## 11. Environment Variables & Configuration
 
-All configuration is injected via environment variables. The server must fail fast with a clear error if any required variable is missing.
+All configuration is injected via environment variables. The server fails fast on missing required vars.
 
 ```bash
-# .env.example
-
 # Database
 DATABASE_URL=postgres://user:password@host:5432/postgres?sslmode=require
 
 # Auth
 JWT_SECRET=<min-32-char-random-string>
-JWT_EXPIRY_HOURS=24
+GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
 
-# Google Gemini
-GEMINI_API_KEY=<google-ai-studio-api-key>
-GEMINI_MODEL=gemini-2.5-pro
+# Token expiry
+ACCESS_TOKEN_EXPIRY_MINUTES=15
+REFRESH_TOKEN_EXPIRY_DAYS=7
+
+# NVIDIA NIM (required for enrichment)
+NVIDIA_API_KEY=<nvidia-nim-api-key>
+NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
 
 # Execution
 EXECUTOR_MAX_CONCURRENCY=6
 EXECUTOR_TIMEOUT_SECONDS=30
 DOCKER_IMAGE=golang:1.23-alpine
-SANDBOX_BASE_DIR=/tmp/koder
-BUILD_CACHE_DIR=/tmp/go-build-cache
+PYTHON_DOCKER_IMAGE=python:3.12-slim
+SANDBOX_BASE_DIR=/tmp/koder-sandbox
+BUILD_CACHE_DIR=/tmp/koder-cache
+GO_VERSION=1.23
+PYTHON_VERSION=3.12
 
 # Server
 PORT=8080
-ENVIRONMENT=production  # "development" | "production"
+ENVIRONMENT=development  # "development" | "production"
 
 # CORS
-ALLOWED_ORIGIN=https://koder.vercel.app
+ALLOWED_ORIGIN=http://localhost:3000  # Comma-separated for multiple origins
 
 # Sandbox (optional — empty = use local Docker)
 SANDBOX_URL=https://koder-production.up.railway.app
+PYTHON_SANDBOX_URL=                 # Separate URL for Python sandbox (optional)
 
-# Google OAuth2 (required for Google Sign-In button)
-GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
-# Frontend also needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (same value)
+# Admin account (created on first startup)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<secure-password>
 
-# Feedback emails (optional — empty = no email notifications)
-ADMIN_EMAIL=admin@example.com # Notified when new feedback is submitted
+# Feedback emails (optional)
 RESEND_API_KEY=               # Resend.com API key for transactional emails
+
+# Frontend env (in .env.local)
+NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ```
 
 ---
@@ -1170,10 +1043,13 @@ This section exists specifically so GitHub Copilot and AI assistants have struct
 
 ### When Writing Enricher Code
 
-- Import `"google.golang.org/genai"` — not the old `google/generative-ai-go` package
-- Use `client.Models.GenerateContent` with `genai.GenerateContentConfig{ResponseSchema: schema}`
-- The `ResponseSchema` is a `*genai.Schema` struct, not a string or JSON literal
-- Rate limiter is a simple `time.Sleep(30 * time.Second)` between calls — no token bucket needed at this scale
+- The enricher uses NVIDIA NIM (DeepSeek V4 Flash) via HTTP POST to `https://ai.api.nvidia.com/v1/chat/completions`
+- Do NOT use `response_format: {"type": "json_object"}` — DeepSeek via NVIDIA NIM returns schema instead of data
+- System prompt alone enforces JSON output; strip markdown fences and extract first `{...}` block after response
+- Retry on 429 and 503 with exponential backoff: 2s, 4s, 8s
+- The `language_versions` JSONB column stores per-language metadata: `{"go": {"func_name":..., "param_types":...}, "python": {...}}`
+- Use `FlexibleStrings` unmarshaler for `param_types` (accepts both `"int"` and `["int"]`)
+- Fallback: auto-generate Python entry via `toSnakeCase()` (PascalCase→snake_case) and `toPythonType()` (Go→Python types)
 
 ### When Writing API Handlers
 
@@ -1202,34 +1078,24 @@ cd koder
 
 # 2. Copy and fill environment variables
 cp .env.example .env
-# Edit .env with your Supabase URL, Gemini key, JWT secret
+cp frontend/.env.example frontend/.env.local
+# Edit .env with Supabase URL, NVIDIA API key, JWT secret, Google client ID
 
-# 3. Apply database migrations (in order)
-for f in migrations/*.sql; do
-  psql $DATABASE_URL -f "$f"
-done
+# 3. Apply database migrations (in order, via Supabase dashboard SQL editor)
+# Or: for f in migrations/*.sql; do psql $DATABASE_URL -f "$f"; done
 
-# 4. Warm the Docker build cache
-chmod +x scripts/setup-docker-cache.sh
-./scripts/setup-docker-cache.sh
+# 4. Run the Go server
+go run ./cmd/server                       # Starts on :8080
 
-# 5. Run the Go server
-go run ./cmd/server
-
-# 6. Run the frontend (separate terminal)
+# 5. Run the frontend (separate terminal)
 cd frontend
 npm install
-
-# Build (use npx, not npm — Windows DLL crash on npm run build):
-npx next build
-
-# Dev mode:
-npm run dev
+npm run dev                                # Starts on :3000
 ```
 
 Server starts on `http://localhost:8080`. Frontend on `http://localhost:3000`.
 
-**Note:** On Windows, `npm run build` crashes with DLL exit code `3221225794`. Use `npx next build` instead.
+**Note:** The frontend copies Monaco workers on first build via `node scripts/copy-monaco.mjs` (runs automatically in `postinstall` or `build`). See `frontend/README.md` for frontend-specific setup.
 
 ---
 
