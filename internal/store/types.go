@@ -416,6 +416,199 @@ type UserSearchResult struct {
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
+// ── Curriculum CMS Types ──
+
+// Course represents a top-level curriculum grouping.
+type Course struct {
+	ID               pgtype.UUID `db:"id" json:"id"`
+	Slug             string      `db:"slug" json:"slug"`
+	Title            string      `db:"title" json:"title"`
+	Description      string      `db:"description" json:"description"`
+	ImageURL         *string     `db:"image_url" json:"image_url,omitempty"`
+	Icon             *string     `db:"icon" json:"icon,omitempty"`
+	DifficultyLevel  int         `db:"difficulty_level" json:"difficulty_level"`
+	EstimatedHours   int         `db:"estimated_hours" json:"estimated_hours"`
+	OrderNumber      int         `db:"order_number" json:"order_number"`
+	Visible          bool        `db:"visible" json:"visible"`
+	CreatedAt        time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time   `db:"updated_at" json:"updated_at"`
+}
+
+// Module represents a chapter or unit within a course.
+type Module struct {
+	ID          pgtype.UUID `db:"id" json:"id"`
+	CourseID    pgtype.UUID `db:"course_id" json:"course_id"`
+	Slug        string      `db:"slug" json:"slug"`
+	Title       string      `db:"title" json:"title"`
+	Description string      `db:"description" json:"description"`
+	ImageURL    *string     `db:"image_url" json:"image_url,omitempty"`
+	OrderNumber int         `db:"order_number" json:"order_number"`
+	Visible     bool        `db:"visible" json:"visible"`
+	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
+}
+
+// Lesson represents an individual lesson within a module.
+type Lesson struct {
+	ID                pgtype.UUID `db:"id" json:"id"`
+	ModuleID          pgtype.UUID `db:"module_id" json:"module_id"`
+	Slug              string      `db:"slug" json:"slug"`
+	Title             string      `db:"title" json:"title"`
+	Description       string      `db:"description" json:"description"`
+	RawReadme         string      `db:"raw_readme" json:"raw_readme"`
+	Difficulty        int         `db:"difficulty" json:"difficulty"`
+	EstimatedMinutes  int         `db:"estimated_minutes" json:"estimated_minutes"`
+	XPReward          int         `db:"xp_reward" json:"xp_reward"`
+	OrderNumber       int         `db:"order_number" json:"order_number"`
+	Visible           bool        `db:"visible" json:"visible"`
+	ProblemReferences []string    `db:"problem_references" json:"problem_references"`
+	CreatedAt         time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt         time.Time   `db:"updated_at" json:"updated_at"`
+}
+
+// LessonSection represents a typed, ordered content block within a lesson.
+type LessonSection struct {
+	ID          pgtype.UUID     `db:"id" json:"id"`
+	LessonID    pgtype.UUID     `db:"lesson_id" json:"lesson_id"`
+	SectionType string          `db:"section_type" json:"section_type"`
+	Title       string          `db:"title" json:"title"`
+	Content     string          `db:"content" json:"content"`
+	Metadata    json.RawMessage `db:"metadata" json:"metadata,omitempty"`
+	OrderNumber int             `db:"order_number" json:"order_number"`
+	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
+}
+
+// LessonPrereq represents a prerequisite edge in the lesson dependency graph.
+type LessonPrereq struct {
+	LessonID          pgtype.UUID `json:"lesson_id"`
+	DependsOnLessonID pgtype.UUID `json:"depends_on_lesson_id"`
+}
+
+// Project represents a hands-on coding project linked to a lesson.
+type Project struct {
+	ID           pgtype.UUID `db:"id" json:"id"`
+	LessonID     pgtype.UUID `db:"lesson_id" json:"lesson_id"`
+	Slug         string      `db:"slug" json:"slug"`
+	Title        string      `db:"title" json:"title"`
+	Description  string      `db:"description" json:"description"`
+	Requirements string      `db:"requirements" json:"requirements"`
+	StarterCode  string      `db:"starter_code" json:"starter_code"`
+	Difficulty   int         `db:"difficulty" json:"difficulty"`
+	XPReward     int         `db:"xp_reward" json:"xp_reward"`
+	Hints        []string    `db:"hints" json:"hints"`
+	OrderNumber  int         `db:"order_number" json:"order_number"`
+	Visible      bool        `db:"visible" json:"visible"`
+	CreatedAt    time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time   `db:"updated_at" json:"updated_at"`
+}
+
+// CourseProgress tracks a user's progress through a course.
+type CourseProgress struct {
+	UserID      pgtype.UUID  `db:"user_id" json:"user_id"`
+	CourseID    pgtype.UUID  `db:"course_id" json:"course_id"`
+	StartedAt   time.Time    `db:"started_at" json:"started_at"`
+	CompletedAt *time.Time   `db:"completed_at" json:"completed_at,omitempty"`
+	ProgressPct float32      `db:"progress_pct" json:"progress_pct"`
+}
+
+// LessonProgress tracks a user's completion of a single lesson.
+type LessonProgress struct {
+	UserID      pgtype.UUID  `db:"user_id" json:"user_id"`
+	LessonID    pgtype.UUID  `db:"lesson_id" json:"lesson_id"`
+	Completed   bool         `db:"completed" json:"completed"`
+	XPAwarded   int          `db:"xp_awarded" json:"xp_awarded"`
+	CompletedAt *time.Time   `db:"completed_at" json:"completed_at,omitempty"`
+}
+
+// ── Creation Payloads ──
+
+// NewCourse is the payload for creating a course.
+type NewCourse struct {
+	Slug            string  `json:"slug"`
+	Title           string  `json:"title"`
+	Description     string  `json:"description,omitempty"`
+	ImageURL        *string `json:"image_url,omitempty"`
+	Icon            *string `json:"icon,omitempty"`
+	DifficultyLevel int     `json:"difficulty_level"`
+	EstimatedHours  int     `json:"estimated_hours"`
+	OrderNumber     int     `json:"order_number"`
+}
+
+// NewModule is the payload for creating a module.
+type NewModule struct {
+	CourseID    string  `json:"course_id"`
+	Slug        string  `json:"slug"`
+	Title       string  `json:"title"`
+	Description string  `json:"description,omitempty"`
+	ImageURL    *string `json:"image_url,omitempty"`
+	OrderNumber int     `json:"order_number"`
+}
+
+// NewLesson is the payload for creating a lesson.
+type NewLesson struct {
+	ModuleID          string   `json:"module_id"`
+	Slug              string   `json:"slug"`
+	Title             string   `json:"title"`
+	Description       string   `json:"description,omitempty"`
+	Difficulty        int      `json:"difficulty"`
+	EstimatedMinutes  int      `json:"estimated_minutes"`
+	XPReward          int      `json:"xp_reward"`
+	OrderNumber       int      `json:"order_number"`
+	ProblemReferences []string `json:"problem_references,omitempty"`
+}
+
+// NewLessonSection is the payload for creating a lesson section.
+type NewLessonSection struct {
+	SectionType string          `json:"section_type"`
+	Title       string          `json:"title,omitempty"`
+	Content     string          `json:"content,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
+	OrderNumber int             `json:"order_number"`
+}
+
+// NewProject is the payload for creating a project.
+type NewProject struct {
+	LessonID     string   `json:"lesson_id"`
+	Slug         string   `json:"slug"`
+	Title        string   `json:"title"`
+	Description  string   `json:"description,omitempty"`
+	Requirements string   `json:"requirements,omitempty"`
+	StarterCode  string   `json:"starter_code,omitempty"`
+	Difficulty   int      `json:"difficulty"`
+	XPReward     int      `json:"xp_reward"`
+	Hints        []string `json:"hints,omitempty"`
+	OrderNumber  int      `json:"order_number"`
+}
+
+// QuizMetadata holds quiz question data stored in lesson_sections.metadata JSONB.
+type QuizMetadata struct {
+	Question      string   `json:"question"`
+	Options       []string `json:"options"`
+	CorrectIndex  int      `json:"correct_index"`
+	Explanation   string   `json:"explanation"`
+}
+
+// ── Response Types ──
+
+// CourseWithModules is a course with its modules, lessons, and user progress embedded.
+type CourseWithModules struct {
+	Course
+	Modules        []Module        `json:"modules"`
+	Progress       *CourseProgress `json:"progress,omitempty"`
+	TotalLessons   int             `json:"total_lessons"`
+	CompletedLessons int           `json:"completed_lessons"`
+}
+
+// LessonWithSections is a lesson with its sections, dependencies, projects, and progress.
+type LessonWithSections struct {
+	Lesson
+	Sections          []LessonSection  `json:"sections"`
+	Dependencies      []LessonPrereq   `json:"dependencies"`
+	Projects          []Project        `json:"projects"`
+	Progress          *LessonProgress  `json:"progress,omitempty"`
+	PrerequisitesMet  bool             `json:"prerequisites_met"`
+}
+
 // AIUsageStats holds aggregate AI usage counts for the admin dashboard.
 type AIUsageStats struct {
 	TotalAICalls      int     `json:"total_ai_calls"`
