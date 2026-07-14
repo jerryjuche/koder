@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
+import { clearCache } from "@/lib/cache";
 import {
   Plus, Edit3, Trash2, BookOpen, Layers, FileText, Beaker, Layout,
   ChevronRight, ChevronDown, Clock, Zap, Eye, EyeOff, Image, Hash,
@@ -74,6 +75,7 @@ export default function CurriculumAdminPage() {
   const loadModules = useCallback(async (courseId: string) => {
     setLoadingModules(true);
     setModules([]);
+    clearCache(`/admin/courses/${courseId}/modules`);
     const res = await fetchModules(courseId);
     if (res.success && res.data) setModules(res.data);
     else toast.error(res.error?.message || "Failed to load modules");
@@ -83,6 +85,7 @@ export default function CurriculumAdminPage() {
   const loadLessons = useCallback(async (moduleId: string) => {
     setLoadingLessons(true);
     setLessons([]);
+    clearCache(`/admin/modules/${moduleId}/lessons`);
     const res = await fetchLessons(moduleId);
     if (res.success && res.data) setLessons(res.data);
     else toast.error(res.error?.message || "Failed to load lessons");
