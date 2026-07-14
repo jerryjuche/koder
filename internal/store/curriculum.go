@@ -145,6 +145,27 @@ func (s *PostgresStore) DeleteCourse(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// ToggleCourseVisibility toggles the visible flag on a course.
+func (s *PostgresStore) ToggleCourseVisibility(ctx context.Context, id uuid.UUID) (*Course, error) {
+	query := `UPDATE courses SET visible = NOT visible, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, slug, title, description, image_url, icon, difficulty_level,
+			estimated_hours, order_number, visible, created_at, updated_at`
+	var c Course
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&c.ID, &c.Slug, &c.Title, &c.Description, &c.ImageURL, &c.Icon,
+		&c.DifficultyLevel, &c.EstimatedHours, &c.OrderNumber, &c.Visible,
+		&c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("course not found")
+		}
+		return nil, fmt.Errorf("failed to toggle course visibility: %w", err)
+	}
+	return &c, nil
+}
+
 // ── Module Operations ──
 
 // ListModules returns all modules for a course ordered by order_number.

@@ -468,6 +468,29 @@ func (h *CMHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, map[string]string{"status": "deleted"})
 }
 
+// ToggleCourseVisibility toggles the visible flag on a course.
+func (h *CMHandler) ToggleCourseVisibility(w http.ResponseWriter, r *http.Request) {
+	courseIDStr := chi.URLParam(r, "courseId")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid course ID", nil)
+		return
+	}
+
+	course, err := h.store.ToggleCourseVisibility(r.Context(), courseID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Course not found", nil)
+			return
+		}
+		slog.Error("cms: failed to toggle course visibility", "id", courseID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle visibility", nil)
+		return
+	}
+
+	RespondSuccess(w, course)
+}
+
 // ListModules returns all modules for a course.
 func (h *CMHandler) ListModules(w http.ResponseWriter, r *http.Request) {
 	courseIDStr := chi.URLParam(r, "courseId")

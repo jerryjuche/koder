@@ -673,6 +673,12 @@ export async function deleteCourse(id: string): Promise<ApiResponse<{ status: st
   });
 }
 
+export async function toggleCourseVisibility(id: string): Promise<ApiResponse<Course>> {
+  return fetchApi<Course>(`/admin/courses/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchModules(courseId: string): Promise<ApiResponse<Module[]>> {
   return fetchApi<Module[]>(`/admin/courses/${courseId}/modules`);
 }
