@@ -14,6 +14,7 @@ import {
   CheckCheck,
   ChevronDown,
   Code2,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -67,6 +68,7 @@ export default function TopNav() {
   const navLinks = [
     { name: "Dashboard", href: "/home", icon: LayoutDashboard },
     { name: "Problems", href: "/problems", icon: Code2 },
+    { name: "Learn", href: "/learn/courses", icon: BookOpen },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
   ];
 

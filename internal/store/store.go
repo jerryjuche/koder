@@ -166,6 +166,48 @@ type Store interface {
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	UpdateUserPINHash(ctx context.Context, userID uuid.UUID, pinHash string) error
 	CleanupExpiredPasswordResetTokens(ctx context.Context) error
+
+	// ── Curriculum CMS ──
+
+	// Course operations
+	ListCourses(ctx context.Context) ([]Course, error)
+	GetCourseBySlug(ctx context.Context, slug string) (*Course, error)
+	CreateCourse(ctx context.Context, nc *NewCourse) (*Course, error)
+	UpdateCourse(ctx context.Context, course *Course) (*Course, error)
+	DeleteCourse(ctx context.Context, id uuid.UUID) error
+
+	// Module operations
+	ListModules(ctx context.Context, courseID uuid.UUID) ([]Module, error)
+	GetModuleBySlug(ctx context.Context, courseSlug, moduleSlug string) (*Module, error)
+	CreateModule(ctx context.Context, nm *NewModule) (*Module, error)
+	UpdateModule(ctx context.Context, module *Module) (*Module, error)
+	DeleteModule(ctx context.Context, id uuid.UUID) error
+
+	// Lesson operations
+	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)
+	GetLessonBySlug(ctx context.Context, moduleSlug, lessonSlug string) (*Lesson, error)
+	GetLessonSections(ctx context.Context, lessonID uuid.UUID) ([]LessonSection, error)
+	GetLessonDependencies(ctx context.Context, lessonID uuid.UUID) ([]LessonPrereq, error)
+	CreateLessonWithSections(ctx context.Context, nl *NewLesson, sections []NewLessonSection, dependencyIDs []uuid.UUID) (*Lesson, error)
+	UpdateLesson(ctx context.Context, lesson *Lesson) (*Lesson, error)
+	DeleteLesson(ctx context.Context, id uuid.UUID) error
+
+	// Section operations
+	CreateSection(ctx context.Context, lessonID uuid.UUID, ns *NewLessonSection) (*LessonSection, error)
+	UpdateSection(ctx context.Context, section *LessonSection) (*LessonSection, error)
+	DeleteSection(ctx context.Context, id uuid.UUID) error
+
+	// Project operations
+	ListProjects(ctx context.Context, lessonID uuid.UUID) ([]Project, error)
+	CreateProject(ctx context.Context, np *NewProject) (*Project, error)
+	UpdateProject(ctx context.Context, project *Project) (*Project, error)
+	DeleteProject(ctx context.Context, id uuid.UUID) error
+
+	// Progress operations
+	GetCourseProgress(ctx context.Context, userID, courseID uuid.UUID) (*CourseProgress, error)
+	UpsertCourseProgress(ctx context.Context, userID, courseID uuid.UUID, pct float32, completed bool) error
+	GetLessonProgress(ctx context.Context, userID, lessonID uuid.UUID) (*LessonProgress, error)
+	UpsertLessonProgress(ctx context.Context, userID, lessonID uuid.UUID, xp int) (*LessonProgress, error)
 }
 
 // PostgresStore implements Store using pgx and Postgres.
