@@ -75,6 +75,10 @@ func (s *PostgresStore) CreateCourse(ctx context.Context, nc *NewCourse) (*Cours
 		return nil, fmt.Errorf("slug and title are required")
 	}
 
+	if nc.DifficultyLevel < 1 || nc.DifficultyLevel > 5 {
+		nc.DifficultyLevel = 1
+	}
+
 	query := `INSERT INTO courses (slug, title, description, image_url, icon, difficulty_level,
 		estimated_hours, order_number, visible, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, NOW(), NOW())
@@ -337,6 +341,10 @@ func (s *PostgresStore) CreateLessonWithSections(ctx context.Context, nl *NewLes
 		return nil, fmt.Errorf("slug and title are required")
 	}
 
+	if nl.Difficulty < 1 || nl.Difficulty > 5 {
+		nl.Difficulty = 1
+	}
+
 	moduleID, err := uuid.Parse(nl.ModuleID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid module_id: %w", err)
@@ -504,6 +512,10 @@ func (s *PostgresStore) CreateProject(ctx context.Context, np *NewProject) (*Pro
 	}
 	if np.Slug == "" || np.Title == "" {
 		return nil, fmt.Errorf("slug and title are required")
+	}
+
+	if np.Difficulty < 1 || np.Difficulty > 5 {
+		np.Difficulty = 1
 	}
 
 	lessonID, err := uuid.Parse(np.LessonID)
