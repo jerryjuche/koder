@@ -7,6 +7,7 @@ import {
   fetchLessons, createLesson, updateLesson, deleteLesson,
   fetchProjects, createProject, updateProject, deleteProject,
   createSection, updateSection, deleteSection,
+  toggleCourseVisibility,
 } from "@/lib/api";
 import {
   Course, Module, Lesson, LessonSection, Project, NewLessonSection,
@@ -124,6 +125,17 @@ export default function CurriculumAdminPage() {
       loadCourses();
     } else {
       toast.error(res.error?.message || "Failed to update course");
+    }
+  };
+
+  const handleToggleCourseVisibility = async (course: Course) => {
+    const res = await toggleCourseVisibility(course.id);
+    if (res.success) {
+      toast.success(course.visible ? "Course hidden" : "Course published");
+      setCourses((prev) => prev.map((c) => c.id === course.id ? (res.data || c) : c));
+      if (selectedCourse?.id === course.id) setSelectedCourse(res.data || course);
+    } else {
+      toast.error(res.error?.message || "Failed to toggle visibility");
     }
   };
 
@@ -428,9 +440,17 @@ export default function CurriculumAdminPage() {
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
                     <div className="absolute top-2 right-2 flex gap-1">
-                      <div className={`p-1 rounded-full ${course.visible ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground"}`}>
-                        {course.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleCourseVisibility(course); }}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          course.visible
+                            ? "bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                            : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                        }`}
+                        title={course.visible ? "Click to hide" : "Click to publish"}
+                      >
+                        {course.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      </button>
                     </div>
                   </div>
                   <CardContent className="p-3">

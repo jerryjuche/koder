@@ -212,6 +212,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses", cmHandler.CreateCourse)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/courses/{courseId}", cmHandler.UpdateCourse)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/courses/{courseId}", cmHandler.DeleteCourse)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/courses/{courseId}/visibility", cmHandler.ToggleCourseVisibility)
 			r.Get("/admin/courses/{courseId}/modules", cmHandler.ListModules)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses/{courseId}/modules", cmHandler.CreateModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/modules/{moduleId}", cmHandler.UpdateModule)

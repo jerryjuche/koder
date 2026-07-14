@@ -175,6 +175,7 @@ type Store interface {
 	CreateCourse(ctx context.Context, nc *NewCourse) (*Course, error)
 	UpdateCourse(ctx context.Context, course *Course) (*Course, error)
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
+	ToggleCourseVisibility(ctx context.Context, id uuid.UUID) (*Course, error)
 
 	// Module operations
 	ListModules(ctx context.Context, courseID uuid.UUID) ([]Module, error)
