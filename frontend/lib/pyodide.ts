@@ -29,7 +29,9 @@ export async function getPyodideInstance(): Promise<PyodideInterface> {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    const { loadPyodide: load } = await import(PACKAGE_URL);
+    // webpackIgnore tells Next.js/webpack not to bundle this URL — it's loaded
+    // at runtime from the CDN. Pyodide is an ESM-only package.
+    const { loadPyodide: load } = await import(/* webpackIgnore: true */ PACKAGE_URL);
     const pyodide = await load({ indexURL: PYODIDE_CDN });
     await pyodide.loadPackage(DEFAULT_PACKAGES);
     instance = pyodide;

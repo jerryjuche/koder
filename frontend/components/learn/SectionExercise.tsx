@@ -380,17 +380,19 @@ export default function SectionExercise({
   return (
     <div>
       {isPython && mounted ? (
-        <ResizableSplitPane
-          left={editorContent}
-          right={consoleContent}
-          defaultLeftPercent={60}
-          minLeftPercent={35}
-          minRightPercent={25}
-          className="border rounded-lg overflow-hidden h-[400px]"
-        />
+        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "400px" }}>
+          <ResizableSplitPane
+            left={editorContent}
+            right={consoleContent}
+            defaultLeftPercent={60}
+            minLeftPercent={35}
+            minRightPercent={25}
+            className="h-[400px]"
+          />
+        </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "260px" }}>
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b shrink-0">
             <div className="flex items-center gap-2">
               <Code2 className="h-4 w-4" />
               <span className="text-sm font-medium">
@@ -440,14 +442,14 @@ export default function SectionExercise({
                   padding: { top: 8 },
                 }}
                 loading={
-                  <div className="h-[200px] bg-[#1e1e1e] animate-pulse" />
+                  <div className="h-full bg-[#1e1e1e] animate-pulse" />
                 }
               />
             ) : (
               <textarea
                 value={currentCode}
                 onChange={(e) => setCodes((prev) => ({ ...prev, [exerciseIndex]: e.target.value }))}
-                className="w-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-y focus:outline-none"
+                className="w-full h-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-y focus:outline-none"
                 placeholder="# Write your code here"
                 spellCheck={false}
               />
@@ -456,8 +458,8 @@ export default function SectionExercise({
         </div>
       )}
 
-      {/* Results */}
-      {currentResult && (
+      {/* Results - hidden when PyodideConsole split pane is visible (console already shows output) */}
+      {currentResult && !(isPython && mounted) && (
         <div className="mt-3">
           <ResultsPanel result={currentResult} />
         </div>
