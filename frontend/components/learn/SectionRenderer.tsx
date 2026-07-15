@@ -1,8 +1,12 @@
 "use client";
 
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { LessonSection } from "@/lib/types";
 import SectionQuiz from "./SectionQuiz";
 import SectionExercise from "./SectionExercise";
+import { CodeBlockContent } from "@/components/kibo-ui/code-block";
 import {
   BookText, FileText, Puzzle, Star, AlertTriangle,
   ScrollText, BrainCircuit, FlaskConical, Target,
@@ -57,6 +61,18 @@ const sectionTypeBadges: Record<string, string> = {
   ai_review: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400 border-fuchsia-200 dark:border-fuchsia-800",
 };
 
+function preprocessCallouts(markdown: string): string {
+  return markdown
+    .replace(/<div class="tip">([\s\S]*?)<\/div>/gi,
+      '<div class="custom-callout callout-tip">$1</div>')
+    .replace(/<div class="example">([\s\S]*?)<\/div>/gi,
+      '<div class="custom-callout callout-example">$1</div>')
+    .replace(/<div class="warning">([\s\S]*?)<\/div>/gi,
+      '<div class="custom-callout callout-warning">$1</div>')
+    .replace(/<div class="info">([\s\S]*?)<\/div>/gi,
+      '<div class="custom-callout callout-info">$1</div>');
+}
+
 export default function SectionRenderer({ section, problemReferences, language }: SectionRendererProps) {
   const sectionType = section.section_type;
   const Icon = sectionTypeIcons[sectionType] || <FileText className="h-4 w-4" />;
@@ -64,17 +80,111 @@ export default function SectionRenderer({ section, problemReferences, language }
   const badgeStyle = sectionTypeBadges[sectionType] || "bg-muted text-muted-foreground border-muted";
 
   const renderMarkdown = (content: string) => {
-    let html = content
-      .replace(/<div class="tip">([\s\S]*?)<\/div>/gi,
-        '<div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg my-4 text-amber-900 text-sm"><strong class="block mb-1">💡 Tip</strong> $1</div>')
-      .replace(/<div class="example">([\s\S]*?)<\/div>/gi,
-        '<div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg my-4 text-blue-900 text-sm"><strong class="block mb-1">📝 Example</strong> $1</div>')
-      .replace(/<div class="warning">([\s\S]*?)<\/div>/gi,
-        '<div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg my-4 text-red-900 text-sm"><strong class="block mb-1">⚠️ Warning</strong> $1</div>')
-      .replace(/<div class="info">([\s\S]*?)<\/div>/gi,
-        '<div class="bg-sky-50 border-l-4 border-sky-400 p-4 rounded-lg my-4 text-sky-900 text-sm"><strong class="block mb-1">ℹ️ Info</strong> $1</div>');
-
-    return <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-primary prose-code:text-primary prose-pre:bg-muted/50 prose-pre:border" dangerouslySetInnerHTML={{ __html: html }} />;
+    const processed = preprocessCallouts(content);
+    return (
+      <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-primary prose-code:before:content-none prose-code:after:content-none">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            code({ className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || "");
+              const isInline = !match;
+              if (isInline) {
+                return (
+                  <code
+                    className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground/80 before:content-none after:content-none"
+                    {...props}
+                  >
+                    {children}
+                  </code>
+                );
+              }
+              const lang = match[1];
+              const code = String(children).replace(/\n$/, "");
+              return (
+                <div className="my-4 rounded-xl border border-border overflow-hidden">
+                  <div className="text-sm">
+                    <CodeBlockContent language={lang as any} syntaxHighlighting>
+                      {code}
+                    </CodeBlockContent>
+                  </div>
+                </div>
+              );
+            },
+            pre({ children }) {
+              return <>{children}</>;
+            },
+            table({ children }) {
+              return (
+                <div className="overflow-x-auto my-4 rounded-xl border border-border">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    {children}
+                  </table>
+                </div>
+              );
+            },
+            th({ children }) {
+              return (
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground bg-muted/30">
+                  {children}
+                </th>
+              );
+            },
+            td({ children }) {
+              return (
+                <td className="px-4 py-2 border-t border-border">
+                  {children}
+                </td>
+              );
+            },
+            blockquote({ children }) {
+              return (
+                <blockquote className="border-l-4 border-primary/30 bg-muted/30 rounded-r-lg px-4 py-3 my-4 italic text-muted-foreground">
+                  {children}
+                </blockquote>
+              );
+            },
+            a({ href, children }) {
+              return (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  {children}
+                </a>
+              );
+            },
+            hr() {
+              return <hr className="my-6 border-border" />;
+            },
+            div({ className, children, ...props }) {
+              if (className?.startsWith("custom-callout")) {
+                const calloutType = className.replace("custom-callout ", "");
+                const styles: Record<string, string> = {
+                  "callout-tip": "bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400 text-amber-900 dark:text-amber-200",
+                  "callout-example": "bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 text-blue-900 dark:text-blue-200",
+                  "callout-warning": "bg-red-50 dark:bg-red-950/30 border-l-4 border-red-400 text-red-900 dark:text-red-200",
+                  "callout-info": "bg-sky-50 dark:bg-sky-950/30 border-l-4 border-sky-400 text-sky-900 dark:text-sky-200",
+                };
+                const labels: Record<string, string> = {
+                  "callout-tip": "💡 Tip",
+                  "callout-example": "📝 Example",
+                  "callout-warning": "⚠️ Warning",
+                  "callout-info": "ℹ️ Info",
+                };
+                return (
+                  <div className={`p-4 rounded-lg my-4 text-sm ${styles[calloutType] || ""}`} {...props}>
+                    <strong className="block mb-1">{labels[calloutType] || ""}</strong>
+                    {children}
+                  </div>
+                );
+              }
+              return <div className={className} {...props}>{children}</div>;
+            },
+          }}
+        >
+          {processed}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   const renderSectionHeader = () => (

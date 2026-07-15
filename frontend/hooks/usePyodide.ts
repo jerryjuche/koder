@@ -70,10 +70,10 @@ export function usePyodide() {
   );
 
   const execute = useCallback(
-    async (code: string) => {
+    async (code: string): Promise<ExecutionResult | null> => {
       if (!code.trim()) {
         addLine("error", "Cannot execute empty code.");
-        return;
+        return null;
       }
 
       addLine("input", `>>> ${code.trim().split("\n")[0]}${code.trim().split("\n").length > 1 ? " ..." : ""}`);
@@ -84,7 +84,7 @@ export function usePyodide() {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         addLine("error", msg);
-        return;
+        return null;
       }
 
       if (result.error) {
@@ -108,6 +108,8 @@ export function usePyodide() {
       if (!result.error && !result.stderr && !result.stdout) {
         addLine("output", "(no output)");
       }
+
+      return result;
     },
     [addLine],
   );

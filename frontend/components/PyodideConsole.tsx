@@ -135,11 +135,12 @@ export default function PyodideConsole({
       )}
 
       {/* Terminal output */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto font-mono text-[13px] leading-relaxed p-3 custom-scrollbar"
-      >
+      <div className="relative flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="absolute inset-0 overflow-y-auto font-mono text-[13px] leading-relaxed p-3 custom-scrollbar"
+        >
         {lines.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-brand-offwhite-muted/40 text-xs gap-2">
             <Terminal className="h-5 w-5" />

@@ -12,6 +12,11 @@ import {
   XCircle,
   Code2,
   Globe,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Bug,
+  Terminal,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -29,18 +34,33 @@ interface SectionExerciseProps {
   language?: string;
 }
 
+type ResultType = "test" | "execution" | "error";
+
+interface ExerciseResult {
+  type: ResultType;
+  passed: boolean;
+  output: string;
+  runtimeMs: number;
+  error?: string;
+}
+
+const defaultExerciseCodes: string[] = [
+  '# Write your solution here\n\ndef solution():\n    pass\n',
+  '# Write your solution here\n\ndef solution():\n    # TODO: implement\n    pass\n',
+  '# Write your solution here\n\ndef solution():\n    return None\n',
+];
+
 export default function SectionExercise({
   problemReferences,
   miniProject,
   language = "python",
 }: SectionExerciseProps) {
-  const [code, setCode] = useState("");
+  const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [codes, setCodes] = useState<Record<number, string>>({});
+  const [results, setResults] = useState<Record<number, ExerciseResult | null>>({});
   const [testing, setTesting] = useState(false);
-  const [results, setResults] = useState<{
-    passed: boolean;
-    output: string;
-  } | null>(null);
   const mounted = useHasMounted();
+
   const {
     ready: pyodideReady,
     loading: pyodideLoading,
@@ -51,61 +71,117 @@ export default function SectionExercise({
 
   const editorRef = useRef<any>(null);
   const pyodideRunRef = useRef<() => Promise<void>>(async () => {});
-
   const isPython = language === "python";
+  const hasProblems = problemReferences.length > 0;
+  const totalExercises = hasProblems ? problemReferences.length : 1;
+
+  const currentCode = codes[exerciseIndex] ?? (miniProject
+    ? "# Write your mini project code here\n\n"
+    : defaultExerciseCodes[Math.min(exerciseIndex, defaultExerciseCodes.length - 1)]);
+
+  const currentResult = results[exerciseIndex] ?? null;
 
   useEffect(() => {
     loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
   }, []);
 
-  const defaultCode = miniProject
-    ? "# Write your mini project code here\n\n"
-    : '# Write your solution here\n\ndef solution():\n    pass\n';
-
-  const hasProblems = problemReferences.length > 0;
+  const goToExercise = useCallback((idx: number) => {
+    setExerciseIndex(idx);
+  }, []);
 
   const handleTest = useCallback(async () => {
+    const code = currentCode;
     if (!code.trim()) {
       toast.error("Please write some code first");
       return;
     }
 
     setTesting(true);
-    setResults(null);
+    const startTime = performance.now();
 
-    if (hasProblems) {
-      const slug = problemReferences[0];
-      const lang = isPython ? "python" : "go";
-      const res = await testCode(slug, code, lang);
-      if (res.success && res.data) {
-        setResults({
-          passed: res.data.status === "passed",
-          output:
-            res.data.output_logs || getFriendlyMessage(res.data.status),
-        });
+    try {
+      if (hasProblems) {
+        const slug = problemReferences[exerciseIndex];
+        const lang = isPython ? "python" : "go";
+        const res = await testCode(slug, code, lang);
+
+        if (res.success && res.data) {
+          setResults((prev) => ({
+            ...prev,
+            [exerciseIndex]: {
+              type: "test",
+              passed: res.data.status === "passed",
+              output: res.data.output_logs || friendlyStatus(res.data.status),
+              runtimeMs: res.data.runtime_ms ?? Math.round(performance.now() - startTime),
+              error: res.data.status === "compiler_error" ? res.data.friendly_message : undefined,
+            },
+          }));
+        } else {
+          setResults((prev) => ({
+            ...prev,
+            [exerciseIndex]: {
+              type: "test",
+              passed: false,
+              output: res.error?.message || "Something went wrong",
+              runtimeMs: Math.round(performance.now() - startTime),
+              error: res.error?.message,
+            },
+          }));
+        }
+      } else if (isPython) {
+        const pyResult = await pyodideExecute(code);
+        if (pyResult) {
+          const output = pyResult.error
+            ? pyResult.error
+            : pyResult.stdout
+              ? pyResult.stdout
+              : "(no output)";
+          setResults((prev) => ({
+            ...prev,
+            [exerciseIndex]: {
+              type: pyResult.error ? "error" : "execution",
+              passed: false,
+              output,
+              runtimeMs: Math.round(performance.now() - startTime),
+              error: pyResult.error || undefined,
+            },
+          }));
+        }
       } else {
-        setResults({
-          passed: false,
-          output: res.error?.message || "Test failed",
-        });
+        setResults((prev) => ({
+          ...prev,
+          [exerciseIndex]: {
+            type: "execution",
+            passed: false,
+            output: "Code submitted successfully.",
+            runtimeMs: 0,
+          },
+        }));
       }
-    } else {
-      setResults({
-        passed: true,
-        output: "Code received (no test configured for this exercise)",
-      });
+    } catch (err: any) {
+      setResults((prev) => ({
+        ...prev,
+        [exerciseIndex]: {
+          type: "error",
+          passed: false,
+          output: err?.message || "Unexpected error",
+          runtimeMs: Math.round(performance.now() - startTime),
+          error: err?.message,
+        },
+      }));
     }
 
     setTesting(false);
-  }, [code, hasProblems, isPython, problemReferences]);
+  }, [currentCode, hasProblems, isPython, exerciseIndex, problemReferences, pyodideExecute]);
 
   const handlePyodideRun = useCallback(async () => {
+    const code = currentCode;
     if (!code.trim()) {
       toast.error("Please write some code first");
       return;
     }
     await pyodideExecute(code);
-  }, [code, pyodideExecute]);
+  }, [currentCode, pyodideExecute]);
 
   pyodideRunRef.current = handlePyodideRun;
 
@@ -115,7 +191,7 @@ export default function SectionExercise({
         e.preventDefault();
         if (isPython && pyodideReady) {
           pyodideRunRef.current();
-        } else if (!isPython) {
+        } else {
           handleTest();
         }
       }
@@ -124,19 +200,87 @@ export default function SectionExercise({
     return () => window.removeEventListener("keydown", handler);
   }, [isPython, pyodideReady, handleTest]);
 
-  const getFriendlyMessage = (status: string) => {
+  const friendlyStatus = (status: string) => {
     switch (status) {
-      case "passed":
-        return "All tests passed!";
-      case "failed":
-        return "Some tests failed. Check your output.";
-      case "compiler_error":
-        return "Compilation error. Check your syntax.";
-      case "timeout":
-        return "Execution timed out.";
-      default:
-        return status;
+      case "passed": return "All tests passed!";
+      case "failed": return "Some tests failed.";
+      case "compiler_error": return "Compilation error.";
+      case "timeout": return "Execution timed out.";
+      default: return status;
     }
+  };
+
+  const ResultsPanel = ({ result }: { result: ExerciseResult }) => {
+    const hasOutput = result.output && result.output.length > 0;
+
+    const isTest = result.type === "test";
+    const isExecution = result.type === "execution";
+    const isError = result.type === "error";
+
+    const borderColor = isError || (isTest && !result.passed) ? "border-red-200"
+      : isTest && result.passed ? "border-green-200"
+      : "border-blue-200";
+
+    const headerBg = isError || (isTest && !result.passed) ? "bg-red-50/80 dark:bg-red-950/20 border-red-200"
+      : isTest && result.passed ? "bg-green-50/80 dark:bg-green-950/20 border-green-200"
+      : "bg-blue-50/80 dark:bg-blue-950/20 border-blue-200";
+
+    const headerIcon = isError || (isTest && !result.passed)
+      ? <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+      : isTest && result.passed
+        ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+        : <Terminal className="h-5 w-5 text-blue-600 shrink-0" />;
+
+    const headerText = isError || (isTest && !result.passed)
+      ? "Failed"
+      : isTest && result.passed
+        ? "Success"
+        : "Execution Output";
+
+    const headerTextColor = isError || (isTest && !result.passed)
+      ? "text-red-800 dark:text-red-300"
+      : isTest && result.passed
+        ? "text-green-800 dark:text-green-300"
+        : "text-blue-800 dark:text-blue-300";
+
+    return (
+      <div className={cn("border rounded-lg overflow-hidden transition-all duration-300", borderColor)}>
+        <div className={cn("flex items-center gap-2.5 px-4 py-3 border-b", headerBg)}>
+          {headerIcon}
+          <span className={cn("font-semibold text-sm", headerTextColor)}>
+            {headerText}
+          </span>
+          <span className="text-xs text-muted-foreground/60 ml-auto flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {result.runtimeMs}ms
+          </span>
+        </div>
+
+        {result.error && (
+          <div className="px-4 py-2.5 bg-red-50/50 dark:bg-red-950/10 border-b border-red-100 dark:border-red-900/20">
+            <div className="flex items-start gap-2">
+              <Bug className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-red-700 dark:text-red-400">Error</p>
+                <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5 font-mono">{result.error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasOutput && (
+          <div className="p-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Terminal className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Output</span>
+            </div>
+            <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap bg-black/5 dark:bg-white/5 rounded-lg p-3 max-h-48 overflow-y-auto text-foreground/90">
+              {result.output || "(no output)"}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const editorContent = (
@@ -145,11 +289,11 @@ export default function SectionExercise({
         <div className="flex items-center gap-2">
           <Code2 className="h-4 w-4" />
           <span className="text-sm font-medium">
-            {miniProject ? "Mini Project" : "Exercise"}
+            {miniProject ? "Mini Project" : (hasProblems ? `Exercise ${exerciseIndex + 1}` : "Code Playground")}
           </span>
           {hasProblems && (
-            <Badge variant="outline" className="text-xs">
-              {problemReferences.length} problem(s)
+            <Badge variant="outline" className="text-xs font-mono">
+              {problemReferences[exerciseIndex]}
             </Badge>
           )}
           <Badge variant="secondary" className="text-xs">
@@ -184,7 +328,7 @@ export default function SectionExercise({
             ) : (
               <Play className="h-3 w-3 mr-1" />
             )}
-            Test
+            {hasProblems ? "Test" : "Run"}
           </Button>
         </div>
       </div>
@@ -194,8 +338,8 @@ export default function SectionExercise({
           <Editor
             height="100%"
             language={isPython ? "python" : "go"}
-            value={code}
-            onChange={(value) => setCode(value || "")}
+            value={currentCode}
+            onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
             theme="vs-dark-plus"
             onMount={(_editor, monaco) => {
               editorRef.current = _editor;
@@ -214,10 +358,10 @@ export default function SectionExercise({
           />
         ) : (
           <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
+            value={currentCode}
+            onChange={(e) => setCodes((prev) => ({ ...prev, [exerciseIndex]: e.target.value }))}
             className="w-full h-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-none focus:outline-none"
-            placeholder={defaultCode}
+            placeholder="# Write your code here"
             spellCheck={false}
           />
         )}
@@ -252,11 +396,11 @@ export default function SectionExercise({
             <div className="flex items-center gap-2">
               <Code2 className="h-4 w-4" />
               <span className="text-sm font-medium">
-                {miniProject ? "Mini Project" : "Exercise"}
+                {miniProject ? "Mini Project" : (hasProblems ? `Exercise ${exerciseIndex + 1}` : "Code Playground")}
               </span>
               {hasProblems && (
-                <Badge variant="outline" className="text-xs">
-                  {problemReferences.length} problem(s)
+                <Badge variant="outline" className="text-xs font-mono">
+                  {problemReferences[exerciseIndex]}
                 </Badge>
               )}
               <Badge variant="secondary" className="text-xs">
@@ -274,7 +418,7 @@ export default function SectionExercise({
               ) : (
                 <Play className="h-3 w-3 mr-1" />
               )}
-              Test
+              {hasProblems ? "Test" : "Run"}
             </Button>
           </div>
 
@@ -283,8 +427,8 @@ export default function SectionExercise({
               <Editor
                 height="100%"
                 language={isPython ? "python" : "go"}
-                value={code}
-                onChange={(value) => setCode(value || "")}
+                value={currentCode}
+                onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
                 theme="vs-dark-plus"
                 onMount={(_editor, monaco) => {
                   editorRef.current = _editor;
@@ -303,10 +447,10 @@ export default function SectionExercise({
               />
             ) : (
               <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
+                value={currentCode}
+                onChange={(e) => setCodes((prev) => ({ ...prev, [exerciseIndex]: e.target.value }))}
                 className="w-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-y focus:outline-none"
-                placeholder={defaultCode}
+                placeholder="# Write your code here"
                 spellCheck={false}
               />
             )}
@@ -314,33 +458,47 @@ export default function SectionExercise({
         </div>
       )}
 
-      {results && (
-        <div
-          className={`border rounded-lg mt-2 p-4 ${
-            results.passed
-              ? "bg-green-50 border-green-200"
-              : "bg-red-50 border-red-200"
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            {results.passed ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4 text-red-600" />
-            )}
-            <span
-              className={`text-sm font-medium ${
-                results.passed ? "text-green-800" : "text-red-800"
-              }`}
-            >
-              {results.passed ? "Passed" : "Failed"}
-            </span>
+      {/* Results */}
+      {currentResult && (
+        <div className="mt-3">
+          <ResultsPanel result={currentResult} />
+        </div>
+      )}
+
+      {/* Exercise navigation */}
+      {hasProblems && totalExercises > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => goToExercise(exerciseIndex - 1)}
+            disabled={exerciseIndex === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalExercises }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => goToExercise(i)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  i === exerciseIndex
+                    ? "bg-primary w-6"
+                    : "bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                }`}
+              />
+            ))}
           </div>
-          {results.output && (
-            <pre className="text-xs whitespace-pre-wrap font-mono bg-black/5 p-2 rounded max-h-40 overflow-y-auto">
-              {results.output}
-            </pre>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => goToExercise(exerciseIndex + 1)}
+            disabled={exerciseIndex === totalExercises - 1}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
     </div>
