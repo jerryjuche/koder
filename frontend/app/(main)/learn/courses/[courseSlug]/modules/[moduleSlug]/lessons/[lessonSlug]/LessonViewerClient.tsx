@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
-import { fetchLesson, completeLesson } from "@/lib/api";
-import { LessonWithSections, LessonSection } from "@/lib/types";
+import { useParams, useRouter } from "next/navigation";
+import { fetchLesson, fetchModule, completeLesson } from "@/lib/api";
+import { LessonWithSections, ModuleWithLessons, Lesson } from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, CheckCircle2, Clock, Zap, ChevronRight, Loader2,
-  BookOpen, GraduationCap, PanelRightOpen, PanelRightClose,
-  Sparkles,
+  ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
+  Loader2, BookOpen, Sparkles, ChevronLeft, ChevronRight,
+  GraduationCap,
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 const sectionTypeGradients: Record<string, string> = {
   overview: "from-blue-500/5 via-transparent to-transparent",
@@ -34,44 +34,49 @@ const sectionTypeGradients: Record<string, string> = {
 
 export default function LessonViewerClient() {
   const params = useParams();
+  const router = useRouter();
   const courseSlug = params.courseSlug as string;
   const moduleSlug = params.moduleSlug as string;
   const lessonSlug = params.lessonSlug as string;
 
-  // Infer lesson language from course slug, not user preference
   const lessonLanguage = courseSlug.includes("python")
     ? "python"
     : courseSlug.includes("-go") || courseSlug.startsWith("go-")
       ? "go"
       : "python";
 
-  const [data, setData] = useState<LessonWithSections | null>(null);
+  const [lessonData, setLessonData] = useState<LessonWithSections | null>(null);
+  const [moduleData, setModuleData] = useState<ModuleWithLessons | null>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetchLesson(courseSlug, moduleSlug, lessonSlug);
-    if (res.success && res.data) {
-      setData(res.data);
-      setCompleted(res.data.progress?.completed ?? false);
+    const [lessonRes, moduleRes] = await Promise.all([
+      fetchLesson(courseSlug, moduleSlug, lessonSlug),
+      fetchModule(courseSlug, moduleSlug),
+    ]);
+    if (lessonRes.success && lessonRes.data) {
+      setLessonData(lessonRes.data);
+      setCompleted(lessonRes.data.progress?.completed ?? false);
+    }
+    if (moduleRes.success && moduleRes.data) {
+      setModuleData(moduleRes.data);
     }
     setLoading(false);
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
   // Scroll-spy: track which section is in view
   useEffect(() => {
-    if (!data?.sections?.length) return;
+    if (!lessonData?.sections?.length) return;
 
-    const ids = data.sections.map((s) => `section-${s.id}`);
+    const ids = lessonData.sections.map((s) => `section-${s.id}`);
     const elements = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (elements.length === 0) return;
 
@@ -85,26 +90,44 @@ export default function LessonViewerClient() {
           setActiveSectionId(id);
         }
       },
-      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
     );
 
     elements.forEach((el) => observerRef.current?.observe(el));
     return () => observerRef.current?.disconnect();
-  }, [data?.sections]);
+  }, [lessonData?.sections]);
 
   const handleComplete = async () => {
-    if (!data || completed) return;
+    if (!lessonData || completed) return;
     setCompleting(true);
-    const res = await completeLesson(data.id);
+    const res = await completeLesson(lessonData.id);
     if (res.success) {
       setCompleted(true);
       toast.success("Lesson completed!");
-      setData((prev) => prev ? { ...prev, progress: { ...prev.progress!, completed: true, xp_awarded: prev.xp_reward, user_id: "", lesson_id: prev.id } } : prev);
+      setLessonData((prev) =>
+        prev
+          ? {
+              ...prev,
+              progress: {
+                user_id: "",
+                lesson_id: prev.id,
+                completed: true,
+                xp_awarded: prev.xp_reward,
+              },
+            }
+          : prev,
+      );
     } else {
       toast.error(res.error?.message || "Failed to complete lesson");
     }
     setCompleting(false);
   };
+
+  // Navigation
+  const allLessons = moduleData?.lessons || [];
+  const currentIndex = allLessons.findIndex((l) => l.slug === lessonSlug);
+  const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
+  const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
   if (loading) {
     return (
@@ -119,142 +142,191 @@ export default function LessonViewerClient() {
     );
   }
 
-  if (!data) {
+  if (!lessonData) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
           <BookOpen className="h-8 w-8 text-muted-foreground/40" />
         </div>
         <p className="text-muted-foreground">Lesson not found</p>
-        <Link href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`} className="text-primary hover:underline mt-2 inline-block">Back to module</Link>
+        <Link
+          href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+          className="text-primary hover:underline mt-2 inline-block"
+        >
+          Back to module
+        </Link>
       </div>
     );
   }
 
-  const allPrereqsMet = data.prerequisites_met;
-
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* Sidebar */}
+    <div className="flex h-[calc(100vh-3.5rem)]">
+      {/* Left sidebar */}
       <LessonSidebar
-        sections={data.sections || []}
-        dependencies={data.dependencies || []}
-        completed={completed}
-        progress={data.progress}
-        onClose={() => setSidebarOpen(false)}
-        activeSectionId={activeSectionId}
+        courseSlug={courseSlug}
+        moduleSlug={moduleSlug}
+        moduleTitle={moduleData?.module?.title || moduleSlug}
+        lessons={allLessons}
+        currentSlug={lessonSlug}
+        dependencies={lessonData.dependencies || []}
+        progress={lessonData.progress}
+        estimatedMinutes={lessonData.estimated_minutes}
+        xpReward={lessonData.xp_reward}
       />
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <div className="flex items-center justify-between mb-4">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* ── Top Nav Bar ── */}
+        <header className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center justify-between px-4 md:px-6 py-2.5">
+            <div className="flex items-center gap-3 min-w-0">
               <Link
                 href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
-                className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                title="Back to module"
               >
-                <ArrowLeft className="h-3 w-3" /> Back to module
+                <ChevronLeft className="h-4 w-4" />
               </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="hidden md:flex gap-1.5"
-              >
-                {sidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-                {sidebarOpen ? "Hide" : "Sections"}
-              </Button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                  <Link href={`/learn/courses/${courseSlug}`} className="hover:text-foreground transition-colors truncate">
+                    {courseSlug.replace(/-/g, " ")}
+                  </Link>
+                  <span className="shrink-0">/</span>
+                  <Link
+                    href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+                    className="hover:text-foreground transition-colors truncate"
+                  >
+                    {moduleData?.module?.title || moduleSlug}
+                  </Link>
+                </div>
+                <h1 className="text-sm font-semibold truncate mt-0.5">
+                  {lessonData.title}
+                </h1>
+              </div>
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold">{data.title}</h1>
-            {data.description && (
-              <p className="text-muted-foreground mt-2 leading-relaxed">{data.description}</p>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
-              <Badge variant="outline" className="text-xs font-mono">
-                <Zap className="h-3 w-3 mr-1 text-amber-500" />
-                {data.xp_reward} XP
+            <div className="flex items-center gap-3 shrink-0">
+              <Badge variant="outline" className="text-[11px] font-mono gap-1">
+                <Zap className="h-3 w-3 text-amber-500" />
+                {lessonData.xp_reward} XP
               </Badge>
-              <span className="text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" /> {data.estimated_minutes}min
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {lessonData.estimated_minutes}min
               </span>
-              <Badge variant="secondary" className="text-xs">Diff {data.difficulty}</Badge>
+              <Badge variant="secondary" className="text-[10px]">
+                Diff {lessonData.difficulty}
+              </Badge>
               {completed && (
-                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Completed
-                </Badge>
-              )}
-              {!allPrereqsMet && (
-                <Badge variant="secondary" className="text-xs">
-                  Prerequisites required
+                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[11px] gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Completed
                 </Badge>
               )}
             </div>
-          </motion.div>
-
-          {/* Sections */}
-          <div className="space-y-12 mb-12">
-            {(!data.sections || data.sections.length === 0) && (
-              <div className="text-center py-16 border-2 border-dashed rounded-xl">
-                <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-                <p className="text-sm text-muted-foreground">No content sections yet</p>
-              </div>
-            )}
-            {(data.sections || []).map((section, idx) => (
-              <motion.section
-                key={section.id}
-                id={`section-${section.id}`}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.04 }}
-                className={`scroll-mt-24 relative rounded-xl p-6 md:p-8 border bg-gradient-to-br ${sectionTypeGradients[section.section_type] || "from-muted/10"} transition-all duration-300 ${
-                  activeSectionId === section.id ? "border-primary/20 shadow-md shadow-primary/5" : "border-border/50"
-                }`}
-              >
-                <SectionRenderer key={section.id} section={section} problemReferences={data.problem_references} language={lessonLanguage} />
-              </motion.section>
-            ))}
           </div>
+        </header>
 
-          {/* Complete button */}
-          <div className="border-t pt-6 pb-8">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="text-sm text-muted-foreground">
-                {completed ? (
-                  <span className="flex items-center gap-2 text-green-600 font-medium">
-                    <CheckCircle2 className="h-4 w-4" /> You have completed this lesson
-                  </span>
-                ) : (
-                  "Mark this lesson as complete when you are done"
-                )}
+        {/* ── Scrollable Content ── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-8">
+            {/* Sections */}
+            <div className="space-y-8 mb-8">
+              {(!lessonData.sections || lessonData.sections.length === 0) && (
+                <div className="text-center py-16 border-2 border-dashed rounded-xl">
+                  <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">No content sections yet</p>
+                </div>
+              )}
+              {(lessonData.sections || []).map((section, idx) => (
+                <motion.section
+                  key={section.id}
+                  id={`section-${section.id}`}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className={cn(
+                    "scroll-mt-24 relative rounded-xl p-6 md:p-8 border transition-all duration-300",
+                    sectionTypeGradients[section.section_type] || "from-muted/10",
+                    activeSectionId === section.id
+                      ? "border-primary/20 shadow-md shadow-primary/5 bg-gradient-to-br"
+                      : "border-border/50 bg-gradient-to-br",
+                  )}
+                >
+                  <SectionRenderer
+                    key={section.id}
+                    section={section}
+                    problemReferences={lessonData.problem_references}
+                    language={lessonLanguage}
+                  />
+                </motion.section>
+              ))}
+            </div>
+
+            {/* ── Bottom Navigation ── */}
+            <div className="border-t pt-6 pb-8">
+              <div className="flex items-center justify-between gap-4">
+                {/* Previous */}
+                <div className="min-w-0 flex-1">
+                  {prevLesson ? (
+                    <Link
+                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${prevLesson.slug}`}
+                      className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
+                        <ArrowLeft className="h-4 w-4" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-[11px] text-muted-foreground/60">Previous</p>
+                        <p className="text-sm font-medium truncate">{prevLesson.title}</p>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div />
+                  )}
+                </div>
+
+                {/* Mark Complete */}
+                <Button
+                  onClick={handleComplete}
+                  disabled={completing || completed || !lessonData.prerequisites_met}
+                  size="lg"
+                  className={cn(
+                    "min-w-[160px] transition-all shrink-0",
+                    completed && "bg-green-600 hover:bg-green-700 cursor-default",
+                  )}
+                >
+                  {completing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : completed ? (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {completed ? "Completed" : "Mark Complete"}
+                </Button>
+
+                {/* Next */}
+                <div className="min-w-0 flex-1 flex justify-end">
+                  {nextLesson ? (
+                    <Link
+                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
+                      className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors text-right"
+                    >
+                      <div className="text-right min-w-0">
+                        <p className="text-[11px] text-muted-foreground/60">Next</p>
+                        <p className="text-sm font-medium truncate">{nextLesson.title}</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div />
+                  )}
+                </div>
               </div>
-              <Button
-                onClick={handleComplete}
-                disabled={completing || completed || !allPrereqsMet}
-                size="lg"
-                className={`min-w-[160px] transition-all ${
-                  completed
-                    ? "bg-green-600 hover:bg-green-700 cursor-default"
-                    : ""
-                }`}
-              >
-                {completing ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : completed ? (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                {completed ? "Completed" : "Mark Complete"}
-                {!completed && !completing && <ChevronRight className="h-4 w-4 ml-1" />}
-              </Button>
             </div>
           </div>
         </div>
