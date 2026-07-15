@@ -131,31 +131,28 @@ export default function SectionExercise({
         }
       } else if (isPython) {
         const pyResult = await pyodideExecute(code);
-        if (pyResult) {
-          const output = pyResult.error
-            ? pyResult.error
-            : pyResult.stdout
-              ? pyResult.stdout
-              : "(no output)";
-          setResults((prev) => ({
-            ...prev,
-            [exerciseIndex]: {
-              type: pyResult.error ? "error" : "execution",
-              passed: false,
-              output,
-              runtimeMs: Math.round(performance.now() - startTime),
-              error: pyResult.error || undefined,
-            },
-          }));
-        }
+        const output = pyResult
+          ? (pyResult.error || pyResult.stdout || "(no output)")
+          : "Python execution failed. Check the console for details.";
+        setResults((prev) => ({
+          ...prev,
+          [exerciseIndex]: {
+            type: pyResult?.error ? "error" : "execution",
+            passed: false,
+            output,
+            runtimeMs: Math.round(performance.now() - startTime),
+            error: pyResult?.error || (!pyResult ? "Execution returned no result" : undefined),
+          },
+        }));
       } else {
         setResults((prev) => ({
           ...prev,
           [exerciseIndex]: {
-            type: "execution",
+            type: "error",
             passed: false,
-            output: "Code submitted successfully.",
+            output: "In-browser Go execution is not supported. This exercise requires problem references to test against the backend.",
             runtimeMs: 0,
+            error: "Go execution not available in browser",
           },
         }));
       }

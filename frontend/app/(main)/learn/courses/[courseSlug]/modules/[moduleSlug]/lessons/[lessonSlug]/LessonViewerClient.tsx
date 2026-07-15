@@ -17,7 +17,6 @@ import {
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
-import { useUser } from "@/lib/UserContext";
 
 const sectionTypeGradients: Record<string, string> = {
   overview: "from-blue-500/5 via-transparent to-transparent",
@@ -39,8 +38,12 @@ export default function LessonViewerClient() {
   const moduleSlug = params.moduleSlug as string;
   const lessonSlug = params.lessonSlug as string;
 
-  const { user } = useUser();
-  const lessonLanguage = user?.primaryLanguage || "python";
+  // Infer lesson language from course slug, not user preference
+  const lessonLanguage = courseSlug.includes("python")
+    ? "python"
+    : courseSlug.includes("-go") || courseSlug.startsWith("go-")
+      ? "go"
+      : "python";
 
   const [data, setData] = useState<LessonWithSections | null>(null);
   const [loading, setLoading] = useState(true);
