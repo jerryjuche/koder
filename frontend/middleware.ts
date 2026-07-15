@@ -11,8 +11,8 @@ export function middleware(request: NextRequest) {
 
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live;
-    worker-src 'self' blob:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live https://cdn.jsdelivr.net;
+    worker-src 'self' blob: https://cdn.jsdelivr.net;
     style-src 'self' 'unsafe-inline' https://accounts.google.com;
     style-src-elem 'self' 'unsafe-inline' https://accounts.google.com;
     img-src 'self' data: blob: https:;
