@@ -27,7 +27,7 @@ VALUES (
   'python-mastery',
   'Python Mastery: From Zero to Hero',
   'A comprehensive Python course covering everything from your first print() statement through functions, data structures, file I/O, and error handling. Perfect for beginners — no prior experience needed. Every concept is reinforced with quizzes, coding exercises you can run in your browser, and real-world mini-projects.',
-  1, 24, 10, false
+  1, 24, 10, true
 )
 ON CONFLICT (slug) DO NOTHING;
 
@@ -162,134 +162,86 @@ ON CONFLICT (module_id, slug) DO NOTHING;
 
 -- py-variables-types depends on py-welcome
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-variables-types' AND l2.slug = 'py-welcome'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-variables-types'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-welcome')
 ON CONFLICT DO NOTHING;
 
 -- py-strings-basics depends on py-variables-types
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-strings-basics' AND l2.slug = 'py-variables-types'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-strings-basics'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-variables-types')
 ON CONFLICT DO NOTHING;
 
 -- py-user-input depends on py-strings-basics
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-user-input' AND l2.slug = 'py-strings-basics'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-user-input'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-strings-basics')
 ON CONFLICT DO NOTHING;
 
 -- py-conditionals depends on py-variables-types
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-conditionals' AND l2.slug = 'py-variables-types'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-conditionals'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations' AND l.slug = 'py-variables-types')
 ON CONFLICT DO NOTHING;
 
 -- py-loops depends on py-conditionals
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-loops' AND l2.slug = 'py-conditionals'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-loops'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-conditionals')
 ON CONFLICT DO NOTHING;
 
 -- py-lists-tuples depends on py-loops
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-lists-tuples' AND l2.slug = 'py-loops'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-lists-tuples'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-loops')
 ON CONFLICT DO NOTHING;
 
 -- py-functions depends on py-lists-tuples
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-functions' AND l2.slug = 'py-lists-tuples'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-functions'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow' AND l.slug = 'py-lists-tuples')
 ON CONFLICT DO NOTHING;
 
 -- py-dicts-sets depends on py-functions
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-dicts-sets' AND l2.slug = 'py-functions'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-dicts-sets'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-functions')
 ON CONFLICT DO NOTHING;
 
 -- py-comprehensions depends on py-dicts-sets
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-comprehensions' AND l2.slug = 'py-dicts-sets'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-comprehensions'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-dicts-sets')
 ON CONFLICT DO NOTHING;
 
 -- py-file-io depends on py-functions
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-file-io' AND l2.slug = 'py-functions'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-real-world' AND l.slug = 'py-file-io'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts' AND l.slug = 'py-functions')
 ON CONFLICT DO NOTHING;
 
 -- py-error-handling depends on py-file-io
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-error-handling' AND l2.slug = 'py-file-io'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-real-world' AND l.slug = 'py-error-handling'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-real-world' AND l.slug = 'py-file-io')
 ON CONFLICT DO NOTHING;
 
 -- py-capstone depends on py-error-handling
 INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id)
-SELECT l1.id, l2.id
-FROM lessons l1, lessons l2
-JOIN modules m1 ON l1.module_id = m1.id
-JOIN modules m2 ON l2.module_id = m2.id
-JOIN courses c ON m1.course_id = c.id AND m2.course_id = c.id
-WHERE c.slug = 'python-mastery'
-  AND l1.slug = 'py-capstone' AND l2.slug = 'py-error-handling'
+SELECT
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-real-world' AND l.slug = 'py-capstone'),
+  (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-real-world' AND l.slug = 'py-error-handling')
 ON CONFLICT DO NOTHING;
 
 -- ═══════════════════════════════════════════════════════════════════════════
