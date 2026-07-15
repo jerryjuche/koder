@@ -1,6 +1,12 @@
-import { loadPyodide, PyodideInterface } from "pyodide";
+type PyodideInterface = {
+  runPythonAsync(code: string): Promise<unknown>;
+  loadPackage(packages: string[]): Promise<void>;
+  setStdout(opts: { batched: (msg: string) => void }): void;
+  setStderr(opts: { batched: (msg: string) => void }): void;
+};
 
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/";
+const PACKAGE_URL = `${PYODIDE_CDN}pyodide.mjs`;
 const DEFAULT_PACKAGES = ["numpy", "matplotlib"];
 const EXEC_TIMEOUT_MS = 10000;
 const MAX_OUTPUT_LENGTH = 50000;
@@ -23,9 +29,8 @@ export async function getPyodideInstance(): Promise<PyodideInterface> {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    const pyodide = await loadPyodide({
-      indexURL: PYODIDE_CDN,
-    });
+    const { loadPyodide: load } = await import(PACKAGE_URL);
+    const pyodide = await load({ indexURL: PYODIDE_CDN });
     await pyodide.loadPackage(DEFAULT_PACKAGES);
     instance = pyodide;
     return pyodide;
