@@ -379,7 +379,8 @@ export default function SectionExercise({
 
   return (
     <div>
-      {isPython && mounted ? (
+      {isPython ? (
+        /* Split pane: editor + PyodideConsole side by side */
         <div className="border rounded-lg overflow-hidden" style={{ minHeight: "400px" }}>
           <ResizableSplitPane
             left={editorContent}
@@ -391,70 +392,9 @@ export default function SectionExercise({
           />
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "260px" }}>
-          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b shrink-0">
-            <div className="flex items-center gap-2">
-              <Code2 className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                {miniProject ? "Mini Project" : (hasProblems ? `Exercise ${exerciseIndex + 1}` : "Code Playground")}
-              </span>
-              {hasProblems && (
-                <Badge variant="outline" className="text-xs font-mono">
-                  {problemReferences[exerciseIndex]}
-                </Badge>
-              )}
-              <Badge variant="secondary" className="text-xs">
-                {isPython ? "Python" : "Go"}
-              </Badge>
-            </div>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={handleTest}
-              disabled={testing}
-            >
-              {testing ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              ) : (
-                <Play className="h-3 w-3 mr-1" />
-              )}
-              {hasProblems ? "Test" : "Run"}
-            </Button>
-          </div>
-
-          <div style={{ height: "200px" }}>
-            {mounted ? (
-              <Editor
-                height="100%"
-                language={isPython ? "python" : "go"}
-                value={currentCode}
-                onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
-                theme="vs-dark-plus"
-                onMount={(_editor, monaco) => {
-                  editorRef.current = _editor;
-                  if (monaco) registerVSCodeDarkPlusTheme(monaco);
-                }}
-                options={{
-                  minimap: { enabled: false },
-                  lineNumbers: "on",
-                  scrollBeyondLastLine: false,
-                  fontSize: 14,
-                  padding: { top: 8 },
-                }}
-                loading={
-                  <div className="h-full bg-[#1e1e1e] animate-pulse" />
-                }
-              />
-            ) : (
-              <textarea
-                value={currentCode}
-                onChange={(e) => setCodes((prev) => ({ ...prev, [exerciseIndex]: e.target.value }))}
-                className="w-full h-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-y focus:outline-none"
-                placeholder="# Write your code here"
-                spellCheck={false}
-              />
-            )}
-          </div>
+        /* Standalone: editor only (Go or non-Python) */
+        <div style={{ height: "260px" }}>
+          {editorContent}
         </div>
       )}
 
