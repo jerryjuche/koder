@@ -104,6 +104,12 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.Get("/check-username", authHandler.CheckUsername)
 	})
 
+	// Public curriculum CMS — no auth required
+	r.Get("/learn/courses", cmHandler.ListPublishedCourses)
+	r.Get("/learn/courses/{courseSlug}", cmHandler.GetCourseDetail)
+	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
+	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
+
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(cfg, store))
 
@@ -169,11 +175,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/submit", submissionHandler.Submit)
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/test", testHandler.Test)
 
-		// Curriculum CMS — student endpoints
-		r.Get("/learn/courses", cmHandler.ListPublishedCourses)
-		r.Get("/learn/courses/{courseSlug}", cmHandler.GetCourseDetail)
-		r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
-		r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
+		// Curriculum CMS — student endpoints (auth required)
 		r.Get("/learn/progress", cmHandler.GetAllProgress)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/learn/lessons/{lessonId}/complete", cmHandler.CompleteLesson)
 

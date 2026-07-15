@@ -65,8 +65,10 @@ func (h *CMHandler) GetCourseDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := GetClaims(r.Context())
-	userID, _ := uuid.Parse(claims.UserID)
+	userID := uuid.Nil
+	if claims := GetClaims(r.Context()); claims != nil {
+		userID, _ = uuid.Parse(claims.UserID)
+	}
 
 	modules, err := h.store.ListModules(r.Context(), course.ID.Bytes)
 	if err != nil {
@@ -164,8 +166,10 @@ func (h *CMHandler) GetModuleDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := GetClaims(r.Context())
-	userID, _ := uuid.Parse(claims.UserID)
+	userID := uuid.Nil
+	if claims := GetClaims(r.Context()); claims != nil {
+		userID, _ = uuid.Parse(claims.UserID)
+	}
 
 	lessons, err := h.store.ListLessons(r.Context(), module.ID.Bytes)
 	if err != nil {
@@ -227,8 +231,10 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := GetClaims(r.Context())
-	userID, _ := uuid.Parse(claims.UserID)
+	userID := uuid.Nil
+	if claims := GetClaims(r.Context()); claims != nil {
+		userID, _ = uuid.Parse(claims.UserID)
+	}
 
 	// Build response with sections, dependencies, projects, and progress
 	result := store.LessonWithSections{
