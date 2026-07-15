@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import "@/lib/monaco-setup";
+import { loader } from "@monaco-editor/react";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,9 @@ import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+
+// Pre-initialize Monaco and register theme before Editor mounts
+loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
 
 interface SectionExerciseProps {
   problemReferences: string[];
