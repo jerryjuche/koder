@@ -21,14 +21,12 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false,
-  loading: () => <div className="h-full bg-[#1e1e1e]" />,
-});
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 interface SectionExerciseProps {
   problemReferences: string[];
@@ -329,7 +327,7 @@ export default function SectionExercise({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 bg-[#1e1e1e]">
         <MonacoEditor
           height="100%"
           language={isPython ? "python" : "go"}
@@ -338,9 +336,7 @@ export default function SectionExercise({
           theme="vs-dark-plus"
           onMount={(_editor, monaco) => {
             editorRef.current = _editor;
-            if (monaco) {
-              import("@/lib/monaco-theme").then((m) => m.registerVSCodeDarkPlusTheme(monaco));
-            }
+            if (monaco) registerVSCodeDarkPlusTheme(monaco);
           }}
           options={{
             minimap: { enabled: false },
@@ -349,7 +345,6 @@ export default function SectionExercise({
             fontSize: 14,
             padding: { top: 8 },
           }}
-          loading={<div className="h-full bg-[#1e1e1e]" />}
         />
       </div>
     </div>
