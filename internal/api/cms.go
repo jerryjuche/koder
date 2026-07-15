@@ -331,6 +331,20 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check prerequisites
+	deps, err := h.store.GetLessonDependencies(r.Context(), lesson.ID.Bytes)
+	if err == nil && len(deps) > 0 {
+		for _, dep := range deps {
+			depID := uuid.UUID(dep.DependsOnLessonID.Bytes)
+			lp, depErr := h.store.GetLessonProgress(r.Context(), userID, depID)
+			if depErr != nil || lp == nil || !lp.Completed {
+				RespondError(w, http.StatusForbidden, "PREREQ_NOT_MET",
+					"Complete all prerequisite lessons before completing this lesson", nil)
+				return
+			}
+		}
+	}
+
 	// Check if already completed — only award XP once
 	var xpAwarded int
 	existingProgress, _ := h.store.GetLessonProgress(r.Context(), userID, lessonID)

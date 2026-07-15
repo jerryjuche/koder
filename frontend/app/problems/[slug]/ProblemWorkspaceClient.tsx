@@ -33,6 +33,8 @@ import {
   Activity,
   Edit3,
   Save,
+  Terminal,
+  Globe,
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
@@ -56,6 +58,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { LanguageLogo } from "@/components/LanguageLogo";
+import { usePyodide } from "@/hooks/usePyodide";
+import PyodideConsole from "@/components/PyodideConsole";
 
 const GO_CODE = `package koder
 
@@ -196,6 +200,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
   const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
   const [fullscreen, setFullscreen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"hints" | "console">("hints");
+  const {
+    ready: pyodideReady,
+    loading: pyodideLoading,
+    consoleLines: pyodideLines,
+    execute: pyodideExecute,
+    clearConsole: clearPyodideConsole,
+  } = usePyodide();
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -260,13 +272,18 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (e.shiftKey) handleSubmitRef.current();
-        else handleTestRef.current();
+        if (e.shiftKey) {
+          handleSubmitRef.current();
+        } else if (activeLanguage === "python" && pyodideReady) {
+          handlePyodideRun();
+        } else {
+          handleTestRef.current();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [activeLanguage, pyodideReady]);
 
   const handleReset = () => {
     let fresh = generateScaffold(problem, activeLanguage);
@@ -449,6 +466,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setSubmitting(false);
   }
 
+  const handlePyodideRun = async () => {
+    if (!code.trim()) {
+      toast.error("Please write some code first");
+      return;
+    }
+    await pyodideExecute(code);
+  };
+
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
@@ -578,9 +603,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           <button
-            onClick={() =>
-              setPanelMode(panelMode === "hints" ? "tests" : "hints")
-            }
+            onClick={() => {
+              if (panelMode === "hints" && rightPanelTab === "console") {
+                setRightPanelTab("hints");
+              } else {
+                setPanelMode(panelMode === "hints" ? "tests" : "hints");
+              }
+            }}
             className={cn(
               "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
               panelMode === "hints"
@@ -590,6 +619,46 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           >
             <Lightbulb size={16} /> Hints
           </button>
+          {activeLanguage === "python" && (
+            <>
+              <button
+                onClick={() => {
+                  if (panelMode === "hints" && rightPanelTab === "console") {
+                    setPanelMode("tests");
+                  } else {
+                    setRightPanelTab("console");
+                    setPanelMode("hints");
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
+                  panelMode === "hints" && rightPanelTab === "console"
+                    ? "bg-brand-muted-gold/10 text-brand-muted-gold border-brand-muted-gold/30"
+                    : "text-brand-offwhite-muted border-transparent hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                )}
+              >
+                <Terminal size={16} /> Console
+              </button>
+              <button
+                onClick={handlePyodideRun}
+                disabled={!pyodideReady}
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
+                  pyodideReady
+                    ? "border-brand-muted-gold/30 text-brand-muted-gold hover:bg-brand-muted-gold/10"
+                    : "border-brand-charcoal-border text-brand-offwhite-muted opacity-50 cursor-not-allowed",
+                )}
+                title={pyodideReady ? "Run in browser (Ctrl+Enter)" : "Pyodide initializing..."}
+              >
+                {pyodideLoading ? (
+                  <div className="w-4 h-4 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" />
+                ) : (
+                  <Globe size={16} />
+                )}
+                Run in Browser
+              </button>
+            </>
+          )}
           {user?.role === "admin" && problem && (
             <button
               onClick={() => {
@@ -1831,92 +1900,133 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           />
         </div>
 
-        {/* Right: Hints Panel (Collapsible) */}
+        {/* Right: Hints / Console Panel (Collapsible) */}
         {panelMode === "hints" && (
-          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-y-auto custom-scrollbar">
-            <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between">
-              <div className="font-bold flex items-center gap-2 text-brand-muted-gold">
-                <Lightbulb size={18} /> Progressive Hints
+          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-hidden flex flex-col">
+            {/* Tab bar for Python mode */}
+            {activeLanguage === "python" && (
+              <div className="flex border-b border-brand-charcoal-border shrink-0">
+                <button
+                  onClick={() => setRightPanelTab("hints")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors",
+                    rightPanelTab === "hints"
+                      ? "text-brand-muted-gold bg-brand-muted-gold/5 border-b-2 border-brand-muted-gold"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                  )}
+                >
+                  <Lightbulb size={14} /> Hints
+                </button>
+                <div className="w-px bg-brand-charcoal-border self-stretch" />
+                <button
+                  onClick={() => setRightPanelTab("console")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors",
+                    rightPanelTab === "console"
+                      ? "text-brand-muted-gold bg-brand-muted-gold/5 border-b-2 border-brand-muted-gold"
+                      : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
+                  )}
+                >
+                  <Terminal size={14} /> Console
+                </button>
               </div>
-              <span className="text-xs text-brand-offwhite-muted bg-brand-charcoal-base px-2 py-1 rounded">
-                ({hintsOpen.filter(Boolean).length}/{problem.hints?.length || 3}{" "}
-                viewed)
-              </span>
-            </div>
-            <div className="p-5 space-y-4">
-              {(problem.hints && problem.hints.length > 0
-                ? problem.hints
-                : [
-                    "Think about using the standard fmt package in Go. Which function prints with a newline?",
-                    "You don't need to return a value from main(), simply call the print function.",
-                    'The exact syntax is `fmt.Println("Hello, World!")` inside the main function.',
-                  ]
-              ).map((hintText, idx) => {
-                const isOpen = hintsOpen[idx];
-                const isLocked = idx > 0 && !hintsOpen[idx - 1];
-                return (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "border rounded-xl overflow-hidden transition-all duration-300 cursor-pointer",
-                      isOpen
-                        ? "border-brand-muted-gold bg-brand-muted-gold/5"
-                        : isLocked
-                          ? "border-brand-charcoal-border/50 bg-brand-charcoal-base/50 opacity-50"
-                          : "border-brand-charcoal-border bg-brand-charcoal-base hover:border-brand-charcoal-hover hover:bg-brand-charcoal-hover/50",
-                    )}
-                    onClick={() => {
-                      if (isLocked) return;
-                      const newOpen = [...hintsOpen];
-                      newOpen[idx] = !newOpen[idx];
-                      setHintsOpen(newOpen);
-                    }}
-                  >
-                    <div className="p-4 flex items-center justify-between">
-                      <span
-                        className={cn(
-                          "text-sm font-bold flex items-center gap-2",
-                          isOpen
-                            ? "text-brand-muted-gold"
-                            : "text-brand-offwhite-muted",
-                        )}
-                      >
-                        <Lightbulb
-                          size={16}
-                          className={
-                            isOpen
-                              ? "fill-brand-muted-gold text-brand-muted-gold"
-                              : ""
-                          }
-                        />{" "}
-                        Hint {idx + 1}
-                        {!isOpen && (
-                          <span className="font-normal text-xs ml-1">
-                            · Click to unlock
-                          </span>
-                        )}
-                      </span>
-                      {isOpen ? (
-                        <ChevronUp
-                          size={16}
-                          className="text-brand-muted-gold"
-                        />
-                      ) : (
-                        <ChevronDown
-                          size={16}
-                          className="text-brand-offwhite-muted"
-                        />
-                      )}
-                    </div>
-                    {isOpen && (
-                      <div className="px-4 pb-4 pt-1 text-sm text-brand-offwhite animate-in slide-in-from-top-2 fade-in">
-                        {hintText}
-                      </div>
-                    )}
+            )}
+
+            {rightPanelTab === "console" ? (
+              <div className="flex-1 overflow-hidden relative">
+                <PyodideConsole
+                  lines={pyodideLines}
+                  onClear={clearPyodideConsole}
+                  isLoading={pyodideLoading && !pyodideReady}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between shrink-0">
+                  <div className="font-bold flex items-center gap-2 text-brand-muted-gold">
+                    <Lightbulb size={18} /> Progressive Hints
                   </div>
-                );
-              })}
-            </div>
+                  <span className="text-xs text-brand-offwhite-muted bg-brand-charcoal-base px-2 py-1 rounded">
+                    ({hintsOpen.filter(Boolean).length}/{problem.hints?.length || 3}{" "}
+                    viewed)
+                  </span>
+                </div>
+                <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+                  {(problem.hints && problem.hints.length > 0
+                    ? problem.hints
+                    : [
+                        "Think about using the standard fmt package in Go. Which function prints with a newline?",
+                        "You don't need to return a value from main(), simply call the print function.",
+                        'The exact syntax is `fmt.Println("Hello, World!")` inside the main function.',
+                      ]
+                  ).map((hintText, idx) => {
+                    const isOpen = hintsOpen[idx];
+                    const isLocked = idx > 0 && !hintsOpen[idx - 1];
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "border rounded-xl overflow-hidden transition-all duration-300 cursor-pointer",
+                          isOpen
+                            ? "border-brand-muted-gold bg-brand-muted-gold/5"
+                            : isLocked
+                              ? "border-brand-charcoal-border/50 bg-brand-charcoal-base/50 opacity-50"
+                              : "border-brand-charcoal-border bg-brand-charcoal-base hover:border-brand-charcoal-hover hover:bg-brand-charcoal-hover/50",
+                        )}
+                        onClick={() => {
+                          if (isLocked) return;
+                          const newOpen = [...hintsOpen];
+                          newOpen[idx] = !newOpen[idx];
+                          setHintsOpen(newOpen);
+                        }}
+                      >
+                        <div className="p-4 flex items-center justify-between">
+                          <span
+                            className={cn(
+                              "text-sm font-bold flex items-center gap-2",
+                              isOpen
+                                ? "text-brand-muted-gold"
+                                : "text-brand-offwhite-muted",
+                            )}
+                          >
+                            <Lightbulb
+                              size={16}
+                              className={
+                                isOpen
+                                  ? "fill-brand-muted-gold text-brand-muted-gold"
+                                  : ""
+                              }
+                            />{" "}
+                            Hint {idx + 1}
+                            {!isOpen && (
+                              <span className="font-normal text-xs ml-1">
+                                · Click to unlock
+                              </span>
+                            )}
+                          </span>
+                          {isOpen ? (
+                            <ChevronUp
+                              size={16}
+                              className="text-brand-muted-gold"
+                            />
+                          ) : (
+                            <ChevronDown
+                              size={16}
+                              className="text-brand-offwhite-muted"
+                            />
+                          )}
+                        </div>
+                        {isOpen && (
+                          <div className="px-4 pb-4 pt-1 text-sm text-brand-offwhite animate-in slide-in-from-top-2 fade-in">
+                            {hintText}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

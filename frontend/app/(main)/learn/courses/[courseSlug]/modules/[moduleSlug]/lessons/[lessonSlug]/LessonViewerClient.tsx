@@ -17,6 +17,7 @@ import {
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
+import { useUser } from "@/lib/UserContext";
 
 const sectionTypeGradients: Record<string, string> = {
   overview: "from-blue-500/5 via-transparent to-transparent",
@@ -37,6 +38,9 @@ export default function LessonViewerClient() {
   const courseSlug = params.courseSlug as string;
   const moduleSlug = params.moduleSlug as string;
   const lessonSlug = params.lessonSlug as string;
+
+  const { user } = useUser();
+  const lessonLanguage = user?.primaryLanguage || "python";
 
   const [data, setData] = useState<LessonWithSections | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,7 +215,7 @@ export default function LessonViewerClient() {
                   activeSectionId === section.id ? "border-primary/20 shadow-md shadow-primary/5" : "border-border/50"
                 }`}
               >
-                <SectionRenderer key={section.id} section={section} problemReferences={data.problem_references} language="python" />
+                <SectionRenderer key={section.id} section={section} problemReferences={data.problem_references} language={lessonLanguage} />
               </motion.section>
             ))}
           </div>
