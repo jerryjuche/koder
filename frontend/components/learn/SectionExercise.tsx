@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import dynamic from "next/dynamic";
 import "@/lib/monaco-setup";
-import { loader } from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +25,6 @@ import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
-
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 // Pre-initialize Monaco and register theme before Editor mounts
 loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
@@ -332,12 +329,13 @@ export default function SectionExercise({
       </div>
 
       <div className="flex-1 min-h-0 bg-[#1e1e1e]">
-        <MonacoEditor
+        <Editor
           height="100%"
           language={isPython ? "python" : "go"}
           value={currentCode}
           onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
           theme="vs-dark-plus"
+          loading={<div className="h-full bg-[#1e1e1e]" />}
           onMount={(_editor, monaco) => {
             editorRef.current = _editor;
             if (monaco) registerVSCodeDarkPlusTheme(monaco);
