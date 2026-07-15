@@ -180,6 +180,7 @@ export default function PyodideConsole({
           ↓ Scroll to bottom
         </button>
       )}
+      </div>
     </div>
   );
 }

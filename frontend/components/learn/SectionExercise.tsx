@@ -106,14 +106,15 @@ export default function SectionExercise({
         const res = await testCode(slug, code, lang);
 
         if (res.success && res.data) {
+          const d = res.data;
           setResults((prev) => ({
             ...prev,
             [exerciseIndex]: {
               type: "test",
-              passed: res.data.status === "passed",
-              output: res.data.output_logs || friendlyStatus(res.data.status),
-              runtimeMs: res.data.runtime_ms ?? Math.round(performance.now() - startTime),
-              error: res.data.status === "compiler_error" ? res.data.friendly_message : undefined,
+              passed: d.status === "passed",
+              output: d.output_logs || friendlyStatus(d.status),
+              runtimeMs: d.runtime_ms ?? Math.round(performance.now() - startTime),
+              error: d.status === "compiler_error" ? d.friendly_message : undefined,
             },
           }));
         } else {
