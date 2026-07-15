@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Editor, { loader } from "@monaco-editor/react";
+import dynamic from "next/dynamic";
+import { loader } from "@monaco-editor/react";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +21,14 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { useHasMounted } from "@/hooks/use-has-mounted";
 import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
 
-loader.config({ paths: { vs: "/vs" } });
+const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((m) => { loader.config({ paths: { vs: "/vs" } }); return m.default; }), { ssr: false });
+
+const EditorLoading = () => <div className="h-full bg-[#1e1e1e] animate-pulse" />;
 
 interface SectionExerciseProps {
   problemReferences: string[];
@@ -59,8 +61,6 @@ export default function SectionExercise({
   const [codes, setCodes] = useState<Record<number, string>>({});
   const [results, setResults] = useState<Record<number, ExerciseResult | null>>({});
   const [testing, setTesting] = useState(false);
-  const mounted = useHasMounted();
-
   const {
     ready: pyodideReady,
     loading: pyodideLoading,
@@ -332,37 +332,25 @@ export default function SectionExercise({
       </div>
 
       <div className="flex-1 min-h-0">
-        {mounted ? (
-          <Editor
-            height="100%"
-            language={isPython ? "python" : "go"}
-            value={currentCode}
-            onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
-            theme="vs-dark-plus"
-            onMount={(_editor, monaco) => {
-              editorRef.current = _editor;
-              if (monaco) registerVSCodeDarkPlusTheme(monaco);
-            }}
-            options={{
-              minimap: { enabled: false },
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
-              fontSize: 14,
-              padding: { top: 8 },
-            }}
-            loading={
-              <div className="h-full bg-[#1e1e1e] animate-pulse" />
-            }
-          />
-        ) : (
-          <textarea
-            value={currentCode}
-            onChange={(e) => setCodes((prev) => ({ ...prev, [exerciseIndex]: e.target.value }))}
-            className="w-full h-full min-h-[200px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] border-0 resize-none focus:outline-none"
-            placeholder="# Write your code here"
-            spellCheck={false}
-          />
-        )}
+        <MonacoEditor
+          height="100%"
+          language={isPython ? "python" : "go"}
+          value={currentCode}
+          onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
+          theme="vs-dark-plus"
+          onMount={(_editor, monaco) => {
+            editorRef.current = _editor;
+            if (monaco) registerVSCodeDarkPlusTheme(monaco);
+          }}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: "on",
+            scrollBeyondLastLine: false,
+            fontSize: 14,
+            padding: { top: 8 },
+          }}
+          loading={<EditorLoading />}
+        />
       </div>
     </div>
   );
@@ -399,7 +387,7 @@ export default function SectionExercise({
       )}
 
       {/* Results - hidden when PyodideConsole split pane is visible (console already shows output) */}
-      {currentResult && !(isPython && mounted) && (
+      {currentResult && !isPython && (
         <div className="mt-3">
           <ResultsPanel result={currentResult} />
         </div>
