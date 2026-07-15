@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   executePython,
   isPyodideReady,
@@ -21,37 +21,19 @@ const MAX_CONSOLE_LINES = 500;
 let nextId = 1;
 
 export function usePyodide() {
-  const [ready, setReady] = useState(isPyodideReady());
-  const [loading, setLoading] = useState(!isPyodideReady());
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([
+  const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>(() => [
     {
       id: nextId++,
       type: "system",
-      text: ">>> Python playground ready. Press Ctrl+Enter or click \"Run in Browser\" to execute code.",
+      text: '>>> Python playground ready. Press Ctrl+Enter or click "Run in Browser" to execute code.',
       timestamp: Date.now(),
     },
   ]);
 
   const loadingStarted = useRef(false);
-
-  useEffect(() => {
-    if (ready || loadingStarted.current) return;
-    loadingStarted.current = true;
-
-    getPyodideInstance()
-      .then(() => {
-        setReady(true);
-        setLoading(false);
-        addLine("system", ">>> Pyodide initialized with numpy, matplotlib.");
-      })
-      .catch((err: unknown) => {
-        setLoading(false);
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
-        addLine("error", `Failed to initialize Python: ${msg}`);
-      });
-  }, [ready]);
 
   const addLine = useCallback(
     (type: ConsoleLine["type"], text: string) => {
@@ -69,10 +51,47 @@ export function usePyodide() {
     [],
   );
 
+  const ensureLoaded = useCallback(async (): Promise<boolean> => {
+    if (ready) return true;
+    if (loadingStarted.current) {
+      try {
+        await getPyodideInstance();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    loadingStarted.current = true;
+    setLoading(true);
+    try {
+      await getPyodideInstance();
+      setReady(true);
+      setLoading(false);
+      addLine("system", ">>> Pyodide initialized with numpy, matplotlib.");
+      return true;
+    } catch (err: unknown) {
+      setLoading(false);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      addLine("error", `Failed to initialize Python: ${msg}`);
+      return false;
+    }
+  }, [ready, addLine]);
+
+  const startLoading = useCallback(async () => {
+    await ensureLoaded();
+  }, [ensureLoaded]);
+
   const execute = useCallback(
     async (code: string): Promise<ExecutionResult | null> => {
       if (!code.trim()) {
         addLine("error", "Cannot execute empty code.");
+        return null;
+      }
+
+      const loaded = await ensureLoaded();
+      if (!loaded) {
+        addLine("error", "Pyodide is not available. Please try again later.");
         return null;
       }
 
@@ -111,7 +130,7 @@ export function usePyodide() {
 
       return result;
     },
-    [addLine],
+    [addLine, ensureLoaded],
   );
 
   const clearConsole = useCallback(() => {
@@ -142,6 +161,7 @@ export function usePyodide() {
     error,
     consoleLines,
     execute,
+    startLoading,
     clearConsole,
     loadPackages,
   } as const;

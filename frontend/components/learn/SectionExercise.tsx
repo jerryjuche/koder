@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
-import { loader } from "@monaco-editor/react";
+import "@/lib/monaco-setup";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,14 +21,14 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((m) => { loader.config({ paths: { vs: "/vs" } }); return m.default; }), { ssr: false });
-
-const EditorLoading = () => <div className="h-full bg-[#1e1e1e] animate-pulse" />;
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+  loading: () => <div className="h-full bg-[#1e1e1e]" />,
+});
 
 interface SectionExerciseProps {
   problemReferences: string[];
@@ -80,10 +80,6 @@ export default function SectionExercise({
     : defaultExerciseCodes[Math.min(exerciseIndex, defaultExerciseCodes.length - 1)]);
 
   const currentResult = results[exerciseIndex] ?? null;
-
-  useEffect(() => {
-    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
-  }, []);
 
   const goToExercise = useCallback((idx: number) => {
     setExerciseIndex(idx);
@@ -315,19 +311,21 @@ export default function SectionExercise({
               Run in Browser
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="default"
-            onClick={handleTest}
-            disabled={testing}
-          >
-            {testing ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : (
-              <Play className="h-3 w-3 mr-1" />
-            )}
-            {hasProblems ? "Test" : "Run"}
-          </Button>
+          {!(isPython && !hasProblems) && (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleTest}
+              disabled={testing}
+            >
+              {testing ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Play className="h-3 w-3 mr-1" />
+              )}
+              {hasProblems ? "Test" : "Run"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -340,7 +338,9 @@ export default function SectionExercise({
           theme="vs-dark-plus"
           onMount={(_editor, monaco) => {
             editorRef.current = _editor;
-            if (monaco) registerVSCodeDarkPlusTheme(monaco);
+            if (monaco) {
+              import("@/lib/monaco-theme").then((m) => m.registerVSCodeDarkPlusTheme(monaco));
+            }
           }}
           options={{
             minimap: { enabled: false },
@@ -349,7 +349,7 @@ export default function SectionExercise({
             fontSize: 14,
             padding: { top: 8 },
           }}
-          loading={<EditorLoading />}
+          loading={<div className="h-full bg-[#1e1e1e]" />}
         />
       </div>
     </div>
@@ -369,7 +369,7 @@ export default function SectionExercise({
     <div>
       {isPython ? (
         /* Split pane: editor + PyodideConsole side by side */
-        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "400px" }}>
+        <div className="border rounded-lg overflow-hidden" style={{ height: "400px" }}>
           <ResizableSplitPane
             left={editorContent}
             right={consoleContent}
