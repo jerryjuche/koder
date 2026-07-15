@@ -27,7 +27,7 @@ VALUES (
   'python-mastery',
   'Python Mastery: From Zero to Hero',
   'A comprehensive Python course covering everything from your first print() statement through functions, data structures, file I/O, and error handling. Perfect for beginners — no prior experience needed. Every concept is reinforced with quizzes, coding exercises you can run in your browser, and real-world mini-projects.',
-  1, 24, 10, true
+  1, 24, 10, false
 )
 ON CONFLICT (slug) DO NOTHING;
 
@@ -62,21 +62,21 @@ ON CONFLICT (course_id, slug) DO NOTHING;
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-welcome', 'Welcome to Python',
        'Write your first Python program. Understand the REPL, scripts, and the print() function. No prior programming experience needed.',
-       1, 10, 30, 1, false, ARRAY['py-double-it']::TEXT[]
+       1, 10, 30, 1, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-variables-types', 'Variables & Data Types',
        'Learn about integers, floats, strings, booleans, and None. Master variable assignment, dynamic typing, and the type() function.',
-       1, 15, 40, 2, false, ARRAY['py-vars-math-calc']::TEXT[]
+       1, 15, 40, 2, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-strings-basics', 'Strings & String Methods',
        'Master Python string manipulation: indexing, slicing, concatenation, f-strings, and dozens of built-in string methods.',
-       1, 20, 50, 3, false, ARRAY['py-reverse-string', 'py-even-or-odd']::TEXT[]
+       1, 20, 50, 3, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-foundations'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
@@ -92,14 +92,14 @@ ON CONFLICT (module_id, slug) DO NOTHING;
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-conditionals', 'Conditionals & Boolean Logic',
        'if/elif/else, boolean operators (and, or, not), truthiness, and conditional expressions. Make decisions in your code.',
-       1, 15, 40, 1, false, ARRAY['py-palindrome-check']::TEXT[]
+       1, 15, 40, 1, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-loops', 'Loops & Iteration',
        'for loops over ranges, lists, strings, and dicts. while loops, break, continue, else clauses, and the enumerate() and zip() functions.',
-       2, 20, 50, 2, false, ARRAY['py-sum-list']::TEXT[]
+       2, 20, 50, 2, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-control-flow'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
@@ -115,7 +115,7 @@ ON CONFLICT (module_id, slug) DO NOTHING;
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
 SELECT m.id, 'py-functions', 'Defining Functions',
        'def, parameters, return values, default arguments, keyword arguments, *args and **kwargs. Write clean, reusable code with functions.',
-       2, 20, 50, 1, false, ARRAY['py-factorial']::TEXT[]
+       2, 20, 50, 1, false, ARRAY[]::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-mastery' AND m.slug = 'py-mastery-functions-dicts'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
