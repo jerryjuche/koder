@@ -31,7 +31,7 @@ import {
   Project,
   NewLessonSection,
 } from "./types";
-import { getCache, setCache } from "./cache";
+import { getCache, setCache, clearCache } from "./cache";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -644,9 +644,13 @@ export async function fetchProgress(): Promise<ApiResponse<ProgressResponse>> {
 }
 
 export async function completeLesson(lessonId: string): Promise<ApiResponse<LessonProgress>> {
-  return fetchApi<LessonProgress>(`/learn/lessons/${lessonId}/complete`, {
+  const res = await fetchApi<LessonProgress>(`/learn/lessons/${lessonId}/complete`, {
     method: "POST",
   });
+  if (res.success) {
+    clearCache("/learn");
+  }
+  return res;
 }
 
 // Admin endpoints
@@ -800,6 +804,13 @@ export async function reorderSections(lessonId: string, orderedIds: string[]): P
   return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/sections/reorder`, {
     method: "PUT",
     body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}
+
+export async function updateLessonDependencies(lessonId: string, dependencyIds: string[]): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/dependencies`, {
+    method: "PUT",
+    body: JSON.stringify({ dependency_ids: dependencyIds }),
   });
 }
 

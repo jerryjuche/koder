@@ -369,24 +369,25 @@ func (s *PostgresStore) ListLessons(ctx context.Context, moduleID uuid.UUID) ([]
 	return lessons, nil
 }
 
-// GetLessonBySlug returns a lesson by module slug and lesson slug.
-func (s *PostgresStore) GetLessonBySlug(ctx context.Context, moduleSlug, lessonSlug string) (*Lesson, error) {
+// GetLessonBySlug returns a lesson by course slug, module slug and lesson slug.
+func (s *PostgresStore) GetLessonBySlug(ctx context.Context, courseSlug, moduleSlug, lessonSlug string) (*Lesson, error) {
 	query := `SELECT l.id, l.module_id, l.slug, l.title, l.description, l.raw_readme,
 		l.difficulty, l.estimated_minutes, l.xp_reward, l.order_number, l.visible,
 		l.problem_references, l.created_at, l.updated_at
 		FROM lessons l
 		JOIN modules m ON m.id = l.module_id
-		WHERE m.slug = $1 AND l.slug = $2`
+		JOIN courses c ON c.id = m.course_id
+		WHERE c.slug = $1 AND m.slug = $2 AND l.slug = $3`
 
 	var l Lesson
-	err := s.pool.QueryRow(ctx, query, moduleSlug, lessonSlug).Scan(
+	err := s.pool.QueryRow(ctx, query, courseSlug, moduleSlug, lessonSlug).Scan(
 		&l.ID, &l.ModuleID, &l.Slug, &l.Title, &l.Description, &l.RawReadme,
 		&l.Difficulty, &l.EstimatedMinutes, &l.XPReward, &l.OrderNumber, &l.Visible,
 		&l.ProblemReferences, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("lesson not found: %s/%s", moduleSlug, lessonSlug)
+			return nil, fmt.Errorf("lesson not found: %s/%s/%s", courseSlug, moduleSlug, lessonSlug)
 		}
 		return nil, fmt.Errorf("failed to get lesson by slug: %w", err)
 	}
@@ -1045,6 +1046,44 @@ func (s *PostgresStore) LinkProblemToLesson(ctx context.Context, lessonID uuid.U
 	_, err := s.pool.Exec(ctx, query, problemSlug, lessonID)
 	if err != nil {
 		return fmt.Errorf("failed to link problem to lesson: %w", err)
+	}
+	return nil
+}
+
+// UpdateLessonDependencies updates a lesson's dependencies (prerequisites).
+func (s *PostgresStore) UpdateLessonDependencies(ctx context.Context, lessonID uuid.UUID, dependencyIDs []uuid.UUID) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Delete existing dependencies
+	_, err = tx.Exec(ctx, `DELETE FROM lesson_dependencies WHERE lesson_id = $1`, lessonID)
+	if err != nil {
+		return fmt.Errorf("failed to clear existing dependencies: %w", err)
+	}
+
+	// 2. Insert new dependencies
+	if len(dependencyIDs) > 0 {
+		valueStrings := make([]string, 0, len(dependencyIDs))
+		args := make([]interface{}, 0, 1+len(dependencyIDs))
+		args = append(args, lessonID)
+		for i, depID := range dependencyIDs {
+			base := 1 + i
+			valueStrings = append(valueStrings, fmt.Sprintf("($1, $%d)", base+1))
+			args = append(args, depID)
+		}
+		insertQuery := `INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id) VALUES ` +
+			strings.Join(valueStrings, ", ") +
+			` ON CONFLICT DO NOTHING`
+		if _, err := tx.Exec(ctx, insertQuery, args...); err != nil {
+			return fmt.Errorf("failed to bulk insert lesson dependencies: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit lesson dependencies update: %w", err)
 	}
 	return nil
 }

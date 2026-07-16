@@ -226,6 +226,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/lessons/{lessonId}", cmHandler.DeleteLesson)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/lessons/{lessonId}/visibility", cmHandler.ToggleLessonVisibility)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/problems", cmHandler.LinkProblemToLesson)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/dependencies", cmHandler.UpdateLessonDependencies)
 			r.Get("/admin/lessons/{lessonId}/projects", cmHandler.ListProjects)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/projects", cmHandler.CreateProject)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/projects/{projectId}", cmHandler.UpdateProject)

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -222,13 +223,13 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lesson, err := h.store.GetLessonBySlug(r.Context(), moduleSlug, lessonSlug)
+	lesson, err := h.store.GetLessonBySlug(r.Context(), courseSlug, moduleSlug, lessonSlug)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
 			return
 		}
-		slog.Error("cms: failed to get lesson", "module", moduleSlug, "lesson", lessonSlug, "error", err)
+		slog.Error("cms: failed to get lesson", "course", courseSlug, "module", moduleSlug, "lesson", lessonSlug, "error", err)
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get lesson", nil)
 		return
 	}
@@ -1245,6 +1246,59 @@ func (h *CMHandler) ReorderSections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondSuccess(w, map[string]string{"status": "reordered"})
+}
+
+type UpdateLessonDependenciesRequest struct {
+	DependencyIDs []string `json:"dependency_ids"`
+}
+
+// UpdateLessonDependencies updates a lesson's prerequisites/dependencies.
+func (h *CMHandler) UpdateLessonDependencies(w http.ResponseWriter, r *http.Request) {
+	lessonIDStr := chi.URLParam(r, "lessonId")
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid lesson ID", nil)
+		return
+	}
+
+	var req UpdateLessonDependenciesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	// Validate the lesson exists
+	_, err = h.store.GetLessonByID(r.Context(), lessonID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
+		} else {
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to find lesson", nil)
+		}
+		return
+	}
+
+	depUUIDs := make([]uuid.UUID, 0, len(req.DependencyIDs))
+	for _, idStr := range req.DependencyIDs {
+		depID, err := uuid.Parse(idStr)
+		if err != nil {
+			RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", fmt.Sprintf("invalid dependency ID: %s", idStr), nil)
+			return
+		}
+		if depID == lessonID {
+			RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "A lesson cannot depend on itself", nil)
+			return
+		}
+		depUUIDs = append(depUUIDs, depID)
+	}
+
+	if err := h.store.UpdateLessonDependencies(r.Context(), lessonID, depUUIDs); err != nil {
+		slog.Error("cms: failed to update lesson dependencies", "lesson_id", lessonID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update dependencies", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"status": "updated"})
 }
 
 // pgtypeUUID creates a pgtype.UUID from a uuid.UUID.

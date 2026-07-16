@@ -1,252 +1,250 @@
 "use client";
 
-import { type ElementType, type ReactNode } from "react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import {
-  Lock,
-  CheckCircle2,
-  CircleDot,
-  ChevronRight,
-  Clock,
-} from "lucide-react";
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Heart, MessageSquare, Eye, Play, BookOpen, Clock, Code, Target, Lock } from "lucide-react"
+import Link from "next/link"
 
-type CardStatus = "locked" | "in-progress" | "completed" | "available";
-
-interface LearningCardProps {
-  type: "course" | "module" | "lesson" | "section";
-  title: string;
-  description?: string;
-  href: string;
-  status?: CardStatus;
-  index?: number;
-  icon?: ElementType;
-  gradient?: string;
+export interface LearningCardProps {
+  title: string
+  subtitle?: string
+  description?: string
+  icon?: React.ReactNode | React.ElementType
+  type?: "course" | "module" | "lesson" | "section"
+  status?: "locked" | "available" | "completed" | "in-progress"
+  progress?: number
+  stats?: {
+    likes?: number
+    comments?: number
+    views?: number
+    xp?: number
+  }
+  badges?: string[]
+  className?: string
+  onClick?: () => void
+  href?: string
+  gradient?: string
   meta?: {
-    xp?: number;
-    minutes?: number;
-    difficulty?: string;
-    count?: string;
-    progress?: number;
-  };
-  children?: ReactNode;
-  className?: string;
+    xp?: number
+    minutes?: number
+    difficulty?: string
+    count?: string
+    progress?: number
+  }
+  index?: number
 }
-
-const typeGradients: Record<string, string> = {
-  course: "from-blue-600 to-sky-500",
-  module: "from-violet-600 to-purple-500",
-  lesson: "from-emerald-600 to-teal-500",
-  section: "from-amber-600 to-yellow-500",
-};
-
-interface StatusStyle {
-  border: string;
-  bg: string;
-  icon: ElementType | null;
-  iconBg: string;
-  badge: { label: string; variant: "default" | "outline"; className: string } | null;
-  interactive: boolean;
-}
-
-const statusConfig: Record<string, StatusStyle> = {
-  "locked": {
-    border: "border-border/40 opacity-60",
-    bg: "",
-    icon: Lock,
-    iconBg: "bg-muted/40 text-muted-foreground/40 ring-border/30",
-    badge: null,
-    interactive: false,
-  },
-  "in-progress": {
-    border: "border-primary/40 ring-1 ring-primary/20 shadow-md shadow-primary/10",
-    bg: "",
-    icon: CircleDot,
-    iconBg: "bg-primary/15 text-primary ring-primary/30",
-    badge: { label: "In progress", variant: "default", className: "bg-primary/10 text-primary border-0" },
-    interactive: true,
-  },
-  "completed": {
-    border: "border-emerald-200/60 dark:border-emerald-900/30",
-    bg: "bg-emerald-50/30 dark:bg-emerald-950/10",
-    icon: CheckCircle2,
-    iconBg: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/25",
-    badge: { label: "Done", variant: "outline", className: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" },
-    interactive: true,
-  },
-  "available": {
-    border: "",
-    bg: "",
-    icon: null,
-    iconBg: "bg-gradient-to-br from-primary/10 to-primary/5 text-primary ring-primary/10",
-    badge: null,
-    interactive: true,
-  },
-};
 
 export function LearningCard({
-  type = "lesson",
   title,
+  subtitle,
   description,
-  href,
+  icon,
+  type = "course",
   status = "available",
-  index,
-  icon: Icon,
-  gradient,
-  meta,
-  children,
+  progress: explicitProgress,
+  stats: explicitStats,
+  badges: explicitBadges,
   className,
+  onClick,
+  href,
+  meta,
+  index
 }: LearningCardProps) {
-  const sc = statusConfig[status];
-  const resolvedGradient = gradient || typeGradients[type];
-  const isLocked = !sc.interactive;
-  const StatusIcon = sc.icon;
+  const isLocked = status === "locked"
+
+  const progress = explicitProgress ?? meta?.progress
+  const stats = explicitStats ?? (meta?.xp ? { xp: meta.xp } : undefined)
+  const displaySubtitle = subtitle ?? meta?.count
+  
+  const badges = explicitBadges || []
+  if (!explicitBadges && meta?.difficulty) {
+    badges.push(meta.difficulty)
+  }
+
+  // Background colors depending on type
+  const typeColors = {
+    course: "from-blue-500/10 via-blue-500/5 to-transparent",
+    module: "from-violet-500/10 via-violet-500/5 to-transparent",
+    lesson: "from-emerald-500/10 via-emerald-500/5 to-transparent",
+    section: "from-amber-500/10 via-amber-500/5 to-transparent",
+  }
+
+  const typeGradients = {
+    course: "bg-gradient-to-br from-blue-500/20 to-blue-500/5",
+    module: "bg-gradient-to-br from-violet-500/20 to-violet-500/5",
+    lesson: "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5",
+    section: "bg-gradient-to-br from-amber-500/20 to-amber-500/5",
+  }
 
   const content = (
-    <div className={cn(
-      "relative overflow-hidden transition-all duration-300 border animate-in fade-in slide-in-from-bottom-3",
-      "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
-      sc.border,
-      sc.bg,
-      isLocked && "cursor-default",
-      !isLocked && "group",
-      className,
-    )}>
-      {/* Shadow back plate — only on unlocked hover */}
-      {!isLocked && (
-        <div className="absolute -inset-1.5 rounded-2xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+    <div 
+      className={cn(
+        "group relative z-10 w-full block", 
+        isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer",
+        className
       )}
+      onClick={isLocked ? undefined : onClick}
+    >
+      {/* 3D Back Plate */}
+      <div 
+        className={cn(
+          "absolute rounded-2xl bg-brand-charcoal-card/80 border border-brand-charcoal-border/30 backdrop-blur-sm",
+          "transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] -z-10",
+          "top-4 left-4 right-[-1rem] bottom-[-1rem]", 
+          !isLocked && "group-hover:top-[-1rem] group-hover:left-[-1rem] group-hover:right-[-1rem] group-hover:bottom-[-1rem] group-hover:bg-brand-charcoal-card/90 group-hover:border-brand-charcoal-border/50 group-hover:shadow-2xl"
+        )} 
+      />
+      
+      {/* Main Front Card */}
+      <div className={cn(
+        "relative flex flex-col justify-between h-full w-full min-h-[16rem]",
+        "bg-brand-charcoal-base border border-brand-charcoal-border rounded-2xl overflow-hidden",
+        "transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]",
+        !isLocked && "group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] group-hover:border-brand-charcoal-border/80"
+      )}>
+        
+        {/* Decorative Top Gradient Stripe */}
+        <div className={cn("absolute top-0 left-0 right-0 h-32 bg-gradient-to-b opacity-50 z-0", typeColors[type])} />
 
-      {/* Gradient stripe (not for courses — courses use full gradient hero) */}
-      {type !== "course" && (
-        <div className={cn("h-1.5 w-full bg-gradient-to-r", resolvedGradient)} />
-      )}
-
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          {/* Status/Icon indicator */}
-          <div className="shrink-0 pt-0.5">
-            {StatusIcon ? (
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center ring-1 transition-all duration-200",
-                sc.iconBg,
-                !isLocked && "group-hover:scale-110 group-hover:shadow-md",
-              )}>
-                <StatusIcon className="h-5 w-5" />
-              </div>
-            ) : (
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ring-1 transition-all duration-200",
-                sc.iconBg,
-                "group-hover:bg-primary/10 group-hover:text-primary/60 group-hover:ring-primary/20",
-              )}>
-                {index ?? 1}
-              </div>
-            )}
+        <div className="relative z-10 p-6 flex flex-col h-full">
+          {/* Top Row: Icon & Status / Badges */}
+          <div className="flex items-start justify-between mb-4">
+            <div className={cn(
+              "flex items-center justify-center w-14 h-14 rounded-xl border border-white/10 backdrop-blur-md shadow-inner transition-transform duration-300",
+              typeGradients[type],
+              !isLocked && "group-hover:scale-110"
+            )}>
+              {isLocked ? (
+                <Lock className="w-6 h-6 text-white/50" />
+              ) : icon ? (
+                React.isValidElement(icon) ? icon : React.createElement(icon as React.ElementType, { className: "w-6 h-6 text-white/90" })
+              ) : index != null ? (
+                <span className="text-xl font-bold text-white/90">{index}</span>
+              ) : (
+                <BookOpen className="w-6 h-6 text-white/90" />
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              {status === "completed" && (
+                <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]">
+                  Completed
+                </div>
+              )}
+              {status === "in-progress" && (
+                <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-muted-gold/15 text-brand-muted-gold border border-brand-muted-gold/30 shadow-[0_0_10px_rgba(212,175,55,0.1)]">
+                  In Progress
+                </div>
+              )}
+              {status === "locked" && (
+                <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-charcoal-card text-brand-offwhite-muted border border-brand-charcoal-border">
+                  Locked
+                </div>
+              )}
+              {badges?.map(badge => (
+                <div key={badge} className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
+                  {badge}
+                </div>
+              ))}
+              
+              {/* Fullscreen/Action trigger on hover */}
+              {!isLocked && (
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-charcoal-hover opacity-0 group-hover:opacity-100 transition-opacity duration-300 border border-brand-charcoal-border shadow-md">
+                  <Play className="w-4 h-4 text-brand-offwhite pl-0.5" />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3 mb-0.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <h3 className={cn(
-                  "font-semibold text-[15px] group-hover:text-primary transition-colors truncate",
-                  status === "completed" && "text-emerald-700 dark:text-emerald-300",
-                  isLocked && "text-muted-foreground/60",
-                )}>
-                  {title}
-                </h3>
-                {sc.badge && (
-                  <Badge variant={sc.badge.variant} className={cn("shrink-0 text-[10px] px-2 py-0 h-5 font-semibold", sc.badge.className)}>
-                    {sc.badge.label}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
+          {/* Title & Description */}
+          <div className="flex-1 mt-2">
+            <h3 className={cn(
+              "text-xl font-bold text-brand-offwhite mb-2 transition-colors duration-300 line-clamp-2",
+              !isLocked && "group-hover:text-brand-muted-gold"
+            )}>
+              {title}
+            </h3>
             {description && (
-              <p className={cn(
-                "text-xs leading-relaxed mt-1 mb-3 whitespace-pre-line",
-                isLocked ? "text-muted-foreground/40" : "text-muted-foreground",
-              )}>
+              <p className="text-sm text-brand-offwhite-muted line-clamp-2 mb-4 leading-relaxed font-medium">
                 {description}
               </p>
             )}
+          </div>
 
-            {/* Meta badges */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {meta?.xp != null && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-semibold">
-                  <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor">
-                    <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-                  </svg>
-                  {meta.xp} XP
+          {/* Bottom Area: Progress or Stats */}
+          <div className="mt-auto pt-5 flex flex-col gap-4 border-t border-brand-charcoal-border/40">
+            {progress !== undefined && (
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between text-xs text-brand-offwhite-muted font-bold uppercase tracking-wider">
+                  <span>Progress</span>
+                  <span className="text-brand-offwhite">{progress}%</span>
                 </div>
-              )}
-              {meta?.minutes != null && (
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {meta.minutes} min
-                </span>
-              )}
-              {meta?.difficulty && (
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 ring-border text-muted-foreground">
-                  {meta.difficulty}
-                </span>
-              )}
-              {meta?.count && (
-                <span className="text-[11px] text-muted-foreground">{meta.count}</span>
-              )}
-            </div>
-
-            {/* Progress bar */}
-            {meta?.progress != null && meta.progress > 0 && (
-              <div className="mt-3" role="progressbar" aria-valuenow={Math.round(meta.progress)} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
-                  <div
+                <div className="h-2 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/50">
+                  <div 
                     className={cn(
                       "h-full rounded-full transition-all duration-1000 ease-out",
-                      meta.progress >= 100
-                        ? "bg-gradient-to-r from-emerald-500 to-green-400"
-                        : "bg-gradient-to-r from-primary/70 to-primary",
+                      status === 'completed' ? "bg-gradient-to-r from-brand-success to-emerald-400" : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
                     )}
-                    style={{ width: `${Math.round(meta.progress)}%` }}
+                    style={{ width: `${progress}%` }} 
                   />
                 </div>
               </div>
             )}
 
-            {children}
-          </div>
-
-          {/* Arrow — hidden for locked */}
-          {!isLocked && (
-            <div className="shrink-0 flex items-center self-center">
-              <div className={cn(
-                "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300",
-                "bg-muted/50 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-lg group-hover:shadow-primary/20",
-                "text-muted-foreground",
-                status === "completed" && "opacity-40 group-hover:opacity-100",
-              )}>
-                <ChevronRight className="h-4 w-4" />
+            <div className="flex items-center justify-between">
+              {/* Author / Subtitle */}
+              <div className="flex items-center gap-2">
+                {displaySubtitle && <span className="text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider">{displaySubtitle}</span>}
+                {meta?.minutes && !displaySubtitle && (
+                  <span className="text-xs font-bold text-brand-offwhite-muted uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> {meta.minutes} MIN
+                  </span>
+                )}
               </div>
+
+              {/* Stats */}
+              {stats && (
+                <div className="flex items-center gap-2 transition-all duration-300">
+                  {stats.xp !== undefined && (
+                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-charcoal-card border border-brand-charcoal-border text-xs font-bold text-brand-muted-gold shadow-sm">
+                      <Target className="w-3.5 h-3.5" />
+                      <span>{stats.xp} XP</span>
+                    </div>
+                  )}
+                  {stats.likes !== undefined && (
+                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-charcoal-hover border border-brand-charcoal-border text-xs font-medium text-brand-offwhite opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-[50ms]">
+                      <Heart className="w-3.5 h-3.5 text-rose-400" />
+                      <span>{stats.likes}</span>
+                    </div>
+                  )}
+                  {stats.comments !== undefined && (
+                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-charcoal-hover border border-brand-charcoal-border text-xs font-medium text-brand-offwhite opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
+                      <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
+                      <span>{stats.comments}</span>
+                    </div>
+                  )}
+                  {stats.views !== undefined && (
+                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-charcoal-hover border border-brand-charcoal-border text-xs font-medium text-brand-offwhite opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-[150ms]">
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{stats.views}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 
-  if (isLocked) {
-    return <div className="relative">{content}</div>;
+  if (href && !isLocked) {
+    return (
+      <Link href={href} className="block w-full">
+        {content}
+      </Link>
+    )
   }
 
-  return (
-    <Link
-      href={href}
-      className="relative block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
-    >
-      {content}
-    </Link>
-  );
+  return content
 }

@@ -1,97 +1,57 @@
-"use client";
+import * as React from "react"
+import { Star } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-import { useId } from "react";
-import { cn } from "@/lib/utils";
-
-interface RatingBadgeProps {
-  rating: number;
-  maxRating?: number;
-  reviewCount?: number;
-  size?: "sm" | "md" | "lg";
-  className?: string;
-}
-
-function FullStar({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} fill="currentColor">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  );
-}
-
-function EmptyStar({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PartialStar({ fraction, id, className }: { fraction: number; id: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)}>
-      <defs>
-        <clipPath id={id}>
-          <rect x="0" y="0" width={`${fraction * 24}`} height="24" />
-        </clipPath>
-      </defs>
-      <EmptyStar className={className} />
-      <path
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        fill="currentColor"
-        clipPath={`url(#${id})`}
-      />
-    </svg>
-  );
+export interface RatingBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  rating: number
+  maxRating?: number
+  title?: string
+  subtitle?: string
+  reviewCount?: number
+  size?: "sm" | "default" | "lg"
 }
 
 export function RatingBadge({
   rating,
   maxRating = 5,
-  reviewCount = 0,
-  size = "md",
+  title,
+  subtitle,
+  reviewCount,
+  size = "default",
   className,
+  ...props
 }: RatingBadgeProps) {
-  const uid = useId();
-  const clamped = Math.max(0, Math.min(rating, maxRating));
-  const fullStars = Math.floor(clamped);
-  const partialFraction = clamped - fullStars;
-  const emptyStars = maxRating - fullStars - (partialFraction > 0 ? 1 : 0);
-
-  const sizeClasses = {
-    sm: "text-xs gap-0.5",
-    md: "text-sm gap-1",
-    lg: "text-base gap-1",
-  };
-
-  const starSizes = {
-    sm: "h-3 w-3",
-    md: "h-3.5 w-3.5",
-    lg: "h-4 w-4",
-  };
+  const iconSize = size === "sm" ? "w-3 h-3" : size === "lg" ? "w-5 h-5" : "w-4 h-4";
+  const textSize = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
+  const displaySubtitle = subtitle || (reviewCount ? `(${reviewCount} reviews)` : undefined);
 
   return (
-    <div className={cn("inline-flex items-center gap-1.5", className)}>
-      <div className={cn("inline-flex items-center", sizeClasses[size])}>
-        {Array.from({ length: fullStars }).map((_, i) => (
-          <FullStar key={`full-${i}`} className={cn(starSizes[size], "text-amber-400")} />
-        ))}
-        {partialFraction > 0 && (
-          <PartialStar
-            key="partial"
-            fraction={partialFraction}
-            id={`${uid}-partial`}
-            className={cn(starSizes[size], "text-amber-400")}
-          />
-        )}
-        {Array.from({ length: emptyStars }).map((_, i) => (
-          <EmptyStar key={`empty-${i}`} className={cn(starSizes[size], "text-muted-foreground/20")} />
-        ))}
+    <div className={cn("flex flex-col gap-1.5", className)} {...props}>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center">
+          {Array.from({ length: maxRating }).map((_, i) => (
+            <Star
+              key={i}
+              className={cn(
+                iconSize,
+                i < Math.floor(rating)
+                  ? "fill-brand-muted-gold text-brand-muted-gold"
+                  : i < rating
+                  ? "fill-brand-muted-gold/50 text-brand-muted-gold"
+                  : "fill-brand-charcoal-hover text-brand-charcoal-border"
+              )}
+            />
+          ))}
+        </div>
+        <span className={cn("font-semibold text-brand-offwhite", textSize)}>{rating.toFixed(1)}</span>
+        {!title && displaySubtitle && <span className={cn("text-brand-offwhite-muted ml-1", textSize)}>{displaySubtitle}</span>}
       </div>
-      <span className="font-semibold tabular-nums text-foreground">{clamped.toFixed(1)}</span>
-      {reviewCount > 0 && (
-        <span className="text-muted-foreground">({reviewCount.toLocaleString()})</span>
+      {(title || (displaySubtitle && title)) && (
+        <div className="flex flex-col text-sm">
+          {title && <span className="font-medium text-brand-offwhite">{title}</span>}
+          {displaySubtitle && title && <span className="text-brand-offwhite-muted">{displaySubtitle}</span>}
+        </div>
       )}
     </div>
-  );
+  )
 }

@@ -81,6 +81,9 @@ export default function LessonViewerClient() {
   const [completed, setCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
+  useEffect(() => {
+    setCurrentStep(0);
+  }, [lessonSlug]);
 
   const load = useCallback(async () => {
     const [lessonRes, moduleRes] = await Promise.all([

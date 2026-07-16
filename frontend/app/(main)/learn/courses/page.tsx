@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { LearningCard } from "@/components/ui/learning-card";
 import { RatingBadge } from "@/components/ui/rating-badge";
 import {
   BookOpen,
@@ -197,97 +198,28 @@ export default function CourseCatalog() {
           const reviews = generateMockReviews(course.slug);
 
           return (
-            <motion.div key={course.id} variants={itemVariants} className="h-full">
-              <Link
+            <motion.div key={course.id} variants={itemVariants} className="h-full relative">
+              <LearningCard
+                type="course"
+                title={course.title}
+                description={course.description}
                 href={`/learn/courses/${course.slug}`}
-                className="relative group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
-              >
-                {/* Shadow back plate — CodePen-inspired elevation */}
-                <div className="absolute -inset-2 rounded-3xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-2 group-hover:blur-0" />
-
-                <Card
-                  className={cn(
-                    "relative overflow-hidden transition-all duration-500 pt-0 border-0 shadow-md",
-                    "hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10",
-                    "h-full flex flex-col bg-card/50 backdrop-blur-sm border border-white/5 dark:border-white/5",
-                  )}
-                >
-                  {/* Gradient hero */}
-                  <div className={cn(
-                    "relative h-52 bg-gradient-to-br flex items-center justify-center overflow-hidden",
-                    brand.gradient,
-                  )}>
-                    {/* Glassmorphic overlay */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.2),transparent_70%)]" />
-                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-card to-transparent" />
-                    
-                    <div className={cn(
-                      "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl relative z-10",
-                      "bg-white/95 dark:bg-card/95 backdrop-blur-md ring-1 ring-white/30",
-                      "transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]",
-                    )}>
-                      <Icon className="h-10 w-10 text-foreground" />
-                    </div>
-
-                    {/* Absolute Rating Badge top-right */}
-                    <div className="absolute top-4 right-4 z-20">
-                      <div className="bg-black/40 backdrop-blur-md rounded-full px-3 py-1 ring-1 ring-white/20 shadow-lg flex items-center">
-                        <RatingBadge rating={rating} reviewCount={reviews} size="sm" className="text-white" />
-                      </div>
-                    </div>
-
-                    {course.visible === false && (
-                      <Badge variant="secondary" className="absolute top-4 left-4 text-[11px] font-medium shadow-sm z-20 bg-black/40 backdrop-blur-md text-white border-none">
-                        Draft
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-6 flex flex-col flex-1 relative z-10">
-                    <h3 className="text-xl font-bold leading-tight mb-2 group-hover:text-primary transition-colors duration-300">
-                      {course.title}
-                    </h3>
-                    {course.description && (
-                      <p className="text-sm text-muted-foreground leading-relaxed mb-6 whitespace-pre-line line-clamp-3">
-                        {course.description}
-                      </p>
-                    )}
-
-                    {/* Stats row */}
-                    <div className="flex items-center gap-3 flex-wrap mb-6">
-                      <div className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-sm",
-                        diff.bgColor,
-                        diff.textColor,
-                      )}>
-                        <span className={cn(
-                          "w-1.5 h-1.5 rounded-full animate-pulse",
-                          diff.textColor.replace("text-", "bg-"),
-                        )} />
-                        {diff.label}
-                      </div>
-                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
-                        <Clock className="h-3.5 w-3.5" /> {course.estimated_hours ?? 0} hours
-                      </span>
-                    </div>
-
-                    {/* CTA */}
-                    <div className="mt-auto flex items-center justify-between pt-5 border-t border-border/50">
-                      <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary transition-colors">
-                        Start learning
-                      </span>
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                        "bg-muted/60 group-hover:bg-primary group-hover:text-primary-foreground",
-                        "text-muted-foreground group-hover:translate-x-1 group-hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] ring-1 ring-border group-hover:ring-primary/50",
-                      )}>
-                        <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
+                icon={<Icon className="w-8 h-8 text-white/90" />}
+                meta={{
+                  difficulty: diff.label,
+                }}
+                subtitle={`${course.estimated_hours ?? 0} HOURS`}
+                badges={course.visible === false ? ["Draft"] : undefined}
+                stats={{
+                  likes: reviews,
+                  views: Math.floor(reviews * 3.5),
+                }}
+              />
+              <div className="absolute top-4 right-4 z-30 pointer-events-none">
+                <div className="bg-brand-charcoal-card/80 backdrop-blur-md rounded-full px-3 py-1 border border-brand-charcoal-border shadow-lg flex items-center">
+                  <RatingBadge rating={rating} reviewCount={reviews} size="sm" className="text-white" />
+                </div>
+              </div>
             </motion.div>
           );
         })}

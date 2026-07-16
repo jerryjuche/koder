@@ -386,6 +386,9 @@ koder/
 │   ├── 036_refresh_tokens.sql                 # refresh_tokens table
 │   ├── 037_seed_go_fundamentals.sql           # 5 Go fundamentals problems
 │   ├── 038_curriculum_cms.sql                 # 8 tables: courses, modules, lessons, sections, deps, projects, progress
+│   ├── 039_seed_curriculum.sql                # Initial curriculum structure seeding
+│   ├── 040_complete_curriculum_content.sql    # Comprehensive curriculum content seeding
+│   ├── 041_seed_python_mastery.sql            # Python Mastery problems & curriculum seeding
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset

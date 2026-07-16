@@ -188,7 +188,7 @@ type Store interface {
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)
-	GetLessonBySlug(ctx context.Context, moduleSlug, lessonSlug string) (*Lesson, error)
+	GetLessonBySlug(ctx context.Context, courseSlug, moduleSlug, lessonSlug string) (*Lesson, error)
 	GetLessonByID(ctx context.Context, id uuid.UUID) (*Lesson, error)
 	GetLessonSections(ctx context.Context, lessonID uuid.UUID) ([]LessonSection, error)
 	GetLessonDependencies(ctx context.Context, lessonID uuid.UUID) ([]LessonPrereq, error)
@@ -197,6 +197,7 @@ type Store interface {
 	DeleteLesson(ctx context.Context, id uuid.UUID) error
 	ToggleLessonVisibility(ctx context.Context, id uuid.UUID) (*Lesson, error)
 	LinkProblemToLesson(ctx context.Context, lessonID uuid.UUID, problemSlug string) error
+	UpdateLessonDependencies(ctx context.Context, lessonID uuid.UUID, dependencyIDs []uuid.UUID) error
 
 	// Section operations
 	CreateSection(ctx context.Context, lessonID uuid.UUID, ns *NewLessonSection) (*LessonSection, error)
