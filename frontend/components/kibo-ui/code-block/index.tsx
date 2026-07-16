@@ -472,6 +472,7 @@ export const CodeBlockContent = ({
 
   return (
     <div
+      className={cn(codeBlockClassName, darkModeClassNames, lineHighlightClassNames)}
       dangerouslySetInnerHTML={{ __html: html }}
       {...props}
     />

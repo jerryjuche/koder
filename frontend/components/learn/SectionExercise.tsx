@@ -430,7 +430,7 @@ export default function SectionExercise({
 
       {/* Results */}
       {currentResult && (
-        <div className="mt-4 px-1">
+        <div className="mt-5 px-2 pb-1">
           <ResultsPanel result={currentResult} />
         </div>
       )}
