@@ -1111,3 +1111,47 @@ Fix Python compiler error formatting so tracebacks and syntax errors show proper
 3. Verified full test suite passes (124 tests).
 
 ---
+
+## Session 39 — 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block dark mode fix
+
+### Goal
+Restructure lesson viewer to show sections as individual step-by-step pages with quiz consolidation, fix Pyodide execution issues, and repair code block dark mode rendering.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `8e6f7d1` | Implement input() via window.prompt in Pyodide |
+| `3434279` | Fix no-output in free-form Python: use standalone print templates |
+| `472554f` | Block input() in Pyodide with friendly error message |
+| `4b4bb4e` | Fix double prompt prefix in Pyodide console output |
+| `d947af5` | Fix Run in Browser disabled state & match editor theme with ProblemWorkspaceClient |
+| `005ccc8` | Rewrite lesson as step-by-step page with quiz consolidation |
+| `12b7a45` | Fix code block dark mode & exercise results spacing |
+
+### Changes
+
+#### Lesson step-by-step navigation
+- Sections shown one at a time with prev/next buttons and ArrowLeft/Right/Space keyboard shortcuts
+- All quizzes consolidated into a single Quiz Review step at the end with gradient card
+- Progress bar with step indicator dots and step counter
+- Professional gradient-bordered card component per section type with AnimatePresence transitions
+
+#### Pyodide console & execution fixes
+- `input()` now works via `window.prompt()` shim installed at init time (removed blocking check)
+- Removed `!pyodideReady` guard on Run in Browser button so lazy Pyodide can be triggered
+- Fixed `handlePyodideRun` with try/finally `setTesting(true/false)`
+- Fixed double prompt prefix (`> >>>` → `> `)
+- Replaced emoji/special char console prefixes (`✗`/`ℹ`/`❯` → `[error]`/`[info]`/`>`)
+- Free-form Python defaults to standalone `print()` templates
+
+#### Editor theme & spacing alignment
+- Editor options aligned with ProblemWorkspaceClient (fontFamily, bracketPairColorization, smoothScrolling)
+- Results panel now shows for all languages (not just non-Python)
+- Results padding increased (`px-1`→`px-2`, `mt-4`→`mt-5`)
+
+#### Code block dark mode fix
+- Added `darkModeClassNames` + `codeBlockClassName` + `lineHighlightClassNames` to `CodeBlockContent` rendered div (was rendering Shiki HTML without dark mode CSS)
+- Fixed `CodeBlockFallback` with proper dark mode text color, padding, overflow
+
+### Verification
+- `npx tsc --noEmit` — clean

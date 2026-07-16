@@ -999,6 +999,29 @@ npm run build   # Builds static + server components
 - All `router.push('/')` → `router.push('/home')`
 - Created `/problems` listing page
 
+### 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block theme fix
+
+**Commits:** `8e6f7d1`, `3434279`, `472554f`, `4b4bb4e`, `d947af5`, `005ccc8`, `12b7a45`
+
+**Lesson step-by-step navigation:**
+- Sections shown one at a time with prev/next buttons and ArrowLeft/Right/Space keyboard shortcuts
+- All quizzes consolidated into a single "Quiz Review" step at the end with gradient card
+- Progress bar with step indicator dots and step counter
+- Professional gradient-bordered card component per section type
+
+**Pyodide fixes:**
+- `input()` now works via `window.prompt()` shim installed at init time
+- Removed `!pyodideReady` guard on "Run in Browser" button so lazy Pyodide can be triggered
+- Fixed `handlePyodideRun` try/finally with `setTesting(true/false)`
+- Fixed double prompt prefix in console output (`> >>>` → `> `)
+- Removed emoji/special char console prefixes (`✗`/`ℹ`/`❯` → `[error]`/`[info]`/`>`)
+- Free-form Python defaults to standalone `print()` templates (not `def solution(): pass`)
+
+**Code block dark mode fix:**
+- Added `darkModeClassNames` to `CodeBlockContent` so Shiki dual-theme output renders with proper dark mode colors (was all white text)
+- Added proper dark mode text color and padding to `CodeBlockFallback`
+- Increased exercise results panel padding (`px-1` → `px-2`, `mt-4` → `mt-5`)
+
 ### 2026-07-10 — Production polish: refresh tokens, AI usage logging, CSP, data export
 
 - **Refresh token rotation** with reuse detection (revokes ALL sessions on reuse)

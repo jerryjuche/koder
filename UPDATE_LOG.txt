@@ -263,3 +263,11 @@ Google auto-registration + navigation + refresh token fix:
 6. New problems layout with TopNav + FeedbackButton for workspace.
 7. Success page language derived from localStorage (not hardcoded go).
 8. Unused imports (ChevronRight, getDifficultyLabel) removed.
+
+Date: 2026-07-16
+
+Lesson step-by-step navigation & Pyodide polish:
+1. LessonViewerClient rewrite: sections shown one at a time with prev/next navigation, keyboard shortcuts (ArrowLeft/Right/Space), progress bar with step dots, all quizzes consolidated into a single Quiz Review step with gradient card component.
+2. Pyodide: input() now works via window.prompt() shim at init time; removed !pyodideReady guard on Run in Browser button so lazy Pyodide can trigger; fixed double prompt prefix in console; replaced emoji prefixes with clean text markers.
+3. Code block dark mode: added darkModeClassNames to CodeBlockContent so Shiki dual-theme HTML renders with proper dark colors instead of white text; fixed CodeBlockFallback with dark mode text color and padding.
+4. SectionExercise: Editor options aligned with ProblemWorkspaceClient for consistent theme; results panel now shows for all languages; increased results spacing.
