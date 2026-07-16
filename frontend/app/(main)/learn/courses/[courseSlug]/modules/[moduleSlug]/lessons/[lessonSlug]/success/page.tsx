@@ -99,7 +99,14 @@ export default function LessonSuccessPage() {
     }
     return cachedData?.moduleProgress ?? 0;
   })();
-  const nextLesson = (() => {
+  interface NextLessonInfo {
+    slug: string;
+    title: string;
+    estimated_minutes?: number;
+    xp_reward?: number;
+  }
+
+  const nextLesson: NextLessonInfo | null = (() => {
     if (moduleData?.lessons) {
       const idx = moduleData.lessons.findIndex((l) => l.slug === lessonSlug);
       if (idx >= 0 && idx < moduleData.lessons.length - 1) {
@@ -107,12 +114,13 @@ export default function LessonSuccessPage() {
       }
     }
     if (cachedData?.nextLessonSlug) {
-      return { slug: cachedData.nextLessonSlug, title: cachedData.nextLessonTitle };
+      return { slug: cachedData.nextLessonSlug, title: cachedData.nextLessonTitle ?? "Next Lesson" };
     }
     return null;
   })();
 
   const sections = lessonData?.sections || [];
+  const statCount = 1 + (quizCount > 0 ? 1 : 0) + (exerciseCount > 0 ? 1 : 0);
 
   useEffect(() => {
     const load = async () => {
@@ -178,7 +186,7 @@ export default function LessonSuccessPage() {
               href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
             >
-              Continue to {(nextLesson as any).title || "Next Lesson"}
+              Continue to {nextLesson.title}
               <ArrowRight size={18} />
             </Link>
           ) : (
@@ -231,7 +239,7 @@ export default function LessonSuccessPage() {
           )}
 
           {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-3 mt-6">
+          <div className={`grid gap-3 mt-6 ${statCount === 1 ? "grid-cols-1" : statCount === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
             <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl p-4 text-center">
               <BookOpen className="mx-auto h-5 w-5 text-brand-muted-gold mb-1.5" />
               <p className="text-2xl font-bold tabular-nums">{sectionsCount}</p>
@@ -295,17 +303,17 @@ export default function LessonSuccessPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate group-hover:text-brand-muted-gold transition-colors">
-                      {(nextLesson as any).title || "Next Lesson"}
+                      {nextLesson.title}
                     </p>
                     <p className="text-xs text-brand-offwhite-muted flex items-center gap-2 mt-0.5">
-                      {(nextLesson as any).estimated_minutes && (
+                      {nextLesson.estimated_minutes && (
                         <span className="flex items-center gap-1">
-                          <Clock size={11} /> {(nextLesson as any).estimated_minutes}min
+                          <Clock size={11} /> {nextLesson.estimated_minutes}min
                         </span>
                       )}
-                      {(nextLesson as any).xp_reward && (
+                      {nextLesson.xp_reward && (
                         <span className="flex items-center gap-1 text-brand-muted-gold">
-                          <Zap size={11} /> +{(nextLesson as any).xp_reward} XP
+                          <Zap size={11} /> +{nextLesson.xp_reward} XP
                         </span>
                       )}
                     </p>
