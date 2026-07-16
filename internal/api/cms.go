@@ -9,17 +9,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
 // CMHandler handles curriculum management endpoints.
 type CMHandler struct {
-	store store.Store
+	store  store.Store
+	broker *broker.Broker
 }
 
 // NewCMHandler creates a new curriculum management handler.
-func NewCMHandler(s store.Store) *CMHandler {
-	return &CMHandler{store: s}
+func NewCMHandler(s store.Store, b *broker.Broker) *CMHandler {
+	return &CMHandler{store: s, broker: b}
 }
 
 // ── Student Endpoints ──
@@ -429,6 +431,17 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 		if err := h.store.UpsertCourseProgress(r.Context(), userID, courseID, pct, completed); err != nil {
 			slog.Error("cms: failed to update course progress", "course_id", courseID, "error", err)
 		}
+	}
+
+	// Invalidate caches and broadcast live update
+	InvalidateUserCache(claims.UserID)
+	InvalidateLeaderboardCache()
+	if h.broker != nil {
+		h.broker.PublishEvent("lesson.completed", map[string]interface{}{
+			"user_id":    claims.UserID,
+			"lesson_id":  lessonID.String(),
+			"xp_awarded": xpAwarded,
+		})
 	}
 
 	// Include xp_awarded in response

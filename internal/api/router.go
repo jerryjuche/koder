@@ -47,7 +47,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	submissionHandler := NewSubmissionHandler(store, exec)
 	testHandler := NewTestHandler(store, exec)
 
-	cmHandler := NewCMHandler(store)
+	cmHandler := NewCMHandler(store, b)
 
 	rateLimiter := NewRateLimiter(5, 45*time.Second)
 	slog.Info("rate_limiter: enabled", "max_requests", 5, "window_seconds", 45)

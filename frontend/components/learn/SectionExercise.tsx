@@ -26,9 +26,6 @@ import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
 
-// Pre-initialize Monaco and register theme before Editor mounts
-loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
-
 interface SectionExerciseProps {
   problemReferences: string[];
   miniProject?: boolean;
@@ -76,6 +73,10 @@ export default function SectionExercise({
 
   const editorRef = useRef<any>(null);
   const pyodideRunRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
+  }, []);
   const isPython = language === "python";
   const hasProblems = problemReferences.length > 0;
   const totalExercises = hasProblems ? problemReferences.length : 1;

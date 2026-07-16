@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchLesson, fetchModule, completeLesson } from "@/lib/api";
 import { LessonWithSections, ModuleWithLessons, LessonSection } from "@/lib/types";
@@ -18,6 +18,8 @@ import SectionQuiz from "@/components/learn/SectionQuiz";
 import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useWebSocket } from "@/lib/event";
+import confetti from "canvas-confetti";
 
 interface Step {
   type: "section" | "quiz-review";
@@ -151,13 +153,21 @@ export default function LessonViewerClient() {
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev]);
 
+  const fireConfetti = useCallback(() => {
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+    confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.6 } });
+    confetti({ ...defaults, particleCount: 30, origin: { x: 0.3, y: 0.5 }, colors: ["#ffd700", "#ff6b6b"] });
+    confetti({ ...defaults, particleCount: 30, origin: { x: 0.7, y: 0.5 }, colors: ["#4ecdc4", "#45b7d1"] });
+  }, []);
+
   const handleComplete = async () => {
     if (!lessonData || completed) return;
     setCompleting(true);
     const res = await completeLesson(lessonData.id);
     if (res.success) {
       setCompleted(true);
-      toast.success("Lesson completed!");
+      toast.success(`Lesson completed! +${lessonData.xp_reward} XP`);
+      fireConfetti();
       setLessonData((prev) =>
         prev
           ? {
@@ -176,6 +186,25 @@ export default function LessonViewerClient() {
     }
     setCompleting(false);
   };
+
+  // Polling fallback: refresh data every 5 seconds
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useEffect(() => {
+    const interval = setInterval(() => loadRef.current(), 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // WebSocket: listen for lesson.completed events to refresh data
+  const wsLessonIdRef = useRef(lessonData?.id);
+  wsLessonIdRef.current = lessonData?.id;
+  useWebSocket({
+    "lesson.completed": (data: any) => {
+      if (data?.lesson_id && data.lesson_id === wsLessonIdRef.current) {
+        loadRef.current();
+      }
+    },
+  }, []);
 
   // Navigation
   const allLessons = moduleData?.lessons || [];
@@ -420,22 +449,24 @@ export default function LessonViewerClient() {
                 {/* Next or Complete */}
                 {isLastStep ? (
                   completed ? (
-                    <Button
-                      variant="outline"
-                      className="gap-1.5 min-w-[100px] bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 cursor-default"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Done
-                    </Button>
-                  ) : nextLesson ? (
-                    <Link
-                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                    >
-                      <Button className="gap-1.5 min-w-[100px]">
-                        Next Lesson
-                        <ArrowRight className="h-4 w-4" />
+                    nextLesson ? (
+                      <Link
+                        href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
+                      >
+                        <Button className="gap-1.5 min-w-[100px]">
+                          Next Lesson
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="gap-1.5 min-w-[100px] bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 cursor-default"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Done
                       </Button>
-                    </Link>
+                    )
                   ) : (
                     <Button
                       onClick={handleComplete}

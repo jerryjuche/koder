@@ -9,7 +9,6 @@ import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
-loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -266,6 +265,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }, 2000);
     return () => clearTimeout(timer);
   }, [code, slug, problem, activeLanguage]);
+
+  // Pre-initialize Monaco theme on client
+  useEffect(() => {
+    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
+  }, []);
 
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {

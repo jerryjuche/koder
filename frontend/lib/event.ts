@@ -9,7 +9,8 @@ export type EventType =
   | 'broadcast.created'
   | 'broadcast.updated'
   | 'broadcast.deleted'
-  | 'feedback.submitted';
+  | 'feedback.submitted'
+  | 'lesson.completed';
 
 type EventCallback = (data: any) => void;
 

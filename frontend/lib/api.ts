@@ -56,16 +56,23 @@ async function tryRefreshToken(): Promise<boolean> {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!res.ok) {
+      localStorage.removeItem("koder_token");
       localStorage.removeItem("refresh_token");
       success = false;
     } else {
       const data = await res.json();
-      if (data?.data?.refresh_token) {
-        localStorage.setItem("refresh_token", data.data.refresh_token);
+      if (data?.data) {
+        if (data.data.token) {
+          localStorage.setItem("koder_token", data.data.token);
+        }
+        if (data.data.refresh_token) {
+          localStorage.setItem("refresh_token", data.data.refresh_token);
+        }
       }
       success = true;
     }
   } catch {
+    localStorage.removeItem("koder_token");
     localStorage.removeItem("refresh_token");
     success = false;
   } finally {
@@ -90,11 +97,13 @@ export async function fetchApi<T>(
   }
 
   const doFetch = async (): Promise<ApiResponse<T>> => {
+    const token = !isAuthEndpoint ? localStorage.getItem("koder_token") : null;
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });
@@ -149,13 +158,6 @@ export async function fetchApi<T>(
   }
 }
 
-export async function refreshToken(): Promise<ApiResponse<AuthResponse>> {
-  const res = await fetchApi<AuthResponse>("/auth/refresh", {
-    method: "POST",
-  });
-  return handleAuthResponse(res);
-}
-
 // ============================================
 // API ENDPOINTS
 // ============================================
@@ -163,8 +165,13 @@ export async function refreshToken(): Promise<ApiResponse<AuthResponse>> {
 type AuthResponse = { token: string; refresh_token?: string; onboarding?: boolean };
 
 function handleAuthResponse(res: ApiResponse<AuthResponse>): ApiResponse<AuthResponse> {
-  if (res.success && res.data?.refresh_token) {
-    localStorage.setItem("refresh_token", res.data.refresh_token);
+  if (res.success && res.data) {
+    if (res.data.token) {
+      localStorage.setItem("koder_token", res.data.token);
+    }
+    if (res.data.refresh_token) {
+      localStorage.setItem("refresh_token", res.data.refresh_token);
+    }
   }
   return res;
 }
@@ -227,12 +234,6 @@ export async function resetPasswordPin(
     method: "POST",
     body: JSON.stringify({ token, password }),
   });
-}
-
-export async function completeGoogleOnboarding(
-  username: string,
-): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
-  return completeOnboarding(username);
 }
 
 export async function completeOnboarding(

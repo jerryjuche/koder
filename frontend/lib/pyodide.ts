@@ -13,6 +13,25 @@ const MAX_OUTPUT_LENGTH = 50000;
 
 let instance: PyodideInterface | null = null;
 let loadPromise: Promise<PyodideInterface> | null = null;
+let loadError: string | null = null;
+
+export function eagerLoadPyodide(): void {
+  if (instance || loadPromise) return;
+  loadPromise = (async () => {
+    const pkg = await new Function("url", "return import(url)")(PACKAGE_URL);
+    const load = pkg.loadPyodide;
+    const pyodide = await load({ indexURL: PYODIDE_CDN });
+    await pyodide.loadPackage(DEFAULT_PACKAGES);
+    try {
+      await pyodide.runPythonAsync(INPUT_SHIM_CODE);
+    } catch {}
+    instance = pyodide;
+    return pyodide;
+  })();
+  loadPromise.catch((err) => {
+    loadError = err instanceof Error ? err.message : String(err);
+  });
+}
 
 const INPUT_SHIM_CODE = `
 import js
@@ -39,28 +58,9 @@ export function isPyodideReady(): boolean {
 
 export async function getPyodideInstance(): Promise<PyodideInterface> {
   if (instance) return instance;
-  if (loadPromise) return loadPromise;
-
-  loadPromise = (async () => {
-    // Use Function() to bypass webpack/Turbopack module resolution — the
-    // import URL must reach the browser's native module loader unchanged.
-    const pkg = await new Function("url", "return import(url)")(PACKAGE_URL);
-    const load = pkg.loadPyodide;
-    const pyodide = await load({ indexURL: PYODIDE_CDN });
-    await pyodide.loadPackage(DEFAULT_PACKAGES);
-
-    // Install input() shim so window.prompt is used instead of stdin
-    try {
-      await pyodide.runPythonAsync(INPUT_SHIM_CODE);
-    } catch {
-      // Non-critical — input() will just fail with a raw error
-    }
-
-    instance = pyodide;
-    return pyodide;
-  })();
-
-  return loadPromise;
+  eagerLoadPyodide();
+  if (loadError) throw new Error(loadError);
+  return loadPromise!;
 }
 
 export async function executePython(

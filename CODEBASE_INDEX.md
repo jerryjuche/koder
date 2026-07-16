@@ -2,7 +2,7 @@
 
 > Comprehensive, line-level inventory of the zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 >
-> Generated: 2026-07-13 | Branch: `python-curricula` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
+> Generated: 2026-07-16 | Branch: `update` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
 
 ---
 
@@ -16,10 +16,10 @@
 | **Go Module** | `github.com/jerryjuche/koder` (Go 1.26.1) |
 | **Sandbox Go Module** | `github.com/jerryjuche/koder/sandbox` (Go 1.23, **zero external deps**) |
 | **Frontend** | Next.js 15.5.19 + React 19.2.7 + Tailwind CSS 4.1.11 |
-| **Database** | PostgreSQL 15 (Supabase, 500MB) — 16 tables, 31 migrations |
+| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 39 migrations |
 | **Test Suite** | 126 Go tests + frontend ESLint/TypeScript — 0 failures |
 | **Budget** | $0/month (Oracle Ampere A1 + Supabase Free + Vercel Hobby + Railway Starter) |
-| **Active Branch** | `python-curricula` (all 12 multi-language phases complete) |
+| **Active Branch** | `update` (all Pyodide + curriculum CMS + redesign phases complete) |
 
 ---
 
@@ -30,9 +30,9 @@
 | **Go Backend** (`cmd/` + `internal/`) | 49 source + 13 test | **16,852** |
 | **Go Sandbox** (`sandbox/`) | 8 source | **1,185** |
 | **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | 105 | **20,151** |
-| **SQL Migrations** (`migrations/`) | 31 | **10,596** |
+| **SQL Migrations** (`migrations/`) | 39 | **~15,000** |
 | **Scripts** (`scripts/`) | 3 | **329** |
-| **Documentation** (`.md`) | 8 | **4,748** |
+| **Documentation** (`.md`) | 13 | **~7,500** |
 | **Configuration** (root configs, CI, frontend configs) | 12 | **~680** |
 | **Public Assets** (images, icons, Monaco workers) | 131 | Binary/~71 KB JS |
 | **Total (tracked source)** | **~210** | **~51,000** |
@@ -444,6 +444,14 @@ koder/
 | `027_language_versions.sql` | 16 | primary_language on users, language_versions JSONB on problems |
 | `028_backfill_language_versions.sql` | 111 | PL/pgSQL helpers: koder_to_snake_case, koder_go_type_to_python |
 | `029_ensure_language_versions.sql` | 163 | Guarantee all problems have Go + Python language_versions |
+| `031_python_intermediate_seed.sql` | — | 10 Python intermediate problems |
+| `032_python_variables_math_seed.sql` | — | 1 Python variables & math problem |
+| `033_add_user_problems_language_versions.sql` | — | language_versions on user_problems |
+| `034_python_arrays_strings_seed.sql` | — | 7 Python arrays & strings problems |
+| `035_ai_usage_logs.sql` | — | ai_usage_logs table |
+| `036_refresh_tokens.sql` | — | refresh_tokens table |
+| `037_seed_go_fundamentals.sql` | — | 5 Go fundamentals problems |
+| `038_curriculum_cms.sql` | — | 8 tables: courses→modules→lessons→sections+projects+deps+progress |
 
 ### 7.2 Seed Migrations
 
@@ -453,6 +461,10 @@ koder/
 | `019_seed_problems2.sql` | 2,360 | 45 problems: bit-manipulation, sorting-searching, pointers |
 | `019_seed_problems3.sql` | 1,576 | 45 problems: error-handling, interfaces-generics |
 | `019_seed_problems4.sql` | 3,162 | 45 problems: hashmaps-sets, linked-lists, trees-graphs, dynamic-programming |
+| `031_python_intermediate_seed.sql` | — | 10 Python intermediate problems |
+| `032_python_variables_math_seed.sql` | — | 1 Python variables & math problem |
+| `034_python_arrays_strings_seed.sql` | — | 7 Python arrays & strings problems |
+| `037_seed_go_fundamentals.sql` | — | 5 Go fundamentals problems |
 | `999_seed_python_test.sql` | 62 | Python test problem for pipeline verification |
 
 ---
@@ -581,17 +593,17 @@ koder/
 | **Go lines of code** | 16,852 |
 | **Frontend source files** | 105 |
 | **Frontend lines of code** | 20,151 |
-| **SQL migrations** | 31 (10,596 lines) |
-| **Total tracked source LOC** | ~51,000 |
+| **SQL migrations** | 39 (15,000+ lines) |
+| **Total tracked source LOC** | ~55,000 |
 | **Go tests** | 126 — all passing |
-| **API endpoints** | 60+ |
-| **Database tables** | 16 |
-| **Database indexes** | 30+ |
-| **Seed problems** | 181 (180 Go + 1 Python) |
-| **Middleware chain depth** | 9 middleware |
+| **API endpoints** | 89+ |
+| **Database tables** | 24 |
+| **Database indexes** | 45+ |
+| **Seed problems** | 198 (185 Go + 13 Python) |
+| **Middleware chain depth** | 11 middleware |
 | **Frontend route groups** | 7 (root, landing, auth, main, problems, legal, oauth) |
-| **Custom components** | 35 |
-| **shadcn/ui primitives** | 16 |
+| **Custom components** | 40+ |
+| **shadcn/ui primitives** | 17 (incl. multi-step-loader) |
 | **Public assets** | 131 (images, icons, Monaco workers) |
 | **External Go deps** | 7 direct |
 | **Sandbox external deps** | 0 (stdlib only) |
@@ -605,9 +617,11 @@ koder/
 | ADR-001 | Monolithic Go backend | Single binary for small cohort; no orchestration overhead |
 | ADR-002 | Raw pgx/v5 over ORM | Predictable SQL, smaller footprint, explicit query design |
 | ADR-003 | Docker subprocess for execution | gVisor unavailable on Oracle free tier; WASM immature for Go |
-| ADR-004 | Gemini Structured Outputs | Compile-time guarantees on AI response shape; no brittle parsing |
+| ADR-004 | System Prompt JSON (NVIDIA NIM) | DeepSeek V4 Flash doesn't support response_format reliably; prompt enforcement + post-validation instead |
 | ADR-005 | Go text/template for test gen | Type-safe conditional logic; auditable independently |
 | ADR-006 | Remote HTTP Sandbox | Eliminates Docker-in-Docker; consistent isolation; Railway free tier |
-| ADR-007 | Dual AI provider (Gemini + Groq) | 50 calls/day quota mitigation; fallback when one is unavailable |
+| ADR-007 | NVIDIA NIM (DeepSeek V4 Flash) single provider | Enforces free-tier API with rate-limit backoff; consolidated from dual-provider (Gemini+Groq) |
 | ADR-008 | language_versions JSONB | Single column for multi-language schema; avoids EAV antipattern |
 | ADR-009 | In-memory cache over Redis | Zero-cost; 30s TTL sufficient for leaderboard/notifications |
+| ADR-010 | Pyodide CDN over server-side Python | Zero-cost; browser-side Python execution for instant feedback; singleton loader prevents duplicate loads |
+| ADR-011 | Per-language localStorage for code persistence | Enables save & switch between Go/Python scaffolds in workspace; keyed as `koder_code_{slug}_{lang}` |

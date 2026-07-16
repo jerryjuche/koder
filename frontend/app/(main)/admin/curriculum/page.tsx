@@ -22,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,13 +31,13 @@ import ProblemBank from "@/components/admin/curriculum/ProblemBank";
 import { toast } from "@/lib/toast";
 import { clearCache } from "@/lib/cache";
 import {
-  Plus, Edit3, Trash2, BookOpen, Layers, FileText, Beaker, Layout,
-  ChevronRight, ChevronDown, Clock, Zap, Eye, EyeOff, Image, Hash,
-  ArrowRight, GraduationCap, ListOrdered, Lightbulb, Database,
-  GripVertical, ArrowUp, ArrowDown, BookText, Puzzle,
-  FlaskConical, AlertTriangle, Sparkles, ScrollText, BrainCircuit,
-  Target, FileCode, Star,
+  Plus, Edit3, Trash2, BookOpen, Layers, FileText, Beaker,
+  ChevronRight, GripVertical, ArrowUp, ArrowDown,
+  ListOrdered, Lightbulb,
+  AlertTriangle, Sparkles, ScrollText, BrainCircuit,
+  Target, FileCode, Star, BookText, Puzzle, FlaskConical,
 } from "lucide-react";
+import { AdminCourseCard, AdminModuleCard, AdminLessonCard, AdminProjectCard } from "@/components/admin/curriculum/AdminCards";
 
 type Panel = "courses" | "modules" | "lessons" | "projects" | "sections";
 
@@ -88,6 +88,11 @@ export default function CurriculumAdminPage() {
   const [loadingModules, setLoadingModules] = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: "course" | "module" | "lesson" | "project";
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Form states
   const [showCourseForm, setShowCourseForm] = useState(false);
@@ -201,13 +206,13 @@ export default function CurriculumAdminPage() {
   };
 
   const handleDeleteCourse = async (id: string) => {
+    setDeleteConfirm({ type: "course", id, name: courses.find((c) => c.id === id)?.title || "this course" });
+  };
+  const executeDeleteCourse = async (id: string) => {
     const res = await deleteCourse(id);
     if (res.success) {
       toast.success("Course deleted");
-      if (selectedCourse?.id === id) {
-        setSelectedCourse(null);
-        setModules([]);
-      }
+      if (selectedCourse?.id === id) { setSelectedCourse(null); setModules([]); }
       loadCourses();
     } else {
       toast.error(res.error?.message || "Failed to delete course");
@@ -279,13 +284,13 @@ export default function CurriculumAdminPage() {
   };
 
   const handleDeleteModule = async (id: string) => {
+    setDeleteConfirm({ type: "module", id, name: modules.find((m) => m.id === id)?.title || "this module" });
+  };
+  const executeDeleteModule = async (id: string) => {
     const res = await deleteModule(id);
     if (res.success) {
       toast.success("Module deleted");
-      if (selectedModule?.id === id) {
-        setSelectedModule(null);
-        setLessons([]);
-      }
+      if (selectedModule?.id === id) { setSelectedModule(null); setLessons([]); }
       if (selectedCourse) loadModules(selectedCourse.id);
     } else {
       toast.error(res.error?.message || "Failed to delete module");
@@ -354,13 +359,13 @@ export default function CurriculumAdminPage() {
   };
 
   const handleDeleteLesson = async (id: string) => {
+    setDeleteConfirm({ type: "lesson", id, name: lessons.find((l) => l.id === id)?.title || "this lesson" });
+  };
+  const executeDeleteLesson = async (id: string) => {
     const res = await deleteLesson(id);
     if (res.success) {
       toast.success("Lesson deleted");
-      if (selectedLesson?.id === id) {
-        setSelectedLesson(null);
-        setProjects([]);
-      }
+      if (selectedLesson?.id === id) { setSelectedLesson(null); setProjects([]); }
       if (selectedModule) loadLessons(selectedModule.id);
     } else {
       toast.error(res.error?.message || "Failed to delete lesson");
@@ -396,6 +401,9 @@ export default function CurriculumAdminPage() {
   };
 
   const handleDeleteProject = async (id: string) => {
+    setDeleteConfirm({ type: "project", id, name: projects.find((p) => p.id === id)?.title || "this project" });
+  };
+  const executeDeleteProject = async (id: string) => {
     const res = await deleteProject(id);
     if (res.success) {
       toast.success("Project deleted");
@@ -572,75 +580,16 @@ export default function CurriculumAdminPage() {
               </div>
             )}
             {courses.map((course) => (
-              <div key={course.id}>
-                <Card
-                  className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
-                    selectedCourse?.id === course.id ? "ring-2 ring-primary/30 shadow-md" : ""
-                  }`}
-                  onClick={() => handleCourseSelect(course)}
-                >
-                  <div className="relative">
-                    <div className={`h-20 flex items-center justify-center ${
-                      course.image_url
-                        ? "bg-gradient-to-br from-primary/10 via-primary/5 to-background"
-                        : "bg-gradient-to-br from-primary/10 to-muted"
-                    }`}>
-                      {course.image_url ? (
-                        <div className="h-12 w-12 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden">
-                          <BookOpen className="h-6 w-6 text-primary/40" />
-                        </div>
-                      ) : (
-                        <BookOpen className="h-8 w-8 text-primary/30" />
-                      )}
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleCourseVisibility(course); }}
-                        className={`p-1.5 rounded-full transition-colors ${
-                          course.visible
-                            ? "bg-green-500/20 text-green-500 hover:bg-green-500/30"
-                            : "bg-muted/60 text-muted-foreground hover:bg-muted"
-                        }`}
-                        title={course.visible ? "Click to hide" : "Click to publish"}
-                      >
-                        {course.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{course.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{course.slug}</p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <Badge variant="secondary" className="text-[10px]">
-                            {course.difficulty_level ?? 1}/5
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                            <Clock className="h-3 w-3" /> {course.estimated_hours ?? 0}h
-                          </span>
-                        </div>
-                      </div>
-                      {expandedCourse === course.id && (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
-                      )}
-                      {expandedCourse !== course.id && (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-2 pt-0 flex justify-end gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditForm(course, "courses"); }}>
-                      <Edit3 className="h-3 w-3" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleDeleteCourse(course.id); }}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                {/* Modules nested under course */}
+              <AdminCourseCard
+                key={course.id}
+                course={course}
+                isSelected={selectedCourse?.id === course.id}
+                isExpanded={expandedCourse === course.id}
+                onSelect={() => handleCourseSelect(course)}
+                onEdit={() => openEditForm(course, "courses")}
+                onDelete={() => handleDeleteCourse(course.id)}
+                onToggleVisibility={() => handleToggleCourseVisibility(course)}
+              >
                 {expandedCourse === course.id && (
                   <div className="ml-3 mt-1 space-y-1 border-l-2 border-muted pl-3">
                     {loadingModules ? (
@@ -652,32 +601,15 @@ export default function CurriculumAdminPage() {
                       <p className="text-xs text-muted-foreground py-2 italic">No modules yet</p>
                     ) : null}
                     {modules.map((mod) => (
-                      <div
+                      <AdminModuleCard
                         key={mod.id}
-                        className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-sm transition-colors ${
-                          selectedModule?.id === mod.id
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-muted/50 text-foreground"
-                        }`}
-                        onClick={() => { setSelectedCourse(course); handleModuleSelect(mod); }}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Layers className="h-3 w-3 shrink-0 opacity-60" />
-                          <span className="truncate text-xs font-medium">{mod.title}</span>
-                        </div>
-                        <div className="flex gap-0.5 shrink-0 ml-1">
-                          <button onClick={(e) => { e.stopPropagation(); handleToggleModuleVisibility(mod); }}
-                            className={mod.visible ? "text-green-500" : "text-muted-foreground"}>
-                            {mod.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); openEditForm(mod, "modules"); }}>
-                            <Edit3 className="h-3 w-3 opacity-50 hover:opacity-100" />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod.id); }}>
-                            <Trash2 className="h-3 w-3 text-red-400 opacity-50 hover:opacity-100" />
-                          </button>
-                        </div>
-                      </div>
+                        mod={mod}
+                        isSelected={selectedModule?.id === mod.id}
+                        onSelect={() => { setSelectedCourse(course); handleModuleSelect(mod); }}
+                        onEdit={() => openEditForm(mod, "modules")}
+                        onDelete={() => handleDeleteModule(mod.id)}
+                        onToggleVisibility={() => handleToggleModuleVisibility(mod)}
+                      />
                     ))}
                     <button
                       className="flex items-center gap-1 text-xs text-primary hover:underline p-1.5 w-full"
@@ -687,7 +619,7 @@ export default function CurriculumAdminPage() {
                     </button>
                   </div>
                 )}
-              </div>
+              </AdminCourseCard>
             ))}
           </div>
         </div>
@@ -738,51 +670,15 @@ export default function CurriculumAdminPage() {
                   </div>
                 ) : null}
                 {lessons.map((lesson) => (
-                  <Card
+                  <AdminLessonCard
                     key={lesson.id}
-                    className={`cursor-pointer transition-all hover:shadow-sm overflow-hidden ${
-                      selectedLesson?.id === lesson.id ? "ring-2 ring-primary/20 shadow-sm" : ""
-                    }`}
-                    onClick={() => handleLessonSelect(lesson)}
-                  >
-                    <CardContent className="p-3.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="font-medium text-sm truncate">{lesson.title}</span>
-                            <button onClick={(e) => { e.stopPropagation(); handleToggleLessonVisibility(lesson); }}>
-                              {lesson.visible ? (
-                                <Eye className="h-3 w-3 text-green-500 shrink-0" />
-                              ) : (
-                                <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
-                              )}
-                            </button>
-                          </div>
-                          {lesson.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{lesson.description}</p>
-                          )}
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <Badge variant="secondary" className="text-[10px]">Diff {lesson.difficulty}</Badge>
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                              <Clock className="h-3 w-3" /> {lesson.estimated_minutes}min
-                            </span>
-                            <span className="text-[11px] text-amber-500 flex items-center gap-0.5">
-                              <Zap className="h-3 w-3" /> {lesson.xp_reward} XP
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditForm(lesson, "lessons"); }}>
-                            <Edit3 className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={(e) => { e.stopPropagation(); handleDeleteLesson(lesson.id); }}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    lesson={lesson}
+                    isSelected={selectedLesson?.id === lesson.id}
+                    onSelect={() => handleLessonSelect(lesson)}
+                    onEdit={() => openEditForm(lesson, "lessons")}
+                    onDelete={() => handleDeleteLesson(lesson.id)}
+                    onToggleVisibility={() => handleToggleLessonVisibility(lesson)}
+                  />
                 ))}
               </div>
 
@@ -893,34 +789,13 @@ export default function CurriculumAdminPage() {
               </div>
             )}
             {projects.map((proj) => (
-              <Card key={proj.id} className="overflow-hidden">
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{proj.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{proj.slug}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <Badge variant="secondary" className="text-[10px]">Diff {proj.difficulty}</Badge>
-                        <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
-                          <Zap className="h-3 w-3" /> {proj.xp_reward} XP
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); handleToggleProjectVisibility(proj); }}
-                        className={`p-1.5 rounded hover:bg-muted/50 ${proj.visible ? "text-green-500" : "text-muted-foreground"}`}>
-                        {proj.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditForm(proj, "projects")}>
-                        <Edit3 className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => handleDeleteProject(proj.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <AdminProjectCard
+                key={proj.id}
+                project={proj}
+                onEdit={() => openEditForm(proj, "projects")}
+                onDelete={() => handleDeleteProject(proj.id)}
+                onToggleVisibility={() => handleToggleProjectVisibility(proj)}
+              />
             ))}
             {selectedLesson && projects.length > 0 && (
               <Button size="sm" variant="outline" className="w-full" onClick={() => openCreateForm("projects")}>
@@ -1646,6 +1521,44 @@ export default function CurriculumAdminPage() {
               else if (showSectionForm) editingItem ? handleUpdateSection() : handleCreateSection();
             }}>
               {editingItem ? "Save Changes" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Confirm Delete
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <span className="font-medium text-foreground">{deleteConfirm?.name}</span>?
+              {deleteConfirm?.type === "course" && " This will also delete all modules, lessons, sections, and projects within it."}
+              {deleteConfirm?.type === "module" && " This will also delete all lessons, sections, and projects within it."}
+              {deleteConfirm?.type === "lesson" && " This will also delete all sections and projects within it."}
+              {deleteConfirm?.type === "project" && " This action cannot be undone."}
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!deleteConfirm) return;
+                const { type, id } = deleteConfirm;
+                if (type === "course") executeDeleteCourse(id);
+                else if (type === "module") executeDeleteModule(id);
+                else if (type === "lesson") executeDeleteLesson(id);
+                else if (type === "project") executeDeleteProject(id);
+                setDeleteConfirm(null);
+              }}
+            >
+              Delete {deleteConfirm?.type}
             </Button>
           </DialogFooter>
         </DialogContent>

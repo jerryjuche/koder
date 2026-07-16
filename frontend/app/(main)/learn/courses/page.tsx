@@ -150,9 +150,12 @@ export default function CourseCatalog() {
             <Link
               key={course.id}
               href={`/learn/courses/${course.slug}`}
-              className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
+              className="relative group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
               style={{ animationDelay: `${idx * 100}ms` }}
             >
+              {/* Shadow back plate — CodePen-inspired elevation */}
+              <div className="absolute -inset-2 rounded-3xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-2 group-hover:blur-0" />
+
               <Card
                 className={cn(
                   "relative overflow-hidden transition-all duration-500 pt-0 border-0 shadow-md",
@@ -188,7 +191,7 @@ export default function CourseCatalog() {
                     {course.title}
                   </h3>
                   {course.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-5">
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-5 whitespace-pre-line">
                       {course.description}
                     </p>
                   )}

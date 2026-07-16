@@ -147,7 +147,7 @@ export default function CourseDetail() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{data.title}</h1>
               {data.description && (
-                <p className="text-muted-foreground mt-2 leading-relaxed">{data.description}</p>
+                <p className="text-muted-foreground mt-2 leading-relaxed whitespace-pre-line">{data.description}</p>
               )}
             </div>
           </div>
@@ -228,9 +228,12 @@ export default function CourseDetail() {
               <Link
                 key={mod.id}
                 href={`/learn/courses/${courseSlug}/modules/${mod.slug}`}
-                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+                className="relative group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                 style={{ animationDelay: `${idx * 80}ms` }}
               >
+                {/* Shadow back plate — CodePen-inspired elevation */}
+                <div className="absolute -inset-1.5 rounded-2xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+
                 <Card
                   className={cn(
                     "relative overflow-hidden transition-all duration-300 pt-0 border-0 shadow-sm",
@@ -280,7 +283,7 @@ export default function CourseDetail() {
                               )}
                             </div>
                             {mod.description && (
-                              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-line">
                                 {mod.description}
                               </p>
                             )}

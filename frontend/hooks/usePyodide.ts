@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   executePython,
   isPyodideReady,
   getPyodideInstance,
+  eagerLoadPyodide,
   loadPyodidePackages,
   type ExecutionResult,
 } from "@/lib/pyodide";
@@ -22,7 +23,7 @@ let nextId = 1;
 
 export function usePyodide() {
   const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>(() => [
     {
@@ -32,8 +33,6 @@ export function usePyodide() {
       timestamp: Date.now(),
     },
   ]);
-
-  const loadingStarted = useRef(false);
 
   const addLine = useCallback(
     (type: ConsoleLine["type"], text: string) => {
@@ -53,35 +52,13 @@ export function usePyodide() {
 
   const ensureLoaded = useCallback(async (): Promise<boolean> => {
     if (ready) return true;
-    if (loadingStarted.current) {
-      try {
-        await getPyodideInstance();
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    loadingStarted.current = true;
-    setLoading(true);
-    addLine("system", "Loading Python environment (first load ~20-30MB)...");
     try {
       await getPyodideInstance();
-      setReady(true);
-      setLoading(false);
-      addLine("system", "Pyodide initialized with numpy, matplotlib.");
       return true;
-    } catch (err: unknown) {
-      setLoading(false);
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      addLine("error", `Failed to initialize Python: ${msg}`);
+    } catch {
       return false;
     }
-  }, [ready, addLine]);
-
-  const startLoading = useCallback(async () => {
-    await ensureLoaded();
-  }, [ensureLoaded]);
+  }, [ready]);
 
   const execute = useCallback(
     async (code: string): Promise<ExecutionResult | null> => {
@@ -156,13 +133,46 @@ export function usePyodide() {
     }
   }, [addLine]);
 
+  // Eagerly start loading Pyodide on mount
+  // Track load progress by polling the singleton
+  useEffect(() => {
+    eagerLoadPyodide();
+
+    const poll = setInterval(() => {
+      if (isPyodideReady()) {
+        setReady(true);
+        setLoading(false);
+        addLine("system", "Pyodide initialized with numpy, matplotlib.");
+        clearInterval(poll);
+      }
+    }, 200);
+
+    // Also try awaiting the promise directly
+    getPyodideInstance()
+      .then(() => {
+        setReady(true);
+        setLoading(false);
+        addLine("system", "Pyodide initialized with numpy, matplotlib.");
+        clearInterval(poll);
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg);
+        setLoading(false);
+        addLine("error", `Failed to initialize Pyodide: ${msg}`);
+        clearInterval(poll);
+      });
+
+    return () => clearInterval(poll);
+  }, [addLine]);
+
   return {
     ready,
     loading,
     error,
     consoleLines,
     execute,
-    startLoading,
+    startLoading: ensureLoaded,
     clearConsole,
     loadPackages,
   } as const;
