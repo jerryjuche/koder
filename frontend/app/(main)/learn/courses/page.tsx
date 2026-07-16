@@ -7,34 +7,67 @@ import Link from "next/link";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, ArrowRight, GraduationCap, Star, Sparkles, Layers } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  ArrowRight,
+  GraduationCap,
+  Code2,
+  Terminal,
+  Database,
+  Globe,
+  Brain,
+  Cpu,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const difficultyMeta = (d: number) => {
-  if (d <= 2) return { label: "Beginner", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: "🌱" };
-  if (d <= 3) return { label: "Intermediate", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: "🔥" };
-  return { label: "Advanced", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: "⚡" };
+  if (d <= 2) return { label: "Beginner", color: "from-emerald-500 to-green-600", textColor: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-100 dark:bg-emerald-900/30" };
+  if (d <= 3) return { label: "Intermediate", color: "from-amber-500 to-orange-600", textColor: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/30" };
+  return { label: "Advanced", color: "from-red-500 to-rose-600", textColor: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30" };
 };
 
-const COURSE_GRADIENTS: Record<string, string> = {
-  "python-fundamentals": "from-blue-600/20 via-sky-500/10 to-transparent",
-  "go-fundamentals": "from-cyan-600/20 via-sky-500/10 to-transparent",
-  "python-intermediate": "from-violet-600/20 via-purple-500/10 to-transparent",
-  "data-structures": "from-amber-600/20 via-yellow-500/10 to-transparent",
+const courseBranding: Record<string, { gradient: string; icon: typeof Code2; lightBg: string }> = {
+  "python-fundamentals": {
+    gradient: "from-blue-600 via-blue-500 to-sky-400",
+    icon: Code2,
+    lightBg: "bg-blue-50 dark:bg-blue-950/30",
+  },
+  "go-fundamentals": {
+    gradient: "from-cyan-600 via-cyan-500 to-teal-400",
+    icon: Terminal,
+    lightBg: "bg-cyan-50 dark:bg-cyan-950/30",
+  },
+  "python-intermediate": {
+    gradient: "from-violet-600 via-violet-500 to-purple-400",
+    icon: Brain,
+    lightBg: "bg-violet-50 dark:bg-violet-950/30",
+  },
+  "data-structures": {
+    gradient: "from-amber-600 via-amber-500 to-yellow-400",
+    icon: Database,
+    lightBg: "bg-amber-50 dark:bg-amber-950/30",
+  },
 };
 
-const COURSE_ICONS: Record<string, string> = {
-  "python-fundamentals": "🐍",
-  "go-fundamentals": "🔷",
-  "python-intermediate": "⚡",
-  "data-structures": "🌲",
+const fallbackBranding = {
+  gradient: "from-slate-600 via-slate-500 to-gray-400",
+  icon: Globe,
+  lightBg: "bg-slate-50 dark:bg-slate-950/30",
 };
+
+function getCourseLetters(title: string): string {
+  return title
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default function CourseCatalog() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -53,20 +86,20 @@ export default function CourseCatalog() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-8">
-        <div className="mb-10">
-          <div className="h-8 w-48 bg-muted rounded animate-pulse mb-2" />
-          <div className="h-4 w-72 bg-muted rounded animate-pulse" />
+      <div className="max-w-7xl mx-auto px-6 py-10 md:px-8">
+        <div className="mb-12">
+          <div className="h-9 w-56 bg-muted rounded-lg animate-pulse mb-3" />
+          <div className="h-5 w-80 bg-muted rounded-lg animate-pulse" />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden animate-pulse pt-0">
-              <div className="h-36 bg-muted" />
-              <CardContent className="p-5 space-y-3">
+            <Card key={i} className="overflow-hidden animate-pulse pt-0 border-0 shadow-lg">
+              <div className="h-48 bg-muted" />
+              <div className="p-6 space-y-4">
                 <div className="h-5 w-3/4 bg-muted rounded" />
-                <div className="h-3 w-full bg-muted rounded" />
-                <div className="h-3 w-2/3 bg-muted rounded" />
-              </CardContent>
+                <div className="h-4 w-full bg-muted rounded" />
+                <div className="h-4 w-2/3 bg-muted rounded" />
+              </div>
             </Card>
           ))}
         </div>
@@ -75,117 +108,117 @@ export default function CourseCatalog() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8">
-      {/* Header */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
-            <GraduationCap className="h-5 w-5 text-primary" />
+    <div className="max-w-7xl mx-auto px-6 py-10 md:px-8">
+      <div className="mb-12">
+        <div className="flex items-center gap-4 mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+            <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Courses</h1>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Courses</h1>
+            <p className="text-muted-foreground mt-1">Choose a course to start your learning journey</p>
+          </div>
         </div>
-        <p className="text-muted-foreground ml-[3.25rem]">
-          Choose a course to start your learning journey
-        </p>
       </div>
 
-      {/* Empty state */}
       {courses.length === 0 && (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+        <div className="text-center py-24">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-muted flex items-center justify-center">
+            <BookOpen className="h-10 w-10 text-muted-foreground/30" />
           </div>
-          <h3 className="text-lg font-semibold mb-1">No courses yet</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <h3 className="text-xl font-semibold mb-2">No courses yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
             Courses will appear here once they are published by your instructor.
           </p>
         </div>
       )}
 
-      {/* Course grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {courses.map((course, idx) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);
-          const gradient = COURSE_GRADIENTS[course.slug] || "from-primary/15 via-primary/5 to-transparent";
-          const icon = COURSE_ICONS[course.slug] || null;
+          const brand = courseBranding[course.slug] || fallbackBranding;
+          const Icon = brand.icon;
+          const letters = getCourseLetters(course.title);
 
           return (
             <Link
               key={course.id}
               href={`/learn/courses/${course.slug}`}
               className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
+              style={{ animationDelay: `${idx * 100}ms` }}
             >
               <Card
                 className={cn(
-                  "relative overflow-hidden transition-all duration-300 pt-0",
-                  "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5",
+                  "relative overflow-hidden transition-all duration-500 pt-0 border-0 shadow-md",
+                  "hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10",
                   "h-full flex flex-col",
-                  "animate-in fade-in slide-in-from-bottom-3",
+                  "animate-in fade-in slide-in-from-bottom-4",
                 )}
-                style={{ animationDelay: `${idx * 80}ms` }}
               >
-                {/* Gradient header with icon */}
+                {/* Gradient hero */}
                 <div className={cn(
-                  "relative h-36 bg-gradient-to-br flex items-center justify-center overflow-hidden",
-                  gradient,
+                  "relative h-48 bg-gradient-to-br flex items-center justify-center overflow-hidden",
+                  brand.gradient,
                 )}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.15),transparent_60%)]" />
+                  <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-card to-transparent" />
                   <div className={cn(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-sm",
-                    "bg-background/60 ring-1 ring-white/10",
+                    "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl",
+                    "bg-white/90 dark:bg-card/90 backdrop-blur-sm ring-1 ring-white/20",
+                    "transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3",
                   )}>
-                    {icon ? (
-                      <span className="text-3xl">{icon}</span>
-                    ) : (
-                      <GraduationCap className="h-8 w-8 text-primary" />
-                    )}
+                    <Icon className="h-10 w-10 text-foreground" />
                   </div>
                   {course.visible === false && (
-                    <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">
+                    <Badge variant="secondary" className="absolute top-4 right-4 text-[11px] font-medium shadow-sm">
                       Draft
                     </Badge>
                   )}
                 </div>
 
-                <CardHeader className="p-5 pb-2 relative z-10">
-                  <CardTitle className="text-base font-bold leading-tight group-hover:text-primary transition-colors">
+                {/* Body */}
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="text-lg font-bold leading-tight mb-2 group-hover:text-primary transition-colors">
                     {course.title}
-                  </CardTitle>
+                  </h3>
                   {course.description && (
-                    <CardDescription className="text-xs mt-1.5 leading-relaxed line-clamp-2">
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-5">
                       {course.description}
-                    </CardDescription>
+                    </p>
                   )}
-                </CardHeader>
 
-                <CardContent className="px-5 pb-0 relative z-10 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={cn(diff.color, "text-[10px] font-medium border-0")}>
-                      {diff.icon} {diff.label}
-                    </Badge>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {course.estimated_hours ?? 0}h
-                    </span>
-                    <span className="text-[11px] text-amber-500 flex items-center gap-0.5">
-                      <Star className="h-3 w-3" /> Lvl {course.difficulty_level ?? 1}
+                  {/* Stats row */}
+                  <div className="flex items-center gap-3 flex-wrap mb-5">
+                    <div className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
+                      diff.bgColor,
+                      diff.textColor,
+                    )}>
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        diff.textColor.replace("text-", "bg-"),
+                      )} />
+                      {diff.label}
+                    </div>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" /> {course.estimated_hours ?? 0} hours
                     </span>
                   </div>
-                </CardContent>
 
-                <CardFooter className="p-5 pt-3 relative z-10">
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-semibold tracking-wide text-muted-foreground group-hover:text-primary transition-colors">
+                  {/* CTA */}
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/50">
+                    <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary transition-colors">
                       Start learning
                     </span>
                     <div className={cn(
-                      "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
-                      "bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary",
-                      "group-hover:translate-x-0.5 text-muted-foreground",
+                      "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300",
+                      "bg-muted/60 group-hover:bg-primary group-hover:text-primary-foreground",
+                      "text-muted-foreground group-hover:translate-x-1 group-hover:shadow-lg group-hover:shadow-primary/20",
                     )}>
-                      <ArrowRight size={14} />
+                      <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-0.5" />
                     </div>
                   </div>
-                </CardFooter>
+                </div>
               </Card>
             </Link>
           );

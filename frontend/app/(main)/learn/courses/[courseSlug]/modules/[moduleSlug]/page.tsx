@@ -7,34 +7,48 @@ import { ModuleWithLessons } from "@/lib/types";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft, CheckCircle2, Clock, Zap,
-  BookOpen, Circle, CircleDot, Lock,
-  GraduationCap, Sparkles, ChevronRight,
-  Star, PlayCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Zap,
+  BookOpen,
+  CircleDot,
+  GraduationCap,
+  ChevronRight,
+  PlayCircle,
+  Trophy,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 
-const MODULE_GRADIENTS: Record<string, string> = {
-  python: "from-blue-600/20 via-sky-500/10",
-  go: "from-cyan-600/20 via-teal-500/10",
-  data: "from-amber-600/20 via-yellow-500/10",
-  web: "from-violet-600/20 via-purple-500/10",
-  algo: "from-rose-600/20 via-pink-500/10",
+const moduleBranding: Record<string, { gradient: string }> = {
+  python: { gradient: "from-blue-600 to-sky-500" },
+  go: { gradient: "from-cyan-600 to-teal-500" },
+  data: { gradient: "from-amber-600 to-yellow-500" },
+  web: { gradient: "from-violet-600 to-purple-500" },
+  algo: { gradient: "from-rose-600 to-pink-500" },
+  misc: { gradient: "from-slate-600 to-gray-500" },
 };
 
-function moduleGradient(slug: string): string {
-  for (const [key, val] of Object.entries(MODULE_GRADIENTS)) {
-    if (slug.includes(key)) return val;
+function resolveModuleGradient(slug: string): string {
+  for (const [, val] of Object.entries(moduleBranding)) {
+    if (slug.includes(Object.keys(moduleBranding).find((k) => slug.includes(k)) ?? "")) {
+      return val.gradient;
+    }
   }
-  return "from-primary/15 via-primary/5";
+  // Check each key
+  for (const [key, val] of Object.entries(moduleBranding)) {
+    if (slug.includes(key)) return val.gradient;
+  }
+  return moduleBranding.misc.gradient;
 }
 
 const difficultyMeta = (d: number) => {
-  if (d <= 2) return { label: "Beginner", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
-  if (d <= 3) return { label: "Intermediate", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
-  return { label: "Advanced", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
+  if (d <= 2) return { label: "Beginner", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/30 ring-emerald-500/20" };
+  if (d <= 3) return { label: "Intermediate", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/30 ring-amber-500/20" };
+  return { label: "Advanced", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/30 ring-red-500/20" };
 };
 
 export default function ModuleDetail() {
@@ -57,13 +71,12 @@ export default function ModuleDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 w-32 bg-muted rounded" />
-          <div className="h-8 w-64 bg-muted rounded" />
-          <div className="h-4 w-48 bg-muted rounded" />
+      <div className="max-w-3xl mx-auto px-6 py-10 md:px-8">
+        <div className="animate-pulse space-y-5">
+          <div className="h-5 w-28 bg-muted rounded-lg" />
+          <div className="h-32 bg-muted rounded-2xl mb-4" />
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-muted rounded-xl" />
+            <div key={i} className="h-28 bg-muted rounded-xl" />
           ))}
         </div>
       </div>
@@ -72,12 +85,12 @@ export default function ModuleDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-4xl mx-auto p-8 text-center">
+      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
           <BookOpen className="h-8 w-8 text-muted-foreground/40" />
         </div>
-        <p className="text-muted-foreground">Module not found</p>
-        <Link href={`/learn/courses/${courseSlug}`} className="text-primary hover:underline mt-2 inline-block">
+        <p className="text-muted-foreground mb-4">Module not found</p>
+        <Link href={`/learn/courses/${courseSlug}`} className="text-primary hover:underline font-medium">
           Back to course
         </Link>
       </div>
@@ -87,66 +100,72 @@ export default function ModuleDetail() {
   const completedCount = data.lessons.filter((l) => l.completed).length;
   const totalCount = data.lessons.length;
   const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-  const gradient = moduleGradient(moduleSlug);
+  const gradient = resolveModuleGradient(moduleSlug);
   const firstIncomplete = data.lessons.find((l) => !l.completed);
+  const totalXp = data.lessons.reduce((sum, l) => sum + l.xp_reward, 0);
+  const earnedXp = data.lessons.filter((l) => l.completed).reduce((sum, l) => sum + l.xp_reward, 0);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 md:p-8">
+    <div className="max-w-3xl mx-auto px-6 py-10 md:px-8">
       {/* Back */}
       <Link
         href={`/learn/courses/${courseSlug}`}
-        className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1 mb-6 transition-colors group"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
       >
-        <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" /> Back to course
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        Back to course
       </Link>
 
-      {/* Module Header */}
-      <div className="relative overflow-hidden rounded-2xl border mb-8">
-        <div className={cn(
-          "h-2 w-full bg-gradient-to-r",
-          gradient,
-        )} />
-        <div className="p-6">
-          <div className="flex items-start gap-4 mb-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
-              <GraduationCap className="h-5 w-5 text-primary" />
+      {/* Module header */}
+      <div className="relative overflow-hidden rounded-2xl border-0 shadow-sm mb-10">
+        <div className={cn("h-2 w-full bg-gradient-to-r", gradient)} />
+        <div className="p-6 md:p-8">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/10">
+              <GraduationCap className="h-6 w-6 text-primary" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-bold">{data.module.title}</h1>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{data.module.title}</h1>
               {data.module.description && (
-                <p className="text-sm text-muted-foreground mt-1">{data.module.description}</p>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{data.module.description}</p>
               )}
             </div>
           </div>
 
-          {/* Progress bar + stats */}
-          <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1 text-foreground">
-              <CircleDot className="h-4 w-4 text-primary" />
-              {completedCount}/{totalCount} completed
+          {/* Stats bar */}
+          <div className="flex flex-wrap items-center gap-4 text-sm mt-5 pt-5 border-t border-border/50">
+            <span className="flex items-center gap-1.5 font-medium">
+              <FileText className="h-4 w-4 text-primary" />
+              {totalCount} {totalCount === 1 ? "lesson" : "lessons"}
             </span>
-            {pct > 0 && (
-              <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Zap className="h-4 w-4 text-amber-500" />
+              {earnedXp}/{totalXp} XP
+            </span>
+            {completedCount > 0 && (
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                {Math.round(pct)}% done
+                {Math.round(pct)}% complete
               </span>
             )}
           </div>
+
+          {/* Progress bar */}
           {totalCount > 0 && (
-            <div className="mt-3">
+            <div className="mt-4">
               <div
                 role="progressbar"
                 aria-valuenow={Math.round(pct)}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="h-2 bg-muted/80 rounded-full overflow-hidden ring-1 ring-white/[0.03]"
+                className="h-2.5 bg-muted/80 rounded-full overflow-hidden ring-1 ring-white/[0.03]"
               >
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-1000 ease-out",
                     pct >= 100
-                      ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_6px_rgba(52,211,153,0.3)]"
-                      : "bg-gradient-to-r from-primary/60 to-primary",
+                      ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]"
+                      : "bg-gradient-to-r from-primary/70 to-primary",
                   )}
                   style={{ width: `${Math.round(pct)}%` }}
                 />
@@ -158,24 +177,29 @@ export default function ModuleDetail() {
 
       {/* Lessons */}
       <div className="relative">
-        <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
+        <h2 className="text-lg font-bold mb-5 flex items-center gap-2.5">
           {pct === 0 ? (
             <>
-              <Sparkles className="h-4 w-4 text-amber-500" />
+              <Sparkles className="h-5 w-5 text-amber-500" />
               Lessons
+            </>
+          ) : pct >= 100 ? (
+            <>
+              <Trophy className="h-5 w-5 text-emerald-500" />
+              All lessons complete
             </>
           ) : (
             <>
-              <PlayCircle className="h-4 w-4 text-primary" />
-              Continue Learning
+              <PlayCircle className="h-5 w-5 text-primary" />
+              Continue learning
             </>
           )}
         </h2>
 
         <div className="space-y-3">
           {totalCount === 0 && (
-            <div className="text-center py-12 border-2 border-dashed rounded-xl">
-              <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+            <div className="text-center py-16 border-2 border-dashed rounded-xl">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">No lessons published yet</p>
             </div>
           )}
@@ -190,32 +214,47 @@ export default function ModuleDetail() {
               <Link
                 key={lesson.id}
                 href={lessonHref}
-                className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                 style={{ animationDelay: `${idx * 60}ms` }}
               >
                 <Card
                   className={cn(
-                    "relative overflow-hidden transition-all duration-300",
+                    "relative overflow-hidden transition-all duration-300 border",
                     "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
                     "animate-in fade-in slide-in-from-bottom-3",
-                    isComplete && "ring-1 ring-emerald-500/20",
-                    isCurrent && "ring-2 ring-primary/30",
+                    isComplete && [
+                      "border-emerald-200/60 dark:border-emerald-900/30",
+                      "bg-emerald-50/30 dark:bg-emerald-950/10",
+                      "hover:shadow-emerald-500/5",
+                    ],
+                    isCurrent && [
+                      "border-primary/40",
+                      "ring-1 ring-primary/20",
+                      "shadow-md shadow-primary/10",
+                    ],
+                    !isComplete && !isCurrent && "hover:border-border",
                   )}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-5">
                     <div className="flex items-start gap-4">
-                      {/* Status icon */}
+                      {/* Status indicator */}
                       <div className="shrink-0 pt-0.5">
                         {isComplete ? (
-                          <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center ring-1 ring-emerald-500/20">
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center ring-1 ring-emerald-500/25">
                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                           </div>
                         ) : isCurrent ? (
-                          <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center ring-1 ring-primary/30">
+                          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center ring-1 ring-primary/30">
                             <CircleDot className="h-5 w-5 text-primary" />
                           </div>
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-muted/50 flex items-center justify-center text-sm font-bold text-muted-foreground/40 group-hover:bg-primary/10 group-hover:text-primary/60 transition-colors">
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
+                            "bg-muted/60 text-muted-foreground/30",
+                            "ring-1 ring-border",
+                            "group-hover:bg-primary/10 group-hover:text-primary/60 group-hover:ring-primary/20",
+                            "transition-all duration-200",
+                          )}>
                             {idx + 1}
                           </div>
                         )}
@@ -223,37 +262,41 @@ export default function ModuleDetail() {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={cn(
-                            "font-semibold text-sm group-hover:text-primary transition-colors",
-                            isComplete && "text-emerald-600 dark:text-emerald-400",
-                          )}>
-                            {lesson.title}
-                          </h3>
-                          {isComplete && (
-                            <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-4 border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
-                              Done
-                            </Badge>
-                          )}
-                          {isCurrent && (
-                            <Badge className="shrink-0 text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-0">
-                              Current
-                            </Badge>
-                          )}
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <h3 className={cn(
+                              "font-semibold text-[15px] group-hover:text-primary transition-colors truncate",
+                              isComplete && "text-emerald-700 dark:text-emerald-300",
+                            )}>
+                              {lesson.title}
+                            </h3>
+                            {isComplete && (
+                              <Badge variant="outline" className="shrink-0 text-[10px] px-2 py-0 h-5 border-emerald-500/30 text-emerald-500 bg-emerald-500/5 font-semibold">
+                                Done
+                              </Badge>
+                            )}
+                            {isCurrent && (
+                              <Badge className="shrink-0 text-[10px] px-2 py-0 h-5 bg-primary/10 text-primary border-0 font-semibold">
+                                Current
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         {lesson.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mb-2.5">{lesson.description}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1 mb-3">
+                            {lesson.description}
+                          </p>
                         )}
                         <div className="flex items-center gap-3 flex-wrap">
-                          <Badge variant="outline" className="text-[10px] font-mono bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400">
-                            <Zap className="h-2.5 w-2.5 mr-0.5" />
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-semibold">
+                            <Zap className="h-3 w-3" />
                             {lesson.xp_reward} XP
-                          </Badge>
+                          </div>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {lesson.estimated_minutes}min
+                            <Clock className="h-3 w-3" /> {lesson.estimated_minutes} min
                           </span>
                           <span className={cn(
-                            "text-[11px] font-medium px-1.5 py-0.5 rounded-full",
+                            "text-[11px] font-medium px-2 py-0.5 rounded-full ring-1",
                             diff.color,
                           )}>
                             {diff.label}
@@ -264,21 +307,16 @@ export default function ModuleDetail() {
                       {/* Arrow */}
                       <div className="shrink-0 flex items-center self-center">
                         <div className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
-                          "bg-muted/30 group-hover:bg-primary/10 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5",
+                          "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300",
+                          "bg-muted/50 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-lg group-hover:shadow-primary/20",
+                          "text-muted-foreground",
+                          isComplete && "opacity-40 group-hover:opacity-100",
                         )}>
                           <ChevronRight className="h-4 w-4" />
                         </div>
                       </div>
                     </div>
                   </CardContent>
-
-                  {/* Hover glow */}
-                  {!isComplete && (
-                    <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/[0.03] rounded-full -translate-y-1/2 translate-x-1/2" />
-                    </div>
-                  )}
                 </Card>
               </Link>
             );
