@@ -69,6 +69,14 @@ export async function executePython(
 
   let error: string | null = null;
 
+  if (/input\s*\(/.test(code)) {
+    return {
+      stdout: "",
+      stderr: "",
+      error: "The input() function is not available in the browser. Assign values directly in your code instead (e.g. name = \"Alice\").",
+    };
+  }
+
   try {
     const result = await Promise.race([
       pyodide.runPythonAsync(code),
