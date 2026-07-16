@@ -28,7 +28,7 @@ export function usePyodide() {
     {
       id: nextId++,
       type: "system",
-      text: '>>> Click "Run in Browser" or press Ctrl+Enter to execute Python code.',
+      text: 'Click "Run in Browser" or press Ctrl+Enter to execute Python code.',
       timestamp: Date.now(),
     },
   ]);
@@ -63,12 +63,12 @@ export function usePyodide() {
     }
     loadingStarted.current = true;
     setLoading(true);
-    addLine("system", ">>> Loading Python environment (first load ~20-30MB)...");
+    addLine("system", "Loading Python environment (first load ~20-30MB)...");
     try {
       await getPyodideInstance();
       setReady(true);
       setLoading(false);
-      addLine("system", ">>> Pyodide initialized with numpy, matplotlib.");
+      addLine("system", "Pyodide initialized with numpy, matplotlib.");
       return true;
     } catch (err: unknown) {
       setLoading(false);
@@ -96,7 +96,7 @@ export function usePyodide() {
         return null;
       }
 
-      addLine("input", `>>> ${code.trim().split("\n")[0]}${code.trim().split("\n").length > 1 ? " ..." : ""}`);
+      addLine("input", `${code.trim().split("\n")[0]}${code.trim().split("\n").length > 1 ? " ..." : ""}`);
 
       let result: ExecutionResult;
       try {
