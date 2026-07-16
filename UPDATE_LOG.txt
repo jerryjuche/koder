@@ -271,3 +271,15 @@ Lesson step-by-step navigation & Pyodide polish:
 2. Pyodide: input() now works via window.prompt() shim at init time; removed !pyodideReady guard on Run in Browser button so lazy Pyodide can trigger; fixed double prompt prefix in console; replaced emoji prefixes with clean text markers.
 3. Code block dark mode: added darkModeClassNames to CodeBlockContent so Shiki dual-theme HTML renders with proper dark colors instead of white text; fixed CodeBlockFallback with dark mode text color and padding.
 4. SectionExercise: Editor options aligned with ProblemWorkspaceClient for consistent theme; results panel now shows for all languages; increased results spacing.
+
+Course/module/lesson page professional redesign:
+1. Course catalog: full gradient hero backgrounds per course, lucide icons in glass-morphism container, difficulty pills with dot indicator, shadow-lift hover animation.
+2. Course detail: hero with metadata, module cards with gradient stripe + colored lucide icons, progress bars, Complete/In progress badges.
+3. Module detail: lesson cards with rich status indicators (emerald check/circle-dot/numbered), green highlight for completed, amber XP badges, difficulty pills, total XP counter in header.
+
+Post-redesign audit fixes:
+1. Added error state + retry button to all 3 learn pages (previously silently showed empty state on API failure).
+2. Removed unused imports (CardContent, Cpu) and dead code (getCourseLetters).
+3. Fixed resolveModuleGradient bug (first loop matched outer iteration's val instead of matched key).
+4. Fixed lesson_count undefined guard in firstIncomplete detection.
+5. Added !isComplete guard to isCurrent for consistency across pages.

@@ -1155,3 +1155,58 @@ Restructure lesson viewer to show sections as individual step-by-step pages with
 
 ### Verification
 - `npx tsc --noEmit` — clean
+
+---
+
+## Session 40 — 2026-07-16 — Course/Module/Lesson page professional redesign & audit fixes
+
+### Goal
+Redesign learn course/module/lesson pages with professional card components matching dashboard styling, then audit and fix all implementation issues.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `aa02d24` | Redesign learn course/module/lesson pages with professional card components |
+| `d1172fb` | Professional redesign: learn course/module/lesson pages |
+| `0771f5e` | Fix audit issues: error states, unused imports, edge case guards |
+
+### Changes — Professional Card Redesign
+
+#### Course Catalog (`courses/page.tsx`)
+- Full gradient hero backgrounds per course (blue/cyan/violet/amber/slate)
+- Lucide icons in glass-morphism container with scale+rotate hover
+- Difficulty pill with colored dot indicator (Beginner/Intermediate/Advanced)
+- CTA with arrow button that turns primary on hover
+- `border-0` cards with shadow-lift animation (`-translate-y-2`, `shadow-2xl`)
+- Draft badge for unpublished courses
+
+#### Course Detail (`[courseSlug]/page.tsx`)
+- Hero section with course title, description, difficulty pill, metadata row
+- Course progress bar (gradient fill, shown only when started)
+- Module cards with 6px gradient stripe and colored lucide icons
+- Two-digit module numbering, Complete/In progress badges
+- Lesson counts with completed count, gradient progress bars
+- Hover: icon scale + CTA arrow turns primary
+
+#### Module Detail (`[moduleSlug]/page.tsx`)
+- Module header with gradient stripe + stats bar (lessons, XP, completion %)
+- Lesson cards with rich status indicators (emerald checkmark, primary circle-dot, numbered circle)
+- Green highlight background on completed lessons, primary ring on current lesson
+- XP badges (amber), difficulty pills (color-coded with ring), time estimates
+- Completed arrows fade to 40% opacity, full opacity on hover
+- Total XP earned counter in module header
+
+### Changes — Audit Fixes
+| Issue | File | Fix |
+|---|---|---|
+| Unused `CardContent` import | `courses/page.tsx` | Removed |
+| Unused `Cpu` import | `courses/page.tsx` | Removed |
+| Unused `letters` variable + `getCourseLetters` | `courses/page.tsx` | Removed dead code |
+| API failure → silent empty state | All 3 pages | Added `error` state + retry button with `Try again` |
+| `resolveModuleGradient` buggy first loop | `module/page.tsx` | Removed buggy loop (was matching wrong gradient val) |
+| `lesson_count` undefined breaks `firstIncomplete` | `course/page.tsx` | Now treats undefined as "incomplete if not started" |
+| `isCurrent` missing `!isComplete` guard | `module/page.tsx` | Added for consistency |
+
+### Verification
+- `npx tsc --noEmit` — clean
+- Pushed to `origin/update` (`0771f5e`)
