@@ -1,3 +1,6 @@
+"use client";
+
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface RatingBadgeProps {
@@ -24,26 +27,19 @@ function EmptyStar({ className }: { className?: string }) {
   );
 }
 
-function PartialStar({ fraction, className }: { fraction: number; className?: string }) {
+function PartialStar({ fraction, id, className }: { fraction: number; id: string; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={cn("shrink-0", className)}>
       <defs>
-        <clipPath id={`partial-clip-${fraction.toFixed(2)}`}>
+        <clipPath id={id}>
           <rect x="0" y="0" width={`${fraction * 24}`} height="24" />
         </clipPath>
       </defs>
-      <path
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        opacity="0.2"
-      />
+      <EmptyStar className={className} />
       <path
         d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
         fill="currentColor"
-        clipPath={`url(#partial-clip-${fraction.toFixed(2)})`}
+        clipPath={`url(#${id})`}
       />
     </svg>
   );
@@ -56,10 +52,11 @@ export function RatingBadge({
   size = "md",
   className,
 }: RatingBadgeProps) {
+  const uid = useId();
   const clamped = Math.max(0, Math.min(rating, maxRating));
   const fullStars = Math.floor(clamped);
-  const partialStar = clamped - fullStars;
-  const emptyStars = maxRating - fullStars - (partialStar > 0 ? 1 : 0);
+  const partialFraction = clamped - fullStars;
+  const emptyStars = maxRating - fullStars - (partialFraction > 0 ? 1 : 0);
 
   const sizeClasses = {
     sm: "text-xs gap-0.5",
@@ -79,8 +76,13 @@ export function RatingBadge({
         {Array.from({ length: fullStars }).map((_, i) => (
           <FullStar key={`full-${i}`} className={cn(starSizes[size], "text-amber-400")} />
         ))}
-        {partialStar > 0 && (
-          <PartialStar fraction={partialStar} className={cn(starSizes[size], "text-amber-400")} />
+        {partialFraction > 0 && (
+          <PartialStar
+            key="partial"
+            fraction={partialFraction}
+            id={`${uid}-partial`}
+            className={cn(starSizes[size], "text-amber-400")}
+          />
         )}
         {Array.from({ length: emptyStars }).map((_, i) => (
           <EmptyStar key={`empty-${i}`} className={cn(starSizes[size], "text-muted-foreground/20")} />

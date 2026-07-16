@@ -18,7 +18,6 @@ interface LearningCardProps {
   type: "course" | "module" | "lesson" | "section";
   title: string;
   description?: string;
-  slug?: string;
   href: string;
   status?: CardStatus;
   index?: number;
@@ -42,40 +41,39 @@ const typeGradients: Record<string, string> = {
   section: "from-amber-600 to-yellow-500",
 };
 
-const typeIconBg: Record<string, string> = {
-  course: "bg-blue-500/15 text-blue-500 ring-blue-500/20",
-  module: "bg-violet-500/15 text-violet-500 ring-violet-500/20",
-  lesson: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/20",
-  section: "bg-amber-500/15 text-amber-500 ring-amber-500/20",
-};
-
-const statusConfig: Record<string, {
+interface StatusStyle {
   border: string;
   bg: string;
   icon: ElementType | null;
   iconBg: string;
-  badge: { label: string; className: string } | null;
-}> = {
+  badge: { label: string; variant: "default" | "outline"; className: string } | null;
+  interactive: boolean;
+}
+
+const statusConfig: Record<string, StatusStyle> = {
   "locked": {
     border: "border-border/40 opacity-60",
     bg: "",
     icon: Lock,
     iconBg: "bg-muted/40 text-muted-foreground/40 ring-border/30",
     badge: null,
+    interactive: false,
   },
   "in-progress": {
     border: "border-primary/40 ring-1 ring-primary/20 shadow-md shadow-primary/10",
     bg: "",
     icon: CircleDot,
     iconBg: "bg-primary/15 text-primary ring-primary/30",
-    badge: { label: "In progress", className: "bg-primary/10 text-primary border-0" },
+    badge: { label: "In progress", variant: "default", className: "bg-primary/10 text-primary border-0" },
+    interactive: true,
   },
   "completed": {
     border: "border-emerald-200/60 dark:border-emerald-900/30",
     bg: "bg-emerald-50/30 dark:bg-emerald-950/10",
     icon: CheckCircle2,
     iconBg: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/25",
-    badge: { label: "Done", className: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" },
+    badge: { label: "Done", variant: "outline", className: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" },
+    interactive: true,
   },
   "available": {
     border: "",
@@ -83,12 +81,9 @@ const statusConfig: Record<string, {
     icon: null,
     iconBg: "bg-gradient-to-br from-primary/10 to-primary/5 text-primary ring-primary/10",
     badge: null,
+    interactive: true,
   },
 };
-
-const hoverBackPlate = "absolute -inset-1.5 rounded-2xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0";
-
-const cardBase = "relative overflow-hidden transition-all duration-300 border hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5 animate-in fade-in slide-in-from-bottom-3";
 
 export function LearningCard({
   type = "lesson",
@@ -105,23 +100,25 @@ export function LearningCard({
 }: LearningCardProps) {
   const sc = statusConfig[status];
   const resolvedGradient = gradient || typeGradients[type];
-  const resolvedIconBg = sc.iconBg || typeIconBg[type];
+  const isLocked = !sc.interactive;
   const StatusIcon = sc.icon;
-  const isLocked = status === "locked";
 
   const content = (
     <div className={cn(
-      cardBase,
+      "relative overflow-hidden transition-all duration-300 border animate-in fade-in slide-in-from-bottom-3",
+      "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
       sc.border,
       sc.bg,
       isLocked && "cursor-default",
-      "group",
+      !isLocked && "group",
       className,
     )}>
-      {/* Shadow back plate */}
-      <div className={hoverBackPlate} />
+      {/* Shadow back plate — only on unlocked hover */}
+      {!isLocked && (
+        <div className="absolute -inset-1.5 rounded-2xl bg-black/12 dark:bg-white/[0.08] opacity-0 scale-[0.96] -z-10 blur-[0.5px] transition-all duration-300 ease-out group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+      )}
 
-      {/* Gradient stripe */}
+      {/* Gradient stripe (not for courses — courses use full gradient hero) */}
       {type !== "course" && (
         <div className={cn("h-1.5 w-full bg-gradient-to-r", resolvedGradient)} />
       )}
@@ -133,7 +130,7 @@ export function LearningCard({
             {StatusIcon ? (
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center ring-1 transition-all duration-200",
-                resolvedIconBg,
+                sc.iconBg,
                 !isLocked && "group-hover:scale-110 group-hover:shadow-md",
               )}>
                 <StatusIcon className="h-5 w-5" />
@@ -141,7 +138,7 @@ export function LearningCard({
             ) : (
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ring-1 transition-all duration-200",
-                resolvedIconBg,
+                sc.iconBg,
                 "group-hover:bg-primary/10 group-hover:text-primary/60 group-hover:ring-primary/20",
               )}>
                 {index ?? 1}
@@ -161,7 +158,7 @@ export function LearningCard({
                   {title}
                 </h3>
                 {sc.badge && (
-                  <Badge variant={sc.badge.className.includes("border-0") ? "default" : "outline"} className={cn("shrink-0 text-[10px] px-2 py-0 h-5 font-semibold", sc.badge.className)}>
+                  <Badge variant={sc.badge.variant} className={cn("shrink-0 text-[10px] px-2 py-0 h-5 font-semibold", sc.badge.className)}>
                     {sc.badge.label}
                   </Badge>
                 )}
@@ -222,7 +219,7 @@ export function LearningCard({
             {children}
           </div>
 
-          {/* Arrow */}
+          {/* Arrow — hidden for locked */}
           {!isLocked && (
             <div className="shrink-0 flex items-center self-center">
               <div className={cn(
@@ -247,7 +244,7 @@ export function LearningCard({
   return (
     <Link
       href={href}
-      className="relative group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+      className="relative block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
     >
       {content}
     </Link>
