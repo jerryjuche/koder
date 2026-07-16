@@ -20,6 +20,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/lib/event";
 import confetti from "canvas-confetti";
+import LessonCompleteOverlay from "@/components/learn/LessonCompleteOverlay";
 
 interface Step {
   type: "section" | "quiz-review";
@@ -77,6 +78,7 @@ export default function LessonViewerClient() {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
   const load = useCallback(async () => {
@@ -166,8 +168,9 @@ export default function LessonViewerClient() {
     const res = await completeLesson(lessonData.id);
     if (res.success) {
       setCompleted(true);
-      toast.success(`Lesson completed! +${lessonData.xp_reward} XP`);
+      setShowOverlay(true);
       fireConfetti();
+      window.dispatchEvent(new Event("user-updated"));
       setLessonData((prev) =>
         prev
           ? {
@@ -181,10 +184,27 @@ export default function LessonViewerClient() {
             }
           : prev,
       );
+      setModuleData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          lessons: prev.lessons.map((l) =>
+            l.id === lessonData.id ? { ...l, completed: true } : l
+          ),
+        };
+      });
     } else {
       toast.error(res.error?.message || "Failed to complete lesson");
     }
     setCompleting(false);
+  };
+
+  const handleCloseOverlay = () => setShowOverlay(false);
+  const handleReviewLesson = () => {
+    setShowOverlay(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   // Polling fallback: refresh data every 5 seconds
@@ -213,6 +233,15 @@ export default function LessonViewerClient() {
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
   const isLastStep = currentStep === totalSteps - 1;
+
+  // Overlay data
+  const overlaySectionsCount = lessonData?.sections?.length || 0;
+  const overlayQuizCount = lessonData?.sections?.filter((s) => s.section_type === "quiz").length || 0;
+  const overlayExerciseCount = lessonData?.sections?.filter((s) => s.section_type === "exercises").length || 0;
+  const overlayModuleTotal = moduleData?.lessons?.length || 0;
+  const overlayModuleCompleted = moduleData?.lessons?.filter((l) => l.completed).length || 0;
+  const overlayModuleProgress = overlayModuleTotal > 0 ? (overlayModuleCompleted / overlayModuleTotal) * 100 : 0;
+  const overlayModuleTitle = moduleData?.module?.title || moduleSlug;
 
   // Loading state
   if (loading) {
@@ -492,6 +521,23 @@ export default function LessonViewerClient() {
           </div>
         </div>
       </div>
+
+      {/* ── Lesson Complete Overlay ── */}
+      <LessonCompleteOverlay
+        show={showOverlay}
+        xpReward={lessonData.xp_reward}
+        lessonTitle={lessonData.title}
+        sectionsCount={overlaySectionsCount}
+        quizCount={overlayQuizCount}
+        exerciseCount={overlayExerciseCount}
+        nextLessonHref={nextLesson ? `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}` : undefined}
+        nextLessonTitle={nextLesson?.title}
+        moduleHref={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+        moduleTitle={overlayModuleTitle}
+        moduleProgress={overlayModuleProgress}
+        onReview={handleReviewLesson}
+        onClose={handleCloseOverlay}
+      />
     </div>
   );
 }
