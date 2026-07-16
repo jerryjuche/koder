@@ -14,6 +14,19 @@ const MAX_OUTPUT_LENGTH = 50000;
 let instance: PyodideInterface | null = null;
 let loadPromise: Promise<PyodideInterface> | null = null;
 
+const INPUT_SHIM_CODE = `
+import js
+import builtins
+
+def _koder_input(prompt=""):
+    result = js.window.prompt(str(prompt) if prompt else "")
+    if result is None:
+        raise EOFError("Input cancelled by user")
+    return result
+
+builtins.input = _koder_input
+`;
+
 export type ExecutionResult = {
   stdout: string;
   stderr: string;
@@ -35,6 +48,14 @@ export async function getPyodideInstance(): Promise<PyodideInterface> {
     const load = pkg.loadPyodide;
     const pyodide = await load({ indexURL: PYODIDE_CDN });
     await pyodide.loadPackage(DEFAULT_PACKAGES);
+
+    // Install input() shim so window.prompt is used instead of stdin
+    try {
+      await pyodide.runPythonAsync(INPUT_SHIM_CODE);
+    } catch {
+      // Non-critical — input() will just fail with a raw error
+    }
+
     instance = pyodide;
     return pyodide;
   })();
@@ -68,14 +89,6 @@ export async function executePython(
   });
 
   let error: string | null = null;
-
-  if (/input\s*\(/.test(code)) {
-    return {
-      stdout: "",
-      stderr: "",
-      error: "The input() function is not available in the browser. Assign values directly in your code instead (e.g. name = \"Alice\").",
-    };
-  }
 
   try {
     const result = await Promise.race([
