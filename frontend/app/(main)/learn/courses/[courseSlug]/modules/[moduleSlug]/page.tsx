@@ -33,12 +33,6 @@ const moduleBranding: Record<string, { gradient: string }> = {
 };
 
 function resolveModuleGradient(slug: string): string {
-  for (const [, val] of Object.entries(moduleBranding)) {
-    if (slug.includes(Object.keys(moduleBranding).find((k) => slug.includes(k)) ?? "")) {
-      return val.gradient;
-    }
-  }
-  // Check each key
   for (const [key, val] of Object.entries(moduleBranding)) {
     if (slug.includes(key)) return val.gradient;
   }
@@ -57,12 +51,16 @@ export default function ModuleDetail() {
   const moduleSlug = params.moduleSlug as string;
   const [data, setData] = useState<ModuleWithLessons | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
+      setError(null);
       const res = await fetchModule(courseSlug, moduleSlug);
       if (res.success && res.data) {
         setData(res.data);
+      } else {
+        setError(res.error?.message ?? "Failed to load module");
       }
       setLoading(false);
     };
@@ -79,6 +77,24 @@ export default function ModuleDetail() {
             <div key={i} className="h-28 bg-muted rounded-xl" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-destructive/10 flex items-center justify-center">
+          <BookOpen className="h-8 w-8 text-destructive" />
+        </div>
+        <p className="text-destructive font-medium mb-1">Failed to load module</p>
+        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <button
+          onClick={() => { setLoading(true); setError(null); fetchModule(courseSlug, moduleSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load module"); setLoading(false); }); }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -206,7 +222,7 @@ export default function ModuleDetail() {
 
           {data.lessons.map((lesson, idx) => {
             const isComplete = lesson.completed;
-            const isCurrent = firstIncomplete && lesson.id === firstIncomplete.id;
+            const isCurrent = firstIncomplete && lesson.id === firstIncomplete.id && !isComplete;
             const diff = difficultyMeta(lesson.difficulty);
             const lessonHref = `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lesson.slug}`;
 

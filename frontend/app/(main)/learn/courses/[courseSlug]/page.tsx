@@ -54,12 +54,16 @@ export default function CourseDetail() {
   const courseSlug = params.courseSlug as string;
   const [data, setData] = useState<CourseWithModules | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
+      setError(null);
       const res = await fetchCourse(courseSlug);
       if (res.success && res.data) {
         setData(res.data);
+      } else {
+        setError(res.error?.message ?? "Failed to load course");
       }
       setLoading(false);
     };
@@ -82,6 +86,24 @@ export default function CourseDetail() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-destructive/10 flex items-center justify-center">
+          <BookOpen className="h-8 w-8 text-destructive" />
+        </div>
+        <p className="text-destructive font-medium mb-1">Failed to load course</p>
+        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <button
+          onClick={() => { setLoading(true); setError(null); fetchCourse(courseSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load course"); setLoading(false); }); }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20 text-center">
@@ -97,7 +119,11 @@ export default function CourseDetail() {
   const diff = difficultyMeta(data.difficulty_level);
   const pct = data.progress?.progress_pct ?? 0;
   const completedText = data.total_lessons > 0 ? `${data.completed_lessons}/${data.total_lessons} lessons` : "";
-  const firstIncomplete = data.modules.find((m) => (m.completed_lessons ?? 0) < (m.lesson_count ?? 0));
+  const firstIncomplete = data.modules.find((m) => {
+    const completed = m.completed_lessons ?? 0;
+    const total = m.lesson_count;
+    return total === undefined ? completed === 0 : completed < total;
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 md:px-8">
