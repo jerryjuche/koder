@@ -51,6 +51,12 @@ const defaultExerciseCodes: string[] = [
   '# Write your solution here\n\ndef solution():\n    return None\n',
 ];
 
+const freeformDefaultCodes: string[] = [
+  '# Write Python code here\nprint("Hello, Python!")\n',
+  '# Try something\nname = "World"\nprint(f"Hello, {name}!")\n',
+  '# Calculate something\nresult = sum(range(10))\nprint(f"Sum 0-9 = {result}")\n',
+];
+
 export default function SectionExercise({
   problemReferences,
   miniProject,
@@ -76,7 +82,9 @@ export default function SectionExercise({
 
   const currentCode = codes[exerciseIndex] ?? (miniProject
     ? "# Write your mini project code here\n\n"
-    : defaultExerciseCodes[Math.min(exerciseIndex, defaultExerciseCodes.length - 1)]);
+    : hasProblems
+      ? defaultExerciseCodes[Math.min(exerciseIndex, defaultExerciseCodes.length - 1)]
+      : freeformDefaultCodes[Math.min(exerciseIndex, freeformDefaultCodes.length - 1)]);
 
   const currentResult = results[exerciseIndex] ?? null;
 
