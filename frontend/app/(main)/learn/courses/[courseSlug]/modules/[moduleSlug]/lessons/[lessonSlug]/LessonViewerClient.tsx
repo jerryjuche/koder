@@ -211,7 +211,11 @@ export default function LessonViewerClient() {
         };
       });
 
-      router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lessonSlug}/success`);
+      if (nextLesson) {
+        router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`);
+      } else {
+        router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}`);
+      }
     } else {
       toast.error(res.error?.message || "Failed to complete lesson");
     }
@@ -478,40 +482,37 @@ export default function LessonViewerClient() {
                 </div>
 
                 {/* Next or Complete */}
-                {isLastStep ? (
-                  completed ? (
-                    nextLesson ? (
-                      <Link
-                        href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                      >
-                        <Button className="gap-1.5 min-w-[100px]">
-                          Next Lesson
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        className="gap-1.5 min-w-[100px] bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 cursor-default"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Done
-                      </Button>
-                    )
-                  ) : (
-                    <Button
-                      onClick={handleComplete}
-                      disabled={completing || !lessonData.prerequisites_met}
-                      className="gap-1.5 min-w-[100px]"
+                {completed ? (
+                  nextLesson ? (
+                    <Link
+                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
                     >
-                      {completing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4" />
-                      )}
-                      Complete
-                    </Button>
+                      <Button className="gap-1.5 min-w-[120px]">
+                        Next Lesson
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}>
+                      <Button variant="outline" className="gap-1.5 min-w-[120px] bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Module Complete
+                      </Button>
+                    </Link>
                   )
+                ) : isLastStep ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={completing || !lessonData.prerequisites_met}
+                    className="gap-1.5 min-w-[100px]"
+                  >
+                    {completing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Complete
+                  </Button>
                 ) : (
                   <Button onClick={goNext} className="gap-1.5 min-w-[100px]">
                     <span className="hidden sm:inline">Next</span>
