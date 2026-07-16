@@ -283,7 +283,7 @@ export default function CourseDetail() {
                               )}
                             </div>
                             {mod.description && (
-                              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-line">
+                              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                                 {mod.description}
                               </p>
                             )}

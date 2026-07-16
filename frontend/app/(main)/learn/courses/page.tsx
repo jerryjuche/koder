@@ -191,7 +191,7 @@ export default function CourseCatalog() {
                     {course.title}
                   </h3>
                   {course.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-5 whitespace-pre-line">
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-5 whitespace-pre-line">
                       {course.description}
                     </p>
                   )}

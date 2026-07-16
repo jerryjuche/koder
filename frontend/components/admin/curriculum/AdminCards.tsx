@@ -321,7 +321,7 @@ export function AdminLessonCard({
             </div>
 
             {lesson.description && (
-              <p className="text-xs text-muted-foreground line-clamp-1 mb-2 pl-7 whitespace-pre-line">{lesson.description}</p>
+              <p className="text-xs text-muted-foreground mb-2 pl-7 whitespace-pre-line">{lesson.description}</p>
             )}
 
             {/* Metadata badges */}

@@ -651,7 +651,7 @@ export default function CurriculumAdminPage() {
                     </div>
                   </div>
                   {selectedModule.description && (
-                    <CardDescription className="text-xs">{selectedModule.description}</CardDescription>
+                    <CardDescription className="text-xs whitespace-pre-line">{selectedModule.description}</CardDescription>
                   )}
                 </CardHeader>
               </Card>
