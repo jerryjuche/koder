@@ -428,9 +428,9 @@ export default function SectionExercise({
         </div>
       )}
 
-      {/* Results - hidden when PyodideConsole split pane is visible (console already shows output) */}
-      {currentResult && !isPython && (
-        <div className="mt-3">
+      {/* Results */}
+      {currentResult && (
+        <div className="mt-4 px-1">
           <ResultsPanel result={currentResult} />
         </div>
       )}

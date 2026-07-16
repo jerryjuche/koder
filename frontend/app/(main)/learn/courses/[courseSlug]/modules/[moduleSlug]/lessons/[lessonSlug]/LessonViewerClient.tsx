@@ -1,36 +1,61 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchLesson, fetchModule, completeLesson } from "@/lib/api";
-import { LessonWithSections, ModuleWithLessons, Lesson } from "@/lib/types";
+import { LessonWithSections, ModuleWithLessons, LessonSection } from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
-  Loader2, BookOpen, Sparkles, ChevronLeft, ChevronRight,
-  GraduationCap,
+  Loader2, BookOpen, ChevronLeft, ChevronRight,
+  Sparkles, GraduationCap,
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
+import SectionQuiz from "@/components/learn/SectionQuiz";
 import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-const sectionTypeGradients: Record<string, string> = {
-  overview: "from-blue-500/5 via-transparent to-transparent",
-  explanation: "from-sky-500/5 via-transparent to-transparent",
-  examples: "from-violet-500/5 via-transparent to-transparent",
-  best_practices: "from-emerald-500/5 via-transparent to-transparent",
-  common_mistakes: "from-rose-500/5 via-transparent to-transparent",
-  summary: "from-amber-500/5 via-transparent to-transparent",
-  quiz: "from-orange-500/5 via-transparent to-transparent",
-  exercises: "from-teal-500/5 via-transparent to-transparent",
-  mini_project: "from-purple-500/5 via-transparent to-transparent",
-  assessment: "from-indigo-500/5 via-transparent to-transparent",
-  ai_review: "from-fuchsia-500/5 via-transparent to-transparent",
+interface Step {
+  type: "section" | "quiz-review";
+  label: string;
+  icon?: string;
+  sections?: LessonSection[];
+  section?: LessonSection;
+}
+
+const stepLabels: Record<string, string> = {
+  overview: "Overview",
+  explanation: "Learn",
+  examples: "Examples",
+  best_practices: "Best Practices",
+  common_mistakes: "Common Mistakes",
+  summary: "Summary",
+  quiz: "Quiz",
+  exercises: "Practice",
+  mini_project: "Project",
+  assessment: "Assessment",
+  ai_review: "AI Review",
 };
+
+const sectionTypeGradients: Record<string, string> = {
+  overview: "from-blue-500/10 via-blue-500/5 to-transparent border-blue-200/30 dark:border-blue-800/30",
+  explanation: "from-sky-500/10 via-sky-500/5 to-transparent border-sky-200/30 dark:border-sky-800/30",
+  examples: "from-violet-500/10 via-violet-500/5 to-transparent border-violet-200/30 dark:border-violet-800/30",
+  best_practices: "from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-200/30 dark:border-emerald-800/30",
+  common_mistakes: "from-rose-500/10 via-rose-500/5 to-transparent border-rose-200/30 dark:border-rose-800/30",
+  summary: "from-amber-500/10 via-amber-500/5 to-transparent border-amber-200/30 dark:border-amber-800/30",
+  quiz: "from-orange-500/10 via-orange-500/5 to-transparent border-orange-200/30 dark:border-orange-800/30",
+  exercises: "from-teal-500/10 via-teal-500/5 to-transparent border-teal-200/30 dark:border-teal-800/30",
+  mini_project: "from-purple-500/10 via-purple-500/5 to-transparent border-purple-200/30 dark:border-purple-800/30",
+  assessment: "from-indigo-500/10 via-indigo-500/5 to-transparent border-indigo-200/30 dark:border-indigo-800/30",
+  ai_review: "from-fuchsia-500/10 via-fuchsia-500/5 to-transparent border-fuchsia-200/30 dark:border-fuchsia-800/30",
+};
+
+const quizReviewGradient = "from-orange-500/10 via-amber-500/5 to-transparent border-orange-200/30 dark:border-orange-800/30";
 
 export default function LessonViewerClient() {
   const params = useParams();
@@ -50,8 +75,7 @@ export default function LessonViewerClient() {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const load = useCallback(async () => {
     const [lessonRes, moduleRes] = await Promise.all([
@@ -72,30 +96,60 @@ export default function LessonViewerClient() {
     load();
   }, [load]);
 
-  // Scroll-spy: track which section is in view
-  useEffect(() => {
-    if (!lessonData?.sections?.length) return;
+  // Build steps from sections, grouping quizzes into one review step
+  const steps = useMemo<Step[]>(() => {
+    if (!lessonData?.sections) return [];
 
-    const ids = lessonData.sections.map((s) => `section-${s.id}`);
-    const elements = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
-    if (elements.length === 0) return;
+    const quizSections: LessonSection[] = [];
+    const result: Step[] = [];
 
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          const id = visible[0].target.id.replace("section-", "");
-          setActiveSectionId(id);
-        }
-      },
-      { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
-    );
+    for (const section of lessonData.sections) {
+      if (section.section_type === "quiz") {
+        quizSections.push(section);
+      } else {
+        const label = stepLabels[section.section_type] || section.section_type;
+        result.push({ type: "section", label, section });
+      }
+    }
 
-    elements.forEach((el) => observerRef.current?.observe(el));
-    return () => observerRef.current?.disconnect();
+    // Add quiz review step at the end if there are quizzes
+    if (quizSections.length > 0) {
+      result.push({
+        type: "quiz-review",
+        label: "Quiz Review",
+        sections: quizSections,
+      });
+    }
+
+    return result;
   }, [lessonData?.sections]);
+
+  const totalSteps = steps.length;
+  const currentStepData = steps[currentStep];
+  const progressPercent = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+
+  const goNext = useCallback(() => {
+    if (currentStep < totalSteps - 1) setCurrentStep((s) => s + 1);
+  }, [currentStep, totalSteps]);
+
+  const goPrev = useCallback(() => {
+    if (currentStep > 0) setCurrentStep((s) => s - 1);
+  }, [currentStep]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [goNext, goPrev]);
 
   const handleComplete = async () => {
     if (!lessonData || completed) return;
@@ -129,6 +183,9 @@ export default function LessonViewerClient() {
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
+  const isLastStep = currentStep === totalSteps - 1;
+
+  // Loading state
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto p-8">
@@ -142,6 +199,7 @@ export default function LessonViewerClient() {
     );
   }
 
+  // Not found
   if (!lessonData) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center">
@@ -226,106 +284,178 @@ export default function LessonViewerClient() {
               )}
             </div>
           </div>
+
+          {/* ── Progress bar ── */}
+          {totalSteps > 0 && (
+            <div className="px-4 md:px-6 pb-2.5">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  />
+                </div>
+                <span className="text-[11px] text-muted-foreground font-medium tabular-nums shrink-0">
+                  {currentStep + 1} / {totalSteps}
+                </span>
+              </div>
+              {/* Step dots */}
+              <div className="flex items-center gap-1.5 mt-2">
+                {steps.map((step, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentStep(i)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      i === currentStep
+                        ? "bg-primary w-6"
+                        : i < currentStep
+                          ? "bg-primary/40 w-2 hover:bg-primary/60"
+                          : "bg-muted-foreground/20 w-2 hover:bg-muted-foreground/40",
+                    )}
+                    aria-label={`Go to step ${i + 1}: ${step.label}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* ── Scrollable Content ── */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-8">
-            {/* Sections */}
-            <div className="space-y-8 mb-8">
-              {(!lessonData.sections || lessonData.sections.length === 0) && (
+            <AnimatePresence mode="wait">
+              {currentStepData?.type === "quiz-review" && currentStepData.sections ? (
+                /* ── Quiz Review Page ── */
+                <motion.div
+                  key="quiz-review"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  <div className={cn(
+                    "rounded-xl border bg-gradient-to-br p-6 md:p-8",
+                    quizReviewGradient,
+                  )}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                        <GraduationCap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold">Quiz Review</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {currentStepData.sections.length} question{currentStepData.sections.length > 1 ? "s" : ""} to test your knowledge
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      {currentStepData.sections.map((quizSection, qIdx) => (
+                        <div key={quizSection.id} className="rounded-lg border bg-card/50 p-5">
+                          {quizSection.title && (
+                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs flex items-center justify-center font-bold text-orange-600 dark:text-orange-400 shrink-0">
+                                {qIdx + 1}
+                              </span>
+                              {quizSection.title}
+                            </h3>
+                          )}
+                          <SectionQuiz metadata={quizSection.metadata} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : currentStepData?.section ? (
+                /* ── Individual Section Page ── */
+                <motion.div
+                  key={currentStepData.section.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  <div className={cn(
+                    "rounded-xl border bg-gradient-to-br p-6 md:p-8",
+                    sectionTypeGradients[currentStepData.section.section_type] || "from-muted/10 border-border/50",
+                  )}>
+                    <SectionRenderer
+                      section={currentStepData.section}
+                      problemReferences={lessonData.problem_references}
+                      language={lessonLanguage}
+                    />
+                  </div>
+                </motion.div>
+              ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-xl">
                   <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
                   <p className="text-sm text-muted-foreground">No content sections yet</p>
                 </div>
               )}
-              {(lessonData.sections || []).map((section, idx) => (
-                <motion.section
-                  key={section.id}
-                  id={`section-${section.id}`}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  className={cn(
-                    "scroll-mt-24 relative rounded-xl p-6 md:p-8 border transition-all duration-300",
-                    sectionTypeGradients[section.section_type] || "from-muted/10",
-                    activeSectionId === section.id
-                      ? "border-primary/20 shadow-md shadow-primary/5 bg-gradient-to-br"
-                      : "border-border/50 bg-gradient-to-br",
-                  )}
-                >
-                  <SectionRenderer
-                    key={section.id}
-                    section={section}
-                    problemReferences={lessonData.problem_references}
-                    language={lessonLanguage}
-                  />
-                </motion.section>
-              ))}
-            </div>
+            </AnimatePresence>
 
             {/* ── Bottom Navigation ── */}
-            <div className="border-t pt-6 pb-8">
-              <div className="flex items-center justify-between gap-4">
+            <div className="mt-8 mb-4">
+              <div className="flex items-center justify-between gap-3">
                 {/* Previous */}
-                <div className="min-w-0 flex-1">
-                  {prevLesson ? (
-                    <Link
-                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${prevLesson.slug}`}
-                      className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
-                        <ArrowLeft className="h-4 w-4" />
-                      </div>
-                      <div className="text-left min-w-0">
-                        <p className="text-[11px] text-muted-foreground/60">Previous</p>
-                        <p className="text-sm font-medium truncate">{prevLesson.title}</p>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div />
-                  )}
-                </div>
-
-                {/* Mark Complete */}
                 <Button
-                  onClick={handleComplete}
-                  disabled={completing || completed || !lessonData.prerequisites_met}
-                  size="lg"
-                  className={cn(
-                    "min-w-[160px] transition-all shrink-0",
-                    completed && "bg-green-600 hover:bg-green-700 cursor-default",
-                  )}
+                  variant="outline"
+                  onClick={currentStep > 0 ? goPrev : undefined}
+                  disabled={currentStep === 0}
+                  className="gap-1.5 min-w-[100px]"
                 >
-                  {completing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : completed ? (
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Sparkles className="h-4 w-4 mr-2" />
-                  )}
-                  {completed ? "Completed" : "Mark Complete"}
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
 
-                {/* Next */}
-                <div className="min-w-0 flex-1 flex justify-end">
-                  {nextLesson ? (
+                {/* Step label */}
+                <div className="text-center shrink-0">
+                  <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+                    {currentStepData?.label || ""}
+                  </span>
+                </div>
+
+                {/* Next or Complete */}
+                {isLastStep ? (
+                  completed ? (
+                    <Button
+                      variant="outline"
+                      className="gap-1.5 min-w-[100px] bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 cursor-default"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Done
+                    </Button>
+                  ) : nextLesson ? (
                     <Link
                       href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                      className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors text-right"
                     >
-                      <div className="text-right min-w-0">
-                        <p className="text-[11px] text-muted-foreground/60">Next</p>
-                        <p className="text-sm font-medium truncate">{nextLesson.title}</p>
-                      </div>
-                      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
+                      <Button className="gap-1.5 min-w-[100px]">
+                        Next Lesson
                         <ArrowRight className="h-4 w-4" />
-                      </div>
+                      </Button>
                     </Link>
                   ) : (
-                    <div />
-                  )}
-                </div>
+                    <Button
+                      onClick={handleComplete}
+                      disabled={completing || !lessonData.prerequisites_met}
+                      className="gap-1.5 min-w-[100px]"
+                    >
+                      {completing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                      Complete
+                    </Button>
+                  )
+                ) : (
+                  <Button onClick={goNext} className="gap-1.5 min-w-[100px]">
+                    <span className="hidden sm:inline">Next</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

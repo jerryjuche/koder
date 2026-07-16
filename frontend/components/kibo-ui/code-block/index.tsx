@@ -371,14 +371,14 @@ export const CodeBlockCopyButton = ({
 type CodeBlockFallbackProps = HTMLAttributes<HTMLDivElement>;
 
 const CodeBlockFallback = ({ children, ...props }: CodeBlockFallbackProps) => (
-  <div {...props}>
-    <pre className="w-full">
-      <code>
+  <div className="relative" {...props}>
+    <pre className="w-full p-4 overflow-x-auto">
+      <code className="text-sm font-mono text-foreground/80 dark:text-gray-300 leading-relaxed">
         {(children as string)
           ?.split("\n")
           .map((line, i) => (
-            <span className="line" key={i}>
-              {line}
+            <span className="line block" key={i}>
+              {line || "\u00A0"}
             </span>
           ))}
       </code>
