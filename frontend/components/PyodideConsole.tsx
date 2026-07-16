@@ -29,9 +29,9 @@ const LINE_TYPE_STYLES: Record<ConsoleLine["type"], string> = {
 
 const LINE_TYPE_PREFIX: Record<ConsoleLine["type"], string> = {
   output: "",
-  error: "✗ ",
-  info: "ℹ ",
-  input: "❯ ",
+  error: "[error] ",
+  info: "[info] ",
+  input: "> ",
   system: "",
 };
 

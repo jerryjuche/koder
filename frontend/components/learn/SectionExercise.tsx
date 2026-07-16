@@ -173,7 +173,12 @@ export default function SectionExercise({
       toast.error("Please write some code first");
       return;
     }
-    await pyodideExecute(code);
+    setTesting(true);
+    try {
+      await pyodideExecute(code);
+    } finally {
+      setTesting(false);
+    }
   }, [currentCode, pyodideExecute]);
 
   pyodideRunRef.current = handlePyodideRun;
@@ -299,8 +304,8 @@ export default function SectionExercise({
               size="sm"
               variant="outline"
               onClick={handlePyodideRun}
-              disabled={!pyodideReady || testing}
-              className="border-brand-muted-gold/30 text-brand-muted-gold hover:bg-brand-muted-gold/10 hover:text-brand-muted-gold"
+              disabled={testing}
+              className="border-brand-muted-gold/30 text-brand-muted-gold hover:bg-brand-muted-gold/10 hover:text-brand-muted-gold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {pyodideLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -342,10 +347,42 @@ export default function SectionExercise({
           }}
           options={{
             minimap: { enabled: false },
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
             fontSize: 14,
-            padding: { top: 8 },
+            fontWeight: "500",
+            fontFamily: "var(--font-mono), monospace",
+            padding: { top: 16, bottom: 16 },
+            renderLineHighlight: "all",
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            smoothScrolling: true,
+            scrollbar: {
+              verticalScrollbarSize: 8,
+              horizontalScrollbarSize: 8,
+              alwaysConsumeMouseWheel: false,
+            },
+            overviewRulerLanes: 3,
+            hideCursorInOverviewRuler: false,
+            bracketPairColorization: { enabled: true },
+            matchBrackets: "always",
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            autoIndent: "full",
+            formatOnPaste: true,
+            tabSize: 4,
+            insertSpaces: true,
+            quickSuggestions: {
+              other: true,
+              comments: false,
+              strings: false,
+            },
+            snippetSuggestions: "inline",
+            suggestOnTriggerCharacters: true,
+            acceptSuggestionOnEnter: "smart",
+            suggestSelection: "first",
+            wordWrap: "off",
+            folding: true,
+            foldingHighlight: true,
+            foldingStrategy: "indentation",
           }}
         />
       </div>

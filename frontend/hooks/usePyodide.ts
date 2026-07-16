@@ -28,7 +28,7 @@ export function usePyodide() {
     {
       id: nextId++,
       type: "system",
-      text: '>>> Python playground ready. Press Ctrl+Enter or click "Run in Browser" to execute code.',
+      text: '>>> Click "Run in Browser" or press Ctrl+Enter to execute Python code.',
       timestamp: Date.now(),
     },
   ]);
@@ -63,6 +63,7 @@ export function usePyodide() {
     }
     loadingStarted.current = true;
     setLoading(true);
+    addLine("system", ">>> Loading Python environment (first load ~20-30MB)...");
     try {
       await getPyodideInstance();
       setReady(true);
