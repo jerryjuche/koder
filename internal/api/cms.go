@@ -948,6 +948,49 @@ func (h *CMHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, map[string]string{"status": "deleted"})
 }
 
+type LinkProblemsRequest struct {
+	ProblemReferences []string `json:"problem_references"`
+}
+
+// LinkProblemsToLesson updates the problem references for a lesson.
+func (h *CMHandler) LinkProblemsToLesson(w http.ResponseWriter, r *http.Request) {
+	lessonIDStr := chi.URLParam(r, "lessonId")
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid lesson ID", nil)
+		return
+	}
+
+	var req LinkProblemsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	lesson, err := h.store.GetLessonByID(r.Context(), lessonID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
+		} else {
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get lesson", nil)
+		}
+		return
+	}
+
+	if req.ProblemReferences == nil {
+		req.ProblemReferences = []string{}
+	}
+	lesson.ProblemReferences = req.ProblemReferences
+
+	updated, err := h.store.UpdateLesson(r.Context(), lesson)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update lesson", nil)
+		return
+	}
+
+	RespondSuccess(w, updated)
+}
+
 // ListProjects returns all projects for a lesson.
 func (h *CMHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	lessonIDStr := chi.URLParam(r, "lessonId")
@@ -1207,4 +1250,36 @@ func (h *CMHandler) ReorderSections(w http.ResponseWriter, r *http.Request) {
 // pgtypeUUID creates a pgtype.UUID from a uuid.UUID.
 func pgtypeUUID(id uuid.UUID) pgtype.UUID {
 	return pgtype.UUID{Bytes: id, Valid: true}
+}
+
+// LinkProblemToLesson handles POST /admin/lessons/{lessonId}/problems
+func (h *CMHandler) LinkProblemToLesson(w http.ResponseWriter, r *http.Request) {
+	lessonIDStr := chi.URLParam(r, "lessonId")
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid lesson ID", nil)
+		return
+	}
+
+	var req struct {
+		ProblemSlug string `json:"problem_slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+
+	if req.ProblemSlug == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "problem_slug is required", nil)
+		return
+	}
+
+	err = h.store.LinkProblemToLesson(r.Context(), lessonID, req.ProblemSlug)
+	if err != nil {
+		slog.Error("cms: failed to link problem", "lesson_id", lessonID, "problem_slug", req.ProblemSlug, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to link problem", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]string{"status": "ok"})
 }

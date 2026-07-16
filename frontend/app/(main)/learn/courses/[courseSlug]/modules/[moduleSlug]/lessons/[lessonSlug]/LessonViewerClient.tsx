@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
   Loader2, BookOpen, ChevronLeft, ChevronRight,
-  Sparkles, GraduationCap,
+  Sparkles, GraduationCap, Trophy, Share
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import SectionQuiz from "@/components/learn/SectionQuiz";
@@ -59,6 +59,8 @@ const sectionTypeGradients: Record<string, string> = {
 
 const quizReviewGradient = "from-orange-500/10 via-amber-500/5 to-transparent border-orange-200/30 dark:border-orange-800/30";
 
+
+
 export default function LessonViewerClient() {
   const params = useParams();
   const router = useRouter();
@@ -79,6 +81,7 @@ export default function LessonViewerClient() {
   const [completed, setCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
+
   const load = useCallback(async () => {
     const [lessonRes, moduleRes] = await Promise.all([
       fetchLesson(courseSlug, moduleSlug, lessonSlug),
@@ -95,6 +98,7 @@ export default function LessonViewerClient() {
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -124,7 +128,7 @@ export default function LessonViewerClient() {
     }
 
     return result;
-  }, [lessonData?.sections]);
+  }, [lessonData]);
 
   const totalSteps = steps.length;
   const currentStepData = steps[currentStep];
@@ -211,20 +215,21 @@ export default function LessonViewerClient() {
         };
       });
 
-      if (nextLesson) {
-        router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`);
-      } else {
-        router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}`);
-      }
+      router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lessonSlug}/success`);
     } else {
       toast.error(res.error?.message || "Failed to complete lesson");
     }
     setCompleting(false);
   };
 
+
+
   // Polling fallback: refresh data every 5 seconds
   const loadRef = useRef(load);
-  loadRef.current = load;
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
   useEffect(() => {
     const interval = setInterval(() => loadRef.current(), 5000);
     return () => clearInterval(interval);
@@ -232,7 +237,10 @@ export default function LessonViewerClient() {
 
   // WebSocket: listen for lesson.completed events to refresh data
   const wsLessonIdRef = useRef(lessonData?.id);
-  wsLessonIdRef.current = lessonData?.id;
+  useEffect(() => {
+    wsLessonIdRef.current = lessonData?.id;
+  }, [lessonData?.id]);
+
   useWebSocket({
     "lesson.completed": (data: any) => {
       if (data?.lesson_id && data.lesson_id === wsLessonIdRef.current) {
@@ -283,6 +291,8 @@ export default function LessonViewerClient() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
+
+
       {/* Left sidebar */}
       <LessonSidebar
         courseSlug={courseSlug}

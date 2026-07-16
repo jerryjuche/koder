@@ -25,6 +25,9 @@ import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
+import { LearningCard } from "@/components/ui/learning-card";
+import { fetchProblem } from "@/lib/api";
+import type { Problem } from "@/lib/types";
 
 interface SectionExerciseProps {
   problemReferences: string[];
@@ -77,6 +80,23 @@ export default function SectionExercise({
   useEffect(() => {
     loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
   }, []);
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loadingProblems, setLoadingProblems] = useState(false);
+
+  useEffect(() => {
+    if (problemReferences.length > 0) {
+      setLoadingProblems(true);
+      Promise.all(problemReferences.map((slug) => fetchProblem(slug)))
+        .then((responses) => {
+          const validProblems = responses
+            .filter((r) => r.success && r.data)
+            .map((r) => r.data!);
+          setProblems(validProblems);
+        })
+        .finally(() => setLoadingProblems(false));
+    }
+  }, [problemReferences]);
+
   const isPython = language === "python";
   const hasProblems = problemReferences.length > 0;
   const totalExercises = hasProblems ? problemReferences.length : 1;
@@ -407,6 +427,41 @@ export default function SectionExercise({
       />
     </div>
   );
+
+  if (hasProblems) {
+    return (
+      <div className="space-y-4">
+        <div className="mb-4">
+          <h4 className="text-sm font-medium mb-1">Practice Problems</h4>
+          <p className="text-xs text-muted-foreground">Complete these problems to test your knowledge.</p>
+        </div>
+        
+        {loadingProblems ? (
+          <div className="flex items-center justify-center p-8 border rounded-lg bg-muted/20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {problems.map((p, idx) => (
+              <LearningCard
+                key={p.id}
+                type="section"
+                title={p.title}
+                description={(p.descriptionMarkdown?.substring(0, 100) || p.statement?.substring(0, 100) || "") + "..."}
+                href={`/problems/${p.slug}`}
+                index={idx + 1}
+                status={p.solved ? "completed" : "available"}
+                meta={{
+                  xp: p.xpReward,
+                  difficulty: ["", "Beginner", "Easy", "Medium", "Hard", "Expert"][p.difficulty] || "Beginner",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>

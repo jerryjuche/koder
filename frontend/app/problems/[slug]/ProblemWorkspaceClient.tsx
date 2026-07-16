@@ -469,15 +469,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     setSubmitting(false);
   }
-
-  const handlePyodideRun = async () => {
+  async function handlePyodideRun() {
     if (!code.trim()) {
       toast.error("Please write some code first");
       return;
     }
     await pyodideExecute(code);
-  };
-
+  }
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);

@@ -1038,3 +1038,13 @@ func (s *PostgresStore) AddUserXP(ctx context.Context, userID uuid.UUID, xp int)
 	}
 	return nil
 }
+
+// LinkProblemToLesson appends a problem slug to a lesson's problem_references array.
+func (s *PostgresStore) LinkProblemToLesson(ctx context.Context, lessonID uuid.UUID, problemSlug string) error {
+	query := `UPDATE lessons SET problem_references = array_append(problem_references, $1) WHERE id = $2 AND NOT ($1 = ANY(problem_references))`
+	_, err := s.pool.Exec(ctx, query, problemSlug, lessonID)
+	if err != nil {
+		return fmt.Errorf("failed to link problem to lesson: %w", err)
+	}
+	return nil
+}

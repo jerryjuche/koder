@@ -196,6 +196,7 @@ type Store interface {
 	UpdateLesson(ctx context.Context, lesson *Lesson) (*Lesson, error)
 	DeleteLesson(ctx context.Context, id uuid.UUID) error
 	ToggleLessonVisibility(ctx context.Context, id uuid.UUID) (*Lesson, error)
+	LinkProblemToLesson(ctx context.Context, lessonID uuid.UUID, problemSlug string) error
 
 	// Section operations
 	CreateSection(ctx context.Context, lessonID uuid.UUID, ns *NewLessonSection) (*LessonSection, error)
