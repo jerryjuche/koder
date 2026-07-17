@@ -95,7 +95,8 @@ export function LearningCard({
       />
       
       <div className={cn(
-        "relative flex flex-col justify-between h-full w-full",
+        "relative flex flex-col justify-between w-full",
+        "aspect-[16/9]",
         "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
         "transition-all duration-200 ease-out",
         !isLocked && "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
@@ -105,7 +106,7 @@ export function LearningCard({
             <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/70 to-brand-charcoal-base/30" />
           </div>
         ) : (
-          <div className={cn("absolute top-0 left-0 right-0 h-16 bg-gradient-to-b opacity-40 z-0", typeColors[type])} />
+          <div className={cn("absolute top-0 left-0 right-0 h-12 bg-gradient-to-b opacity-40 z-0", typeColors[type])} />
         )}
 
         <div className="relative z-10 p-3 flex flex-col h-full">

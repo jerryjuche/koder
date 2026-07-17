@@ -3,16 +3,11 @@
 import { useState, useEffect } from "react";
 import { fetchCourses } from "@/lib/api";
 import { Course } from "@/lib/types";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
-import { RatingBadge } from "@/components/ui/rating-badge";
+import { Card } from "@/components/ui/card";
 import {
   BookOpen,
-  Clock,
-  ArrowRight,
   GraduationCap,
   Code2,
   Terminal,
@@ -21,7 +16,6 @@ import {
   Brain,
   Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const difficultyMeta = (d: number) => {
   if (d <= 2) return { label: "Beginner", color: "from-emerald-500 to-green-600", textColor: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-100 dark:bg-emerald-900/30" };
@@ -58,17 +52,7 @@ const fallbackBranding = {
   lightBg: "bg-slate-50 dark:bg-slate-950/30",
 };
 
-// Generates a mock rating between 4.5 and 5.0 for premium feel
-const generateMockRating = (slug: string) => {
-  const hash = slug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return 4.5 + (hash % 5) / 10;
-};
 
-// Generates a mock review count between 120 and 999
-const generateMockReviews = (slug: string) => {
-  const hash = slug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return 120 + (hash % 880);
-};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -191,11 +175,9 @@ className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
           const diff = difficultyMeta(course.difficulty_level ?? 1);
           const brand = courseBranding[course.slug] || fallbackBranding;
           const Icon = brand.icon;
-          const rating = generateMockRating(course.slug);
-          const reviews = generateMockReviews(course.slug);
 
           return (
-            <motion.div key={course.id} variants={itemVariants} className="h-full relative">
+            <motion.div key={course.id} variants={itemVariants} className="h-full">
               <LearningCard
                 type="course"
                 title={course.title}
@@ -208,16 +190,7 @@ className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
                 }}
                 subtitle={`${course.estimated_hours ?? 0}h`}
                 badges={course.visible === false ? ["Draft"] : undefined}
-                stats={{
-                  likes: reviews,
-                  views: Math.floor(reviews * 3.5),
-                }}
               />
-              <div className="absolute top-2 right-2 z-30 pointer-events-none">
-                <div className="bg-brand-charcoal-card/80 backdrop-blur-sm rounded-full px-2 py-0.5 border border-brand-charcoal-border shadow flex items-center">
-                  <RatingBadge rating={rating} reviewCount={reviews} size="sm" className="text-white" />
-                </div>
-              </div>
             </motion.div>
           );
         })}
