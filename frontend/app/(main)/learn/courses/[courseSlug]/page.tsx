@@ -260,7 +260,6 @@ export default function CourseDetail() {
                   status={status}
                   index={idx + 1}
                   icon={brand.icon}
-                  gradient={brand.gradient}
                   meta={{
                     progress: modPct,
                     count: `${total} lesson${total !== 1 ? 's' : ''}` + (completed > 0 ? ` · ${completed} done` : ''),
