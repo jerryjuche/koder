@@ -16,7 +16,7 @@
 | **Go Module** | `github.com/jerryjuche/koder` (Go 1.26.1) |
 | **Sandbox Go Module** | `github.com/jerryjuche/koder/sandbox` (Go 1.23, **zero external deps**) |
 | **Frontend** | Next.js 15.5.19 + React 19.2.7 + Tailwind CSS 4.1.11 |
-| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 39 migrations |
+| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 40 migrations |
 | **Test Suite** | 126 Go tests + frontend ESLint/TypeScript — 0 failures |
 | **Budget** | $0/month (Oracle Ampere A1 + Supabase Free + Vercel Hobby + Railway Starter) |
 | **Active Branch** | `update` (all Pyodide + curriculum CMS + redesign phases complete) |

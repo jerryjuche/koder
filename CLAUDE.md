@@ -367,7 +367,7 @@ koder/
 │   ├── security_message_test.go               # 3 test cases
 │   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
 │   └── go.mod                                 # Zero external deps
-├── migrations/                                # 39 migrations (38 numbered + 999 test seed)
+├── migrations/                                # 40 migrations (39 numbered + 999 test seed)
 │   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
 │   ├── 002_indexes.sql                        # 17 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
@@ -518,7 +518,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (39 migrations, 38 numbered)
+## Database Schema (40 migrations, 39 numbered)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -952,6 +952,17 @@ npm run build   # Builds static + server components
 ---
 
 ## Session Log
+
+### 2026-07-17 — Python Mastery: Build Your Own Games seed migration
+
+- New migration `migrations/042_seed_python_mastery_games.sql`: course `python-mastery-games` (difficulty 3, ~12 hours), 2 modules, 6 lessons, 5 linear dependencies, full lesson sections, quiz metadata, 1 final project
+- Module 1: "Build a Text Adventure Game" (5 lessons) — `intro-to-text-adventure` through `building-the-full-game`
+- Module 2: "Build a Quiz Game" (1 lesson) — `intro-to-quiz-game`
+- Project: "Personal Game Project" (difficulty 4, 80 XP, `visible=false`)
+- All `ON CONFLICT DO NOTHING` for safe re-runs; single `BEGIN; ... COMMIT;` transaction
+- Content stored as `$py$...$py$` dollar-quoted strings (literal newlines preserved)
+- Quizzes set via `UPDATE ... SET metadata` (empty content in INSERT)
+- `ALTER TABLE full ENABLE ROW LEVEL SECURITY` error is from Supabase auto-RLS, NOT from this SQL
 
 ### 2026-07-17 — Hero styling polish
 

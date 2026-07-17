@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-17 (Hero styling polish)
+**Last updated:** 2026-07-17 (Python Mastery Games seed)
 
 ---
 
@@ -20,10 +20,18 @@
 | 9 — Real-time XP/Progress WebSocket | 🟢 Complete | 6+ | go vet, tsc |
 | 10 — Multi-file Pyodide + Admin CMS | 🟢 Complete | 5+ | tsc |
 | 11 — Hero Card Design Polish | 🟢 Complete | 3 | tsc |
+| 12 — Python Mastery Games Seed | 🟢 Complete | 1 | SQL file saved |
 
 ---
 
 ## Detailed Task List
+
+### Phase 12: Python Mastery Games Seed Migration
+
+| # | Task | File | Status | Notes |
+|---|---|---|---|---|
+| 12.1 | Write seed SQL migration | `migrations/042_seed_python_mastery_games.sql` | 🟢 | Course + 2 modules + 6 lessons + 5 deps + sections + quizzes + project |
+| 12.2 | Run against database | — | 🟡 | Blocked by Supabase auto-RLS error on `full` table |
 
 ### Phase 1: Database Migration & Go Types
 

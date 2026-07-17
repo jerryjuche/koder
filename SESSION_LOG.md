@@ -1344,3 +1344,31 @@ Apply consistent LearningCard visual DNA to all hero sections (course detail, mo
 ### Verification
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
+
+---
+
+## Session 44 — 2026-07-17 — Python Mastery: Build Your Own Games seed migration
+
+### Goal
+Create the seed SQL migration for the new "Python Mastery: Build Your Own Games" elective course with 2 modules, 6 lessons, 5 dependencies, full lesson sections, quiz metadata, and 1 project.
+
+### Changes
+
+#### New migration file: `migrations/042_seed_python_mastery_games.sql`
+- **Course:** `python-mastery-games` — "Python Mastery: Build Your Own Games" (difficulty 3, ~12 hours)
+  - 2 taglines, 8 tags, icon: `gamepad-2`, cover_image, `visible=false`
+- **Module 1:** `text-adventure` — "Build a Text Adventure Game" (5 lessons, 5 linear deps)
+  - Lessons: `intro-to-text-adventure`, `game-state-and-variables`, `player-actions-and-conditionals`, `functions-and-game-logic`, `building-the-full-game`
+  - 6 sections per lesson (overview, explanation, examples, best_practices, common_mistakes, summary) + quizzes via metadata UPDATE
+  - All content stored as `$py$...$py$` dollar-quoted strings
+- **Module 2:** `quiz-game` — "Build a Quiz Game" (1 lesson, no dependencies)
+  - Lesson: `intro-to-quiz-game` (4 sections)
+- **Project:** `final-project` — "Personal Game Project" (difficulty 4, 80 XP, `visible=false`)
+- All `ON CONFLICT ... DO NOTHING` for safe re-runs; single `BEGIN; ... COMMIT;` transaction
+
+### Supabase RLS Error
+- `ALTER TABLE full ENABLE ROW LEVEL SECURITY` error is NOT from this SQL — it's from Supabase's auto-RLS step
+- Workaround: run SQL directly or disable auto-apply in SQL editor
+
+### Verification
+- SQL file saved and complete, ready to run against database
