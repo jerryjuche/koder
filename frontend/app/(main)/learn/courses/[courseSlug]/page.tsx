@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { fetchCourse } from "@/lib/api";
 import { CourseWithModules } from "@/lib/types";
@@ -8,6 +8,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
+import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
   Clock,
@@ -67,19 +68,26 @@ export default function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const refetch = useCallback(async () => {
+    const res = await fetchCourse(courseSlug);
+    if (res.success && res.data) {
+      setData(res.data);
+    }
+  }, [courseSlug]);
+
   useEffect(() => {
     const load = async () => {
       setError(null);
-      const res = await fetchCourse(courseSlug);
-      if (res.success && res.data) {
-        setData(res.data);
-      } else {
-        setError(res.error?.message ?? "Failed to load course");
-      }
+      await refetch();
       setLoading(false);
     };
     load();
-  }, [courseSlug]);
+  }, [refetch]);
+
+  useWebSocket({
+    "lesson.completed": useCallback(() => refetch(), [refetch]),
+    "user.xp.updated": useCallback(() => refetch(), [refetch]),
+  });
 
   if (loading) {
     return (

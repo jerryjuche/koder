@@ -44,7 +44,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	changePasswordHandler := NewChangePasswordHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
-	submissionHandler := NewSubmissionHandler(store, exec)
+	submissionHandler := NewSubmissionHandler(store, exec, b)
 	testHandler := NewTestHandler(store, exec)
 
 	cmHandler := NewCMHandler(store, b)

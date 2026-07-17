@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -76,7 +76,7 @@ export function AdminCourseCard({
 
         {/* Hero — show image_url if set, fallback to gradient */}
         <div
-          className={cn("relative h-24 flex items-center justify-center overflow-hidden", course.image_url ? "" : `bg-gradient-to-br ${gradient}`)}
+          className={cn("relative aspect-[16/9] min-h-[96px] flex items-center justify-center overflow-hidden", course.image_url ? "" : `bg-gradient-to-br ${gradient}`)}
           style={course.image_url ? { backgroundImage: `url(${course.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
         >
           {course.image_url && <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />}
@@ -253,7 +253,6 @@ interface AdminLessonCardProps {
 export function AdminLessonCard({
   lesson, isSelected, onSelect, onEdit, onDelete, onToggleVisibility,
 }: AdminLessonCardProps) {
-  const [hovered, setHovered] = useState(false);
   const diff = diffMeta(lesson.difficulty);
 
   return (
@@ -266,8 +265,6 @@ export function AdminLessonCard({
         isSelected && "ring-2 ring-primary/30 border-primary/25 shadow-md shadow-primary/8 -translate-y-0",
       )}
       onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Shadow back plate — CodePen-inspired */}
       <div className={cn(
@@ -282,7 +279,6 @@ export function AdminLessonCard({
       <div className={cn(
         "h-1 transition-all duration-300",
         isSelected ? "bg-gradient-to-r from-primary via-primary/80 to-primary/40" : "bg-gradient-to-r from-muted/40 via-muted/20 to-transparent",
-        hovered && !isSelected && "bg-gradient-to-r from-primary/40 via-primary/20 to-transparent",
       )} />
 
       <div className="p-3.5 relative">
@@ -290,10 +286,7 @@ export function AdminLessonCard({
           <div className="flex-1 min-w-0">
             {/* Title row */}
             <div className="flex items-center gap-2 mb-1.5">
-              <GripVertical className={cn(
-                "h-3.5 w-3.5 shrink-0 transition-colors duration-200",
-                hovered ? "text-muted-foreground/60" : "text-muted-foreground/20",
-              )} />
+              <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20" />
               <FileText className={cn(
                 "h-3.5 w-3.5 shrink-0 transition-colors duration-200",
                 isSelected ? "text-primary" : "text-muted-foreground/60",

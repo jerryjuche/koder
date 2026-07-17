@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { fetchModule } from "@/lib/api";
 import { ModuleWithLessons } from "@/lib/types";
@@ -8,6 +8,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
+import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -63,19 +64,26 @@ export default function ModuleDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const refetch = useCallback(async () => {
+    const res = await fetchModule(courseSlug, moduleSlug);
+    if (res.success && res.data) {
+      setData(res.data);
+    }
+  }, [courseSlug, moduleSlug]);
+
   useEffect(() => {
     const load = async () => {
       setError(null);
-      const res = await fetchModule(courseSlug, moduleSlug);
-      if (res.success && res.data) {
-        setData(res.data);
-      } else {
-        setError(res.error?.message ?? "Failed to load module");
-      }
+      await refetch();
       setLoading(false);
     };
     load();
-  }, [courseSlug, moduleSlug]);
+  }, [refetch]);
+
+  useWebSocket({
+    "lesson.completed": useCallback(() => refetch(), [refetch]),
+    "user.xp.updated": useCallback(() => refetch(), [refetch]),
+  });
 
   if (loading) {
     return (

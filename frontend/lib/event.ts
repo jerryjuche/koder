@@ -10,7 +10,8 @@ export type EventType =
   | 'broadcast.updated'
   | 'broadcast.deleted'
   | 'feedback.submitted'
-  | 'lesson.completed';
+  | 'lesson.completed'
+  | 'user.xp.updated';
 
 type EventCallback = (data: any) => void;
 
