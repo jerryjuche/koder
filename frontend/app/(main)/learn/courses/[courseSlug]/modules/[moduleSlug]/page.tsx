@@ -79,7 +79,7 @@ export default function ModuleDetail() {
 
   if (loading) {
     return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
         <div className="animate-pulse space-y-3">
           <div className="h-4 w-20 bg-muted rounded-lg" />
           <div className="h-24 bg-muted rounded-xl mb-2" />
@@ -95,7 +95,7 @@ export default function ModuleDetail() {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-destructive" />
         </div>
@@ -113,7 +113,7 @@ export default function ModuleDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
@@ -134,7 +134,7 @@ export default function ModuleDetail() {
   const earnedXp = data.lessons.filter((l) => l.completed).reduce((sum, l) => sum + l.xp_reward, 0);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 md:px-8">
+    <div className="max-w-screen-2xl mx-auto px-6 py-10 md:px-8">
       {/* Back */}
       <Link
         href={`/learn/courses/${courseSlug}`}

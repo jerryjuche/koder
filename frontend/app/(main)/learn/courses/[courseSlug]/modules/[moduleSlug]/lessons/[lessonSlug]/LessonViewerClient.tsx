@@ -263,7 +263,7 @@ export default function LessonViewerClient() {
   // Loading state
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-8">
+      <div className="max-w-screen-2xl mx-auto p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-4 w-48 bg-muted rounded" />
           <div className="h-8 w-96 bg-muted rounded" />
@@ -277,7 +277,7 @@ export default function LessonViewerClient() {
   // Not found
   if (!lessonData) {
     return (
-      <div className="max-w-4xl mx-auto p-8 text-center">
+      <div className="max-w-screen-2xl mx-auto p-6 text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
           <BookOpen className="h-8 w-8 text-muted-foreground/40" />
         </div>
@@ -402,7 +402,7 @@ export default function LessonViewerClient() {
 
         {/* ── Scrollable Content ── */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-8">
+          <div className="max-w-screen-2xl mx-auto px-4 md:px-8 py-6 md:py-8">
             <AnimatePresence mode="wait">
               {currentStepData?.type === "quiz-review" && currentStepData.sections ? (
                 /* ── Quiz Review Page ── */

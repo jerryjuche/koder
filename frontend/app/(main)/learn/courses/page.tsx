@@ -106,7 +106,7 @@ export default function CourseCatalog() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">
+      <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
         <div className="mb-6">
           <div className="h-6 w-24 bg-muted rounded-lg animate-pulse mb-2" />
           <div className="h-4 w-40 bg-muted rounded-lg animate-pulse" />
@@ -128,7 +128,7 @@ export default function CourseCatalog() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-destructive" />
         </div>
@@ -145,7 +145,7 @@ export default function CourseCatalog() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

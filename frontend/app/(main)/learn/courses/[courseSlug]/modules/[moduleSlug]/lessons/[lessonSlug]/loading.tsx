@@ -1,6 +1,6 @@
 export default function LessonLoading() {
   return (
-    <div className="max-w-6xl mx-auto p-8 animate-pulse">
+    <div className="max-w-screen-2xl mx-auto p-8 animate-pulse">
       <div className="flex gap-8">
         <div className="w-72 shrink-0 space-y-4">
           <div className="h-5 w-24 bg-muted rounded-lg" />

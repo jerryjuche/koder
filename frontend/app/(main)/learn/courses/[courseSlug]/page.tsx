@@ -83,7 +83,7 @@ export default function CourseDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
+      <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
         <div className="animate-pulse space-y-4">
           <div className="h-4 w-20 bg-muted rounded-lg" />
           <div className="h-28 bg-muted rounded-2xl" />
@@ -99,7 +99,7 @@ export default function CourseDetail() {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-destructive" />
         </div>
@@ -117,7 +117,7 @@ export default function CourseDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
@@ -137,7 +137,7 @@ export default function CourseDetail() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
       {/* Back */}
       <Link
         href="/learn/courses"

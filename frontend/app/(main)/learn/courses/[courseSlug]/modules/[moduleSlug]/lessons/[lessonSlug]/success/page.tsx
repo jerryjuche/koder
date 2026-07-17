@@ -211,7 +211,7 @@ export default function LessonSuccessPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-screen-2xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: What You Covered */}
         <div>
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">

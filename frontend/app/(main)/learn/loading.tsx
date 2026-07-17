@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 
 export default function LearnLoading() {
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 md:px-8 animate-pulse">
+    <div className="max-w-screen-2xl mx-auto px-6 py-10 md:px-8 animate-pulse">
       <div className="mb-12">
         <div className="h-9 w-56 bg-muted rounded-lg mb-3" />
         <div className="h-5 w-80 bg-muted rounded-lg" />
