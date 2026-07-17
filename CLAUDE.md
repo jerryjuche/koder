@@ -947,10 +947,73 @@ npm run build   # Builds static + server components
 5. **Curriculum CMS sections** — No dependency management UI after lesson creation (only at creation time). Section reordering IS implemented via `PUT /admin/lessons/{lessonId}/sections/reorder`.
 6. **`@tanstack/react-virtual`** — Listed in `package.json` but unused. Should be removed.
 7. **`docs/learn-ui-redesign-prompt.md`** — Implementation reference document for the professional learn UI redesign; kept for archival reference.
+8. **Hero vs card sizing** — Course/module/lesson heroes use the same brand-charcoal visual DNA as LearningCard but without forced `aspect-[16/9]` (heroes at full width would be too tall). Design tokens are identical (back plate, glass icon, `text-[9px]` badges, progress bar).
 
 ---
 
 ## Session Log
+
+### 2026-07-17 — Hero styling polish
+
+**Commits:** `61ecf5f`, `d732545`
+
+- All heroes (course detail, module detail, lesson success) restyled with exact LearningCard visual DNA: back plate (`brand-charcoal-card border backdrop-blur-sm`), glass icon, `text-[9px]` uppercase badges, `brand-muted-gold` progress bar
+- Removed `aspect-[16/9]` from heroes — full-width heroes would be too tall (1200px → 675px). Natural height with `p-4 md:p-5`
+- Kept 16/9 on LearningCard and AdminCards (used in grids, not full-width)
+- `cn` import added to success page
+- `npx tsc --noEmit` — zero errors
+
+### 2026-07-17 — Real-time XP/progress WebSocket + 16:9 admin cards
+
+**Commits:** `64792ab`, `9404250`, `1ac3d21`, `1e5f575`, `7634ab3`, `6bcd102`
+
+**Real-time WebSocket events:**
+- Backend Broker (`internal/broker/broker.go`) with global fan-out via `/ws`
+- `SubmissionHandler` publishes `user.xp.updated` + `progress.updated` on successful solve
+- `CompleteLesson` publishes `lesson.completed`, `user.xp.updated`, `progress.updated`
+- Frontend `event.ts` has all three event types
+- `UserContext` subscribes to `user.xp.updated` — auto-refreshes XP/level/solved count
+- Course/module detail pages subscribe to all three events — progress bars update live
+- `LessonViewerClient` stores `koder_lesson_context` in sessionStorage for lesson-aware problem success page
+
+**16:9 admin cards:**
+- `AdminCourseCard` → `aspect-[16/9] min-h-[96px]`
+- `AdminModuleCard` → converted from sidebar row to `aspect-[16/9]` card
+- `AdminLessonCard` → `aspect-[16/9]`
+- `AdminProjectCard` → `aspect-[16/9]`
+- All CodePen shadow back plates, always-visible visibility toggles/actions
+
+**Page spacing fix:**
+- Main layout removed `py-8` (double-padding). Each page controls its own vertical spacing
+
+### 2026-07-17 — Multi-file Pyodice + admin CMS multi-file config + layout refactor
+
+**Commits:** `03b8430`, `e5a7f98`, `d57f812`, `2ea6751`, `e923a4f`, `62e850f`, `0323856`, `ef3c060`, `1e5f575`, `1ac3d21`
+
+**Layout refactor:**
+- Card grids: compact card sizes, `gap-5` for breathing room
+- Containers widened from `max-w-6xl/7xl` → `max-w-screen-2xl` for large monitors
+- Removed `max-w-7xl mx-auto` from main layout (was constraining all pages)
+- Unused `gradient` prop removed from `LearningCard`
+
+**Multi-file Pyodice:**
+- `frontend/lib/pyodide.ts` — `FS.writeFile`, `FS.readFile`, `FS.mkdir`, `executeMultiFile`, `MultiFileSpec` interface
+- `frontend/components/admin/curriculum/MultiFileConfigPanel.tsx` — Visual multi-file editor: tabs, add/remove, path+content editing, entry point toggle
+- Auto-initializes on section type change to exercises/assessment/mini_project
+- `SectionExercise.tsx` — uses `executeMultiFile` for multi-file exercises
+
+**Admin CMS UX:**
+- Visibility toggles, action buttons, chevron icons: always visible (removed all `opacity-0` hover gates)
+- Order numbers auto-compute from existing array length
+- Stale `sections` state cleared when opening create lesson dialog
+- JSON metadata editor for non-quiz sections
+
+**Other:**
+- Removed dead `hovered`/`setHovered` state + handlers from AdminCards
+- Fixed local variable shadowing (`sections` → `quizSections`)
+- `fetchLessonSections` static import
+- Removed mock ratings (RatingBadge, likes/views stats) from course catalog
+- `LoadingCard` inner container now `aspect-[16/9]` with gradient stripe `h-16 → h-12`
 
 ### 2026-07-16 — Professional learn UI redesign, admin curriculum cards, loading/error boundaries, backend CMS enrichment
 

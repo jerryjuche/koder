@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-15 (Pyodide playground + audit fixes final)
+**Last updated:** 2026-07-17 (Hero styling polish)
 
 ---
 
@@ -17,6 +17,9 @@
 | 6 — Shared Lesson Components | 🟢 Complete | 5 | tsc, ESLint, build |
 | 7 — Pyodide Client-Side Python | 🟢 Complete | 6 (4 new, 2 mod) | tsc, build |
 | 8 — Audit Fixes & Final Polish | 🟢 Complete | 4 (2 mod) | go vet, go test, tsc |
+| 9 — Real-time XP/Progress WebSocket | 🟢 Complete | 6+ | go vet, tsc |
+| 10 — Multi-file Pyodide + Admin CMS | 🟢 Complete | 5+ | tsc |
+| 11 — Hero Card Design Polish | 🟢 Complete | 3 | tsc |
 
 ---
 

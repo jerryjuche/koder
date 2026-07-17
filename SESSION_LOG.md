@@ -1210,3 +1210,137 @@ Redesign learn course/module/lesson pages with professional card components matc
 ### Verification
 - `npx tsc --noEmit` — clean
 - Pushed to `origin/update` (`0771f5e`)
+
+---
+
+## Session 41 — 2026-07-17 — Layout refactor, multi-file Pyodide, admin CMS polish
+
+### Goal
+Professional layout refinement (compact cards, wider containers), multi-file Pyodide execution support, and admin CMS UX improvements.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `03b8430` | Compact card sizes and horizontal grid layouts |
+| `e5a7f98` | Remove unused gradient prop from LearningCard |
+| `d57f812` | Increase card grid gaps to 5 for breathing room |
+| `2ea6751` | Widen page containers to max-w-screen-2xl |
+| `e923a4f` | Remove max-w-7xl mx-auto from main layout |
+| `62e850f` | Multi-file Pyodide execution for modular Python exercises |
+| `0323856` | JSON metadata editor for non-quiz sections in admin CMS |
+| `ef3c060` | Multi-file support for mini_project sections |
+| `ac1f5bb` | Fix visibility publish for courses |
+| `1e5f575` | Admin CMS UX: always-visible toggles, auto order_number, stale sections fix |
+| `1ac3d21` | 16:9 LearningCard, remove mock ratings from course catalog |
+| `9404250` | Lesson-aware problem success page — back to lesson, continue lesson |
+| `64792ab` | Remove dead hovered state, shadowing sections var, dynamic import, unused icons |
+
+### Changes
+
+#### Layout refactor
+- All card grids: compact card sizes with `gap-5` for breathing room
+- Containers widened from `max-w-6xl/7xl` → `max-w-screen-2xl` to fill large monitors
+- Removed `max-w-7xl mx-auto` from main layout — was constraining all pages unnecessarily
+- Removed unused `gradient` prop from `LearningCard` component
+- LoadingCard inner container changed to `aspect-[16/9]` with gradient stripe `h-16 → h-12`
+
+#### Multi-file Pyodide
+- `frontend/lib/pyodide.ts`: Added `FS.writeFile`, `FS.readFile`, `FS.mkdir`, `executeMultiFile`, and `MultiFileSpec` interface
+- `MultiFileConfigPanel.tsx`: Visual multi-file editor in admin CMS with file tabs, add/remove, path+content editing, entry point toggle
+- Auto-initializes on section type change to exercises/assessment/mini_project
+- `SectionExercise.tsx` uses `executeMultiFile` for multi-file exercises
+
+#### Admin CMS UX
+- Visibility toggles, action buttons, chevron icons: always visible (removed all `opacity-0` hover gates across AdminCards.tsx)
+- Order numbers auto-compute from existing array length in form defaults
+- Stale `sections` state cleared when opening create lesson dialog
+- JSON metadata editor for non-quiz sections
+
+#### Code cleanup
+- Removed dead `hovered`/`setHovered` state + handlers from AdminCourseCard, AdminModuleCard, AdminProjectCard
+- Fixed local variable shadowing (`sections` → `quizSections`)
+- `fetchLessonSections` changed to static import
+- Removed mock ratings (RatingBadge, likes/views stats) from course catalog
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 42 — 2026-07-17 — Real-time XP/progress WebSocket + 16:9 admin cards
+
+### Goal
+Complete professional real-time progress system (XP, levels, progress via WebSocket) and polish all admin cards to 16:9 aspect ratio.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `7634ab3` | Real-time XP/progress WebSocket system + 16:9 admin cards |
+| `6bcd102` | Fix page spacing, add progress.updated event, 16:9 all admin cards |
+
+### Changes
+
+#### Real-time WebSocket events
+- Backend Broker (`internal/broker/broker.go`) with global fan-out via `/ws` WebSocket
+- `SubmissionHandler` has broker reference; publishes `user.xp.updated` + `progress.updated` on successful problem solve
+- `CompleteLesson` (in `cms.go`) publishes all three events (`lesson.completed`, `user.xp.updated`, `progress.updated`)
+- Frontend `event.ts` has `user.xp.updated`, `progress.updated`, and `lesson.completed` event types
+- `UserContext` subscribes to `user.xp.updated` via `useWebSocket` — auto-refreshes XP, level, solved count without page reload
+- Course detail and module detail pages subscribe to all three events — progress bars update live
+- `LessonViewerClient` stores `koder_lesson_context` in sessionStorage for lesson-aware problem success page
+
+#### 16:9 admin cards
+- `AdminCourseCard`: `aspect-[16/9] min-h-[96px]` on hero section
+- `AdminModuleCard`: Converted from sidebar row to full `aspect-[16/9]` card
+- `AdminLessonCard`: `aspect-[16/9]` with icon, title, description, metadata
+- `AdminProjectCard`: `aspect-[16/9]` with icon, title, difficulty, XP
+- All admin cards: always-visible visibility toggles, edit, and delete buttons
+
+#### Page spacing fix
+- Main layout removed `py-8` to eliminate double-padding (each page controls its own vertical spacing)
+- Home page added `py-6` wrapper
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 43 — 2026-07-17 — Hero styling polish (16:9 + revert + natural height)
+
+### Goal
+Apply consistent LearningCard visual DNA to all hero sections (course detail, module detail, lesson success) with proper sizing.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `61ecf5f` | All heroes 16:9 with exact LearningCard styling (back plate, brand-charcoal, same classes) |
+| `d732545` | Fix: remove aspect-16/9 from heroes, keep LearningCard styling but natural height |
+
+### Changes
+
+#### Initial attempt (61ecf5f)
+- All three heroes (course, module, lesson success) given same exact classes as LearningCard:
+  - Back plate: `absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm`
+  - Container: `bg-brand-charcoal-base border-brand-charcoal-border rounded-xl` with hover shadow
+  - Glass icon: `w-8 h-8 rounded-lg border-white/10 backdrop-blur-md shadow-inner`
+  - Badges: `text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80`
+  - Progress bar: `h-1 bg-brand-charcoal-card border-brand-charcoal-border/30`
+- Forced to `aspect-[16/9]` — made heroes too tall at full width (~1200px → 675px)
+
+#### Fix (d732545)
+- Removed `aspect-[16/9]` from all three heroes — natural height based on content
+- Removed `flex flex-col h-full` and `mt-auto` patterns only needed for fixed aspect ratio
+- Used `p-4 md:p-5` padding for compact but comfortable spacing
+- Enlarged title text (`text-base md:text-lg`) for hero context
+- Removed truncation from titles (heroes have room for full text)
+
+#### Result
+- All heroes use identical design tokens as LearningCard but with natural content-based height
+- 16/9 ratio kept on LearningCard and AdminCards (used in grids, not full-width)
+- `cn` import added to success page
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`

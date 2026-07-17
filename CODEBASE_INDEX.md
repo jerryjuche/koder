@@ -2,7 +2,7 @@
 
 > Comprehensive, line-level inventory of the zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 >
-> Generated: 2026-07-16 | Branch: `update` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
+> Generated: 2026-07-17 | Branch: `update` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
 
 ---
 
@@ -573,13 +573,13 @@ koder/
 
 | File | Lines | Purpose |
 |---|---|---|
-| `CLAUDE.md` | 884 | AI session context primer — complete project reference |
+| `CLAUDE.md` | 1,187 | AI session context primer — complete project reference |
 | `README.md` | 1,244 | Full project documentation |
 | `BRAIN.md` | 54 | Agent startup guide / session instructions |
 | `implementation.md` | 898 | Multi-language 12-phase implementation plan |
 | `CODEBASE_INDEX.md` | (this) | Comprehensive file-by-file codebase index |
 | `CODEBASE_ANALYSIS.md` | 79 | Deep architecture analysis |
-| `SESSION_LOG.md` | 1,038 | Chronological session logbook |
+| `SESSION_LOG.md` | 1,380 | Chronological session logbook |
 | `PROGRESS.txt` | 214 | Multi-language phase completion tracker |
 | `UPDATE_LOG.txt` | 253 | Full changelog since inception |
 
@@ -591,10 +591,10 @@ koder/
 |---|---|
 | **Go source files** | 72 (49 source + 13 test + 10 config/build) |
 | **Go lines of code** | 16,852 |
-| **Frontend source files** | 105 |
-| **Frontend lines of code** | 20,151 |
+| **Frontend source files** | 108 (+3 new: MultiFileConfigPanel, PyodidePreloader, ResizableSplitPane) |
+| **Frontend lines of code** | 20,550 |
 | **SQL migrations** | 39 (15,000+ lines) |
-| **Total tracked source LOC** | ~55,000 |
+| **Total tracked source LOC** | ~55,700 |
 | **Go tests** | 126 — all passing |
 | **API endpoints** | 89+ |
 | **Database tables** | 24 |
@@ -602,11 +602,13 @@ koder/
 | **Seed problems** | 198 (185 Go + 13 Python) |
 | **Middleware chain depth** | 11 middleware |
 | **Frontend route groups** | 7 (root, landing, auth, main, problems, legal, oauth) |
-| **Custom components** | 40+ |
+| **Custom components** | 45+ |
 | **shadcn/ui primitives** | 17 (incl. multi-step-loader) |
 | **Public assets** | 131 (images, icons, Monaco workers) |
 | **External Go deps** | 7 direct |
 | **Sandbox external deps** | 0 (stdlib only) |
+| **WebSocket events** | 5 (user.xp.updated, progress.updated, lesson.completed, admin.broadcast.*, admin.publish-all) |
+| **Card design system** | 5 components × 16:9 (LearningCard, 4 admin cards) + 3 natural-height heroes |
 
 ---
 
