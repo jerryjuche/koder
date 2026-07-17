@@ -153,7 +153,7 @@ export default function ModuleDetail() {
         Back to course
       </Link>
 
-      {/* Module header — 16:9 card */}
+      {/* Module header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -167,34 +167,33 @@ export default function ModuleDetail() {
           "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
         )} />
         <div className={cn(
-          "relative flex flex-col justify-between w-full",
-          "aspect-[16/9]",
+          "relative w-full",
           "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
           "transition-all duration-200 ease-out",
           "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
         )}>
-          <div className={cn("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r z-10", gradient)} />
+          <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r z-10", gradient)} />
           <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-violet-500/10 via-violet-500/5 to-transparent opacity-40 z-0" />
 
-          <div className="relative z-10 p-3 flex flex-col h-full">
-            <div className="flex items-start gap-2 mb-1.5">
+          <div className="relative z-10 p-4">
+            <div className="flex items-start gap-3 mb-2">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-violet-500/20 to-violet-500/5">
                 <GraduationCap className="w-4 h-4 text-white/90" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-semibold text-brand-offwhite truncate">{data.module.title}</h1>
+                <h1 className="text-base md:text-lg font-semibold text-brand-offwhite">{data.module.title}</h1>
                 {data.module.description && (
-                  <p className="text-[11px] text-brand-offwhite-muted truncate mt-0.5 leading-relaxed">{data.module.description}</p>
+                  <p className="text-xs text-brand-offwhite-muted mt-0.5 leading-relaxed whitespace-pre-line line-clamp-2">{data.module.description}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1 flex-wrap mb-1">
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
-                <FileText className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{totalCount} {totalCount === 1 ? "lesson" : "lessons"}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
+                <FileText className="w-2.5 h-2.5" />{totalCount} {totalCount === 1 ? "lesson" : "lessons"}
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
-                <Zap className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5 text-brand-muted-gold" />{earnedXp}/{totalXp} XP
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5 text-brand-muted-gold" />{earnedXp}/{totalXp} XP
               </span>
               {completedCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
@@ -204,23 +203,21 @@ export default function ModuleDetail() {
             </div>
 
             {totalCount > 0 && (
-              <div className="mt-auto pt-1.5">
-                <div className="mb-1">
-                  <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700 ease-out",
-                        pct >= 100
-                          ? "bg-gradient-to-r from-brand-success to-emerald-400"
-                          : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
-                      )}
-                      style={{ width: `${Math.round(pct)}%` }}
-                    />
-                  </div>
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">Progress</span>
+                  <span className="text-[10px] font-bold text-brand-muted-gold">{Math.round(pct)}%</span>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider truncate">Module progress</span>
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">{Math.round(pct)}%</span>
+                <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-700 ease-out",
+                      pct >= 100
+                        ? "bg-gradient-to-r from-brand-success to-emerald-400"
+                        : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
+                    )}
+                    style={{ width: `${Math.round(pct)}%` }}
+                  />
                 </div>
               </div>
             )}

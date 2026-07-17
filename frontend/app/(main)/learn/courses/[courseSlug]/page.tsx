@@ -156,7 +156,7 @@ export default function CourseDetail() {
         All courses
       </Link>
 
-      {/* Hero — 16:9 card */}
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -170,8 +170,7 @@ export default function CourseDetail() {
           "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
         )} />
         <div className={cn(
-          "relative flex flex-col justify-between w-full",
-          "aspect-[16/9]",
+          "relative w-full",
           "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
           "transition-all duration-200 ease-out",
           "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
@@ -184,20 +183,20 @@ export default function CourseDetail() {
             <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-blue-500/10 via-blue-500/5 to-transparent opacity-40 z-0" />
           )}
 
-          <div className="relative z-10 p-3 md:p-4 flex flex-col h-full">
-            <div className="flex items-start gap-2 mb-1.5">
+          <div className="relative z-10 p-4 md:p-5">
+            <div className="flex items-start gap-3 mb-2">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-blue-500/20 to-blue-500/5">
                 <GraduationCap className="w-4 h-4 text-white/90" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-sm md:text-base font-semibold text-brand-offwhite truncate">{data.title}</h1>
+                <h1 className="text-base md:text-lg font-semibold text-brand-offwhite">{data.title}</h1>
                 {data.description && (
-                  <p className="text-[11px] text-brand-offwhite-muted truncate mt-0.5 leading-relaxed">{data.description}</p>
+                  <p className="text-xs text-brand-offwhite-muted mt-0.5 leading-relaxed whitespace-pre-line line-clamp-2">{data.description}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1 flex-wrap mb-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <div className={cn(
                 "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
                 diff.bgColor,
@@ -205,11 +204,11 @@ export default function CourseDetail() {
               )}>
                 {diff.label}
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
-                <Clock className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{data.estimated_hours}h
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />{data.estimated_hours}h
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
-                <Layers className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{data.modules.length} modules
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
+                <Layers className="w-2.5 h-2.5" />{data.modules.length} modules
               </span>
               {completedText && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
@@ -219,18 +218,16 @@ export default function CourseDetail() {
             </div>
 
             {pct > 0 && (
-              <div className="mt-auto pt-1.5">
-                <div className="mb-1">
-                  <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
-                    <div
-                      className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">Progress</span>
+                  <span className="text-[10px] font-bold text-brand-muted-gold">{Math.round(pct)}%</span>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider truncate">Course progress</span>
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">{Math.round(pct)}%</span>
+                <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
               </div>
             )}

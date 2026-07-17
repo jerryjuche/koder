@@ -168,7 +168,7 @@ export default function LessonSuccessPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Hero Banner — 16:9 card */}
+      {/* Hero Banner */}
       <div className="group relative max-w-screen-2xl mx-auto px-4 md:px-6 pt-6">
         <div className={cn(
           "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
@@ -177,26 +177,24 @@ export default function LessonSuccessPage() {
           "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
         )} />
         <div className={cn(
-          "relative flex flex-col items-center justify-center w-full",
-          "aspect-[16/9]",
+          "relative w-full",
           "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden text-center",
           "transition-all duration-200 ease-out",
           "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
         )}>
           <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-emerald-500/10 via-emerald-500/5 to-transparent opacity-40 z-0" />
-          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.03] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-          <div className="relative z-10 p-4 flex flex-col items-center justify-center h-full">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg border border-white/10 backdrop-blur-md shadow-inner bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 mb-3">
-              <CheckCircle2 className="w-6 h-6 text-brand-success" />
+          <div className="relative z-10 p-5 md:p-6 flex flex-col items-center justify-center">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 backdrop-blur-md shadow-inner bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 mb-2.5">
+              <CheckCircle2 className="w-5 h-5 text-brand-success" />
             </div>
             <h1 className="text-lg md:text-xl font-semibold text-brand-offwhite mb-1">
               Lesson Completed!
             </h1>
-            <div className="flex items-center gap-2 text-brand-offwhite-muted mb-4">
-              <span className="text-[11px] font-medium truncate max-w-[240px]">{title}</span>
+            <div className="flex items-center gap-2 text-brand-offwhite-muted mb-3">
+              <span className="text-xs font-medium truncate max-w-[240px]">{title}</span>
               <span className="w-1 h-1 rounded-full bg-brand-charcoal-border" />
-              <span className="flex items-center gap-1 text-[11px] font-bold text-brand-muted-gold">
+              <span className="flex items-center gap-1 text-xs font-bold text-brand-muted-gold">
                 <Trophy className="w-3 h-3" /> +{xpReward} XP
               </span>
             </div>
