@@ -83,10 +83,10 @@ export default function CourseDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-10 md:px-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-5 w-28 bg-muted rounded-lg" />
-          <div className="h-48 bg-muted rounded-2xl" />
+      <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 w-20 bg-muted rounded-lg" />
+          <div className="h-28 bg-muted rounded-2xl" />
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-28 bg-muted rounded-xl" />
@@ -99,12 +99,12 @@ export default function CourseDetail() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-destructive/10 flex items-center justify-center">
-          <BookOpen className="h-8 w-8 text-destructive" />
+      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
+          <BookOpen className="h-6 w-6 text-destructive" />
         </div>
         <p className="text-destructive font-medium mb-1">Failed to load course</p>
-        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => { setLoading(true); setError(null); fetchCourse(courseSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load course"); setLoading(false); }); }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -117,11 +117,11 @@ export default function CourseDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-          <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
+          <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
-        <p className="text-muted-foreground mb-4">Course not found</p>
+        <p className="text-muted-foreground mb-3">Course not found</p>
         <Link href="/learn/courses" className="text-primary hover:underline font-medium">Back to courses</Link>
       </div>
     );
@@ -137,13 +137,13 @@ export default function CourseDetail() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 md:px-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
       {/* Back */}
       <Link
         href="/learn/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4 group"
       >
-        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
         All courses
       </Link>
 
@@ -152,55 +152,55 @@ export default function CourseDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-card to-card border p-8 mb-10 shadow-lg"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-card to-card border p-6 mb-8 shadow-md"
       >
         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/[0.04] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="relative z-10">
-          <div className="flex items-start gap-5 mb-5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-md ring-1 ring-primary/20">
-              <GraduationCap className="h-7 w-7 text-primary" />
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20">
+              <GraduationCap className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{data.title}</h1>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{data.title}</h1>
               {data.description && (
-                <p className="text-muted-foreground mt-2 leading-relaxed whitespace-pre-line">{data.description}</p>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed whitespace-pre-line">{data.description}</p>
               )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <div className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-sm",
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold",
               diff.bgColor,
               diff.textColor,
             )}>
-              <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", diff.textColor.replace("text-", "bg-"))} />
+              <span className={cn("w-1 h-1 rounded-full", diff.textColor.replace("text-", "bg-"))} />
               {diff.label}
             </div>
-            <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
-              <Clock className="h-4 w-4" /> {data.estimated_hours}h
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
+              <Clock className="h-3.5 w-3.5" /> {data.estimated_hours}h
             </span>
-            <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
-              <Layers className="h-4 w-4" /> {data.modules.length} modules
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
+              <Layers className="h-3.5 w-3.5" /> {data.modules.length} modules
             </span>
             {completedText && (
-              <span className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium px-3 py-1 bg-emerald-500/10 rounded-full">
-                <CheckCircle2 className="h-4 w-4" /> {completedText}
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium px-2 py-0.5 bg-emerald-500/10 rounded-full">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {completedText}
               </span>
             )}
           </div>
 
           {pct > 0 && (
-            <div className="mt-6 p-4 bg-background/50 rounded-xl border border-border/50">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Course progress
+            <div className="mt-4 p-3 bg-background/50 rounded-lg border border-border/50">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Course progress
                 </span>
                 <span className="font-bold tabular-nums text-primary">{Math.round(pct)}%</span>
               </div>
-              <div className="h-2.5 bg-muted/80 rounded-full overflow-hidden ring-1 ring-white/[0.03]">
+              <div className="h-2 bg-muted/80 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(212,175,55,0.3)]"
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out"
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -211,15 +211,15 @@ export default function CourseDetail() {
 
       {/* Modules */}
       <div className="relative">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+        <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
           {pct === 0 ? (
             <>
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              Course modules
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              Modules
             </>
           ) : (
             <>
-              <Trophy className="h-5 w-5 text-primary" />
+              <Trophy className="h-4 w-4 text-primary" />
               Continue learning
             </>
           )}
@@ -229,12 +229,12 @@ export default function CourseDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="space-y-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {data.modules.length === 0 && (
-            <div className="text-center py-16 border-2 border-dashed rounded-xl">
-              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No modules published yet</p>
+            <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">
+              <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground">No modules published yet</p>
             </div>
           )}
 
@@ -251,7 +251,7 @@ export default function CourseDetail() {
             else if (isCurrent) status = "in-progress";
 
             return (
-              <motion.div key={mod.id} variants={itemVariants}>
+              <motion.div key={mod.id} variants={itemVariants} className="h-full">
                 <LearningCard
                   type="module"
                   title={mod.title}

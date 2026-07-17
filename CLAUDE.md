@@ -77,6 +77,7 @@ koder/
 │   │   └── cms.go                             # Curriculum CMS: 6 student + 22 admin endpoints
 │   │                                            Courses/Modules/Lessons/Sections/Projects CRUD
 │   │                                            Progress tracking, prerequisite checks
+│   │                                            Public GET routes (no auth), enriched course/module/lesson detail
 │   ├── store/                                 # Database access layer (pgx/v5)
 │   │   ├── store.go                           # Store interface (~125 methods) + PostgresStore struct
 │   │   │                                        pgxpool: MaxConns=10, MinConns=2, 30m lifetime
@@ -110,7 +111,7 @@ koder/
 │   │   ├── admin.go                           # LogActivity, GetAdminStats, SearchUsers, ToggleUserVerified
 │   │   │                                        isRelationNotExist graceful degradation
 │   │   ├── testcases.go                       # GetTestCasesForProblem, GetVisibleTestCasesForProblem
-│   │   ├── curriculum.go                      # ~30 CMS functions (1014 lines)
+│   │   ├── curriculum.go                      # ~30 CMS functions (1089 lines)
 │   │   │                                        Course/Module/Lesson/Section/Project CRUD
 │   │   │                                        CreateLessonWithSections (tx: insert + bulk sections + deps)
 │   │   │                                        Progress: UpsertCourseProgress, UpsertLessonProgress
@@ -239,13 +240,29 @@ koder/
 │   │   │   │   ├── error.tsx
 │   │   │   │   └── curriculum/page.tsx        # 3-panel CMS: course/module/lesson editor
 │   │   │   └── learn/                         # Curriculum CMS (student view)
-│   │   │       ├── layout.tsx                 # Minimal wrapper
-│   │   │       ├── courses/page.tsx           # Course catalog grid (gradients, glass icons, skeleton)
-│   │   │       ├── courses/[courseSlug]/page.tsx  # Modules timeline + progress + hero
-│   │   │       ├── courses/[courseSlug]/modules/[moduleSlug]/page.tsx # Lesson list + stats
-│   │   │       └── courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/
-│   │   │           ├── page.tsx               # Lesson server shell
-│   │   │           └── LessonViewerClient.tsx # Step-by-step sections, sidebar, complete
+│   │   │       ├── layout.tsx                 # Minimal wrapper (eagerLoadPyodide)
+│   │   │       ├── loading.tsx                # Skeleton course catalog grid
+│   │   │       ├── error.tsx                  # Error boundary with retry button
+│   │   │       ├── courses/
+│   │   │       │   ├── page.tsx               # Course catalog grid (LearningCard, branded gradients, mock ratings)
+│   │   │       │   ├── loading.tsx            # Skeleton card grid with pulse placeholders
+│   │   │       │   ├── error.tsx              # Error boundary with retry
+│   │   │       │   └── [courseSlug]/
+│   │   │       │       ├── page.tsx           # Hero + progress bar + module cards with status badges
+│   │   │       │       ├── loading.tsx        # Skeleton hero + module outlines
+│   │   │       │       ├── error.tsx          # Error boundary with retry
+│   │   │       │       └── modules/
+│   │   │       │           └── [moduleSlug]/
+│   │   │       │               ├── page.tsx   # Gradient header + stats bar + lesson cards (completed/current/locked)
+│   │   │       │               ├── loading.tsx # Skeleton header + 5 lesson outlines
+│   │   │       │               ├── error.tsx  # Error boundary with retry
+│   │   │       │               └── lessons/
+│   │   │       │                   └── [lessonSlug]/
+│   │   │       │                       ├── page.tsx   # Server shell → LessonViewerClient
+│   │   │       │                       ├── loading.tsx # Skeleton sidebar + progress bar
+│   │   │       │                       ├── error.tsx   # Error boundary with retry
+│   │   │       │                       ├── LessonViewerClient.tsx # Step-by-step: AnimatePresence, quiz review, keyboard nav
+│   │   │       │                       └── success/page.tsx # Celebration: confetti, "What You Covered", next lesson
 │   │   ├── problems/[slug]/                   # Problem workspace
 │   │   │   ├── page.tsx                       # Server component
 │   │   │   ├── DynamicWorkspace.tsx           # next/dynamic wrapper
@@ -275,6 +292,7 @@ koder/
 │   │   ├── PyodideConsole.tsx                 # Terminal-style console (dark bg, Fira Code, colored output)
 │   │   ├── ResizableSplitPane.tsx             # Drag-resizable horizontal split with grip handle
 │   │   ├── multi-step-loader-demo.tsx
+│   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
 │   │   ├── base/avatar/avatar.tsx             # src/initials fallback, sizes sm/md/lg/xl/podium
@@ -295,11 +313,13 @@ koder/
 │   │   │   └── LessonSidebar.tsx              # Progress + sections + prereqs
 │   │   │   ├── admin/curriculum/
 │   │   │   │   ├── MarkdownPreview.tsx        # Live GFM preview with custom callout blocks
-│   │   │   │   └── ProblemBank.tsx            # Searchable problem selector for lesson attachments
-│   │   └── ui/                                # 15 shadcn/ui components
+│   │   │   │   ├── ProblemBank.tsx            # Searchable problem selector for lesson attachments
+│   │   │   │   └── AdminCards.tsx             # AdminCourseCard, AdminModuleCard, AdminLessonCard, AdminProjectCard
+│   │   │   │                                      CodePen shadow back plates, hover reveals, gradient heros
+│   │   └── ui/                                # 15+ shadcn/ui components
 │   │       avatar, badge, button, card, dialog, dropdown-menu, input, input-otp
 │   │       label, progress, select, tabs, textarea, tooltip, activity-gauge
-│   │       hover-card, multi-step-loader
+│   │       hover-card, multi-step-loader, learning-card, rating-badge
 │   ├── hooks/
 │   │   ├── use-google-one-tap.ts              # GIS singleton (init once, prompt + renderButton)
 │   │   ├── use-has-mounted.ts                 # SSR-safe mount detection
@@ -404,6 +424,7 @@ koder/
 ├── PLAN.md                                    # Curriculum CMS plan (all phases complete)
 ├── implementation.md                          # CMS implementation plan (all done)
 ├── SCHEMA_CURRICULUM.md                       # Curriculum schema + API reference
+├── docs/learn-ui-redesign-prompt.md           # Professional learn UI design system & component spec
 ├── docs/curriculum-schema-for-ai.md           # AI seed data guide
 ├── pyint.md                                   # Pyodide client-side Python playground plan
 ├── CODEBASE_INDEX.md                          # Line-level file inventory
@@ -627,14 +648,18 @@ POST /submit (scoring) | POST /test (no-score)
 |---|---|---|---|
 | GET | /users/{id} | `users.go:GetUserPublicData` | Public user data for hover cards |
 
-### Curriculum CMS (authenticated, student)
+### Curriculum CMS (no auth — public routes)
 | Method | Path | Handler | Description |
 |---|---|---|---|
 | GET | /learn/courses | `cms.go:ListPublishedCourses` | Only visible courses |
-| GET | /learn/courses/{courseSlug} | `cms.go:GetCourseDetail` | Course with modules + user progress |
-| GET | /learn/courses/{courseSlug}/modules/{moduleSlug} | `cms.go:GetModuleDetail` | Module with lessons + completion |
+| GET | /learn/courses/{courseSlug} | `cms.go:GetCourseDetail` | Course with modules + per-module lesson count/progress |
+| GET | /learn/courses/{courseSlug}/modules/{moduleSlug} | `cms.go:GetModuleDetail` | Module with lessons + completion (auth optional) |
 | GET | /learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug} | `cms.go:GetLessonDetail` | Full lesson with sections, deps, projects, prereq check |
-| POST | /learn/lessons/{lessonId}/complete | `cms.go:CompleteLesson` | Mark lesson complete + award XP; 403 if prereqs not met |
+
+### Curriculum CMS (authenticated, student)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| POST | /learn/lessons/{lessonId}/complete | `cms.go:CompleteLesson` | Mark complete + award XP; 403 if prereqs not met |
 | GET | /learn/progress | `cms.go:GetAllProgress` | All courses with progress |
 
 ### Leaderboard (authenticated)
@@ -695,7 +720,9 @@ POST /submit (scoring) | POST /test (no-score)
 | POST | /admin/lessons/{lessonId}/sections | `cms.go:CreateSection` | Create section |
 | PUT | /admin/sections/{sectionId} | `cms.go:UpdateSection` | Update section |
 | DELETE | /admin/sections/{sectionId} | `cms.go:DeleteSection` | Delete section |
-| PUT | /admin/sections/reorder | `cms.go:ReorderSections` | Reorder sections (accepts ordered array of section IDs) |
+| PUT | /admin/lessons/{lessonId}/sections/reorder | `cms.go:ReorderSections` | Reorder sections (accepts ordered array of section IDs) |
+| POST | /admin/lessons/{lessonId}/problems | `cms.go:LinkProblemToLesson` | Link a problem to a lesson |
+| PUT | /admin/lessons/{lessonId}/dependencies | `cms.go:UpdateLessonDependencies` | Update lesson prerequisites |
 | GET | /admin/lessons/{lessonId}/projects | `cms.go:ListProjects` | List projects for lesson |
 | POST | /admin/lessons/{lessonId}/projects | `cms.go:CreateProject` | Create project |
 | PUT | /admin/projects/{projectId} | `cms.go:UpdateProject` | Update project |
@@ -774,8 +801,8 @@ POST /submit (scoring) | POST /test (no-score)
 ### App Router Structure
 - **Root layout** (`layout.tsx`): UserContext provider, Inter + Fira Code fonts, Toast (Sonner)
 - **Auth layout** (`(auth)/layout.tsx`): Centered card layout for login/register/onboarding
-- **Main layout** (`(main)/layout.tsx`): TopNav, BroadcastBanner, FeedbackButton
-- **Problems layout** (`problems/layout.tsx`): Minimal layout with TopNav (workspace has no max-width container)
+- **Main layout** (`(main)/layout.tsx`): TopNav, BroadcastBanner, FeedbackButton, PyodidePreloader (eager CDN load at page entrance)
+- **Problems layout** (`problems/layout.tsx`): Minimal layout (no TopNav), FeedbackButton, PyodidePreloader
 - **Learn layout** (`(main)/learn/layout.tsx`): Minimal wrapper for CMS pages
 - **Legal layout** (`(legal)/layout.tsx`): Simple prose layout for privacy/terms
 
@@ -798,6 +825,10 @@ POST /submit (scoring) | POST /test (no-score)
 - **TopNav:** Logo, Dashboard/Problems/Learn links, notification bell with count, user avatar/menu with admin verified badge, language switcher
 - **TestResultPanel:** LCS unified diff, green/red highlighting, single-line side-by-side, Python debug tips from backend EnhancePythonError
 - **SectionExercise:** Monaco Editor with 60/40 PyodideConsole split (Python), Run in Browser + Ctrl+Enter, Backend Test button
+- **LearningCard:** Reusable card with 3D back plate effect, type-based gradients (course/module/lesson/section), status badges (locked/available/completed/in-progress), staggered hover stats reveal
+- **RatingBadge:** Star rating component with half-star support, review count display
+- **AdminCards:** Admin CMS cards with CodePen-inspired shadow back plates, hover-reveal action buttons, visibility toggles, edit/delete controls
+- **PyodidePreloader:** Eager CDN Pyodide load on page mount, renders null
 
 ---
 
@@ -913,12 +944,42 @@ npm run build   # Builds static + server components
 2. **`frontend/README.md`** — Stale Gemini AI Studio reference. Needs update or removal.
 3. **`sandbox/secure_unix.go`** — `resourceLimits` function uses raw numeric values for `RLIMIT_NPROC` (6) and `RLIMIT_NOFILE` (7) instead of `syscall.RLIMIT_NPROC` / `syscall.RLIMIT_NOFILE` constants. Works on linux/arm64 but may need verification on other architectures.
 4. **`sandbox/main.go`** — `forcePackageKoder` regex is duplicated in both `sandbox/runtest_go.go` and `internal/executor/sandbox.go`. Should be shared.
-5. **Curriculum CMS sections** — No dependency management UI after lesson creation (only at creation time). Section reordering IS implemented via `PUT /admin/sections/reorder`.
+5. **Curriculum CMS sections** — No dependency management UI after lesson creation (only at creation time). Section reordering IS implemented via `PUT /admin/lessons/{lessonId}/sections/reorder`.
 6. **`@tanstack/react-virtual`** — Listed in `package.json` but unused. Should be removed.
+7. **`docs/learn-ui-redesign-prompt.md`** — Implementation reference document for the professional learn UI redesign; kept for archival reference.
 
 ---
 
 ## Session Log
+
+### 2026-07-16 — Professional learn UI redesign, admin curriculum cards, loading/error boundaries, backend CMS enrichment
+
+**Commit:** `1d2202d` (40 files, +2858/-1111)
+
+**Learn UI Professional Redesign:**
+- Course catalog: `LearningCard` grid with branded gradients (blue→sky→teal per course slug), glass-morphism icons, staggered framer-motion fade-in-up, mock ratings via `RatingBadge` component, CodePen-inspired 3D back plate hover effect
+- Course detail: gradient hero with decorative radial gradient circle, stats row (difficulty/hours/modules/completed), animated progress bar with gold glow, module cards with gradient stripes + lucide icons + completion/current/pending status
+- Module detail: gradient top stripe, stats bar (lessons/XP/completion %), lesson cards with three-way status indicator (CheckCircle2 completed, CircleDot current, number pending, Lock locked), XP badges, difficulty pills
+- Lesson viewer: step-by-step AnimatePresence mode="wait" with x:±20 transitions, quiz consolidation into Quiz Review gradient card, progress bar with framer-motion animated fill + clickable step dots, keyboard nav (ArrowLeft/Right/Space), top nav bar with breadcrumb + meta badges, bottom navigation with Previous/Complete/Next Lesson flow
+- Success page: confetti cannons (60°/120°, 150ms interval, 3.5s), "What You Covered" section list with type icons, module progress bar, next lesson preview card, XP summary
+
+**New UI components:**
+- `frontend/components/ui/learning-card.tsx` — Reusable card with 3D back plate, type gradients, progress bar, status badges, staggered hover stats reveal (likes/comments/views)
+- `frontend/components/ui/rating-badge.tsx` — Star rating with half-star support, sm/default/lg sizes
+- `frontend/components/admin/curriculum/AdminCards.tsx` — 4 admin card components with CodePen shadow back plates, staggered hover action reveal, visibility toggles, edit/delete buttons
+- `frontend/components/PyodidePreloader.tsx` — Eager CDN Pyodide singleton load on page mount
+
+**Loading & error boundaries:**
+- `loading.tsx` and `error.tsx` at every learn route level (catalog/course/module/lesson) with consistent skeleton pulse patterns and AlertTriangle + retry button pattern
+- Course catalog skeleton: 3 animated pulse cards with hero placeholder
+- Course detail skeleton: hero + 3 module outlines
+- Module detail skeleton: header + 5 lesson outlines
+- Lesson viewer skeleton: 4-line pulse placeholders
+
+**Backend CMS enrichment:**
+- `cms.go`: Public GET routes for learn (no auth), enriched course detail with per-module lesson counts/completion, lesson detail with sections/dependencies/projects/progress, `prerequisites_met` check via SQL CTE
+- `curriculum.go`: Full CRUD for courses/modules/lessons/sections/projects with visibility toggles, `AddUserXP` (GREATEST for never-decrease), `UpsertCourseProgress`, `UpsertLessonProgress`
+- `router.go`: Public learn routes outside auth middleware, auth-protected `/learn/progress` and `/learn/lessons/{id}/complete`, all admin CMS CRUD routes
 
 ### 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block dark mode fix
 

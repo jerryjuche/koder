@@ -106,19 +106,18 @@ export default function CourseCatalog() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-10 md:px-8">
-        <div className="mb-12">
-          <div className="h-9 w-56 bg-muted rounded-lg animate-pulse mb-3" />
-          <div className="h-5 w-80 bg-muted rounded-lg animate-pulse" />
+      <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">
+        <div className="mb-6">
+          <div className="h-6 w-24 bg-muted rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-40 bg-muted rounded-lg animate-pulse" />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden animate-pulse pt-0 border-0 shadow-lg">
-              <div className="h-48 bg-muted" />
-              <div className="p-6 space-y-4">
-                <div className="h-5 w-3/4 bg-muted rounded" />
-                <div className="h-4 w-full bg-muted rounded" />
-                <div className="h-4 w-2/3 bg-muted rounded" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i} className="overflow-hidden animate-pulse pt-0 border-0 shadow-sm">
+              <div className="h-24 bg-muted" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 w-3/4 bg-muted rounded" />
+                <div className="h-3 w-full bg-muted rounded" />
               </div>
             </Card>
           ))}
@@ -129,15 +128,15 @@ export default function CourseCatalog() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-destructive/10 flex items-center justify-center">
-          <BookOpen className="h-8 w-8 text-destructive" />
+      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
+          <BookOpen className="h-6 w-6 text-destructive" />
         </div>
         <p className="text-destructive font-medium mb-1">Failed to load courses</p>
-        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => { setLoading(true); setError(null); fetchCourses().then(res => { if (res.success && res.data) setCourses(res.data); else setError(res.error?.message ?? "Failed to load courses"); setLoading(false); }); }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
         >
           Try again
         </button>
@@ -146,23 +145,21 @@ export default function CourseCatalog() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 md:px-8">
+    <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">
       <motion.div 
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mb-12"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="mb-6"
       >
-        <div className="flex items-center gap-4 mb-3">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-amber-400 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/10">
-            <GraduationCap className="h-7 w-7 text-primary-foreground" />
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-amber-400 flex items-center justify-center shadow shadow-primary/20 ring-1 ring-white/10">
+            <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Curriculum Catalog
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-500" /> Choose a course to start your learning journey
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">Courses</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-amber-500" /> Choose a course to start learning
             </p>
           </div>
         </div>
@@ -172,23 +169,23 @@ export default function CourseCatalog() {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-24"
+          className="text-center py-16"
         >
-          <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-muted flex items-center justify-center">
-            <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
+            <BookOpen className="h-7 w-7 text-muted-foreground/30" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No courses yet</h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <h3 className="text-base font-semibold mb-1">No courses yet</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Courses will appear here once they are published by your instructor.
           </p>
         </motion.div>
       )}
 
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
       >
         {courses.map((course) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);
@@ -204,19 +201,19 @@ export default function CourseCatalog() {
                 title={course.title}
                 description={course.description}
                 href={`/learn/courses/${course.slug}`}
-                icon={<Icon className="w-8 h-8 text-white/90" />}
+                icon={<Icon className="w-4 h-4 text-white/90" />}
                 meta={{
                   difficulty: diff.label,
                 }}
-                subtitle={`${course.estimated_hours ?? 0} HOURS`}
+                subtitle={`${course.estimated_hours ?? 0}h`}
                 badges={course.visible === false ? ["Draft"] : undefined}
                 stats={{
                   likes: reviews,
                   views: Math.floor(reviews * 3.5),
                 }}
               />
-              <div className="absolute top-4 right-4 z-30 pointer-events-none">
-                <div className="bg-brand-charcoal-card/80 backdrop-blur-md rounded-full px-3 py-1 border border-brand-charcoal-border shadow-lg flex items-center">
+              <div className="absolute top-2 right-2 z-30 pointer-events-none">
+                <div className="bg-brand-charcoal-card/80 backdrop-blur-sm rounded-full px-2 py-0.5 border border-brand-charcoal-border shadow flex items-center">
                   <RatingBadge rating={rating} reviewCount={reviews} size="sm" className="text-white" />
                 </div>
               </div>

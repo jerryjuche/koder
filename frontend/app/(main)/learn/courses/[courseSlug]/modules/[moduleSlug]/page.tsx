@@ -79,13 +79,15 @@ export default function ModuleDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-10 md:px-8">
-        <div className="animate-pulse space-y-5">
-          <div className="h-5 w-28 bg-muted rounded-lg" />
-          <div className="h-32 bg-muted rounded-2xl mb-4" />
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-muted rounded-xl" />
-          ))}
+    <div className="max-w-6xl mx-auto px-4 py-6 md:px-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-20 bg-muted rounded-lg" />
+          <div className="h-24 bg-muted rounded-xl mb-2" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-muted rounded-lg" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -93,12 +95,12 @@ export default function ModuleDetail() {
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-destructive/10 flex items-center justify-center">
-          <BookOpen className="h-8 w-8 text-destructive" />
+      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
+          <BookOpen className="h-6 w-6 text-destructive" />
         </div>
         <p className="text-destructive font-medium mb-1">Failed to load module</p>
-        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => { setLoading(true); setError(null); fetchModule(courseSlug, moduleSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load module"); setLoading(false); }); }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -111,12 +113,12 @@ export default function ModuleDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-          <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
+          <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
-        <p className="text-muted-foreground mb-4">Module not found</p>
-        <Link href={`/learn/courses/${courseSlug}`} className="text-primary hover:underline font-medium">
+        <p className="text-muted-foreground mb-3">Module not found</p>
+        <Link href={`/learn/courses/${courseSlug}`} className="text-primary hover:underline font-medium text-sm">
           Back to course
         </Link>
       </div>
@@ -136,9 +138,9 @@ export default function ModuleDetail() {
       {/* Back */}
       <Link
         href={`/learn/courses/${courseSlug}`}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4 group"
       >
-        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
         Back to course
       </Link>
 
@@ -147,35 +149,35 @@ export default function ModuleDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl border-0 shadow-lg mb-10 bg-card"
+        className="relative overflow-hidden rounded-xl border-0 shadow-sm mb-6 bg-card"
       >
-        <div className={cn("h-2 w-full bg-gradient-to-r", gradient)} />
-        <div className="p-6 md:p-8">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-md ring-1 ring-primary/20">
-              <GraduationCap className="h-6 w-6 text-primary" />
+        <div className={cn("h-1.5 w-full bg-gradient-to-r", gradient)} />
+        <div className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20">
+              <GraduationCap className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{data.module.title}</h1>
+              <h1 className="text-base md:text-lg font-bold tracking-tight">{data.module.title}</h1>
               {data.module.description && (
-                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed whitespace-pre-line">{data.module.description}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">{data.module.description}</p>
               )}
             </div>
           </div>
 
           {/* Stats bar */}
-          <div className="flex flex-wrap items-center gap-4 text-sm mt-5 pt-5 border-t border-border/50">
-            <span className="flex items-center gap-1.5 font-medium px-3 py-1 bg-muted/50 rounded-full">
-              <FileText className="h-4 w-4 text-primary" />
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="flex items-center gap-1.5 font-medium px-2 py-0.5 bg-muted/50 rounded-full">
+              <FileText className="h-3.5 w-3.5 text-primary" />
               {totalCount} {totalCount === 1 ? "lesson" : "lessons"}
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground px-3 py-1 bg-muted/50 rounded-full">
-              <Zap className="h-4 w-4 text-amber-500" />
+            <span className="flex items-center gap-1.5 text-muted-foreground px-2 py-0.5 bg-muted/50 rounded-full">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
               {earnedXp}/{totalXp} XP
             </span>
             {completedCount > 0 && (
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1 bg-emerald-500/10 rounded-full">
-                <CheckCircle2 className="h-4 w-4" />
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-500/10 rounded-full">
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 {Math.round(pct)}% complete
               </span>
             )}
@@ -183,10 +185,10 @@ export default function ModuleDetail() {
 
           {/* Progress bar */}
           {totalCount > 0 && (
-            <div className="mt-6 p-4 bg-background/50 rounded-xl border border-border/50">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Module progress
+            <div className="mt-3 p-3 bg-background/50 rounded-lg border border-border/50">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Module progress
                 </span>
                 <span className="font-bold tabular-nums text-primary">{Math.round(pct)}%</span>
               </div>
@@ -195,14 +197,14 @@ export default function ModuleDetail() {
                 aria-valuenow={Math.round(pct)}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="h-2.5 bg-muted/80 rounded-full overflow-hidden ring-1 ring-white/[0.03]"
+                className="h-2 bg-muted/80 rounded-full overflow-hidden"
               >
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-1000 ease-out",
                     pct >= 100
-                      ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]"
-                      : "bg-gradient-to-r from-primary/70 to-primary shadow-[0_0_8px_rgba(var(--primary),0.3)]",
+                      ? "bg-gradient-to-r from-emerald-500 to-green-400"
+                      : "bg-gradient-to-r from-primary/70 to-primary",
                   )}
                   style={{ width: `${Math.round(pct)}%` }}
                 />
@@ -214,21 +216,21 @@ export default function ModuleDetail() {
 
       {/* Lessons */}
       <div className="relative">
-        <h2 className="text-lg font-bold mb-5 flex items-center gap-2.5">
+        <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
           {pct === 0 ? (
             <>
-              <Sparkles className="h-5 w-5 text-amber-500" />
+              <Sparkles className="h-4 w-4 text-amber-500" />
               Lessons
             </>
           ) : pct >= 100 ? (
             <>
-              <Trophy className="h-5 w-5 text-emerald-500" />
-              All lessons complete
+              <Trophy className="h-4 w-4 text-emerald-500" />
+              All done
             </>
           ) : (
             <>
-              <PlayCircle className="h-5 w-5 text-primary" />
-              Continue learning
+              <PlayCircle className="h-4 w-4 text-primary" />
+              Continue
             </>
           )}
         </h2>
@@ -237,12 +239,12 @@ export default function ModuleDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="space-y-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
         >
           {totalCount === 0 && (
-            <div className="text-center py-16 border-2 border-dashed rounded-xl">
-              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No lessons published yet</p>
+            <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">
+              <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground">No lessons published yet</p>
             </div>
           )}
 
@@ -257,7 +259,7 @@ export default function ModuleDetail() {
             else if (isCurrent) status = "in-progress";
 
             return (
-              <motion.div key={lesson.id} variants={itemVariants}>
+              <motion.div key={lesson.id} variants={itemVariants} className="h-full">
                 <LearningCard
                   type="lesson"
                   title={lesson.title}
