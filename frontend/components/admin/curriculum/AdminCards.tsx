@@ -97,15 +97,14 @@ export function AdminCourseCard({
               Draft
             </Badge>
           )}
-          {/* Visibility toggle — slide-in on hover */}
+          {/* Visibility toggle — always visible */}
           <button
             onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
             className={cn(
               "absolute top-2.5 left-2.5 p-1.5 rounded-lg transition-all duration-200",
               course.visible
                 ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80",
-              hovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1",
+                : "bg-white/20 text-white/70 hover:bg-white/30 hover:text-white",
             )}
             title={course.visible ? "Hide course" : "Publish course"}
           >
@@ -120,10 +119,7 @@ export function AdminCourseCard({
               <p className="text-sm font-semibold truncate leading-tight">{course.title}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{course.slug}</p>
             </div>
-            <div className={cn(
-              "shrink-0 transition-all duration-200 text-muted-foreground",
-              hovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-1",
-            )}>
+            <div className="shrink-0 text-muted-foreground transition-colors duration-200">
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </div>
           </div>
@@ -140,11 +136,8 @@ export function AdminCourseCard({
           </div>
         </div>
 
-        {/* Action bar — staggered slide-up reveal on hover */}
-        <div className={cn(
-          "flex items-center justify-end gap-1 px-3 pb-2.5 transition-all duration-200",
-          hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-        )}>
+        {/* Action bar */}
+        <div className="flex items-center justify-end gap-1 px-3 pb-2.5 transition-opacity duration-200">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             className="p-1.5 rounded-lg bg-muted/60 hover:bg-primary/20 hover:text-primary transition-colors duration-150"
@@ -219,11 +212,8 @@ export function AdminModuleCard({
         )}
       </div>
 
-      {/* Hover actions — staggered reveal */}
-      <div className={cn(
-        "flex items-center gap-0.5 shrink-0 ml-2 relative transition-all duration-200",
-        hovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2",
-      )}>
+      {/* Actions */}
+      <div className="flex items-center gap-0.5 shrink-0 ml-2 relative">
         <button
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
           className={cn(
@@ -348,11 +338,8 @@ export function AdminLessonCard({
             </div>
           </div>
 
-          {/* Action buttons — staggered slide-in */}
-          <div className={cn(
-            "flex gap-1 shrink-0 transition-all duration-200",
-            hovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2",
-          )}>
+          {/* Action buttons */}
+          <div className="flex gap-1 shrink-0 transition-opacity duration-200">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="p-1.5 rounded-lg bg-muted/60 hover:bg-primary/20 hover:text-primary transition-colors duration-150"
@@ -445,10 +432,7 @@ export function AdminProjectCard({
             </div>
           </div>
 
-          <div className={cn(
-            "flex gap-1 shrink-0 transition-all duration-200",
-            hovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2",
-          )}>
+          <div className="flex gap-1 shrink-0 transition-opacity duration-200">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="p-1.5 rounded-lg bg-muted/60 hover:bg-primary/20 hover:text-primary transition-colors duration-150"

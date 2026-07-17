@@ -552,11 +552,19 @@ export default function CurriculumAdminPage() {
   const openCreateForm = (panel: Panel) => {
     setEditingItem(null);
     const defaults: Record<string, any> = { slug: "", title: "", order_number: 0 };
-    if (panel === "lessons") {
+    if (panel === "modules") {
+      defaults.order_number = modules.length;
+    } else if (panel === "lessons") {
       defaults.visible = true;
       defaults.difficulty = 1;
       defaults.xp_reward = 50;
       defaults.estimated_minutes = 10;
+      defaults.order_number = lessons.length;
+      setSections([]);
+    } else if (panel === "sections") {
+      defaults.order_number = sections.length;
+    } else if (panel === "projects") {
+      defaults.order_number = projects.length;
     }
     setFormData(defaults);
     if (panel === "courses") setShowCourseForm(true);
