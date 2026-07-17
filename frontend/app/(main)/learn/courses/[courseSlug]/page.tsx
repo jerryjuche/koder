@@ -5,17 +5,13 @@ import { useParams } from "next/navigation";
 import { fetchCourse } from "@/lib/api";
 import { CourseWithModules } from "@/lib/types";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
 import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
-  Clock,
-  CheckCircle2,
   BookOpen,
   GraduationCap,
-  Layers,
   Code2,
   Terminal,
   Database,
@@ -161,78 +157,23 @@ export default function CourseDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="group relative mb-8"
+        className="mb-8"
       >
-        <div className={cn(
-          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
-          "transition-all duration-200 ease-out -z-10",
-          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
-          "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
-        )} />
-        <div className={cn(
-          "relative w-full",
-          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
-          "transition-all duration-200 ease-out",
-          "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
-        )}>
-          {data.image_url ? (
-            <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${data.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/70 to-brand-charcoal-base/30" />
-            </div>
-          ) : (
-            <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-blue-500/10 via-blue-500/5 to-transparent opacity-40 z-0" />
-          )}
-
-          <div className="relative z-10 p-4 md:p-5">
-            <div className="flex items-start gap-3 mb-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-                <GraduationCap className="w-4 h-4 text-white/90" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-base md:text-lg font-semibold text-brand-offwhite">{data.title}</h1>
-                {data.description && (
-                  <p className="text-xs text-brand-offwhite-muted mt-0.5 leading-relaxed whitespace-pre-line line-clamp-2">{data.description}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <div className={cn(
-                "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
-                diff.bgColor,
-                diff.textColor,
-              )}>
-                {diff.label}
-              </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />{data.estimated_hours}h
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
-                <Layers className="w-2.5 h-2.5" />{data.modules.length} modules
-              </span>
-              {completedText && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
-                  {completedText}
-                </span>
-              )}
-            </div>
-
-            {pct > 0 && (
-              <div className="mt-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">Progress</span>
-                  <span className="text-[10px] font-bold text-brand-muted-gold">{Math.round(pct)}%</span>
-                </div>
-                <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
-                  <div
-                    className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <LearningCard
+          type="course"
+          size="lg"
+          title={data.title}
+          description={data.description}
+          imageUrl={data.image_url || undefined}
+          icon={<GraduationCap className="w-4 h-4 text-white/90" />}
+          progress={pct > 0 ? pct : undefined}
+          badges={[
+            diff.label,
+            `${data.estimated_hours}h`,
+            `${data.modules.length} modules`,
+            ...(completedText ? [completedText] : []),
+          ]}
+        />
       </motion.div>
 
       {/* Modules */}

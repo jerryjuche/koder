@@ -5,37 +5,17 @@ import { useParams } from "next/navigation";
 import { fetchModule } from "@/lib/api";
 import { ModuleWithLessons } from "@/lib/types";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
 import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
-  CheckCircle2,
-  Zap,
   BookOpen,
   GraduationCap,
   PlayCircle,
   Trophy,
   Sparkles,
-  FileText,
 } from "lucide-react";
-
-const moduleBranding: Record<string, { gradient: string }> = {
-  python: { gradient: "from-blue-600 to-sky-500" },
-  go: { gradient: "from-cyan-600 to-teal-500" },
-  data: { gradient: "from-amber-600 to-yellow-500" },
-  web: { gradient: "from-violet-600 to-purple-500" },
-  algo: { gradient: "from-rose-600 to-pink-500" },
-  misc: { gradient: "from-slate-600 to-gray-500" },
-};
-
-function resolveModuleGradient(slug: string): string {
-  for (const [key, val] of Object.entries(moduleBranding)) {
-    if (slug.includes(key)) return val.gradient;
-  }
-  return moduleBranding.misc.gradient;
-}
 
 const difficultyMeta = (d: number) => {
   if (d <= 2) return { label: "Beginner", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/30 ring-emerald-500/20" };
@@ -137,7 +117,6 @@ export default function ModuleDetail() {
   const completedCount = data.lessons.filter((l) => l.completed).length;
   const totalCount = data.lessons.length;
   const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-  const gradient = resolveModuleGradient(moduleSlug);
   const firstIncomplete = data.lessons.find((l) => !l.completed);
   const totalXp = data.lessons.reduce((sum, l) => sum + l.xp_reward, 0);
   const earnedXp = data.lessons.filter((l) => l.completed).reduce((sum, l) => sum + l.xp_reward, 0);
@@ -158,71 +137,21 @@ export default function ModuleDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="group relative mb-6"
+        className="mb-6"
       >
-        <div className={cn(
-          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
-          "transition-all duration-200 ease-out -z-10",
-          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
-          "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
-        )} />
-        <div className={cn(
-          "relative w-full",
-          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
-          "transition-all duration-200 ease-out",
-          "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
-        )}>
-          <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r z-10", gradient)} />
-          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-violet-500/10 via-violet-500/5 to-transparent opacity-40 z-0" />
-
-          <div className="relative z-10 p-4">
-            <div className="flex items-start gap-3 mb-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-violet-500/20 to-violet-500/5">
-                <GraduationCap className="w-4 h-4 text-white/90" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-base md:text-lg font-semibold text-brand-offwhite">{data.module.title}</h1>
-                {data.module.description && (
-                  <p className="text-xs text-brand-offwhite-muted mt-0.5 leading-relaxed whitespace-pre-line line-clamp-2">{data.module.description}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
-                <FileText className="w-2.5 h-2.5" />{totalCount} {totalCount === 1 ? "lesson" : "lessons"}
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border inline-flex items-center gap-0.5">
-                <Zap className="w-2.5 h-2.5 text-brand-muted-gold" />{earnedXp}/{totalXp} XP
-              </span>
-              {completedCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
-                  {Math.round(pct)}% complete
-                </span>
-              )}
-            </div>
-
-            {totalCount > 0 && (
-              <div className="mt-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">Progress</span>
-                  <span className="text-[10px] font-bold text-brand-muted-gold">{Math.round(pct)}%</span>
-                </div>
-                <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-700 ease-out",
-                      pct >= 100
-                        ? "bg-gradient-to-r from-brand-success to-emerald-400"
-                        : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
-                    )}
-                    style={{ width: `${Math.round(pct)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <LearningCard
+          type="module"
+          size="lg"
+          title={data.module.title}
+          description={data.module.description}
+          icon={<GraduationCap className="w-4 h-4 text-white/90" />}
+          progress={totalCount > 0 ? pct : undefined}
+          badges={[
+            `${totalCount} ${totalCount === 1 ? "lesson" : "lessons"}`,
+            `${earnedXp}/${totalXp} XP`,
+            ...(completedCount > 0 ? [`${Math.round(pct)}% complete`] : []),
+          ]}
+        />
       </motion.div>
 
       {/* Lessons */}
