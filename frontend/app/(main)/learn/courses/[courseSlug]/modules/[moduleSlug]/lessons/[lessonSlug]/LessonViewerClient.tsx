@@ -100,6 +100,15 @@ export default function LessonViewerClient() {
     setLoading(false);
   }, [courseSlug, moduleSlug, lessonSlug]);
 
+  // Store lesson context so problem success page can link back
+  useEffect(() => {
+    sessionStorage.setItem("koder_lesson_context", JSON.stringify({
+      courseSlug,
+      moduleSlug,
+      lessonSlug,
+    }));
+  }, [courseSlug, moduleSlug, lessonSlug]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
