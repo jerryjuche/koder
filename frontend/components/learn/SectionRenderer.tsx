@@ -8,6 +8,7 @@ import { LessonSection } from "@/lib/types";
 import SectionQuiz from "./SectionQuiz";
 import SectionExercise from "./SectionExercise";
 import { CodeBlockContent } from "@/components/kibo-ui/code-block";
+import type { MultiFileSpec } from "@/lib/pyodide";
 import {
   BookText, FileText, Puzzle, Star, AlertTriangle,
   ScrollText, BrainCircuit, FlaskConical, Target,
@@ -208,15 +209,17 @@ export default function SectionRenderer({ section, problemReferences, language }
       );
 
     case "exercises":
-    case "assessment":
+    case "assessment": {
+      const multiFileMeta = (section.metadata as unknown as Record<string, unknown>)?.multiFile as MultiFileSpec | undefined;
       return (
         <div>
           {renderSectionHeader()}
           {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
           {section.content && <div className="mb-6">{renderMarkdown(section.content)}</div>}
-          <SectionExercise problemReferences={problemReferences} language={language} />
+          <SectionExercise problemReferences={problemReferences} language={language} multiFile={multiFileMeta} />
         </div>
       );
+    }
 
     case "mini_project":
       return (

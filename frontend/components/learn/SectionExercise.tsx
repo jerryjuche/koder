@@ -28,11 +28,14 @@ import ResizableSplitPane from "@/components/ResizableSplitPane";
 import { LearningCard } from "@/components/ui/learning-card";
 import { fetchProblem } from "@/lib/api";
 import type { Problem } from "@/lib/types";
+import type { MultiFileSpec } from "@/lib/pyodide";
+import MultiFileEditor from "@/components/MultiFileEditor";
 
 interface SectionExerciseProps {
   problemReferences: string[];
   miniProject?: boolean;
   language?: string;
+  multiFile?: MultiFileSpec;
 }
 
 type ResultType = "test" | "execution" | "error";
@@ -61,6 +64,7 @@ export default function SectionExercise({
   problemReferences,
   miniProject,
   language = "python",
+  multiFile,
 }: SectionExerciseProps) {
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [codes, setCodes] = useState<Record<number, string>>({});
@@ -465,7 +469,12 @@ export default function SectionExercise({
 
   return (
     <div>
-      {isPython ? (
+      {multiFile ? (
+        /* Multi-file editor: tabbed Monaco + PyodideConsole */
+        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "520px" }}>
+          <MultiFileEditor files={multiFile.files} entryPoint={multiFile.entryPoint} />
+        </div>
+      ) : isPython ? (
         /* Split pane: editor + PyodideConsole side by side */
         <div className="border rounded-lg overflow-hidden" style={{ height: "400px" }}>
           <ResizableSplitPane
