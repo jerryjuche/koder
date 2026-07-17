@@ -178,36 +178,44 @@ export function AdminModuleCard({
   return (
     <div
       className={cn(
-        "group relative flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all duration-200",
-        "border border-transparent",
-        isSelected
-          ? "bg-primary/10 border-primary/20 text-primary shadow-sm"
-          : "hover:bg-muted/40 hover:border-border/40 text-foreground/80",
+        "group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out",
+        "border border-border/60",
+        "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
+        "hover:border-primary/20",
+        isSelected && "ring-2 ring-primary/30 border-primary/25 shadow-md shadow-primary/8 -translate-y-0",
       )}
       onClick={onSelect}
     >
       {/* Shadow back plate */}
       <div className={cn(
-        "absolute -z-10 inset-0 rounded-lg transition-all duration-200",
-        "opacity-0",
-        !isSelected && "group-hover:opacity-100 group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.02]",
+        "absolute -z-10 rounded-xl transition-all duration-300 ease-out",
+        "bg-black/10 dark:bg-white/[0.06]",
+        "left-1.5 top-1.5 -right-1 -bottom-1",
+        "opacity-0 scale-[0.97] blur-[0.5px]",
+        "group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-0.5 group-hover:blur-0",
       )} />
 
-      <div className="flex items-center gap-2.5 min-w-0 flex-1 relative">
+      {/* Top accent stripe */}
+      <div className={cn(
+        "h-1 transition-all duration-300",
+        isSelected ? "bg-gradient-to-r from-primary via-primary/80 to-primary/40" : "bg-gradient-to-r from-muted/40 via-muted/20 to-transparent",
+      )} />
+
+      <div className="aspect-[16/9] p-3.5 flex flex-col justify-center items-center text-center relative">
         <div className={cn(
-          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+          "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
           isSelected ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground",
         )}>
-          <Layers className="h-3.5 w-3.5" />
+          <Layers className="h-4 w-4" />
         </div>
-        <span className="truncate text-xs font-medium">{mod.title}</span>
+        <span className="text-xs font-medium truncate max-w-full">{mod.title}</span>
         {!mod.visible && (
-          <Badge variant="outline" className="text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400 shrink-0">Draft</Badge>
+          <Badge variant="outline" className="mt-1 text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400">Draft</Badge>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-0.5 shrink-0 ml-2 relative">
+      <div className="flex items-center justify-end gap-0.5 px-3 pb-2.5">
         <button
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
           className={cn(
@@ -281,7 +289,7 @@ export function AdminLessonCard({
         isSelected ? "bg-gradient-to-r from-primary via-primary/80 to-primary/40" : "bg-gradient-to-r from-muted/40 via-muted/20 to-transparent",
       )} />
 
-      <div className="p-3.5 relative">
+      <div className="aspect-[16/9] p-3.5 relative">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Title row */}
@@ -385,7 +393,7 @@ export function AdminProjectCard({
       {/* Top accent stripe */}
       <div className="h-0.5 bg-gradient-to-r from-violet-500/40 via-violet-500/20 to-transparent" />
 
-      <div className="p-3 relative">
+      <div className="aspect-[16/9] p-3 relative">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">

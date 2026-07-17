@@ -83,6 +83,7 @@ export default function ModuleDetail() {
   useWebSocket({
     "lesson.completed": useCallback(() => refetch(), [refetch]),
     "user.xp.updated": useCallback(() => refetch(), [refetch]),
+    "progress.updated": useCallback(() => refetch(), [refetch]),
   });
 
   if (loading) {

@@ -467,6 +467,11 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 			"user_id":    claims.UserID,
 			"xp_awarded": xpAwarded,
 		})
+		h.broker.PublishEvent("progress.updated", map[string]interface{}{
+			"user_id":    claims.UserID,
+			"lesson_id":  lessonID.String(),
+			"xp_awarded": xpAwarded,
+		})
 	}
 
 	// Include xp_awarded in response

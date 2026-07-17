@@ -146,6 +146,10 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 				"user_id":    userID.String(),
 				"problem_slug": problem.Slug,
 			})
+			h.broker.PublishEvent("progress.updated", map[string]interface{}{
+				"user_id":    userID.String(),
+				"problem_slug": problem.Slug,
+			})
 		}
 	} else if res.Status == "timeout" {
 		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
