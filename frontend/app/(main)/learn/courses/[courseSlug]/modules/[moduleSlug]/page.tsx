@@ -153,73 +153,78 @@ export default function ModuleDetail() {
         Back to course
       </Link>
 
-      {/* Module header */}
-      <motion.div 
+      {/* Module header — 16:9 card */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-xl border-0 shadow-sm mb-6 bg-card"
+        className="group relative mb-6"
       >
-        <div className={cn("h-1.5 w-full bg-gradient-to-r", gradient)} />
-        <div className="p-4">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20">
-              <GraduationCap className="h-4 w-4 text-primary" />
+        <div className={cn(
+          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
+          "transition-all duration-200 ease-out -z-10",
+          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
+          "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
+        )} />
+        <div className={cn(
+          "relative flex flex-col justify-between w-full",
+          "aspect-[16/9]",
+          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
+          "transition-all duration-200 ease-out",
+          "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
+        )}>
+          <div className={cn("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r z-10", gradient)} />
+          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-violet-500/10 via-violet-500/5 to-transparent opacity-40 z-0" />
+
+          <div className="relative z-10 p-3 flex flex-col h-full">
+            <div className="flex items-start gap-2 mb-1.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-violet-500/20 to-violet-500/5">
+                <GraduationCap className="w-4 h-4 text-white/90" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm font-semibold text-brand-offwhite truncate">{data.module.title}</h1>
+                {data.module.description && (
+                  <p className="text-[11px] text-brand-offwhite-muted truncate mt-0.5 leading-relaxed">{data.module.description}</p>
+                )}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-base md:text-lg font-bold tracking-tight">{data.module.title}</h1>
-              {data.module.description && (
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">{data.module.description}</p>
+
+            <div className="flex items-center gap-1 flex-wrap mb-1">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
+                <FileText className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{totalCount} {totalCount === 1 ? "lesson" : "lessons"}
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
+                <Zap className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5 text-brand-muted-gold" />{earnedXp}/{totalXp} XP
+              </span>
+              {completedCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
+                  {Math.round(pct)}% complete
+                </span>
               )}
             </div>
-          </div>
 
-          {/* Stats bar */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <span className="flex items-center gap-1.5 font-medium px-2 py-0.5 bg-muted/50 rounded-full">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              {totalCount} {totalCount === 1 ? "lesson" : "lessons"}
-            </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground px-2 py-0.5 bg-muted/50 rounded-full">
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
-              {earnedXp}/{totalXp} XP
-            </span>
-            {completedCount > 0 && (
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-500/10 rounded-full">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {Math.round(pct)}% complete
-              </span>
+            {totalCount > 0 && (
+              <div className="mt-auto pt-1.5">
+                <div className="mb-1">
+                  <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-700 ease-out",
+                        pct >= 100
+                          ? "bg-gradient-to-r from-brand-success to-emerald-400"
+                          : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
+                      )}
+                      style={{ width: `${Math.round(pct)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider truncate">Module progress</span>
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">{Math.round(pct)}%</span>
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Progress bar */}
-          {totalCount > 0 && (
-            <div className="mt-3 p-3 bg-background/50 rounded-lg border border-border/50">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Module progress
-                </span>
-                <span className="font-bold tabular-nums text-primary">{Math.round(pct)}%</span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={Math.round(pct)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                className="h-2 bg-muted/80 rounded-full overflow-hidden"
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-1000 ease-out",
-                    pct >= 100
-                      ? "bg-gradient-to-r from-emerald-500 to-green-400"
-                      : "bg-gradient-to-r from-primary/70 to-primary",
-                  )}
-                  style={{ width: `${Math.round(pct)}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
 

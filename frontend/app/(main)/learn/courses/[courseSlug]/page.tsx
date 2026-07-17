@@ -156,70 +156,85 @@ export default function CourseDetail() {
         All courses
       </Link>
 
-      {/* Hero */}
-      <motion.div 
+      {/* Hero — 16:9 card */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={cn(
-          "relative overflow-hidden rounded-2xl border p-6 mb-8 shadow-md",
-          data.image_url ? "bg-card" : "bg-gradient-to-br from-primary/5 via-card to-card",
-        )}
-        style={data.image_url ? { backgroundImage: `url(${data.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+        className="group relative mb-8"
       >
-        {data.image_url && <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-card/60" />}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/[0.04] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="relative z-10">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20">
-              <GraduationCap className="h-5 w-5 text-primary" />
+        <div className={cn(
+          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
+          "transition-all duration-200 ease-out -z-10",
+          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
+          "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
+        )} />
+        <div className={cn(
+          "relative flex flex-col justify-between w-full",
+          "aspect-[16/9]",
+          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
+          "transition-all duration-200 ease-out",
+          "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
+        )}>
+          {data.image_url ? (
+            <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${data.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/70 to-brand-charcoal-base/30" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{data.title}</h1>
-              {data.description && (
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed whitespace-pre-line">{data.description}</p>
+          ) : (
+            <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-blue-500/10 via-blue-500/5 to-transparent opacity-40 z-0" />
+          )}
+
+          <div className="relative z-10 p-3 md:p-4 flex flex-col h-full">
+            <div className="flex items-start gap-2 mb-1.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 backdrop-blur-md shadow-inner shrink-0 bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <GraduationCap className="w-4 h-4 text-white/90" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm md:text-base font-semibold text-brand-offwhite truncate">{data.title}</h1>
+                {data.description && (
+                  <p className="text-[11px] text-brand-offwhite-muted truncate mt-0.5 leading-relaxed">{data.description}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 flex-wrap mb-1">
+              <div className={cn(
+                "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
+                diff.bgColor,
+                diff.textColor,
+              )}>
+                {diff.label}
+              </div>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
+                <Clock className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{data.estimated_hours}h
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border">
+                <Layers className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />{data.modules.length} modules
+              </span>
+              {completedText && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-brand-success/15 text-brand-success border border-brand-success/30">
+                  {completedText}
+                </span>
               )}
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold",
-              diff.bgColor,
-              diff.textColor,
-            )}>
-              <span className={cn("w-1 h-1 rounded-full", diff.textColor.replace("text-", "bg-"))} />
-              {diff.label}
-            </div>
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
-              <Clock className="h-3.5 w-3.5" /> {data.estimated_hours}h
-            </span>
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
-              <Layers className="h-3.5 w-3.5" /> {data.modules.length} modules
-            </span>
-            {completedText && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium px-2 py-0.5 bg-emerald-500/10 rounded-full">
-                <CheckCircle2 className="h-3.5 w-3.5" /> {completedText}
-              </span>
+            {pct > 0 && (
+              <div className="mt-auto pt-1.5">
+                <div className="mb-1">
+                  <div className="h-1 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider truncate">Course progress</span>
+                  <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">{Math.round(pct)}%</span>
+                </div>
+              </div>
             )}
           </div>
-
-          {pct > 0 && (
-            <div className="mt-4 p-3 bg-background/50 rounded-lg border border-border/50">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Course progress
-                </span>
-                <span className="font-bold tabular-nums text-primary">{Math.round(pct)}%</span>
-              </div>
-              <div className="h-2 bg-muted/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
 
