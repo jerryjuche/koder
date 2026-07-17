@@ -200,6 +200,7 @@ className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
                 type="course"
                 title={course.title}
                 description={course.description}
+                imageUrl={course.image_url || undefined}
                 href={`/learn/courses/${course.slug}`}
                 icon={<Icon className="w-4 h-4 text-white/90" />}
                 meta={{

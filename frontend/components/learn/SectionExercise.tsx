@@ -217,6 +217,7 @@ export default function SectionExercise({
   pyodideRunRef.current = handlePyodideRun;
 
   useEffect(() => {
+    if (multiFile) return;
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
@@ -229,7 +230,7 @@ export default function SectionExercise({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isPython, pyodideReady, handleTest]);
+  }, [isPython, pyodideReady, handleTest, multiFile]);
 
   const friendlyStatus = (status: string) => {
     switch (status) {

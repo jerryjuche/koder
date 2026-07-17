@@ -77,9 +77,13 @@ export function AdminCourseCard({
           "group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0",
         )} />
 
-        {/* Gradient hero */}
-        <div className={cn("relative h-24 bg-gradient-to-br flex items-center justify-center overflow-hidden", gradient)}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.12),transparent_60%)]" />
+        {/* Hero — show image_url if set, fallback to gradient */}
+        <div
+          className={cn("relative h-24 flex items-center justify-center overflow-hidden", course.image_url ? "" : `bg-gradient-to-br ${gradient}`)}
+          style={course.image_url ? { backgroundImage: `url(${course.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+        >
+          {course.image_url && <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />}
+          {!course.image_url && <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.12),transparent_60%)]" />}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
           <div className={cn(
             "w-12 h-12 rounded-xl flex items-center justify-center shadow-lg",
@@ -210,6 +214,9 @@ export function AdminModuleCard({
           <Layers className="h-3.5 w-3.5" />
         </div>
         <span className="truncate text-xs font-medium">{mod.title}</span>
+        {!mod.visible && (
+          <Badge variant="outline" className="text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400 shrink-0">Draft</Badge>
+        )}
       </div>
 
       {/* Hover actions — staggered reveal */}
@@ -308,6 +315,9 @@ export function AdminLessonCard({
                 isSelected ? "text-primary" : "text-muted-foreground/60",
               )} />
               <span className="font-medium text-sm truncate">{lesson.title}</span>
+              {!lesson.visible && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400 shrink-0">Draft</Badge>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
                 className={cn(
@@ -410,6 +420,9 @@ export function AdminProjectCard({
             <div className="flex items-center gap-2 mb-1">
               <Beaker className="h-3.5 w-3.5 text-violet-400/60 shrink-0" />
               <p className="text-sm font-medium truncate">{project.title}</p>
+              {!project.visible && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400 shrink-0">Draft</Badge>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
                 className={cn(

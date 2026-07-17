@@ -152,8 +152,13 @@ export default function CourseDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-card to-card border p-6 mb-8 shadow-md"
+        className={cn(
+          "relative overflow-hidden rounded-2xl border p-6 mb-8 shadow-md",
+          data.image_url ? "bg-card" : "bg-gradient-to-br from-primary/5 via-card to-card",
+        )}
+        style={data.image_url ? { backgroundImage: `url(${data.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
       >
+        {data.image_url && <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-card/60" />}
         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/[0.04] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="relative z-10">
           <div className="flex items-start gap-4 mb-4">
@@ -256,6 +261,7 @@ export default function CourseDetail() {
                   type="module"
                   title={mod.title}
                   description={mod.description}
+                  imageUrl={mod.image_url || undefined}
                   href={`/learn/courses/${courseSlug}/modules/${mod.slug}`}
                   status={status}
                   index={idx + 1}

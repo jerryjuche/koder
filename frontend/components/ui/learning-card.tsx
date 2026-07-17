@@ -9,6 +9,7 @@ export interface LearningCardProps {
   title: string
   subtitle?: string
   description?: string
+  imageUrl?: string
   icon?: React.ReactNode | React.ElementType
   type?: "course" | "module" | "lesson" | "section"
   status?: "locked" | "available" | "completed" | "in-progress"
@@ -37,6 +38,7 @@ export function LearningCard({
   title,
   subtitle,
   description,
+  imageUrl,
   icon,
   type = "course",
   status = "available",
@@ -98,7 +100,13 @@ export function LearningCard({
         "transition-all duration-200 ease-out",
         !isLocked && "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
       )}>
-        <div className={cn("absolute top-0 left-0 right-0 h-16 bg-gradient-to-b opacity-40 z-0", typeColors[type])} />
+        {imageUrl ? (
+          <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/70 to-brand-charcoal-base/30" />
+          </div>
+        ) : (
+          <div className={cn("absolute top-0 left-0 right-0 h-16 bg-gradient-to-b opacity-40 z-0", typeColors[type])} />
+        )}
 
         <div className="relative z-10 p-3 flex flex-col h-full">
           <div className="flex items-start justify-between gap-2 mb-1.5">

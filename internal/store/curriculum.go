@@ -158,7 +158,7 @@ func (s *PostgresStore) ToggleCourseVisibility(ctx context.Context, id uuid.UUID
 		&c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("course not found")
 		}
 		return nil, fmt.Errorf("failed to toggle course visibility: %w", err)
@@ -328,7 +328,7 @@ func (s *PostgresStore) ToggleModuleVisibility(ctx context.Context, id uuid.UUID
 		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("module not found")
 		}
 		return nil, fmt.Errorf("failed to toggle module visibility: %w", err)
@@ -570,7 +570,7 @@ func (s *PostgresStore) ToggleLessonVisibility(ctx context.Context, id uuid.UUID
 		&l.ProblemReferences, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("lesson not found")
 		}
 		return nil, fmt.Errorf("failed to toggle lesson visibility: %w", err)
@@ -711,7 +711,7 @@ func (s *PostgresStore) ToggleProjectVisibility(ctx context.Context, id uuid.UUI
 		&p.Difficulty, &p.XPReward, &p.Hints, &p.OrderNumber, &p.Visible, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("project not found")
 		}
 		return nil, fmt.Errorf("failed to toggle project visibility: %w", err)

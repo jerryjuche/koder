@@ -322,12 +322,38 @@ export default function CurriculumAdminPage() {
       problem_references: formData.problem_references || [],
       module_id: selectedModule.id,
     };
-    const payload = { lesson: lessonFields };
+
+    // Convert quiz questions to lesson sections
+    const sections: any[] = [];
+    const quizQuestions = formData.quiz_questions || [];
+    const currentSectionCount = sections.length;
+    for (let i = 0; i < quizQuestions.length; i++) {
+      const q = quizQuestions[i];
+      sections.push({
+        section_type: "quiz",
+        title: `Quiz Question ${i + 1}`,
+        content: "",
+        metadata: JSON.stringify({
+          question: q.question,
+          options: q.options,
+          correct_index: q.correct_index ?? q.correctIndex ?? 0,
+          points: q.points ?? 1,
+          explanation: q.explanation || "",
+        }),
+        order_number: currentSectionCount + i,
+      });
+    }
+
+    const payload: any = { lesson: lessonFields };
+    if (sections.length > 0) payload.sections = sections;
+    if ((formData.dependency_ids || []).length > 0) payload.dependency_ids = formData.dependency_ids;
+
     const res = await createLesson(selectedModule.id, payload);
     if (res.success) {
       toast.success("Lesson created");
       setShowLessonForm(false);
       setFormData({});
+      setQuizQuestionForm({ question: "", optionsRaw: "", correctIndex: 0, points: 1, explanation: "" });
       loadLessons(selectedModule.id);
     } else {
       toast.error(res.error?.message || "Failed to create lesson");
@@ -350,10 +376,48 @@ export default function CurriculumAdminPage() {
     };
     const res = await updateLesson(editingItem.id, lessonFields);
     if (res.success) {
+      // Save quiz questions as quiz sections
+      const quizQuestions = formData.quiz_questions || [];
+      const existingQuizSections = sections.filter((s) => s.section_type === "quiz");
+      for (let i = 0; i < quizQuestions.length; i++) {
+        const q = quizQuestions[i];
+        const meta = JSON.stringify({
+          question: q.question,
+          options: q.options,
+          correct_index: q.correct_index ?? q.correctIndex ?? 0,
+          points: q.points ?? 1,
+          explanation: q.explanation || "",
+        });
+        const existing = existingQuizSections[i];
+        if (existing) {
+          await updateSection(existing.id, {
+            section_type: "quiz",
+            title: `Quiz Question ${i + 1}`,
+            content: "",
+            metadata: meta as any,
+            order_number: i,
+          } as any);
+        } else if (editingItem) {
+          await createSection(editingItem.id, {
+            section_type: "quiz",
+            title: `Quiz Question ${i + 1}`,
+            content: "",
+            metadata: meta as any,
+            order_number: i,
+          } as any);
+        }
+      }
+      // Remove excess quiz sections if questions were deleted
+      for (let i = quizQuestions.length; i < existingQuizSections.length; i++) {
+        await deleteSection(existingQuizSections[i].id);
+      }
+
       toast.success("Lesson updated");
       setEditingItem(null);
       setFormData({});
+      setQuizQuestionForm({ question: "", optionsRaw: "", correctIndex: 0, points: 1, explanation: "" });
       if (selectedModule) loadLessons(selectedModule.id);
+      if (selectedLesson) loadSections(selectedLesson.id);
     } else {
       toast.error(res.error?.message || "Failed to update lesson");
     }
@@ -720,12 +784,14 @@ export default function CurriculumAdminPage() {
                           <button
                             onClick={async () => {
                               if (idx === 0) return;
+                              const original = [...sections];
                               const reordered = [...sections];
                               [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
                               setSections(reordered);
                               if (selectedLesson) {
                                 const ids = reordered.map((s) => s.id);
-                                await reorderSections(selectedLesson.id, ids);
+                                const res = await reorderSections(selectedLesson.id, ids);
+                                if (!res.success) { setSections(original); toast.error("Failed to reorder"); }
                               }
                             }}
                             disabled={idx === 0}
@@ -737,12 +803,14 @@ export default function CurriculumAdminPage() {
                           <button
                             onClick={async () => {
                               if (idx === sections.length - 1) return;
+                              const original = [...sections];
                               const reordered = [...sections];
                               [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
                               setSections(reordered);
                               if (selectedLesson) {
                                 const ids = reordered.map((s) => s.id);
-                                await reorderSections(selectedLesson.id, ids);
+                                const res = await reorderSections(selectedLesson.id, ids);
+                                if (!res.success) { setSections(original); toast.error("Failed to reorder"); }
                               }
                             }}
                             disabled={idx === sections.length - 1}
@@ -1103,12 +1171,14 @@ export default function CurriculumAdminPage() {
                               <button
                                 onClick={async () => {
                                   if (idx === 0) return;
+                                  const original = [...sections];
                                   const reordered = [...sections];
                                   [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
                                   setSections(reordered);
                                   if (selectedLesson) {
                                     const ids = reordered.map((s) => s.id);
-                                    await reorderSections(selectedLesson.id, ids);
+                                    const res = await reorderSections(selectedLesson.id, ids);
+                                    if (!res.success) { setSections(original); toast.error("Failed to reorder"); }
                                   }
                                 }}
                                 disabled={idx === 0}
@@ -1120,12 +1190,14 @@ export default function CurriculumAdminPage() {
                               <button
                                 onClick={async () => {
                                   if (idx === sections.length - 1) return;
+                                  const original = [...sections];
                                   const reordered = [...sections];
                                   [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
                                   setSections(reordered);
                                   if (selectedLesson) {
                                     const ids = reordered.map((s) => s.id);
-                                    await reorderSections(selectedLesson.id, ids);
+                                    const res = await reorderSections(selectedLesson.id, ids);
+                                    if (!res.success) { setSections(original); toast.error("Failed to reorder"); }
                                   }
                                 }}
                                 disabled={idx === sections.length - 1}

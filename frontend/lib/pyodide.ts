@@ -129,21 +129,21 @@ export async function executePython(
   };
 }
 
-export async function writeFile(path: string, content: string): Promise<void> {
-  const pyodide = await getPyodideInstance();
+async function ensureDir(pyodide: PyodideInterface, path: string): Promise<void> {
   const parts = path.split("/");
-  const dirs: string[] = [];
+  const seen = new Set<string>();
   for (let i = 0; i < parts.length - 1; i++) {
     const dir = parts.slice(0, i + 1).join("/");
-    if (dir && !dirs.includes(dir)) {
-      dirs.push(dir);
-      try {
-        pyodide.FS.mkdir(dir);
-      } catch {
-        // directory may already exist
-      }
+    if (dir && !seen.has(dir)) {
+      seen.add(dir);
+      try { pyodide.FS.mkdir(dir); } catch { /* already exists */ }
     }
   }
+}
+
+export async function writeFile(path: string, content: string): Promise<void> {
+  const pyodide = await getPyodideInstance();
+  await ensureDir(pyodide, path);
   pyodide.FS.writeFile(path, content);
 }
 
@@ -174,28 +174,24 @@ export async function executeMultiFile(
     },
   });
 
-  // Create working directory and write all files
+  // Create working directory and write all files via writeFile
   try { pyodide.FS.mkdir(WORK_DIR); } catch { /* exists */ }
   for (const file of spec.files) {
     const path = file.path.startsWith("/") ? file.path : `${WORK_DIR}/${file.path}`;
-    const parts = path.split("/");
-    for (let i = 2; i < parts.length - 1; i++) {
-      const dir = parts.slice(0, i + 1).join("/");
-      try { pyodide.FS.mkdir(dir); } catch { /* exists */ }
-    }
-    pyodide.FS.writeFile(path, file.content);
+    await writeFile(path, file.content);
   }
 
   // Bootstrap: add work dir to sys.path, change to it, run entry point
   const entryPath = spec.entryPoint.startsWith("/") ? spec.entryPoint : `${WORK_DIR}/${spec.entryPoint}`;
+  const safeQuote = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const bootstrapCode = `
 import sys, os
-os.chdir("${WORK_DIR}")
-if "${WORK_DIR}" not in sys.path:
-    sys.path.insert(0, "${WORK_DIR}")
-with open("${entryPath}") as _f:
+os.chdir("${safeQuote(WORK_DIR)}")
+if "${safeQuote(WORK_DIR)}" not in sys.path:
+    sys.path.insert(0, "${safeQuote(WORK_DIR)}")
+with open("${safeQuote(entryPath)}") as _f:
     _code = _f.read()
-exec(compile(_code, "${spec.entryPoint}", "exec"))
+exec(compile(_code, "${safeQuote(spec.entryPoint)}", "exec"))
 `;
 
   let error: string | null = null;

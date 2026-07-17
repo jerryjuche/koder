@@ -425,7 +425,7 @@ export interface LessonSection {
   section_type: SectionType;
   title: string;
   content: string;
-  metadata?: QuizMetadata;
+  metadata?: Record<string, unknown>;
   order_number: number;
   created_at: string;
 }

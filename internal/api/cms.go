@@ -68,6 +68,11 @@ func (h *CMHandler) GetCourseDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !course.Visible {
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Course not found", nil)
+		return
+	}
+
 	userID := uuid.Nil
 	if claims := GetClaims(r.Context()); claims != nil {
 		userID, _ = uuid.Parse(claims.UserID)
@@ -169,6 +174,11 @@ func (h *CMHandler) GetModuleDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !module.Visible {
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Module not found", nil)
+		return
+	}
+
 	userID := uuid.Nil
 	if claims := GetClaims(r.Context()); claims != nil {
 		userID, _ = uuid.Parse(claims.UserID)
@@ -231,6 +241,11 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.Error("cms: failed to get lesson", "course", courseSlug, "module", moduleSlug, "lesson", lessonSlug, "error", err)
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get lesson", nil)
+		return
+	}
+
+	if !lesson.Visible {
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Lesson not found", nil)
 		return
 	}
 
@@ -388,6 +403,11 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 	xpAwarded = xpReward
 	if existingProgress != nil && existingProgress.Completed {
 		xpAwarded = 0
+	} else if existingProgress != nil {
+		xpAwarded = xpReward - existingProgress.XPAwarded
+		if xpAwarded < 0 {
+			xpAwarded = 0
+		}
 	}
 
 	// Update course progress: find course_id from module, then count lessons
