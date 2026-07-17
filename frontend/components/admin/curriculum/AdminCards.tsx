@@ -50,7 +50,6 @@ export function AdminCourseCard({
   course, isSelected, isExpanded, onSelect, onEdit, onDelete,
   onToggleVisibility, children,
 }: AdminCourseCardProps) {
-  const [hovered, setHovered] = useState(false);
   const gradient = COURSE_GRADIENTS[course.slug] || DEFAULT_GRADIENT;
   const diff = diffMeta(course.difficulty_level ?? 1);
 
@@ -65,8 +64,6 @@ export function AdminCourseCard({
           isSelected && "ring-2 ring-primary/40 border-primary/30 shadow-lg shadow-primary/10 -translate-y-0.5",
         )}
         onClick={onSelect}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         {/* Shadow back plate — CodePen-inspired */}
         <div className={cn(
@@ -177,7 +174,6 @@ interface AdminModuleCardProps {
 export function AdminModuleCard({
   mod, isSelected, onSelect, onEdit, onDelete, onToggleVisibility,
 }: AdminModuleCardProps) {
-  const [hovered, setHovered] = useState(false);
 
   return (
     <div
@@ -189,8 +185,6 @@ export function AdminModuleCard({
           : "hover:bg-muted/40 hover:border-border/40 text-foreground/80",
       )}
       onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Shadow back plate */}
       <div className={cn(
@@ -375,7 +369,6 @@ interface AdminProjectCardProps {
 export function AdminProjectCard({
   project, onEdit, onDelete, onToggleVisibility,
 }: AdminProjectCardProps) {
-  const [hovered, setHovered] = useState(false);
   const diff = diffMeta(project.difficulty);
 
   return (
@@ -386,8 +379,6 @@ export function AdminProjectCard({
         "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
         "hover:border-primary/20",
       )}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Shadow back plate */}
       <div className={cn(

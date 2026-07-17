@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
-  Loader2, BookOpen, ChevronLeft, ChevronRight,
-  Sparkles, GraduationCap, Trophy, Share
+  Loader2, BookOpen, ChevronLeft,
+  Sparkles, GraduationCap
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import SectionQuiz from "@/components/learn/SectionQuiz";

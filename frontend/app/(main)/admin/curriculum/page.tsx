@@ -10,7 +10,7 @@ import {
   fetchModules, createModule, updateModule, deleteModule,
   fetchLessons, createLesson, updateLesson, deleteLesson,
   fetchProjects, createProject, updateProject, deleteProject,
-  createSection, updateSection, deleteSection, reorderSections,
+  createSection, updateSection, deleteSection,   reorderSections, fetchLessonSections,
   toggleCourseVisibility,
   toggleModuleVisibility,
   toggleLessonVisibility,
@@ -150,7 +150,6 @@ export default function CurriculumAdminPage() {
 
   const loadSections = useCallback(async (lessonId: string) => {
     try {
-      const { fetchLessonSections } = await import("@/lib/api");
       const res = await fetchLessonSections(lessonId);
       if (res.success && res.data) {
         setSections(Array.isArray(res.data) ? res.data : []);
@@ -324,12 +323,11 @@ export default function CurriculumAdminPage() {
     };
 
     // Convert quiz questions to lesson sections
-    const sections: any[] = [];
+    const quizSections: any[] = [];
     const quizQuestions = formData.quiz_questions || [];
-    const currentSectionCount = sections.length;
     for (let i = 0; i < quizQuestions.length; i++) {
       const q = quizQuestions[i];
-      sections.push({
+      quizSections.push({
         section_type: "quiz",
         title: `Quiz Question ${i + 1}`,
         content: "",
@@ -340,12 +338,12 @@ export default function CurriculumAdminPage() {
           points: q.points ?? 1,
           explanation: q.explanation || "",
         }),
-        order_number: currentSectionCount + i,
+        order_number: i,
       });
     }
 
     const payload: any = { lesson: lessonFields };
-    if (sections.length > 0) payload.sections = sections;
+    if (quizSections.length > 0) payload.sections = quizSections;
     if ((formData.dependency_ids || []).length > 0) payload.dependency_ids = formData.dependency_ids;
 
     const res = await createLesson(selectedModule.id, payload);
@@ -583,6 +581,9 @@ export default function CurriculumAdminPage() {
     } else {
       delete base.content;
       delete base.section_type;
+    }
+    if (panel === "lessons" && item.id) {
+      loadSections(item.id);
     }
     setFormData(base);
     if (panel === "courses") setShowCourseForm(true);
