@@ -221,15 +221,17 @@ export default function SectionRenderer({ section, problemReferences, language }
       );
     }
 
-    case "mini_project":
+    case "mini_project": {
+      const multiFileMeta = (section.metadata as unknown as Record<string, unknown>)?.multiFile as MultiFileSpec | undefined;
       return (
         <div>
           {renderSectionHeader()}
           {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
           {section.content && <div className="mb-6">{renderMarkdown(section.content)}</div>}
-          <SectionExercise problemReferences={problemReferences} language={language} miniProject />
+          <SectionExercise problemReferences={problemReferences} language={language} miniProject multiFile={multiFileMeta} />
         </div>
       );
+    }
 
     case "summary":
       return (
