@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -39,6 +39,7 @@ import {
   Code2,
 } from "lucide-react";
 import { AdminCourseCard, AdminModuleCard, AdminLessonCard, AdminProjectCard } from "@/components/admin/curriculum/AdminCards";
+import MultiFileConfigPanel from "@/components/admin/curriculum/MultiFileConfigPanel";
 
 type Panel = "courses" | "modules" | "lessons" | "projects" | "sections";
 
@@ -606,6 +607,27 @@ export default function CurriculumAdminPage() {
   const updateField = (key: string, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
+
+  // Auto-initialize multiFile metadata when section type changes to a multi-file type
+  const prevSectionType = useRef(formData.section_type);
+  useEffect(() => {
+    if (prevSectionType.current !== formData.section_type) {
+      prevSectionType.current = formData.section_type;
+      const mfTypes = ["exercises", "assessment", "mini_project"];
+      if (mfTypes.includes(formData.section_type || "")) {
+        const meta = (formData.metadata as Record<string, unknown>) || {};
+        if (!meta.multiFile) {
+          updateField("metadata", {
+            ...meta,
+            multiFile: {
+              files: [{ path: "main.py", content: "# Write your code here\n\ndef solution():\n    pass\n" }],
+              entryPoint: "main.py",
+            },
+          });
+        }
+      }
+    }
+  }, [formData.section_type, formData.metadata]);
 
   const activeForm = showCourseForm ? "courses" : showModuleForm ? "modules" : showLessonForm ? "lessons" : showProjectForm ? "projects" : showSectionForm ? "sections" : null;
   const modalOpen = activeForm !== null;
@@ -1590,7 +1612,12 @@ export default function CurriculumAdminPage() {
                   </div>
                 )}
 
-                {formData.section_type !== "quiz" && (
+                {formData.section_type === "exercises" || formData.section_type === "assessment" || formData.section_type === "mini_project" ? (
+                  <MultiFileConfigPanel
+                    metadata={formData.metadata as Record<string, unknown> | undefined}
+                    onChange={(meta) => updateField("metadata", meta)}
+                  />
+                ) : formData.section_type !== "quiz" ? (
                   <details className="border rounded-lg group">
                     <summary className="text-xs font-medium text-muted-foreground/70 hover:text-foreground cursor-pointer px-4 py-2.5 select-none flex items-center gap-2">
                       <Code2 className="h-3.5 w-3.5" />
@@ -1598,10 +1625,10 @@ export default function CurriculumAdminPage() {
                     </summary>
                     <div className="px-4 pb-4 pt-2 border-t">
                       <p className="text-[11px] text-muted-foreground/60 mb-2">
-                        Used for multi-file exercises, additional config, etc.
+                        Additional configuration data.
                       </p>
                       <Textarea
-                        placeholder='{"multiFile":{"files":[{"path":"temperature.py","content":"..."},{"path":"main.py","content":"..."}],"entryPoint":"main.py"}}'
+                        placeholder='{"key": "value"}'
                         className="min-h-[120px] font-mono text-xs"
                         value={(() => {
                           const m = formData.metadata as Record<string, unknown> | undefined;
@@ -1617,7 +1644,7 @@ export default function CurriculumAdminPage() {
                       />
                     </div>
                   </details>
-                )}
+                ) : null}
               </div>
             )}
           </div>
