@@ -239,7 +239,7 @@ export default function ModuleDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
         >
           {totalCount === 0 && (
             <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">

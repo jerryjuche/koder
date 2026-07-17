@@ -185,7 +185,7 @@ export default function CourseCatalog() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
       >
         {courses.map((course) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);

@@ -229,7 +229,7 @@ export default function CourseDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
         >
           {data.modules.length === 0 && (
             <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">
