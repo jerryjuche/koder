@@ -7,11 +7,11 @@ import { ModuleWithLessons } from "@/lib/types";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
+import { type Language } from "@/components/LanguageLogo";
 import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
   BookOpen,
-  GraduationCap,
   PlayCircle,
   Trophy,
   Sparkles,
@@ -22,6 +22,12 @@ const difficultyMeta = (d: number) => {
   if (d <= 3) return { label: "Intermediate", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/30 ring-amber-500/20" };
   return { label: "Advanced", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/30 ring-red-500/20" };
 };
+
+function detectLanguage(slug: string): Language | undefined {
+  if (slug.includes("python")) return "python";
+  if (slug.includes("go")) return "go";
+  return undefined;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -120,6 +126,7 @@ export default function ModuleDetail() {
   const firstIncomplete = data.lessons.find((l) => !l.completed);
   const totalXp = data.lessons.reduce((sum, l) => sum + l.xp_reward, 0);
   const earnedXp = data.lessons.filter((l) => l.completed).reduce((sum, l) => sum + l.xp_reward, 0);
+  const moduleLang = detectLanguage(data.module.slug) ?? detectLanguage(courseSlug);
 
   return (
     <div className="max-w-screen-2xl mx-auto px-6 py-10 md:px-8">
@@ -144,7 +151,7 @@ export default function ModuleDetail() {
           size="lg"
           title={data.module.title}
           description={data.module.description}
-          icon={<GraduationCap className="w-4 h-4 text-white/90" />}
+          language={moduleLang}
           progress={totalCount > 0 ? pct : undefined}
           badges={[
             `${totalCount} ${totalCount === 1 ? "lesson" : "lessons"}`,
@@ -205,6 +212,7 @@ export default function ModuleDetail() {
                   title={lesson.title}
                   description={lesson.description}
                   href={lessonHref}
+                  language={moduleLang}
                   status={status}
                   index={idx + 1}
                   meta={{

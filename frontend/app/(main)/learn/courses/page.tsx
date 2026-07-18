@@ -6,53 +6,24 @@ import { Course } from "@/lib/types";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Card } from "@/components/ui/card";
+import { type Language } from "@/components/LanguageLogo";
 import {
   BookOpen,
   GraduationCap,
-  Code2,
-  Terminal,
-  Database,
-  Globe,
-  Brain,
   Sparkles,
 } from "lucide-react";
+
+function detectLanguage(slug: string): Language | undefined {
+  if (slug.includes("python")) return "python";
+  if (slug.includes("go")) return "go";
+  return undefined;
+}
 
 const difficultyMeta = (d: number) => {
   if (d <= 2) return { label: "Beginner", color: "from-emerald-500 to-green-600", textColor: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-100 dark:bg-emerald-900/30" };
   if (d <= 3) return { label: "Intermediate", color: "from-amber-500 to-orange-600", textColor: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/30" };
   return { label: "Advanced", color: "from-red-500 to-rose-600", textColor: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30" };
 };
-
-const courseBranding: Record<string, { gradient: string; icon: typeof Code2; lightBg: string }> = {
-  "python-fundamentals": {
-    gradient: "from-blue-600 via-blue-500 to-sky-400",
-    icon: Code2,
-    lightBg: "bg-blue-50 dark:bg-blue-950/30",
-  },
-  "go-fundamentals": {
-    gradient: "from-cyan-600 via-cyan-500 to-teal-400",
-    icon: Terminal,
-    lightBg: "bg-cyan-50 dark:bg-cyan-950/30",
-  },
-  "python-intermediate": {
-    gradient: "from-violet-600 via-violet-500 to-purple-400",
-    icon: Brain,
-    lightBg: "bg-violet-50 dark:bg-violet-950/30",
-  },
-  "data-structures": {
-    gradient: "from-amber-600 via-amber-500 to-yellow-400",
-    icon: Database,
-    lightBg: "bg-amber-50 dark:bg-amber-950/30",
-  },
-};
-
-const fallbackBranding = {
-  gradient: "from-slate-600 via-slate-500 to-gray-400",
-  icon: Globe,
-  lightBg: "bg-slate-50 dark:bg-slate-950/30",
-};
-
-
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -173,8 +144,7 @@ className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
       >
         {courses.map((course) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);
-          const brand = courseBranding[course.slug] || fallbackBranding;
-          const Icon = brand.icon;
+          const lang = detectLanguage(course.slug);
 
           return (
             <motion.div key={course.id} variants={itemVariants} className="h-full">
@@ -184,7 +154,7 @@ className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
                 description={course.description}
                 imageUrl={course.image_url || undefined}
                 href={`/learn/courses/${course.slug}`}
-                icon={<Icon className="w-4 h-4 text-white/90" />}
+                language={lang}
                 meta={{
                   difficulty: diff.label,
                 }}

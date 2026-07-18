@@ -4,6 +4,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Heart, MessageSquare, Eye, Play, BookOpen, Clock, Target, Lock, CheckCircle2, Zap } from "lucide-react"
 import Link from "next/link"
+import { LanguageLogo, type Language } from "@/components/LanguageLogo"
 
 export interface LearningCardProps {
   title: string
@@ -33,6 +34,7 @@ export interface LearningCardProps {
   }
   index?: number
   size?: "default" | "lg"
+  language?: Language
 }
 
 export function LearningCard({
@@ -51,7 +53,8 @@ export function LearningCard({
   href,
   meta,
   index,
-  size = "default"
+  size = "default",
+  language
 }: LearningCardProps) {
   const isLocked = status === "locked"
 
@@ -146,6 +149,8 @@ export function LearningCard({
           )}>
             {isLocked ? (
               <Lock className="text-white/50" style={{ width: size === "lg" ? 18 : 15, height: size === "lg" ? 18 : 15 }} />
+            ) : language ? (
+              <LanguageLogo language={language} size={size === "lg" ? 22 : type === "course" ? 22 : 18} />
             ) : icon ? (
               React.isValidElement(icon) ? icon : React.createElement(icon as React.ElementType, { className: cn("text-white/90", size === "lg" ? "w-5 h-5" : "w-4 h-4") })
             ) : index != null ? (

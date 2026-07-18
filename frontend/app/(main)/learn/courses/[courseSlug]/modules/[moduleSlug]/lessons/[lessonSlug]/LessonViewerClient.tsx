@@ -525,7 +525,7 @@ export default function LessonViewerClient() {
                 ) : isLastStep ? (
                   <Button
                     onClick={handleComplete}
-                    disabled={completing || !lessonData.prerequisites_met}
+                    disabled={completing}
                     className="gap-1.5 min-w-[100px]"
                   >
                     {completing ? (

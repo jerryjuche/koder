@@ -7,17 +7,12 @@ import { CourseWithModules } from "@/lib/types";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
+import { type Language } from "@/components/LanguageLogo";
 import { useWebSocket } from "@/lib/event";
 import {
   ArrowLeft,
   BookOpen,
   GraduationCap,
-  Code2,
-  Terminal,
-  Database,
-  Globe,
-  Brain,
-  Cpu,
   Sparkles,
   Trophy,
 } from "lucide-react";
@@ -28,20 +23,10 @@ const difficultyMeta = (d: number) => {
   return { label: "Advanced", color: "from-red-500 to-rose-600", textColor: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30", ringColor: "ring-red-500/30" };
 };
 
-const moduleBranding: Record<string, { gradient: string; icon: typeof Code2 }> = {
-  python: { gradient: "from-blue-600 to-sky-500", icon: Code2 },
-  go: { gradient: "from-cyan-600 to-teal-500", icon: Terminal },
-  data: { gradient: "from-amber-600 to-yellow-500", icon: Database },
-  web: { gradient: "from-violet-600 to-purple-500", icon: Globe },
-  algo: { gradient: "from-rose-600 to-pink-500", icon: Brain },
-  misc: { gradient: "from-slate-600 to-gray-500", icon: Cpu },
-};
-
-function resolveModuleBrand(slug: string) {
-  for (const [key, val] of Object.entries(moduleBranding)) {
-    if (slug.includes(key)) return val;
-  }
-  return moduleBranding.misc;
+function detectLanguage(slug: string): Language | undefined {
+  if (slug.includes("python")) return "python";
+  if (slug.includes("go")) return "go";
+  return undefined;
 }
 
 const containerVariants = {
@@ -165,7 +150,7 @@ export default function CourseDetail() {
           title={data.title}
           description={data.description}
           imageUrl={data.image_url || undefined}
-          icon={<GraduationCap className="w-4 h-4 text-white/90" />}
+          language={detectLanguage(data.slug)}
           progress={pct > 0 ? pct : undefined}
           badges={[
             diff.label,
@@ -210,7 +195,7 @@ export default function CourseDetail() {
             const total = mod.lesson_count ?? 0;
             const modPct = total > 0 ? (completed / total) * 100 : 0;
             const isComplete = modPct >= 100;
-            const brand = resolveModuleBrand(mod.slug);
+            const lang = detectLanguage(mod.slug) ?? detectLanguage(data.slug);
             const isCurrent = firstIncomplete && mod.id === firstIncomplete.id && !isComplete;
 
             let status: "locked" | "in-progress" | "completed" | "available" = "available";
@@ -225,9 +210,9 @@ export default function CourseDetail() {
                   description={mod.description}
                   imageUrl={mod.image_url || undefined}
                   href={`/learn/courses/${courseSlug}/modules/${mod.slug}`}
+                  language={lang}
                   status={status}
                   index={idx + 1}
-                  icon={brand.icon}
                   meta={{
                     progress: modPct,
                     count: `${total} lesson${total !== 1 ? 's' : ''}` + (completed > 0 ? ` · ${completed} done` : ''),
