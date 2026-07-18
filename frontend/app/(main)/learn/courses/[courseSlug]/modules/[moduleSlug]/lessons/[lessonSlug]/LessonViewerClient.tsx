@@ -441,7 +441,7 @@ export default function LessonViewerClient() {
                       {currentStepData.sections.map((quizSection, qIdx) => (
                         <div key={quizSection.id} className="rounded-lg border bg-card/50 p-5">
                           {quizSection.title && (
-                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 whitespace-pre-line">
                               <span className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs flex items-center justify-center font-bold text-orange-600 dark:text-orange-400 shrink-0">
                                 {qIdx + 1}
                               </span>

@@ -203,7 +203,7 @@ export default function SectionRenderer({ section, problemReferences, language }
       return (
         <div>
           {renderSectionHeader()}
-          {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
+          {section.title && <h2 className="text-xl font-semibold mb-4 whitespace-pre-line">{section.title}</h2>}
           <SectionQuiz metadata={section.metadata} />
         </div>
       );
@@ -214,7 +214,7 @@ export default function SectionRenderer({ section, problemReferences, language }
       return (
         <div>
           {renderSectionHeader()}
-          {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
+          {section.title && <h2 className="text-xl font-semibold mb-4 whitespace-pre-line">{section.title}</h2>}
           {section.content && <div className="mb-6">{renderMarkdown(section.content)}</div>}
           <SectionExercise problemReferences={problemReferences} language={language} multiFile={multiFileMeta} />
         </div>
@@ -226,7 +226,7 @@ export default function SectionRenderer({ section, problemReferences, language }
       return (
         <div>
           {renderSectionHeader()}
-          {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
+          {section.title && <h2 className="text-xl font-semibold mb-4 whitespace-pre-line">{section.title}</h2>}
           {section.content && <div className="mb-6">{renderMarkdown(section.content)}</div>}
           <SectionExercise problemReferences={problemReferences} language={language} miniProject multiFile={multiFileMeta} />
         </div>
@@ -237,7 +237,7 @@ export default function SectionRenderer({ section, problemReferences, language }
       return (
         <div>
           {renderSectionHeader()}
-          {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
+          {section.title && <h2 className="text-xl font-semibold mb-4 whitespace-pre-line">{section.title}</h2>}
           {section.content && renderMarkdown(section.content)}
         </div>
       );
@@ -246,7 +246,7 @@ export default function SectionRenderer({ section, problemReferences, language }
       return (
         <div>
           {renderSectionHeader()}
-          {section.title && <h2 className="text-xl font-semibold mb-4">{section.title}</h2>}
+          {section.title && <h2 className="text-xl font-semibold mb-4 whitespace-pre-line">{section.title}</h2>}
           {section.content && renderMarkdown(section.content)}
         </div>
       );

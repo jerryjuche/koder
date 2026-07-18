@@ -284,7 +284,7 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
                     </Badge>
                   )}
                 </div>
-                <CardDescription className="text-xs mt-1 leading-relaxed line-clamp-2">
+                <CardDescription className="text-xs mt-1 leading-relaxed line-clamp-2 whitespace-pre-line">
                   {meta.description}
                 </CardDescription>
               </CardHeader>

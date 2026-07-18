@@ -170,8 +170,8 @@ export function LearningCard({
             </h3>
             {description && (
               <p className={cn(
-                "text-brand-offwhite-muted mt-0.5 leading-relaxed",
-                size === "lg" ? "text-xs" : "text-[11px] truncate"
+                "text-brand-offwhite-muted mt-0.5 leading-relaxed whitespace-pre-line",
+                size === "lg" ? "text-xs line-clamp-2" : "text-[11px] truncate"
               )}>
                 {description}
               </p>
