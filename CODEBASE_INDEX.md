@@ -627,3 +627,6 @@ koder/
 | ADR-009 | In-memory cache over Redis | Zero-cost; 30s TTL sufficient for leaderboard/notifications |
 | ADR-010 | Pyodide CDN over server-side Python | Zero-cost; browser-side Python execution for instant feedback; singleton loader prevents duplicate loads |
 | ADR-011 | Per-language localStorage for code persistence | Enables save & switch between Go/Python scaffolds in workspace; keyed as `koder_code_{slug}_{lang}` |
+| ADR-012 | Bulk lesson dependency query via `ANY($1)` | Single query fetches deps for all lessons in a module; avoids N+1 per-lesson queries |
+| ADR-013 | Client-side dependency locking | Compute locked state in frontend from `dependencies[]` + completion; avoids extra backend calls; enables instant UI feedback |
+| ADR-014 | Public lesson detail endpoint for admin dep picker | Admin CMS fetches current deps via existing `GET /learn/lessons/{slug}` instead of adding a separate admin endpoint |

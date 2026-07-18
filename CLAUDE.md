@@ -953,6 +953,30 @@ npm run build   # Builds static + server components
 
 ## Session Log
 
+### 2026-07-17 — Lesson Prerequisite Enforcement + Admin Dependency Picker
+
+**Commits:** `4554979`
+
+**Backend:**
+- `GetModuleDetail` handler now includes per-lesson `dependencies` in response via batch `ANY($1)` query
+- New `GetLessonDependenciesByLessonIDs` store function (bulk fetch, single query)
+- Store interface updated
+
+**Admin CMS:**
+- Dependency picker in lesson Settings tab: searchable checkbox multi-select, pill badges with dismiss, order-number sorted
+- Auto-loads current deps via `fetchLesson` (public detail endpoint) when editing
+- Saves deps on create (`dependency_ids` in POST body) and update (separate `PUT /admin/lessons/{id}/dependencies` call)
+
+**Student-facing enforcement:**
+- Module detail page: computes `isLocked` per lesson from dependencies + completion status → `status="locked"` on `LearningCard`
+- `LearningCard`: locked state already fully configured — `opacity-70`, `cursor-not-allowed`, no hover effects, Lock icon, "Locked" badge, no Link wrapper
+- `LessonViewerClient`: locked overlay when `!prerequisites_met` — amber lock icon, lists unmet deps, "Back to Module" button, no lesson content rendered
+- `LessonSidebar`: locked lessons show Lock icon, `cursor-not-allowed opacity-50`, non-clickable div (not Link)
+
+**Files modified:** `cms.go`, `curriculum.go`, `store.go`, `types.ts`, `page.tsx` (module detail), `LessonViewerClient.tsx`, `LessonSidebar.tsx`, `admin/curriculum/page.tsx`
+
+**Verification:** `go build` clean, `tsc --noEmit` 0 errors
+
 ### 2026-07-17 — Python Mastery: Build Your Own Games seed migration
 
 - New migration `migrations/042_seed_python_mastery_games.sql`: course `python-mastery-games` (difficulty 3, ~12 hours), 2 modules, 6 lessons, 5 linear dependencies, full lesson sections, quiz metadata, 1 final project

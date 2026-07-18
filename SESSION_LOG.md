@@ -1372,3 +1372,70 @@ Create the seed SQL migration for the new "Python Mastery: Build Your Own Games"
 
 ### Verification
 - SQL file saved and complete, ready to run against database
+
+---
+
+## Session 45 — Lesson Prerequisite Enforcement + Admin Dependency Picker
+
+**Date:** 2026-07-17
+**Branch:** `update`
+**Commits:** `4554979`
+
+### What Was Built
+
+Full-stack lesson prerequisite/dependency management system — admin UI for setting dependencies, student-facing enforcement with locked states.
+
+### Backend Changes
+
+**`internal/api/cms.go` — `GetModuleDetail` handler:**
+- Added `Dependencies []store.LessonPrereq` to the inline `lessonWithProgress` struct (with `json:"dependencies,omitempty"`)
+- Bulk-fetches all lesson dependencies for the module in a single `ANY($1)` query via new `GetLessonDependenciesByLessonIDs` store function
+- Attaches dependencies to each lesson in the response
+- Uses `string(l.ID.Bytes[:])` for map keys (pgtype.UUID has no `.String()` method)
+
+**`internal/store/curriculum.go` — new `GetLessonDependenciesByLessonIDs`:**
+- Batch query: `SELECT lesson_id, depends_on_lesson_id FROM lesson_dependencies WHERE lesson_id = ANY($1)`
+- Returns early if `lessonIDs` is empty
+- Same scan pattern as `GetLessonDependencies`
+
+**`internal/store/store.go` — interface updated:**
+- Added `GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error)`
+
+### Frontend Changes
+
+**`frontend/lib/types.ts`:**
+- `ModuleWithLessons.lessons` type updated: `(Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[]`
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module Detail:**
+- Computes `isLocked` per lesson: locked if any dependency lesson is incomplete
+- Locked lessons get `status="locked"` → `LearningCard` renders with lock overlay, no clickable link
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/LessonViewerClient.tsx`:**
+- New locked overlay when `!lessonData.prerequisites_met`
+- Shows amber lock icon, "Complete Prerequisites First" heading
+- Lists all unmet prerequisites with warning icons
+- "Back to Module" button
+- Sidebar still renders for navigation context
+- Lesson content (sections, quizzes, exercises) not rendered when locked
+- Added `Lock`, `AlertTriangle` to lucide imports
+
+**`frontend/components/learn/LessonSidebar.tsx`:**
+- Props updated: `lessons` type now includes optional `dependencies?: LessonPrereq[]`
+- Computes per-lesson locked state from `dependencies` array + completion status
+- Locked lessons show `Lock` icon instead of numbered circle
+- Locked lessons are `cursor-not-allowed opacity-50` (non-clickable div, not a Link)
+- Active/completed/available states unchanged
+
+**`frontend/app/(main)/admin/curriculum/page.tsx` — Admin Dependency Picker:**
+- Imports: added `updateLessonDependencies`, `fetchLesson`, `GitBranch`, `Check`, `Search`, `ChevronDown`, `ChevronUp`
+- New state: `lessonDependencies`, `loadingDeps`, `depSearch`
+- New function: `loadLessonDeps(lessonSlug)` — fetches lesson detail via public API to get current dependencies
+- Settings tab: full dependency picker UI with search, checkbox multi-select, pill badges
+- `openEditForm` calls `loadLessonDeps` when editing a lesson
+- `handleUpdateLesson` calls `updateLessonDependencies` after lesson update
+- `handleCreateLesson` sends `dependency_ids` from `lessonDependencies` state
+- Form state cleared on open/close/save
+
+### Verification
+- `go build ./cmd/server/` — clean
+- `npx tsc --noEmit` — 0 errors

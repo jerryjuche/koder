@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-17 (Python Mastery Games seed)
+**Last updated:** 2026-07-17 (Lesson Prerequisite Enforcement)
 
 ---
 
@@ -21,6 +21,7 @@
 | 10 — Multi-file Pyodide + Admin CMS | 🟢 Complete | 5+ | tsc |
 | 11 — Hero Card Design Polish | 🟢 Complete | 3 | tsc |
 | 12 — Python Mastery Games Seed | 🟢 Complete | 1 | SQL file saved |
+| 13 — Lesson Prerequisite Enforcement | 🟢 Complete | 8 | go build, tsc --noEmit |
 
 ---
 
@@ -32,6 +33,19 @@
 |---|---|---|---|---|
 | 12.1 | Write seed SQL migration | `migrations/042_seed_python_mastery_games.sql` | 🟢 | Course + 2 modules + 6 lessons + 5 deps + sections + quizzes + project |
 | 12.2 | Run against database | — | 🟡 | Blocked by Supabase auto-RLS error on `full` table |
+
+### Phase 13: Lesson Prerequisite Enforcement + Admin Dependency Picker
+
+| # | Task | File | Status | Notes |
+|---|---|---|---|---|
+| 13.1 | Backend bulk dep query | `internal/store/curriculum.go` | 🟢 | `GetLessonDependenciesByLessonIDs` — `ANY($1)` batch |
+| 13.2 | Store interface | `internal/store/store.go` | 🟢 | New method added |
+| 13.3 | Handler bulk fetch | `internal/api/cms.go` | 🟢 | `GetModuleDetail` includes per-lesson dependencies |
+| 13.4 | Frontend types | `frontend/lib/types.ts` | 🟢 | `ModuleWithLessons.lessons` includes `dependencies?` |
+| 13.5 | Module detail locking | `frontend/.../page.tsx` | 🟢 | `isLocked` computation → LearningCard `status="locked"` |
+| 13.6 | Lesson viewer locked overlay | `frontend/.../LessonViewerClient.tsx` | 🟢 | Amber lock UI, lists unmet deps, Back to Module button |
+| 13.7 | Sidebar locked state | `frontend/.../LessonSidebar.tsx` | 🟢 | Lock icon, opacity-50, non-clickable for locked lessons |
+| 13.8 | Admin dependency picker | `frontend/app/(main)/admin/curriculum/page.tsx` | 🟢 | Search, checkbox multi-select, pill badges, auto-save |
 
 ### Phase 1: Database Migration & Go Types
 
