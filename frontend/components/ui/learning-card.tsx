@@ -108,7 +108,7 @@ export function LearningCard({
       <div
         className={cn(
           "relative flex flex-col w-full",
-          size === "lg" ? "min-h-[140px]" : "aspect-[16/9]",
+          size === "lg" ? "min-h-[140px]" : type === "course" ? "aspect-[3/4]" : "aspect-[16/9]",
           "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
           "transition-all duration-300 ease-out",
           !isLocked && "group-hover:shadow-[0_4px_20px_rgb(0,0,0,0.4)] group-hover:border-brand-charcoal-border/70"
@@ -120,7 +120,7 @@ export function LearningCard({
             <div
               className={cn(
                 "w-full bg-cover bg-center",
-                size === "lg" ? "h-16" : "h-14"
+                size === "lg" ? "h-16" : type === "course" ? "h-20" : "h-14"
               )}
               style={{ backgroundImage: `url(${imageUrl})` }}
             >
@@ -130,7 +130,7 @@ export function LearningCard({
             <div className={cn(
               "w-full bg-gradient-to-br",
               typeColors[type],
-              size === "lg" ? "h-16" : "h-14"
+              size === "lg" ? "h-16" : type === "course" ? "h-20" : "h-14"
             )}>
               <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/40 to-transparent" />
             </div>
@@ -141,7 +141,7 @@ export function LearningCard({
             "absolute bottom-0 left-3 translate-y-1/2",
             "flex items-center justify-center rounded-xl border-2 border-brand-charcoal-base shadow-lg",
             typeGradients[type],
-            size === "lg" ? "w-11 h-11" : "w-9 h-9",
+            size === "lg" ? "w-11 h-11" : type === "course" ? "w-10 h-10" : "w-9 h-9",
             !isLocked && "group-hover:scale-110 group-hover:shadow-xl transition-all duration-300"
           )}>
             {isLocked ? (
@@ -193,11 +193,11 @@ export function LearningCard({
         </div>
 
         {/* ── Bottom content area ── */}
-        <div className={cn("relative z-10 flex flex-col flex-1", size === "lg" ? "px-3.5 pt-5 pb-3" : "px-3 pt-5 pb-2.5")}>
+        <div className={cn("relative z-10 flex flex-col flex-1", size === "lg" ? "px-3.5 pt-5 pb-3" : type === "course" ? "px-3.5 pt-5 pb-3" : "px-3 pt-5 pb-2.5")}>
           {/* Title */}
           <h3 className={cn(
             "font-bold text-brand-offwhite leading-snug transition-colors duration-200 whitespace-pre-line",
-            size === "lg" ? "text-base md:text-lg" : "text-sm",
+            size === "lg" ? "text-base md:text-lg" : type === "course" ? "text-[15px]" : "text-sm",
             !isLocked && "group-hover:text-brand-muted-gold",
             size !== "lg" && "line-clamp-2"
           )}>
@@ -208,7 +208,7 @@ export function LearningCard({
           {description && (
             <p className={cn(
               "text-brand-offwhite-muted leading-relaxed whitespace-pre-line mt-1",
-              size === "lg" ? "text-xs line-clamp-2" : "text-[11px] line-clamp-2"
+              size === "lg" ? "text-xs line-clamp-2" : type === "course" ? "text-xs line-clamp-4" : "text-[11px] line-clamp-2"
             )}>
               {description}
             </p>
