@@ -12,7 +12,7 @@ interface LessonSidebarProps {
   courseSlug: string;
   moduleSlug: string;
   moduleTitle: string;
-  lessons: (Lesson & { completed: boolean })[];
+  lessons: (Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[];
   currentSlug: string;
   dependencies: LessonPrereq[];
   progress?: LessonProgress | null;
@@ -58,21 +58,21 @@ export default function LessonSidebar({
       <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
         {lessons.map((lesson, idx) => {
           const isActive = lesson.slug === currentSlug;
-          return (
-            <Link
-              key={lesson.id}
-              href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lesson.slug}`}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150",
-                isActive
-                  ? "bg-primary/10 text-primary font-medium shadow-sm"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              )}
-            >
+          const deps = lesson.dependencies || [];
+          const isLocked = !lesson.completed && deps.length > 0 && deps.some((d) => {
+            const depLesson = lessons.find((l) => l.id === d.depends_on_lesson_id);
+            return depLesson && !depLesson.completed;
+          });
+          const lessonHref = `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lesson.slug}`;
+
+          const content = (
+            <>
               {/* Status icon */}
               <span className="shrink-0">
                 {lesson.completed ? (
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : isLocked ? (
+                  <Lock className="h-4 w-4 text-muted-foreground/40" />
                 ) : isActive ? (
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                     {idx + 1}
@@ -85,13 +85,44 @@ export default function LessonSidebar({
               </span>
 
               {/* Title */}
-              <span className="truncate flex-1">{lesson.title}</span>
+              <span className={cn("truncate flex-1", isLocked && "text-muted-foreground/40")}>
+                {lesson.title}
+              </span>
 
               {/* Duration */}
               <span className="text-[10px] text-muted-foreground/40 shrink-0 flex items-center gap-0.5">
                 <Clock className="h-2.5 w-2.5" />
                 {lesson.estimated_minutes}m
               </span>
+            </>
+          );
+
+          if (isLocked) {
+            return (
+              <div
+                key={lesson.id}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs cursor-not-allowed opacity-50",
+                )}
+                title="Complete prerequisites to unlock"
+              >
+                {content}
+              </div>
+            );
+          }
+
+          return (
+            <Link
+              key={lesson.id}
+              href={lessonHref}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150",
+                isActive
+                  ? "bg-primary/10 text-primary font-medium shadow-sm"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )}
+            >
+              {content}
             </Link>
           );
         })}

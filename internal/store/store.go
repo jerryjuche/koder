@@ -192,6 +192,7 @@ type Store interface {
 	GetLessonByID(ctx context.Context, id uuid.UUID) (*Lesson, error)
 	GetLessonSections(ctx context.Context, lessonID uuid.UUID) ([]LessonSection, error)
 	GetLessonDependencies(ctx context.Context, lessonID uuid.UUID) ([]LessonPrereq, error)
+	GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error)
 	CreateLessonWithSections(ctx context.Context, nl *NewLesson, sections []NewLessonSection, dependencyIDs []uuid.UUID) (*Lesson, error)
 	UpdateLesson(ctx context.Context, lesson *Lesson) (*Lesson, error)
 	DeleteLesson(ctx context.Context, id uuid.UUID) error

@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
   Loader2, BookOpen, ChevronLeft,
-  Sparkles, GraduationCap
+  Sparkles, GraduationCap, Lock, AlertTriangle
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import SectionQuiz from "@/components/learn/SectionQuiz";
@@ -297,6 +297,65 @@ export default function LessonViewerClient() {
         >
           Back to module
         </Link>
+      </div>
+    );
+  }
+
+  // Prerequisites not met
+  if (!lessonData.prerequisites_met) {
+    const unmetDeps = (lessonData.dependencies || []).filter((d) => {
+      const depLesson = allLessons.find((l) => l.id === d.depends_on_lesson_id);
+      return depLesson && !depLesson.completed;
+    });
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)]">
+        <LessonSidebar
+          courseSlug={courseSlug}
+          moduleSlug={moduleSlug}
+          moduleTitle={moduleData?.module?.title || moduleSlug}
+          lessons={allLessons}
+          currentSlug={lessonSlug}
+          dependencies={lessonData.dependencies || []}
+          progress={lessonData.progress}
+          estimatedMinutes={lessonData.estimated_minutes}
+          xpReward={lessonData.xp_reward}
+        />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md w-full text-center"
+          >
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <Lock className="h-10 w-10 text-amber-500" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Complete Prerequisites First</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              You need to finish the following lessons before this one unlocks.
+            </p>
+            <div className="space-y-2 mb-6">
+              {unmetDeps.map((d) => {
+                const depLesson = allLessons.find((l) => l.id === d.depends_on_lesson_id);
+                return (
+                  <div
+                    key={d.depends_on_lesson_id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border text-left"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="text-sm truncate">{depLesson?.title || "Unknown lesson"}</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground shrink-0">Incomplete</span>
+                  </div>
+                );
+              })}
+            </div>
+            <Link href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Back to Module
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
       </div>
     );
   }

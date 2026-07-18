@@ -193,7 +193,24 @@ func (h *CMHandler) GetModuleDetail(w http.ResponseWriter, r *http.Request) {
 
 	type lessonWithProgress struct {
 		store.Lesson
-		Completed bool `json:"completed"`
+		Completed    bool                 `json:"completed"`
+		Dependencies []store.LessonPrereq `json:"dependencies,omitempty"`
+	}
+
+	// Fetch all dependencies for this module's lessons in one query
+	depMap := make(map[string][]store.LessonPrereq)
+	lessonIDs := make([]uuid.UUID, 0, len(lessons))
+	for _, l := range lessons {
+		lessonIDs = append(lessonIDs, l.ID.Bytes)
+	}
+	if len(lessonIDs) > 0 {
+		deps, err := h.store.GetLessonDependenciesByLessonIDs(r.Context(), lessonIDs)
+		if err == nil {
+			for _, d := range deps {
+				key := string(d.LessonID.Bytes[:])
+				depMap[key] = append(depMap[key], d)
+			}
+		}
 	}
 
 	result := make([]lessonWithProgress, 0, len(lessons))
@@ -208,6 +225,7 @@ func (h *CMHandler) GetModuleDetail(w http.ResponseWriter, r *http.Request) {
 				lwp.Completed = lp.Completed
 			}
 		}
+		lwp.Dependencies = depMap[string(l.ID.Bytes[:])]
 		result = append(result, lwp)
 	}
 

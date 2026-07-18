@@ -972,6 +972,34 @@ func (s *PostgresStore) GetLessonDependencies(ctx context.Context, lessonID uuid
 	return deps, nil
 }
 
+// GetLessonDependenciesByLessonIDs returns all prerequisites for multiple lessons in one query.
+func (s *PostgresStore) GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error) {
+	if len(lessonIDs) == 0 {
+		return nil, nil
+	}
+	query := `SELECT lesson_id, depends_on_lesson_id
+		FROM lesson_dependencies WHERE lesson_id = ANY($1)`
+
+	rows, err := s.pool.Query(ctx, query, lessonIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query lesson dependencies by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var deps []LessonPrereq
+	for rows.Next() {
+		var d LessonPrereq
+		if err := rows.Scan(&d.LessonID, &d.DependsOnLessonID); err != nil {
+			return nil, fmt.Errorf("failed to scan lesson dependency: %w", err)
+		}
+		deps = append(deps, d)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("row iteration error: %w", rows.Err())
+	}
+	return deps, nil
+}
+
 // getLessonSectionsTx returns all sections for a lesson (transactional variant).
 func getLessonSectionsTx(ctx context.Context, tx pgx.Tx, lessonID pgtype.UUID) ([]LessonSection, error) {
 	query := `SELECT id, lesson_id, section_type, title, content, metadata, order_number, created_at

@@ -8,7 +8,7 @@ const MarkdownPreview = dynamic(() => import("@/components/admin/curriculum/Mark
 import {
   fetchAllCourses, createCourse, updateCourse, deleteCourse,
   fetchModules, createModule, updateModule, deleteModule,
-  fetchLessons, createLesson, updateLesson, deleteLesson,
+  fetchLessons, createLesson, updateLesson, deleteLesson, updateLessonDependencies, fetchLesson,
   fetchProjects, createProject, updateProject, deleteProject,
   createSection, updateSection, deleteSection,   reorderSections, fetchLessonSections,
   toggleCourseVisibility,
@@ -36,7 +36,7 @@ import {
   ListOrdered, Lightbulb,
   AlertTriangle, Sparkles, ScrollText, BrainCircuit,
   Target, FileCode, Star, BookText, Puzzle, FlaskConical,
-  Code2,
+  Code2, GitBranch, Check, Search, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { AdminCourseCard, AdminModuleCard, AdminLessonCard, AdminProjectCard } from "@/components/admin/curriculum/AdminCards";
 import MultiFileConfigPanel from "@/components/admin/curriculum/MultiFileConfigPanel";
@@ -90,6 +90,9 @@ export default function CurriculumAdminPage() {
   const [loadingModules, setLoadingModules] = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [lessonDependencies, setLessonDependencies] = useState<string[]>([]);
+  const [loadingDeps, setLoadingDeps] = useState(false);
+  const [depSearch, setDepSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<{
     type: "course" | "module" | "lesson" | "project";
     id: string;
@@ -159,6 +162,22 @@ export default function CurriculumAdminPage() {
       setSections([]);
     }
   }, []);
+
+  const loadLessonDeps = useCallback(async (lessonSlug: string) => {
+    if (!selectedCourse || !selectedModule) return;
+    setLoadingDeps(true);
+    try {
+      const res = await fetchLesson(selectedCourse.slug, selectedModule.slug, lessonSlug);
+      if (res.success && res.data && "dependencies" in res.data) {
+        setLessonDependencies(res.data.dependencies.map((d) => d.depends_on_lesson_id));
+      } else {
+        setLessonDependencies([]);
+      }
+    } catch {
+      setLessonDependencies([]);
+    }
+    setLoadingDeps(false);
+  }, [selectedCourse, selectedModule]);
 
   // ── Course handlers ──
 
@@ -345,13 +364,15 @@ export default function CurriculumAdminPage() {
 
     const payload: any = { lesson: lessonFields };
     if (quizSections.length > 0) payload.sections = quizSections;
-    if ((formData.dependency_ids || []).length > 0) payload.dependency_ids = formData.dependency_ids;
+    if (lessonDependencies.length > 0) payload.dependency_ids = lessonDependencies;
 
     const res = await createLesson(selectedModule.id, payload);
     if (res.success) {
       toast.success("Lesson created");
       setShowLessonForm(false);
       setFormData({});
+      setLessonDependencies([]);
+      setDepSearch("");
       setQuizQuestionForm({ question: "", optionsRaw: "", correctIndex: 0, points: 1, explanation: "" });
       loadLessons(selectedModule.id);
     } else {
@@ -375,6 +396,12 @@ export default function CurriculumAdminPage() {
     };
     const res = await updateLesson(editingItem.id, lessonFields);
     if (res.success) {
+      // Save dependencies
+      const depRes = await updateLessonDependencies(editingItem.id, lessonDependencies);
+      if (!depRes.success) {
+        toast.error(depRes.error?.message || "Failed to save dependencies");
+      }
+
       // Save quiz questions as quiz sections
       const quizQuestions = formData.quiz_questions || [];
       const existingQuizSections = sections.filter((s) => s.section_type === "quiz");
@@ -414,6 +441,8 @@ export default function CurriculumAdminPage() {
       toast.success("Lesson updated");
       setEditingItem(null);
       setFormData({});
+      setLessonDependencies([]);
+      setDepSearch("");
       setQuizQuestionForm({ question: "", optionsRaw: "", correctIndex: 0, points: 1, explanation: "" });
       if (selectedModule) loadLessons(selectedModule.id);
       if (selectedLesson) loadSections(selectedLesson.id);
@@ -560,6 +589,8 @@ export default function CurriculumAdminPage() {
       defaults.estimated_minutes = 10;
       defaults.order_number = lessons.length;
       setSections([]);
+      setLessonDependencies([]);
+      setDepSearch("");
     } else if (panel === "sections") {
       defaults.order_number = sections.length;
     } else if (panel === "projects") {
@@ -585,6 +616,7 @@ export default function CurriculumAdminPage() {
     }
     if (panel === "lessons" && item.id) {
       loadSections(item.id);
+      loadLessonDeps(item.slug);
     }
     setFormData(base);
     if (panel === "courses") setShowCourseForm(true);
@@ -602,6 +634,8 @@ export default function CurriculumAdminPage() {
     setShowSectionForm(false);
     setEditingItem(null);
     setFormData({});
+    setLessonDependencies([]);
+    setDepSearch("");
   };
 
   const updateField = (key: string, value: any) => {
@@ -1412,6 +1446,110 @@ export default function CurriculumAdminPage() {
                           className="w-24"
                         />
                         <p className="text-[11px] text-muted-foreground mt-1.5">Controls the display order among lessons in this module</p>
+                      </div>
+
+                      {/* ── Prerequisites / Dependencies ── */}
+                      <div className="p-4 rounded-xl border bg-card">
+                        <div className="flex items-center gap-2 mb-1">
+                          <GitBranch className="h-4 w-4 text-primary" />
+                          <p className="text-sm font-medium">Prerequisites</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">Students must complete these lessons before this one unlocks</p>
+                        {loadingDeps ? (
+                          <div className="space-y-2 py-2">
+                            {[1, 2].map((i) => (
+                              <div key={i} className="flex items-center gap-3 animate-pulse">
+                                <div className="h-4 w-4 rounded bg-muted" />
+                                <div className="h-4 w-32 rounded bg-muted" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : lessons.length <= 1 ? (
+                          <p className="text-xs text-muted-foreground/60 italic py-2">No other lessons in this module to depend on</p>
+                        ) : (
+                          <>
+                            <div className="relative mb-3">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                              <Input
+                                placeholder="Search lessons..."
+                                value={depSearch}
+                                onChange={(e) => setDepSearch(e.target.value)}
+                                className="pl-8 h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
+                              {lessons
+                                .filter((l) => l.id !== editingItem?.id)
+                                .filter((l) => !depSearch || l.title.toLowerCase().includes(depSearch.toLowerCase()) || l.slug.toLowerCase().includes(depSearch.toLowerCase()))
+                                .sort((a, b) => a.order_number - b.order_number)
+                                .map((l) => {
+                                  const checked = lessonDependencies.includes(l.id);
+                                  return (
+                                    <button
+                                      key={l.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setLessonDependencies((prev) =>
+                                          checked ? prev.filter((id) => id !== l.id) : [...prev, l.id]
+                                        );
+                                      }}
+                                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all text-xs ${
+                                        checked
+                                          ? "bg-primary/10 border border-primary/20"
+                                          : "hover:bg-muted/50 border border-transparent"
+                                      }`}
+                                    >
+                                      <div className={`flex-shrink-0 h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+                                        checked ? "bg-primary border-primary" : "border-muted-foreground/30"
+                                      }`}>
+                                        {checked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                                      </div>
+                                      <span className="text-muted-foreground/50 font-mono text-[10px] w-5 text-center flex-shrink-0">
+                                        #{l.order_number}
+                                      </span>
+                                      <span className={`truncate ${checked ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                                        {l.title}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              {lessons.filter((l) => l.id !== editingItem?.id).filter((l) => !depSearch || l.title.toLowerCase().includes(depSearch.toLowerCase())).length === 0 && (
+                                <p className="text-xs text-muted-foreground/60 italic py-2 text-center">No matching lessons</p>
+                              )}
+                            </div>
+                            {lessonDependencies.length > 0 && (
+                              <div className="mt-3 pt-3 border-t">
+                                <p className="text-[11px] text-muted-foreground mb-1.5">
+                                  {lessonDependencies.length} prerequisite{lessonDependencies.length !== 1 ? "s" : ""} set
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {lessonDependencies.map((depId) => {
+                                    const dep = lessons.find((l) => l.id === depId);
+                                    if (!dep) return null;
+                                    return (
+                                      <span
+                                        key={depId}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+                                      >
+                                        {dep.title}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLessonDependencies((prev) => prev.filter((id) => id !== depId));
+                                          }}
+                                          className="ml-0.5 hover:text-primary/70"
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </motion.div>

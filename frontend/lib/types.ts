@@ -587,7 +587,7 @@ export interface NewProject {
 
 export interface ModuleWithLessons {
   module: Module;
-  lessons: (Lesson & { completed: boolean })[];
+  lessons: (Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[];
 }
 
 export interface CourseProgressEntry {

@@ -201,8 +201,15 @@ export default function ModuleDetail() {
             const diff = difficultyMeta(lesson.difficulty);
             const lessonHref = `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lesson.slug}`;
 
+            const deps = lesson.dependencies || [];
+            const isLocked = !isComplete && deps.length > 0 && deps.some((d) => {
+              const depLesson = data.lessons.find((l) => l.id === d.depends_on_lesson_id);
+              return depLesson && !depLesson.completed;
+            });
+
             let status: "locked" | "in-progress" | "completed" | "available" = "available";
             if (isComplete) status = "completed";
+            else if (isLocked) status = "locked";
             else if (isCurrent) status = "in-progress";
 
             return (
