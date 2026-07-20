@@ -133,14 +133,14 @@ koder/
 
 | File | Lines | Purpose |
 |---|---|---|
-| `config.go` | 307 | Loads 30+ env vars: DATABASE_URL, JWT_SECRET, GEMINI_API_KEY, GROQ_API_KEY, SANDBOX_URL, ADMIN_EMAIL, etc. |
+| `config.go` | 337 | Loads 30+ env vars: DATABASE_URL, JWT_SECRET, NVIDIA_API_KEY, SANDBOX_URL, ADMIN_EMAIL, etc. |
 | `config_test.go` | 259 | 15 tests: missing keys, provider selection, timeout validation, JWT expiry |
 
 ### 4.6 Enricher (`internal/enricher/`)
 
 | File | Lines | Purpose |
 |---|---|---|
-| `enricher.go` | 748 | AI test case generation: Gemini (ResponseSchema) + Groq (JSON mode), dual-language prompts, rate-limited (30s/2s), retry with backoff, LanguageVersions population |
+| `enricher.go` | 936 | AI test case generation: NVIDIA NIM (DeepSeek V4 Flash), dual-language prompts, rate-limited (1s gap), retry with backoff, LanguageVersions population |
 | `enricher_test.go` | 231 | 4 tests: provider config, response parsing, schema generation |
 
 ### 4.7 Executor (`internal/executor/`)
@@ -477,11 +477,10 @@ koder/
 |---|---|---|
 | `DATABASE_URL` | — | Supabase PostgreSQL connection string |
 | `JWT_SECRET` | — | HS256 signing key (min 32 chars) |
-| `GEMINI_API_KEY` | — | Google AI Studio API key |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
-| `ENRICHMENT_PROVIDER` | `gemini` | gemini or groq |
-| `GROQ_API_KEY` | — | Groq API key |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model |
+| `ENRICHMENT_PROVIDER` | `nvidia` | Must be `nvidia` (only supported) |
+| `NVIDIA_API_KEY` | — | NVIDIA NIM API key (required) |
+| `NVIDIA_MODEL` | `deepseek-ai/deepseek-v4-flash` | NVIDIA model name |
+| `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | NVIDIA NIM API base URL |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `ADMIN_EMAIL` | — | Admin account email |
 | `ADMIN_PASSWORD` | — | Admin account password |
@@ -498,7 +497,7 @@ koder/
 
 | Variable | Default | Description |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` | Backend API base URL |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` (must set explicitly in production) | Backend API base URL |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 
 ### 8.3 Key Dependencies

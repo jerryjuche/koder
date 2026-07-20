@@ -961,11 +961,15 @@ PYTHON_VERSION=3.12
 PORT=8080
 ENVIRONMENT=development  # "development" | "production"
 
-# CORS
-ALLOWED_ORIGIN=http://localhost:3000  # Comma-separated for multiple origins
+# CORS — comma-separated origins
+# Uses ALLOWED_ORIGINS (preferred) or ALLOWED_ORIGIN (legacy)
+# Production: https://koder.sbs,https://www.koder.sbs
+# Development: http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
 
 # Sandbox (optional — empty = use local Docker)
-SANDBOX_URL=https://koder-production.up.railway.app
+# Railway-deployed sandbox endpoint for production
+SANDBOX_URL=https://koder-sandbox.up.railway.app
 PYTHON_SANDBOX_URL=                 # Separate URL for Python sandbox (optional)
 
 # Admin account (created on first startup)
@@ -974,15 +978,46 @@ ADMIN_PASSWORD=<secure-password>
 
 # Feedback emails (optional)
 RESEND_API_KEY=               # Resend.com API key for transactional emails
+EMAIL_FROM=Koder <noreply@koder.sbs>  # Verified sender in Resend
 
-# Frontend env (in .env.local)
+# Frontend env (in frontend/.env.local)
+# Production: https://api.koder.sbs
+# Development: http://localhost:8080
 NEXT_PUBLIC_API_URL=http://localhost:8080
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ```
 
 ---
 
-## 12. Coding Standards & Conventions
+## 12. Production Deployment
+
+### Domains
+| Service | Domain | Hosting |
+|---|---|---|
+| Frontend | `https://koder.sbs` / `https://www.koder.sbs` | Vercel |
+| Backend API | `https://api.koder.sbs` | Render / Oracle |
+| Sandbox | Railway-deployed Go binary | Railway |
+
+### Required Environment Variables (Production)
+```bash
+# Backend
+ENVIRONMENT=production
+FRONTEND_URL=https://koder.sbs
+ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs
+
+# Frontend
+NEXT_PUBLIC_API_URL=https://api.koder.sbs
+```
+
+### Google Cloud Console
+Add the following to Authorized JavaScript origins:
+- `https://koder.sbs`
+- `https://www.koder.sbs`
+- `http://localhost:3000` (development)
+
+---
+
+## 13. Coding Standards & Conventions
 
 ### Go
 
@@ -1138,6 +1173,8 @@ npm run dev                                # Starts on :3000
 ```
 
 Server starts on `http://localhost:8080`. Frontend on `http://localhost:3000`.
+
+**Production URLs:** Frontend at `https://koder.sbs`, API at `https://api.koder.sbs`.
 
 **Note:** The frontend copies Monaco workers on first build via `node scripts/copy-monaco.mjs` (runs automatically in `postinstall` or `build`). See `frontend/README.md` for frontend-specific setup.
 

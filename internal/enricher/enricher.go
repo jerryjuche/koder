@@ -51,7 +51,7 @@ type enrichedTestCase struct {
 }
 
 func NewEnricher(_ context.Context, cfg *config.Config) (*Enricher, error) {
-	provider := newNvidiaProvider(cfg.NVIDIAAPIKey)
+	provider := newNvidiaProvider(cfg.NVIDIAAPIKey, cfg.NVIDIAModel, cfg.NVIDIABaseURL)
 	slog.Info("enricher: using NVIDIA NIM (DeepSeek V4 Flash)")
 	return &Enricher{cfg: cfg, provider: provider}, nil
 }
@@ -631,14 +631,14 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 }
 
 const (
-	nvidiaBaseURL  = "https://integrate.api.nvidia.com/v1"
-	nvidiaModel    = "deepseek-ai/deepseek-v4-flash"
-	nvidiaTemp     = 0.7
+	nvidiaTemp      = 0.7
 	nvidiaMaxTokens = 8192
 )
 
 type nvidiaProvider struct {
 	apiKey     string
+	model      string
+	baseURL    string
 	httpClient *http.Client
 }
 
@@ -668,9 +668,11 @@ type nvidiaResponse struct {
 	} `json:"error,omitempty"`
 }
 
-func newNvidiaProvider(apiKey string) *nvidiaProvider {
+func newNvidiaProvider(apiKey, model, baseURL string) *nvidiaProvider {
 	return &nvidiaProvider{
-		apiKey: apiKey,
+		apiKey:  apiKey,
+		model:   model,
+		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -681,7 +683,7 @@ func (n *nvidiaProvider) Name() string { return "nvidia" }
 
 func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	body := nvidiaRequest{
-		Model: nvidiaModel,
+		Model: n.model,
 		Messages: []nvidiaMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
@@ -699,7 +701,7 @@ func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, user
 }
 
 func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt int) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", nvidiaBaseURL+"/chat/completions", bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, "POST", n.baseURL+"/chat/completions", bytes.NewReader(payload))
 	if err != nil {
 		return "", fmt.Errorf("nvidia create request: %w", err)
 	}
