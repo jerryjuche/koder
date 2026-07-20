@@ -1003,7 +1003,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ```bash
 ENVIRONMENT=production
 FRONTEND_URL=https://koder.sbs                # must match the deploying branch's frontend
-ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sbs,https://update.koder.sbs
+ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sbs,https://update.koder.sbs,http://localhost:3000
 ```
 
 ### Required Frontend Environment (per branch)
