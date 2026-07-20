@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files, ~195 frontend source files, 43 migration SQL files — ~51,000 LOC total
+- **Codebase:** 80 Go source files, ~200 frontend source files, 44 migration SQL files — ~52,000 LOC total
 
 ---
 
@@ -366,7 +366,7 @@ koder/
 │   ├── security_message_test.go               # 3 test cases
 │   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
 │   └── go.mod                                 # Zero external deps
-├── migrations/                                # 43 migration files (42 numbered + 1 test seed)
+├── migrations/                                # 44 migration files (43 numbered + 1 test seed)
 │   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
 │   ├── 002_indexes.sql                        # 12 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
@@ -409,6 +409,7 @@ koder/
 │   ├── 040_complete_curriculum_content.sql    # Comprehensive curriculum content seeding
 │   ├── 041_seed_python_mastery.sql            # Python Mastery: Zero to Hero course (4 modules, 14 lessons)
 │   ├── 042_seed_python_mastery_games.sql      # Python Mastery: Build Your Own Games (2 modules, 6 lessons)
+│   ├── 043_seed_python_mastery_practice.sql   # Python Mastery: Practice & Review (1 module, 5 lessons)
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (11 tables)
@@ -519,7 +520,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (43 migration files: 42 numbered + 1 test seed)
+## Database Schema (44 migration files: 43 numbered + 1 test seed)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -572,7 +573,10 @@ POST /submit (scoring) | POST /test (no-score)
 | `032_python_variables_math` | 1 | python-variables-math |
 | `034_python_arrays_strings` | 7 | python-arrays-strings |
 | `037_seed_go_fundamentals` | 5 | go-fundamentals |
-| **Total seed problems** | **~203** | |
+| `041_seed_python_mastery` | 14 | python-mastery |
+| `042_seed_python_mastery_games` | 6 | python-mastery-games |
+| `043_seed_python_mastery_practice` | 5 | python-mastery-practice |
+| **Total seed problems** | **~228** | |
 
 ### Storage Rules
 - 500MB hard limit: no JSONB bloat, normalized schema
@@ -971,9 +975,14 @@ npm run build   # Builds static + server components
 
 ### 2026-07-20 — Professional full-codebase re-index (post-45 sessions)
 
-**Pull:** `fd5042b` — 38 files changed, +3612/-732 (3 new: `MultiFileEditor.tsx`, `MultiFileConfigPanel.tsx`, `042_seed_python_mastery_games.sql`)
+**Pull:** `3aef8d2` — 44 migration SQL files, 80 Go source files, ~200 frontend source files
 
-**Re-indexed:** All 78 Go source files, ~195 frontend source files, 43 migration SQL files, all documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with Sessions 41-45, new components, and current migration count.
+**Re-indexed:** All 80 Go source files, ~200 frontend source files, 44 migration SQL files, all 14 documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with migration 043, updated counts, and comprehensive re-index.
+
+**New in this session:**
+- `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review (1 module, 5 lessons)
+- Updated course catalog, course detail, module detail pages with improved LearningCard integration
+- Full codebase re-read and documentation sync
 
 ### 2026-07-17 — Lesson Prerequisite Enforcement + Admin Dependency Picker
 

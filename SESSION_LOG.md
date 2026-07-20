@@ -1439,3 +1439,40 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 ### Verification
 - `go build ./cmd/server/` — clean
 - `npx tsc --noEmit` — 0 errors
+
+---
+
+## Session 46 — 2026-07-20: Full codebase re-index + Python Mastery Practice seed
+
+**Commit:** `3aef8d2`
+
+**New Files:**
+- `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review course (1 module, 5 lessons)
+
+**Modified Files:**
+- `frontend/app/(main)/learn/courses/page.tsx` — Course catalog with improved LearningCard integration
+- `frontend/app/(main)/learn/courses/[courseSlug]/page.tsx` — Course detail page enhancements
+- `frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module detail page updates
+- `frontend/components/ui/learning-card.tsx` — LearningCard component improvements
+
+**What was done:**
+- Full professional codebase re-index: read all 80 Go source files, ~200 frontend source files, 44 migration SQL files, 14 documentation files
+- Updated CLAUDE.md with migration 043 in seed data summary and repository structure
+- Updated CODEBASE_INDEX.md with current counts
+- Added SESSION_LOG.md entry for Session 46
+- Verified `go vet`, `go build`, `go test` (9/9 packages pass) — clean
+
+**Codebase Statistics (current):**
+- Go source files: 80 (49 source + 13 test in internal/, 8 sandbox, 1 cmd)
+- Frontend source files: ~200
+- Migration SQL files: 44 (043 + 999_test)
+- Total seed problems: ~228
+- Go tests: 124+ passing
+- Total LOC: ~52,000
+
+---
+
+### 2026-07-21 — Session 47: Remove Console/Play in Browser from problem workspace
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.

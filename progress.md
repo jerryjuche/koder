@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-17 (Lesson Prerequisite Enforcement)
+**Last updated:** 2026-07-20 (Python Mastery Practice Seed + Full Codebase Re-index)
 
 ---
 
@@ -22,6 +22,7 @@
 | 11 — Hero Card Design Polish | 🟢 Complete | 3 | tsc |
 | 12 — Python Mastery Games Seed | 🟢 Complete | 1 | SQL file saved |
 | 13 — Lesson Prerequisite Enforcement | 🟢 Complete | 8 | go build, tsc --noEmit |
+| 14 — Python Mastery Practice Seed | 🟢 Complete | 1 | SQL file saved |
 
 ---
 
@@ -33,6 +34,13 @@
 |---|---|---|---|---|
 | 12.1 | Write seed SQL migration | `migrations/042_seed_python_mastery_games.sql` | 🟢 | Course + 2 modules + 6 lessons + 5 deps + sections + quizzes + project |
 | 12.2 | Run against database | — | 🟡 | Blocked by Supabase auto-RLS error on `full` table |
+
+### Phase 14: Python Mastery Practice Seed Migration
+
+| # | Task | File | Status | Notes |
+|---|---|---|---|---|
+| 14.1 | Write seed SQL migration | `migrations/043_seed_python_mastery_practice.sql` | 🟢 | Python Mastery Practice & Review: 1 module, 5 lessons |
+| 14.2 | Run against database | — | 🟡 | Blocked by Supabase auto-RLS error |
 
 ### Phase 13: Lesson Prerequisite Enforcement + Admin Dependency Picker
 

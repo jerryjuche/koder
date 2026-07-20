@@ -2,7 +2,7 @@
 
 > Comprehensive, line-level inventory of the zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 >
-> Generated: 2026-07-17 | Branch: `update` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
+> Generated: 2026-07-20 | Branch: `update` | Tests: **124+ passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
 
 ---
 
@@ -16,7 +16,7 @@
 | **Go Module** | `github.com/jerryjuche/koder` (Go 1.26.1) |
 | **Sandbox Go Module** | `github.com/jerryjuche/koder/sandbox` (Go 1.23, **zero external deps**) |
 | **Frontend** | Next.js 15.5.19 + React 19.2.7 + Tailwind CSS 4.1.11 |
-| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 40 migrations |
+| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 44 migrations |
 | **Test Suite** | 126 Go tests + frontend ESLint/TypeScript — 0 failures |
 | **Budget** | $0/month (Oracle Ampere A1 + Supabase Free + Vercel Hobby + Railway Starter) |
 | **Active Branch** | `update` (all Pyodide + curriculum CMS + redesign phases complete) |
@@ -27,15 +27,15 @@
 
 | Category | Files | Lines of Code |
 |---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 49 source + 13 test | **16,852** |
-| **Go Sandbox** (`sandbox/`) | 8 source | **1,185** |
-| **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | 105 | **20,151** |
-| **SQL Migrations** (`migrations/`) | 39 | **~15,000** |
-| **Scripts** (`scripts/`) | 3 | **329** |
-| **Documentation** (`.md`) | 13 | **~7,500** |
-| **Configuration** (root configs, CI, frontend configs) | 12 | **~680** |
+| **Go Backend** (`cmd/` + `internal/`) | 50 source + 13 test | **~17,500** |
+| **Go Sandbox** (`sandbox/`) | 8 source | **1,211** |
+| **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | ~200 | **~20,500** |
+| **SQL Migrations** (`migrations/`) | 44 | **~16,500** |
+| **Scripts** (`scripts/`) | 4 | **~341** |
+| **Documentation** (`.md`) | 14 | **~8,000** |
+| **Configuration** (root configs, CI, frontend configs) | 12 | **~700** |
 | **Public Assets** (images, icons, Monaco workers) | 131 | Binary/~71 KB JS |
-| **Total (tracked source)** | **~210** | **~51,000** |
+| **Total (tracked source)** | **~332** | **~52,000** |
 
 ---
 
@@ -66,7 +66,7 @@ koder/
 │   ├── styles/                             # 3 CSS files (theme, typography, globals)
 │   └── public/                             # Images, Monaco workers, module icons
 │
-├── migrations/                             # SQL schema — 31 migrations
+├── migrations/                             # SQL schema — 44 migrations (043 numbered + 1 test seed)
 ├── scripts/                                # 3 utility scripts
 ├── .github/workflows/ci.yml               # CI pipeline — 4 jobs
 ├── build.sh                                # Cross-compile deployment
@@ -578,7 +578,7 @@ koder/
 | `implementation.md` | 898 | Multi-language 12-phase implementation plan |
 | `CODEBASE_INDEX.md` | (this) | Comprehensive file-by-file codebase index |
 | `CODEBASE_ANALYSIS.md` | 79 | Deep architecture analysis |
-| `SESSION_LOG.md` | 1,380 | Chronological session logbook |
+| `SESSION_LOG.md` | 1,471 | Chronological session logbook |
 | `PROGRESS.txt` | 214 | Multi-language phase completion tracker |
 | `UPDATE_LOG.txt` | 253 | Full changelog since inception |
 
@@ -588,17 +588,17 @@ koder/
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 72 (49 source + 13 test + 10 config/build) |
-| **Go lines of code** | 16,852 |
-| **Frontend source files** | 108 (+3 new: MultiFileConfigPanel, PyodidePreloader, ResizableSplitPane) |
-| **Frontend lines of code** | 20,550 |
-| **SQL migrations** | 39 (15,000+ lines) |
-| **Total tracked source LOC** | ~55,700 |
-| **Go tests** | 126 — all passing |
+| **Go source files** | 80 (50 source + 13 test + 1 cmd + 8 sandbox + 8 config/build) |
+| **Go lines of code** | ~17,500 |
+| **Frontend source files** | ~200 |
+| **Frontend lines of code** | ~20,500 |
+| **SQL migrations** | 44 (16,500+ lines) |
+| **Total tracked source LOC** | ~52,000 |
+| **Go tests** | 124+ — all passing |
 | **API endpoints** | 89+ |
 | **Database tables** | 24 |
 | **Database indexes** | 45+ |
-| **Seed problems** | 198 (185 Go + 13 Python) |
+| **Seed problems** | ~228 (180 Go + 48 Python/curriculum) |
 | **Middleware chain depth** | 11 middleware |
 | **Frontend route groups** | 7 (root, landing, auth, main, problems, legal, oauth) |
 | **Custom components** | 45+ |
@@ -606,7 +606,7 @@ koder/
 | **Public assets** | 131 (images, icons, Monaco workers) |
 | **External Go deps** | 7 direct |
 | **Sandbox external deps** | 0 (stdlib only) |
-| **WebSocket events** | 5 (user.xp.updated, progress.updated, lesson.completed, admin.broadcast.*, admin.publish-all) |
+| **WebSocket events** | 8 (user.xp.updated, progress.updated, lesson.completed, admin.broadcast.*, admin.publish-all, admin.problem.updated, admin.feedback.submitted, broadcast.created/updated/deleted) |
 | **Card design system** | 5 components × 16:9 (LearningCard, 4 admin cards) + 3 natural-height heroes |
 
 ---
