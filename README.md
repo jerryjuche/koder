@@ -963,7 +963,7 @@ ENVIRONMENT=development  # "development" | "production"
 
 # CORS — comma-separated origins
 # Uses ALLOWED_ORIGINS (preferred) or ALLOWED_ORIGIN (legacy)
-# Production: https://koder.sbs,https://www.koder.sbs
+# Production: https://koder.sbs,https://www.koder.sbs,https://staging.koder.sbs,https://update.koder.sbs
 # Development: http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000
 
@@ -981,38 +981,44 @@ RESEND_API_KEY=               # Resend.com API key for transactional emails
 EMAIL_FROM=Koder <noreply@koder.sbs>  # Verified sender in Resend
 
 # Frontend env (in frontend/.env.local)
-# Production: https://api.koder.sbs
-# Development: http://localhost:8080
+# Production (main):     https://api.koder.sbs
+# Production (staging):  https://stagingapi.koder.sbs
+# Development:           http://localhost:8080
 NEXT_PUBLIC_API_URL=http://localhost:8080
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ```
 
 ---
 
-## 12. Production Deployment
+## 12. Production & Preview Deployments
 
-### Domains
-| Service | Domain | Hosting |
-|---|---|---|
-| Frontend | `https://koder.sbs` / `https://www.koder.sbs` | Vercel |
-| Backend API | `https://api.koder.sbs` | Render / Oracle |
-| Sandbox | Railway-deployed Go binary | Railway |
+### Domains by Branch
+| Branch | Frontend | Backend API | Sandbox/Railway |
+|---|---|---|---|
+| **main** | `https://koder.sbs` | `https://api.koder.sbs` | — |
+| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-py.onrender.com` |
+| **update** | `https://update.koder.sbs` | *share staging backend* | *share staging sandbox* |
 
-### Required Environment Variables (Production)
+### Required Backend Environment (Production)
 ```bash
-# Backend
 ENVIRONMENT=production
-FRONTEND_URL=https://koder.sbs
-ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs
-
-# Frontend
-NEXT_PUBLIC_API_URL=https://api.koder.sbs
+FRONTEND_URL=https://koder.sbs                # must match the deploying branch's frontend
+ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sbs,https://update.koder.sbs
 ```
 
+### Required Frontend Environment (per branch)
+| Branch | `NEXT_PUBLIC_API_URL` |
+|---|---|
+| main | `https://api.koder.sbs` |
+| staging | `https://stagingapi.koder.sbs` |
+| update | `https://stagingapi.koder.sbs` |
+
 ### Google Cloud Console
-Add the following to Authorized JavaScript origins:
+Add all frontend origins to Authorized JavaScript origins:
 - `https://koder.sbs`
 - `https://www.koder.sbs`
+- `https://staging.koder.sbs`
+- `https://update.koder.sbs`
 - `http://localhost:3000` (development)
 
 ---
@@ -1174,7 +1180,7 @@ npm run dev                                # Starts on :3000
 
 Server starts on `http://localhost:8080`. Frontend on `http://localhost:3000`.
 
-**Production URLs:** Frontend at `https://koder.sbs`, API at `https://api.koder.sbs`.
+**Production URLs:** Frontend at `https://koder.sbs` (main), `https://staging.koder.sbs` (staging), `https://update.koder.sbs` (update). API at `https://api.koder.sbs` (main), `https://stagingapi.koder.sbs` (staging/preview).
 
 **Note:** The frontend copies Monaco workers on first build via `node scripts/copy-monaco.mjs` (runs automatically in `postinstall` or `build`). See `frontend/README.md` for frontend-specific setup.
 
