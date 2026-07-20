@@ -18,9 +18,29 @@ import {
 } from "lucide-react";
 
 const difficultyMeta = (d: number) => {
-  if (d <= 2) return { label: "Beginner", color: "from-emerald-500 to-green-600", textColor: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-100 dark:bg-emerald-900/30", ringColor: "ring-emerald-500/30" };
-  if (d <= 3) return { label: "Intermediate", color: "from-amber-500 to-orange-600", textColor: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/30", ringColor: "ring-amber-500/30" };
-  return { label: "Advanced", color: "from-red-500 to-rose-600", textColor: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30", ringColor: "ring-red-500/30" };
+  if (d <= 2)
+    return {
+      label: "Beginner",
+      color: "from-emerald-500 to-green-600",
+      textColor: "text-emerald-600 dark:text-emerald-400",
+      bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
+      ringColor: "ring-emerald-500/30",
+    };
+  if (d <= 3)
+    return {
+      label: "Intermediate",
+      color: "from-amber-500 to-orange-600",
+      textColor: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
+      ringColor: "ring-amber-500/30",
+    };
+  return {
+    label: "Advanced",
+    color: "from-red-500 to-rose-600",
+    textColor: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+    ringColor: "ring-red-500/30",
+  };
 };
 
 function detectLanguage(slug: string): Language | undefined {
@@ -39,7 +59,11 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
+  },
 };
 
 export default function CourseDetail() {
@@ -93,10 +117,20 @@ export default function CourseDetail() {
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-destructive" />
         </div>
-        <p className="text-destructive font-medium mb-1">Failed to load course</p>
+        <p className="text-destructive font-medium mb-1">
+          Failed to load course
+        </p>
         <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button
-          onClick={() => { setLoading(true); setError(null); fetchCourse(courseSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load course"); setLoading(false); }); }}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            fetchCourse(courseSlug).then((res) => {
+              if (res.success && res.data) setData(res.data);
+              else setError(res.error?.message ?? "Failed to load course");
+              setLoading(false);
+            });
+          }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           Try again
@@ -112,14 +146,22 @@ export default function CourseDetail() {
           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
         <p className="text-muted-foreground mb-3">Course not found</p>
-        <Link href="/learn/courses" className="text-primary hover:underline font-medium">Back to courses</Link>
+        <Link
+          href="/learn/courses"
+          className="text-primary hover:underline font-medium"
+        >
+          Back to courses
+        </Link>
       </div>
     );
   }
 
   const diff = difficultyMeta(data.difficulty_level);
   const pct = data.progress?.progress_pct ?? 0;
-  const completedText = data.total_lessons > 0 ? `${data.completed_lessons}/${data.total_lessons} lessons` : "";
+  const completedText =
+    data.total_lessons > 0
+      ? `${data.completed_lessons}/${data.total_lessons} lessons`
+      : "";
   const firstIncomplete = data.modules.find((m) => {
     const completed = m.completed_lessons ?? 0;
     const total = m.lesson_count;
@@ -161,6 +203,38 @@ export default function CourseDetail() {
         />
       </motion.div>
 
+      <div className="grid gap-4 sm:grid-cols-3 mb-8">
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            Progress
+          </p>
+          <p className="text-2xl font-semibold">{Math.round(pct)}%</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Overall course progress
+          </p>
+        </div>
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            Lessons
+          </p>
+          <p className="text-2xl font-semibold">
+            {data.completed_lessons}/{data.total_lessons}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {completedText || "Start learning now"}
+          </p>
+        </div>
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            Estimated time
+          </p>
+          <p className="text-2xl font-semibold">{data.estimated_hours}h</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Time to complete course
+          </p>
+        </div>
+      </div>
+
       {/* Modules */}
       <div className="relative">
         <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
@@ -177,7 +251,7 @@ export default function CourseDetail() {
           )}
         </h2>
 
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
@@ -186,7 +260,9 @@ export default function CourseDetail() {
           {data.modules.length === 0 && (
             <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">
               <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">No modules published yet</p>
+              <p className="text-xs text-muted-foreground">
+                No modules published yet
+              </p>
             </div>
           )}
 
@@ -196,14 +272,20 @@ export default function CourseDetail() {
             const modPct = total > 0 ? (completed / total) * 100 : 0;
             const isComplete = modPct >= 100;
             const lang = detectLanguage(mod.slug) ?? detectLanguage(data.slug);
-            const isCurrent = firstIncomplete && mod.id === firstIncomplete.id && !isComplete;
+            const isCurrent =
+              firstIncomplete && mod.id === firstIncomplete.id && !isComplete;
 
-            let status: "locked" | "in-progress" | "completed" | "available" = "available";
+            let status: "locked" | "in-progress" | "completed" | "available" =
+              "available";
             if (isComplete) status = "completed";
             else if (isCurrent) status = "in-progress";
 
             return (
-              <motion.div key={mod.id} variants={itemVariants} className="h-full">
+              <motion.div
+                key={mod.id}
+                variants={itemVariants}
+                className="h-full"
+              >
                 <LearningCard
                   type="module"
                   title={mod.title}
@@ -215,7 +297,9 @@ export default function CourseDetail() {
                   index={idx + 1}
                   meta={{
                     progress: modPct,
-                    count: `${total} lesson${total !== 1 ? 's' : ''}` + (completed > 0 ? ` · ${completed} done` : ''),
+                    count:
+                      `${total} lesson${total !== 1 ? "s" : ""}` +
+                      (completed > 0 ? ` · ${completed} done` : ""),
                   }}
                 />
               </motion.div>

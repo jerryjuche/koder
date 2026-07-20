@@ -18,9 +18,23 @@ import {
 } from "lucide-react";
 
 const difficultyMeta = (d: number) => {
-  if (d <= 2) return { label: "Beginner", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/30 ring-emerald-500/20" };
-  if (d <= 3) return { label: "Intermediate", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/30 ring-amber-500/20" };
-  return { label: "Advanced", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/30 ring-red-500/20" };
+  if (d <= 2)
+    return {
+      label: "Beginner",
+      color:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/30 ring-emerald-500/20",
+    };
+  if (d <= 3)
+    return {
+      label: "Intermediate",
+      color:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/30 ring-amber-500/20",
+    };
+  return {
+    label: "Advanced",
+    color:
+      "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/30 ring-red-500/20",
+  };
 };
 
 function detectLanguage(slug: string): Language | undefined {
@@ -39,7 +53,11 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
+  },
 };
 
 export default function ModuleDetail() {
@@ -74,7 +92,7 @@ export default function ModuleDetail() {
 
   if (loading) {
     return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
+      <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
         <div className="animate-pulse space-y-3">
           <div className="h-4 w-20 bg-muted rounded-lg" />
           <div className="h-24 bg-muted rounded-xl mb-2" />
@@ -94,10 +112,20 @@ export default function ModuleDetail() {
         <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-destructive" />
         </div>
-        <p className="text-destructive font-medium mb-1">Failed to load module</p>
+        <p className="text-destructive font-medium mb-1">
+          Failed to load module
+        </p>
         <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button
-          onClick={() => { setLoading(true); setError(null); fetchModule(courseSlug, moduleSlug).then(res => { if (res.success && res.data) setData(res.data); else setError(res.error?.message ?? "Failed to load module"); setLoading(false); }); }}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            fetchModule(courseSlug, moduleSlug).then((res) => {
+              if (res.success && res.data) setData(res.data);
+              else setError(res.error?.message ?? "Failed to load module");
+              setLoading(false);
+            });
+          }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           Try again
@@ -113,7 +141,10 @@ export default function ModuleDetail() {
           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
         </div>
         <p className="text-muted-foreground mb-3">Module not found</p>
-        <Link href={`/learn/courses/${courseSlug}`} className="text-primary hover:underline font-medium text-sm">
+        <Link
+          href={`/learn/courses/${courseSlug}`}
+          className="text-primary hover:underline font-medium text-sm"
+        >
           Back to course
         </Link>
       </div>
@@ -125,8 +156,11 @@ export default function ModuleDetail() {
   const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
   const firstIncomplete = data.lessons.find((l) => !l.completed);
   const totalXp = data.lessons.reduce((sum, l) => sum + l.xp_reward, 0);
-  const earnedXp = data.lessons.filter((l) => l.completed).reduce((sum, l) => sum + l.xp_reward, 0);
-  const moduleLang = detectLanguage(data.module.slug) ?? detectLanguage(courseSlug);
+  const earnedXp = data.lessons
+    .filter((l) => l.completed)
+    .reduce((sum, l) => sum + l.xp_reward, 0);
+  const moduleLang =
+    detectLanguage(data.module.slug) ?? detectLanguage(courseSlug);
 
   return (
     <div className="max-w-screen-2xl mx-auto px-6 py-10 md:px-8">
@@ -161,6 +195,34 @@ export default function ModuleDetail() {
         />
       </motion.div>
 
+      <div className="grid gap-4 sm:grid-cols-3 mb-8">
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            Lessons
+          </p>
+          <p className="text-2xl font-semibold">
+            {completedCount}/{totalCount}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Finished / total</p>
+        </div>
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            Progress
+          </p>
+          <p className="text-2xl font-semibold">{Math.round(pct)}%</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Module completion
+          </p>
+        </div>
+        <div className="rounded-3xl border border-border bg-card p-4 text-center">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2">
+            XP
+          </p>
+          <p className="text-2xl font-semibold">{earnedXp}</p>
+          <p className="text-xs text-muted-foreground mt-1">Earned so far</p>
+        </div>
+      </div>
+
       {/* Lessons */}
       <div className="relative">
         <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
@@ -182,7 +244,7 @@ export default function ModuleDetail() {
           )}
         </h2>
 
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
@@ -191,29 +253,44 @@ export default function ModuleDetail() {
           {totalCount === 0 && (
             <div className="col-span-full text-center py-8 border-2 border-dashed rounded-xl">
               <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">No lessons published yet</p>
+              <p className="text-xs text-muted-foreground">
+                No lessons published yet
+              </p>
             </div>
           )}
 
           {data.lessons.map((lesson, idx) => {
             const isComplete = lesson.completed;
-            const isCurrent = firstIncomplete && lesson.id === firstIncomplete.id && !isComplete;
+            const isCurrent =
+              firstIncomplete &&
+              lesson.id === firstIncomplete.id &&
+              !isComplete;
             const diff = difficultyMeta(lesson.difficulty);
             const lessonHref = `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lesson.slug}`;
 
             const deps = lesson.dependencies || [];
-            const isLocked = !isComplete && deps.length > 0 && deps.some((d) => {
-              const depLesson = data.lessons.find((l) => l.id === d.depends_on_lesson_id);
-              return depLesson && !depLesson.completed;
-            });
+            const isLocked =
+              !isComplete &&
+              deps.length > 0 &&
+              deps.some((d) => {
+                const depLesson = data.lessons.find(
+                  (l) => l.id === d.depends_on_lesson_id,
+                );
+                return depLesson && !depLesson.completed;
+              });
 
-            let status: "locked" | "in-progress" | "completed" | "available" = "available";
+            let status: "locked" | "in-progress" | "completed" | "available" =
+              "available";
             if (isComplete) status = "completed";
             else if (isLocked) status = "locked";
             else if (isCurrent) status = "in-progress";
 
             return (
-              <motion.div key={lesson.id} variants={itemVariants} className="h-full">
+              <motion.div
+                key={lesson.id}
+                variants={itemVariants}
+                className="h-full"
+              >
                 <LearningCard
                   type="lesson"
                   title={lesson.title}
