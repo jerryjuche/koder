@@ -179,6 +179,11 @@ func (h *CMHandler) GetModuleDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if module.Locked {
+		RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This module is locked by the instructor", nil)
+		return
+	}
+
 	userID := uuid.Nil
 	if claims := GetClaims(r.Context()); claims != nil {
 		userID, _ = uuid.Parse(claims.UserID)
@@ -245,9 +250,14 @@ func (h *CMHandler) GetLessonDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetModuleBySlug(r.Context(), courseSlug, moduleSlug)
+	mod, err := h.store.GetModuleBySlug(r.Context(), courseSlug, moduleSlug)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Module not found", nil)
+		return
+	}
+
+	if mod.Locked {
+		RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This module is locked by the instructor", nil)
 		return
 	}
 
@@ -714,6 +724,29 @@ func (h *CMHandler) ToggleModuleVisibility(w http.ResponseWriter, r *http.Reques
 		}
 		slog.Error("cms: failed to toggle module visibility", "id", moduleID, "error", err)
 		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle visibility", nil)
+		return
+	}
+
+	RespondSuccess(w, mod)
+}
+
+// ToggleModuleLock toggles the locked flag on a module.
+func (h *CMHandler) ToggleModuleLock(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleId")
+	moduleID, err := uuid.Parse(moduleIDStr)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid module ID", nil)
+		return
+	}
+
+	mod, err := h.store.ToggleModuleLock(r.Context(), moduleID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Module not found", nil)
+			return
+		}
+		slog.Error("cms: failed to toggle module lock", "id", moduleID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle lock", nil)
 		return
 	}
 

@@ -220,6 +220,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/modules/{moduleId}", cmHandler.UpdateModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/modules/{moduleId}", cmHandler.DeleteModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/visibility", cmHandler.ToggleModuleVisibility)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/lock", cmHandler.ToggleModuleLock)
 			r.Get("/admin/modules/{moduleId}/lessons", cmHandler.ListLessons)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/modules/{moduleId}/lessons", cmHandler.CreateLesson)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/lessons/{lessonId}", cmHandler.UpdateLesson)

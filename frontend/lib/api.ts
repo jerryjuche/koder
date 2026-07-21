@@ -714,6 +714,12 @@ export async function toggleModuleVisibility(id: string): Promise<ApiResponse<Mo
   });
 }
 
+export async function toggleModuleLock(id: string): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}/lock`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchLessons(moduleId: string): Promise<ApiResponse<Lesson[]>> {
   return fetchApi<Lesson[]>(`/admin/modules/${moduleId}/lessons`);
 }

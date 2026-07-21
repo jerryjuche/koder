@@ -395,6 +395,7 @@ export interface Module {
   image_url?: string;
   order_number: number;
   visible: boolean;
+  locked: boolean;
   created_at: string;
   updated_at: string;
   lessons?: Lesson[];

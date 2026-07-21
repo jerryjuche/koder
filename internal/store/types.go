@@ -444,6 +444,7 @@ type Module struct {
 	ImageURL    *string     `db:"image_url" json:"image_url,omitempty"`
 	OrderNumber int         `db:"order_number" json:"order_number"`
 	Visible     bool        `db:"visible" json:"visible"`
+	Locked      bool        `db:"locked" json:"locked"`
 	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
 }

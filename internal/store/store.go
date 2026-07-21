@@ -185,6 +185,7 @@ type Store interface {
 	UpdateModule(ctx context.Context, module *Module) (*Module, error)
 	DeleteModule(ctx context.Context, id uuid.UUID) error
 	ToggleModuleVisibility(ctx context.Context, id uuid.UUID) (*Module, error)
+	ToggleModuleLock(ctx context.Context, id uuid.UUID) (*Module, error)
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)

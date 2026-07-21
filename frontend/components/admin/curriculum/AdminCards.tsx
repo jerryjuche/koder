@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, Layers, FileText, Beaker, Clock, Zap, Eye, EyeOff,
-  Edit3, Trash2, GripVertical, ChevronRight, ChevronDown,
+  Edit3, Trash2, GripVertical, ChevronRight, ChevronDown, Lock, LockOpen,
 } from "lucide-react";
 import type { Course, Module, Lesson, Project } from "@/lib/types";
 
@@ -169,10 +169,11 @@ interface AdminModuleCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleVisibility: () => void;
+  onToggleLock: () => void;
 }
 
 export function AdminModuleCard({
-  mod, isSelected, onSelect, onEdit, onDelete, onToggleVisibility,
+  mod, isSelected, onSelect, onEdit, onDelete, onToggleVisibility, onToggleLock,
 }: AdminModuleCardProps) {
 
   return (
@@ -199,19 +200,34 @@ export function AdminModuleCard({
       <div className={cn(
         "h-1 transition-all duration-300",
         isSelected ? "bg-gradient-to-r from-primary via-primary/80 to-primary/40" : "bg-gradient-to-r from-muted/40 via-muted/20 to-transparent",
+        mod.locked && "from-amber-500/60 via-amber-500/30 to-transparent",
       )} />
 
       <div className="aspect-[16/9] p-3.5 flex flex-col justify-center items-center text-center relative">
+        {mod.locked && (
+          <div className="absolute inset-0 bg-amber-950/10 dark:bg-amber-950/20 rounded-xl flex items-center justify-center">
+            <Lock className="h-6 w-6 text-amber-500/60" />
+          </div>
+        )}
         <div className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
           isSelected ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground",
+          mod.locked && "opacity-40",
         )}>
           <Layers className="h-4 w-4" />
         </div>
-        <span className="text-xs font-medium truncate max-w-full">{mod.title}</span>
-        {!mod.visible && (
-          <Badge variant="outline" className="mt-1 text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400">Draft</Badge>
-        )}
+        <span className={cn(
+          "text-xs font-medium truncate max-w-full",
+          mod.locked && "opacity-40",
+        )}>{mod.title}</span>
+        <div className="flex gap-1 mt-1">
+          {!mod.visible && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0 border-red-300 text-red-500 dark:border-red-800 dark:text-red-400">Draft</Badge>
+          )}
+          {mod.locked && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-400 text-amber-500 dark:border-amber-600 dark:text-amber-400">Locked</Badge>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
@@ -225,6 +241,16 @@ export function AdminModuleCard({
           title={mod.visible ? "Hide module" : "Publish module"}
         >
           {mod.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleLock(); }}
+          className={cn(
+            "p-1 rounded-md transition-colors duration-150",
+            mod.locked ? "text-amber-400 hover:bg-amber-500/15" : "text-muted-foreground hover:bg-muted/60",
+          )}
+          title={mod.locked ? "Unlock module" : "Lock module"}
+        >
+          {mod.locked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
