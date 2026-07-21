@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats } from '@/lib/api';
@@ -218,15 +218,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Navigation links */}
-      <div className="flex gap-3 items-center">
-        <a href="/admin/curriculum" className="text-sm text-brand-muted-gold hover:text-brand-offwhite underline underline-offset-4 transition-colors">
-          Curriculum Manager &rarr;
-        </a>
-      </div>
-
       {/* Top Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <a href="/admin/curriculum" className="bg-brand-charcoal-card border border-amber-600/30 hover:border-amber-500/60 rounded-2xl p-6 block transition-all duration-200 hover:-translate-y-0.5 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+              <BookOpen size={18} className="text-amber-400" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400/80">Curriculum</span>
+          </div>
+          <div className="text-lg font-bold text-brand-offwhite mb-0.5 group-hover:text-amber-300 transition-colors">Module Manager</div>
+          <div className="text-xs text-brand-offwhite-muted/70">Lock, unlock, and manage modules</div>
+        </a>
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <FileText size={20} className="text-brand-muted-gold mb-4" />
           <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_problems || 0}</div>
