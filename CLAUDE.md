@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 80 Go source files, ~200 frontend source files, 45 migration SQL files — ~52,200 LOC total
+- **Codebase:** 78 Go source files, ~280 frontend source files, 46 migration SQL files — ~72,000 LOC total
 
 ---
 

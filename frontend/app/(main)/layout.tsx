@@ -1,7 +1,7 @@
 import React from 'react';
 import TopNav from '@/components/layout/TopNav';
 import BroadcastBanner from '@/components/BroadcastBanner';
-import FeedbackButton from '@/components/FeedbackButton';
+import FeedbackButtonWrapper from '@/components/FeedbackButtonWrapper';
 import PyodidePreloader from '@/components/PyodidePreloader';
 import { UserProvider } from '@/lib/UserContext';
 
@@ -14,7 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <BroadcastBanner />
           {children}
         </main>
-        <FeedbackButton />
+        <FeedbackButtonWrapper />
         <PyodidePreloader />
       </div>
     </UserProvider>

@@ -40,12 +40,16 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   const router = useRouter();
   const { slug } = React.use(params);
 
-  // Check if user came from a lesson
+  // Consume-and-remove: ensures lesson context only shows if user actually
+  // navigated from a lesson to this specific problem. Prevents stale context
+  // from a previous lesson visit bleeding into direct problem solves.
   const lessonContext = typeof window !== "undefined"
     ? (() => {
         try {
           const raw = sessionStorage.getItem("koder_lesson_context");
-          return raw ? JSON.parse(raw) : null;
+          if (!raw) return null;
+          sessionStorage.removeItem("koder_lesson_context");
+          return JSON.parse(raw);
         } catch { return null; }
       })()
     : null;
@@ -113,11 +117,17 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         }
 
         if (currentProb && allProblems) {
-          const moduleProblems = allProblems.filter(
-            (p) => p.module === currentProb!.module && p.id !== currentProb!.id,
+          const others = allProblems.filter((p) => p.id !== currentProb!.id);
+          const sameModule = others.filter(
+            (p) => p.module === currentProb!.module,
           );
-          const unsolved = moduleProblems.find((p) => !p.solved);
-          setNextProblem(unsolved || moduleProblems[0] || null);
+          const unsolvedInModule = sameModule.find((p) => !p.solved);
+          if (unsolvedInModule) {
+            setNextProblem(unsolvedInModule);
+          } else {
+            const anyUnsolved = others.find((p) => !p.solved);
+            setNextProblem(anyUnsolved || sameModule[0] || others[0] || null);
+          }
         }
       } catch (err) {
         console.error("Failed to load success page data", err);
