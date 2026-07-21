@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-20 (Python Mastery Practice Seed + Full Codebase Re-index)
+**Last updated:** 2026-07-21 (Problem Module Locks + Admin Panel + Locked Module UI)
 
 ---
 
@@ -23,6 +23,7 @@
 | 12 — Python Mastery Games Seed | 🟢 Complete | 1 | SQL file saved |
 | 13 — Lesson Prerequisite Enforcement | 🟢 Complete | 8 | go build, tsc --noEmit |
 | 14 — Python Mastery Practice Seed | 🟢 Complete | 1 | SQL file saved |
+| 15 — Problem Module Locks | 🟢 Complete | 12 | go build, tsc --noEmit |
 
 ---
 
@@ -54,6 +55,27 @@
 | 13.6 | Lesson viewer locked overlay | `frontend/.../LessonViewerClient.tsx` | 🟢 | Amber lock UI, lists unmet deps, Back to Module button |
 | 13.7 | Sidebar locked state | `frontend/.../LessonSidebar.tsx` | 🟢 | Lock icon, opacity-50, non-clickable for locked lessons |
 | 13.8 | Admin dependency picker | `frontend/app/(main)/admin/curriculum/page.tsx` | 🟢 | Search, checkbox multi-select, pill badges, auto-save |
+
+### Phase 15: Problem Module Locks
+
+| # | Task | File | Status | Notes |
+|---|---|---|---|---|
+| 15.1 | Write migration SQL | `migrations/045_add_module_locks.sql` | 🟢 | module_locks table (module_name PK, created_at) |
+| 15.2 | Add Go types + store functions | `internal/store/module_locks.go` | 🟢 | ListLockedModules, ToggleProblemModuleLock, IsModuleLocked |
+| 15.3 | Store interface methods | `internal/store/store.go` | 🟢 | 3 new methods |
+| 15.4 | Admin API handlers | `internal/api/admin.go` | 🟢 | ListProblemModuleLocks + ToggleProblemModuleLock |
+| 15.5 | Router registration | `internal/api/router.go` | 🟢 | GET + POST routes |
+| 15.6 | Backend enforcement | `internal/api/problems.go`, `internal/store/users.go` | 🟢 | ListVisibleProblems filters, GetProblemBySlug 403, GetModuleProficiency NOT EXISTS |
+| 15.7 | Frontend API + types | `frontend/lib/api.ts`, `frontend/lib/types.ts` | 🟢 | fetchModuleLocks, toggleProblemModuleLock, ModuleLock interface |
+| 15.8 | Admin module lock panel | `frontend/app/(main)/admin/page.tsx` | 🟢 | Lock/unlock toggle buttons for all problem categories |
+| 15.9 | ModuleCards padlock UI | `frontend/components/dashboard/ModuleCards.tsx` | 🟢 | Amber padlock overlay + disabled click on locked modules |
+| 15.10 | Home page integration | `frontend/app/(main)/home/page.tsx` | 🟢 | Fetches module locks alongside problems, passes to ModuleCards |
+
+### Also in this session:
+- Paragraph spacing fix: `[&_p]:mb-3` for visible paragraph breaks in problem statement markdown
+- Saved code restore fix: always restores saved code when found, regardless of initial state
+- Curriculum module lock (migration `044_add_module_locked.sql`): lock/unlock API, amber badge on AdminModuleCard, backend 403 enforcement
+- Curriculum Manager card added to admin dashboard
 
 ### Phase 1: Database Migration & Go Types
 

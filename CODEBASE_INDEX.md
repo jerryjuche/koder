@@ -2,7 +2,7 @@
 
 > Comprehensive, line-level inventory of the zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 >
-> Generated: 2026-07-20 | Branch: `update` | Tests: **124+ passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
+> Generated: 2026-07-21 | Branch: `update` | Tests: **124+ passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
 
 ---
 
@@ -16,7 +16,7 @@
 | **Go Module** | `github.com/jerryjuche/koder` (Go 1.26.1) |
 | **Sandbox Go Module** | `github.com/jerryjuche/koder/sandbox` (Go 1.23, **zero external deps**) |
 | **Frontend** | Next.js 15.5.19 + React 19.2.7 + Tailwind CSS 4.1.11 |
-| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 44 migrations |
+| **Database** | PostgreSQL 15 (Supabase, 500MB) — 25 tables, 45 migrations |
 | **Test Suite** | 126 Go tests + frontend ESLint/TypeScript — 0 failures |
 | **Budget** | $0/month (Oracle Ampere A1 + Supabase Free + Vercel Hobby + Railway Starter) |
 | **Active Branch** | `update` (all Pyodide + curriculum CMS + redesign phases complete) |
@@ -30,12 +30,12 @@
 | **Go Backend** (`cmd/` + `internal/`) | 50 source + 13 test | **~17,500** |
 | **Go Sandbox** (`sandbox/`) | 8 source | **1,211** |
 | **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | ~200 | **~20,500** |
-| **SQL Migrations** (`migrations/`) | 44 | **~16,500** |
+| **SQL Migrations** (`migrations/`) | 45 | **~16,600** |
 | **Scripts** (`scripts/`) | 4 | **~341** |
 | **Documentation** (`.md`) | 14 | **~8,000** |
 | **Configuration** (root configs, CI, frontend configs) | 12 | **~700** |
 | **Public Assets** (images, icons, Monaco workers) | 131 | Binary/~71 KB JS |
-| **Total (tracked source)** | **~332** | **~52,000** |
+| **Total (tracked source)** | **~333** | **~52,200** |
 
 ---
 
@@ -53,7 +53,7 @@ koder/
 │   ├── enricher/                           # AI test generation — 2 files, 979 lines
 │   ├── executor/                           # Code execution engine — 7 files, 2,326 lines
 │   ├── parser/                             # GitHub YAML curriculum parser — 2 files, 717 lines
-│   └── store/                              # Database access layer — 19 files, 4,497 lines
+│   └── store/                              # Database access layer — 20 files, 4,550 lines
 │
 ├── sandbox/                                # Remote execution service (Railway)
 │   └── 8 source files, 1,185 lines, zero external deps
@@ -66,7 +66,7 @@ koder/
 │   ├── styles/                             # 3 CSS files (theme, typography, globals)
 │   └── public/                             # Images, Monaco workers, module icons
 │
-├── migrations/                             # SQL schema — 44 migrations (043 numbered + 1 test seed)
+├── migrations/                             # SQL schema — 45 migrations (044 numbered + 1 test seed)
 ├── scripts/                                # 3 utility scripts
 ├── .github/workflows/ci.yml               # CI pipeline — 4 jobs
 ├── build.sh                                # Cross-compile deployment
@@ -185,6 +185,7 @@ koder/
 | `profile.go` | 112 | GetFullProfile (rank/XP/stars), GetModuleProficiency, GetRecentSubmissions, GetSolvedCount/Streak |
 | `token_blacklist.go` | 33 | AddToBlacklist, IsBlacklisted, expired cleanup |
 | `password_reset.go` | 48 | CreateResetToken, ValidateResetToken, MarkTokenUsed |
+| `module_locks.go` | 65 | Problem module locks: ListLockedModules, ToggleProblemModuleLock, IsModuleLocked |
 
 ---
 
@@ -452,6 +453,8 @@ koder/
 | `036_refresh_tokens.sql` | — | refresh_tokens table |
 | `037_seed_go_fundamentals.sql` | — | 5 Go fundamentals problems |
 | `038_curriculum_cms.sql` | — | 8 tables: courses→modules→lessons→sections+projects+deps+progress |
+| `044_add_module_locked.sql` | — | Adds locked BOOLEAN to modules table (curriculum lock/unlock) |
+| `045_add_module_locks.sql` | — | Creates module_locks table (problem category locking) |
 
 ### 7.2 Seed Migrations
 
@@ -592,8 +595,8 @@ koder/
 | **Go lines of code** | ~17,500 |
 | **Frontend source files** | ~200 |
 | **Frontend lines of code** | ~20,500 |
-| **SQL migrations** | 44 (16,500+ lines) |
-| **Total tracked source LOC** | ~52,000 |
+| **SQL migrations** | 45 (16,600+ lines) |
+| **Total tracked source LOC** | ~52,200 |
 | **Go tests** | 124+ — all passing |
 | **API endpoints** | 89+ |
 | **Database tables** | 24 |
@@ -629,3 +632,4 @@ koder/
 | ADR-012 | Bulk lesson dependency query via `ANY($1)` | Single query fetches deps for all lessons in a module; avoids N+1 per-lesson queries |
 | ADR-013 | Client-side dependency locking | Compute locked state in frontend from `dependencies[]` + completion; avoids extra backend calls; enables instant UI feedback |
 | ADR-014 | Public lesson detail endpoint for admin dep picker | Admin CMS fetches current deps via existing `GET /learn/lessons/{slug}` instead of adding a separate admin endpoint |
+| ADR-015 | Separate module lock systems (curriculum + problem) | Curriculum modules lock via `locked` column; problem categories lock via `module_locks` table — two different systems for two different "module" concepts, avoids overloading the `modules` table with category data |

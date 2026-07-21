@@ -1476,3 +1476,35 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 
 **Files modified:**
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.
+
+---
+
+### 2026-07-21 — Session 48: Problem module locks + admin lock panel + locked module UI
+
+**Commits:** `02aa051`
+
+**Problem module lock system (full stack):**
+- `migrations/045_add_module_locks.sql` — `module_locks` table (module_name TEXT PK, created_at TIMESTAMPTZ)
+- `internal/store/module_locks.go` — 3 store functions: `ListLockedModules`, `ToggleProblemModuleLock`, `IsModuleLocked`
+- `internal/store/types.go` — `ModuleLock` struct (ModuleName, CreatedAt)
+- `internal/api/admin.go` — `ListProblemModuleLocks` (GET) + `ToggleProblemModuleLock` (POST) handlers
+- `internal/api/router.go` — Route registration for GET + POST /admin/module-locks
+- `internal/api/problems.go` — `ListVisibleProblems` filters out locked modules; `GetProblemBySlug` returns 403 `MODULE_LOCKED`
+- `internal/store/users.go` — `GetModuleProficiency` excludes locked modules via `NOT EXISTS` subquery
+
+**Admin frontend:**
+- `frontend/app/(main)/admin/page.tsx` — Module Locks panel: fetches locks alongside stats, per-module lock/unlock buttons with Lock/LockOpen icons, amber styling, toast feedback
+
+**Student-facing UI:**
+- `frontend/components/dashboard/ModuleCards.tsx` — New `lockedModules: Set<string>` prop; amber padlock overlay; `cursor-not-allowed opacity-60` with `disabled={isLocked}`
+- `frontend/app/(main)/home/page.tsx` — Fetches `fetchModuleLocks()` alongside problems, passes `lockedModules` to ModuleCards
+
+**Bug fixes:**
+- Paragraph spacing: `[&_p]:mb-3` on problem statement prose container
+- Saved code restore: always restores saved code when found, regardless of initial state
+
+**Curriculum module lock (carried from prior sub-session):**
+- `migrations/044_add_module_locked.sql` — `locked BOOLEAN` on `modules` table
+- `internal/api/cms.go` — `ToggleModuleLock` handler, 403 on locked module detail
+- `frontend/components/learn/admin/AdminCards.tsx` — amber badge + lock/unlock button on AdminModuleCard
+- `frontend/app/(main)/admin/page.tsx` — Curriculum Manager card added to admin dashboard

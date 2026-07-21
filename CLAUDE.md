@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 80 Go source files, ~200 frontend source files, 44 migration SQL files — ~52,000 LOC total
+- **Codebase:** 80 Go source files, ~200 frontend source files, 45 migration SQL files — ~52,200 LOC total
 
 ---
 
@@ -52,6 +52,7 @@ koder/
 │   │   ├── test.go                            # POST /test (no-scoring execution, ExecuteVisibleOnly)
 │   │   ├── admin.go                           # Admin: ingest, enrich, enrich-all, stats, publish
 │   │   │                                        AI assist, user search/verify, visibility, update
+│   │   │                                        List/ Toggle problem module locks
 │   │   ├── leaderboard.go                     # GET /leaderboard?period= (30s cache)
 │   │   ├── profile.go                         # GET/PUT /me/profile (30s cache, stored procedure)
 │   │   ├── community.go                       # GET community solutions, best-practices
@@ -134,6 +135,7 @@ koder/
 │   │   ├── refresh_tokens.go                   # Token rotation (SHA-256 hash, revoke/revoke-all)
 │   │   ├── ai_usage.go                         # LogAIUsage, GetAIUsageStats (graceful on missing table)
 │   │   ├── password_reset.go                   # Create/Get/MarkUsed/Cleanup reset tokens
+│   │   ├── module_locks.go                     # Problem module locks: List/Toggle/IsLocked
 │   │   └── errors_test.go, types_test.go, users_test.go
 │   ├── executor/                              # Code execution engine (8 files, ~2400 lines)
 │   │   ├── executor.go                        # Execute/ExecuteVisibleOnly (semaphore=6)
@@ -294,7 +296,7 @@ koder/
 │   │   ├── base/avatar/avatar.tsx             # src/initials fallback, sizes sm/md/lg/xl/podium
 │   │   │                                        Verified gold badge (SVG circle + checkmark)
 │   │   ├── base/input/pin-input.tsx           # OTP PIN input with mask
-│   │   ├── dashboard/ModuleCards.tsx          # Image grid, skeleton, WebP
+│   │   ├── dashboard/ModuleCards.tsx          # Image grid, skeleton, WebP, locked module padlock overlay
 │   │   ├── kibo-ui/
 │   │   │   ├── code-block/index.tsx           # Shiki syntax highlighting (dark mode fix)
 │   │   │   ├── code-block/server.tsx          # Server-side rendering
@@ -366,7 +368,7 @@ koder/
 │   ├── security_message_test.go               # 3 test cases
 │   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
 │   └── go.mod                                 # Zero external deps
-├── migrations/                                # 44 migration files (43 numbered + 1 test seed)
+├── migrations/                                # 45 migration files (44 numbered + 1 test seed)
 │   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
 │   ├── 002_indexes.sql                        # 12 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
@@ -520,7 +522,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (44 migration files: 43 numbered + 1 test seed)
+## Database Schema (45 migration files: 44 numbered + 1 test seed)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -730,6 +732,7 @@ POST /submit (scoring) | POST /test (no-score)
 | PUT | /admin/modules/{moduleId} | `cms.go:UpdateModule` | Update module |
 | DELETE | /admin/modules/{moduleId} | `cms.go:DeleteModule` | Delete module |
 | PATCH | /admin/modules/{moduleId}/visibility | `cms.go:ToggleModuleVisibility` | Toggle module visibility |
+| PATCH | /admin/modules/{moduleId}/lock | `cms.go:ToggleModuleLock` | Toggle curriculum module lock (amber badge + 403 enforcement) |
 | GET | /admin/modules/{moduleId}/lessons | `cms.go:ListLessons` | List lessons for module |
 | POST | /admin/modules/{moduleId}/lessons | `cms.go:CreateLesson` | Create lesson with sections + dependencies |
 | PUT | /admin/lessons/{lessonId} | `cms.go:UpdateLesson` | Update lesson |
@@ -747,6 +750,8 @@ POST /submit (scoring) | POST /test (no-score)
 | PUT | /admin/projects/{projectId} | `cms.go:UpdateProject` | Update project |
 | DELETE | /admin/projects/{projectId} | `cms.go:DeleteProject` | Delete project |
 | PATCH | /admin/projects/{projectId}/visibility | `cms.go:ToggleProjectVisibility` | Toggle project visibility |
+| GET | /admin/module-locks | `admin.go:ListProblemModuleLocks` | List all locked problem modules |
+| POST | /admin/module-locks/{moduleName} | `admin.go:ToggleProblemModuleLock` | Toggle problem module lock (insert/delete) |
 
 ### Utility (no auth)
 | Method | Path | Handler | Description |
@@ -973,11 +978,29 @@ npm run build   # Builds static + server components
 
 ## Session Log
 
+### 2026-07-21 — Problem module locks + admin lock panel + locked module UI
+
+**Commits:** `02aa051`
+
+**Problem module lock system:**
+- Migration `045_add_module_locks.sql` — `module_locks` table (module_name PK, created_at)
+- `internal/store/module_locks.go` — ListLockedModules, ToggleProblemModuleLock, IsModuleLocked
+- Backend enforcement: ListVisibleProblems filters locked modules; GetProblemBySlug returns 403 MODULE_LOCKED; GetModuleProficiency excludes via NOT EXISTS
+- Admin dashboard: module lock panel with lock/unlock toggle buttons for all problem categories
+- ModuleCards: amber padlock overlay + disabled click on locked modules
+- Home page: fetches locked modules alongside problems, passes to ModuleCards
+
+**Also:**
+- Paragraph spacing fix: `[&_p]:mb-3` for visible paragraph breaks in problem statement markdown
+- Saved code restore fix: always restores saved code when found, regardless of initial state
+- Curriculum module lock (previous session): migration `044_add_module_locked.sql`, lock/unlock API, amber badge on AdminModuleCard, backend 403 enforcement
+- Curriculum Manager card added to admin dashboard
+
 ### 2026-07-20 — Professional full-codebase re-index (post-45 sessions)
 
-**Pull:** `3aef8d2` — 44 migration SQL files, 80 Go source files, ~200 frontend source files
+**Pull:** `3aef8d2` — 45 migration SQL files, 80 Go source files, ~200 frontend source files
 
-**Re-indexed:** All 80 Go source files, ~200 frontend source files, 44 migration SQL files, all 14 documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with migration 043, updated counts, and comprehensive re-index.
+**Re-indexed:** All 80 Go source files, ~200 frontend source files, 45 migration SQL files, all 14 documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with migration 043, updated counts, and comprehensive re-index.
 
 **New in this session:**
 - `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review (1 module, 5 lessons)
@@ -1063,7 +1086,7 @@ npm run build   # Builds static + server components
 
 ### 2026-07-14 — Professional full-codebase re-index (curriculum-cms)
 
-- Read and indexed all 83 Go source files, all 105 frontend files, all 39 migration SQL files
+- Read and indexed all 83 Go source files, all 105 frontend files, all 40 migration SQL files
 - Updated CLAUDE.md with complete Curriculum CMS architecture, all ~89 API endpoints
 - `go vet`, `go test (8/8)`, ESLint, `tsc --noEmit` all clean
 
