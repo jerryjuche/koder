@@ -508,17 +508,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       if (res.success) {
         clearCache(`/problems/${problem.slug}`);
         toast.success("Problem updated successfully");
-        setProblem({
-          ...problem,
-          title: payload.title ?? problem.title,
-          statement: payload.statement ?? problem.statement,
-          difficulty: payload.difficulty ?? problem.difficulty,
-          xpReward: payload.xp_reward ?? problem.xpReward,
-          tags: payload.tags ?? problem.tags,
-          module: payload.module ?? problem.module,
-          constraints: payload.constraints ?? problem.constraints,
-          learningObjective: payload.learning_objective ?? problem.learningObjective,
-        });
+        if (res.data) {
+          setProblem(res.data);
+        }
         setEditOpen(false);
       } else {
         toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
