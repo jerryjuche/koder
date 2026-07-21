@@ -209,6 +209,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 
+			// Problem module locks
+			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/module-locks/{moduleName}", adminHandler.ToggleProblemModuleLock)
+
 			// Curriculum CMS — admin endpoints
 			r.Get("/admin/courses", cmHandler.ListAllCourses)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses", cmHandler.CreateCourse)

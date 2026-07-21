@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -226,10 +226,11 @@ function displayName(slug: string): string {
 interface ModuleCardsProps {
   modules: string[];
   moduleProgress: Record<string, { solved: number; total: number }>;
+  lockedModules: Set<string>;
   onSelect: (module: string) => void;
 }
 
-export default React.memo(function ModuleCards({ modules, moduleProgress, onSelect }: ModuleCardsProps) {
+export default React.memo(function ModuleCards({ modules, moduleProgress, lockedModules, onSelect }: ModuleCardsProps) {
   if (modules.length === 0) {
     return (
       <Card className="p-12 text-center border-dashed border-border/50 bg-card/50">
@@ -252,12 +253,17 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
         const total = progress?.total ?? 0;
         const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
         const isComplete = solved > 0 && solved === total;
+        const isLocked = lockedModules.has(mod);
 
         return (
           <button
             key={mod}
-            onClick={() => onSelect(mod)}
-            className="group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
+            onClick={() => { if (!isLocked) onSelect(mod); }}
+            disabled={isLocked}
+            className={cn(
+              "group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl",
+              isLocked && "cursor-not-allowed opacity-60",
+            )}
           >
             <Card
               style={{ animationDelay: `${i * 60}ms` }}
@@ -271,6 +277,13 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
               <div className="relative">
                 <ModuleImage src={meta.image} alt={name} initial={name[0]} />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
+                {isLocked && (
+                  <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-[1px] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                      <Lock size={20} className="text-amber-400" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <CardHeader className="p-5 pb-2 relative z-10">

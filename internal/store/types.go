@@ -485,6 +485,12 @@ type LessonPrereq struct {
 	DependsOnLessonID pgtype.UUID `json:"depends_on_lesson_id"`
 }
 
+// ModuleLock represents a locked problem module (text category).
+type ModuleLock struct {
+	ModuleName string    `db:"module_name" json:"module_name"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
 // Project represents a hands-on coding project linked to a lesson.
 type Project struct {
 	ID           pgtype.UUID `db:"id" json:"id"`

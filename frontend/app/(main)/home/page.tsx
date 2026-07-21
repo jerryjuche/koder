@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -55,6 +55,7 @@ import { Avatar } from "@/components/base/avatar/avatar";
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [lockedModules, setLockedModules] = useState<Set<string>>(new Set());
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +83,8 @@ export default function Dashboard() {
     const loadData = () => {
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20)]).then(
-        ([probRes, userRes, bpRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks()]).then(
+        ([probRes, userRes, bpRes, locksRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -91,6 +92,9 @@ export default function Dashboard() {
           }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
+          if (locksRes.success && locksRes.data) {
+            setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
+          }
           setLoading(false);
         }
       );
@@ -318,6 +322,7 @@ export default function Dashboard() {
                 <ModuleCards
                   modules={modules}
                   moduleProgress={moduleProgress}
+                  lockedModules={lockedModules}
                   onSelect={handleSelectModule}
                 />
               )}

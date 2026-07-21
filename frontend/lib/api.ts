@@ -820,4 +820,22 @@ export async function updateLessonDependencies(lessonId: string, dependencyIds: 
   });
 }
 
+// ── Problem module locks ──
+
+export interface ModuleLock {
+  module_name: string;
+  locked?: boolean;
+  created_at?: string;
+}
+
+export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
+  return fetchApi<ModuleLock[]>("/admin/module-locks");
+}
+
+export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
+  return fetchApi<ModuleLock>(`/admin/module-locks/${encodeURIComponent(moduleName)}`, {
+    method: "POST",
+  });
+}
+
 
