@@ -550,32 +550,32 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href={`/home?module=${encodeURIComponent(problem.module)}`}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
+            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
           >
             <ChevronLeft size={16} /> Problems
           </Link>
-          <div className="w-px h-5 bg-brand-charcoal-border"></div>
-          <div className="flex items-center gap-3">
-            <span className="font-bold">{problem.title}</span>
+          <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-bold truncate">{problem.title}</span>
             <span
               className={cn(
-                "text-xs font-bold",
+                "text-xs font-bold shrink-0",
                 getDifficultyColor(problem.difficulty),
               )}
             >
               {getDifficultyLabel(problem.difficulty)}
             </span>
             
-            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
+            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold bg-brand-muted-gold/10 px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 mr-2">
             <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
