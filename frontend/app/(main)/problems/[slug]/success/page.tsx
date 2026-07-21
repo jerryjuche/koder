@@ -23,6 +23,7 @@ import {
   LayoutDashboard,
   Trophy,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +39,17 @@ import { toast } from "@/lib/toast";
 export default function SuccessPage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const { slug } = React.use(params);
+
+  // Check if user came from a lesson
+  const lessonContext = typeof window !== "undefined"
+    ? (() => {
+        try {
+          const raw = sessionStorage.getItem("koder_lesson_context");
+          return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+      })()
+    : null;
+  const isFromLesson = lessonContext?.courseSlug && lessonContext?.lessonSlug;
 
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
@@ -209,14 +221,32 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
-          <Link
-            href={`/home?module=${encodeURIComponent(problem.module)}`}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
-          >
-            <LayoutDashboard size={18} />
-            Back to Dashboard
-          </Link>
-          {nextProblem ? (
+          {isFromLesson ? (
+            <Link
+              href={`/learn/courses/${lessonContext.courseSlug}/modules/${lessonContext.moduleSlug}/lessons/${lessonContext.lessonSlug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
+            >
+              <BookOpen size={18} />
+              Back to Lesson
+            </Link>
+          ) : (
+            <Link
+              href={`/home?module=${encodeURIComponent(problem.module)}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
+            >
+              <LayoutDashboard size={18} />
+              Back to Dashboard
+            </Link>
+          )}
+          {isFromLesson ? (
+            <Link
+              href={`/learn/courses/${lessonContext.courseSlug}/modules/${lessonContext.moduleSlug}/lessons/${lessonContext.lessonSlug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+            >
+              Continue Lesson
+              <ArrowRight size={18} />
+            </Link>
+          ) : nextProblem ? (
             <Link
               href={`/problems/${nextProblem.slug}`}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"

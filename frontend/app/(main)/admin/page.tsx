@@ -218,6 +218,13 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Navigation links */}
+      <div className="flex gap-3 items-center">
+        <a href="/admin/curriculum" className="text-sm text-brand-muted-gold hover:text-brand-offwhite underline underline-offset-4 transition-colors">
+          Curriculum Manager &rarr;
+        </a>
+      </div>
+
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">

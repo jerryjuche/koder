@@ -368,3 +368,236 @@ export interface UserSearchResult {
   google_avatar_url?: string;
   created_at: string;
 }
+
+// ── Curriculum CMS Types ──
+
+export interface Course {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  image_url?: string;
+  icon?: string;
+  difficulty_level: number;
+  estimated_hours: number;
+  order_number: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Module {
+  id: string;
+  course_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  image_url?: string;
+  order_number: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+  lessons?: Lesson[];
+  lesson_count?: number;
+  completed_lessons?: number;
+}
+
+export interface Lesson {
+  id: string;
+  module_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  raw_readme: string;
+  difficulty: number;
+  estimated_minutes: number;
+  xp_reward: number;
+  order_number: number;
+  visible: boolean;
+  problem_references: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LessonSection {
+  id: string;
+  lesson_id: string;
+  section_type: SectionType;
+  title: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  order_number: number;
+  created_at: string;
+}
+
+export type SectionType =
+  | "overview"
+  | "explanation"
+  | "examples"
+  | "best_practices"
+  | "common_mistakes"
+  | "summary"
+  | "quiz"
+  | "exercises"
+  | "mini_project"
+  | "assessment"
+  | "ai_review";
+
+export interface LessonPrereq {
+  lesson_id: string;
+  depends_on_lesson_id: string;
+}
+
+export interface Project {
+  id: string;
+  lesson_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  requirements: string;
+  starter_code: string;
+  difficulty: number;
+  xp_reward: number;
+  hints: string[];
+  order_number: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseProgress {
+  user_id: string;
+  course_id: string;
+  started_at: string;
+  completed_at?: string;
+  progress_pct: number;
+}
+
+export interface LessonProgress {
+  user_id: string;
+  lesson_id: string;
+  completed: boolean;
+  xp_awarded: number;
+  completed_at?: string;
+}
+
+export interface QuizMetadata {
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+}
+
+export interface CourseWithModules {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  image_url?: string;
+  icon?: string;
+  difficulty_level: number;
+  estimated_hours: number;
+  order_number: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+  modules: Module[];
+  progress?: CourseProgress;
+  total_lessons: number;
+  completed_lessons: number;
+}
+
+export interface LessonWithSections {
+  id: string;
+  module_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  raw_readme: string;
+  difficulty: number;
+  estimated_minutes: number;
+  xp_reward: number;
+  order_number: number;
+  visible: boolean;
+  problem_references: string[];
+  created_at: string;
+  updated_at: string;
+  sections: LessonSection[];
+  dependencies: LessonPrereq[];
+  projects: Project[];
+  progress?: LessonProgress;
+  prerequisites_met: boolean;
+}
+
+// ── Creation Payload Types ──
+
+export interface NewCourse {
+  slug: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  icon?: string;
+  difficulty_level: number;
+  estimated_hours: number;
+  order_number: number;
+}
+
+export interface NewModule {
+  course_id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  order_number: number;
+}
+
+export interface NewLesson {
+  module_id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  difficulty: number;
+  estimated_minutes: number;
+  xp_reward: number;
+  order_number: number;
+  problem_references?: string[];
+  visible?: boolean;
+}
+
+export interface NewLessonSection {
+  section_type: string;
+  title?: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
+  order_number: number;
+}
+
+export interface NewProject {
+  lesson_id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  requirements?: string;
+  starter_code?: string;
+  difficulty: number;
+  xp_reward: number;
+  hints?: string[];
+  order_number: number;
+}
+
+export interface ModuleWithLessons {
+  module: Module;
+  lessons: (Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[];
+}
+
+export interface CourseProgressEntry {
+  course_id: string;
+  course_slug: string;
+  progress_pct: number;
+  completed_lessons: number;
+  total_lessons: number;
+}
+
+export interface ProgressResponse {
+  courses: CourseProgressEntry[];
+}

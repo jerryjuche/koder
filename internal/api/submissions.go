@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/executor"
 	"github.com/jerryjuche/koder/internal/store"
 )
@@ -16,12 +17,14 @@ import (
 type SubmissionHandler struct {
 	store    store.Store
 	executor *executor.Executor
+	broker   *broker.Broker
 }
 
-func NewSubmissionHandler(store store.Store, exec *executor.Executor) *SubmissionHandler {
+func NewSubmissionHandler(store store.Store, exec *executor.Executor, b *broker.Broker) *SubmissionHandler {
 	return &SubmissionHandler{
 		store:    store,
 		executor: exec,
+		broker:   b,
 	}
 }
 
@@ -138,6 +141,16 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		h.store.LogActivity(r.Context(), "success", fmt.Sprintf("User %s successfully solved '%s'", claims.StudentID, problem.Slug), "text-brand-success", "CheckCircle2")
 		InvalidateUserCache(userID.String())
 		InvalidateLeaderboardCache()
+		if h.broker != nil {
+			h.broker.PublishEvent("user.xp.updated", map[string]interface{}{
+				"user_id":    userID.String(),
+				"problem_slug": problem.Slug,
+			})
+			h.broker.PublishEvent("progress.updated", map[string]interface{}{
+				"user_id":    userID.String(),
+				"problem_slug": problem.Slug,
+			})
+		}
 	} else if res.Status == "timeout" {
 		h.store.LogActivity(r.Context(), "warning", fmt.Sprintf("Problem '%s' execution timed out for %s", problem.Slug, claims.StudentID), "text-brand-muted-gold", "AlertCircle")
 	}

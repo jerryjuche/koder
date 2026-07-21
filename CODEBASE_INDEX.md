@@ -2,7 +2,7 @@
 
 > Comprehensive, line-level inventory of the zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 >
-> Generated: 2026-07-13 | Branch: `python-curricula` | Tests: **126 passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
+> Generated: 2026-07-20 | Branch: `update` | Tests: **124+ passing**, `go vet` clean, ESLint 0 errors, TypeScript 0 errors
 
 ---
 
@@ -16,10 +16,10 @@
 | **Go Module** | `github.com/jerryjuche/koder` (Go 1.26.1) |
 | **Sandbox Go Module** | `github.com/jerryjuche/koder/sandbox` (Go 1.23, **zero external deps**) |
 | **Frontend** | Next.js 15.5.19 + React 19.2.7 + Tailwind CSS 4.1.11 |
-| **Database** | PostgreSQL 15 (Supabase, 500MB) — 16 tables, 31 migrations |
+| **Database** | PostgreSQL 15 (Supabase, 500MB) — 24 tables, 44 migrations |
 | **Test Suite** | 126 Go tests + frontend ESLint/TypeScript — 0 failures |
 | **Budget** | $0/month (Oracle Ampere A1 + Supabase Free + Vercel Hobby + Railway Starter) |
-| **Active Branch** | `python-curricula` (all 12 multi-language phases complete) |
+| **Active Branch** | `update` (all Pyodide + curriculum CMS + redesign phases complete) |
 
 ---
 
@@ -27,15 +27,15 @@
 
 | Category | Files | Lines of Code |
 |---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 49 source + 13 test | **16,852** |
-| **Go Sandbox** (`sandbox/`) | 8 source | **1,185** |
-| **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | 105 | **20,151** |
-| **SQL Migrations** (`migrations/`) | 31 | **10,596** |
-| **Scripts** (`scripts/`) | 3 | **329** |
-| **Documentation** (`.md`) | 8 | **4,748** |
-| **Configuration** (root configs, CI, frontend configs) | 12 | **~680** |
+| **Go Backend** (`cmd/` + `internal/`) | 50 source + 13 test | **~17,500** |
+| **Go Sandbox** (`sandbox/`) | 8 source | **1,211** |
+| **Frontend Source** (`app/`, `components/`, `hooks/`, `lib/`, `styles/`) | ~200 | **~20,500** |
+| **SQL Migrations** (`migrations/`) | 44 | **~16,500** |
+| **Scripts** (`scripts/`) | 4 | **~341** |
+| **Documentation** (`.md`) | 14 | **~8,000** |
+| **Configuration** (root configs, CI, frontend configs) | 12 | **~700** |
 | **Public Assets** (images, icons, Monaco workers) | 131 | Binary/~71 KB JS |
-| **Total (tracked source)** | **~210** | **~51,000** |
+| **Total (tracked source)** | **~332** | **~52,000** |
 
 ---
 
@@ -66,7 +66,7 @@ koder/
 │   ├── styles/                             # 3 CSS files (theme, typography, globals)
 │   └── public/                             # Images, Monaco workers, module icons
 │
-├── migrations/                             # SQL schema — 31 migrations
+├── migrations/                             # SQL schema — 44 migrations (043 numbered + 1 test seed)
 ├── scripts/                                # 3 utility scripts
 ├── .github/workflows/ci.yml               # CI pipeline — 4 jobs
 ├── build.sh                                # Cross-compile deployment
@@ -133,14 +133,14 @@ koder/
 
 | File | Lines | Purpose |
 |---|---|---|
-| `config.go` | 307 | Loads 30+ env vars: DATABASE_URL, JWT_SECRET, GEMINI_API_KEY, GROQ_API_KEY, SANDBOX_URL, ADMIN_EMAIL, etc. |
+| `config.go` | 337 | Loads 30+ env vars: DATABASE_URL, JWT_SECRET, NVIDIA_API_KEY, SANDBOX_URL, ADMIN_EMAIL, etc. |
 | `config_test.go` | 259 | 15 tests: missing keys, provider selection, timeout validation, JWT expiry |
 
 ### 4.6 Enricher (`internal/enricher/`)
 
 | File | Lines | Purpose |
 |---|---|---|
-| `enricher.go` | 748 | AI test case generation: Gemini (ResponseSchema) + Groq (JSON mode), dual-language prompts, rate-limited (30s/2s), retry with backoff, LanguageVersions population |
+| `enricher.go` | 936 | AI test case generation: NVIDIA NIM (DeepSeek V4 Flash), dual-language prompts, rate-limited (1s gap), retry with backoff, LanguageVersions population |
 | `enricher_test.go` | 231 | 4 tests: provider config, response parsing, schema generation |
 
 ### 4.7 Executor (`internal/executor/`)
@@ -444,6 +444,14 @@ koder/
 | `027_language_versions.sql` | 16 | primary_language on users, language_versions JSONB on problems |
 | `028_backfill_language_versions.sql` | 111 | PL/pgSQL helpers: koder_to_snake_case, koder_go_type_to_python |
 | `029_ensure_language_versions.sql` | 163 | Guarantee all problems have Go + Python language_versions |
+| `031_python_intermediate_seed.sql` | — | 10 Python intermediate problems |
+| `032_python_variables_math_seed.sql` | — | 1 Python variables & math problem |
+| `033_add_user_problems_language_versions.sql` | — | language_versions on user_problems |
+| `034_python_arrays_strings_seed.sql` | — | 7 Python arrays & strings problems |
+| `035_ai_usage_logs.sql` | — | ai_usage_logs table |
+| `036_refresh_tokens.sql` | — | refresh_tokens table |
+| `037_seed_go_fundamentals.sql` | — | 5 Go fundamentals problems |
+| `038_curriculum_cms.sql` | — | 8 tables: courses→modules→lessons→sections+projects+deps+progress |
 
 ### 7.2 Seed Migrations
 
@@ -453,6 +461,10 @@ koder/
 | `019_seed_problems2.sql` | 2,360 | 45 problems: bit-manipulation, sorting-searching, pointers |
 | `019_seed_problems3.sql` | 1,576 | 45 problems: error-handling, interfaces-generics |
 | `019_seed_problems4.sql` | 3,162 | 45 problems: hashmaps-sets, linked-lists, trees-graphs, dynamic-programming |
+| `031_python_intermediate_seed.sql` | — | 10 Python intermediate problems |
+| `032_python_variables_math_seed.sql` | — | 1 Python variables & math problem |
+| `034_python_arrays_strings_seed.sql` | — | 7 Python arrays & strings problems |
+| `037_seed_go_fundamentals.sql` | — | 5 Go fundamentals problems |
 | `999_seed_python_test.sql` | 62 | Python test problem for pipeline verification |
 
 ---
@@ -465,11 +477,10 @@ koder/
 |---|---|---|
 | `DATABASE_URL` | — | Supabase PostgreSQL connection string |
 | `JWT_SECRET` | — | HS256 signing key (min 32 chars) |
-| `GEMINI_API_KEY` | — | Google AI Studio API key |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
-| `ENRICHMENT_PROVIDER` | `gemini` | gemini or groq |
-| `GROQ_API_KEY` | — | Groq API key |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model |
+| `ENRICHMENT_PROVIDER` | `nvidia` | Must be `nvidia` (only supported) |
+| `NVIDIA_API_KEY` | — | NVIDIA NIM API key (required) |
+| `NVIDIA_MODEL` | `deepseek-ai/deepseek-v4-flash` | NVIDIA model name |
+| `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | NVIDIA NIM API base URL |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `ADMIN_EMAIL` | — | Admin account email |
 | `ADMIN_PASSWORD` | — | Admin account password |
@@ -486,7 +497,7 @@ koder/
 
 | Variable | Default | Description |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` | Backend API base URL |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` (must set explicitly in production) | Backend API base URL |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 
 ### 8.3 Key Dependencies
@@ -561,13 +572,13 @@ koder/
 
 | File | Lines | Purpose |
 |---|---|---|
-| `CLAUDE.md` | 884 | AI session context primer — complete project reference |
+| `CLAUDE.md` | 1,187 | AI session context primer — complete project reference |
 | `README.md` | 1,244 | Full project documentation |
 | `BRAIN.md` | 54 | Agent startup guide / session instructions |
 | `implementation.md` | 898 | Multi-language 12-phase implementation plan |
 | `CODEBASE_INDEX.md` | (this) | Comprehensive file-by-file codebase index |
 | `CODEBASE_ANALYSIS.md` | 79 | Deep architecture analysis |
-| `SESSION_LOG.md` | 1,038 | Chronological session logbook |
+| `SESSION_LOG.md` | 1,471 | Chronological session logbook |
 | `PROGRESS.txt` | 214 | Multi-language phase completion tracker |
 | `UPDATE_LOG.txt` | 253 | Full changelog since inception |
 
@@ -577,24 +588,26 @@ koder/
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 72 (49 source + 13 test + 10 config/build) |
-| **Go lines of code** | 16,852 |
-| **Frontend source files** | 105 |
-| **Frontend lines of code** | 20,151 |
-| **SQL migrations** | 31 (10,596 lines) |
-| **Total tracked source LOC** | ~51,000 |
-| **Go tests** | 126 — all passing |
-| **API endpoints** | 60+ |
-| **Database tables** | 16 |
-| **Database indexes** | 30+ |
-| **Seed problems** | 181 (180 Go + 1 Python) |
-| **Middleware chain depth** | 9 middleware |
+| **Go source files** | 80 (50 source + 13 test + 1 cmd + 8 sandbox + 8 config/build) |
+| **Go lines of code** | ~17,500 |
+| **Frontend source files** | ~200 |
+| **Frontend lines of code** | ~20,500 |
+| **SQL migrations** | 44 (16,500+ lines) |
+| **Total tracked source LOC** | ~52,000 |
+| **Go tests** | 124+ — all passing |
+| **API endpoints** | 89+ |
+| **Database tables** | 24 |
+| **Database indexes** | 45+ |
+| **Seed problems** | ~228 (180 Go + 48 Python/curriculum) |
+| **Middleware chain depth** | 11 middleware |
 | **Frontend route groups** | 7 (root, landing, auth, main, problems, legal, oauth) |
-| **Custom components** | 35 |
-| **shadcn/ui primitives** | 16 |
+| **Custom components** | 45+ |
+| **shadcn/ui primitives** | 17 (incl. multi-step-loader) |
 | **Public assets** | 131 (images, icons, Monaco workers) |
 | **External Go deps** | 7 direct |
 | **Sandbox external deps** | 0 (stdlib only) |
+| **WebSocket events** | 8 (user.xp.updated, progress.updated, lesson.completed, admin.broadcast.*, admin.publish-all, admin.problem.updated, admin.feedback.submitted, broadcast.created/updated/deleted) |
+| **Card design system** | 5 components × 16:9 (LearningCard, 4 admin cards) + 3 natural-height heroes |
 
 ---
 
@@ -605,9 +618,14 @@ koder/
 | ADR-001 | Monolithic Go backend | Single binary for small cohort; no orchestration overhead |
 | ADR-002 | Raw pgx/v5 over ORM | Predictable SQL, smaller footprint, explicit query design |
 | ADR-003 | Docker subprocess for execution | gVisor unavailable on Oracle free tier; WASM immature for Go |
-| ADR-004 | Gemini Structured Outputs | Compile-time guarantees on AI response shape; no brittle parsing |
+| ADR-004 | System Prompt JSON (NVIDIA NIM) | DeepSeek V4 Flash doesn't support response_format reliably; prompt enforcement + post-validation instead |
 | ADR-005 | Go text/template for test gen | Type-safe conditional logic; auditable independently |
 | ADR-006 | Remote HTTP Sandbox | Eliminates Docker-in-Docker; consistent isolation; Railway free tier |
-| ADR-007 | Dual AI provider (Gemini + Groq) | 50 calls/day quota mitigation; fallback when one is unavailable |
+| ADR-007 | NVIDIA NIM (DeepSeek V4 Flash) single provider | Enforces free-tier API with rate-limit backoff; consolidated from dual-provider (Gemini+Groq) |
 | ADR-008 | language_versions JSONB | Single column for multi-language schema; avoids EAV antipattern |
 | ADR-009 | In-memory cache over Redis | Zero-cost; 30s TTL sufficient for leaderboard/notifications |
+| ADR-010 | Pyodide CDN over server-side Python | Zero-cost; browser-side Python execution for instant feedback; singleton loader prevents duplicate loads |
+| ADR-011 | Per-language localStorage for code persistence | Enables save & switch between Go/Python scaffolds in workspace; keyed as `koder_code_{slug}_{lang}` |
+| ADR-012 | Bulk lesson dependency query via `ANY($1)` | Single query fetches deps for all lessons in a module; avoids N+1 per-lesson queries |
+| ADR-013 | Client-side dependency locking | Compute locked state in frontend from `dependencies[]` + completion; avoids extra backend calls; enables instant UI feedback |
+| ADR-014 | Public lesson detail endpoint for admin dep picker | Admin CMS fetches current deps via existing `GET /learn/lessons/{slug}` instead of adding a separate admin endpoint |

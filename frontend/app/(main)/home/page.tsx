@@ -193,7 +193,7 @@ export default function Dashboard() {
   const showTopicCards = !selectedModule;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 py-6 animate-in fade-in duration-500">
       {/* Header Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">

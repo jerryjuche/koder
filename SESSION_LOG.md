@@ -1111,3 +1111,368 @@ Fix Python compiler error formatting so tracebacks and syntax errors show proper
 3. Verified full test suite passes (124 tests).
 
 ---
+
+## Session 39 — 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block dark mode fix
+
+### Goal
+Restructure lesson viewer to show sections as individual step-by-step pages with quiz consolidation, fix Pyodide execution issues, and repair code block dark mode rendering.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `8e6f7d1` | Implement input() via window.prompt in Pyodide |
+| `3434279` | Fix no-output in free-form Python: use standalone print templates |
+| `472554f` | Block input() in Pyodide with friendly error message |
+| `4b4bb4e` | Fix double prompt prefix in Pyodide console output |
+| `d947af5` | Fix Run in Browser disabled state & match editor theme with ProblemWorkspaceClient |
+| `005ccc8` | Rewrite lesson as step-by-step page with quiz consolidation |
+| `12b7a45` | Fix code block dark mode & exercise results spacing |
+
+### Changes
+
+#### Lesson step-by-step navigation
+- Sections shown one at a time with prev/next buttons and ArrowLeft/Right/Space keyboard shortcuts
+- All quizzes consolidated into a single Quiz Review step at the end with gradient card
+- Progress bar with step indicator dots and step counter
+- Professional gradient-bordered card component per section type with AnimatePresence transitions
+
+#### Pyodide console & execution fixes
+- `input()` now works via `window.prompt()` shim installed at init time (removed blocking check)
+- Removed `!pyodideReady` guard on Run in Browser button so lazy Pyodide can be triggered
+- Fixed `handlePyodideRun` with try/finally `setTesting(true/false)`
+- Fixed double prompt prefix (`> >>>` → `> `)
+- Replaced emoji/special char console prefixes (`✗`/`ℹ`/`❯` → `[error]`/`[info]`/`>`)
+- Free-form Python defaults to standalone `print()` templates
+
+#### Editor theme & spacing alignment
+- Editor options aligned with ProblemWorkspaceClient (fontFamily, bracketPairColorization, smoothScrolling)
+- Results panel now shows for all languages (not just non-Python)
+- Results padding increased (`px-1`→`px-2`, `mt-4`→`mt-5`)
+
+#### Code block dark mode fix
+- Added `darkModeClassNames` + `codeBlockClassName` + `lineHighlightClassNames` to `CodeBlockContent` rendered div (was rendering Shiki HTML without dark mode CSS)
+- Fixed `CodeBlockFallback` with proper dark mode text color, padding, overflow
+
+### Verification
+- `npx tsc --noEmit` — clean
+
+---
+
+## Session 40 — 2026-07-16 — Course/Module/Lesson page professional redesign & audit fixes
+
+### Goal
+Redesign learn course/module/lesson pages with professional card components matching dashboard styling, then audit and fix all implementation issues.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `aa02d24` | Redesign learn course/module/lesson pages with professional card components |
+| `d1172fb` | Professional redesign: learn course/module/lesson pages |
+| `0771f5e` | Fix audit issues: error states, unused imports, edge case guards |
+
+### Changes — Professional Card Redesign
+
+#### Course Catalog (`courses/page.tsx`)
+- Full gradient hero backgrounds per course (blue/cyan/violet/amber/slate)
+- Lucide icons in glass-morphism container with scale+rotate hover
+- Difficulty pill with colored dot indicator (Beginner/Intermediate/Advanced)
+- CTA with arrow button that turns primary on hover
+- `border-0` cards with shadow-lift animation (`-translate-y-2`, `shadow-2xl`)
+- Draft badge for unpublished courses
+
+#### Course Detail (`[courseSlug]/page.tsx`)
+- Hero section with course title, description, difficulty pill, metadata row
+- Course progress bar (gradient fill, shown only when started)
+- Module cards with 6px gradient stripe and colored lucide icons
+- Two-digit module numbering, Complete/In progress badges
+- Lesson counts with completed count, gradient progress bars
+- Hover: icon scale + CTA arrow turns primary
+
+#### Module Detail (`[moduleSlug]/page.tsx`)
+- Module header with gradient stripe + stats bar (lessons, XP, completion %)
+- Lesson cards with rich status indicators (emerald checkmark, primary circle-dot, numbered circle)
+- Green highlight background on completed lessons, primary ring on current lesson
+- XP badges (amber), difficulty pills (color-coded with ring), time estimates
+- Completed arrows fade to 40% opacity, full opacity on hover
+- Total XP earned counter in module header
+
+### Changes — Audit Fixes
+| Issue | File | Fix |
+|---|---|---|
+| Unused `CardContent` import | `courses/page.tsx` | Removed |
+| Unused `Cpu` import | `courses/page.tsx` | Removed |
+| Unused `letters` variable + `getCourseLetters` | `courses/page.tsx` | Removed dead code |
+| API failure → silent empty state | All 3 pages | Added `error` state + retry button with `Try again` |
+| `resolveModuleGradient` buggy first loop | `module/page.tsx` | Removed buggy loop (was matching wrong gradient val) |
+| `lesson_count` undefined breaks `firstIncomplete` | `course/page.tsx` | Now treats undefined as "incomplete if not started" |
+| `isCurrent` missing `!isComplete` guard | `module/page.tsx` | Added for consistency |
+
+### Verification
+- `npx tsc --noEmit` — clean
+- Pushed to `origin/update` (`0771f5e`)
+
+---
+
+## Session 41 — 2026-07-17 — Layout refactor, multi-file Pyodide, admin CMS polish
+
+### Goal
+Professional layout refinement (compact cards, wider containers), multi-file Pyodide execution support, and admin CMS UX improvements.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `03b8430` | Compact card sizes and horizontal grid layouts |
+| `e5a7f98` | Remove unused gradient prop from LearningCard |
+| `d57f812` | Increase card grid gaps to 5 for breathing room |
+| `2ea6751` | Widen page containers to max-w-screen-2xl |
+| `e923a4f` | Remove max-w-7xl mx-auto from main layout |
+| `62e850f` | Multi-file Pyodide execution for modular Python exercises |
+| `0323856` | JSON metadata editor for non-quiz sections in admin CMS |
+| `ef3c060` | Multi-file support for mini_project sections |
+| `ac1f5bb` | Fix visibility publish for courses |
+| `1e5f575` | Admin CMS UX: always-visible toggles, auto order_number, stale sections fix |
+| `1ac3d21` | 16:9 LearningCard, remove mock ratings from course catalog |
+| `9404250` | Lesson-aware problem success page — back to lesson, continue lesson |
+| `64792ab` | Remove dead hovered state, shadowing sections var, dynamic import, unused icons |
+
+### Changes
+
+#### Layout refactor
+- All card grids: compact card sizes with `gap-5` for breathing room
+- Containers widened from `max-w-6xl/7xl` → `max-w-screen-2xl` to fill large monitors
+- Removed `max-w-7xl mx-auto` from main layout — was constraining all pages unnecessarily
+- Removed unused `gradient` prop from `LearningCard` component
+- LoadingCard inner container changed to `aspect-[16/9]` with gradient stripe `h-16 → h-12`
+
+#### Multi-file Pyodide
+- `frontend/lib/pyodide.ts`: Added `FS.writeFile`, `FS.readFile`, `FS.mkdir`, `executeMultiFile`, and `MultiFileSpec` interface
+- `MultiFileConfigPanel.tsx`: Visual multi-file editor in admin CMS with file tabs, add/remove, path+content editing, entry point toggle
+- Auto-initializes on section type change to exercises/assessment/mini_project
+- `SectionExercise.tsx` uses `executeMultiFile` for multi-file exercises
+
+#### Admin CMS UX
+- Visibility toggles, action buttons, chevron icons: always visible (removed all `opacity-0` hover gates across AdminCards.tsx)
+- Order numbers auto-compute from existing array length in form defaults
+- Stale `sections` state cleared when opening create lesson dialog
+- JSON metadata editor for non-quiz sections
+
+#### Code cleanup
+- Removed dead `hovered`/`setHovered` state + handlers from AdminCourseCard, AdminModuleCard, AdminProjectCard
+- Fixed local variable shadowing (`sections` → `quizSections`)
+- `fetchLessonSections` changed to static import
+- Removed mock ratings (RatingBadge, likes/views stats) from course catalog
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 42 — 2026-07-17 — Real-time XP/progress WebSocket + 16:9 admin cards
+
+### Goal
+Complete professional real-time progress system (XP, levels, progress via WebSocket) and polish all admin cards to 16:9 aspect ratio.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `7634ab3` | Real-time XP/progress WebSocket system + 16:9 admin cards |
+| `6bcd102` | Fix page spacing, add progress.updated event, 16:9 all admin cards |
+
+### Changes
+
+#### Real-time WebSocket events
+- Backend Broker (`internal/broker/broker.go`) with global fan-out via `/ws` WebSocket
+- `SubmissionHandler` has broker reference; publishes `user.xp.updated` + `progress.updated` on successful problem solve
+- `CompleteLesson` (in `cms.go`) publishes all three events (`lesson.completed`, `user.xp.updated`, `progress.updated`)
+- Frontend `event.ts` has `user.xp.updated`, `progress.updated`, and `lesson.completed` event types
+- `UserContext` subscribes to `user.xp.updated` via `useWebSocket` — auto-refreshes XP, level, solved count without page reload
+- Course detail and module detail pages subscribe to all three events — progress bars update live
+- `LessonViewerClient` stores `koder_lesson_context` in sessionStorage for lesson-aware problem success page
+
+#### 16:9 admin cards
+- `AdminCourseCard`: `aspect-[16/9] min-h-[96px]` on hero section
+- `AdminModuleCard`: Converted from sidebar row to full `aspect-[16/9]` card
+- `AdminLessonCard`: `aspect-[16/9]` with icon, title, description, metadata
+- `AdminProjectCard`: `aspect-[16/9]` with icon, title, difficulty, XP
+- All admin cards: always-visible visibility toggles, edit, and delete buttons
+
+#### Page spacing fix
+- Main layout removed `py-8` to eliminate double-padding (each page controls its own vertical spacing)
+- Home page added `py-6` wrapper
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 43 — 2026-07-17 — Hero styling polish (16:9 + revert + natural height)
+
+### Goal
+Apply consistent LearningCard visual DNA to all hero sections (course detail, module detail, lesson success) with proper sizing.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `61ecf5f` | All heroes 16:9 with exact LearningCard styling (back plate, brand-charcoal, same classes) |
+| `d732545` | Fix: remove aspect-16/9 from heroes, keep LearningCard styling but natural height |
+
+### Changes
+
+#### Initial attempt (61ecf5f)
+- All three heroes (course, module, lesson success) given same exact classes as LearningCard:
+  - Back plate: `absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm`
+  - Container: `bg-brand-charcoal-base border-brand-charcoal-border rounded-xl` with hover shadow
+  - Glass icon: `w-8 h-8 rounded-lg border-white/10 backdrop-blur-md shadow-inner`
+  - Badges: `text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80`
+  - Progress bar: `h-1 bg-brand-charcoal-card border-brand-charcoal-border/30`
+- Forced to `aspect-[16/9]` — made heroes too tall at full width (~1200px → 675px)
+
+#### Fix (d732545)
+- Removed `aspect-[16/9]` from all three heroes — natural height based on content
+- Removed `flex flex-col h-full` and `mt-auto` patterns only needed for fixed aspect ratio
+- Used `p-4 md:p-5` padding for compact but comfortable spacing
+- Enlarged title text (`text-base md:text-lg`) for hero context
+- Removed truncation from titles (heroes have room for full text)
+
+#### Result
+- All heroes use identical design tokens as LearningCard but with natural content-based height
+- 16/9 ratio kept on LearningCard and AdminCards (used in grids, not full-width)
+- `cn` import added to success page
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 44 — 2026-07-17 — Python Mastery: Build Your Own Games seed migration
+
+### Goal
+Create the seed SQL migration for the new "Python Mastery: Build Your Own Games" elective course with 2 modules, 6 lessons, 5 dependencies, full lesson sections, quiz metadata, and 1 project.
+
+### Changes
+
+#### New migration file: `migrations/042_seed_python_mastery_games.sql`
+- **Course:** `python-mastery-games` — "Python Mastery: Build Your Own Games" (difficulty 3, ~12 hours)
+  - 2 taglines, 8 tags, icon: `gamepad-2`, cover_image, `visible=false`
+- **Module 1:** `text-adventure` — "Build a Text Adventure Game" (5 lessons, 5 linear deps)
+  - Lessons: `intro-to-text-adventure`, `game-state-and-variables`, `player-actions-and-conditionals`, `functions-and-game-logic`, `building-the-full-game`
+  - 6 sections per lesson (overview, explanation, examples, best_practices, common_mistakes, summary) + quizzes via metadata UPDATE
+  - All content stored as `$py$...$py$` dollar-quoted strings
+- **Module 2:** `quiz-game` — "Build a Quiz Game" (1 lesson, no dependencies)
+  - Lesson: `intro-to-quiz-game` (4 sections)
+- **Project:** `final-project` — "Personal Game Project" (difficulty 4, 80 XP, `visible=false`)
+- All `ON CONFLICT ... DO NOTHING` for safe re-runs; single `BEGIN; ... COMMIT;` transaction
+
+### Supabase RLS Error
+- `ALTER TABLE full ENABLE ROW LEVEL SECURITY` error is NOT from this SQL — it's from Supabase's auto-RLS step
+- Workaround: run SQL directly or disable auto-apply in SQL editor
+
+### Verification
+- SQL file saved and complete, ready to run against database
+
+---
+
+## Session 45 — Lesson Prerequisite Enforcement + Admin Dependency Picker
+
+**Date:** 2026-07-17
+**Branch:** `update`
+**Commits:** `4554979`
+
+### What Was Built
+
+Full-stack lesson prerequisite/dependency management system — admin UI for setting dependencies, student-facing enforcement with locked states.
+
+### Backend Changes
+
+**`internal/api/cms.go` — `GetModuleDetail` handler:**
+- Added `Dependencies []store.LessonPrereq` to the inline `lessonWithProgress` struct (with `json:"dependencies,omitempty"`)
+- Bulk-fetches all lesson dependencies for the module in a single `ANY($1)` query via new `GetLessonDependenciesByLessonIDs` store function
+- Attaches dependencies to each lesson in the response
+- Uses `string(l.ID.Bytes[:])` for map keys (pgtype.UUID has no `.String()` method)
+
+**`internal/store/curriculum.go` — new `GetLessonDependenciesByLessonIDs`:**
+- Batch query: `SELECT lesson_id, depends_on_lesson_id FROM lesson_dependencies WHERE lesson_id = ANY($1)`
+- Returns early if `lessonIDs` is empty
+- Same scan pattern as `GetLessonDependencies`
+
+**`internal/store/store.go` — interface updated:**
+- Added `GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error)`
+
+### Frontend Changes
+
+**`frontend/lib/types.ts`:**
+- `ModuleWithLessons.lessons` type updated: `(Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[]`
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module Detail:**
+- Computes `isLocked` per lesson: locked if any dependency lesson is incomplete
+- Locked lessons get `status="locked"` → `LearningCard` renders with lock overlay, no clickable link
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/LessonViewerClient.tsx`:**
+- New locked overlay when `!lessonData.prerequisites_met`
+- Shows amber lock icon, "Complete Prerequisites First" heading
+- Lists all unmet prerequisites with warning icons
+- "Back to Module" button
+- Sidebar still renders for navigation context
+- Lesson content (sections, quizzes, exercises) not rendered when locked
+- Added `Lock`, `AlertTriangle` to lucide imports
+
+**`frontend/components/learn/LessonSidebar.tsx`:**
+- Props updated: `lessons` type now includes optional `dependencies?: LessonPrereq[]`
+- Computes per-lesson locked state from `dependencies` array + completion status
+- Locked lessons show `Lock` icon instead of numbered circle
+- Locked lessons are `cursor-not-allowed opacity-50` (non-clickable div, not a Link)
+- Active/completed/available states unchanged
+
+**`frontend/app/(main)/admin/curriculum/page.tsx` — Admin Dependency Picker:**
+- Imports: added `updateLessonDependencies`, `fetchLesson`, `GitBranch`, `Check`, `Search`, `ChevronDown`, `ChevronUp`
+- New state: `lessonDependencies`, `loadingDeps`, `depSearch`
+- New function: `loadLessonDeps(lessonSlug)` — fetches lesson detail via public API to get current dependencies
+- Settings tab: full dependency picker UI with search, checkbox multi-select, pill badges
+- `openEditForm` calls `loadLessonDeps` when editing a lesson
+- `handleUpdateLesson` calls `updateLessonDependencies` after lesson update
+- `handleCreateLesson` sends `dependency_ids` from `lessonDependencies` state
+- Form state cleared on open/close/save
+
+### Verification
+- `go build ./cmd/server/` — clean
+- `npx tsc --noEmit` — 0 errors
+
+---
+
+## Session 46 — 2026-07-20: Full codebase re-index + Python Mastery Practice seed
+
+**Commit:** `3aef8d2`
+
+**New Files:**
+- `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review course (1 module, 5 lessons)
+
+**Modified Files:**
+- `frontend/app/(main)/learn/courses/page.tsx` — Course catalog with improved LearningCard integration
+- `frontend/app/(main)/learn/courses/[courseSlug]/page.tsx` — Course detail page enhancements
+- `frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module detail page updates
+- `frontend/components/ui/learning-card.tsx` — LearningCard component improvements
+
+**What was done:**
+- Full professional codebase re-index: read all 80 Go source files, ~200 frontend source files, 44 migration SQL files, 14 documentation files
+- Updated CLAUDE.md with migration 043 in seed data summary and repository structure
+- Updated CODEBASE_INDEX.md with current counts
+- Added SESSION_LOG.md entry for Session 46
+- Verified `go vet`, `go build`, `go test` (9/9 packages pass) — clean
+
+**Codebase Statistics (current):**
+- Go source files: 80 (49 source + 13 test in internal/, 8 sandbox, 1 cmd)
+- Frontend source files: ~200
+- Migration SQL files: 44 (043 + 999_test)
+- Total seed problems: ~228
+- Go tests: 124+ passing
+- Total LOC: ~52,000
+
+---
+
+### 2026-07-21 — Session 47: Remove Console/Play in Browser from problem workspace
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.

@@ -12,7 +12,7 @@ const wordVariants = {
     opacity: 1,
     filter: "blur(0px)",
     y: 0,
-    transition: { duration: 0.35, delay: i * 0.06, ease: "easeOut" },
+    transition: { duration: 0.35, delay: i * 0.06, ease: "easeOut" as const },
   }),
 };
 

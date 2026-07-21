@@ -44,8 +44,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 	changePasswordHandler := NewChangePasswordHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
-	submissionHandler := NewSubmissionHandler(store, exec)
+	submissionHandler := NewSubmissionHandler(store, exec, b)
 	testHandler := NewTestHandler(store, exec)
+
+	cmHandler := NewCMHandler(store, b)
 
 	rateLimiter := NewRateLimiter(5, 45*time.Second)
 	slog.Info("rate_limiter: enabled", "max_requests", 5, "window_seconds", 45)
@@ -101,6 +103,12 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password-pin", pinResetHandler.ResetPasswordPin)
 		r.Get("/check-username", authHandler.CheckUsername)
 	})
+
+	// Public curriculum CMS — no auth required
+	r.Get("/learn/courses", cmHandler.ListPublishedCourses)
+	r.Get("/learn/courses/{courseSlug}", cmHandler.GetCourseDetail)
+	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
+	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
 
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(cfg, store))
@@ -167,6 +175,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/submit", submissionHandler.Submit)
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/test", testHandler.Test)
 
+		// Curriculum CMS — student endpoints (auth required)
+		r.Get("/learn/progress", cmHandler.GetAllProgress)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/learn/lessons/{lessonId}/complete", cmHandler.CompleteLesson)
+
 		r.Group(func(r chi.Router) {
 			r.Use(AdminOnly)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/ingest", adminHandler.Ingest)
@@ -196,6 +208,37 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.Get("/admin/problem-reports", feedbackHandler.ListProblemReports)
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
+
+			// Curriculum CMS — admin endpoints
+			r.Get("/admin/courses", cmHandler.ListAllCourses)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses", cmHandler.CreateCourse)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/courses/{courseId}", cmHandler.UpdateCourse)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/courses/{courseId}", cmHandler.DeleteCourse)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/courses/{courseId}/visibility", cmHandler.ToggleCourseVisibility)
+			r.Get("/admin/courses/{courseId}/modules", cmHandler.ListModules)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses/{courseId}/modules", cmHandler.CreateModule)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/modules/{moduleId}", cmHandler.UpdateModule)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/modules/{moduleId}", cmHandler.DeleteModule)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/visibility", cmHandler.ToggleModuleVisibility)
+			r.Get("/admin/modules/{moduleId}/lessons", cmHandler.ListLessons)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/modules/{moduleId}/lessons", cmHandler.CreateLesson)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/lessons/{lessonId}", cmHandler.UpdateLesson)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/lessons/{lessonId}", cmHandler.DeleteLesson)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/lessons/{lessonId}/visibility", cmHandler.ToggleLessonVisibility)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/problems", cmHandler.LinkProblemToLesson)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/dependencies", cmHandler.UpdateLessonDependencies)
+			r.Get("/admin/lessons/{lessonId}/projects", cmHandler.ListProjects)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/projects", cmHandler.CreateProject)
+			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/projects/{projectId}", cmHandler.UpdateProject)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/projects/{projectId}", cmHandler.DeleteProject)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/projects/{projectId}/visibility", cmHandler.ToggleProjectVisibility)
+
+			// Section CRUD
+			r.Get("/admin/lessons/{lessonId}/sections", cmHandler.ListLessonSections)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/lessons/{lessonId}/sections", cmHandler.CreateSection)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/sections/{sectionId}", cmHandler.UpdateSection)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/sections/{sectionId}", cmHandler.DeleteSection)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/sections/reorder", cmHandler.ReorderSections)
 		})
 
 		wsHandler := NewWSHandler(b)

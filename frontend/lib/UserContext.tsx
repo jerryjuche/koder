@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { User } from "@/lib/types";
 import { fetchUser, updatePrimaryLanguage } from "@/lib/api";
+import { useWebSocket } from "@/lib/event";
 
 type UserContextType = {
   user: User | null;
@@ -52,6 +53,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     window.addEventListener("user-updated", loadUser);
     return () => window.removeEventListener("user-updated", loadUser);
   }, [loadUser]);
+
+  useWebSocket({
+    "user.xp.updated": useCallback(() => {
+      loadUser();
+    }, [loadUser]),
+  });
 
   const refreshUser = useCallback(() => {
     loadUser();

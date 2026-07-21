@@ -9,6 +9,9 @@ import {
   Search,
   Filter,
   X,
+  List,
+  Circle,
+  CheckCircle2,
 } from "lucide-react";
 import { LanguageLogo, type Language } from "@/components/LanguageLogo";
 import { fetchProblems } from "@/lib/api";
@@ -27,6 +30,14 @@ const diffColor: Record<number, string> = {
 
 const diffLabel: Record<number, string> = {
   1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
+};
+
+const diffDot: Record<number, string> = {
+  1: "bg-emerald-500",
+  2: "bg-sky-500",
+  3: "bg-amber-500",
+  4: "bg-orange-500",
+  5: "bg-purple-500",
 };
 
 type SolvedFilter = "all" | "solved" | "unsolved";
@@ -57,7 +68,6 @@ export default function ProblemsPage() {
   const filtered = useMemo(() => {
     let list = allProblems;
 
-    // Language filter — strict: only problems with a func_name for that language
     if (langFilter !== "all") {
       list = list.filter((p) => {
         if (!p.language_versions) return false;
@@ -66,19 +76,16 @@ export default function ProblemsPage() {
       });
     }
 
-    // Solved filter — default hides solved
     if (solvedFilter === "solved") {
       list = list.filter((p) => p.solved);
     } else if (solvedFilter === "unsolved") {
       list = list.filter((p) => !p.solved);
     }
 
-    // Difficulty filter
     if (diffFilter !== "all") {
       list = list.filter((p) => p.difficulty === diffFilter);
     }
 
-    // XP range filter
     if (xpMin !== "") {
       const min = parseInt(xpMin, 10);
       if (!isNaN(min)) list = list.filter((p) => p.xpReward >= min);
@@ -88,7 +95,6 @@ export default function ProblemsPage() {
       if (!isNaN(max)) list = list.filter((p) => p.xpReward <= max);
     }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -120,93 +126,160 @@ export default function ProblemsPage() {
     setCurrentPage(1);
   }
 
-  function renderFilterPanel() {
-    const btnBase = "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors border";
+  const solvedCount = useMemo(
+    () => allProblems.filter((p) => p.solved).length,
+    [allProblems],
+  );
 
-    return (
-      <div className="space-y-6">
-        {/* Solved status */}
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
-            Status
-          </h4>
-          <div className="flex flex-col gap-1">
-            {(["all", "solved", "unsolved"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => { setSolvedFilter(s); setCurrentPage(1); }}
-                className={cn(
-                  btnBase,
-                  solvedFilter === s
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                )}
-              >
-                {s === "all" ? "All" : s === "solved" ? "Solved" : "Unsolved"}
-              </button>
-            ))}
-          </div>
+  const filterSidebar = (
+    <div className="space-y-1">
+      {/* Status */}
+      <div className="px-1 pb-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+          Status
+        </span>
+      </div>
+
+      <button
+        onClick={() => { setSolvedFilter("all"); setCurrentPage(1); }}
+        className={cn(
+          "group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+          solvedFilter === "all"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+        )}
+      >
+        <span className={cn(
+          "flex items-center justify-center w-4 h-4 rounded transition-colors shrink-0",
+          solvedFilter === "all" ? "text-sidebar-primary" : "text-sidebar-foreground/40",
+        )}>
+          <List size={14} />
+        </span>
+        <span className="flex-1 text-left">All</span>
+        <span className="text-[11px] tabular-nums text-sidebar-foreground/40">{allProblems.length}</span>
+      </button>
+
+      <button
+        onClick={() => { setSolvedFilter("unsolved"); setCurrentPage(1); }}
+        className={cn(
+          "group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+          solvedFilter === "unsolved"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+        )}
+      >
+        <span className={cn(
+          "flex items-center justify-center w-4 h-4 rounded transition-colors shrink-0",
+          solvedFilter === "unsolved" ? "text-sidebar-primary" : "text-sidebar-foreground/40",
+        )}>
+          <Circle size={14} />
+        </span>
+        <span className="flex-1 text-left">Unsolved</span>
+        <span className="text-[11px] tabular-nums text-sidebar-foreground/40">{allProblems.length - solvedCount}</span>
+      </button>
+
+      <button
+        onClick={() => { setSolvedFilter("solved"); setCurrentPage(1); }}
+        className={cn(
+          "group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+          solvedFilter === "solved"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+        )}
+      >
+        <span className={cn(
+          "flex items-center justify-center w-4 h-4 rounded transition-colors shrink-0",
+          solvedFilter === "solved" ? "text-emerald-400" : "text-sidebar-foreground/40",
+        )}>
+          <CheckCircle2 size={14} />
+        </span>
+        <span className="flex-1 text-left">Solved</span>
+        <span className="text-[11px] tabular-nums text-sidebar-foreground/40">{solvedCount}</span>
+      </button>
+
+      <div className="my-2 mx-1 h-px bg-sidebar-border" />
+
+      {/* Difficulty */}
+      <div className="px-1 pb-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+          Difficulty
+        </span>
+      </div>
+
+      <button
+        onClick={() => { setDiffFilter("all"); setCurrentPage(1); }}
+        className={cn(
+          "group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+          diffFilter === "all"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+        )}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-sidebar-foreground/30 shrink-0" />
+        <span>All Levels</span>
+      </button>
+
+      {([1, 2, 3, 4, 5] as const).map((d) => (
+        <button
+          key={d}
+          onClick={() => { setDiffFilter(d); setCurrentPage(1); }}
+          className={cn(
+            "group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+            diffFilter === d
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+          )}
+        >
+          <span className={cn(
+            "w-1.5 h-1.5 rounded-full shrink-0",
+            diffDot[d],
+          )} />
+          <span>{diffLabel[d]}</span>
+        </button>
+      ))}
+
+      <div className="my-2 mx-1 h-px bg-sidebar-border" />
+
+      {/* XP Range */}
+      <div className="px-1 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+          XP Range
+        </span>
+      </div>
+
+      <div className="px-1">
+        <div className="flex items-center gap-1.5">
+          <input
+            type="number"
+            placeholder="Min"
+            value={xpMin}
+            onChange={(e) => { setXpMin(e.target.value); setCurrentPage(1); }}
+            className="w-full min-w-0 px-2.5 py-1.5 rounded-md border border-sidebar-border bg-sidebar-accent/30 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:outline-none focus:border-sidebar-ring/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-sidebar-foreground/30 text-xs">—</span>
+          <input
+            type="number"
+            placeholder="Max"
+            value={xpMax}
+            onChange={(e) => { setXpMax(e.target.value); setCurrentPage(1); }}
+            className="w-full min-w-0 px-2.5 py-1.5 rounded-md border border-sidebar-border bg-sidebar-accent/30 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:outline-none focus:border-sidebar-ring/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
         </div>
+      </div>
 
-        {/* Difficulty */}
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
-            Difficulty
-          </h4>
-          <div className="flex flex-col gap-1">
-            {(["all", 1, 2, 3, 4, 5] as const).map((d) => (
-              <button
-                key={String(d)}
-                onClick={() => { setDiffFilter(d); setCurrentPage(1); }}
-                className={cn(
-                  btnBase,
-                  diffFilter === d
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                )}
-              >
-                {d === "all" ? "All" : diffLabel[d]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* XP Range */}
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
-            XP Range
-          </h4>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              placeholder="Min"
-              value={xpMin}
-              onChange={(e) => { setXpMin(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-            />
-            <span className="text-muted-foreground/40">—</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={xpMax}
-              onChange={(e) => { setXpMax(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-            />
-          </div>
-        </div>
-
-        {/* Reset */}
-        {activeFilterCount > 0 && (
+      {activeFilterCount > 0 && (
+        <>
+          <div className="my-2 mx-1 h-px bg-sidebar-border" />
           <button
             onClick={resetFilters}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground py-2 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            className="flex items-center justify-center gap-1 w-full px-2.5 py-1.5 text-xs font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground rounded-lg hover:bg-sidebar-accent/50 transition-colors"
           >
-            <X size={14} /> Reset filters
+            <X size={12} /> Clear filters
           </button>
-        )}
-      </div>
-    );
-  }
+        </>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -223,19 +296,20 @@ export default function ProblemsPage() {
 
   return (
     <div className="flex gap-6">
-      {/* Sidebar — responsive: overlay on mobile, fixed sidebar on desktop */}
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-56 shrink-0">
-        <div className="sticky top-24 space-y-6">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Filter size={16} /> Filters
+        <div className="sticky top-24 rounded-xl border border-sidebar-border bg-sidebar p-3.5 shadow-sm">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-xs font-semibold text-sidebar-foreground flex items-center gap-1.5">
+              <Filter size={13} /> Filters
+            </h3>
             {activeFilterCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sidebar-primary/10 text-sidebar-primary">
                 {activeFilterCount}
               </span>
             )}
-          </h3>
-          {renderFilterPanel()}
+          </div>
+          {filterSidebar}
         </div>
       </aside>
 
@@ -246,19 +320,19 @@ export default function ProblemsPage() {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed right-0 top-0 bottom-0 w-72 bg-background border-l border-border p-6 overflow-y-auto animate-in slide-in-from-right">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Filter size={16} /> Filters
+          <div className="fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r border-sidebar-border p-5 overflow-y-auto animate-in slide-in-from-left">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-semibold text-sidebar-foreground flex items-center gap-2">
+                <Filter size={15} /> Filters
               </h3>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="p-1 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
-            {renderFilterPanel()}
+            {filterSidebar}
           </div>
         </div>
       )}

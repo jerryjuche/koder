@@ -9,7 +9,6 @@ import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
-loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -45,6 +44,7 @@ import {
   updateProblem,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { clearCache } from "@/lib/cache";
 import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
@@ -255,18 +255,26 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [code, slug, problem, activeLanguage]);
 
+  // Pre-initialize Monaco theme on client
+  useEffect(() => {
+    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
+  }, []);
+
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (e.shiftKey) handleSubmitRef.current();
-        else handleTestRef.current();
+        if (e.shiftKey) {
+          handleSubmitRef.current();
+        } else {
+          handleTestRef.current();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [activeLanguage]);
 
   const handleReset = () => {
     let fresh = generateScaffold(problem, activeLanguage);
@@ -448,7 +456,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     setSubmitting(false);
   }
-
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
@@ -499,18 +506,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       };
       const res = await updateProblem(String(problem.id), payload);
       if (res.success) {
+        clearCache(`/problems/${problem.slug}`);
         toast.success("Problem updated successfully");
-        setProblem({
-          ...problem,
-          title: payload.title ?? problem.title,
-          statement: payload.statement ?? problem.statement,
-          difficulty: payload.difficulty ?? problem.difficulty,
-          xpReward: payload.xp_reward ?? problem.xpReward,
-          tags: payload.tags ?? problem.tags,
-          module: payload.module ?? problem.module,
-          constraints: payload.constraints ?? problem.constraints,
-          learningObjective: payload.learning_objective ?? problem.learningObjective,
-        });
+        if (res.data) {
+          setProblem(res.data);
+        }
         setEditOpen(false);
       } else {
         toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
@@ -544,32 +544,32 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href={`/home?module=${encodeURIComponent(problem.module)}`}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
+            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
           >
             <ChevronLeft size={16} /> Problems
           </Link>
-          <div className="w-px h-5 bg-brand-charcoal-border"></div>
-          <div className="flex items-center gap-3">
-            <span className="font-bold">{problem.title}</span>
+          <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-bold truncate">{problem.title}</span>
             <span
               className={cn(
-                "text-xs font-bold",
+                "text-xs font-bold shrink-0",
                 getDifficultyColor(problem.difficulty),
               )}
             >
               {getDifficultyLabel(problem.difficulty)}
             </span>
             
-            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
+            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold bg-brand-muted-gold/10 px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 mr-2">
             <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
@@ -578,9 +578,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           <button
-            onClick={() =>
-              setPanelMode(panelMode === "hints" ? "tests" : "hints")
-            }
+            onClick={() => setPanelMode(panelMode === "hints" ? "tests" : "hints")}
             className={cn(
               "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
               panelMode === "hints"
@@ -747,7 +745,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
                 <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
-                  <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
+                  <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors [&_p]:mb-3">
                     <Markdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeSanitize]}
@@ -1831,10 +1829,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           />
         </div>
 
-        {/* Right: Hints Panel (Collapsible) */}
+        {/* Right: Hints Panel */}
         {panelMode === "hints" && (
-          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-y-auto custom-scrollbar">
-            <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between">
+          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between shrink-0">
               <div className="font-bold flex items-center gap-2 text-brand-muted-gold">
                 <Lightbulb size={18} /> Progressive Hints
               </div>
@@ -1843,7 +1841,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 viewed)
               </span>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
               {(problem.hints && problem.hints.length > 0
                 ? problem.hints
                 : [
