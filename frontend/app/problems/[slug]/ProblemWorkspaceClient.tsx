@@ -44,6 +44,7 @@ import {
   updateProblem,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { clearCache } from "@/lib/cache";
 import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
@@ -505,6 +506,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       };
       const res = await updateProblem(String(problem.id), payload);
       if (res.success) {
+        clearCache(`/problems/${problem.slug}`);
         toast.success("Problem updated successfully");
         setProblem({
           ...problem,
