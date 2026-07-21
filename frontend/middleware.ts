@@ -7,11 +7,11 @@ export function middleware(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
 
   // Allow http: in dev for localhost backend; https: only in production
-  const connectSrc = isDev ? "'self' http: https: wss:" : "'self' https: wss:";
+  const connectSrc = isDev ? "'self' http: https: ws: wss:" : "'self' https: wss:";
 
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live https://cdn.jsdelivr.net;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://vercel.live https://cdn.jsdelivr.net https://va.vercel-scripts.com;
     worker-src 'self' blob: https://cdn.jsdelivr.net;
     style-src 'self' 'unsafe-inline' https://accounts.google.com;
     style-src-elem 'self' 'unsafe-inline' https://accounts.google.com;

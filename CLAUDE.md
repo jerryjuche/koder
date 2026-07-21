@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files, ~280 frontend source files, 46 migration SQL files — ~72,000 LOC total
+- **Codebase:** 78 Go source files, ~280 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
 
 ---
 
@@ -281,6 +281,7 @@ koder/
 │   │   │                                        Avatar menu, verified badge, settings, logout
 │   │   ├── BroadcastBanner.tsx                # Color-coded, 30s polling, per-user dismiss
 │   │   ├── FeedbackButton.tsx                 # Floating FAB, 3 tabs, screenshot upload, priority selector
+│   │   ├── FeedbackButtonWrapper.tsx           # Route-conditionally renders FeedbackButton (new)
 │   │   ├── GoogleLinkBanner.tsx               # Amber banner to link Google
 │   │   ├── LandingContent.tsx                 # Landing page content
 │   │   ├── LanguageLogo.tsx                   # Go/Python SVG icon renderer
@@ -290,6 +291,7 @@ koder/
 │   │   ├── ResizableSplitPane.tsx             # Drag-resizable horizontal split with grip handle
 │   │   ├── MultiFileEditor.tsx                # Multi-file tabbed editor for exercises
 │   │   ├── multi-step-loader-demo.tsx
+│   │   ├── application/code-snippet/          # Professional Shiki code block with copy, language icons, errors (new)
 │   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
@@ -368,7 +370,7 @@ koder/
 │   ├── security_message_test.go               # 3 test cases
 │   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
 │   └── go.mod                                 # Zero external deps
-├── migrations/                                # 45 migration files (44 numbered + 1 test seed)
+├── migrations/                                # 46 migration files (44 numbered + 1 test seed + 045 module locks)
 │   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
 │   ├── 002_indexes.sql                        # 12 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
@@ -412,6 +414,8 @@ koder/
 │   ├── 041_seed_python_mastery.sql            # Python Mastery: Zero to Hero course (4 modules, 14 lessons)
 │   ├── 042_seed_python_mastery_games.sql      # Python Mastery: Build Your Own Games (2 modules, 6 lessons)
 │   ├── 043_seed_python_mastery_practice.sql   # Python Mastery: Practice & Review (1 module, 5 lessons)
+│   ├── 044_add_module_locked.sql              # locked BOOLEAN on modules table (curriculum module gating)
+│   ├── 045_add_module_locks.sql               # module_locks table for problem category locking
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (11 tables)
@@ -973,10 +977,22 @@ npm run build   # Builds static + server components
 5. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
 6. **Session log duplication** — `.opencode/session-log.md` is stale (last entry July 9). The canonical log is `SESSION_LOG.md`. The `.opencode` version should be removed or auto-synced.
 7. **ADR-012 (Per-language localStorage)** — Documented in CODEBASE_INDEX.md but decision rationale is not captured in ADRs file. Keys are `koder_code_{slug}_{lang}`.
+8. **Hydration mismatch on `/home`** — The `selectedModule` state from `searchParams` causes a server/client HTML mismatch in the dashboard header section. The `"All Problems"` clear-filter button renders differently on server vs client.
 
 ---
 
 ## Session Log
+
+### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish
+
+**Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`
+
+- Fix problem edit persistence (use response data + invalidate cache on save)
+- Fix workspace header overflow with long titles (truncate + `shrink-0`)
+- Professional UI polish for `/problems` filter sidebar with nav-item style section dividers
+- Remove Pyodide console/Run in Browser from problem workspace (session 47)
+- Restore saved code on refresh regardless of initial state
+- Class spacing fix: `relative` on responsive filter container for proper sidebar layering
 
 ### 2026-07-21 — Problem module locks + admin lock panel + locked module UI
 

@@ -246,6 +246,20 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/sections/reorder", cmHandler.ReorderSections)
 		})
 
+		// Problem module locks — public (student-facing)
+		r.Get("/me/module-locks", func(w http.ResponseWriter, r *http.Request) {
+			locks, err := store.ListLockedModules(r.Context())
+			if err != nil {
+				slog.Error("module_locks: failed to list", "error", err)
+				RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module locks", nil)
+				return
+			}
+			if locks == nil {
+				locks = []store.ModuleLock{}
+			}
+			RespondSuccess(w, locks)
+		})
+
 		wsHandler := NewWSHandler(b)
 		r.Get("/ws", wsHandler.ServeHTTP)
 	})
