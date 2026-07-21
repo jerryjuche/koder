@@ -225,9 +225,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
-        // Only overwrite code with scaffold if no saved code exists in localStorage
+        // Restore saved code if it exists, otherwise use scaffold
         const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
-        if (!stored) {
+        if (stored) {
+          setCode(stored);
+        } else {
           setCode(scaffold);
         }
         setScaffoldAtToggle(scaffold);
