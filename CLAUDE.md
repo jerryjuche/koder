@@ -1177,6 +1177,23 @@ npm run build   # Builds static + server components
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
+### 2026-07-22 — Session 64: Config test fixes, dashboard nav link, global rank fix
+
+**Commits:** `bfadb3f` `549521f` `9b882aa` `c8c260c`
+
+**Config test fixes (4 failing → all pass):**
+- `internal/config/config.go:loadEnvFile()` — skips `.env` during tests (`os.Args[0].test` suffix check)
+- `internal/config/config_test.go` — 3 "missing" tests call `t.Setenv("VAR", "")` to clear CI env vars; `TestLoadConfig_Defaults` clears `GO_VERSION`
+- Tested with CI env vars (`DATABASE_URL`, `JWT_SECRET`, `NVIDIA_API_KEY` set) — all pass
+
+**Dashboard nav link no-op fix:**
+- `TopNav.tsx:130-142` — added `onClick` handler: `if (pathname === link.href) { e.preventDefault(); router.refresh(); }`
+- Clicking Dashboard when already on `/home` now triggers a fresh RSC re-render instead of being a Next.js `<Link>` no-op
+
+**Global rank `# #1` fix:**
+- `StatsOverview.tsx:30` — removed `#` from template literal: `#{profile.global_rank}` → `{profile.global_rank}`
+- `Hash` icon already serves as the `#` symbol — renders as clean `# 1`
+
 ### 2026-07-22 — Session 63: ESLint errors fix + staging CI/CD + branch rename
 
 **Commits:** `43eaef7`

@@ -75,6 +75,10 @@
 | 67 | `1400598` | feat: auth guard middleware + UserContext fallback, fix locked module counts (handler-level stamping) |
 | 68 | `ba654d6` | fix: remove auth redirect guard from middleware (cookie lives on API domain, not frontend) |
 | 69 | `43eaef7` | fix: lint errors (key patterns, eslint-suppress) + add update branch to CI |
+| 70 | `bfadb3f` | fix: config tests — skip .env during tests, clear GO_VERSION for default test |
+| 71 | `549521f` | fix: config tests — clear CI env vars for missing-var tests |
+| 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
+| 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
 
 ---
 
@@ -1950,3 +1954,30 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors, 1 pre-existing warning (unrelated `<img>` tag)
 - `go test ./internal/...` — all pass (4 pre-existing config env mismatch failures)
+
+---
+
+### 2026-07-22 — Session 64: Config test fixes, CI env var isolation, dashboard nav link, global rank fix
+
+**Commits:** `bfadb3f` `549521f` `9b882aa` `c8c260c`
+
+**1. Config test fixes (4 failing → all pass):**
+- `internal/config/config.go` — `loadEnvFile()` now skips loading `.env` during tests (checks `os.Args[0]` suffix `.test`), so "missing var" tests correctly see empty env
+- `internal/config/config_test.go` — All 3 "missing" tests (`MissingDatabaseURL`, `MissingJWTSecret`, `MissingNvidiaKey`) now call `t.Setenv("VAR", "")` before `Load()` to clear CI-provided env vars
+- `TestLoadConfig_Defaults` — clears `GO_VERSION` before testing, so the code's default `"1.23"` is tested (not CI's `"1.26"` override)
+
+**2. Dashboard nav link fix (`TopNav.tsx`):**
+- Added `onClick` handler to nav links: `if (pathname === link.href) { e.preventDefault(); router.refresh(); }`
+- Clicking Dashboard when already on `/home` now forces a fresh RSC payload
+
+**3. Global rank `# #1` fix (`StatsOverview.tsx`):**
+- Removed duplicate `#` from template literal — `#{profile.global_rank}` → `{profile.global_rank}`
+- The `Hash` icon already serves as the `#` symbol, so icon + number = clean `#1` display
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `go test ./internal/...` — all 8 packages pass (24 tests)
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
