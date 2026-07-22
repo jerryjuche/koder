@@ -521,7 +521,7 @@ export default function Dashboard() {
                           {/* Header */}
                           <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0 relative z-10">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
+                              <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
                               <span className={cn(
@@ -555,7 +555,7 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <p className="text-xs text-muted-foreground/60 leading-relaxed line-clamp-2 mb-auto">
+                            <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-auto">
                               {problem.statement ? (
                                 problem.statement
                                   .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
@@ -569,12 +569,12 @@ export default function Dashboard() {
                             {problem.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-3">
                                 {problem.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
+                                  <span key={tag} className="text-[10px] font-semibold text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
                                     {tag}
                                   </span>
                                 ))}
                                 {problem.tags.length > 3 && (
-                                  <span className="text-[10px] text-muted-foreground/30 font-medium px-1">+{problem.tags.length - 3}</span>
+                                  <span className="text-[10px] text-muted-foreground/60 font-semibold px-1">+{problem.tags.length - 3}</span>
                                 )}
                               </div>
                             )}
@@ -582,21 +582,21 @@ export default function Dashboard() {
 
                           {/* Footer */}
                           <CardFooter className="px-5 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium">
-                                <span className="flex items-center gap-1">
-                                  <Code size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {problem.total_submissions || 0}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <BarChart2 size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {Math.round(problem.success_rate || 0)}%
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {problem.estTimeMinutes || 0}m
-                                </span>
-                              </div>
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/80 font-semibold">
+                                  <span className="flex items-center gap-1">
+                                    <Code size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {problem.total_submissions || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <BarChart2 size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {Math.round(problem.success_rate || 0)}%
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {problem.estTimeMinutes || 0}m
+                                  </span>
+                                </div>
                               <div className={cn(
                                 "flex items-center gap-1 px-2 py-1 rounded-md transition-all",
                                 problem.solved
