@@ -556,15 +556,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
           <div className="flex items-center gap-3 min-w-0">
             <span className="font-bold truncate">{problem.title}</span>
-            <span
-              className={cn(
-                "text-xs font-bold shrink-0",
-                getDifficultyColor(problem.difficulty),
-              )}
-            >
-              {getDifficultyLabel(problem.difficulty)}
-            </span>
-            
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
