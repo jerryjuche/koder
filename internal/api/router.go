@@ -9,7 +9,7 @@ import (
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/executor"
-	"github.com/jerryjuche/koder/internal/store"
+	storepkg "github.com/jerryjuche/koder/internal/store"
 )
 
 // App holds the HTTP handler and lifecycle-managed resources that need
@@ -30,7 +30,7 @@ func (a *App) Shutdown() {
 }
 
 // NewRouter builds the application router for Koder.
-func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (*App, error) {
+func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor, b *broker.Broker) (*App, error) {
 	r := chi.NewRouter()
 
 	r.Use(RecoveryMiddleware)
@@ -209,6 +209,10 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 
+			// Problem module locks
+			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/module-locks/{moduleName}", adminHandler.ToggleProblemModuleLock)
+
 			// Curriculum CMS — admin endpoints
 			r.Get("/admin/courses", cmHandler.ListAllCourses)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses", cmHandler.CreateCourse)
@@ -220,6 +224,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/modules/{moduleId}", cmHandler.UpdateModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/modules/{moduleId}", cmHandler.DeleteModule)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/visibility", cmHandler.ToggleModuleVisibility)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/modules/{moduleId}/lock", cmHandler.ToggleModuleLock)
 			r.Get("/admin/modules/{moduleId}/lessons", cmHandler.ListLessons)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Post("/admin/modules/{moduleId}/lessons", cmHandler.CreateLesson)
 			r.With(BodySizeLimitMiddleware(5 * 1024 * 1024)).Put("/admin/lessons/{lessonId}", cmHandler.UpdateLesson)
@@ -239,6 +244,20 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/sections/{sectionId}", cmHandler.UpdateSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/sections/{sectionId}", cmHandler.DeleteSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/sections/reorder", cmHandler.ReorderSections)
+		})
+
+		// Problem module locks — public (student-facing)
+		r.Get("/me/module-locks", func(w http.ResponseWriter, r *http.Request) {
+			locks, err := store.ListLockedModules(r.Context())
+			if err != nil {
+				slog.Error("module_locks: failed to list", "error", err)
+				RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module locks", nil)
+				return
+			}
+			if locks == nil {
+				locks = []storepkg.ModuleLock{}
+			}
+			RespondSuccess(w, locks)
 		})
 
 		wsHandler := NewWSHandler(b)

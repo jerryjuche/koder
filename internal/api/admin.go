@@ -657,3 +657,42 @@ func (h *AdminHandler) ToggleUserVerified(w http.ResponseWriter, r *http.Request
 
 	RespondSuccess(w, map[string]bool{"verified": verified})
 }
+
+// ListProblemModuleLocks handles GET /admin/module-locks
+func (h *AdminHandler) ListProblemModuleLocks(w http.ResponseWriter, r *http.Request) {
+	locks, err := h.store.ListLockedModules(r.Context())
+	if err != nil {
+		slog.Error("admin: failed to list module locks", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module locks", nil)
+		return
+	}
+	if locks == nil {
+		locks = []store.ModuleLock{}
+	}
+	RespondSuccess(w, locks)
+}
+
+// ToggleProblemModuleLock handles POST /admin/module-locks/{moduleName}
+func (h *AdminHandler) ToggleProblemModuleLock(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	locked, err := h.store.ToggleProblemModuleLock(r.Context(), moduleName)
+	if err != nil {
+		slog.Error("admin: failed to toggle module lock", "module", moduleName, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to toggle module lock", nil)
+		return
+	}
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Toggled module lock '%s' (locked=%v)", moduleName, locked),
+		"text-amber-400", "Lock",
+	)
+
+	RespondSuccess(w, map[string]interface{}{
+		"module_name": moduleName,
+		"locked":      locked,
+	})
+}

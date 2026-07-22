@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 80 Go source files, ~200 frontend source files, 44 migration SQL files — ~52,000 LOC total
+- **Codebase:** 78 Go source files (57 int src + 12 int test + 1 cmd + 8 sandbox), ~295 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
 
 ---
 
@@ -52,6 +52,7 @@ koder/
 │   │   ├── test.go                            # POST /test (no-scoring execution, ExecuteVisibleOnly)
 │   │   ├── admin.go                           # Admin: ingest, enrich, enrich-all, stats, publish
 │   │   │                                        AI assist, user search/verify, visibility, update
+│   │   │                                        List/ Toggle problem module locks
 │   │   ├── leaderboard.go                     # GET /leaderboard?period= (30s cache)
 │   │   ├── profile.go                         # GET/PUT /me/profile (30s cache, stored procedure)
 │   │   ├── community.go                       # GET community solutions, best-practices
@@ -134,6 +135,7 @@ koder/
 │   │   ├── refresh_tokens.go                   # Token rotation (SHA-256 hash, revoke/revoke-all)
 │   │   ├── ai_usage.go                         # LogAIUsage, GetAIUsageStats (graceful on missing table)
 │   │   ├── password_reset.go                   # Create/Get/MarkUsed/Cleanup reset tokens
+│   │   ├── module_locks.go                     # Problem module locks: List/Toggle/IsLocked
 │   │   └── errors_test.go, types_test.go, users_test.go
 │   ├── executor/                              # Code execution engine (8 files, ~2400 lines)
 │   │   ├── executor.go                        # Execute/ExecuteVisibleOnly (semaphore=6)
@@ -279,6 +281,7 @@ koder/
 │   │   │                                        Avatar menu, verified badge, settings, logout
 │   │   ├── BroadcastBanner.tsx                # Color-coded, 30s polling, per-user dismiss
 │   │   ├── FeedbackButton.tsx                 # Floating FAB, 3 tabs, screenshot upload, priority selector
+│   │   ├── FeedbackButtonWrapper.tsx           # Route-conditionally renders FeedbackButton (new)
 │   │   ├── GoogleLinkBanner.tsx               # Amber banner to link Google
 │   │   ├── LandingContent.tsx                 # Landing page content
 │   │   ├── LanguageLogo.tsx                   # Go/Python SVG icon renderer
@@ -288,13 +291,14 @@ koder/
 │   │   ├── ResizableSplitPane.tsx             # Drag-resizable horizontal split with grip handle
 │   │   ├── MultiFileEditor.tsx                # Multi-file tabbed editor for exercises
 │   │   ├── multi-step-loader-demo.tsx
+│   │   ├── application/code-snippet/          # Professional Shiki code block, collapsed/expand, multi-file, copy
 │   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
 │   │   ├── base/avatar/avatar.tsx             # src/initials fallback, sizes sm/md/lg/xl/podium
 │   │   │                                        Verified gold badge (SVG circle + checkmark)
 │   │   ├── base/input/pin-input.tsx           # OTP PIN input with mask
-│   │   ├── dashboard/ModuleCards.tsx          # Image grid, skeleton, WebP
+│   │   ├── dashboard/ModuleCards.tsx          # Image grid, skeleton, WebP, locked module padlock overlay
 │   │   ├── kibo-ui/
 │   │   │   ├── code-block/index.tsx           # Shiki syntax highlighting (dark mode fix)
 │   │   │   ├── code-block/server.tsx          # Server-side rendering
@@ -366,7 +370,7 @@ koder/
 │   ├── security_message_test.go               # 3 test cases
 │   ├── Dockerfile                             # 2-stage ARM64 build, includes python3
 │   └── go.mod                                 # Zero external deps
-├── migrations/                                # 44 migration files (43 numbered + 1 test seed)
+├── migrations/                                # 46 migration files (44 numbered + 1 test seed + 045 module locks)
 │   ├── 001_init.sql                           # Core schema: users, problems, test_cases, submissions, progress
 │   ├── 002_indexes.sql                        # 12 initial indexes
 │   ├── 003_activity_logs.sql                  # activity_logs table
@@ -410,6 +414,8 @@ koder/
 │   ├── 041_seed_python_mastery.sql            # Python Mastery: Zero to Hero course (4 modules, 14 lessons)
 │   ├── 042_seed_python_mastery_games.sql      # Python Mastery: Build Your Own Games (2 modules, 6 lessons)
 │   ├── 043_seed_python_mastery_practice.sql   # Python Mastery: Practice & Review (1 module, 5 lessons)
+│   ├── 044_add_module_locked.sql              # locked BOOLEAN on modules table (curriculum module gating)
+│   ├── 045_add_module_locks.sql               # module_locks table for problem category locking
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (11 tables)
@@ -520,7 +526,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (44 migration files: 43 numbered + 1 test seed)
+## Database Schema (45 migration files: 44 numbered + 1 test seed)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -730,6 +736,7 @@ POST /submit (scoring) | POST /test (no-score)
 | PUT | /admin/modules/{moduleId} | `cms.go:UpdateModule` | Update module |
 | DELETE | /admin/modules/{moduleId} | `cms.go:DeleteModule` | Delete module |
 | PATCH | /admin/modules/{moduleId}/visibility | `cms.go:ToggleModuleVisibility` | Toggle module visibility |
+| PATCH | /admin/modules/{moduleId}/lock | `cms.go:ToggleModuleLock` | Toggle curriculum module lock (amber badge + 403 enforcement) |
 | GET | /admin/modules/{moduleId}/lessons | `cms.go:ListLessons` | List lessons for module |
 | POST | /admin/modules/{moduleId}/lessons | `cms.go:CreateLesson` | Create lesson with sections + dependencies |
 | PUT | /admin/lessons/{lessonId} | `cms.go:UpdateLesson` | Update lesson |
@@ -747,6 +754,13 @@ POST /submit (scoring) | POST /test (no-score)
 | PUT | /admin/projects/{projectId} | `cms.go:UpdateProject` | Update project |
 | DELETE | /admin/projects/{projectId} | `cms.go:DeleteProject` | Delete project |
 | PATCH | /admin/projects/{projectId}/visibility | `cms.go:ToggleProjectVisibility` | Toggle project visibility |
+| GET | /admin/module-locks | `admin.go:ListProblemModuleLocks` | List all locked problem modules |
+| POST | /admin/module-locks/{moduleName} | `admin.go:ToggleProblemModuleLock` | Toggle problem module lock (insert/delete) |
+
+### Module Locks (authenticated, student)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| GET | /me/module-locks | inline (router.go:249) | List all locked problem modules for student dashboard enforcement |
 
 ### Utility (no auth)
 | Method | Path | Handler | Description |
@@ -968,16 +982,88 @@ npm run build   # Builds static + server components
 5. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
 6. **Session log duplication** — `.opencode/session-log.md` is stale (last entry July 9). The canonical log is `SESSION_LOG.md`. The `.opencode` version should be removed or auto-synced.
 7. **ADR-012 (Per-language localStorage)** — Documented in CODEBASE_INDEX.md but decision rationale is not captured in ADRs file. Keys are `koder_code_{slug}_{lang}`.
+8. **Hydration mismatch on `/home` (FIXED 2026-07-21)** — `selectedModule` was moved from `useState` initializer to `useEffect`, resolving the server/client HTML mismatch in the dashboard header section. The `"All Problems"` clear-filter button no longer renders differently on server vs client.
 
 ---
 
 ## Session Log
 
+### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
+
+**Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
+
+**CodeSnippet rewrite:**
+- `frontend/components/application/code-snippet/index.tsx` — 476→314 lines: removed `react-icons`, simplified to single component, `collapsed`/`maxHeight` with gradient-fade toggle
+- Carbon-copy button hover fix (missing `group`), multi-file key fix (`f.language`→`f.filename`), type shadow fix (`SnippetCtxType`)
+
+**Best-practices cards:** Replaced 40-line CodeBlock compound with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
+
+**Beta-gate:** Best-practices tab + Learn nav link disabled for non-admins with amber BETA badge + `FlaskConical` icon; best-practices content guarded with coming-soon card; `aria-disabled` + `title` for accessibility
+
+**Polish:** Removed no-op `col-span-full`; moved `isActive` into non-disabled branch; `tsc --noEmit` clean
+
+### 2026-07-22 — Session 50: Solved count consistency + import alias fix
+
+**Commits:** `582917b` `ac5cbb8` `12bbc34`
+
+- Dashboard solved stat (`totalSolved`) reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of language-filtered problems list
+- `storepkg` alias in `router.go` to avoid package import / parameter name shadowing
+
+### 2026-07-22 — Session 51: Professional typography polish
+
+**Commits:** `f57f867` `dc2d61b`
+
+- Problem description prose: `text-brand-offwhite-muted` → `text-brand-offwhite/90`, `prose-sm` → `prose-base`, bold headings, bright code blocks
+- Problem cards: titles `font-bold text-base`, descriptions `text-sm opacity-90`, stats `font-semibold opacity-80`
+
+### 2026-07-22 — Session 52: Workspace editor cleanup
+
+**Commits:** `2c472ac` `f9690b1`
+
+- Removed duplicate difficulty badge from toolbar (kept in description area)
+- Removed all custom intellisense providers (~740 lines): Go/Python completion items, hover providers, snippets
+- Theme: `vs-dark-plus` → `vs-dark` (Monaco built-in)
+- Disabled all suggestions, parameter hints, auto-closing brackets/quotes
+
+### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
+
+**Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`
+
+- **New component:** `application/code-snippet/index.tsx` — Professional Shiki code block with copy button, language icons, error highlighting, line numbers (477 lines)
+- **New component:** `FeedbackButtonWrapper.tsx` — Route-conditionally renders FeedbackButton
+- **CSP fix:** Added `ws:` protocol for dev WebSocket connections; added `cdn.jsdelivr.net` + `va.vercel-scripts.com` to script sources
+- **Hydration fix:** Moved `selectedModule` from `useState` initializer → `useEffect` on home page to resolve server/client HTML mismatch
+- **New endpoint:** `GET /me/module-locks` — student-facing endpoint for locked problem modules
+- Fix problem edit persistence (use response data + invalidate cache on save)
+- Fix workspace header overflow with long titles (truncate + `shrink-0`)
+- Professional UI polish for `/problems` filter sidebar with nav-item style section dividers
+- Remove Pyodide console/Run in Browser from problem workspace (session 47)
+- Restore saved code on refresh regardless of initial state
+- Class spacing fix: `relative` on responsive filter container for proper sidebar layering
+
+### 2026-07-21 — Problem module locks + admin lock panel + locked module UI
+
+**Commits:** `02aa051`
+
+**Problem module lock system:**
+- Migration `045_add_module_locks.sql` — `module_locks` table (module_name PK, created_at)
+- `internal/store/module_locks.go` — ListLockedModules, ToggleProblemModuleLock, IsModuleLocked
+- Backend enforcement: ListVisibleProblems filters locked modules; GetProblemBySlug returns 403 MODULE_LOCKED; GetModuleProficiency excludes via NOT EXISTS
+- Admin dashboard: module lock panel with lock/unlock toggle buttons for all problem categories
+- ModuleCards: amber padlock overlay + disabled click on locked modules
+- Home page: fetches locked modules alongside problems, passes to ModuleCards
+
+**Also:**
+- Paragraph spacing fix: `[&_p]:mb-3` for visible paragraph breaks in problem statement markdown
+- Saved code restore fix: always restores saved code when found, regardless of initial state
+- Curriculum module lock (previous session): migration `044_add_module_locked.sql`, lock/unlock API, amber badge on AdminModuleCard, backend 403 enforcement
+- Curriculum Manager card added to admin dashboard
+
 ### 2026-07-20 — Professional full-codebase re-index (post-45 sessions)
 
-**Pull:** `3aef8d2` — 44 migration SQL files, 80 Go source files, ~200 frontend source files
+**Pull:** `3aef8d2` — 45 migration SQL files, 80 Go source files, ~200 frontend source files
 
-**Re-indexed:** All 80 Go source files, ~200 frontend source files, 44 migration SQL files, all 14 documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with migration 043, updated counts, and comprehensive re-index.
+**Re-indexed:** All 80 Go source files, ~200 frontend source files, 45 migration SQL files, all 14 documentation files. Verified `go vet`, `go build`, `go test` (9/9 packages pass). Updated CLAUDE.md with migration 043, updated counts, and comprehensive re-index.
 
 **New in this session:**
 - `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review (1 module, 5 lessons)
@@ -1063,7 +1149,7 @@ npm run build   # Builds static + server components
 
 ### 2026-07-14 — Professional full-codebase re-index (curriculum-cms)
 
-- Read and indexed all 83 Go source files, all 105 frontend files, all 39 migration SQL files
+- Read and indexed all 83 Go source files, all 105 frontend files, all 40 migration SQL files
 - Updated CLAUDE.md with complete Curriculum CMS architecture, all ~89 API endpoints
 - `go vet`, `go test (8/8)`, ESLint, `tsc --noEmit` all clean
 

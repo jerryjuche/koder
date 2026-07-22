@@ -714,6 +714,12 @@ export async function toggleModuleVisibility(id: string): Promise<ApiResponse<Mo
   });
 }
 
+export async function toggleModuleLock(id: string): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}/lock`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchLessons(moduleId: string): Promise<ApiResponse<Lesson[]>> {
   return fetchApi<Lesson[]>(`/admin/modules/${moduleId}/lessons`);
 }
@@ -811,6 +817,24 @@ export async function updateLessonDependencies(lessonId: string, dependencyIds: 
   return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/dependencies`, {
     method: "PUT",
     body: JSON.stringify({ dependency_ids: dependencyIds }),
+  });
+}
+
+// ── Problem module locks ──
+
+export interface ModuleLock {
+  module_name: string;
+  locked?: boolean;
+  created_at?: string;
+}
+
+export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
+  return fetchApi<ModuleLock[]>("/admin/module-locks");
+}
+
+export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
+  return fetchApi<ModuleLock>(`/admin/module-locks/${encodeURIComponent(moduleName)}`, {
+    method: "POST",
   });
 }
 

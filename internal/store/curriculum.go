@@ -171,7 +171,7 @@ func (s *PostgresStore) ToggleCourseVisibility(ctx context.Context, id uuid.UUID
 // ListModules returns all modules for a course ordered by order_number.
 func (s *PostgresStore) ListModules(ctx context.Context, courseID uuid.UUID) ([]Module, error) {
 	query := `SELECT id, course_id, slug, title, description, image_url,
-		order_number, visible, created_at, updated_at
+		order_number, visible, locked, created_at, updated_at
 		FROM modules WHERE course_id = $1 ORDER BY order_number`
 
 	rows, err := s.pool.Query(ctx, query, courseID)
@@ -185,7 +185,7 @@ func (s *PostgresStore) ListModules(ctx context.Context, courseID uuid.UUID) ([]
 		var m Module
 		if err := rows.Scan(
 			&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-			&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+			&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan module: %w", err)
 		}
@@ -200,7 +200,7 @@ func (s *PostgresStore) ListModules(ctx context.Context, courseID uuid.UUID) ([]
 // GetModuleBySlug returns a module by course slug and module slug.
 func (s *PostgresStore) GetModuleBySlug(ctx context.Context, courseSlug, moduleSlug string) (*Module, error) {
 	query := `SELECT m.id, m.course_id, m.slug, m.title, m.description, m.image_url,
-		m.order_number, m.visible, m.created_at, m.updated_at
+		m.order_number, m.visible, m.locked, m.created_at, m.updated_at
 		FROM modules m
 		JOIN courses c ON c.id = m.course_id
 		WHERE c.slug = $1 AND m.slug = $2`
@@ -208,7 +208,7 @@ func (s *PostgresStore) GetModuleBySlug(ctx context.Context, courseSlug, moduleS
 	var m Module
 	err := s.pool.QueryRow(ctx, query, courseSlug, moduleSlug).Scan(
 		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -222,13 +222,13 @@ func (s *PostgresStore) GetModuleBySlug(ctx context.Context, courseSlug, moduleS
 // GetModuleByID returns a module by its ID.
 func (s *PostgresStore) GetModuleByID(ctx context.Context, id uuid.UUID) (*Module, error) {
 	query := `SELECT id, course_id, slug, title, description, image_url,
-		order_number, visible, created_at, updated_at
+		order_number, visible, locked, created_at, updated_at
 		FROM modules WHERE id = $1`
 
 	var m Module
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -254,17 +254,17 @@ func (s *PostgresStore) CreateModule(ctx context.Context, nm *NewModule) (*Modul
 	}
 
 	query := `INSERT INTO modules (course_id, slug, title, description, image_url,
-		order_number, visible, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
+		order_number, visible, locked, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, false, false, NOW(), NOW())
 		RETURNING id, course_id, slug, title, description, image_url,
-			order_number, visible, created_at, updated_at`
+			order_number, visible, locked, created_at, updated_at`
 
 	var m Module
 	err = s.pool.QueryRow(ctx, query,
 		courseID, nm.Slug, nm.Title, nm.Description, nm.ImageURL, nm.OrderNumber,
 	).Scan(
 		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		if msg, ok := IsUniqueViolation(err); ok {
@@ -282,18 +282,18 @@ func (s *PostgresStore) UpdateModule(ctx context.Context, module *Module) (*Modu
 	}
 
 	query := `UPDATE modules SET slug=$1, title=$2, description=$3, image_url=$4,
-		order_number=$5, visible=$6, updated_at=NOW()
-		WHERE id=$7
+		order_number=$5, visible=$6, locked=$7, updated_at=NOW()
+		WHERE id=$8
 		RETURNING id, course_id, slug, title, description, image_url,
-			order_number, visible, created_at, updated_at`
+			order_number, visible, locked, created_at, updated_at`
 
 	var m Module
 	err := s.pool.QueryRow(ctx, query,
 		module.Slug, module.Title, module.Description, module.ImageURL,
-		module.OrderNumber, module.Visible, module.ID,
+		module.OrderNumber, module.Visible, module.Locked, module.ID,
 	).Scan(
 		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -321,17 +321,37 @@ func (s *PostgresStore) ToggleModuleVisibility(ctx context.Context, id uuid.UUID
 	query := `UPDATE modules SET visible = NOT visible, updated_at = NOW()
 		WHERE id = $1
 		RETURNING id, course_id, slug, title, description, image_url,
-			order_number, visible, created_at, updated_at`
+			order_number, visible, locked, created_at, updated_at`
 	var m Module
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
-		&m.OrderNumber, &m.Visible, &m.CreatedAt, &m.UpdatedAt,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("module not found")
 		}
 		return nil, fmt.Errorf("failed to toggle module visibility: %w", err)
+	}
+	return &m, nil
+}
+
+// ToggleModuleLock toggles the locked flag of a module.
+func (s *PostgresStore) ToggleModuleLock(ctx context.Context, id uuid.UUID) (*Module, error) {
+	query := `UPDATE modules SET locked = NOT locked, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, course_id, slug, title, description, image_url,
+			order_number, visible, locked, created_at, updated_at`
+	var m Module
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&m.ID, &m.CourseID, &m.Slug, &m.Title, &m.Description, &m.ImageURL,
+		&m.OrderNumber, &m.Visible, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("module not found")
+		}
+		return nil, fmt.Errorf("failed to toggle module lock: %w", err)
 	}
 	return &m, nil
 }

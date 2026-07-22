@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
@@ -39,14 +39,21 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [problemsError, setProblemsError] = useState<string | null>(null);
+  const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
+  const [togglingModule, setTogglingModule] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [statsRes, usageRes, logsRes, problemsRes] = await Promise.all([
+    const [statsRes, usageRes, logsRes, problemsRes, locksRes] = await Promise.all([
       fetchAdminStats(),
       fetchAIUsageStats(),
       fetchAdminActivity(),
-      fetchAllProblemsAdmin()
+      fetchAllProblemsAdmin(),
+      fetchModuleLocks(),
     ]);
+
+    if (locksRes.success && locksRes.data) {
+      setModuleLocks(new Set(locksRes.data.map((l) => l.module_name)));
+    }
 
     if (statsRes.success && statsRes.data) setStats(statsRes.data);
     if (usageRes.success && usageRes.data) setAIUsageStats(usageRes.data);
@@ -218,15 +225,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Navigation links */}
-      <div className="flex gap-3 items-center">
-        <a href="/admin/curriculum" className="text-sm text-brand-muted-gold hover:text-brand-offwhite underline underline-offset-4 transition-colors">
-          Curriculum Manager &rarr;
-        </a>
-      </div>
-
       {/* Top Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <a href="/admin/curriculum" className="bg-brand-charcoal-card border border-amber-600/30 hover:border-amber-500/60 rounded-2xl p-6 block transition-all duration-200 hover:-translate-y-0.5 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+              <BookOpen size={18} className="text-amber-400" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400/80">Curriculum</span>
+          </div>
+          <div className="text-lg font-bold text-brand-offwhite mb-0.5 group-hover:text-amber-300 transition-colors">Module Manager</div>
+          <div className="text-xs text-brand-offwhite-muted/70">Lock, unlock, and manage modules</div>
+        </a>
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <FileText size={20} className="text-brand-muted-gold mb-4" />
           <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_problems || 0}</div>
@@ -271,6 +281,53 @@ export default function AdminDashboard() {
               <span className="text-brand-offwhite-muted">Avg response: </span>
               <span className="text-brand-offwhite font-medium">{Math.round(aiUsageStats.avg_response_time_ms)}ms</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Module Locks Panel */}
+      {problems.length > 0 && (
+        <div className="bg-brand-charcoal-card border border-amber-600/20 rounded-2xl p-5">
+          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
+            <Lock size={16} className="text-amber-400" />
+            <span className="font-medium text-brand-offwhite">Problem Module Locks</span>
+            <span className="text-xs text-brand-offwhite-muted/60">Lock entire problem categories from student access</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[...new Set(problems.map((p) => p.module).filter(Boolean))].sort().map((mod) => {
+              const isLocked = moduleLocks.has(mod);
+              return (
+                <button
+                  key={mod}
+                  onClick={async () => {
+                    setTogglingModule(mod);
+                    const res = await toggleProblemModuleLock(mod);
+                    if (res.success) {
+                      setModuleLocks((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(mod)) next.delete(mod);
+                        else next.add(mod);
+                        return next;
+                      });
+                      toast.success(isLocked ? `"${mod}" unlocked` : `"${mod}" locked`);
+                    } else {
+                      toast.error(res.error?.message || "Failed to toggle");
+                    }
+                    setTogglingModule(null);
+                  }}
+                  disabled={togglingModule === mod}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                    isLocked
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
+                      : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
+                  )}
+                >
+                  {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                  {mod}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

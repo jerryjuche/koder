@@ -37,6 +37,22 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Exclude problems from locked modules
+	lockedModules, err := h.store.ListLockedModules(r.Context())
+	if err == nil && len(lockedModules) > 0 {
+		locked := make(map[string]bool, len(lockedModules))
+		for _, lm := range lockedModules {
+			locked[lm.ModuleName] = true
+		}
+		var filtered []store.Problem
+		for _, p := range problems {
+			if !locked[p.Module] {
+				filtered = append(filtered, p)
+			}
+		}
+		problems = filtered
+	}
+
 	languageFilter := r.URL.Query().Get("language")
 	if languageFilter != "" && languageFilter != "go" && languageFilter != "python" {
 		languageFilter = ""
@@ -79,6 +95,13 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 			return
 		}
 		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem", nil)
+		return
+	}
+
+	// Check if problem's module is locked
+	locked, err := h.store.IsModuleLocked(r.Context(), problem.Module)
+	if err == nil && locked {
+		RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This problem's module is locked by the instructor", nil)
 		return
 	}
 

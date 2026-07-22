@@ -6,6 +6,7 @@ import { fetchModule } from "@/lib/api";
 import { ModuleWithLessons } from "@/lib/types";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { LearningCard } from "@/components/ui/learning-card";
 import { type Language } from "@/components/LanguageLogo";
 import { useWebSocket } from "@/lib/event";
@@ -15,6 +16,7 @@ import {
   PlayCircle,
   Trophy,
   Sparkles,
+  Lock,
 } from "lucide-react";
 
 const difficultyMeta = (d: number) => {
@@ -72,12 +74,16 @@ export default function ModuleDetail() {
     const res = await fetchModule(courseSlug, moduleSlug);
     if (res.success && res.data) {
       setData(res.data);
+      setError(null);
+    } else {
+      setError(res.error?.code === "MODULE_LOCKED" ? "This module is locked by the instructor" : (res.error?.message || "Failed to load module"));
     }
   }, [courseSlug, moduleSlug]);
 
   useEffect(() => {
     const load = async () => {
       setError(null);
+      setLoading(true);
       await refetch();
       setLoading(false);
     };
@@ -107,13 +113,20 @@ export default function ModuleDetail() {
   }
 
   if (error) {
+    const isLocked = error === "This module is locked by the instructor";
     return (
       <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
-          <BookOpen className="h-6 w-6 text-destructive" />
+        <div className={cn(
+          "w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center",
+          isLocked ? "bg-amber-500/10" : "bg-destructive/10",
+        )}>
+          {isLocked ? <Lock className="h-6 w-6 text-amber-500" /> : <BookOpen className="h-6 w-6 text-destructive" />}
         </div>
-        <p className="text-destructive font-medium mb-1">
-          Failed to load module
+        <p className={cn(
+          "font-medium mb-1",
+          isLocked ? "text-amber-500" : "text-destructive",
+        )}>
+          {isLocked ? "Module Locked" : "Failed to load module"}
         </p>
         <p className="text-xs text-muted-foreground mb-4">{error}</p>
         <button

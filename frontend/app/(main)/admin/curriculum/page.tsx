@@ -13,6 +13,7 @@ import {
   createSection, updateSection, deleteSection,   reorderSections, fetchLessonSections,
   toggleCourseVisibility,
   toggleModuleVisibility,
+  toggleModuleLock,
   toggleLessonVisibility,
   toggleProjectVisibility,
 } from "@/lib/api";
@@ -246,6 +247,16 @@ export default function CurriculumAdminPage() {
       setModules((prev) => prev.map((m) => m.id === mod.id ? (res.data || m) : m));
     } else {
       toast.error(res.error?.message || "Failed to toggle visibility");
+    }
+  };
+
+  const handleToggleModuleLock = async (mod: Module) => {
+    const res = await toggleModuleLock(mod.id);
+    if (res.success) {
+      toast.success(mod.locked ? "Module unlocked" : "Module locked");
+      setModules((prev) => prev.map((m) => m.id === mod.id ? (res.data || m) : m));
+    } else {
+      toast.error(res.error?.message || "Failed to toggle lock");
     }
   };
 
@@ -739,6 +750,7 @@ export default function CurriculumAdminPage() {
                         onEdit={() => openEditForm(mod, "modules")}
                         onDelete={() => handleDeleteModule(mod.id)}
                         onToggleVisibility={() => handleToggleModuleVisibility(mod)}
+                        onToggleLock={() => handleToggleModuleLock(mod)}
                       />
                     ))}
                     <button

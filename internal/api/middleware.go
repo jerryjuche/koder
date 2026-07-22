@@ -471,12 +471,12 @@ func SecurityHeadersMiddleware(cfg *config.Config) func(http.Handler) http.Handl
 
 			connectSrc := "'self' https: wss:"
 			if cfg.Environment == "development" {
-				connectSrc = "'self' http: https: wss:"
+				connectSrc = "'self' http: https: ws: wss:"
 			}
 
 			csp := fmt.Sprintf(
 				"default-src 'self'; "+
-					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live 'unsafe-eval' 'unsafe-inline'; "+
+					"script-src 'self' 'nonce-%s' https://accounts.google.com https://apis.google.com https://vercel.live https://cdn.jsdelivr.net https://va.vercel-scripts.com 'unsafe-eval' 'unsafe-inline'; "+
 					"style-src 'self' 'unsafe-inline' https://accounts.google.com; "+
 					"style-src-elem 'self' 'unsafe-inline' https://accounts.google.com; "+
 					"worker-src 'self' blob:; "+

@@ -41,6 +41,26 @@
 | 33 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
 | 34 | `c093540` | Replace arrays-strings module image with professional version |
 | 35 | `0ecd5ef` | Use local image for all module cards |
+| 36 | `582917b` | fix: use profile as source of truth for solved count in ProfileHeader |
+| 37 | `ac5cbb8` | fix: store package import shadowed by parameter name |
+| 38 | `12bbc34` | fix: dashboard solved count reads from GET /me, same source as XP and streak |
+| 39 | `8d1adb6` | docs: update session log, codebase index, CLAUDE.md for session 49 |
+| 40 | `6657efa` | polish: remove no-op col-span-full, move isActive into non-disabled branch |
+| 41 | `77723fa` | feat: Beta-gate best-practices tab + Learn nav for non-admins |
+| 42 | `86258a4` | fix: copy button hover, multi-file key, type shadow |
+| 43 | `ac8a45e` | polish: CodeSnippet component + compact best-practices cards |
+| 44 | `6e7666f` | fix CSP errors |
+| 45 | `6473b91` | fix |
+| 46 | `b390378` | fix |
+| 47 | `2e8ec08` | docs: update codebase index, CLAUDE.md, session log and progress tracker |
+| 48 | `02aa051` | feat: problem module lock admin panel + locked module UI |
+| 49 | `dfe556a` | feat: add prominent curriculum card to admin dashboard with module lock access |
+| 50 | `62c53bc` | feat: add module lock/unlock with admin toggle and student enforcement |
+| 51 | `bee5837` | fix: restore saved code on refresh regardless of initial state |
+| 52 | `f57f867` | polish: professional typography for problem description |
+| 53 | `dc2d61b` | polish: professional typography for problem cards |
+| 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
+| 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
 
 ---
 
@@ -1476,3 +1496,152 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 
 **Files modified:**
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.
+
+---
+
+### 2026-07-21 — Session 48: Problem module locks + admin lock panel + locked module UI
+
+**Commits:** `02aa051`
+
+**Problem module lock system (full stack):**
+- `migrations/045_add_module_locks.sql` — `module_locks` table (module_name TEXT PK, created_at TIMESTAMPTZ)
+- `internal/store/module_locks.go` — 3 store functions: `ListLockedModules`, `ToggleProblemModuleLock`, `IsModuleLocked`
+- `internal/store/types.go` — `ModuleLock` struct (ModuleName, CreatedAt)
+- `internal/api/admin.go` — `ListProblemModuleLocks` (GET) + `ToggleProblemModuleLock` (POST) handlers
+- `internal/api/router.go` — Route registration for GET + POST /admin/module-locks
+- `internal/api/problems.go` — `ListVisibleProblems` filters out locked modules; `GetProblemBySlug` returns 403 `MODULE_LOCKED`
+- `internal/store/users.go` — `GetModuleProficiency` excludes locked modules via `NOT EXISTS` subquery
+
+**Admin frontend:**
+- `frontend/app/(main)/admin/page.tsx` — Module Locks panel: fetches locks alongside stats, per-module lock/unlock buttons with Lock/LockOpen icons, amber styling, toast feedback
+
+**Student-facing UI:**
+- `frontend/components/dashboard/ModuleCards.tsx` — New `lockedModules: Set<string>` prop; amber padlock overlay; `cursor-not-allowed opacity-60` with `disabled={isLocked}`
+- `frontend/app/(main)/home/page.tsx` — Fetches `fetchModuleLocks()` alongside problems, passes `lockedModules` to ModuleCards
+
+**Bug fixes:**
+- Paragraph spacing: `[&_p]:mb-3` on problem statement prose container
+- Saved code restore: always restores saved code when found, regardless of initial state
+
+**Curriculum module lock (carried from prior sub-session):**
+- `migrations/044_add_module_locked.sql` — `locked BOOLEAN` on `modules` table
+- `internal/api/cms.go` — `ToggleModuleLock` handler, 403 on locked module detail
+- `frontend/components/learn/admin/AdminCards.tsx` — amber badge + lock/unlock button on AdminModuleCard
+- `frontend/app/(main)/admin/page.tsx` — Curriculum Manager card added to admin dashboard
+
+---
+
+### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
+
+**Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
+
+**CodeSnippet component rewrite:**
+- `frontend/components/application/code-snippet/index.tsx` — Rewrote from 476→314 lines: removed `react-icons` (heavy), simplified compound-API to single component, added `collapsed`/`maxHeight` props with gradient-fade "Show more/less" toggle
+- `frontend/components/application/code-snippet/code-snippet.story.tsx` — Updated stories to match new API
+
+**Best-practices cards compacted:**
+- `frontend/app/(main)/home/page.tsx` — Replaced 40-line CodeBlock compound usage with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
+
+**Bug fixes:**
+- Copy button was permanently invisible — added `group` class to root div for `group-hover:opacity-100`
+- Multi-file tab keys used `f.language` (collision risk) — changed to `f.filename`
+- `SnippetCtx` type alias shadowed const — renamed to `SnippetCtxType`
+
+**Beta-gate features (non-admin only):**
+- Best-practices tab: `cursor-not-allowed`, muted text, amber BETA badge with `FlaskConical`; `onClick` gated to `user?.role === "admin"`; `aria-disabled` + `title` for a11y; coming-soon card if state reached
+- Learn nav link (TopNav): rendered as disabled `<span>` (not `<Link>`) with BETA badge for non-admins; `title` tooltip explaining "Coming soon"
+
+**Polish:**
+- Removed no-op `col-span-full` from coming-soon card
+- Moved `isActive` computation inside non-disabled branch in TopNav loop
+- `tsc --noEmit`: clean throughout
+
+---
+
+### 2026-07-22 — Session 50: Solved count consistency + import alias fix
+
+**Commits:** `582917b` `ac5cbb8` `12bbc34`
+
+**Solved count source of truth:**
+- Dashboard solved stat (`totalSolved`) now reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of deriving from the language-filtered problems list (which has LIMIT 200)
+- `frontend/app/(main)/home/page.tsx` — Stats card: `totalSolved` renamed to reflect true total; subtitle shows `visibleSolved` (view-specific)
+- `frontend/lib/api.ts` — `fetchUser()` maps `solved_count` → `solvedCount`
+- `frontend/lib/UserContext.tsx` — User type includes `solvedCount`
+- `frontend/lib/types.ts` — `User` interface: `solvedCount` field
+
+**Build fix:**
+- `internal/api/router.go` — Store package import aliased as `storepkg` to avoid shadowing by handler parameter name
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 51: Professional typography polish
+
+**Commits:** `f57f867` `dc2d61b`
+
+**Problem description (workspace):**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Typography overhaul on the prose description container:
+  - Text color: `text-brand-offwhite-muted` → `text-brand-offwhite/90` (bright, high contrast)
+  - Size: `prose-sm` → `prose-base`
+  - Line height: `leading-relaxed` → `leading-[1.75]` + `prose-p:leading-7`
+  - Headings: added `font-bold` + `tracking-tight` + white
+  - Strong text: `font-bold` + `text-brand-offwhite`
+  - Inline code: gold accent, subtle background, monospace, rounded
+  - Code blocks: added `shadow-inner`
+  - Lists: bright text + `leading-7`
+  - Paragraph spacing: `[&_p]:mb-5` → `prose-p:mb-4`
+
+**Problem cards (problems + home page):**
+
+`frontend/app/(main)/problems/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Title: `font-semibold text-sm` → `font-bold text-base`
+- Description: `text-xs` / `opacity-70` → `text-sm` / `opacity-90`
+- XP: `font-semibold` → `font-bold`
+- Solved: `font-medium` → `font-bold`
+
+`frontend/app/(main)/home/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Description: `text-xs` / `opacity-60` → `text-sm` / `opacity-90`
+- Tags: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Footer stats: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Stat icons: `opacity-30` → `opacity-50`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 52: Workspace editor cleanup
+
+**Commits:** `2c472ac` `f9690b1`
+
+**Removed duplicate difficulty badge:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed the duplicate difficulty badge from the top toolbar header. The difficulty badge remains in the description area (left sidebar) where users read the problem context.
+
+**Removed custom intellisense/hover providers:**
+- Removed `registerVSCodeDarkPlusTheme` import and custom theme registration (deleted entire `frontend/lib/monaco-theme.ts` usage)
+- Removed `loader.init()` pre-initialization effect
+- Removed all custom completion providers (~740 lines):
+  - Go: `pkgMethods` (fmt/strings/math/sort/os/strconv/time/errors/json), `goSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+  - Python: `pythonKeywords`, `pythonBuiltins`, `pythonStdlibHints`, `pythonSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+
+**Editor config updated:**
+- Theme: `vs-dark-plus` (custom) → `vs-dark` (built-in VS Code Dark+)
+- `quickSuggestions`: `{ other: true, ... }` → `false`
+- `snippetSuggestions`: `inline` → `none`
+- `suggestOnTriggerCharacters`: `true` → `false`
+- `acceptSuggestionOnEnter`: `smart` → `off`
+- `parameterHints`: (unset) → `{ enabled: false }`
+- `autoClosingBrackets`: `always` → `never`
+- `autoClosingQuotes`: `always` → `never`
+
+**Result:** Clean VS Code Dark+ experience — syntax coloring only, no popups, no autocomplete, no hover tooltips. Only the keyboard shortcuts remain: Ctrl+S (format), Ctrl+Enter (test), Ctrl+Shift+Enter (submit).
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`

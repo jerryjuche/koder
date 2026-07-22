@@ -433,7 +433,7 @@ export default function ProblemsPage() {
 
                   <div className="flex flex-row items-start justify-between p-5 pb-3 relative z-10">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
+                      <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
                         #{String(i + 1 + (safePage - 1) * ITEMS_PER_PAGE).padStart(3, "0")}
                       </span>
                       <span
@@ -461,21 +461,21 @@ export default function ProblemsPage() {
                   </div>
 
                   <div className="px-5 pb-5 flex-1 flex flex-col relative z-10">
-                    <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug mb-2 line-clamp-2">
+                    <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors leading-snug mb-2 line-clamp-2">
                       {problem.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 mb-3">
+                    <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-3">
                       {problem.statement?.replace(/<[^>]*>/g, "").slice(0, 120)}
                     </p>
 
-                    <div className="mt-auto flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-auto flex items-center gap-3 text-sm text-muted-foreground/80">
                       {problem.xpReward > 0 && (
-                        <span className="font-semibold text-primary">
+                        <span className="font-bold text-primary">
                           {problem.xpReward} XP
                         </span>
                       )}
                       {problem.solved && (
-                        <span className="text-emerald-400 font-medium">Solved</span>
+                        <span className="text-emerald-400 font-bold">Solved</span>
                       )}
                     </div>
                   </div>

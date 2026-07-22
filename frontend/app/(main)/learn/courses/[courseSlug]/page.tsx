@@ -277,7 +277,8 @@ export default function CourseDetail() {
 
             let status: "locked" | "in-progress" | "completed" | "available" =
               "available";
-            if (isComplete) status = "completed";
+            if (mod.locked) status = "locked";
+            else if (isComplete) status = "completed";
             else if (isCurrent) status = "in-progress";
 
             return (

@@ -444,6 +444,7 @@ type Module struct {
 	ImageURL    *string     `db:"image_url" json:"image_url,omitempty"`
 	OrderNumber int         `db:"order_number" json:"order_number"`
 	Visible     bool        `db:"visible" json:"visible"`
+	Locked      bool        `db:"locked" json:"locked"`
 	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
 }
@@ -482,6 +483,12 @@ type LessonSection struct {
 type LessonPrereq struct {
 	LessonID          pgtype.UUID `json:"lesson_id"`
 	DependsOnLessonID pgtype.UUID `json:"depends_on_lesson_id"`
+}
+
+// ModuleLock represents a locked problem module (text category).
+type ModuleLock struct {
+	ModuleName string    `db:"module_name" json:"module_name"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
 // Project represents a hands-on coding project linked to a lesson.
