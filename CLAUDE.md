@@ -1130,23 +1130,38 @@ npm run build   # Builds static + server components
 
 ### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
 
+**Commits:** `528cd8b`
+
 **Problem statement rendering — root cause fix:**
 - `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` classes were no-ops
 - Removed `react-markdown` / `remark-gfm` — replaced with self-contained `renderMarkdown()` + `inlineMd()` in `ProblemWorkspaceClient.tsx`
 - All styling via inline `style=` attributes — deterministic, no CSS plugin dependency
 
-**Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
-- Blank lines → paragraphs with `0.75rem` bottom margin
-- `#` / `##` / `###` → properly sized bold headings
-- `**bold**` → gold (`#D4AF37`), `` `code` `` → gold monospace with dark bg
-- `[text](url)` → gold links, HTML-escaped (XSS safe)
-
-**Key insight:** No GFM tables, blockquotes, or strikethrough. Blank lines (`\n\n`) are the only block separator.
-
 **Files modified:**
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx`
 
 **Verification:**
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
+
+**Commits:** `824fc10`
+
+**Locked module cards — fix problem counts:**
+- Added `Locked bool` to `Problem` struct; SQL includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`; handler no longer filters locked problems — they return with `locked: true`
+- `LIMIT` raised from 200 → 500; `frontend/lib/types.ts` adds `locked: boolean`
+- `filteredProblems` excludes `p.locked` from grid; `moduleProgress` derives from ALL problems (including locked) so ModuleCards show correct counts
+- Locked module cards now show `12 problems · 3 solved · 25%` with amber lock overlay
+
+**Community solutions:**
+- Removed `AND EXISTS (submission_likes)` — solutions with 0 likes now surface
+- Community cards: auto-height + collapse (>8 lines → `max-h-[220px]` with gradient fade), `rounded-xl` (no double-radius), fixed `h-[200px]` removed
+
+**Bug fix:** `ProblemWorkspaceClient.tsx:427` — `lang` → `activeLanguage`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component

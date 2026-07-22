@@ -62,6 +62,16 @@
 | 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
 | 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
 | 56 | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard |
+| 57 | `4fc6cce` | fix: module selection updates URL via replaceState |
+| 58 | `32f264a` | fix: use pushState for module & tab selection (LIFO stack) |
+| 59 | `2ba2fac` | fix: clear cache after delete module so loadData() gets fresh data |
+| 60 | `f36bbdd` | docs: add sessions 54-57 (lock panel redesign, admin bypass, delete module, LIFO nav) |
+| 61 | `ef4f19b` | feat: module metadata system (rename + pin) + 4 Python WebP images |
+| 62 | `8497b09` | feat: add python-variables-math WebP image + ModuleCards entry |
+| 63 | `a513eed` | fix: remove source PNG (WebP is the deliverable) |
+| 64 | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks |
+| 65 | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency) |
+| 66 | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500 |
 
 ---
 
@@ -1848,7 +1858,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 
 ### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
 
-**Commits:** `pending`
+**Commits:** `528cd8b`
 
 **Problem statement rendering — root cause fix:**
 - `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` Tailwind classes were no-ops (headings, paragraph spacing, code styling, bold color all did nothing)
@@ -1872,4 +1882,34 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — full renderer rewrite
 
 **Verification:**
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
+
+**Commits:** `824fc10`
+
+**Locked module cards — fix problem counts:**
+- `internal/store/types.go` — Added `Locked bool` field to `Problem` struct
+- `internal/store/problems.go` — SQL now includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`
+- `internal/store/problems.go` — Scans `is_locked` into `problem.Locked`; `LIMIT` raised from 200 to 500
+- `internal/api/problems.go` — Removed handler-level locked module filter — problems now include `locked: true` instead of being excluded
+- `frontend/lib/types.ts` — Added `locked: boolean` to `Problem` interface; merged duplicate `TestCase` definitions
+- `frontend/app/(main)/home/page.tsx` — `filteredProblems` excludes `p.locked` from grid; `moduleProgress` derives from ALL problems including locked; `showTopicCards` includes `lockedModules.has(selectedModule)` guard
+- Locked module cards now show `12 problems · 3 solved · 25%` — identical visual treatment to unlocked cards
+
+**Community solutions — remove AND EXISTS:**
+- `internal/store/submissions.go:146` — Removed `AND EXISTS (SELECT 1 FROM submission_likes ...)` — solutions with 0 likes now surface, sorted by likes DESC
+
+**Community solution cards — auto-height + collapse:**
+- `frontend/app/(main)/problems/[slug]/success/page.tsx` — Each card uses per-card `expandedSolutions` Set + `toggleSolution`. Code >8 lines collapses to `max-h-[220px]` with gradient fade + "Show full solution" toggle. Cards use `rounded-xl` (no double-radius). Removed fixed `h-[200px]`.
+
+**Bug fix:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx:427` — Fixed `lang` → `activeLanguage` (undefined variable)
+
+**Files modified (14):**
+`CLAUDE.md`, `ProblemEditPanel.tsx`, `home/page.tsx`, `success/page.tsx`, `ProblemWorkspaceClient.tsx`, `api.ts`, `types.ts`, `admin.go`, `problems.go` (api), `router.go`, `problems.go` (store), `store.go`, `submissions.go`, `types.go`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
