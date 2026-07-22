@@ -99,11 +99,6 @@ export default function TopNav() {
             {navLinks
               .filter((link) => link.name !== "Admin" || user?.role === "admin")
               .map((link) => {
-                const isActive =
-                  pathname === link.href ||
-                  (pathname !== "/" &&
-                    link.href !== "/" &&
-                    pathname?.startsWith(link.href));
                 const Icon = link.icon;
                 const isLearn = link.name === "Learn";
                 const learnDisabled = isLearn && user?.role !== "admin";
@@ -112,6 +107,7 @@ export default function TopNav() {
                   return (
                     <span
                       key={link.name}
+                      title="Coming soon — available to administrators only"
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground/40 cursor-not-allowed select-none"
                     >
                       <Icon size={16} />
@@ -123,6 +119,12 @@ export default function TopNav() {
                     </span>
                   );
                 }
+
+                const isActive =
+                  pathname === link.href ||
+                  (pathname !== "/" &&
+                    link.href !== "/" &&
+                    pathname?.startsWith(link.href));
 
                 return (
                   <Link

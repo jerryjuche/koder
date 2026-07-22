@@ -276,6 +276,8 @@ export default function Dashboard() {
         </button>
         <button
           onClick={() => { if (user?.role === "admin") setActiveTab("best-practices"); }}
+          aria-disabled={user?.role !== "admin" ? true : undefined}
+          title={user?.role !== "admin" ? "Private beta — administrators only" : undefined}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
             activeTab === "best-practices"
@@ -684,7 +686,7 @@ export default function Dashboard() {
           )}
         </>
       ) : user?.role !== "admin" ? (
-        <div className="col-span-full">
+        <div>
           <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
             <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
             <h3 className="text-lg font-bold text-foreground mb-2">Best Practices — Coming Soon</h3>
