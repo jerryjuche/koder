@@ -54,14 +54,14 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
     .substring(0, 2)
     .toUpperCase();
 
-  const solvedCount = user?.solvedCount ?? profile.stats.solved_count;
-  const attemptedCount = user?.attemptedCount ?? profile.stats.attempted_count;
+  const solvedCount = profile.stats.solved_count ?? user?.solvedCount ?? 0;
+  const attemptedCount = profile.stats.attempted_count ?? user?.attemptedCount ?? 0;
   const successRate = attemptedCount > 0
     ? ((solvedCount / attemptedCount) * 100).toFixed(0)
     : "0";
-  const streakDays = user?.streak ?? profile.stats.current_streak_days;
-  const xp = user?.xp ?? profile.xp;
-  const level = user?.level ?? profile.level;
+  const streakDays = profile.stats.current_streak_days ?? user?.streak ?? 0;
+  const xp = profile.xp ?? user?.xp ?? 0;
+  const level = profile.level ?? user?.level ?? 1;
 
   const xpInLevel = xp % 1000;
   const xpPercent = Math.min(100, (xpInLevel / 1000) * 100);
