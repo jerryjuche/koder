@@ -2,7 +2,6 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
 import rehypeRaw from "rehype-raw";
 import { LessonSection } from "@/lib/types";
 import SectionQuiz from "./SectionQuiz";
@@ -84,9 +83,9 @@ export default function SectionRenderer({ section, problemReferences, language }
   const renderMarkdown = (content: string) => {
     const processed = preprocessCallouts(content);
     return (
-      <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-primary prose-code:before:content-none prose-code:after:content-none">
+      <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-primary prose-code:before:content-none prose-code:after:content-none [&_p]:mb-5 [&_p:empty]:hidden [&_br]:block [&_br]:content-[''] [&_br]:mt-3">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkBreaks]}
+          remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
           components={{
             code({ className, children, ...props }) {
