@@ -79,6 +79,7 @@
 | 71 | `549521f` | fix: config tests — clear CI env vars for missing-var tests |
 | 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
 | 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
+| 74 | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews |
 
 ---
 
@@ -1978,6 +1979,34 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `go test ./internal/...` — all 8 packages pass (24 tests)
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 65: Dashboard nav corrected (dispatchEvent) + scrollable success page previews
+
+**Commits:** `c2f0efa`
+
+**1. Dashboard nav link — fix corrected:**
+- `TopNav.tsx` — `router.refresh()` didn't work because it doesn't re-run client `useEffect` hooks
+- Changed to `window.dispatchEvent(new Event("user-updated"))` — the dashboard (`home/page.tsx:118`) already listens for this event, clears cache, and re-fetches all data with 300ms debounce
+
+**2. Success page — scrollable code previews:**
+- `success/page.tsx` — Removed 141 lines of collapse/expand machinery:
+  - Removed `showFullCode` state, `expandedSolutions` state, `toggleSolution` function
+  - Removed `codeLines`/`isLongCode`/`solCodeLines`/`solIsLong`/`solShowFull` calculations
+  - Removed gradient fade overlays (z-index conflict with CodeBlock copy button)
+  - Removed "Show full solution" / "Show less" toggle buttons
+  - Removed `ChevronDown` import
+- Both "Your Solution" and community solution code blocks now use `max-h-[220px] overflow-y-auto` with thin custom scrollbar visible on hover
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `go test ./internal/...` — all 8 packages pass
+- `go vet/build/test ./sandbox/...` — clean
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning)
 - All pushed to `origin/update`

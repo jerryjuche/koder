@@ -1177,7 +1177,19 @@ npm run build   # Builds static + server components
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
-### 2026-07-22 — Session 64: Config test fixes, dashboard nav link, global rank fix
+### 2026-07-22 — Session 65: Dashboard nav corrected (dispatchEvent) + scrollable success page previews
+
+**Commits:** `c2f0efa`
+
+**Dashboard nav link — fix corrected:**
+- `router.refresh()` didn't work — it doesn't re-run client `useEffect` hooks, so the dashboard's data-fetching effect never re-fires
+- Changed to `window.dispatchEvent(new Event("user-updated"))` — the dashboard (`home/page.tsx:118`) already listens for this event, clears cache, and re-fetches all data (problems, user, best practices, module locks, module meta) with 300ms debounce
+
+**Success page — scrollable code previews:**
+- Removed 141 lines of collapse/expand machinery (state, gradient overlays, toggle buttons)
+- Both "Your Solution" and community solution code blocks now bounded at `max-h-[220px]` with `overflow-y-auto`; thin scrollbar visible on hover
+
+### 2026-07-22 — Session 64: Config test fixes, dashboard nav link (original), global rank fix
 
 **Commits:** `bfadb3f` `549521f` `9b882aa` `c8c260c`
 
@@ -1186,9 +1198,8 @@ npm run build   # Builds static + server components
 - `internal/config/config_test.go` — 3 "missing" tests call `t.Setenv("VAR", "")` to clear CI env vars; `TestLoadConfig_Defaults` clears `GO_VERSION`
 - Tested with CI env vars (`DATABASE_URL`, `JWT_SECRET`, `NVIDIA_API_KEY` set) — all pass
 
-**Dashboard nav link no-op fix:**
-- `TopNav.tsx:130-142` — added `onClick` handler: `if (pathname === link.href) { e.preventDefault(); router.refresh(); }`
-- Clicking Dashboard when already on `/home` now triggers a fresh RSC re-render instead of being a Next.js `<Link>` no-op
+**Dashboard nav link no-op fix (original):**
+- `TopNav.tsx` — added `onClick` handler with `router.refresh()` — later corrected to `dispatchEvent` in session 65
 
 **Global rank `# #1` fix:**
 - `StatsOverview.tsx:30` — removed `#` from template literal: `#{profile.global_rank}` → `{profile.global_rank}`
