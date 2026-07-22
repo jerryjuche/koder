@@ -291,7 +291,7 @@ koder/
 │   │   ├── ResizableSplitPane.tsx             # Drag-resizable horizontal split with grip handle
 │   │   ├── MultiFileEditor.tsx                # Multi-file tabbed editor for exercises
 │   │   ├── multi-step-loader-demo.tsx
-│   │   ├── application/code-snippet/          # Professional Shiki code block with copy, language icons, errors (new)
+│   │   ├── application/code-snippet/          # Professional Shiki code block, collapsed/expand, multi-file, copy
 │   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
@@ -987,6 +987,20 @@ npm run build   # Builds static + server components
 ---
 
 ## Session Log
+
+### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
+
+**Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
+
+**CodeSnippet rewrite:**
+- `frontend/components/application/code-snippet/index.tsx` — 476→314 lines: removed `react-icons`, simplified to single component, `collapsed`/`maxHeight` with gradient-fade toggle
+- Carbon-copy button hover fix (missing `group`), multi-file key fix (`f.language`→`f.filename`), type shadow fix (`SnippetCtxType`)
+
+**Best-practices cards:** Replaced 40-line CodeBlock compound with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
+
+**Beta-gate:** Best-practices tab + Learn nav link disabled for non-admins with amber BETA badge + `FlaskConical` icon; best-practices content guarded with coming-soon card; `aria-disabled` + `title` for accessibility
+
+**Polish:** Removed no-op `col-span-full`; moved `isActive` into non-disabled branch; `tsc --noEmit` clean
 
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 

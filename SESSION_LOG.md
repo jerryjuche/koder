@@ -1508,3 +1508,30 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `internal/api/cms.go` — `ToggleModuleLock` handler, 403 on locked module detail
 - `frontend/components/learn/admin/AdminCards.tsx` — amber badge + lock/unlock button on AdminModuleCard
 - `frontend/app/(main)/admin/page.tsx` — Curriculum Manager card added to admin dashboard
+
+---
+
+### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
+
+**Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
+
+**CodeSnippet component rewrite:**
+- `frontend/components/application/code-snippet/index.tsx` — Rewrote from 476→314 lines: removed `react-icons` (heavy), simplified compound-API to single component, added `collapsed`/`maxHeight` props with gradient-fade "Show more/less" toggle
+- `frontend/components/application/code-snippet/code-snippet.story.tsx` — Updated stories to match new API
+
+**Best-practices cards compacted:**
+- `frontend/app/(main)/home/page.tsx` — Replaced 40-line CodeBlock compound usage with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
+
+**Bug fixes:**
+- Copy button was permanently invisible — added `group` class to root div for `group-hover:opacity-100`
+- Multi-file tab keys used `f.language` (collision risk) — changed to `f.filename`
+- `SnippetCtx` type alias shadowed const — renamed to `SnippetCtxType`
+
+**Beta-gate features (non-admin only):**
+- Best-practices tab: `cursor-not-allowed`, muted text, amber BETA badge with `FlaskConical`; `onClick` gated to `user?.role === "admin"`; `aria-disabled` + `title` for a11y; coming-soon card if state reached
+- Learn nav link (TopNav): rendered as disabled `<span>` (not `<Link>`) with BETA badge for non-admins; `title` tooltip explaining "Coming soon"
+
+**Polish:**
+- Removed no-op `col-span-full` from coming-soon card
+- Moved `isActive` computation inside non-disabled branch in TopNav loop
+- `tsc --noEmit`: clean throughout
