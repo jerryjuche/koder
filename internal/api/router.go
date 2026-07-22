@@ -9,7 +9,7 @@ import (
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/executor"
-	"github.com/jerryjuche/koder/internal/store"
+	storepkg "github.com/jerryjuche/koder/internal/store"
 )
 
 // App holds the HTTP handler and lifecycle-managed resources that need
@@ -30,7 +30,7 @@ func (a *App) Shutdown() {
 }
 
 // NewRouter builds the application router for Koder.
-func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b *broker.Broker) (*App, error) {
+func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor, b *broker.Broker) (*App, error) {
 	r := chi.NewRouter()
 
 	r.Use(RecoveryMiddleware)
@@ -255,7 +255,7 @@ func NewRouter(cfg *config.Config, store store.Store, exec *executor.Executor, b
 				return
 			}
 			if locks == nil {
-				locks = []store.ModuleLock{}
+				locks = []storepkg.ModuleLock{}
 			}
 			RespondSuccess(w, locks)
 		})
