@@ -408,7 +408,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                         <tbody>
                           {testCases.map((tc) => (
                             <TestCaseRow
-                              key={tc.id}
+                              key={`${tc.id}-${tc.expected}`}
                               tc={tc}
                               saving={savingTestCase === tc.id}
                               onToggleHidden={() => toggleHidden(tc)}
@@ -556,8 +556,6 @@ function TestCaseRow({ tc, saving, onToggleHidden, onExpectedChange }: {
     if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
     if (e.key === 'Escape') { setDraft(tc.expected); setEditing(false); }
   };
-
-  useEffect(() => { setDraft(tc.expected); }, [tc.expected]);
 
   return (
     <tr className={cn(

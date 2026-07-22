@@ -53,28 +53,6 @@ export default function MultiFileConfigPanel({ metadata, onChange }: MultiFileCo
   const [draftContent, setDraftContent] = useState<string | null>(null);
   const initialized = useRef(false);
 
-  // Sync parent → local (when editing existing section that loads from API)
-  const specKey = JSON.stringify(spec);
-  useEffect(() => {
-    setFiles(spec.files);
-    setEntryPoint(spec.entryPoint);
-    setDraftContent(null);
-    if (spec.files.length > 0 && activeIndex >= spec.files.length) {
-      setActiveIndex(0);
-    }
-  }, [specKey]);
-
-  // Initialize on first mount if no multiFile in metadata
-  useEffect(() => {
-    if (!initialized.current && !metadata?.multiFile) {
-      initialized.current = true;
-      syncParent(DEFAULT_SPEC.files, DEFAULT_SPEC.entryPoint);
-    }
-  }, []);
-
-  const activeFile = files[activeIndex] || files[0];
-  const displayContent = draftContent !== null ? draftContent : (activeFile?.content ?? "");
-
   const syncParent = useCallback((f: FileEntry[], ep: string) => {
     const meta = metadata || {};
     onChange({
@@ -82,6 +60,32 @@ export default function MultiFileConfigPanel({ metadata, onChange }: MultiFileCo
       multiFile: { files: f, entryPoint: ep },
     });
   }, [metadata, onChange]);
+
+  // Sync spec changes into local state when parent metadata changes (legitimate external system sync)
+  const specKey = JSON.stringify(spec);
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setFiles(spec.files);
+    setEntryPoint(spec.entryPoint);
+    setDraftContent(null);
+    if (spec.files.length > 0 && activeIndex >= spec.files.length) {
+      setActiveIndex(0);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- spec.files/entryPoint tracked via specKey; activeIndex intentionally excluded
+  }, [specKey]);
+
+  // Initialize parent on first mount (intentionally runs only once)
+  useEffect(() => {
+    if (!initialized.current && !metadata?.multiFile) {
+      initialized.current = true;
+      syncParent(DEFAULT_SPEC.files, DEFAULT_SPEC.entryPoint);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-time mount init
+  }, []);
+
+  const activeFile = files[activeIndex] || files[0];
+  const displayContent = draftContent !== null ? draftContent : (activeFile?.content ?? "");
 
   const commitContent = useCallback(() => {
     if (draftContent === null || !activeFile) return;
