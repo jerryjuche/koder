@@ -7,7 +7,7 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files, ~280 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
+- **Codebase:** 78 Go source files (57 int src + 12 int test + 1 cmd + 8 sandbox), ~295 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
 
 ---
 
@@ -757,6 +757,11 @@ POST /submit (scoring) | POST /test (no-score)
 | GET | /admin/module-locks | `admin.go:ListProblemModuleLocks` | List all locked problem modules |
 | POST | /admin/module-locks/{moduleName} | `admin.go:ToggleProblemModuleLock` | Toggle problem module lock (insert/delete) |
 
+### Module Locks (authenticated, student)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| GET | /me/module-locks | inline (router.go:249) | List all locked problem modules for student dashboard enforcement |
+
 ### Utility (no auth)
 | Method | Path | Handler | Description |
 |---|---|---|---|
@@ -977,16 +982,21 @@ npm run build   # Builds static + server components
 5. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
 6. **Session log duplication** — `.opencode/session-log.md` is stale (last entry July 9). The canonical log is `SESSION_LOG.md`. The `.opencode` version should be removed or auto-synced.
 7. **ADR-012 (Per-language localStorage)** — Documented in CODEBASE_INDEX.md but decision rationale is not captured in ADRs file. Keys are `koder_code_{slug}_{lang}`.
-8. **Hydration mismatch on `/home`** — The `selectedModule` state from `searchParams` causes a server/client HTML mismatch in the dashboard header section. The `"All Problems"` clear-filter button renders differently on server vs client.
+8. **Hydration mismatch on `/home` (FIXED 2026-07-21)** — `selectedModule` was moved from `useState` initializer to `useEffect`, resolving the server/client HTML mismatch in the dashboard header section. The `"All Problems"` clear-filter button no longer renders differently on server vs client.
 
 ---
 
 ## Session Log
 
-### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish
+### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 
-**Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`
+**Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`
 
+- **New component:** `application/code-snippet/index.tsx` — Professional Shiki code block with copy button, language icons, error highlighting, line numbers (477 lines)
+- **New component:** `FeedbackButtonWrapper.tsx` — Route-conditionally renders FeedbackButton
+- **CSP fix:** Added `ws:` protocol for dev WebSocket connections; added `cdn.jsdelivr.net` + `va.vercel-scripts.com` to script sources
+- **Hydration fix:** Moved `selectedModule` from `useState` initializer → `useEffect` on home page to resolve server/client HTML mismatch
+- **New endpoint:** `GET /me/module-locks` — student-facing endpoint for locked problem modules
 - Fix problem edit persistence (use response data + invalidate cache on save)
 - Fix workspace header overflow with long titles (truncate + `shrink-0`)
 - Professional UI polish for `/problems` filter sidebar with nav-item style section dividers

@@ -36,17 +36,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  CodeBlock,
-  CodeBlockBody,
-  CodeBlockContent,
-  CodeBlockCopyButton,
-  CodeBlockFilename,
-  CodeBlockFiles,
-  CodeBlockHeader,
-  CodeBlockItem,
-} from "@/components/kibo-ui/code-block";
-import type { BundledLanguage } from "@/components/kibo-ui/code-block";
+import { CodeSnippet } from "@/components/application/code-snippet";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
 import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
@@ -746,45 +736,16 @@ export default function Dashboard() {
                   </button>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <CodeBlock
-                    data={[
-                      {
-                        language: "go",
-                        filename: "solution.go",
-                        code: sol.code,
-                      },
-                    ]}
-                    defaultValue="go"
-                    className="h-[250px]"
-                  >
-                    <CodeBlockHeader>
-                      <CodeBlockFiles>
-                        {(item) => (
-                          <CodeBlockFilename
-                            key={item.language}
-                            value={item.language}
-                          >
-                            {item.filename}
-                          </CodeBlockFilename>
-                        )}
-                      </CodeBlockFiles>
-                      <CodeBlockCopyButton />
-                    </CodeBlockHeader>
-                    <CodeBlockBody>
-                      {(item) => (
-                        <CodeBlockItem
-                          key={item.language}
-                          value={item.language}
-                        >
-                          <CodeBlockContent
-                            language={item.language as BundledLanguage}
-                          >
-                            {item.code}
-                          </CodeBlockContent>
-                        </CodeBlockItem>
-                      )}
-                    </CodeBlockBody>
-                  </CodeBlock>
+                  <CodeSnippet
+                    files={[{
+                      language: "go",
+                      filename: "solution.go",
+                      code: sol.code,
+                    }]}
+                    collapsed
+                    maxHeight={140}
+                    className="rounded-none border-0 shadow-none"
+                  />
                 </CardContent>
               </Card>
             ))
