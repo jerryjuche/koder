@@ -262,27 +262,34 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, locked
             disabled={isLocked}
             className={cn(
               "group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl",
-              isLocked && "cursor-not-allowed opacity-60",
+              isLocked && "cursor-not-allowed",
             )}
           >
             <Card
               style={{ animationDelay: `${i * 60}ms` }}
               className={cn(
                 "relative overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-3 pt-0",
-                "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5",
+                "hover:-translate-y-1.5 hover:shadow-xl",
                 "h-full flex flex-col",
                 isComplete && "ring-1 ring-emerald-500/20",
+                isLocked && "border-amber-500/20 hover:shadow-amber-500/10 hover:border-amber-500/30",
               )}
             >
               <div className="relative">
                 <ModuleImage src={meta.image} alt={name} initial={name[0]} />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
                 {isLocked && (
-                  <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-[1px] flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                      <Lock size={20} className="text-amber-400" />
+                  <>
+                    <div className="absolute top-2 right-2 z-20 w-7 h-7 rounded-lg bg-amber-500/20 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                      <Lock size={14} className="text-amber-400" />
                     </div>
-                  </div>
+                    <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-amber-950/20 backdrop-blur-[1px]">
+                      <div className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-950/70 backdrop-blur-sm border border-amber-500/30 shadow-lg">
+                        <Lock size={18} className="text-amber-400" />
+                        <span className="text-[11px] font-bold text-amber-300 tracking-wide uppercase">Locked</span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -363,17 +370,19 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, locked
                 <div className="flex items-center justify-between w-full">
                   <span className={cn(
                     "text-xs font-semibold tracking-wide transition-colors duration-200",
-                    "text-muted-foreground group-hover:text-primary",
+                    isLocked
+                      ? "text-amber-400/60"
+                      : "text-muted-foreground group-hover:text-primary",
                   )}>
-                    {isComplete ? "Review problems" : "Start practicing"}
+                    {isLocked ? "Locked by instructor" : isComplete ? "Review problems" : "Start practicing"}
                   </span>
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
-                    "bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary",
-                    "group-hover:translate-x-0.5",
-                    "text-muted-foreground",
+                    isLocked
+                      ? "bg-amber-500/10 text-amber-400/60"
+                      : "bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary group-hover:translate-x-0.5 text-muted-foreground",
                   )}>
-                    <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                    {isLocked ? <Lock size={12} /> : <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
                   </div>
                 </div>
               </CardFooter>
