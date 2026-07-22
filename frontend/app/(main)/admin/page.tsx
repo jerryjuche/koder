@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, fetchAllCourses, fetchModules, toggleModuleLock } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload } from '@/lib/types';
+import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
@@ -41,14 +41,19 @@ export default function AdminDashboard() {
   const [problemsError, setProblemsError] = useState<string | null>(null);
   const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseModules, setCourseModules] = useState<Record<string, CurriculumModule[]>>({});
+  const [togglingCourseModule, setTogglingCourseModule] = useState<string | null>(null);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [statsRes, usageRes, logsRes, problemsRes, locksRes] = await Promise.all([
+    const [statsRes, usageRes, logsRes, problemsRes, locksRes, coursesRes] = await Promise.all([
       fetchAdminStats(),
       fetchAIUsageStats(),
       fetchAdminActivity(),
       fetchAllProblemsAdmin(),
       fetchModuleLocks(),
+      fetchAllCourses(),
     ]);
 
     if (locksRes.success && locksRes.data) {
@@ -64,6 +69,21 @@ export default function AdminDashboard() {
     } else if (problemsRes.error) {
       setProblemsError(problemsRes.error.message || 'Failed to load problems');
       toast.error(problemsRes.error.message || 'Failed to load problems');
+    }
+
+    if (coursesRes.success && coursesRes.data) {
+      setCourses(coursesRes.data);
+      setLoadingCourses(true);
+      const modulePromises = coursesRes.data.map((c) => fetchModules(c.id));
+      const moduleResults = await Promise.all(modulePromises);
+      const modulesMap: Record<string, CurriculumModule[]> = {};
+      coursesRes.data.forEach((c, i) => {
+        if (moduleResults[i].success && moduleResults[i].data) {
+          modulesMap[c.id] = moduleResults[i].data;
+        }
+      });
+      setCourseModules(modulesMap);
+      setLoadingCourses(false);
     }
   }, []);
 
@@ -326,6 +346,68 @@ export default function AdminDashboard() {
                   {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
                   {mod}
                 </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Curriculum Module Locks Panel */}
+      {courses.length > 0 && !loadingCourses && (
+        <div className="bg-brand-charcoal-card border border-amber-600/20 rounded-2xl p-5">
+          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
+            <BookOpen size={16} className="text-amber-400" />
+            <span className="font-medium text-brand-offwhite">Curriculum Module Locks</span>
+            <span className="text-xs text-brand-offwhite-muted/60">Lock entire curriculum modules from student access</span>
+          </div>
+          <div className="space-y-3">
+            {courses.map((course) => {
+              const modules = courseModules[course.id] || [];
+              if (modules.length === 0) return null;
+              return (
+                <details key={course.id} className="group">
+                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-amber-300 transition-colors [&::-webkit-details-marker]:hidden">
+                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
+                    <BookOpen size={14} className="text-brand-offwhite-muted shrink-0" />
+                    {course.title}
+                    <span className="text-xs text-brand-offwhite-muted/50 font-normal">
+                      ({modules.filter((m) => m.locked).length}/{modules.length} locked)
+                    </span>
+                  </summary>
+                  <div className="mt-3 flex flex-wrap gap-2 pl-6">
+                    {modules.map((mod) => (
+                      <button
+                        key={mod.id}
+                        onClick={async () => {
+                          setTogglingCourseModule(mod.id);
+                          const res = await toggleModuleLock(mod.id);
+                          if (res.success) {
+                            setCourseModules((prev) => ({
+                              ...prev,
+                              [course.id]: prev[course.id].map((m) =>
+                                m.id === mod.id ? { ...m, locked: !m.locked } : m
+                              ),
+                            }));
+                            toast.success(mod.locked ? `"${mod.title}" unlocked` : `"${mod.title}" locked`);
+                          } else {
+                            toast.error(res.error?.message || "Failed to toggle");
+                          }
+                          setTogglingCourseModule(null);
+                        }}
+                        disabled={togglingCourseModule === mod.id}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                          mod.locked
+                            ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
+                            : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
+                        )}
+                      >
+                        {mod.locked ? <Lock size={12} /> : <LockOpen size={12} />}
+                        {mod.title}
+                      </button>
+                    ))}
+                  </div>
+                </details>
               );
             })}
           </div>
