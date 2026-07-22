@@ -127,17 +127,17 @@ export default function TopNav() {
                     pathname?.startsWith(link.href));
 
                 return (
-                  <Link
+                  <button
                     key={link.name}
-                    href={link.href}
-                    onClick={(e) => {
+                    onClick={() => {
                       if (pathname === link.href) {
-                        e.preventDefault();
                         window.dispatchEvent(new Event("user-updated"));
+                      } else {
+                        router.push(link.href);
                       }
                     }}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
+                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer",
                       isActive
                         ? "bg-muted text-foreground border border-border/50"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
@@ -145,7 +145,7 @@ export default function TopNav() {
                   >
                     <Icon size={16} />
                     {link.name}
-                  </Link>
+                  </button>
                 );
               })}
           </nav>
