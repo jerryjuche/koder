@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { clearCache } from '@/lib/cache';
 import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
 import PendingContributions from './PendingContributions';
@@ -408,6 +409,8 @@ export default function AdminDashboard() {
                               if (res.success) {
                                 toast.success(`"${displayName}" deleted`);
                                 setProblems((prev) => prev.filter((p) => p.module !== mod));
+                                clearCache("/admin/problems");
+                                clearCache("/admin/module-locks");
                                 loadData();
                               } else {
                                 toast.error(res.error?.message || "Failed to delete module");
