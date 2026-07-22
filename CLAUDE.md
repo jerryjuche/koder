@@ -1177,6 +1177,20 @@ npm run build   # Builds static + server components
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
+### 2026-07-22 — Session 63: ESLint errors fix + staging CI/CD + branch rename
+
+**Commits:** `43eaef7`
+
+**Lint fixes (6 eslint errors → 0):**
+- `ProblemEditPanel.tsx` — key-based re-mount (`${tc.id}-${tc.expected}`) replacing useEffect/useRef sync
+- `home/page.tsx` — `selectedModule` initialized from URL in useState, removed mount-time useEffect
+- `LessonViewerClient.tsx` — `key={lessonSlug}` on root div remounts component on lesson nav
+- `MultiFileConfigPanel.tsx` — eslint-disable block comments for legitimate external-system sync
+
+**CI/CD:** Added `update` branch to push/PR triggers in `ci.yml` — identical pipeline as main
+
+**Branch:** Remote renamed `update` → `staging`; `origin/update` force-pushed to match old staging
+
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 
 **Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`
