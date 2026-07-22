@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [lockedModules, setLockedModules] = useState<Set<string>>(new Set());
+  const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,13 +72,26 @@ export default function Dashboard() {
     if (moduleParam) setSelectedModule(moduleParam);
   }, []);
 
+  // Sync state with browser back/forward
+  useEffect(() => {
+    const handlePop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const mod = params.get("module");
+      const tab = params.get("tab");
+      setSelectedModule(mod);
+      setLanguageFilter(tab === "go" || tab === "python" ? tab : "all");
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks()]).then(
-        ([probRes, userRes, bpRes, locksRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -87,6 +101,13 @@ export default function Dashboard() {
           if (bpRes.success) setBestPractices(bpRes.data || []);
           if (locksRes.success && locksRes.data) {
             setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
+          }
+          if (metaRes.success && metaRes.data) {
+            const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+            for (const m of metaRes.data) {
+              metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+            }
+            setModuleMeta(metaMap);
           }
           setLoading(false);
         }
@@ -108,9 +129,26 @@ export default function Dashboard() {
     };
 
     window.addEventListener("user-updated", handleUserUpdated);
+
+    // Refresh moduleMeta when returning from another tab (e.g. admin renamed/pinned modules)
+    const handleFocus = () => {
+      clearCache("/me/module-meta");
+      fetchModuleMeta().then((res) => {
+        if (mounted && res.success && res.data) {
+          const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+          for (const m of res.data) {
+            metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+          }
+          setModuleMeta(metaMap);
+        }
+      });
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       mounted = false;
       window.removeEventListener("user-updated", handleUserUpdated);
+      window.removeEventListener("focus", handleFocus);
       clearTimeout(debounceTimer);
     };
   }, [languageFilter]);
@@ -136,8 +174,8 @@ export default function Dashboard() {
   };
 
   const modules = useMemo(
-    () => Array.from(new Set(problems.map((p) => p.module))).sort(),
-    [problems]
+    () => Array.from(new Set([...problems.map((p) => p.module), ...Array.from(lockedModules)])).sort(),
+    [problems, lockedModules]
   );
 
   const moduleProgress = useMemo(() => {
@@ -154,6 +192,7 @@ export default function Dashboard() {
 
   const filteredProblems = useMemo(() => problems
     .filter((p) => {
+      if (p.locked) return false;
       if (selectedModule && p.module !== selectedModule) return false;
       if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
       if (difficultyFilter !== "All" && getDifficultyLabel(p.difficulty) !== difficultyFilter) return false;
@@ -186,9 +225,12 @@ export default function Dashboard() {
     setSearchQuery("");
     setDifficultyFilter("All");
     setStatusFilter("all");
+    const params = new URLSearchParams(window.location.search);
+    params.set("module", mod);
+    window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
-  const showTopicCards = !selectedModule;
+  const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
     <div className="space-y-8 py-6 animate-in fade-in duration-500">
@@ -327,6 +369,7 @@ export default function Dashboard() {
               ) : (
                 <ModuleCards
                   modules={modules}
+                  moduleMeta={moduleMeta}
                   moduleProgress={moduleProgress}
                   lockedModules={lockedModules}
                   onSelect={handleSelectModule}
@@ -340,7 +383,13 @@ export default function Dashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setSelectedModule(null)}
+                    onClick={() => {
+                      setSelectedModule(null);
+                      const params = new URLSearchParams(window.location.search);
+                      params.delete("module");
+                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                      window.history.pushState({}, "", newUrl);
+                    }}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                   >
                     <ArrowLeft size={16} />
@@ -371,7 +420,7 @@ export default function Dashboard() {
                         params.set("tab", lang);
                       }
                       const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.replaceState({}, "", newUrl);
+                      window.history.pushState({}, "", newUrl);
                       clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
                       setLoading(true);
                       fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
@@ -486,6 +535,7 @@ export default function Dashboard() {
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
+                        onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                         style={{
                           animationFillMode: "both",
@@ -732,7 +782,7 @@ export default function Dashboard() {
                         <div className="font-bold text-sm text-foreground flex items-center gap-2">
                           {sol.user_name}
                         {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-primary hover:underline font-mono">
+                          <Link href={`/problems/${sol.problem_slug}`} onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))} className="text-xs text-primary hover:underline font-mono">
                             in {sol.problem_slug}
                           </Link>
                         )}

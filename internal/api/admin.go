@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/enricher"
@@ -695,4 +696,170 @@ func (h *AdminHandler) ToggleProblemModuleLock(w http.ResponseWriter, r *http.Re
 		"module_name": moduleName,
 		"locked":      locked,
 	})
+}
+
+// DeleteProblemModule handles DELETE /admin/modules/{moduleName} - deletes all problems in a module.
+func (h *AdminHandler) DeleteProblemModule(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	if err := h.store.DeleteProblemModule(r.Context(), moduleName); err != nil {
+		slog.Error("admin: failed to delete problem module", "module", moduleName, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to delete problem module", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "warning",
+		fmt.Sprintf("Deleted problem module '%s' with all problems", moduleName),
+		"text-red-400", "Trash2",
+	)
+
+	RespondSuccess(w, map[string]string{"module_name": moduleName, "status": "deleted"})
+}
+
+// ListModuleMeta handles GET /admin/module-meta
+func (h *AdminHandler) ListModuleMeta(w http.ResponseWriter, r *http.Request) {
+	metas, err := h.store.ListModuleMeta(r.Context())
+	if err != nil {
+		slog.Error("admin: failed to list module meta", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module metadata", nil)
+		return
+	}
+	if metas == nil {
+		metas = []store.ModuleMeta{}
+	}
+	RespondSuccess(w, metas)
+}
+
+// UpsertModuleMeta handles PUT /admin/module-meta/{moduleName}
+func (h *AdminHandler) UpsertModuleMeta(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	var req struct {
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+	if req.DisplayName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "display_name is required", nil)
+		return
+	}
+
+	meta, err := h.store.UpsertModuleMeta(r.Context(), moduleName, req.DisplayName)
+	if err != nil {
+		slog.Error("admin: failed to upsert module meta", "module", moduleName, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update module metadata", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Renamed module '%s' → '%s'", moduleName, req.DisplayName),
+		"text-primary", "Edit3",
+	)
+
+	RespondSuccess(w, meta)
+}
+
+// GetProblemTestCases handles GET /admin/problems/{id}/test-cases
+func (h *AdminHandler) GetProblemTestCases(w http.ResponseWriter, r *http.Request) {
+	problemID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
+		return
+	}
+
+	cases, err := h.store.GetTestCasesForProblem(r.Context(), problemID)
+	if err != nil {
+		slog.Error("admin: failed to get test cases", "problem_id", problemID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get test cases", nil)
+		return
+	}
+	if cases == nil {
+		cases = []store.TestCase{}
+	}
+
+	RespondSuccess(w, cases)
+}
+
+// UpdateTestCase handles PATCH /admin/test-cases/{id}
+func (h *AdminHandler) UpdateTestCase(w http.ResponseWriter, r *http.Request) {
+	tcID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid test case ID", nil)
+		return
+	}
+
+	var req struct {
+		Input    json.RawMessage `json:"input"`
+		Expected *string         `json:"expected"`
+		IsHidden *bool           `json:"is_hidden"`
+		Ordinal  *int            `json:"ordinal"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+
+	tc := &store.TestCase{
+		ID:    pgtype.UUID{Bytes: tcID, Valid: true},
+		Input: req.Input,
+	}
+	if req.Expected != nil {
+		tc.Expected = *req.Expected
+	}
+	if req.IsHidden != nil {
+		tc.IsHidden = *req.IsHidden
+	}
+	if req.Ordinal != nil {
+		tc.Ordinal = *req.Ordinal
+	}
+
+	if err := h.store.UpdateTestCase(r.Context(), tc); err != nil {
+		slog.Error("admin: failed to update test case", "id", tcID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update test case", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]any{
+		"id":        tcID.String(),
+		"input":     tc.Input,
+		"expected":  tc.Expected,
+		"is_hidden": tc.IsHidden,
+		"ordinal":   tc.Ordinal,
+	})
+}
+
+// SetModulePin handles PATCH /admin/module-meta/{moduleName}/pin
+func (h *AdminHandler) SetModulePin(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	var req struct {
+		Pinned bool `json:"pinned"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+
+	meta, err := h.store.SetModulePin(r.Context(), moduleName, req.Pinned)
+	if err != nil {
+		slog.Error("admin: failed to set module pin", "module", moduleName, "pinned", req.Pinned, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update module pin", nil)
+		return
+	}
+
+	RespondSuccess(w, meta)
 }

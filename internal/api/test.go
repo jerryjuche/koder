@@ -70,7 +70,16 @@ func (h *TestHandler) Test(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Resolve and validate language
+	// 5. Check module lock (admins bypass)
+	if problem.Module != "" {
+		locked, err := h.store.IsModuleLocked(r.Context(), problem.Module)
+		if err == nil && locked && claims.Role != "admin" {
+			RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This problem's module is locked by the instructor", nil)
+			return
+		}
+	}
+
+	// 6. Resolve and validate language
 	language := req.Language
 	if language == "" {
 		language = problem.Language

@@ -83,6 +83,7 @@ type Store interface {
 	UpdateProblem(ctx context.Context, problem *Problem) (*Problem, error)
 	UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error
 	PublishAllDrafts(ctx context.Context) (int, error)
+	UpdateTestCase(ctx context.Context, tc *TestCase) error
 	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
 	UpsertEnrichedProblem(ctx context.Context, problem *Problem, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)
@@ -191,6 +192,12 @@ type Store interface {
 	ListLockedModules(ctx context.Context) ([]ModuleLock, error)
 	ToggleProblemModuleLock(ctx context.Context, moduleName string) (bool, error)
 	IsModuleLocked(ctx context.Context, moduleName string) (bool, error)
+	DeleteProblemModule(ctx context.Context, moduleName string) error
+
+	// Module metadata (display names, pinning)
+	ListModuleMeta(ctx context.Context) ([]ModuleMeta, error)
+	UpsertModuleMeta(ctx context.Context, moduleName, displayName string) (*ModuleMeta, error)
+	SetModulePin(ctx context.Context, moduleName string, pinned bool) (*ModuleMeta, error)
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)

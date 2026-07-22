@@ -127,6 +127,7 @@ type Problem struct {
 	SuccessRate      float64     `json:"success_rate"`
 	AvgRuntimeMs     int         `json:"avg_runtime_ms"`
 	EstTimeMinutes   int         `json:"estTimeMinutes"`
+	Locked           bool        `json:"locked"`
 	Examples         []TestCase  `json:"examples"`
 }
 
@@ -489,6 +490,14 @@ type LessonPrereq struct {
 type ModuleLock struct {
 	ModuleName string    `db:"module_name" json:"module_name"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
+// ModuleMeta represents editable metadata for a problem module.
+type ModuleMeta struct {
+	ModuleName  string    `db:"module_name" json:"module_name"`
+	DisplayName string    `db:"display_name" json:"display_name"`
+	IsPinned    bool      `db:"is_pinned" json:"is_pinned"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 }
 
 // Project represents a hands-on coding project linked to a lesson.

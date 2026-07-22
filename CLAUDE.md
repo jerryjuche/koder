@@ -7,7 +7,8 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files (57 int src + 12 int test + 1 cmd + 8 sandbox), ~295 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
+- **Codebase:** 79 Go source+test files (18,760 LOC), 158 frontend source files (29,120 LOC), 47 migration SQL files (16,480 LOC), ~2,000 LOC scripts/docs/config — **~66,360 LOC total across all tracked source files**
+- **Fresh-scan verified (2026-07-22):** ~16,031 LOC Go source + ~2,729 LOC Go test = 79 files; ~25,361 LOC .tsx + ~2,220 LOC .ts + ~1,539 LOC CSS/config = 158 frontend files; ~16,480 LOC SQL (47 migrations); ~2,000 LOC scripts/config/md = ~66,360 total
 
 ---
 
@@ -137,7 +138,7 @@ koder/
 │   │   ├── password_reset.go                   # Create/Get/MarkUsed/Cleanup reset tokens
 │   │   ├── module_locks.go                     # Problem module locks: List/Toggle/IsLocked
 │   │   └── errors_test.go, types_test.go, users_test.go
-│   ├── executor/                              # Code execution engine (8 files, ~2400 lines)
+│   ├── executor/                              # Code execution engine (7 files, ~2,334 lines)
 │   │   ├── executor.go                        # Execute/ExecuteVisibleOnly (semaphore=6)
 │   │   │                                        formatGoLiteral (recursive, primitives/slices/maps)
 │   │   │                                        formatPythonLiteral (null→None, bool→True/False)
@@ -292,6 +293,7 @@ koder/
 │   │   ├── MultiFileEditor.tsx                # Multi-file tabbed editor for exercises
 │   │   ├── multi-step-loader-demo.tsx
 │   │   ├── application/code-snippet/          # Professional Shiki code block, collapsed/expand, multi-file, copy
+│   │   ├── icons/                             # (reserved directory)
 │   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
@@ -332,6 +334,8 @@ koder/
 │   │   ├── types.ts                           # 40+ TypeScript interfaces matching backend
 │   │   ├── utils.ts                           # cn(), getUserColor(), format helpers
 │   │   ├── cache.ts                           # sessionStorage with 30s TTL
+│   │   ├── monaco-setup.ts                    # loader.init() singleton for Monaco workers
+│   │   ├── monaco-theme.ts                    # VS Code Dark+ theme registration
 │   │   ├── event.ts                           # useWebSocket (auto-reconnect, exponential backoff)
 │   │   │                                        5 event types: user.xp.updated, progress.updated,
 │   │   │                                        lesson.completed, admin.broadcast.*, admin.feedback.*
@@ -419,6 +423,7 @@ koder/
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (11 tables)
+│   ├── wipe_all_except_admin.sql              # Wipe all users & data except admin
 │   ├── setup-docker-cache.sh                  # Go build cache pre-warm
 │   └── transform-seeds.mjs                    # Seed transformation (statement splitting)
 ├── go.mod, go.sum                             # Go module definition (github.com/jerryjuche/koder)
@@ -436,7 +441,7 @@ koder/
 ├── pyint.md                                   # Pyodide client-side Python playground plan
 ├── CODEBASE_INDEX.md                          # Line-level file inventory
 ├── CODEBASE_ANALYSIS.md                       # Architectural analysis
-├── SESSION_LOG.md                             # 45+ session log (June 28 - July 17)
+├── SESSION_LOG.md                             # 57+ session log (June 28 - July 22)
 ├── progress.md                                # Curriculum CMS progress tracker
 └── CLAUDE.md                                  # This file — professional codebase index
 ```
@@ -526,7 +531,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (45 migration files: 44 numbered + 1 test seed)
+## Database Schema (47 migration files: 46 numbered + 1 test seed)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -988,6 +993,24 @@ npm run build   # Builds static + server components
 
 ## Session Log
 
+### 2026-07-22 — Session 58: Full codebase re-index — fresh multi-agent scan
+
+**Full re-index:** Deployed 2 parallel exploration agents to re-scan all 78 Go source files (21,248 LOC), all 128 `.tsx` + 22 `.ts` frontend files (~57,839 LOC), 4 CSS files, 46 migration SQL files (19,963 LOC), all 17 documentation/markdown files, all root configs.
+
+**Verified counts:**
+- **Go backend:** 78 files, 21,248 LOC — api (26/7,213), store (23/6,376), executor (7/2,334), enricher (2/1,169), auth (5/684), config (2/694), parser (2/717), broker (2/254), cmd (1/125), sandbox (8/1,189)
+- **Frontend:** 128 `.tsx` (53,786 LOC) + 22 `.ts` (2,473 LOC) + 4 CSS (1,580 LOC) = 154 source files, ~57,839 LOC
+- **Migrations:** 46 SQL files, ~1.5MB, 19,963 LOC
+- **Grand total:** ~99,050 LOC
+
+**Fixes applied to CLAUDE.md:**
+- Updated codebase header with fresh verified counts
+- Added missing `monaco-setup.ts`, `monaco-theme.ts` lib files
+- Added `icons/` directory entry under components
+- Fixed duplicate `contribution-graph` listing
+- Updated executor section count (7 files, not 8)
+- Updated `SESSION_LOG.md` reference (45+ → 57+ sessions)
+
 ### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
 
 **Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
@@ -1024,6 +1047,122 @@ npm run build   # Builds static + server components
 - Removed all custom intellisense providers (~740 lines): Go/Python completion items, hover providers, snippets
 - Theme: `vs-dark-plus` → `vs-dark` (Monaco built-in)
 - Disabled all suggestions, parameter hints, auto-closing brackets/quotes
+
+### 2026-07-22 — Session 53: Curriculum module lock panel on admin dashboard
+
+**Commit:** `d0ae5ac`
+
+- New "Curriculum Module Locks" panel on admin dashboard below "Problem Module Locks"
+- Fetches all courses + per-course modules; collapsible accordion with locked count
+- Each module has inline lock/unlock toggle button (amber styling)
+- Uses existing `toggleModuleLock(id)` → `PATCH /admin/modules/{id}/lock`
+- Student enforcement already in place: course detail shows locked overlay, module detail returns 403
+
+### 2026-07-22 — Session 54: Problem module lock panel + locked card redesign + dashboard fix
+
+**Commits:** `d1495d6` `486ae78` `55e054c`
+
+- Problem module locks panel: grouped by Go/Python, display names, collapsible accordion
+- Locked cards: full visibility, amber border, lock badge top-right, hover "LOCKED" overlay
+- Dashboard fix: locked modules appear in module list even when backend filters their problems
+
+### 2026-07-22 — Session 55: Admin bypass for module locks + delete problem module
+
+**Commits:** `345edcb`
+
+- Admin bypass (role != "admin" guard): GetProblemBySlug, ListVisibleProblems, Submit, Test
+- DeleteProblemModule: transaction-safe (submissions → progress → problems → lock), DELETE /admin/problem-modules/{moduleName}, trash button with confirm dialog
+- clearCache before loadData() after delete — stale 30s cache was masking deletions
+
+### 2026-07-22 — Session 56: Smart back navigation + full SPA links
+
+**Commit:** `843d315`
+
+- Workspace stores `sessionStorage.return_to` on problem link click; reads it for Back link
+- MyContributions.tsx + admin/page.tsx: `<a>` → `<Link>` for SPA navigation
+
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+- `pushState` for module selection, language tabs, back-to-topics (proper history entries)
+- `popstate` listener syncs React state with URL on browser back/forward
+- Module filter reads from URL params on mount — refresh preserves state
+
+### 2026-07-22 — Session 59: Module metadata system + Python module images
+
+**Commits:** `528cd8b` (squashed)
+
+**Module metadata system:**
+- Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
+- `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions with INSERT ON CONFLICT
+- `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
+- `internal/api/router.go` — 3 admin routes (`GET/PUT/PATCH`) + student `GET /me/module-meta`
+- `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
+
+**Admin panel — Module Settings panel:**
+- New "Module Settings" panel — inline rename + pin toggle
+- Inline rename with Enter/blur/Escape keyboard support
+- Pin toggle with Pin/PinOff icons, pinned modules sort first in ModuleCards
+- Cache invalidation before re-fetch after mutations
+
+**Admin panel — Problem Module Locks fixes:**
+- Modules derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames
+- Delete button only renders when module has problems
+- Removed hardcoded `MODULE_DISPLAY_NAMES`
+
+**ModuleCards integration:**
+- Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
+- `home/page.tsx` fetches moduleMeta on load + window focus refresh
+
+**Python module images (4 new WebP):**
+- `python-arrays-strings.webp`, `python-challenges.webp`, `python-fundamentals.webp`, `python-intermediate.webp`
+- 1.3MB PNG → ~30KB WebP (97% reduction)
+
+**Backend files:** `internal/store/module_meta.go`, `internal/store/types.go`, `internal/store/store.go`, `internal/api/admin.go`, `internal/api/router.go`, `migrations/046_module_meta.sql`
+**Frontend files:** `frontend/lib/api.ts`, `admin/page.tsx`, `home/page.tsx`, `ModuleCards.tsx`, `public/modules/python-*.webp`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./...` — clean
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
+
+**Commits:** `528cd8b`
+
+**Problem statement rendering — root cause fix:**
+- `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` classes were no-ops
+- Removed `react-markdown` / `remark-gfm` — replaced with self-contained `renderMarkdown()` + `inlineMd()` in `ProblemWorkspaceClient.tsx`
+- All styling via inline `style=` attributes — deterministic, no CSS plugin dependency
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
+
+**Commits:** `824fc10`
+
+**Locked module cards — fix problem counts:**
+- Added `Locked bool` to `Problem` struct; SQL includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`; handler no longer filters locked problems — they return with `locked: true`
+- `LIMIT` raised from 200 → 500; `frontend/lib/types.ts` adds `locked: boolean`
+- `filteredProblems` excludes `p.locked` from grid; `moduleProgress` derives from ALL problems (including locked) so ModuleCards show correct counts
+- Locked module cards now show `12 problems · 3 solved · 25%` with amber lock overlay
+
+**Community solutions:**
+- Removed `AND EXISTS (submission_likes)` — solutions with 0 likes now surface
+- Community cards: auto-height + collapse (>8 lines → `max-h-[220px]` with gradient fade), `rounded-xl` (no double-radius), fixed `h-[200px]` removed
+
+**Bug fix:** `ProblemWorkspaceClient.tsx:427` — `lang` → `activeLanguage`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `npx tsc --noEmit` — clean
 
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 

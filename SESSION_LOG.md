@@ -61,6 +61,17 @@
 | 53 | `dc2d61b` | polish: professional typography for problem cards |
 | 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
 | 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
+| 56 | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard |
+| 57 | `4fc6cce` | fix: module selection updates URL via replaceState |
+| 58 | `32f264a` | fix: use pushState for module & tab selection (LIFO stack) |
+| 59 | `2ba2fac` | fix: clear cache after delete module so loadData() gets fresh data |
+| 60 | `f36bbdd` | docs: add sessions 54-57 (lock panel redesign, admin bypass, delete module, LIFO nav) |
+| 61 | `ef4f19b` | feat: module metadata system (rename + pin) + 4 Python WebP images |
+| 62 | `8497b09` | feat: add python-variables-math WebP image + ModuleCards entry |
+| 63 | `a513eed` | fix: remove source PNG (WebP is the deliverable) |
+| 64 | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks |
+| 65 | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency) |
+| 66 | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500 |
 
 ---
 
@@ -1645,3 +1656,260 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Verification:**
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 53: Curriculum module lock panel on admin dashboard
+
+**Commit:** `d0ae5ac`
+
+**What was built:**
+- New "Curriculum Module Locks" panel on the main admin dashboard (below existing "Problem Module Locks")
+- Fetches all courses + their modules via `fetchAllCourses()` and `fetchModules()` in `loadData`
+- Courses are collapsible accordions (`<details>`/`<summary>`) with chevron animation
+- Each course header shows locked count (e.g. "2/5 locked")
+- Each module has a lock/unlock toggle button with amber styling matching the Problem Module Locks panel
+- Optimistic UI update — state flips immediately, toast on success/error
+- Uses existing `toggleModuleLock(id)` API → `PATCH /admin/modules/{id}/lock`
+
+**Existing lock enforcement (already in place):**
+- `CourseDetail` page: `mod.locked` → `status="locked"` → `LearningCard` renders lock overlay with amber padlock
+- `ModuleDetail` page: backend returns 403 `MODULE_LOCKED` → amber lock screen with retry
+- `ModuleCards` (dashboard): locked problem modules show amber padlock via `lockedModules` prop
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Added imports, state, data fetching, and curriculum module locks panel
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 54: Problem module lock panel + locked card redesign + dashboard fix
+
+**Commits:** `d1495d6` `486ae78` `55e054c`
+
+**Problem module lock panel (admin dashboard):**
+- New "Problem Module Locks" panel below stats — grouped by Go/Python in collapsible accordions
+- Display names (e.g. "Arrays & Strings") instead of raw slugs
+- Lock count per language (e.g. "2/8 locked")
+- Inline lock/unlock toggle with amber styling
+
+**Locked module card redesign:**
+- Locked cards remain fully visible (no `opacity-60` dimming) — subtle amber border instead
+- Small amber lock badge fixed at top-right corner
+- Hover reveals "LOCKED" pill overlay centered on card image with backdrop blur
+- Footer shows "Locked by instructor" with lock icon
+
+**Dashboard fix:**
+- Locked modules now appear on the dashboard module list — included `lockedModules` set in module list derivation so locked modules render even when their problems are filtered out by the backend
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Problem Module Locks panel
+- `frontend/components/dashboard/ModuleCards.tsx` — Locked card visual redesign
+- `frontend/app/(main)/home/page.tsx` — Include lockedModules in module list
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 55: Admin bypass for module locks + delete problem module
+
+**Commits:** `345edcb`
+
+**Admin bypass for module locks (4 endpoints):**
+- `GetProblemBySlug` — admins can view locked module problems (nil-safe claims check)
+- `ListVisibleProblems` — admins see ALL problems; students still filtered
+- `Submit` — admins can submit to locked modules
+- `Test` — admins can test against locked modules
+
+**Delete problem module (end-to-end):**
+- **Store:** `DeleteProblemModule` — transaction-safe: deletes submissions → progress → problems (cascades test_cases) → module lock
+- **Handler:** `DELETE /admin/problem-modules/{moduleName}`
+- **Frontend:** Trash icon button next to each module in Problem Module Locks panel with `confirm()` dialog
+- Activity log entry on successful deletion
+
+**Cache invalidation:** `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` after delete — stale 30s cache was masking deletions
+
+**Backend files:**
+- `internal/api/problems.go` — bypass in `GetProblemBySlug` + `ListVisibleProblems`
+- `internal/api/submissions.go` — bypass in `Submit`
+- `internal/api/test.go` — bypass in `Test`
+- `internal/store/module_locks.go` — `DeleteProblemModule` store function
+- `internal/store/store.go` — interface method
+- `internal/api/admin.go` — `DeleteProblemModule` handler
+- `internal/api/router.go` — route registration
+
+**Frontend files:**
+- `frontend/app/(main)/admin/page.tsx` — delete button, state, handlers; cache imports
+- `frontend/lib/api.ts` — `deleteProblemModule()` API function
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 56: Smart back navigation + full SPA links
+
+**Commits:** `843d315`
+
+**Navigation audit findings:**
+| Issue | Severity | Files |
+|---|---|---|
+| Workspace "Back" always goes to `/home` regardless of referrer | High | `ProblemWorkspaceClient.tsx:548` |
+| 2 `<a href>` tags causing full page reloads | High | `MyContributions.tsx:78`, `admin/page.tsx:279` |
+
+**Smart back navigation:**
+- Workspace stores `return_to` in `sessionStorage` on every problem link click (`/home` and `/problems` pages)
+- Workspace reads `sessionStorage.getItem("return_to")` for the "Back" link href — falls back to `/home`
+- Label changed from "Problems" to "Back" to reflect dynamic destination
+
+**Full SPA navigation:**
+- `MyContributions.tsx:78` — `<a href="/contribute">` → `<Link href="/contribute">`
+- `admin/page.tsx:279` — `<a href="/admin/curriculum">` → `<Link href="/admin/curriculum">`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+**LIFO navigation stack:**
+- Module card clicks use `pushState` instead of `replaceState` — each selection is a proper history entry
+- Language filter tabs use `pushState` — back/forward navigates through tab changes
+- "Back to topics" uses `pushState` to return to all-modules view
+- `popstate` event listener syncs React state (selectedModule + languageFilter) with URL on browser back/forward
+
+**Module URL persistence:**
+- `handleSelectModule` writes `?module=xxx` to URL via `pushState`
+- Refresh preserves the module filter state — reads from URL params on mount
+
+**Cache invalidation for delete module:**
+- Added `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` in delete handler — stale 30s cache was returning old data, making deletes appear to do nothing
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 59: Module metadata system + Python module images
+
+**Module metadata system:**
+- Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
+- `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions
+- `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
+- `internal/api/router.go` — 3 admin routes + student `GET /me/module-meta`
+- `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
+
+**Admin panel — Module Settings panel:**
+- New "Module Settings" panel — inline rename + pin toggle
+- Modules from `moduleMeta` keys (all known modules)
+- Inline rename with Enter/blur/Escape keyboard support
+- Pin toggle with Pin/PinOff icons
+- Cache invalidation before re-fetch after mutations
+
+**Admin panel — Problem Module Locks fixes:**
+- Modules now derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
+- Delete button only renders when module has problems
+- `await loadData()` before re-enabling button
+- Removed hardcoded `MODULE_DISPLAY_NAMES`
+
+**ModuleCards integration:**
+- Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
+- `home/page.tsx` fetches moduleMeta on load + window focus refresh
+
+**Python module images (4 new WebP):**
+- `python-arrays-strings.webp` (31KB), `python-challenges.webp` (25KB)
+- `python-fundamentals.webp` (32KB), `python-intermediate.webp` (35KB)
+- Full `MODULE_META` + `MODULE_COLORS` entries for each
+
+**Backend files:**
+- `internal/store/module_meta.go` — new
+- `internal/store/types.go` — `ModuleMeta` struct
+- `internal/store/store.go` — interface methods
+- `internal/api/admin.go` — handlers
+- `internal/api/router.go` — routes
+- `migrations/046_module_meta.sql` — new
+
+**Frontend files:**
+- `frontend/lib/api.ts` — types + API functions
+- `frontend/app/(main)/admin/page.tsx` — Module Settings panel, locks panel fixes
+- `frontend/app/(main)/home/page.tsx` — focus refresh
+- `frontend/components/dashboard/ModuleCards.tsx` — pin sort, display_name, Python images
+- `frontend/public/modules/python-*.webp` — 4 new images
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./...` — clean
+- `./node_modules/.bin/tsc --noEmit` — clean
+
+---
+
+### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
+
+**Commits:** `528cd8b`
+
+**Problem statement rendering — root cause fix:**
+- `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` Tailwind classes were no-ops (headings, paragraph spacing, code styling, bold color all did nothing)
+- Removed `react-markdown` / `remark-gfm` dependency — replaced with self-contained `renderMarkdown()` + `inlineMd()` functions using `dangerouslySetInnerHTML`
+- All styling now uses inline `style=` attributes — deterministic, no CSS plugin required
+
+**Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
+- Split on `\n\s*\n` (blank lines) → paragraphs with `0.75rem` bottom margin
+- `#` / `##` / `###` → `h1`/`h2`/`h3` with proper sizing and bold
+- `-` / `*` at line start → bullet lists
+- `1.` / `2.` at line start → numbered lists
+- `**bold**` → gold (`#D4AF37`)
+- `*italic*` → em
+- `` `code` `` → gold monospace with dark bg
+- `[text](url)` → gold links
+- HTML escaped before processing (XSS safe)
+
+**Key insight for AI:** The renderer is intentionally simple — no GFM tables, no blockquotes, no strikethrough. Blank lines (`\n\n`) are the only block separator.
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — full renderer rewrite
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
+
+**Commits:** `824fc10`
+
+**Locked module cards — fix problem counts:**
+- `internal/store/types.go` — Added `Locked bool` field to `Problem` struct
+- `internal/store/problems.go` — SQL now includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`
+- `internal/store/problems.go` — Scans `is_locked` into `problem.Locked`; `LIMIT` raised from 200 to 500
+- `internal/api/problems.go` — Removed handler-level locked module filter — problems now include `locked: true` instead of being excluded
+- `frontend/lib/types.ts` — Added `locked: boolean` to `Problem` interface; merged duplicate `TestCase` definitions
+- `frontend/app/(main)/home/page.tsx` — `filteredProblems` excludes `p.locked` from grid; `moduleProgress` derives from ALL problems including locked; `showTopicCards` includes `lockedModules.has(selectedModule)` guard
+- Locked module cards now show `12 problems · 3 solved · 25%` — identical visual treatment to unlocked cards
+
+**Community solutions — remove AND EXISTS:**
+- `internal/store/submissions.go:146` — Removed `AND EXISTS (SELECT 1 FROM submission_likes ...)` — solutions with 0 likes now surface, sorted by likes DESC
+
+**Community solution cards — auto-height + collapse:**
+- `frontend/app/(main)/problems/[slug]/success/page.tsx` — Each card uses per-card `expandedSolutions` Set + `toggleSolution`. Code >8 lines collapses to `max-h-[220px]` with gradient fade + "Show full solution" toggle. Cards use `rounded-xl` (no double-radius). Removed fixed `h-[200px]`.
+
+**Bug fix:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx:427` — Fixed `lang` → `activeLanguage` (undefined variable)
+
+**Files modified (14):**
+`CLAUDE.md`, `ProblemEditPanel.tsx`, `home/page.tsx`, `success/page.tsx`, `ProblemWorkspaceClient.tsx`, `api.ts`, `types.ts`, `admin.go`, `problems.go` (api), `router.go`, `problems.go` (store), `store.go`, `submissions.go`, `types.go`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `npx tsc --noEmit` — clean

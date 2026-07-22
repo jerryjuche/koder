@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -75,7 +76,7 @@ export default function MyContributions() {
           Start building your legacy by submitting a new problem to the community.
         </p>
         <Button asChild>
-          <a href="/contribute">Submit a Problem</a>
+          <Link href="/contribute">Submit a Problem</Link>
         </Button>
       </Card>
     );

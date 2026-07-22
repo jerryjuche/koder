@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   Dialog,
@@ -9,9 +9,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit } from 'lucide-react';
-import { Problem, UpdateProblemPayload, AIAssistResponse } from '@/lib/types';
-import { enrichProblem } from '@/lib/api';
+import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit, ChevronDown, ChevronRight, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Problem, UpdateProblemPayload, AIAssistResponse, TestCase } from '@/lib/types';
+import { enrichProblem, fetchProblemTestCases, updateTestCase } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import AIAssistantPanel from '@/components/admin/AIAssistantPanel';
 
@@ -61,6 +61,10 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
   const [enriching, setEnriching] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [livePreview, setLivePreview] = useState(false);
+  const [testCases, setTestCases] = useState<TestCase[] | null>(null);
+  const [testCasesLoading, setTestCasesLoading] = useState(false);
+  const [testCasesOpen, setTestCasesOpen] = useState(false);
+  const [savingTestCase, setSavingTestCase] = useState<string | null>(null);
 
   const handleAIApply = useCallback((response: AIAssistResponse) => {
     if (response.statement) setStatement(response.statement);
@@ -150,6 +154,53 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
       setSaving(false);
     }
   };
+
+  const loadTestCases = useCallback(async () => {
+    if (testCases !== null) { setTestCasesOpen(!testCasesOpen); return; }
+    setTestCasesLoading(true);
+    try {
+      const res = await fetchProblemTestCases(problem.id);
+      if (res.success && res.data) {
+        setTestCases(res.data);
+        setTestCasesOpen(true);
+      } else {
+        toast.error(res.error?.message || 'Failed to load test cases');
+      }
+    } finally {
+      setTestCasesLoading(false);
+    }
+  }, [problem.id, testCases, testCasesOpen]);
+
+  const handleUpdateTestCase = useCallback(async (tc: TestCase) => {
+    if (!tc.id) return;
+    setSavingTestCase(tc.id);
+    try {
+      const res = await updateTestCase(tc.id, {
+        expected: tc.expected,
+        is_hidden: tc.is_hidden,
+        ordinal: tc.ordinal,
+        input: tc.input,
+      });
+      if (res.success) {
+        setTestCases(prev => prev?.map(t => t.id === tc.id ? { ...tc } : t) || null);
+        toast.success('Test case updated');
+      } else {
+        toast.error(res.error?.message || 'Failed to update test case');
+      }
+    } finally {
+      setSavingTestCase(null);
+    }
+  }, []);
+
+  const toggleHidden = useCallback((tc: TestCase) => {
+    const updated = { ...tc, is_hidden: !tc.is_hidden };
+    handleUpdateTestCase(updated);
+  }, [handleUpdateTestCase]);
+
+  const updateExpected = useCallback((tc: TestCase, expected: string) => {
+    const updated = { ...tc, expected };
+    handleUpdateTestCase(updated);
+  }, [handleUpdateTestCase]);
 
   const diffLabel = DIFFICULTIES.find(d => d.value === difficulty)?.label || 'Beginner';
   const diffColor = DIFFICULTY_COLORS[difficulty - 1] || 'text-brand-offwhite-muted';
@@ -323,6 +374,54 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                 </div>
               </Section>
 
+              {/* Test Cases */}
+              <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden">
+                <button
+                  onClick={loadTestCases}
+                  className="w-full px-5 py-3 border-b border-brand-charcoal-border bg-brand-charcoal-card/50 flex items-center justify-between hover:bg-brand-charcoal-hover/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-brand-muted-gold"><Check size={16} /></span>
+                    <h3 className="text-sm font-bold text-brand-offwhite">Test Cases</h3>
+                    {testCases !== null && (
+                      <span className="text-xs text-brand-offwhite-muted ml-2">({testCases.length} cases)</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {testCasesLoading && <Loader2 size={14} className="animate-spin text-brand-offwhite-muted" />}
+                    {testCasesOpen ? <ChevronDown size={16} className="text-brand-offwhite-muted" /> : <ChevronRight size={16} className="text-brand-offwhite-muted" />}
+                  </div>
+                </button>
+                {testCasesOpen && testCases && (
+                  <div className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-brand-charcoal-border">
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-12">#</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Input</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-48">Expected</th>
+                            <th className="text-center px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-20">Hidden</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-20">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {testCases.map((tc) => (
+                            <TestCaseRow
+                              key={tc.id}
+                              tc={tc}
+                              saving={savingTestCase === tc.id}
+                              onToggleHidden={() => toggleHidden(tc)}
+                              onExpectedChange={(val) => updateExpected(tc, val)}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Visibility */}
               <Section icon={<Eye size={16} />} title="Visibility">
                 <div className="flex items-center justify-between">
@@ -430,4 +529,98 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
+}
+
+function TestCaseRow({ tc, saving, onToggleHidden, onExpectedChange }: {
+  tc: TestCase;
+  saving: boolean;
+  onToggleHidden: () => void;
+  onExpectedChange: (val: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tc.expected);
+
+  const inputStr = typeof tc.input === 'string'
+    ? tc.input
+    : JSON.stringify(tc.input);
+  const inputPreview = inputStr.length > 60 ? inputStr.slice(0, 60) + '…' : inputStr;
+
+  const handleBlur = () => {
+    setEditing(false);
+    if (draft !== tc.expected) {
+      onExpectedChange(draft);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+    if (e.key === 'Escape') { setDraft(tc.expected); setEditing(false); }
+  };
+
+  useEffect(() => { setDraft(tc.expected); }, [tc.expected]);
+
+  return (
+    <tr className={cn(
+      "border-b border-brand-charcoal-border last:border-0 transition-colors",
+      tc.is_hidden ? "opacity-60" : "hover:bg-brand-charcoal-hover/30"
+    )}>
+      <td className="px-4 py-2.5 text-xs font-mono text-brand-offwhite-muted">{tc.ordinal}</td>
+      <td className="px-4 py-2.5">
+        <code className="text-xs font-mono text-brand-offwhite/80 bg-brand-charcoal-hover px-2 py-0.5 rounded">
+          {inputPreview}
+        </code>
+      </td>
+      <td className="px-4 py-2.5">
+        {editing ? (
+          <input
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="w-full bg-brand-charcoal-hover border border-brand-muted-gold/40 rounded px-2 py-1 text-xs font-mono text-brand-offwhite outline-none focus:border-brand-muted-gold"
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="w-full text-left text-xs font-mono text-brand-offwhite px-2 py-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+          >
+            {tc.expected}
+          </button>
+        )}
+      </td>
+      <td className="px-4 py-2.5 text-center">
+        <button
+          onClick={onToggleHidden}
+          disabled={saving}
+          className={cn(
+            "p-1.5 rounded-md transition-colors",
+            tc.is_hidden
+              ? "text-amber-400/70 hover:text-amber-400 hover:bg-amber-400/10"
+              : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover"
+          )}
+          title={tc.is_hidden ? 'Hidden (click to show)' : 'Visible (click to hide)'}
+        >
+          {saving ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : tc.is_hidden ? (
+            <EyeOff size={14} />
+          ) : (
+            <Eye size={14} />
+          )}
+        </button>
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        {tc.is_hidden ? (
+          <span className="inline-flex items-center gap-1 text-xs text-amber-400/60">
+            <AlertCircle size={12} /> hidden
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs text-brand-success/60">
+            <Check size={12} /> visible
+          </span>
+        )}
+      </td>
+    </tr>
+  );
 }

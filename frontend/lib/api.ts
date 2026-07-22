@@ -30,6 +30,7 @@ import {
   LessonSection,
   Project,
   NewLessonSection,
+  TestCase,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -496,6 +497,22 @@ export async function updateProblem(id: string, data: UpdateProblemPayload): Pro
   });
 }
 
+export async function fetchProblemTestCases(id: string): Promise<ApiResponse<TestCase[]>> {
+  return fetchApi<TestCase[]>(`/admin/problems/${id}/test-cases`);
+}
+
+export async function updateTestCase(id: string, data: {
+  input?: any;
+  expected?: string;
+  is_hidden?: boolean;
+  ordinal?: number;
+}): Promise<ApiResponse<TestCase>> {
+  return fetchApi<TestCase>(`/admin/test-cases/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 // Feedback
 
 export async function submitFeedback(data: {
@@ -835,6 +852,39 @@ export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
 export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
   return fetchApi<ModuleLock>(`/admin/module-locks/${encodeURIComponent(moduleName)}`, {
     method: "POST",
+  });
+}
+
+export async function deleteProblemModule(moduleName: string): Promise<ApiResponse<{ module_name: string; status: string }>> {
+  return fetchApi<{ module_name: string; status: string }>(`/admin/problem-modules/${encodeURIComponent(moduleName)}`, {
+    method: "DELETE",
+  });
+}
+
+// ── Module metadata (display names, pinning) ──
+
+export interface ModuleMeta {
+  module_name: string;
+  display_name: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export async function fetchModuleMeta(): Promise<ApiResponse<ModuleMeta[]>> {
+  return fetchApi<ModuleMeta[]>("/me/module-meta");
+}
+
+export async function upsertModuleMeta(moduleName: string, displayName: string): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}`, {
+    method: "PUT",
+    body: JSON.stringify({ display_name: displayName }),
+  });
+}
+
+export async function setModulePin(moduleName: string, pinned: boolean): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}/pin`, {
+    method: "PATCH",
+    body: JSON.stringify({ pinned }),
   });
 }
 
