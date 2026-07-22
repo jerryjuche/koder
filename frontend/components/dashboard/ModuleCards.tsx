@@ -143,6 +143,11 @@ const MODULE_META: Record<string, ModuleMeta> = {
     description: "Advanced Python: decorators, generators, context managers",
     barColor: "bg-gradient-to-r from-purple-500 to-violet-400",
   },
+  "python-variables-math": {
+    image: "/modules/python-variables-math.webp",
+    description: "Python variables, arithmetic, type conversion, math module",
+    barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
+  },
 };
 
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
@@ -199,6 +204,7 @@ const MODULE_COLORS: Record<string, { bg: string; text: string }> = {
   "python-challenges": { bg: "bg-orange-500/20", text: "text-orange-400" },
   "python-fundamentals": { bg: "bg-blue-500/20", text: "text-blue-400" },
   "python-intermediate": { bg: "bg-purple-500/20", text: "text-purple-400" },
+  "python-variables-math": { bg: "bg-emerald-500/20", text: "text-emerald-400" },
 };
 
 const FALLBACK_COLOR = { bg: "bg-gray-500/20", text: "text-gray-400" };
