@@ -72,6 +72,8 @@
 | 64 | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks |
 | 65 | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency) |
 | 66 | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500 |
+| 67 | `1400598` | feat: auth guard middleware + UserContext fallback, fix locked module counts (handler-level stamping) |
+| 68 | `ba654d6` | fix: remove auth redirect guard from middleware (cookie lives on API domain, not frontend) |
 
 ---
 
@@ -1908,6 +1910,19 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 
 **Files modified (14):**
 `CLAUDE.md`, `ProblemEditPanel.tsx`, `home/page.tsx`, `success/page.tsx`, `ProblemWorkspaceClient.tsx`, `api.ts`, `types.ts`, `admin.go`, `problems.go` (api), `router.go`, `problems.go` (store), `store.go`, `submissions.go`, `types.go`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 62: Middleware auth redirect fix
+
+**Problem:** Auth guard added in session 61 checked for `koder_token` cookie in Next.js middleware, but the cookie is set on the API domain (`koder-api.onrender.com`), not the frontend (`update.koder.sbs`). Every RSC request to protected routes was redirected to `/`, creating an invisible redirect loop — blank charcoal screen.
+
+**Fix:** Removed auth redirect guard from `frontend/middleware.ts`. Auth remains handled client-side via UserContext's 401 fallback.
+
+**Commit:** `ba654d6`
 
 **Verification:**
 - `go vet ./internal/...` — clean
