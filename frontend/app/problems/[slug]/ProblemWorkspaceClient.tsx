@@ -210,6 +210,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   });
   const { user } = useUser();
 
+  const returnTo = typeof window !== "undefined"
+    ? sessionStorage.getItem("return_to") || "/home"
+    : "/home";
+
   useEffect(() => {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
@@ -545,10 +549,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
-            href={`/home?module=${encodeURIComponent(problem.module)}`}
+            href={returnTo}
             className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
           >
-            <ChevronLeft size={16} /> Problems
+            <ChevronLeft size={16} /> Back
           </Link>
           <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
           <div className="flex items-center gap-3 min-w-0">

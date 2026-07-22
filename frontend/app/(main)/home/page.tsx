@@ -486,6 +486,7 @@ export default function Dashboard() {
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
+                        onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                         style={{
                           animationFillMode: "both",
@@ -732,7 +733,7 @@ export default function Dashboard() {
                         <div className="font-bold text-sm text-foreground flex items-center gap-2">
                           {sol.user_name}
                         {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-primary hover:underline font-mono">
+                          <Link href={`/problems/${sol.problem_slug}`} onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))} className="text-xs text-primary hover:underline font-mono">
                             in {sol.problem_slug}
                           </Link>
                         )}

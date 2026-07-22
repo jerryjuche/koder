@@ -402,6 +402,7 @@ export default function ProblemsPage() {
               <Link
                 key={problem.id}
                 href={`/problems/${problem.slug}`}
+                onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
                 className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
               >
                 <div

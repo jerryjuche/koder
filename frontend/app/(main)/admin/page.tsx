@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -276,7 +277,7 @@ export default function AdminDashboard() {
 
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <a href="/admin/curriculum" className="bg-brand-charcoal-card border border-amber-600/30 hover:border-amber-500/60 rounded-2xl p-6 block transition-all duration-200 hover:-translate-y-0.5 group">
+        <Link href="/admin/curriculum" className="bg-brand-charcoal-card border border-amber-600/30 hover:border-amber-500/60 rounded-2xl p-6 block transition-all duration-200 hover:-translate-y-0.5 group">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
               <BookOpen size={18} className="text-amber-400" />
@@ -285,7 +286,7 @@ export default function AdminDashboard() {
           </div>
           <div className="text-lg font-bold text-brand-offwhite mb-0.5 group-hover:text-amber-300 transition-colors">Module Manager</div>
           <div className="text-xs text-brand-offwhite-muted/70">Lock, unlock, and manage modules</div>
-        </a>
+        </Link>
         <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-6">
           <FileText size={20} className="text-brand-muted-gold mb-4" />
           <div className="text-3xl font-bold text-brand-offwhite mb-1">{stats?.total_problems || 0}</div>
