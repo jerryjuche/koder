@@ -71,6 +71,19 @@ export default function Dashboard() {
     if (moduleParam) setSelectedModule(moduleParam);
   }, []);
 
+  // Sync state with browser back/forward
+  useEffect(() => {
+    const handlePop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const mod = params.get("module");
+      const tab = params.get("tab");
+      setSelectedModule(mod);
+      setLanguageFilter(tab === "go" || tab === "python" ? tab : "all");
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
@@ -188,7 +201,7 @@ export default function Dashboard() {
     setStatusFilter("all");
     const params = new URLSearchParams(window.location.search);
     params.set("module", mod);
-    window.history.replaceState({}, "", `?${params.toString()}`);
+    window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
   const showTopicCards = !selectedModule;
@@ -348,7 +361,7 @@ export default function Dashboard() {
                       const params = new URLSearchParams(window.location.search);
                       params.delete("module");
                       const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.replaceState({}, "", newUrl);
+                      window.history.pushState({}, "", newUrl);
                     }}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                   >
@@ -380,7 +393,7 @@ export default function Dashboard() {
                         params.set("tab", lang);
                       }
                       const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.replaceState({}, "", newUrl);
+                      window.history.pushState({}, "", newUrl);
                       clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
                       setLoading(true);
                       fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
