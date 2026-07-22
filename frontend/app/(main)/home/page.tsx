@@ -19,6 +19,7 @@ import {
   Trophy,
   ArrowLeft,
   BookOpen,
+  FlaskConical,
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
@@ -274,14 +275,24 @@ export default function Dashboard() {
           )}
         </button>
         <button
-          onClick={() => setActiveTab("best-practices")}
+          onClick={() => { if (user?.role === "admin") setActiveTab("best-practices"); }}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "best-practices" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            activeTab === "best-practices"
+              ? "text-foreground"
+              : user?.role === "admin"
+                ? "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground/40 cursor-not-allowed select-none"
           )}
         >
           <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
           Best Practices
+          {user?.role !== "admin" && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
+              <FlaskConical size={10} />
+              BETA
+            </span>
+          )}
           {activeTab === "best-practices" && (
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
@@ -672,6 +683,17 @@ export default function Dashboard() {
             </div>
           )}
         </>
+      ) : user?.role !== "admin" ? (
+        <div className="col-span-full">
+          <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
+            <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
+            <h3 className="text-lg font-bold text-foreground mb-2">Best Practices — Coming Soon</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              This feature is in private beta and currently available to administrators only.
+              Stay tuned for the public release.
+            </p>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {loading ? (
