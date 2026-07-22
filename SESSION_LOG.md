@@ -41,6 +41,26 @@
 | 33 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
 | 34 | `c093540` | Replace arrays-strings module image with professional version |
 | 35 | `0ecd5ef` | Use local image for all module cards |
+| 36 | `582917b` | fix: use profile as source of truth for solved count in ProfileHeader |
+| 37 | `ac5cbb8` | fix: store package import shadowed by parameter name |
+| 38 | `12bbc34` | fix: dashboard solved count reads from GET /me, same source as XP and streak |
+| 39 | `8d1adb6` | docs: update session log, codebase index, CLAUDE.md for session 49 |
+| 40 | `6657efa` | polish: remove no-op col-span-full, move isActive into non-disabled branch |
+| 41 | `77723fa` | feat: Beta-gate best-practices tab + Learn nav for non-admins |
+| 42 | `86258a4` | fix: copy button hover, multi-file key, type shadow |
+| 43 | `ac8a45e` | polish: CodeSnippet component + compact best-practices cards |
+| 44 | `6e7666f` | fix CSP errors |
+| 45 | `6473b91` | fix |
+| 46 | `b390378` | fix |
+| 47 | `2e8ec08` | docs: update codebase index, CLAUDE.md, session log and progress tracker |
+| 48 | `02aa051` | feat: problem module lock admin panel + locked module UI |
+| 49 | `dfe556a` | feat: add prominent curriculum card to admin dashboard with module lock access |
+| 50 | `62c53bc` | feat: add module lock/unlock with admin toggle and student enforcement |
+| 51 | `bee5837` | fix: restore saved code on refresh regardless of initial state |
+| 52 | `f57f867` | polish: professional typography for problem description |
+| 53 | `dc2d61b` | polish: professional typography for problem cards |
+| 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
+| 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
 
 ---
 
@@ -1535,3 +1555,93 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Removed no-op `col-span-full` from coming-soon card
 - Moved `isActive` computation inside non-disabled branch in TopNav loop
 - `tsc --noEmit`: clean throughout
+
+---
+
+### 2026-07-22 — Session 50: Solved count consistency + import alias fix
+
+**Commits:** `582917b` `ac5cbb8` `12bbc34`
+
+**Solved count source of truth:**
+- Dashboard solved stat (`totalSolved`) now reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of deriving from the language-filtered problems list (which has LIMIT 200)
+- `frontend/app/(main)/home/page.tsx` — Stats card: `totalSolved` renamed to reflect true total; subtitle shows `visibleSolved` (view-specific)
+- `frontend/lib/api.ts` — `fetchUser()` maps `solved_count` → `solvedCount`
+- `frontend/lib/UserContext.tsx` — User type includes `solvedCount`
+- `frontend/lib/types.ts` — `User` interface: `solvedCount` field
+
+**Build fix:**
+- `internal/api/router.go` — Store package import aliased as `storepkg` to avoid shadowing by handler parameter name
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 51: Professional typography polish
+
+**Commits:** `f57f867` `dc2d61b`
+
+**Problem description (workspace):**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Typography overhaul on the prose description container:
+  - Text color: `text-brand-offwhite-muted` → `text-brand-offwhite/90` (bright, high contrast)
+  - Size: `prose-sm` → `prose-base`
+  - Line height: `leading-relaxed` → `leading-[1.75]` + `prose-p:leading-7`
+  - Headings: added `font-bold` + `tracking-tight` + white
+  - Strong text: `font-bold` + `text-brand-offwhite`
+  - Inline code: gold accent, subtle background, monospace, rounded
+  - Code blocks: added `shadow-inner`
+  - Lists: bright text + `leading-7`
+  - Paragraph spacing: `[&_p]:mb-5` → `prose-p:mb-4`
+
+**Problem cards (problems + home page):**
+
+`frontend/app/(main)/problems/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Title: `font-semibold text-sm` → `font-bold text-base`
+- Description: `text-xs` / `opacity-70` → `text-sm` / `opacity-90`
+- XP: `font-semibold` → `font-bold`
+- Solved: `font-medium` → `font-bold`
+
+`frontend/app/(main)/home/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Description: `text-xs` / `opacity-60` → `text-sm` / `opacity-90`
+- Tags: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Footer stats: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Stat icons: `opacity-30` → `opacity-50`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 52: Workspace editor cleanup
+
+**Commits:** `2c472ac` `f9690b1`
+
+**Removed duplicate difficulty badge:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed the duplicate difficulty badge from the top toolbar header. The difficulty badge remains in the description area (left sidebar) where users read the problem context.
+
+**Removed custom intellisense/hover providers:**
+- Removed `registerVSCodeDarkPlusTheme` import and custom theme registration (deleted entire `frontend/lib/monaco-theme.ts` usage)
+- Removed `loader.init()` pre-initialization effect
+- Removed all custom completion providers (~740 lines):
+  - Go: `pkgMethods` (fmt/strings/math/sort/os/strconv/time/errors/json), `goSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+  - Python: `pythonKeywords`, `pythonBuiltins`, `pythonStdlibHints`, `pythonSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+
+**Editor config updated:**
+- Theme: `vs-dark-plus` (custom) → `vs-dark` (built-in VS Code Dark+)
+- `quickSuggestions`: `{ other: true, ... }` → `false`
+- `snippetSuggestions`: `inline` → `none`
+- `suggestOnTriggerCharacters`: `true` → `false`
+- `acceptSuggestionOnEnter`: `smart` → `off`
+- `parameterHints`: (unset) → `{ enabled: false }`
+- `autoClosingBrackets`: `always` → `never`
+- `autoClosingQuotes`: `always` → `never`
+
+**Result:** Clean VS Code Dark+ experience — syntax coloring only, no popups, no autocomplete, no hover tooltips. Only the keyboard shortcuts remain: Ctrl+S (format), Ctrl+Enter (test), Ctrl+Shift+Enter (submit).
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`

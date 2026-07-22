@@ -1002,6 +1002,29 @@ npm run build   # Builds static + server components
 
 **Polish:** Removed no-op `col-span-full`; moved `isActive` into non-disabled branch; `tsc --noEmit` clean
 
+### 2026-07-22 — Session 50: Solved count consistency + import alias fix
+
+**Commits:** `582917b` `ac5cbb8` `12bbc34`
+
+- Dashboard solved stat (`totalSolved`) reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of language-filtered problems list
+- `storepkg` alias in `router.go` to avoid package import / parameter name shadowing
+
+### 2026-07-22 — Session 51: Professional typography polish
+
+**Commits:** `f57f867` `dc2d61b`
+
+- Problem description prose: `text-brand-offwhite-muted` → `text-brand-offwhite/90`, `prose-sm` → `prose-base`, bold headings, bright code blocks
+- Problem cards: titles `font-bold text-base`, descriptions `text-sm opacity-90`, stats `font-semibold opacity-80`
+
+### 2026-07-22 — Session 52: Workspace editor cleanup
+
+**Commits:** `2c472ac` `f9690b1`
+
+- Removed duplicate difficulty badge from toolbar (kept in description area)
+- Removed all custom intellisense providers (~740 lines): Go/Python completion items, hover providers, snippets
+- Theme: `vs-dark-plus` → `vs-dark` (Monaco built-in)
+- Disabled all suggestions, parameter hints, auto-closing brackets/quotes
+
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 
 **Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`
