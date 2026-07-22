@@ -22,8 +22,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
 		       COALESCE(s.total_subs, 0)::int,
 		       COALESCE(s.passed_subs, 0)::int,
-		       COALESCE(s.avg_runtime, 0)::int,
-		       EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked
+		       COALESCE(s.avg_runtime, 0)::int
 		FROM problems p
 		LEFT JOIN progress pr ON pr.problem_id = p.id AND pr.user_id = $1
 		LEFT JOIN LATERAL (
@@ -78,7 +77,6 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.TotalSubmissions,
 			&successfulSubs,
 			&problem.AvgRuntimeMs,
-			&problem.Locked,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan problem row: %w", err)
 		}

@@ -1,12 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const protectedPrefixes = ['/home', '/problems', '/profile', '/leaderboard', '/settings', '/admin', '/learn', '/contribute'];
+
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
-  const isDev = process.env.NODE_ENV === 'development';
+  // --- Auth guard: redirect unauthenticated users away from protected routes ---
+  const isProtected = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/') || pathname.startsWith(prefix + '?'));
+  if (isProtected) {
+    const token = request.cookies.get('koder_token')?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
 
-  // Allow http: in dev for localhost backend; https: only in production
+  // --- CSP headers ---
+  const isDev = process.env.NODE_ENV === 'development';
   const connectSrc = isDev ? "'self' http: https: ws: wss:" : "'self' https: wss:";
 
   const csp = `
