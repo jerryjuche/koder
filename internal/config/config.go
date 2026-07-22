@@ -71,6 +71,9 @@ type Config struct {
 }
 
 func loadEnvFile() {
+	if strings.HasSuffix(os.Args[0], ".test") {
+		return
+	}
 	file, err := os.Open(".env")
 	if err != nil {
 		return

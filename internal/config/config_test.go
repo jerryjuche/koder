@@ -29,6 +29,8 @@ func TestLoadConfig_Success(t *testing.T) {
 }
 
 func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+
 	_, err := Load()
 	if err == nil {
 		t.Fatal("expected error for missing DATABASE_URL")
@@ -40,6 +42,7 @@ func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
 
 func TestLoadConfig_MissingJWTSecret(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
+	t.Setenv("JWT_SECRET", "")
 
 	_, err := Load()
 	if err == nil {
@@ -92,6 +95,7 @@ func TestLoadConfig_InvalidEnvironment(t *testing.T) {
 
 func TestLoadConfig_Defaults(t *testing.T) {
 	requiredEnvVars(t)
+	t.Setenv("GO_VERSION", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -182,6 +186,7 @@ func TestLoadConfig_NvidiaCustomValues(t *testing.T) {
 func TestLoadConfig_MissingNvidiaKey(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	t.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
+	t.Setenv("NVIDIA_API_KEY", "")
 
 	_, err := Load()
 	if err == nil {
