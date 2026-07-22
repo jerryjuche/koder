@@ -130,6 +130,12 @@ export default function TopNav() {
                   <Link
                     key={link.name}
                     href={link.href}
+                    onClick={(e) => {
+                      if (pathname === link.href) {
+                        e.preventDefault();
+                        router.refresh();
+                      }
+                    }}
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
                       isActive
