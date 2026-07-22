@@ -141,7 +141,9 @@ func (s *PostgresStore) GetTopCommunitySolutionsForProblem(ctx context.Context, 
 		FROM submissions sub
 		JOIN users u ON sub.user_id = u.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
-		WHERE sub.problem_id = $1 AND sub.status = 'passed'
+		WHERE sub.problem_id = $1
+		  AND sub.status = 'passed'
+		  AND sub.user_id != $2
 		GROUP BY sub.id, u.name, u.google_avatar_url, u.verified
 		ORDER BY likes DESC, sub.runtime_ms ASC, sub.created_at DESC
 		LIMIT $3

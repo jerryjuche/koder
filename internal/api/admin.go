@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/enricher"
@@ -766,6 +767,75 @@ func (h *AdminHandler) UpsertModuleMeta(w http.ResponseWriter, r *http.Request) 
 	)
 
 	RespondSuccess(w, meta)
+}
+
+// GetProblemTestCases handles GET /admin/problems/{id}/test-cases
+func (h *AdminHandler) GetProblemTestCases(w http.ResponseWriter, r *http.Request) {
+	problemID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid problem ID", nil)
+		return
+	}
+
+	cases, err := h.store.GetTestCasesForProblem(r.Context(), problemID)
+	if err != nil {
+		slog.Error("admin: failed to get test cases", "problem_id", problemID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to get test cases", nil)
+		return
+	}
+	if cases == nil {
+		cases = []store.TestCase{}
+	}
+
+	RespondSuccess(w, cases)
+}
+
+// UpdateTestCase handles PATCH /admin/test-cases/{id}
+func (h *AdminHandler) UpdateTestCase(w http.ResponseWriter, r *http.Request) {
+	tcID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid test case ID", nil)
+		return
+	}
+
+	var req struct {
+		Input    json.RawMessage `json:"input"`
+		Expected *string         `json:"expected"`
+		IsHidden *bool           `json:"is_hidden"`
+		Ordinal  *int            `json:"ordinal"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+
+	tc := &store.TestCase{
+		ID:    pgtype.UUID{Bytes: tcID, Valid: true},
+		Input: req.Input,
+	}
+	if req.Expected != nil {
+		tc.Expected = *req.Expected
+	}
+	if req.IsHidden != nil {
+		tc.IsHidden = *req.IsHidden
+	}
+	if req.Ordinal != nil {
+		tc.Ordinal = *req.Ordinal
+	}
+
+	if err := h.store.UpdateTestCase(r.Context(), tc); err != nil {
+		slog.Error("admin: failed to update test case", "id", tcID, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update test case", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]any{
+		"id":        tcID.String(),
+		"input":     tc.Input,
+		"expected":  tc.Expected,
+		"is_hidden": tc.IsHidden,
+		"ordinal":   tc.Ordinal,
+	})
 }
 
 // SetModulePin handles PATCH /admin/module-meta/{moduleName}/pin

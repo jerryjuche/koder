@@ -424,6 +424,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.success("Solution accepted!");
           window.dispatchEvent(new Event("user-updated"));
           sessionStorage.setItem(`koder_solution_${slug}`, code);
+          sessionStorage.setItem(`koder_solution_lang_${slug}`, activeLanguage);
           if (problem)
             sessionStorage.setItem(
               `koder_problem_${slug}`,

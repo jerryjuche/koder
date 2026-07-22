@@ -37,24 +37,6 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Exclude problems from locked modules (admins see all)
-	if claims.Role != "admin" {
-		lockedModules, err := h.store.ListLockedModules(r.Context())
-		if err == nil && len(lockedModules) > 0 {
-			locked := make(map[string]bool, len(lockedModules))
-			for _, lm := range lockedModules {
-				locked[lm.ModuleName] = true
-			}
-			var filtered []store.Problem
-			for _, p := range problems {
-				if !locked[p.Module] {
-					filtered = append(filtered, p)
-				}
-			}
-			problems = filtered
-		}
-	}
-
 	languageFilter := r.URL.Query().Get("language")
 	if languageFilter != "" && languageFilter != "go" && languageFilter != "python" {
 		languageFilter = ""

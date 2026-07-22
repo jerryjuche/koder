@@ -83,6 +83,7 @@ type Store interface {
 	UpdateProblem(ctx context.Context, problem *Problem) (*Problem, error)
 	UpdateProblemVisibility(ctx context.Context, problemID uuid.UUID, visible bool) error
 	PublishAllDrafts(ctx context.Context) (int, error)
+	UpdateTestCase(ctx context.Context, tc *TestCase) error
 	UpsertTestCasesForProblem(ctx context.Context, problemID uuid.UUID, testCases []TestCase) error
 	UpsertEnrichedProblem(ctx context.Context, problem *Problem, testCases []TestCase) error
 	GetTestCasesForProblem(ctx context.Context, problemID uuid.UUID) ([]TestCase, error)

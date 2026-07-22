@@ -192,6 +192,7 @@ export default function Dashboard() {
 
   const filteredProblems = useMemo(() => problems
     .filter((p) => {
+      if (p.locked) return false;
       if (selectedModule && p.module !== selectedModule) return false;
       if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
       if (difficultyFilter !== "All" && getDifficultyLabel(p.difficulty) !== difficultyFilter) return false;
@@ -229,7 +230,7 @@ export default function Dashboard() {
     window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
-  const showTopicCards = !selectedModule;
+  const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
     <div className="space-y-8 py-6 animate-in fade-in duration-500">

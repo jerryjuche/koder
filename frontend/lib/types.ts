@@ -32,6 +32,7 @@ export type Problem = {
   difficulty: number;
   xpReward: number;
   solved: boolean;
+  locked: boolean;
   status: "active" | "draft" | "error";
   visible: boolean;
   successRate: number;
@@ -228,6 +229,15 @@ export type ExecutionResult = {
   test_results: BackendTestResult[];
 };
 
+export type TestCase = {
+  id?: string;
+  problem_id?: string;
+  input: any;
+  expected: string;
+  is_hidden: boolean;
+  ordinal: number;
+};
+
 export type FeedbackItem = {
   id: string;
   user_id: string;
@@ -338,14 +348,6 @@ export interface AIAssistResponse {
   difficulty?: number;
   xp_reward?: number;
   explanation: string;
-}
-
-export interface TestCase {
-  id?: string;
-  input: any;
-  expected: string;
-  is_hidden: boolean;
-  ordinal: number;
 }
 
 export interface ChatMessage {

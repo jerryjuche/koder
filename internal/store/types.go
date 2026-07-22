@@ -127,6 +127,7 @@ type Problem struct {
 	SuccessRate      float64     `json:"success_rate"`
 	AvgRuntimeMs     int         `json:"avg_runtime_ms"`
 	EstTimeMinutes   int         `json:"estTimeMinutes"`
+	Locked           bool        `json:"locked"`
 	Examples         []TestCase  `json:"examples"`
 }
 

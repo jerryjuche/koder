@@ -30,6 +30,7 @@ import {
   LessonSection,
   Project,
   NewLessonSection,
+  TestCase,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -492,6 +493,22 @@ export async function publishAllDrafts(): Promise<ApiResponse<{ published: numbe
 export async function updateProblem(id: string, data: UpdateProblemPayload): Promise<ApiResponse<Problem>> {
   return fetchApi<Problem>(`/admin/problems/${id}`, {
     method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchProblemTestCases(id: string): Promise<ApiResponse<TestCase[]>> {
+  return fetchApi<TestCase[]>(`/admin/problems/${id}/test-cases`);
+}
+
+export async function updateTestCase(id: string, data: {
+  input?: any;
+  expected?: string;
+  is_hidden?: boolean;
+  ordinal?: number;
+}): Promise<ApiResponse<TestCase>> {
+  return fetchApi<TestCase>(`/admin/test-cases/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }

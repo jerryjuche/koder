@@ -7,8 +7,8 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files (69 internal + 1 cmd + 8 sandbox = 21,248 LOC), 128 `.tsx` + 22 `.ts` frontend files (~57,839 LOC), 4 CSS files, 47 migration SQL files (~1.5MB, 19,963 LOC) — **~99,050 LOC total across all tracked source files**
-- **Fresh-scan verified:** ~21,248 LOC Go (78 files), ~57,839 LOC frontend (128 tsx + 22 ts + 4 css), ~19,963 LOC SQL (46 migrations), ~350 LOC scripts/config/md = ~99,050 total
+- **Codebase:** 79 Go source+test files (18,760 LOC), 158 frontend source files (29,120 LOC), 47 migration SQL files (16,480 LOC), ~2,000 LOC scripts/docs/config — **~66,360 LOC total across all tracked source files**
+- **Fresh-scan verified (2026-07-22):** ~16,031 LOC Go source + ~2,729 LOC Go test = 79 files; ~25,361 LOC .tsx + ~2,220 LOC .ts + ~1,539 LOC CSS/config = 158 frontend files; ~16,480 LOC SQL (47 migrations); ~2,000 LOC scripts/config/md = ~66,360 total
 
 ---
 
@@ -1081,9 +1081,17 @@ npm run build   # Builds static + server components
 - Workspace stores `sessionStorage.return_to` on problem link click; reads it for Back link
 - MyContributions.tsx + admin/page.tsx: `<a>` → `<Link>` for SPA navigation
 
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+- `pushState` for module selection, language tabs, back-to-topics (proper history entries)
+- `popstate` listener syncs React state with URL on browser back/forward
+- Module filter reads from URL params on mount — refresh preserves state
+
 ### 2026-07-22 — Session 59: Module metadata system + Python module images
 
-**Commits:** (pending)
+**Commits:** `528cd8b` (squashed)
 
 **Module metadata system:**
 - Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
@@ -1093,45 +1101,52 @@ npm run build   # Builds static + server components
 - `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
 
 **Admin panel — Module Settings panel:**
-- New "Module Settings" panel in admin dashboard — edit display names inline + toggle pin
-- Modules derived from `moduleMeta` keys (all known modules, not just ones with problems)
+- New "Module Settings" panel — inline rename + pin toggle
 - Inline rename with Enter/blur/Escape keyboard support
-- Pin toggle with Pin/PinOff icons, pinned modules appear first in ModuleCards
-- Cache invalidation (`clearCache("/me/module-meta")`) before re-fetch after mutations
+- Pin toggle with Pin/PinOff icons, pinned modules sort first in ModuleCards
+- Cache invalidation before re-fetch after mutations
 
 **Admin panel — Problem Module Locks fixes:**
-- Modules now derived from `Object.keys(moduleMeta)` — shows ALL known modules, not just ones with problems
-- Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
-- Delete button only renders when module has problems (`hasProblems(mod)`)
-- Delete handler uses `await loadData()` before re-enabling button
-- Removed hardcoded `MODULE_DISPLAY_NAMES` — single source of truth is DB-backed `moduleMeta`
+- Modules derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames
+- Delete button only renders when module has problems
+- Removed hardcoded `MODULE_DISPLAY_NAMES`
 
 **ModuleCards integration:**
 - Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
-- `home/page.tsx` fetches moduleMeta on load, refreshes on window focus
-- `focus` event listener clears cache before re-fetching moduleMeta
+- `home/page.tsx` fetches moduleMeta on load + window focus refresh
 
-**Python module images:**
-- Converted 4 PNGs to WebP (1.3MB → ~30KB each, 97% reduction)
-- Added `MODULE_META` entries: `python-arrays-strings`, `python-challenges`, `python-fundamentals`, `python-intermediate`
-- Added `MODULE_COLORS` entries for consistent badge styling
+**Python module images (4 new WebP):**
+- `python-arrays-strings.webp`, `python-challenges.webp`, `python-fundamentals.webp`, `python-intermediate.webp`
+- 1.3MB PNG → ~30KB WebP (97% reduction)
 
-**Files:**
-- `migrations/046_module_meta.sql` — new
-- `internal/store/module_meta.go` — new
-- `internal/store/types.go` — `ModuleMeta` struct
-- `internal/store/store.go` — interface methods
-- `internal/api/admin.go` — 3 handlers
-- `internal/api/router.go` — routes
-- `frontend/lib/api.ts` — types + API functions
-- `frontend/app/(main)/admin/page.tsx` — Module Settings panel, Problem Module Locks fixes
-- `frontend/app/(main)/home/page.tsx` — focus refresh for moduleMeta
-- `frontend/components/dashboard/ModuleCards.tsx` — pin sort, display_name, Python module images
-- `frontend/public/modules/python-*.webp` — 4 new WebP images
+**Backend files:** `internal/store/module_meta.go`, `internal/store/types.go`, `internal/store/store.go`, `internal/api/admin.go`, `internal/api/router.go`, `migrations/046_module_meta.sql`
+**Frontend files:** `frontend/lib/api.ts`, `admin/page.tsx`, `home/page.tsx`, `ModuleCards.tsx`, `public/modules/python-*.webp`
 
 **Verification:**
 - `go vet ./internal/...` — clean
 - `go build ./...` — clean
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
+
+**Problem statement rendering — root cause fix:**
+- `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` classes were no-ops
+- Removed `react-markdown` / `remark-gfm` — replaced with self-contained `renderMarkdown()` + `inlineMd()` in `ProblemWorkspaceClient.tsx`
+- All styling via inline `style=` attributes — deterministic, no CSS plugin dependency
+
+**Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
+- Blank lines → paragraphs with `0.75rem` bottom margin
+- `#` / `##` / `###` → properly sized bold headings
+- `**bold**` → gold (`#D4AF37`), `` `code` `` → gold monospace with dark bg
+- `[text](url)` → gold links, HTML-escaped (XSS safe)
+
+**Key insight:** No GFM tables, blockquotes, or strikethrough. Blank lines (`\n\n`) are the only block separator.
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx`
+
+**Verification:**
 - `npx tsc --noEmit` — clean
 
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
