@@ -170,7 +170,8 @@ export default function Dashboard() {
     safePage * ITEMS_PER_PAGE,
   );
 
-  const solvedCount = problems.filter((p) => p.solved).length;
+  const visibleSolved = problems.filter((p) => p.solved).length;
+  const totalSolved = user?.solvedCount ?? visibleSolved;
 
   // Reset to page 1 when filters change
   const filtersKey = `${selectedModule}-${searchQuery}-${difficultyFilter}-${statusFilter}`;
@@ -199,7 +200,7 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-muted-foreground text-sm">
-              {solvedCount} of {problems.length} problems solved
+              {visibleSolved} of {problems.length} problems solved
             </p>
           </div>
         </div>
@@ -211,7 +212,7 @@ export default function Dashboard() {
             </div>
             <div className="text-right">
               <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {solvedCount}
+                {totalSolved}
               </div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                 Solved
