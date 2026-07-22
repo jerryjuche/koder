@@ -41,6 +41,34 @@ export default function AdminDashboard() {
   const [problemsError, setProblemsError] = useState<string | null>(null);
   const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
+  const MODULE_DISPLAY_NAMES: Record<string, string> = {
+    "arrays-strings": "Arrays & Strings",
+    "strings-runes": "Strings & Runes",
+    "math-recursion": "Math & Recursion",
+    "data-structures": "Data Structures",
+    "sorting-searching": "Sorting & Searching",
+    "hashmaps-sets": "Hash Maps & Sets",
+    concurrency: "Concurrency",
+    "dynamic-programming": "Dynamic Programming",
+    "bit-manipulation": "Bit Manipulation",
+    "trees-graphs": "Trees & Graphs",
+    "error-handling": "Error Handling",
+    testing: "Testing",
+    "file-io": "File I/O",
+    networking: "Networking",
+    "interfaces-generics": "Interfaces & Generics",
+    pointers: "Pointers",
+    "oop-composition": "OOP & Composition",
+    "design-patterns": "Design Patterns",
+    "encoding-serialization": "Encoding & Serialization",
+    "linked-lists": "Linked Lists",
+    "go-fundamentals": "Go Fundamentals",
+    "python-fundamentals": "Python Fundamentals",
+    "python-challenges": "Python Challenges",
+    "python-intermediate": "Python Intermediate",
+    "python-variables-math": "Python Variables & Math",
+    "python-arrays-strings": "Python Arrays & Strings",
+  };
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseModules, setCourseModules] = useState<Record<string, CurriculumModule[]>>({});
   const [togglingCourseModule, setTogglingCourseModule] = useState<string | null>(null);
@@ -313,39 +341,67 @@ export default function AdminDashboard() {
             <span className="font-medium text-brand-offwhite">Problem Module Locks</span>
             <span className="text-xs text-brand-offwhite-muted/60">Lock entire problem categories from student access</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[...new Set(problems.map((p) => p.module).filter(Boolean))].sort().map((mod) => {
-              const isLocked = moduleLocks.has(mod);
+          <div className="space-y-3">
+            {(["go", "python"] as const).map((lang) => {
+              const modules = [...new Set(problems.map((p) => p.module).filter(Boolean))]
+                .filter((mod) => lang === "go" ? !mod.startsWith("python-") : mod.startsWith("python-"))
+                .sort();
+              if (modules.length === 0) return null;
+              const lockedCount = modules.filter((m) => moduleLocks.has(m)).length;
+              const displayLang = lang === "go" ? "Go" : "Python";
               return (
-                <button
-                  key={mod}
-                  onClick={async () => {
-                    setTogglingModule(mod);
-                    const res = await toggleProblemModuleLock(mod);
-                    if (res.success) {
-                      setModuleLocks((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(mod)) next.delete(mod);
-                        else next.add(mod);
-                        return next;
-                      });
-                      toast.success(isLocked ? `"${mod}" unlocked` : `"${mod}" locked`);
-                    } else {
-                      toast.error(res.error?.message || "Failed to toggle");
-                    }
-                    setTogglingModule(null);
-                  }}
-                  disabled={togglingModule === mod}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                    isLocked
-                      ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                      : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
-                  )}
-                >
-                  {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
-                  {mod}
-                </button>
+                <details key={lang} className="group" open>
+                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-amber-300 transition-colors [&::-webkit-details-marker]:hidden">
+                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
+                    <div className={cn(
+                      "w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0",
+                      lang === "go" ? "bg-cyan-500/15 text-cyan-400" : "bg-amber-500/15 text-amber-400",
+                    )}>
+                      {lang === "go" ? "G" : "P"}
+                    </div>
+                    {displayLang}
+                    <span className="text-xs text-brand-offwhite-muted/50 font-normal">
+                      ({lockedCount}/{modules.length} locked)
+                    </span>
+                  </summary>
+                  <div className="mt-3 flex flex-wrap gap-2 pl-7">
+                    {modules.map((mod) => {
+                      const isLocked = moduleLocks.has(mod);
+                      const displayName = MODULE_DISPLAY_NAMES[mod] || mod;
+                      return (
+                        <button
+                          key={mod}
+                          onClick={async () => {
+                            setTogglingModule(mod);
+                            const res = await toggleProblemModuleLock(mod);
+                            if (res.success) {
+                              setModuleLocks((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(mod)) next.delete(mod);
+                                else next.add(mod);
+                                return next;
+                              });
+                              toast.success(isLocked ? `"${displayName}" unlocked` : `"${displayName}" locked`);
+                            } else {
+                              toast.error(res.error?.message || "Failed to toggle");
+                            }
+                            setTogglingModule(null);
+                          }}
+                          disabled={togglingModule === mod}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                            isLocked
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
+                              : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
+                          )}
+                        >
+                          {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                          {displayName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
               );
             })}
           </div>
