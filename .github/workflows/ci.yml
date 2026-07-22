@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, python-curricula]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 env:
   GO_VERSION: "1.26"

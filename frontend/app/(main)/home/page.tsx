@@ -54,7 +54,10 @@ export default function Dashboard() {
 
   // View state
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("module") || null;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "solved" | "unsolved">("all");
@@ -65,12 +68,6 @@ export default function Dashboard() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 18;
-
-  // Read module from URL search params after client-side mount (avoids hydration mismatch)
-  useEffect(() => {
-    const moduleParam = new URLSearchParams(window.location.search).get("module");
-    if (moduleParam) setSelectedModule(moduleParam);
-  }, []);
 
   // Sync state with browser back/forward
   useEffect(() => {

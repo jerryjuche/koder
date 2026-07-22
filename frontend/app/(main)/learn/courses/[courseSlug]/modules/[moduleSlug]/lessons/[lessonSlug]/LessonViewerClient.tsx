@@ -81,10 +81,6 @@ export default function LessonViewerClient() {
   const [completed, setCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
-  useEffect(() => {
-    setCurrentStep(0);
-  }, [lessonSlug]);
-
   const load = useCallback(async () => {
     const [lessonRes, moduleRes] = await Promise.all([
       fetchLesson(courseSlug, moduleSlug, lessonSlug),
@@ -361,7 +357,7 @@ export default function LessonViewerClient() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
+    <div key={lessonSlug} className="flex h-[calc(100vh-3.5rem)]">
 
 
       {/* Left sidebar */}
