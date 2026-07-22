@@ -91,8 +91,8 @@ export type SnippetFile = {
   code: string;
 };
 
-type SnippetCtx = { value: string; onValueChange: (v: string) => void; files: SnippetFile[] };
-const SnippetCtx = createContext<SnippetCtx>({ value: "", onValueChange: () => {}, files: [] });
+type SnippetCtxType = { value: string; onValueChange: (v: string) => void; files: SnippetFile[] };
+const SnippetCtx = createContext<SnippetCtxType>({ value: "", onValueChange: () => {}, files: [] });
 
 export type CodeSnippetProps = {
   files: SnippetFile[];
@@ -122,7 +122,7 @@ export function CodeSnippet({
     <SnippetCtx.Provider value={{ value: activeValue, onValueChange: setValue, files }}>
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
+          "group relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
           className
         )}
       >
@@ -132,9 +132,9 @@ export function CodeSnippet({
               {files.map((f) => {
                 const isActive = f.language === activeValue;
                 return (
-                  <button
-                    key={f.language}
-                    onClick={() => setValue(f.language)}
+                    <button
+                      key={f.filename}
+                      onClick={() => setValue(f.language)}
                     className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all shrink-0",
                       isActive
