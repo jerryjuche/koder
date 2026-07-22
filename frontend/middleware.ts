@@ -4,9 +4,8 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
+  // --- CSP headers ---
   const isDev = process.env.NODE_ENV === 'development';
-
-  // Allow http: in dev for localhost backend; https: only in production
   const connectSrc = isDev ? "'self' http: https: ws: wss:" : "'self' https: wss:";
 
   const csp = `
