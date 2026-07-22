@@ -838,4 +838,10 @@ export async function toggleProblemModuleLock(moduleName: string): Promise<ApiRe
   });
 }
 
+export async function deleteProblemModule(moduleName: string): Promise<ApiResponse<{ module_name: string; status: string }>> {
+  return fetchApi<{ module_name: string; status: string }>(`/admin/problem-modules/${encodeURIComponent(moduleName)}`, {
+    method: "DELETE",
+  });
+}
+
 

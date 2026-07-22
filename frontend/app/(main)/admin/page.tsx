@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, fetchAllCourses, fetchModules, toggleModuleLock } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [problemsError, setProblemsError] = useState<string | null>(null);
   const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
+  const [deletingModule, setDeletingModule] = useState<string | null>(null);
   const MODULE_DISPLAY_NAMES: Record<string, string> = {
     "arrays-strings": "Arrays & Strings",
     "strings-runes": "Strings & Runes",
@@ -369,35 +370,56 @@ export default function AdminDashboard() {
                       const isLocked = moduleLocks.has(mod);
                       const displayName = MODULE_DISPLAY_NAMES[mod] || mod;
                       return (
-                        <button
-                          key={mod}
-                          onClick={async () => {
-                            setTogglingModule(mod);
-                            const res = await toggleProblemModuleLock(mod);
-                            if (res.success) {
-                              setModuleLocks((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(mod)) next.delete(mod);
-                                else next.add(mod);
-                                return next;
-                              });
-                              toast.success(isLocked ? `"${displayName}" unlocked` : `"${displayName}" locked`);
-                            } else {
-                              toast.error(res.error?.message || "Failed to toggle");
-                            }
-                            setTogglingModule(null);
-                          }}
-                          disabled={togglingModule === mod}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                            isLocked
-                              ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                              : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
-                          )}
-                        >
-                          {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
-                          {displayName}
-                        </button>
+                        <div key={mod} className="flex items-center gap-1.5">
+                          <button
+                            onClick={async () => {
+                              setTogglingModule(mod);
+                              const res = await toggleProblemModuleLock(mod);
+                              if (res.success) {
+                                setModuleLocks((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(mod)) next.delete(mod);
+                                  else next.add(mod);
+                                  return next;
+                                });
+                                toast.success(isLocked ? `"${displayName}" unlocked` : `"${displayName}" locked`);
+                              } else {
+                                toast.error(res.error?.message || "Failed to toggle");
+                              }
+                              setTogglingModule(null);
+                            }}
+                            disabled={togglingModule === mod}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                              isLocked
+                                ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
+                                : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
+                            )}
+                          >
+                            {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                            {displayName}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Permanently delete all problems in "${displayName}"? This cannot be undone.`)) return;
+                              setDeletingModule(mod);
+                              const res = await deleteProblemModule(mod);
+                              if (res.success) {
+                                toast.success(`"${displayName}" deleted`);
+                                setProblems((prev) => prev.filter((p) => p.module !== mod));
+                                loadData();
+                              } else {
+                                toast.error(res.error?.message || "Failed to delete module");
+                              }
+                              setDeletingModule(null);
+                            }}
+                            disabled={deletingModule === mod}
+                            className="p-1.5 rounded-lg text-xs text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30"
+                            title={`Delete "${displayName}" and all its problems`}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

@@ -83,6 +83,15 @@ func (h *SubmissionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Block submission if module is locked (admins bypass)
+	if problem.Module != "" {
+		locked, err := h.store.IsModuleLocked(r.Context(), problem.Module)
+		if err == nil && locked && claims.Role != "admin" {
+			RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This problem's module is locked by the instructor", nil)
+			return
+		}
+	}
+
 	// Block resubmission if the user has already solved this problem
 	if problem.Solved {
 		RespondError(w, http.StatusConflict, "ALREADY_SOLVED", "You have already solved this problem. Submissions are disabled for completed problems.", nil)

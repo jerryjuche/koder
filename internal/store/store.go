@@ -191,6 +191,7 @@ type Store interface {
 	ListLockedModules(ctx context.Context) ([]ModuleLock, error)
 	ToggleProblemModuleLock(ctx context.Context, moduleName string) (bool, error)
 	IsModuleLocked(ctx context.Context, moduleName string) (bool, error)
+	DeleteProblemModule(ctx context.Context, moduleName string) error
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)

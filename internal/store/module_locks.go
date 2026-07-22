@@ -60,3 +60,39 @@ func (s *PostgresStore) IsModuleLocked(ctx context.Context, moduleName string) (
 	}
 	return exists, nil
 }
+
+// DeleteProblemModule deletes all problems in a module and removes its module lock.
+// Deletes submissions and progress first to handle FK constraints, then problems (cascades to test_cases).
+func (s *PostgresStore) DeleteProblemModule(ctx context.Context, moduleName string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Delete submissions for problems in this module (cascades to submission_likes)
+	_, err = tx.Exec(ctx, `DELETE FROM submissions WHERE problem_id IN (SELECT id FROM problems WHERE module = $1)`, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to delete submissions: %w", err)
+	}
+
+	// Delete progress for problems in this module
+	_, err = tx.Exec(ctx, `DELETE FROM progress WHERE problem_id IN (SELECT id FROM problems WHERE module = $1)`, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to delete progress: %w", err)
+	}
+
+	// Delete problems (cascades to test_cases)
+	_, err = tx.Exec(ctx, `DELETE FROM problems WHERE module = $1`, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to delete problems: %w", err)
+	}
+
+	// Remove the module lock if it exists
+	_, err = tx.Exec(ctx, `DELETE FROM module_locks WHERE module_name = $1`, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to delete module lock: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}

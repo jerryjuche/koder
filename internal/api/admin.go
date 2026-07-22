@@ -696,3 +696,25 @@ func (h *AdminHandler) ToggleProblemModuleLock(w http.ResponseWriter, r *http.Re
 		"locked":      locked,
 	})
 }
+
+// DeleteProblemModule handles DELETE /admin/modules/{moduleName} - deletes all problems in a module.
+func (h *AdminHandler) DeleteProblemModule(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	if err := h.store.DeleteProblemModule(r.Context(), moduleName); err != nil {
+		slog.Error("admin: failed to delete problem module", "module", moduleName, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to delete problem module", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "warning",
+		fmt.Sprintf("Deleted problem module '%s' with all problems", moduleName),
+		"text-red-400", "Trash2",
+	)
+
+	RespondSuccess(w, map[string]string{"module_name": moduleName, "status": "deleted"})
+}

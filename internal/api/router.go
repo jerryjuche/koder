@@ -212,6 +212,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			// Problem module locks
 			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/module-locks/{moduleName}", adminHandler.ToggleProblemModuleLock)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/problem-modules/{moduleName}", adminHandler.DeleteProblemModule)
 
 			// Curriculum CMS — admin endpoints
 			r.Get("/admin/courses", cmHandler.ListAllCourses)
