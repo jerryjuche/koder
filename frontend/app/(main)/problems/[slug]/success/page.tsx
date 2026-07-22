@@ -24,7 +24,6 @@ import {
   Trophy,
   ArrowRight,
   BookOpen,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -74,18 +73,6 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     CommunitySolution[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [showFullCode, setShowFullCode] = useState(false);
-  const [expandedSolutions, setExpandedSolutions] = useState<Set<string>>(new Set());
-  const toggleSolution = (id: string) => {
-    setExpandedSolutions((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const codeLines = code.split("\n").length;
-  const isLongCode = codeLines > 8;
 
   useEffect(() => {
     const loadData = async () => {
@@ -295,71 +282,42 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             Your Solution
           </h2>
-          <div className="relative">
-            <div
-              className={cn(
-                "transition-all duration-300 overflow-hidden rounded-xl",
-                isLongCode && !showFullCode && "max-h-[220px]"
-              )}
+          <div className="max-h-[220px] overflow-y-auto rounded-xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+            <CodeBlock
+              data={[
+                {
+                  language: displayLang,
+                  filename: `solution.${extension}`,
+                  code,
+                },
+              ]}
+              defaultValue={displayLang}
             >
-              <CodeBlock
-                data={[
-                  {
-                    language: displayLang,
-                    filename: `solution.${extension}`,
-                    code,
-                  },
-                ]}
-                defaultValue={displayLang}
-              >
-                <CodeBlockHeader>
-                  <CodeBlockFiles>
-                    {(item) => (
-                      <CodeBlockFilename
-                        key={item.language}
-                        value={item.language}
-                      >
-                        {item.filename}
-                      </CodeBlockFilename>
-                    )}
-                  </CodeBlockFiles>
-                  <CodeBlockCopyButton />
-                </CodeBlockHeader>
-                <CodeBlockBody>
+              <CodeBlockHeader>
+                <CodeBlockFiles>
                   {(item) => (
-                    <CodeBlockItem key={item.language} value={item.language}>
-                      <CodeBlockContent
-                        language={item.language as BundledLanguage}
-                      >
-                        {item.code}
-                      </CodeBlockContent>
-                    </CodeBlockItem>
+                    <CodeBlockFilename
+                      key={item.language}
+                      value={item.language}
+                    >
+                      {item.filename}
+                    </CodeBlockFilename>
                   )}
-                </CodeBlockBody>
-              </CodeBlock>
-            </div>
-            {isLongCode && (
-              <>
-                {!showFullCode && (
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-brand-charcoal-base to-transparent pointer-events-none" />
+                </CodeBlockFiles>
+                <CodeBlockCopyButton />
+              </CodeBlockHeader>
+              <CodeBlockBody>
+                {(item) => (
+                  <CodeBlockItem key={item.language} value={item.language}>
+                    <CodeBlockContent
+                      language={item.language as BundledLanguage}
+                    >
+                      {item.code}
+                    </CodeBlockContent>
+                  </CodeBlockItem>
                 )}
-                <button
-                  onClick={() => setShowFullCode(!showFullCode)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted hover:text-brand-offwhite bg-brand-charcoal-base/80 hover:bg-brand-charcoal-card transition-colors border-t border-brand-charcoal-border rounded-b-xl"
-                >
-                  <ChevronDown
-                    size={14}
-                    className={cn(
-                      "transition-transform duration-200",
-                      showFullCode && "rotate-180"
-                    )}
-                  />
-                  {showFullCode
-                    ? `Show less (${codeLines} lines)`
-                    : `Show full solution (${codeLines} lines)`}
-                </button>
-              </>
-            )}
+              </CodeBlockBody>
+            </CodeBlock>
           </div>
         </div>
 
@@ -379,11 +337,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                 <p className="text-sm mt-1">Be the first to get liked!</p>
               </div>
             ) : (
-              communitySolutions.map((sol, idx) => {
-                const solCodeLines = sol.code.split("\n").length;
-                const solIsLong = solCodeLines > 8;
-                const solShowFull = expandedSolutions.has(sol.id);
-                return (
+              communitySolutions.map((sol) => (
                 <div
                   key={sol.id}
                   className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl hover:border-brand-charcoal-border/80 transition-colors"
@@ -422,75 +376,48 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                       {sol.likes}
                     </button>
                   </div>
-                  <div className="relative">
-                    <div className={cn(
-                      "transition-all duration-300 overflow-hidden",
-                      solIsLong && !solShowFull && "max-h-[220px]"
-                    )}>
-                      <CodeBlock
-                        data={[
-                          {
-                            language: sol.language || displayLang,
-                            filename: `solution.${sol.language === "python" ? "py" : "go"}`,
-                            code: sol.code,
-                          },
-                        ]}
-                        defaultValue={sol.language || displayLang}
-                      >
-                        <CodeBlockHeader>
-                          <CodeBlockFiles>
-                            {(item) => (
-                              <CodeBlockFilename
-                                key={item.language}
-                                value={item.language}
-                              >
-                                {item.filename}
-                              </CodeBlockFilename>
-                            )}
-                          </CodeBlockFiles>
-                          <CodeBlockCopyButton />
-                        </CodeBlockHeader>
-                        <CodeBlockBody>
+                  <div className="max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+                    <CodeBlock
+                      data={[
+                        {
+                          language: sol.language || displayLang,
+                          filename: `solution.${sol.language === "python" ? "py" : "go"}`,
+                          code: sol.code,
+                        },
+                      ]}
+                      defaultValue={sol.language || displayLang}
+                    >
+                      <CodeBlockHeader>
+                        <CodeBlockFiles>
                           {(item) => (
-                            <CodeBlockItem
+                            <CodeBlockFilename
                               key={item.language}
                               value={item.language}
                             >
-                              <CodeBlockContent
-                                language={item.language as BundledLanguage}
-                              >
-                                {item.code}
-                              </CodeBlockContent>
-                            </CodeBlockItem>
+                              {item.filename}
+                            </CodeBlockFilename>
                           )}
-                        </CodeBlockBody>
-                      </CodeBlock>
-                    </div>
-                    {solIsLong && (
-                      <>
-                        {!solShowFull && (
-                          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-brand-charcoal-card to-transparent pointer-events-none" />
+                        </CodeBlockFiles>
+                        <CodeBlockCopyButton />
+                      </CodeBlockHeader>
+                      <CodeBlockBody>
+                        {(item) => (
+                          <CodeBlockItem
+                            key={item.language}
+                            value={item.language}
+                          >
+                            <CodeBlockContent
+                              language={item.language as BundledLanguage}
+                            >
+                              {item.code}
+                            </CodeBlockContent>
+                          </CodeBlockItem>
                         )}
-                        <button
-                          onClick={() => toggleSolution(sol.id)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted hover:text-brand-offwhite bg-brand-charcoal-card/80 hover:bg-brand-charcoal-hover transition-colors border-t border-brand-charcoal-border"
-                        >
-                          <ChevronDown
-                            size={14}
-                            className={cn(
-                              "transition-transform duration-200",
-                              solShowFull && "rotate-180"
-                            )}
-                          />
-                          {solShowFull
-                            ? `Show less (${solCodeLines} lines)`
-                            : `Show full solution (${solCodeLines} lines)`}
-                        </button>
-                      </>
-                    )}
+                      </CodeBlockBody>
+                    </CodeBlock>
                   </div>
                 </div>
-              );})
+              ))
             )}
           </div>
         </div>

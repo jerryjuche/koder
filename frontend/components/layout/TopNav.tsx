@@ -133,7 +133,7 @@ export default function TopNav() {
                     onClick={(e) => {
                       if (pathname === link.href) {
                         e.preventDefault();
-                        router.refresh();
+                        window.dispatchEvent(new Event("user-updated"));
                       }
                     }}
                     className={cn(
