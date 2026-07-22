@@ -5,12 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-
-
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+
 import {
   ChevronLeft,
   Play,
@@ -157,6 +154,69 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   }
   // Default constants
   return lang === "python" ? PYTHON_CODE : GO_CODE;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderMarkdown(text: string): string {
+  const blocks: string[] = [];
+
+  for (const block of text.split(/\n\s*\n/)) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    const lines = trimmed.split("\n");
+
+    if (/^#{1,3}\s/.test(trimmed)) {
+      const level = trimmed.match(/^(#{1,3})/)?.[1].length || 1;
+      const tag = level === 1 ? "h1" : level === 2 ? "h2" : "h3";
+      const content = inlineMd(trimmed.replace(/^#{1,3}\s+/, ""));
+      blocks.push(`<${tag} style="font-weight:700;letter-spacing:-0.025em;color:#D1D1D8;margin:1.5rem 0 0.75rem 0;font-size:${level === 1 ? "1.5rem" : level === 2 ? "1.25rem" : "1.125rem"}">${content}</${tag}>`);
+      continue;
+    }
+
+    if (/^\s*[-*]\s/.test(trimmed)) {
+      const items = trimmed
+        .split("\n")
+        .filter((l) => /^\s*[-*]\s/.test(l))
+        .map((l) => `<li style="margin:0.25rem 0;color:rgba(209,209,216,0.9);line-height:1.75">${inlineMd(l.replace(/^\s*[-*]\s+/, ""))}</li>`)
+        .join("");
+      blocks.push(`<ul style="list-style:disc;padding-left:1.25rem;margin:0.75rem 0">${items}</ul>`);
+      continue;
+    }
+
+    if (/^\d+\.\s/.test(trimmed)) {
+      const items = trimmed
+        .split("\n")
+        .filter((l) => /^\d+\.\s/.test(l))
+        .map((l) => `<li style="margin:0.25rem 0;color:rgba(209,209,216,0.9);line-height:1.75">${inlineMd(l.replace(/^\d+\.\s+/, ""))}</li>`)
+        .join("");
+      blocks.push(`<ol style="list-style:decimal;padding-left:1.25rem;margin:0.75rem 0">${items}</ol>`);
+      continue;
+    }
+
+    const paragraphs = lines
+      .filter((l) => l.trim())
+      .map((l) => `<p style="margin:0 0 0.75rem 0;color:rgba(209,209,216,0.9);line-height:1.75">${inlineMd(l.trim())}</p>`)
+      .join("");
+    blocks.push(paragraphs);
+  }
+
+  return blocks.join("\n");
+}
+
+function inlineMd(text: string): string {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:#D4AF37\">$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code style=\"background:rgba(255,255,255,0.05);padding:0.125rem 0.375rem;border-radius:0.25rem;font-size:0.875rem;font-family:monospace;color:#D4AF37\">$1</code>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color:#D4AF37;text-decoration:none">$1</a>');
 }
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
@@ -738,13 +798,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
                 <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
-                  <div className="prose prose-invert prose-brand prose-base max-w-none text-brand-offwhite/90 leading-[1.75] prose-headings:text-brand-offwhite prose-headings:font-bold prose-headings:tracking-tight prose-p:text-brand-offwhite/90 prose-p:leading-7 prose-p:mb-5 prose-strong:text-brand-offwhite prose-strong:font-bold prose-code:text-brand-muted-gold prose-code:bg-brand-charcoal-hover/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-pre:shadow-inner prose-li:text-brand-offwhite/90 prose-li:leading-7 prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors [&_p:empty]:hidden [&_br]:block [&_br]:content-[''] [&_br]:mt-3">
-                    <Markdown remarkPlugins={[remarkGfm]}>
-                      {problem?.statement ||
-                        problem?.descriptionMarkdown ||
-                        "No problem statement available yet. This exercise is pending enrichment."}
-                    </Markdown>
-                  </div>
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(
+                        problem?.statement ||
+                          problem?.descriptionMarkdown ||
+                          "No problem statement available yet. This exercise is pending enrichment."
+                      ),
+                    }}
+                  />
                 </div>
               </div>
 

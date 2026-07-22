@@ -1843,3 +1843,33 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `go vet ./internal/...` — clean
 - `go build ./...` — clean
 - `./node_modules/.bin/tsc --noEmit` — clean
+
+---
+
+### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
+
+**Commits:** `pending`
+
+**Problem statement rendering — root cause fix:**
+- `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` Tailwind classes were no-ops (headings, paragraph spacing, code styling, bold color all did nothing)
+- Removed `react-markdown` / `remark-gfm` dependency — replaced with self-contained `renderMarkdown()` + `inlineMd()` functions using `dangerouslySetInnerHTML`
+- All styling now uses inline `style=` attributes — deterministic, no CSS plugin required
+
+**Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
+- Split on `\n\s*\n` (blank lines) → paragraphs with `0.75rem` bottom margin
+- `#` / `##` / `###` → `h1`/`h2`/`h3` with proper sizing and bold
+- `-` / `*` at line start → bullet lists
+- `1.` / `2.` at line start → numbered lists
+- `**bold**` → gold (`#D4AF37`)
+- `*italic*` → em
+- `` `code` `` → gold monospace with dark bg
+- `[text](url)` → gold links
+- HTML escaped before processing (XSS safe)
+
+**Key insight for AI:** The renderer is intentionally simple — no GFM tables, no blockquotes, no strikethrough. Blank lines (`\n\n`) are the only block separator.
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — full renderer rewrite
+
+**Verification:**
+- `npx tsc --noEmit` — clean
