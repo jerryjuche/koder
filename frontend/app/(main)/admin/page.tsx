@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2 } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2, Pin, PinOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock, fetchModuleMeta, upsertModuleMeta, setModulePin } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { clearCache } from '@/lib/cache';
 import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule } from '@/lib/types';
@@ -44,47 +44,23 @@ export default function AdminDashboard() {
   const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
   const [deletingModule, setDeletingModule] = useState<string | null>(null);
-  const MODULE_DISPLAY_NAMES: Record<string, string> = {
-    "arrays-strings": "Arrays & Strings",
-    "strings-runes": "Strings & Runes",
-    "math-recursion": "Math & Recursion",
-    "data-structures": "Data Structures",
-    "sorting-searching": "Sorting & Searching",
-    "hashmaps-sets": "Hash Maps & Sets",
-    concurrency: "Concurrency",
-    "dynamic-programming": "Dynamic Programming",
-    "bit-manipulation": "Bit Manipulation",
-    "trees-graphs": "Trees & Graphs",
-    "error-handling": "Error Handling",
-    testing: "Testing",
-    "file-io": "File I/O",
-    networking: "Networking",
-    "interfaces-generics": "Interfaces & Generics",
-    pointers: "Pointers",
-    "oop-composition": "OOP & Composition",
-    "design-patterns": "Design Patterns",
-    "encoding-serialization": "Encoding & Serialization",
-    "linked-lists": "Linked Lists",
-    "go-fundamentals": "Go Fundamentals",
-    "python-fundamentals": "Python Fundamentals",
-    "python-challenges": "Python Challenges",
-    "python-intermediate": "Python Intermediate",
-    "python-variables-math": "Python Variables & Math",
-    "python-arrays-strings": "Python Arrays & Strings",
-  };
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseModules, setCourseModules] = useState<Record<string, CurriculumModule[]>>({});
   const [togglingCourseModule, setTogglingCourseModule] = useState<string | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
+  const [editingModuleName, setEditingModuleName] = useState<string | null>(null);
+  const [editingModuleValue, setEditingModuleValue] = useState('');
 
   const loadData = useCallback(async () => {
-    const [statsRes, usageRes, logsRes, problemsRes, locksRes, coursesRes] = await Promise.all([
+    const [statsRes, usageRes, logsRes, problemsRes, locksRes, coursesRes, metaRes] = await Promise.all([
       fetchAdminStats(),
       fetchAIUsageStats(),
       fetchAdminActivity(),
       fetchAllProblemsAdmin(),
       fetchModuleLocks(),
       fetchAllCourses(),
+      fetchModuleMeta(),
     ]);
 
     if (locksRes.success && locksRes.data) {
@@ -115,6 +91,14 @@ export default function AdminDashboard() {
       });
       setCourseModules(modulesMap);
       setLoadingCourses(false);
+    }
+
+    if (metaRes.success && metaRes.data) {
+      const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+      for (const m of metaRes.data) {
+        metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+      }
+      setModuleMeta(metaMap);
     }
   }, []);
 
@@ -337,7 +321,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Module Locks Panel */}
-      {problems.length > 0 && (
+      {Object.keys(moduleMeta).length > 0 && (
         <div className="bg-brand-charcoal-card border border-amber-600/20 rounded-2xl p-5">
           <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
             <Lock size={16} className="text-amber-400" />
@@ -346,10 +330,11 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-3">
             {(["go", "python"] as const).map((lang) => {
-              const modules = [...new Set(problems.map((p) => p.module).filter(Boolean))]
+              const modules = Object.keys(moduleMeta)
                 .filter((mod) => lang === "go" ? !mod.startsWith("python-") : mod.startsWith("python-"))
                 .sort();
               if (modules.length === 0) return null;
+              const hasProblems = (mod: string) => problems.some((p) => p.module === mod);
               const lockedCount = modules.filter((m) => moduleLocks.has(m)).length;
               const displayLang = lang === "go" ? "Go" : "Python";
               return (
@@ -370,7 +355,7 @@ export default function AdminDashboard() {
                   <div className="mt-3 flex flex-wrap gap-2 pl-7">
                     {modules.map((mod) => {
                       const isLocked = moduleLocks.has(mod);
-                      const displayName = MODULE_DISPLAY_NAMES[mod] || mod;
+                      const displayName = moduleMeta[mod]?.display_name || mod;
                       return (
                         <div key={mod} className="flex items-center gap-1.5">
                           <button
@@ -401,28 +386,30 @@ export default function AdminDashboard() {
                             {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
                             {displayName}
                           </button>
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Permanently delete all problems in "${displayName}"? This cannot be undone.`)) return;
-                              setDeletingModule(mod);
-                              const res = await deleteProblemModule(mod);
-                              if (res.success) {
-                                toast.success(`"${displayName}" deleted`);
-                                setProblems((prev) => prev.filter((p) => p.module !== mod));
-                                clearCache("/admin/problems");
-                                clearCache("/admin/module-locks");
-                                loadData();
-                              } else {
-                                toast.error(res.error?.message || "Failed to delete module");
-                              }
-                              setDeletingModule(null);
-                            }}
-                            disabled={deletingModule === mod}
-                            className="p-1.5 rounded-lg text-xs text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30"
-                            title={`Delete "${displayName}" and all its problems`}
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          {hasProblems(mod) && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Permanently delete all problems in "${displayName}"? This cannot be undone.`)) return;
+                                setDeletingModule(mod);
+                                const res = await deleteProblemModule(mod);
+                                if (res.success) {
+                                  toast.success(`"${displayName}" deleted`);
+                                  setProblems((prev) => prev.filter((p) => p.module !== mod));
+                                  clearCache("/admin/problems");
+                                  clearCache("/admin/module-locks");
+                                  await loadData();
+                                } else {
+                                  toast.error(res.error?.message || "Failed to delete module");
+                                }
+                                setDeletingModule(null);
+                              }}
+                              disabled={deletingModule === mod}
+                              className="p-1.5 rounded-lg text-xs text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30"
+                              title={`Delete "${displayName}" and all its problems`}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -488,6 +475,121 @@ export default function AdminDashboard() {
                         {mod.title}
                       </button>
                     ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Module Settings Panel */}
+      {Object.keys(moduleMeta).length > 0 && (
+        <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-5">
+          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
+            <FileText size={16} className="text-brand-muted-gold" />
+            <span className="font-medium text-brand-offwhite">Module Settings</span>
+            <span className="text-xs text-brand-offwhite-muted/60">Rename modules and pin them to appear first</span>
+          </div>
+          <div className="space-y-3">
+            {(["go", "python"] as const).map((lang) => {
+              const modules = Object.keys(moduleMeta)
+                .filter((mod) => lang === "go" ? !mod.startsWith("python-") : mod.startsWith("python-"))
+                .sort();
+              if (modules.length === 0) return null;
+              const displayLang = lang === "go" ? "Go" : "Python";
+              return (
+                <details key={lang} className="group" open>
+                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-brand-muted-gold transition-colors [&::-webkit-details-marker]:hidden">
+                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
+                    <div className={cn(
+                      "w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0",
+                      lang === "go" ? "bg-cyan-500/15 text-cyan-400" : "bg-amber-500/15 text-amber-400",
+                    )}>
+                      {lang === "go" ? "G" : "P"}
+                    </div>
+                    {displayLang}
+                  </summary>
+                  <div className="mt-3 space-y-1.5 pl-7">
+                    {modules.map((mod) => {
+                      const meta = moduleMeta[mod];
+                      const currentDisplayName = meta?.display_name || mod;
+                      const isPinned = meta?.is_pinned || false;
+                      const isEditing = editingModuleName === mod;
+                      return (
+                        <div key={mod} className="flex items-center gap-2 group/row">
+                          <span className="text-[11px] text-brand-offwhite-muted/50 font-mono w-36 truncate shrink-0" title={mod}>
+                            {mod}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editingModuleValue}
+                                onChange={(e) => setEditingModuleValue(e.target.value)}
+                                onBlur={async () => {
+                                  const val = editingModuleValue.trim();
+                                  if (val && val !== currentDisplayName) {
+                                    const res = await upsertModuleMeta(mod, val);
+                                    if (res.success) {
+                                      toast.success(`Renamed "${mod}" to "${val}"`);
+                                      clearCache("/me/module-meta");
+                                      await loadData();
+                                    } else {
+                                      toast.error(res.error?.message || "Failed to rename");
+                                    }
+                                  }
+                                  setEditingModuleName(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    (e.currentTarget as HTMLInputElement).blur();
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingModuleName(null);
+                                  }
+                                }}
+                                className="w-full bg-brand-charcoal-base border border-brand-muted-gold/50 rounded px-2 py-1 text-sm text-brand-offwhite outline-none focus:border-brand-muted-gold"
+                                autoFocus
+                              />
+                            ) : (
+                              <span
+                                className="text-sm text-brand-offwhite cursor-pointer hover:text-brand-muted-gold transition-colors"
+                                onClick={() => {
+                                  setEditingModuleName(mod);
+                                  setEditingModuleValue(currentDisplayName);
+                                }}
+                                title="Click to rename"
+                              >
+                                {currentDisplayName}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              const next = !isPinned;
+                              const res = await setModulePin(mod, next);
+                              if (res.success) {
+                                toast.success(next ? `"${currentDisplayName}" pinned` : `"${currentDisplayName}" unpinned`);
+                                clearCache("/me/module-meta");
+                                await loadData();
+                              } else {
+                                toast.error(res.error?.message || "Failed to toggle pin");
+                              }
+                            }}
+                            className={cn(
+                              "p-1.5 rounded-lg text-xs transition-all opacity-0 group-hover/row:opacity-100",
+                              isPinned
+                                ? "text-amber-400 bg-amber-500/10"
+                                : "text-brand-offwhite-muted/50 hover:text-amber-400 hover:bg-amber-500/10",
+                            )}
+                            title={isPinned ? "Unpin module" : "Pin module"}
+                          >
+                            {isPinned ? <Pin size={14} /> : <PinOff size={14} />}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </details>
               );

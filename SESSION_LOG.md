@@ -1789,3 +1789,57 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Verification:**
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 59: Module metadata system + Python module images
+
+**Module metadata system:**
+- Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
+- `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions
+- `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
+- `internal/api/router.go` — 3 admin routes + student `GET /me/module-meta`
+- `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
+
+**Admin panel — Module Settings panel:**
+- New "Module Settings" panel — inline rename + pin toggle
+- Modules from `moduleMeta` keys (all known modules)
+- Inline rename with Enter/blur/Escape keyboard support
+- Pin toggle with Pin/PinOff icons
+- Cache invalidation before re-fetch after mutations
+
+**Admin panel — Problem Module Locks fixes:**
+- Modules now derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
+- Delete button only renders when module has problems
+- `await loadData()` before re-enabling button
+- Removed hardcoded `MODULE_DISPLAY_NAMES`
+
+**ModuleCards integration:**
+- Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
+- `home/page.tsx` fetches moduleMeta on load + window focus refresh
+
+**Python module images (4 new WebP):**
+- `python-arrays-strings.webp` (31KB), `python-challenges.webp` (25KB)
+- `python-fundamentals.webp` (32KB), `python-intermediate.webp` (35KB)
+- Full `MODULE_META` + `MODULE_COLORS` entries for each
+
+**Backend files:**
+- `internal/store/module_meta.go` — new
+- `internal/store/types.go` — `ModuleMeta` struct
+- `internal/store/store.go` — interface methods
+- `internal/api/admin.go` — handlers
+- `internal/api/router.go` — routes
+- `migrations/046_module_meta.sql` — new
+
+**Frontend files:**
+- `frontend/lib/api.ts` — types + API functions
+- `frontend/app/(main)/admin/page.tsx` — Module Settings panel, locks panel fixes
+- `frontend/app/(main)/home/page.tsx` — focus refresh
+- `frontend/components/dashboard/ModuleCards.tsx` — pin sort, display_name, Python images
+- `frontend/public/modules/python-*.webp` — 4 new images
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./...` — clean
+- `./node_modules/.bin/tsc --noEmit` — clean

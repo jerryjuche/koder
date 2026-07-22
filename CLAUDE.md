@@ -7,7 +7,8 @@
 - **Stack:** Go 1.26 backend (chi router, pgx/v5) + Next.js 15 frontend (App Router, React 19)
 - **Infrastructure:** Go monolith on Render/Oracle (ARM64) + remote sandbox on Railway + Supabase Postgres + Vercel frontend
 - **Core Constraint:** $0/month operating budget with hard resource limits (500MB Postgres, NVIDIA NIM API quota, 6 concurrent executions max)
-- **Codebase:** 78 Go source files (57 int src + 12 int test + 1 cmd + 8 sandbox), ~295 frontend source files, 46 migration SQL files — ~72,000 LOC total (verified: 69 internal + 1 cmd + 8 sandbox = 78 Go files; 46 SQL migrations)
+- **Codebase:** 78 Go source files (69 internal + 1 cmd + 8 sandbox = 21,248 LOC), 128 `.tsx` + 22 `.ts` frontend files (~57,839 LOC), 4 CSS files, 47 migration SQL files (~1.5MB, 19,963 LOC) — **~99,050 LOC total across all tracked source files**
+- **Fresh-scan verified:** ~21,248 LOC Go (78 files), ~57,839 LOC frontend (128 tsx + 22 ts + 4 css), ~19,963 LOC SQL (46 migrations), ~350 LOC scripts/config/md = ~99,050 total
 
 ---
 
@@ -137,7 +138,7 @@ koder/
 │   │   ├── password_reset.go                   # Create/Get/MarkUsed/Cleanup reset tokens
 │   │   ├── module_locks.go                     # Problem module locks: List/Toggle/IsLocked
 │   │   └── errors_test.go, types_test.go, users_test.go
-│   ├── executor/                              # Code execution engine (8 files, ~2400 lines)
+│   ├── executor/                              # Code execution engine (7 files, ~2,334 lines)
 │   │   ├── executor.go                        # Execute/ExecuteVisibleOnly (semaphore=6)
 │   │   │                                        formatGoLiteral (recursive, primitives/slices/maps)
 │   │   │                                        formatPythonLiteral (null→None, bool→True/False)
@@ -292,6 +293,7 @@ koder/
 │   │   ├── MultiFileEditor.tsx                # Multi-file tabbed editor for exercises
 │   │   ├── multi-step-loader-demo.tsx
 │   │   ├── application/code-snippet/          # Professional Shiki code block, collapsed/expand, multi-file, copy
+│   │   ├── icons/                             # (reserved directory)
 │   │   ├── PyodidePreloader.tsx               # Eager CDN Pyodide load on page mount
 │   │   ├── auth/                              # google-button, bottom-gradient, label-input-container
 │   │   │                                        auth-divider, index.ts (re-exports)
@@ -332,6 +334,8 @@ koder/
 │   │   ├── types.ts                           # 40+ TypeScript interfaces matching backend
 │   │   ├── utils.ts                           # cn(), getUserColor(), format helpers
 │   │   ├── cache.ts                           # sessionStorage with 30s TTL
+│   │   ├── monaco-setup.ts                    # loader.init() singleton for Monaco workers
+│   │   ├── monaco-theme.ts                    # VS Code Dark+ theme registration
 │   │   ├── event.ts                           # useWebSocket (auto-reconnect, exponential backoff)
 │   │   │                                        5 event types: user.xp.updated, progress.updated,
 │   │   │                                        lesson.completed, admin.broadcast.*, admin.feedback.*
@@ -419,6 +423,7 @@ koder/
 │   └── 999_seed_python_test.sql               # Python pipeline test seed (py-double-it)
 ├── scripts/
 │   ├── reset_data.sql                         # Safe DELETE-order data reset (11 tables)
+│   ├── wipe_all_except_admin.sql              # Wipe all users & data except admin
 │   ├── setup-docker-cache.sh                  # Go build cache pre-warm
 │   └── transform-seeds.mjs                    # Seed transformation (statement splitting)
 ├── go.mod, go.sum                             # Go module definition (github.com/jerryjuche/koder)
@@ -436,7 +441,7 @@ koder/
 ├── pyint.md                                   # Pyodide client-side Python playground plan
 ├── CODEBASE_INDEX.md                          # Line-level file inventory
 ├── CODEBASE_ANALYSIS.md                       # Architectural analysis
-├── SESSION_LOG.md                             # 45+ session log (June 28 - July 17)
+├── SESSION_LOG.md                             # 57+ session log (June 28 - July 22)
 ├── progress.md                                # Curriculum CMS progress tracker
 └── CLAUDE.md                                  # This file — professional codebase index
 ```
@@ -526,7 +531,7 @@ POST /submit (scoring) | POST /test (no-score)
 
 ---
 
-## Database Schema (45 migration files: 44 numbered + 1 test seed)
+## Database Schema (47 migration files: 46 numbered + 1 test seed)
 
 ### Core Tables (`001_init.sql` + incremental)
 
@@ -988,6 +993,24 @@ npm run build   # Builds static + server components
 
 ## Session Log
 
+### 2026-07-22 — Session 58: Full codebase re-index — fresh multi-agent scan
+
+**Full re-index:** Deployed 2 parallel exploration agents to re-scan all 78 Go source files (21,248 LOC), all 128 `.tsx` + 22 `.ts` frontend files (~57,839 LOC), 4 CSS files, 46 migration SQL files (19,963 LOC), all 17 documentation/markdown files, all root configs.
+
+**Verified counts:**
+- **Go backend:** 78 files, 21,248 LOC — api (26/7,213), store (23/6,376), executor (7/2,334), enricher (2/1,169), auth (5/684), config (2/694), parser (2/717), broker (2/254), cmd (1/125), sandbox (8/1,189)
+- **Frontend:** 128 `.tsx` (53,786 LOC) + 22 `.ts` (2,473 LOC) + 4 CSS (1,580 LOC) = 154 source files, ~57,839 LOC
+- **Migrations:** 46 SQL files, ~1.5MB, 19,963 LOC
+- **Grand total:** ~99,050 LOC
+
+**Fixes applied to CLAUDE.md:**
+- Updated codebase header with fresh verified counts
+- Added missing `monaco-setup.ts`, `monaco-theme.ts` lib files
+- Added `icons/` directory entry under components
+- Fixed duplicate `contribution-graph` listing
+- Updated executor section count (7 files, not 8)
+- Updated `SESSION_LOG.md` reference (45+ → 57+ sessions)
+
 ### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
 
 **Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
@@ -1058,13 +1081,58 @@ npm run build   # Builds static + server components
 - Workspace stores `sessionStorage.return_to` on problem link click; reads it for Back link
 - MyContributions.tsx + admin/page.tsx: `<a>` → `<Link>` for SPA navigation
 
-### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+### 2026-07-22 — Session 59: Module metadata system + Python module images
 
-**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+**Commits:** (pending)
 
-- pushState for module selection + language tabs + back-to-topics (proper history entries)
-- popstate syncs React state (selectedModule, languageFilter) with URL on back/forward
-- Module filter reads from URL params on mount — refresh preserves state
+**Module metadata system:**
+- Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
+- `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions with INSERT ON CONFLICT
+- `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
+- `internal/api/router.go` — 3 admin routes (`GET/PUT/PATCH`) + student `GET /me/module-meta`
+- `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
+
+**Admin panel — Module Settings panel:**
+- New "Module Settings" panel in admin dashboard — edit display names inline + toggle pin
+- Modules derived from `moduleMeta` keys (all known modules, not just ones with problems)
+- Inline rename with Enter/blur/Escape keyboard support
+- Pin toggle with Pin/PinOff icons, pinned modules appear first in ModuleCards
+- Cache invalidation (`clearCache("/me/module-meta")`) before re-fetch after mutations
+
+**Admin panel — Problem Module Locks fixes:**
+- Modules now derived from `Object.keys(moduleMeta)` — shows ALL known modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
+- Delete button only renders when module has problems (`hasProblems(mod)`)
+- Delete handler uses `await loadData()` before re-enabling button
+- Removed hardcoded `MODULE_DISPLAY_NAMES` — single source of truth is DB-backed `moduleMeta`
+
+**ModuleCards integration:**
+- Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
+- `home/page.tsx` fetches moduleMeta on load, refreshes on window focus
+- `focus` event listener clears cache before re-fetching moduleMeta
+
+**Python module images:**
+- Converted 4 PNGs to WebP (1.3MB → ~30KB each, 97% reduction)
+- Added `MODULE_META` entries: `python-arrays-strings`, `python-challenges`, `python-fundamentals`, `python-intermediate`
+- Added `MODULE_COLORS` entries for consistent badge styling
+
+**Files:**
+- `migrations/046_module_meta.sql` — new
+- `internal/store/module_meta.go` — new
+- `internal/store/types.go` — `ModuleMeta` struct
+- `internal/store/store.go` — interface methods
+- `internal/api/admin.go` — 3 handlers
+- `internal/api/router.go` — routes
+- `frontend/lib/api.ts` — types + API functions
+- `frontend/app/(main)/admin/page.tsx` — Module Settings panel, Problem Module Locks fixes
+- `frontend/app/(main)/home/page.tsx` — focus refresh for moduleMeta
+- `frontend/components/dashboard/ModuleCards.tsx` — pin sort, display_name, Python module images
+- `frontend/public/modules/python-*.webp` — 4 new WebP images
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./...` — clean
+- `npx tsc --noEmit` — clean
 
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 

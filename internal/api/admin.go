@@ -718,3 +718,78 @@ func (h *AdminHandler) DeleteProblemModule(w http.ResponseWriter, r *http.Reques
 
 	RespondSuccess(w, map[string]string{"module_name": moduleName, "status": "deleted"})
 }
+
+// ListModuleMeta handles GET /admin/module-meta
+func (h *AdminHandler) ListModuleMeta(w http.ResponseWriter, r *http.Request) {
+	metas, err := h.store.ListModuleMeta(r.Context())
+	if err != nil {
+		slog.Error("admin: failed to list module meta", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module metadata", nil)
+		return
+	}
+	if metas == nil {
+		metas = []store.ModuleMeta{}
+	}
+	RespondSuccess(w, metas)
+}
+
+// UpsertModuleMeta handles PUT /admin/module-meta/{moduleName}
+func (h *AdminHandler) UpsertModuleMeta(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	var req struct {
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+	if req.DisplayName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "display_name is required", nil)
+		return
+	}
+
+	meta, err := h.store.UpsertModuleMeta(r.Context(), moduleName, req.DisplayName)
+	if err != nil {
+		slog.Error("admin: failed to upsert module meta", "module", moduleName, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update module metadata", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Renamed module '%s' → '%s'", moduleName, req.DisplayName),
+		"text-primary", "Edit3",
+	)
+
+	RespondSuccess(w, meta)
+}
+
+// SetModulePin handles PATCH /admin/module-meta/{moduleName}/pin
+func (h *AdminHandler) SetModulePin(w http.ResponseWriter, r *http.Request) {
+	moduleName := chi.URLParam(r, "moduleName")
+	if moduleName == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "module name is required", nil)
+		return
+	}
+
+	var req struct {
+		Pinned bool `json:"pinned"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body", nil)
+		return
+	}
+
+	meta, err := h.store.SetModulePin(r.Context(), moduleName, req.Pinned)
+	if err != nil {
+		slog.Error("admin: failed to set module pin", "module", moduleName, "pinned", req.Pinned, "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to update module pin", nil)
+		return
+	}
+
+	RespondSuccess(w, meta)
+}

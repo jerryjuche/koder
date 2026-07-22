@@ -214,6 +214,11 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/module-locks/{moduleName}", adminHandler.ToggleProblemModuleLock)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/problem-modules/{moduleName}", adminHandler.DeleteProblemModule)
 
+			// Module metadata (display names, pinning)
+			r.Get("/admin/module-meta", adminHandler.ListModuleMeta)
+			r.With(BodySizeLimitMiddleware(256 * 1024)).Put("/admin/module-meta/{moduleName}", adminHandler.UpsertModuleMeta)
+			r.With(BodySizeLimitMiddleware(256 * 1024)).Patch("/admin/module-meta/{moduleName}/pin", adminHandler.SetModulePin)
+
 			// Curriculum CMS — admin endpoints
 			r.Get("/admin/courses", cmHandler.ListAllCourses)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/courses", cmHandler.CreateCourse)
@@ -245,6 +250,20 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/sections/{sectionId}", cmHandler.UpdateSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/sections/{sectionId}", cmHandler.DeleteSection)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Put("/admin/lessons/{lessonId}/sections/reorder", cmHandler.ReorderSections)
+		})
+
+		// Module metadata — student-facing (read-only, for display names + pin ordering)
+		r.Get("/me/module-meta", func(w http.ResponseWriter, r *http.Request) {
+			metas, err := store.ListModuleMeta(r.Context())
+			if err != nil {
+				slog.Error("module_meta: failed to list", "error", err)
+				RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list module metadata", nil)
+				return
+			}
+			if metas == nil {
+				metas = []storepkg.ModuleMeta{}
+			}
+			RespondSuccess(w, metas)
 		})
 
 		// Problem module locks — public (student-facing)

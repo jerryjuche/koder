@@ -491,6 +491,14 @@ type ModuleLock struct {
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
+// ModuleMeta represents editable metadata for a problem module.
+type ModuleMeta struct {
+	ModuleName  string    `db:"module_name" json:"module_name"`
+	DisplayName string    `db:"display_name" json:"display_name"`
+	IsPinned    bool      `db:"is_pinned" json:"is_pinned"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+}
+
 // Project represents a hands-on coding project linked to a lesson.
 type Project struct {
 	ID           pgtype.UUID `db:"id" json:"id"`

@@ -844,4 +844,31 @@ export async function deleteProblemModule(moduleName: string): Promise<ApiRespon
   });
 }
 
+// ── Module metadata (display names, pinning) ──
+
+export interface ModuleMeta {
+  module_name: string;
+  display_name: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export async function fetchModuleMeta(): Promise<ApiResponse<ModuleMeta[]>> {
+  return fetchApi<ModuleMeta[]>("/me/module-meta");
+}
+
+export async function upsertModuleMeta(moduleName: string, displayName: string): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}`, {
+    method: "PUT",
+    body: JSON.stringify({ display_name: displayName }),
+  });
+}
+
+export async function setModulePin(moduleName: string, pinned: boolean): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}/pin`, {
+    method: "PATCH",
+    body: JSON.stringify({ pinned }),
+  });
+}
+
 

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [lockedModules, setLockedModules] = useState<Set<string>>(new Set());
+  const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,8 +90,8 @@ export default function Dashboard() {
     const loadData = () => {
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks()]).then(
-        ([probRes, userRes, bpRes, locksRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -100,6 +101,13 @@ export default function Dashboard() {
           if (bpRes.success) setBestPractices(bpRes.data || []);
           if (locksRes.success && locksRes.data) {
             setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
+          }
+          if (metaRes.success && metaRes.data) {
+            const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+            for (const m of metaRes.data) {
+              metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+            }
+            setModuleMeta(metaMap);
           }
           setLoading(false);
         }
@@ -121,9 +129,26 @@ export default function Dashboard() {
     };
 
     window.addEventListener("user-updated", handleUserUpdated);
+
+    // Refresh moduleMeta when returning from another tab (e.g. admin renamed/pinned modules)
+    const handleFocus = () => {
+      clearCache("/me/module-meta");
+      fetchModuleMeta().then((res) => {
+        if (mounted && res.success && res.data) {
+          const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+          for (const m of res.data) {
+            metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+          }
+          setModuleMeta(metaMap);
+        }
+      });
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       mounted = false;
       window.removeEventListener("user-updated", handleUserUpdated);
+      window.removeEventListener("focus", handleFocus);
       clearTimeout(debounceTimer);
     };
   }, [languageFilter]);
@@ -343,6 +368,7 @@ export default function Dashboard() {
               ) : (
                 <ModuleCards
                   modules={modules}
+                  moduleMeta={moduleMeta}
                   moduleProgress={moduleProgress}
                   lockedModules={lockedModules}
                   onSelect={handleSelectModule}

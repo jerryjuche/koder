@@ -193,6 +193,11 @@ type Store interface {
 	IsModuleLocked(ctx context.Context, moduleName string) (bool, error)
 	DeleteProblemModule(ctx context.Context, moduleName string) error
 
+	// Module metadata (display names, pinning)
+	ListModuleMeta(ctx context.Context) ([]ModuleMeta, error)
+	UpsertModuleMeta(ctx context.Context, moduleName, displayName string) (*ModuleMeta, error)
+	SetModulePin(ctx context.Context, moduleName string, pinned bool) (*ModuleMeta, error)
+
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)
 	GetLessonBySlug(ctx context.Context, courseSlug, moduleSlug, lessonSlug string) (*Lesson, error)
