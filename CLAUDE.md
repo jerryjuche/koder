@@ -1025,6 +1025,16 @@ npm run build   # Builds static + server components
 - Theme: `vs-dark-plus` → `vs-dark` (Monaco built-in)
 - Disabled all suggestions, parameter hints, auto-closing brackets/quotes
 
+### 2026-07-22 — Session 53: Curriculum module lock panel on admin dashboard
+
+**Commit:** `d0ae5ac`
+
+- New "Curriculum Module Locks" panel on admin dashboard below "Problem Module Locks"
+- Fetches all courses + per-course modules; collapsible accordion with locked count
+- Each module has inline lock/unlock toggle button (amber styling)
+- Uses existing `toggleModuleLock(id)` → `PATCH /admin/modules/{id}/lock`
+- Student enforcement already in place: course detail shows locked overlay, module detail returns 403
+
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 
 **Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`

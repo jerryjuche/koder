@@ -61,6 +61,7 @@
 | 53 | `dc2d61b` | polish: professional typography for problem cards |
 | 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
 | 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
+| 56 | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard |
 
 ---
 
@@ -1641,6 +1642,33 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `autoClosingQuotes`: `always` → `never`
 
 **Result:** Clean VS Code Dark+ experience — syntax coloring only, no popups, no autocomplete, no hover tooltips. Only the keyboard shortcuts remain: Ctrl+S (format), Ctrl+Enter (test), Ctrl+Shift+Enter (submit).
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 53: Curriculum module lock panel on admin dashboard
+
+**Commit:** `d0ae5ac`
+
+**What was built:**
+- New "Curriculum Module Locks" panel on the main admin dashboard (below existing "Problem Module Locks")
+- Fetches all courses + their modules via `fetchAllCourses()` and `fetchModules()` in `loadData`
+- Courses are collapsible accordions (`<details>`/`<summary>`) with chevron animation
+- Each course header shows locked count (e.g. "2/5 locked")
+- Each module has a lock/unlock toggle button with amber styling matching the Problem Module Locks panel
+- Optimistic UI update — state flips immediately, toast on success/error
+- Uses existing `toggleModuleLock(id)` API → `PATCH /admin/modules/{id}/lock`
+
+**Existing lock enforcement (already in place):**
+- `CourseDetail` page: `mod.locked` → `status="locked"` → `LearningCard` renders lock overlay with amber padlock
+- `ModuleDetail` page: backend returns 403 `MODULE_LOCKED` → amber lock screen with retry
+- `ModuleCards` (dashboard): locked problem modules show amber padlock via `lockedModules` prop
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Added imports, state, data fetching, and curriculum module locks panel
 
 **Verification:**
 - `npx tsc --noEmit` — clean
