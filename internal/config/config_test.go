@@ -92,6 +92,7 @@ func TestLoadConfig_InvalidEnvironment(t *testing.T) {
 
 func TestLoadConfig_Defaults(t *testing.T) {
 	requiredEnvVars(t)
+	t.Setenv("GO_VERSION", "")
 
 	cfg, err := Load()
 	if err != nil {
