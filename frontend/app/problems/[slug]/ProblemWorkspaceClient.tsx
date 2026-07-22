@@ -747,7 +747,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
                 <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
-                  <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors [&_p]:mb-5">
+                  <div className="prose prose-invert prose-brand prose-base max-w-none text-brand-offwhite/90 leading-[1.75] prose-headings:text-brand-offwhite prose-headings:font-bold prose-headings:tracking-tight prose-p:text-brand-offwhite/90 prose-p:leading-7 prose-p:mb-4 prose-strong:text-brand-offwhite prose-strong:font-bold prose-code:text-brand-muted-gold prose-code:bg-brand-charcoal-hover/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-pre:shadow-inner prose-li:text-brand-offwhite/90 prose-li:leading-7 prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
                     <Markdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                     >
