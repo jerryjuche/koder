@@ -136,8 +136,8 @@ export default function Dashboard() {
   };
 
   const modules = useMemo(
-    () => Array.from(new Set(problems.map((p) => p.module))).sort(),
-    [problems]
+    () => Array.from(new Set([...problems.map((p) => p.module), ...Array.from(lockedModules)])).sort(),
+    [problems, lockedModules]
   );
 
   const moduleProgress = useMemo(() => {
