@@ -186,6 +186,9 @@ export default function Dashboard() {
     setSearchQuery("");
     setDifficultyFilter("All");
     setStatusFilter("all");
+    const params = new URLSearchParams(window.location.search);
+    params.set("module", mod);
+    window.history.replaceState({}, "", `?${params.toString()}`);
   }, []);
 
   const showTopicCards = !selectedModule;
@@ -340,7 +343,13 @@ export default function Dashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setSelectedModule(null)}
+                    onClick={() => {
+                      setSelectedModule(null);
+                      const params = new URLSearchParams(window.location.search);
+                      params.delete("module");
+                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                      window.history.replaceState({}, "", newUrl);
+                    }}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                   >
                     <ArrowLeft size={16} />
