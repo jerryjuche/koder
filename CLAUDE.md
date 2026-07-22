@@ -1035,6 +1035,37 @@ npm run build   # Builds static + server components
 - Uses existing `toggleModuleLock(id)` → `PATCH /admin/modules/{id}/lock`
 - Student enforcement already in place: course detail shows locked overlay, module detail returns 403
 
+### 2026-07-22 — Session 54: Problem module lock panel + locked card redesign + dashboard fix
+
+**Commits:** `d1495d6` `486ae78` `55e054c`
+
+- Problem module locks panel: grouped by Go/Python, display names, collapsible accordion
+- Locked cards: full visibility, amber border, lock badge top-right, hover "LOCKED" overlay
+- Dashboard fix: locked modules appear in module list even when backend filters their problems
+
+### 2026-07-22 — Session 55: Admin bypass for module locks + delete problem module
+
+**Commits:** `345edcb`
+
+- Admin bypass (role != "admin" guard): GetProblemBySlug, ListVisibleProblems, Submit, Test
+- DeleteProblemModule: transaction-safe (submissions → progress → problems → lock), DELETE /admin/problem-modules/{moduleName}, trash button with confirm dialog
+- clearCache before loadData() after delete — stale 30s cache was masking deletions
+
+### 2026-07-22 — Session 56: Smart back navigation + full SPA links
+
+**Commit:** `843d315`
+
+- Workspace stores `sessionStorage.return_to` on problem link click; reads it for Back link
+- MyContributions.tsx + admin/page.tsx: `<a>` → `<Link>` for SPA navigation
+
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+- pushState for module selection + language tabs + back-to-topics (proper history entries)
+- popstate syncs React state (selectedModule, languageFilter) with URL on back/forward
+- Module filter reads from URL params on mount — refresh preserves state
+
 ### 2026-07-21 (cont.) — Post-lock follow-up fixes + problems page polish + professional code-snippet component
 
 **Commits:** `6473b91`, `b390378`, `da9e560`, `29ccff1`, `354b4ba`, `f2ce7f1`, `93618a3`, `2e8ec08`→`6e7666f`

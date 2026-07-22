@@ -1673,3 +1673,119 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Verification:**
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 54: Problem module lock panel + locked card redesign + dashboard fix
+
+**Commits:** `d1495d6` `486ae78` `55e054c`
+
+**Problem module lock panel (admin dashboard):**
+- New "Problem Module Locks" panel below stats — grouped by Go/Python in collapsible accordions
+- Display names (e.g. "Arrays & Strings") instead of raw slugs
+- Lock count per language (e.g. "2/8 locked")
+- Inline lock/unlock toggle with amber styling
+
+**Locked module card redesign:**
+- Locked cards remain fully visible (no `opacity-60` dimming) — subtle amber border instead
+- Small amber lock badge fixed at top-right corner
+- Hover reveals "LOCKED" pill overlay centered on card image with backdrop blur
+- Footer shows "Locked by instructor" with lock icon
+
+**Dashboard fix:**
+- Locked modules now appear on the dashboard module list — included `lockedModules` set in module list derivation so locked modules render even when their problems are filtered out by the backend
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Problem Module Locks panel
+- `frontend/components/dashboard/ModuleCards.tsx` — Locked card visual redesign
+- `frontend/app/(main)/home/page.tsx` — Include lockedModules in module list
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 55: Admin bypass for module locks + delete problem module
+
+**Commits:** `345edcb`
+
+**Admin bypass for module locks (4 endpoints):**
+- `GetProblemBySlug` — admins can view locked module problems (nil-safe claims check)
+- `ListVisibleProblems` — admins see ALL problems; students still filtered
+- `Submit` — admins can submit to locked modules
+- `Test` — admins can test against locked modules
+
+**Delete problem module (end-to-end):**
+- **Store:** `DeleteProblemModule` — transaction-safe: deletes submissions → progress → problems (cascades test_cases) → module lock
+- **Handler:** `DELETE /admin/problem-modules/{moduleName}`
+- **Frontend:** Trash icon button next to each module in Problem Module Locks panel with `confirm()` dialog
+- Activity log entry on successful deletion
+
+**Cache invalidation:** `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` after delete — stale 30s cache was masking deletions
+
+**Backend files:**
+- `internal/api/problems.go` — bypass in `GetProblemBySlug` + `ListVisibleProblems`
+- `internal/api/submissions.go` — bypass in `Submit`
+- `internal/api/test.go` — bypass in `Test`
+- `internal/store/module_locks.go` — `DeleteProblemModule` store function
+- `internal/store/store.go` — interface method
+- `internal/api/admin.go` — `DeleteProblemModule` handler
+- `internal/api/router.go` — route registration
+
+**Frontend files:**
+- `frontend/app/(main)/admin/page.tsx` — delete button, state, handlers; cache imports
+- `frontend/lib/api.ts` — `deleteProblemModule()` API function
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 56: Smart back navigation + full SPA links
+
+**Commits:** `843d315`
+
+**Navigation audit findings:**
+| Issue | Severity | Files |
+|---|---|---|
+| Workspace "Back" always goes to `/home` regardless of referrer | High | `ProblemWorkspaceClient.tsx:548` |
+| 2 `<a href>` tags causing full page reloads | High | `MyContributions.tsx:78`, `admin/page.tsx:279` |
+
+**Smart back navigation:**
+- Workspace stores `return_to` in `sessionStorage` on every problem link click (`/home` and `/problems` pages)
+- Workspace reads `sessionStorage.getItem("return_to")` for the "Back" link href — falls back to `/home`
+- Label changed from "Problems" to "Back" to reflect dynamic destination
+
+**Full SPA navigation:**
+- `MyContributions.tsx:78` — `<a href="/contribute">` → `<Link href="/contribute">`
+- `admin/page.tsx:279` — `<a href="/admin/curriculum">` → `<Link href="/admin/curriculum">`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+**LIFO navigation stack:**
+- Module card clicks use `pushState` instead of `replaceState` — each selection is a proper history entry
+- Language filter tabs use `pushState` — back/forward navigates through tab changes
+- "Back to topics" uses `pushState` to return to all-modules view
+- `popstate` event listener syncs React state (selectedModule + languageFilter) with URL on browser back/forward
+
+**Module URL persistence:**
+- `handleSelectModule` writes `?module=xxx` to URL via `pushState`
+- Refresh preserves the module filter state — reads from URL params on mount
+
+**Cache invalidation for delete module:**
+- Added `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` in delete handler — stale 30s cache was returning old data, making deletes appear to do nothing
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
