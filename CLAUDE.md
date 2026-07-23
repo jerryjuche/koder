@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-07-23 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, TS 0 errors
+> **Branch:** `update` | **Last indexed:** 2026-07-23 | **Verified:** `go vet` clean, 132 Go tests passing, TS 0 errors
 
 ---
 
@@ -26,19 +26,19 @@
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`internal/`) | 40 source | ~15,700 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
-| **Go Tests** (`internal/` + `sandbox/`) | 7 | ~2,300 | 126+ tests across 13 test files |
-| **Go Sandbox** (`sandbox/`) | 6 source | ~850 | Zero external deps, 10-layer defense-in-depth |
+| **Go Backend** (`internal/`) | 58 source | ~15,100 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
+| **Go Tests** (`internal/` + `sandbox/`) | 13 | ~2,730 | 126+ tests across 13 test files |
+| **Go Sandbox** (`sandbox/`) | 7 source | ~1,010 | Zero external deps, 10-layer defense-in-depth |
 | **SQL Migrations** (`migrations/`) | 47 | ~16,480 | 46 numbered + 1 test seed, ~25 tables |
-| **Frontend TSX** (`app/`) | 72 | ~14,430 | 7 route groups, all with loading + error boundaries |
-| **Frontend Components** (`components/`) | 62 | ~8,080 | 19 shadcn/ui + 43 custom |
+| **Frontend TSX** (`app/`) | 73 | ~14,430 | 7 route groups, all with loading + error boundaries |
+| **Frontend Components** (`components/`) | 61 | ~8,080 | 19 shadcn/ui + 42 custom |
 | **Frontend Lib** (`lib/`, `hooks/`) | 18 | ~2,490 | 60+ API functions, 40+ TS interfaces, 4 hooks |
 | **Frontend Styles** (`styles/`) | 3 | ~1,230 | theme.css (856 vars), typography.css (430 lines) |
 | **Frontend Config** | 10 | ~280 | next.config, middleware, ESLint, TS, postcss |
-| **Documentation** | 14 | ~8,500 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, etc. |
+| **Documentation** | 14 | ~8,700 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, etc. |
 | **Scripts** | 4 | ~350 | data reset, build cache, seed transform |
 | **Config/Build** | 12 | ~700 | go.mod, Procfile, build.sh, CI, env |
-| **Total (tracked source)** | **~280** | **~66,360** | Source code + migrations + docs |
+| **Total (tracked source)** | **~290** | **~67,700** | Source code + migrations + docs |
 
 ---
 
@@ -48,18 +48,18 @@
 koder/
 ├── cmd/server/main.go                       # Entry point: config, store pool, executor, chi router, graceful shutdown
 ├── internal/
-│   ├── api/              (21 files, ~5,700 LOC)  # HTTP handlers, middleware, WebSocket
-│   ├── store/            (20 files, ~6,100 LOC)  # Database access layer — pgx/v5, 125+ Store methods
-│   ├── executor/         (6 files, ~1,726 LOC)   # Code execution engine, sandbox orchestration, output parsing
-│   ├── enricher/         (1 file, ~938 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
-│   ├── auth/             (3 files, ~334 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
-│   ├── broker/           (1 file, ~68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
-│   ├── parser/           (1 file, ~371 LOC)      # GitHub YAML curriculum parser
-│   └── config/           (1 file, ~350 LOC)      # Env var loader (32+ vars, fails-fast validation)
-├── sandbox/              (6 files, ~850 LOC)     # Remote execution service — zero external deps
+│   ├── api/              (24 files, ~5,970 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (21 files, ~5,690 LOC)  # Database access layer — pgx/v5, 125+ Store methods
+│   ├── executor/         (6 files, ~1,605 LOC)   # Code execution engine, sandbox orchestration, output parsing
+│   ├── enricher/         (1 file, ~808 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── auth/             (3 files, ~309 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
+│   ├── broker/           (1 file, ~59 LOC)       # In-memory pub/sub (cap 32, non-blocking)
+│   ├── parser/           (1 file, ~321 LOC)      # GitHub YAML curriculum parser
+│   └── config/           (1 file, ~298 LOC)      # Env var loader (32+ vars, fails-fast validation)
+├── sandbox/              (7 files, ~1,010 LOC)   # Remote execution service — zero external deps
 ├── frontend/
-│   ├── app/              (72 .tsx, 202 CSS)      # App Router pages (7 route groups)
-│   ├── components/       (60 files, ~7,880 LOC)  # Shared components + shadcn/ui primitives
+│   ├── app/              (73 .tsx, 202 CSS)      # App Router pages (7 route groups)
+│   ├── components/       (61 files, ~8,080 LOC)  # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~323 LOC)     # usePyodide, useGoogleOneTap, useHasMounted, useMobile
 │   ├── lib/              (14 files, ~2,163 LOC)  # API client, types, cache, event bus, markdown, pyodide
 │   └── styles/           (3 files, ~1,230 LOC)   # theme.css (856 var tokens), typography.css (430 lines)
@@ -108,7 +108,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 |---|---|---|---|
 | `cmd/server/main.go` | 125 | `main` | Bootstrap: LoadConfig → NewPostgresStore → NewExecutor → NewBroker → NewRouter → http.ListenAndServe → graceful shutdown (10s deadline), `-ldflags` for commit/build time |
 
-### 2. API Handlers (`internal/api/` — 21 files, ~5,700 LOC)
+### 2. API Handlers (`internal/api/` — 24 files, ~5,970 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -126,6 +126,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `problems.go` | 140 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED) |
 | `submissions.go` | 149 | `SubmissionHandler` — Submit (5/45s ratelimit, scoring, WS events: `user.xp.updated` + `progress.updated`) |
 | `profile.go` | 226 | `ProfileHandler` — GetProfile (stored proc, 30s cache), UpdateProfile |
+| `test.go` | ~30 | `TestHandler` — Direct test case execution without scoring |
 | `activity.go` | 44 | `ActivityHandler` — GetActivity (contribution heatmap by year) |
 | `notifications.go` | 93 | `NotificationsHandler` — GetUnread (50), GetRecent (20), MarkRead, MarkAllRead |
 | `community.go` | 114 | `CommunityHandler` — GetCommunitySolutions, GetBestPractices, LikeSubmission, UnlikeSubmission |
@@ -136,7 +137,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cache.go` | 114 | Generic TTL cache (30s): `userCache`, `profileCache`, `leaderboardCache`, `problemsCache` + `StopCaches()` |
 | `responses.go` | 83 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
 
-### 3. Store Layer (`internal/store/` — 20 files, ~6,100 LOC)
+### 3. Store Layer (`internal/store/` — 21 files, ~5,690 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -162,7 +163,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `token_blacklist.go` | 33 | BlacklistToken, IsTokenBlacklisted, CleanupExpired |
 | `password_reset.go` | 48 | Create, Get, MarkUsed, CleanupExpired |
 
-### 4. Auth (`internal/auth/` — 3 files, ~334 LOC)
+### 4. Auth (`internal/auth/` — 3 files, ~309 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -170,13 +171,13 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `oauth.go` | 216 | `VerifyGoogleIDToken` (JWKS fetch + 1h cache, RSA key reconstruction, audience/issuer/email check) |
 | `password.go` | 28 | `HashPassword` (bcrypt cost=12), `ComparePassword` |
 
-### 5. Enricher (`internal/enricher/` — 1 file, ~938 LOC)
+### 5. Enricher (`internal/enricher/` — 1 file, ~808 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `enricher.go` | 938 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
 
-### 6. Executor (`internal/executor/` — 6 files, ~1,726 LOC)
+### 6. Executor (`internal/executor/` — 6 files, ~1,605 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -187,19 +188,19 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `sandbox_client.go` | 130 | `SandboxRequest/Response`, HTTP client (3 retries, exp backoff 2ⁿ×500ms), `FormatFriendlySandboxError` |
 | `types.go` | 34 | `ExecutionRequest`, `ExecutionResult`, `TestResult` |
 
-### 7. Broker (`internal/broker/` — 1 file, ~68 LOC)
+### 7. Broker (`internal/broker/` — 1 file, ~59 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `broker.go` | 68 | `Event` struct, `Broker` (sync.RWMutex + map of cap-32 channels), `New`, `Subscribe` (UUID), `Unsubscribe`, `Publish` (non-blocking), `PublishEvent` |
 
-### 8. Parser (`internal/parser/` — 1 file, ~371 LOC)
+### 8. Parser (`internal/parser/` — 1 file, ~321 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `parser.go` | 371 | `Parser` struct, `RawProblem`, `IngestGitHubRepo` (clone + sparse checkout, SHA-256 idempotency), `ParseProblem`, `normalizeSlug`, `normalizeModule`, `cleanRepoURL` |
 
-### 9. Config (`internal/config/` — 1 file, ~350 LOC)
+### 9. Config (`internal/config/` — 1 file, ~298 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -207,7 +208,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## Sandbox (`sandbox/` — 6 files, ~850 LOC, Zero External Dependencies)
+## Sandbox (`sandbox/` — 7 files, ~1,010 LOC, Zero External Dependencies)
 
 | File | Lines | Purpose |
 |---|---|---|
@@ -843,12 +844,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 46 (40 backend + 6 sandbox) |
-| **Go LOC** | ~16,550 (15,700 backend + 850 sandbox) |
-| **Go test files** | 7 (~2,300 LOC, 126+ tests) |
-| **Frontend TSX/TS files** | ~164 (~26,314 LOC) |
-| **SQL migration files** | 47 (~16,480 LOC) |
-| **Total tracked source LOC** | ~66,360 |
+| **Go source files** | 65 (58 backend + 7 sandbox) |
+| **Go LOC** | ~16,110 (15,100 backend + 1,010 sandbox) |
+| **Go test files** | 13 (~2,730 LOC, 126+ tests) |
+| **Frontend TSX/TS files** | ~157 (~24,820 LOC) |
+| **Total tracked source LOC** | ~67,650 |
 | **API endpoints** | ~89 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
