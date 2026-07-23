@@ -243,11 +243,12 @@ export async function resetPasswordPin(
 
 export async function completeOnboarding(
   username: string,
-): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
-  return fetchApi<{ token: string; refresh_token?: string }>("/auth/complete-onboarding", {
+): Promise<ApiResponse<AuthResponse>> {
+  const res = await fetchApi<AuthResponse>("/auth/complete-onboarding", {
     method: "POST",
     body: JSON.stringify({ username }),
   });
+  return handleAuthResponse(res);
 }
 
 export async function linkGoogle(
