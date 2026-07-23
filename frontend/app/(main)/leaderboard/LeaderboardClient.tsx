@@ -137,7 +137,7 @@ export default function LeaderboardClient() {
     };
     loadAndPoll();
     if (pollingRef.current) clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(() => loadData(period), 30_000);
+    pollingRef.current = setInterval(() => loadData(period), 7_000);
     const onUserUpdated = () => loadData(period);
     window.addEventListener("user-updated", onUserUpdated);
     return () => {
