@@ -12,12 +12,14 @@ import {
   List,
   Circle,
   CheckCircle2,
+  FlaskConical,
 } from "lucide-react";
 import { LanguageLogo, type Language } from "@/components/LanguageLogo";
 import { fetchProblems } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { cn, shuffleArray } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectTrigger,
@@ -236,6 +238,21 @@ export default function ProblemsPage() {
             <div key={i} className="h-48 bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (user?.role !== "admin") {
+    return (
+      <div>
+        <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
+          <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
+          <h3 className="text-lg font-bold text-foreground mb-2">Problems — Coming Soon</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            This feature is in private beta and currently available to administrators only.
+            Stay tuned for the public release.
+          </p>
+        </Card>
       </div>
     );
   }

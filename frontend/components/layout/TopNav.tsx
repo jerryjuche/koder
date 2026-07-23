@@ -101,9 +101,10 @@ export default function TopNav() {
               .map((link) => {
                 const Icon = link.icon;
                 const isLearn = link.name === "Learn";
-                const learnDisabled = isLearn && user?.role !== "admin";
+                const isProblems = link.name === "Problems";
+                const linkDisabled = (isLearn || isProblems) && user?.role !== "admin";
 
-                if (learnDisabled) {
+                if (linkDisabled) {
                   return (
                     <span
                       key={link.name}
