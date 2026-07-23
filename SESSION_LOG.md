@@ -2088,6 +2088,21 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - All pushed to `origin/update`
 
+### 2026-07-23 — Session 70: Problem edit dialog UX improvements
+
+**Commit:** `ac7b4d4`
+
+**Changes to `frontend/app/(main)/admin/ProblemEditPanel.tsx`:**
+- Dialog width: `max-w-4xl` (896px) → `max-w-5xl` (1024px) — more breathing room for 8-section form
+- Content spacing: `space-y-6` → `space-y-4` — tighter vertical gaps reduce scrolling
+- Description textarea: `min-h-[200px]` → `min-h-[350px]` — more editing room for markdown
+- Footer buttons: wrapped with `flex-wrap`, condensed labels (`AI` / `Enrich`), bold + shadow on Save Changes, `gap-2` instead of `gap-3` — no overflow even at smaller widths
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- Pushed to `origin/update`
+
 ---
 
 ### 2026-07-23 — Session 69: Admin panel module management redesign — new modules auto-appear + professional UI
