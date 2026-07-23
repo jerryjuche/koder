@@ -203,20 +203,6 @@ export default function RegisterPage() {
               </p>
             </motion.div>
           )}
-          {step === 3 && (
-            <motion.div
-              key="step3-header"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            >
-              <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Account created!</h1>
-              <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-                Welcome to Koder, {firstName}. Start solving problems and earning XP.
-              </p>
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
 
