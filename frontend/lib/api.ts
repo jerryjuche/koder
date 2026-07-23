@@ -47,6 +47,7 @@ async function tryRefreshToken(): Promise<boolean> {
   if (isRefreshing) {
     return new Promise((resolve) => refreshQueue.push({ resolve }));
   }
+  isRefreshing = true;
 
   let success = false;
   try {
