@@ -1,10 +1,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import dynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
-
-const DesktopOnlyOverlay = dynamic(() => import('@/components/DesktopOnlyOverlay'), { ssr: false });
+import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
 
 export const metadata: Metadata = {
   title: 'Koder — Code. Learn. Master Go.',

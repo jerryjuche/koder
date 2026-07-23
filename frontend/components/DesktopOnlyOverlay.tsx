@@ -6,13 +6,17 @@ import { Monitor, Smartphone } from 'lucide-react';
 const MIN_WIDTH = 900;
 
 export default function DesktopOnlyOverlay() {
+  const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const check = () => {
-      setShow(window.innerWidth < MIN_WIDTH);
-    };
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const check = () => setShow(window.innerWidth < MIN_WIDTH);
     const debounced = () => {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(check);
@@ -23,20 +27,19 @@ export default function DesktopOnlyOverlay() {
       window.removeEventListener('resize', debounced);
       cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
     if (show) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [show]);
+    return () => { document.body.style.overflow = ''; };
+  }, [mounted, show]);
 
-  if (!show) return null;
+  if (!mounted || !show) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overscroll-none bg-[#0D0D14] p-8">
