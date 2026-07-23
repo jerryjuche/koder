@@ -217,6 +217,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Delete("/admin/problem-modules/{moduleName}", adminHandler.DeleteProblemModule)
 
 			// Module metadata (display names, pinning)
+			r.Get("/admin/all-modules", adminHandler.ListAllModules)
 			r.Get("/admin/module-meta", adminHandler.ListModuleMeta)
 			r.With(BodySizeLimitMiddleware(256 * 1024)).Put("/admin/module-meta/{moduleName}", adminHandler.UpsertModuleMeta)
 			r.With(BodySizeLimitMiddleware(256 * 1024)).Patch("/admin/module-meta/{moduleName}/pin", adminHandler.SetModulePin)

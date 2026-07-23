@@ -80,6 +80,10 @@
 | 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
 | 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
 | 74 | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews |
+| 75 | `b527df2` | feat: seeded shuffle + filter bar redesign for /problems page |
+| 76 | `ff88299` | style: add mt-2 to filter bar for top margin |
+| 77 | `4cefe19` | feat: beta-gate /problems page behind admin-only role |
+| 78 | `cf5435e` | fix: admin preview now shows rendered markdown + examples section |
 
 ---
 
@@ -2009,4 +2013,137 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `go vet/build/test ./sandbox/...` — clean
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 66: Seeded shuffle + filter bar redesign + beta gate for /problems
+
+**Commits:** `b527df2` `ff88299` `4cefe19`
+
+**1. Seeded random problem ordering (`frontend/lib/utils.ts`):**
+- Added `seededRandom(seed)` — mulberry32 PRNG for deterministic randomness
+- Added `shuffleArray(arr, seed)` — Fisher-Yates shuffle using seeded RNG
+- Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
+
+**2. Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+- Removed sidebar `aside` with Status/Difficulty/XP filter buttons
+- Replaced with top-mounted card (`bg-card border rounded-xl p-4 space-y-4 mt-2`):
+  - Search row with inline problem count badge
+  - Language tabs + Status `Select` dropdown + Difficulty `Select` dropdown + XP range inputs
+  - Active filter chips with dismiss (`×`) + "Clear all"
+- Mobile: Status/Difficulty/XP collapse into slide-in drawer ("Filters" button visible on `lg:hidden`)
+- Removed `#001` numbering from problem cards (meaningless with random order)
+
+**3. Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+- TopNav: "Problems" nav link disabled for non-admins with amber BETA badge + `cursor-not-allowed`
+- problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon, border-dashed)
+- Matches existing Learn + Best Practices beta gate pattern
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
+
+**Commits:** `cf5435e`
+
+**1. Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+- Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx`
+- Self-contained inline-styled markdown renderer (no GFM tables/blockquotes, blank lines as block separator)
+
+**2. ProblemWorkspaceClient updated:**
+- Imports `renderMarkdown` from shared module instead of defining locally
+- Removed 53 lines of duplicated functions
+
+**3. Admin preview fix (`ProblemEditPanel.tsx`):**
+- **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made it look like examples vanished.
+- **Fix:** Preview now renders:
+  - Statement via `renderMarkdown()` with `dangerouslySetInnerHTML` (was `whitespace-pre-wrap` raw text)
+  - Examples section from `problem.examples` with Input/Expected Output code blocks (matching workspace styling)
+  - Constraints and learning objective also via `renderMarkdown()`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (all touched files)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
+
+**Commits:** `1e28c16`
+
+**1. ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+- **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
+- **Fix:** Added lock-status check as the primary sort key — locked modules always appear after all unlocked modules
+- **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
+- Single change: `lookedModules.has()` check added before pin/alphabetical comparisons
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- All pushed to `origin/update`
+
+### 2026-07-23 — Session 70: Problem edit dialog UX improvements
+
+**Commit:** `ac7b4d4`
+
+**Changes to `frontend/app/(main)/admin/ProblemEditPanel.tsx`:**
+- Dialog width: `max-w-4xl` (896px) → `max-w-5xl` (1024px) — more breathing room for 8-section form
+- Content spacing: `space-y-6` → `space-y-4` — tighter vertical gaps reduce scrolling
+- Description textarea: `min-h-[200px]` → `min-h-[350px]` — more editing room for markdown
+- Footer buttons: wrapped with `flex-wrap`, condensed labels (`AI` / `Enrich`), bold + shadow on Save Changes, `gap-2` instead of `gap-3` — no overflow even at smaller widths
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- Pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 69: Admin panel module management redesign — new modules auto-appear + professional UI
+
+**Commits:** (pending — squashed)
+
+**1. Functional fix — new `GET /admin/all-modules` endpoint:**
+- **Problem:** Admin panels derived module list from `module_meta` table (fixed seed). New modules from ingested problems never appeared.
+- **Fix:** New `ListAllModules` store function returns `SELECT DISTINCT p.module` from `problems` table, `COALESCE`d with `module_meta` display names, joined with `module_locks` lock state, plus `UNION` for orphan `module_meta` rows with zero problems
+- **Backend struct:** `AllModule` — `module_name`, `display_name`, `is_pinned`, `is_locked`, `problem_count`
+- **Backend files:** `internal/store/types.go`, `internal/store/store.go`, `internal/store/module_meta.go`, `internal/api/admin.go`, `internal/api/router.go`
+- **Frontend types:** `AllModule` in `frontend/lib/types.ts`
+- **Frontend API:** `fetchAllModules()` in `frontend/lib/api.ts`
+
+**2. Problem Module Locks panel — professional redesign:**
+- Card wrapper with CodePen shadow back plate depth effect
+- shadcn Tabs for Go/Python language filtering
+- Grid of compact module cards (1→2→3 columns responsive)
+- Each card: display name (bold) + slug (muted mono), problem count badge, Lock/Locked toggle button, conditional Delete button (empty modules only)
+- Optimistic lock state updates — no re-fetch needed on toggle
+
+**3. Curriculum Module Locks panel — professional redesign:**
+- Same card wrapper + shadow back plate pattern
+- Course-level collapsible sections (`<details>`) with locked count badges
+- Per-module lock toggle as styled `Button` with Lock/LockOpen icons
+- Auto-opens courses that have locked modules
+
+**4. Module Settings panel — professional redesign:**
+- Same card wrapper + shadow back plate + language Tabs pattern
+- Inline rename via shadcn `Input` with Enter/blur save + Escape/X cancel
+- Pin toggle always visible (not hover-only) with active/inactive styling
+- Display name + slug + problem count per row
+
+**5. Import changes:**
+- Removed `fetchModuleLocks()`, `fetchModuleMeta()` — replaced by `fetchAllModules()`
+- Removed `moduleLocks` Set state, `moduleMeta` Record state — replaced by `allModules: AllModule[]`
+- Added shadcn: `Card`, `CardContent`, `Button`, `Badge`, `Input`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
+- Added lucide icons: `ShieldCheck`, `ShieldOff`, `Plus`, `X`, `Check`, `Sparkles`
+
+**Verification:**
+- `go vet ./internal/api/ ./internal/store/` — clean
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - All pushed to `origin/update`

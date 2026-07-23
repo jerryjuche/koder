@@ -734,6 +734,20 @@ func (h *AdminHandler) ListModuleMeta(w http.ResponseWriter, r *http.Request) {
 	RespondSuccess(w, metas)
 }
 
+// ListAllModules handles GET /admin/all-modules
+func (h *AdminHandler) ListAllModules(w http.ResponseWriter, r *http.Request) {
+	modules, err := h.store.ListAllModules(r.Context())
+	if err != nil {
+		slog.Error("admin: failed to list all modules", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list modules", nil)
+		return
+	}
+	if modules == nil {
+		modules = []store.AllModule{}
+	}
+	RespondSuccess(w, modules)
+}
+
 // UpsertModuleMeta handles PUT /admin/module-meta/{moduleName}
 func (h *AdminHandler) UpsertModuleMeta(w http.ResponseWriter, r *http.Request) {
 	moduleName := chi.URLParam(r, "moduleName")

@@ -157,8 +157,6 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   return lang === "python" ? PYTHON_CODE : GO_CODE;
 }
 
-
-
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2, Pin, PinOff } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2, Pin, PinOff, ShieldCheck, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchModuleLocks, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock, fetchModuleMeta, upsertModuleMeta, setModulePin } from '@/lib/api';
+import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchAllModules, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock, upsertModuleMeta, setModulePin } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { clearCache } from '@/lib/cache';
-import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule } from '@/lib/types';
+import { AdminStats, AIUsageStats, ActivityLog, Problem, UpdateProblemPayload, Course, Module as CurriculumModule, AllModule } from '@/lib/types';
 import { useWebSocket } from '@/lib/event';
 import PendingContributions from './PendingContributions';
 import FeedbackPanel from './FeedbackPanel';
@@ -16,6 +16,11 @@ import BroadcastPanel from './BroadcastPanel';
 import ProblemEditPanel from './ProblemEditPanel';
 import ProblemReports from './ProblemReports';
 import UserVerificationPanel from './UserVerificationPanel';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CheckCircle2,
@@ -41,30 +46,28 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [problemsError, setProblemsError] = useState<string | null>(null);
-  const [moduleLocks, setModuleLocks] = useState<Set<string>>(new Set());
+  const [allModules, setAllModules] = useState<AllModule[]>([]);
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
   const [deletingModule, setDeletingModule] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseModules, setCourseModules] = useState<Record<string, CurriculumModule[]>>({});
   const [togglingCourseModule, setTogglingCourseModule] = useState<string | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
-  const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
   const [editingModuleName, setEditingModuleName] = useState<string | null>(null);
   const [editingModuleValue, setEditingModuleValue] = useState('');
 
   const loadData = useCallback(async () => {
-    const [statsRes, usageRes, logsRes, problemsRes, locksRes, coursesRes, metaRes] = await Promise.all([
+    const [statsRes, usageRes, logsRes, problemsRes, modulesRes, coursesRes] = await Promise.all([
       fetchAdminStats(),
       fetchAIUsageStats(),
       fetchAdminActivity(),
       fetchAllProblemsAdmin(),
-      fetchModuleLocks(),
+      fetchAllModules(),
       fetchAllCourses(),
-      fetchModuleMeta(),
     ]);
 
-    if (locksRes.success && locksRes.data) {
-      setModuleLocks(new Set(locksRes.data.map((l) => l.module_name)));
+    if (modulesRes.success && modulesRes.data) {
+      setAllModules(modulesRes.data);
     }
 
     if (statsRes.success && statsRes.data) setStats(statsRes.data);
@@ -81,24 +84,16 @@ export default function AdminDashboard() {
     if (coursesRes.success && coursesRes.data) {
       setCourses(coursesRes.data);
       setLoadingCourses(true);
-      const modulePromises = coursesRes.data.map((c) => fetchModules(c.id));
+      const modulePromises = coursesRes.data.map((c: Course) => fetchModules(c.id));
       const moduleResults = await Promise.all(modulePromises);
       const modulesMap: Record<string, CurriculumModule[]> = {};
-      coursesRes.data.forEach((c, i) => {
+      coursesRes.data.forEach((c: Course, i: number) => {
         if (moduleResults[i].success && moduleResults[i].data) {
           modulesMap[c.id] = moduleResults[i].data;
         }
       });
       setCourseModules(modulesMap);
       setLoadingCourses(false);
-    }
-
-    if (metaRes.success && metaRes.data) {
-      const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
-      for (const m of metaRes.data) {
-        metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
-      }
-      setModuleMeta(metaMap);
     }
   }, []);
 
@@ -320,281 +315,378 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Module Locks Panel */}
-      {Object.keys(moduleMeta).length > 0 && (
-        <div className="bg-brand-charcoal-card border border-amber-600/20 rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
-            <Lock size={16} className="text-amber-400" />
-            <span className="font-medium text-brand-offwhite">Problem Module Locks</span>
-            <span className="text-xs text-brand-offwhite-muted/60">Lock entire problem categories from student access</span>
-          </div>
-          <div className="space-y-3">
-            {(["go", "python"] as const).map((lang) => {
-              const modules = Object.keys(moduleMeta)
-                .filter((mod) => lang === "go" ? !mod.startsWith("python-") : mod.startsWith("python-"))
-                .sort();
-              if (modules.length === 0) return null;
-              const hasProblems = (mod: string) => problems.some((p) => p.module === mod);
-              const lockedCount = modules.filter((m) => moduleLocks.has(m)).length;
-              const displayLang = lang === "go" ? "Go" : "Python";
-              return (
-                <details key={lang} className="group" open>
-                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-amber-300 transition-colors [&::-webkit-details-marker]:hidden">
-                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
-                    <div className={cn(
-                      "w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0",
-                      lang === "go" ? "bg-cyan-500/15 text-cyan-400" : "bg-amber-500/15 text-amber-400",
-                    )}>
-                      {lang === "go" ? "G" : "P"}
-                    </div>
-                    {displayLang}
-                    <span className="text-xs text-brand-offwhite-muted/50 font-normal">
-                      ({lockedCount}/{modules.length} locked)
-                    </span>
-                  </summary>
-                  <div className="mt-3 flex flex-wrap gap-2 pl-7">
-                    {modules.map((mod) => {
-                      const isLocked = moduleLocks.has(mod);
-                      const displayName = moduleMeta[mod]?.display_name || mod;
-                      return (
-                        <div key={mod} className="flex items-center gap-1.5">
-                          <button
-                            onClick={async () => {
-                              setTogglingModule(mod);
-                              const res = await toggleProblemModuleLock(mod);
-                              if (res.success) {
-                                setModuleLocks((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(mod)) next.delete(mod);
-                                  else next.add(mod);
-                                  return next;
-                                });
-                                toast.success(isLocked ? `"${displayName}" unlocked` : `"${displayName}" locked`);
-                              } else {
-                                toast.error(res.error?.message || "Failed to toggle");
-                              }
-                              setTogglingModule(null);
-                            }}
-                            disabled={togglingModule === mod}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                              isLocked
-                                ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                                : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
-                            )}
-                          >
-                            {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
-                            {displayName}
-                          </button>
-                          {hasProblems(mod) && (
-                            <button
-                              onClick={async () => {
-                                if (!confirm(`Permanently delete all problems in "${displayName}"? This cannot be undone.`)) return;
-                                setDeletingModule(mod);
-                                const res = await deleteProblemModule(mod);
-                                if (res.success) {
-                                  toast.success(`"${displayName}" deleted`);
-                                  setProblems((prev) => prev.filter((p) => p.module !== mod));
-                                  clearCache("/admin/problems");
-                                  clearCache("/admin/module-locks");
-                                  await loadData();
-                                } else {
-                                  toast.error(res.error?.message || "Failed to delete module");
-                                }
-                                setDeletingModule(null);
-                              }}
-                              disabled={deletingModule === mod}
-                              className="p-1.5 rounded-lg text-xs text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30"
-                              title={`Delete "${displayName}" and all its problems`}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+      {/* Problem Module Locks Panel */}
+      {allModules.length > 0 && (
+        <div className="relative group">
+          <div className="absolute -z-10 rounded-2xl transition-all duration-300 ease-out bg-black/10 dark:bg-white/[0.06] left-2 top-2 -right-1.5 -bottom-1.5 opacity-0 scale-[0.96] blur-[0.5px] group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+          <Card className="border-brand-charcoal-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                    <ShieldCheck size={16} className="text-amber-400" />
                   </div>
-                </details>
-              );
-            })}
-          </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-brand-offwhite">Problem Module Locks</h3>
+                    <p className="text-[11px] text-brand-offwhite-muted/60">Lock entire problem categories from student access</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted/70">
+                  <Lock size={10} className="mr-1 text-amber-400/70" />
+                  {allModules.filter(m => m.is_locked).length}/{allModules.length}
+                </Badge>
+              </div>
+              <div className="p-5">
+                <Tabs defaultValue="go">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="go" className="text-xs data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-400">
+                      <span className="w-4 h-4 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-400 flex items-center justify-center mr-1.5">G</span>
+                      Go
+                    </TabsTrigger>
+                    <TabsTrigger value="python" className="text-xs data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400">
+                      <span className="w-4 h-4 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 flex items-center justify-center mr-1.5">P</span>
+                      Python
+                    </TabsTrigger>
+                  </TabsList>
+                  {(["go", "python"] as const).map((lang) => {
+                    const mods = allModules
+                      .filter((m) => lang === "go" ? !m.module_name.startsWith("python-") : m.module_name.startsWith("python-"))
+                      .sort((a, b) => a.module_name.localeCompare(b.module_name));
+                    if (mods.length === 0) return null;
+                    return (
+                      <TabsContent key={lang} value={lang} className="mt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {mods.map((mod) => {
+                            const isLocked = mod.is_locked;
+                            const displayName = mod.display_name;
+                            return (
+                              <div key={mod.module_name} className="group/card bg-brand-charcoal-base/80 border border-brand-charcoal-border rounded-xl p-3.5 transition-all hover:border-brand-charcoal-hover hover:-translate-y-0.5 hover:shadow-sm hover:shadow-black/20">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-sm font-semibold text-brand-offwhite truncate">{displayName}</span>
+                                    </div>
+                                    <span className="text-[11px] text-brand-offwhite-muted/40 font-mono block truncate">{mod.module_name}</span>
+                                  </div>
+                                  {isLocked && (
+                                    <div className="w-6 h-6 rounded-md bg-amber-500/15 flex items-center justify-center shrink-0">
+                                      <Lock size={11} className="text-amber-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] text-brand-offwhite-muted/50 font-medium">
+                                    {mod.problem_count} problem{mod.problem_count !== 1 ? 's' : ''}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={togglingModule === mod.module_name}
+                                      onClick={async () => {
+                                        setTogglingModule(mod.module_name);
+                                        const res = await toggleProblemModuleLock(mod.module_name);
+                                        if (res.success) {
+                                          setAllModules((prev) =>
+                                            prev.map((m) =>
+                                              m.module_name === mod.module_name ? { ...m, is_locked: !isLocked } : m
+                                            )
+                                          );
+                                          toast.success(isLocked ? `"${displayName}" unlocked` : `"${displayName}" locked`);
+                                        } else {
+                                          toast.error(res.error?.message || "Failed to toggle");
+                                        }
+                                        setTogglingModule(null);
+                                      }}
+                                      className={cn(
+                                        "h-7 text-[11px] gap-1 px-2.5 transition-all",
+                                        isLocked
+                                          ? "bg-amber-500/12 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/40"
+                                          : "text-brand-offwhite-muted/60 hover:text-amber-400 hover:bg-amber-500/10 border border-transparent"
+                                      )}
+                                    >
+                                      {isLocked ? <Lock size={11} /> : <LockOpen size={11} />}
+                                      {isLocked ? "Locked" : "Unlock"}
+                                    </Button>
+                                    {mod.problem_count === 0 && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={deletingModule === mod.module_name}
+                                        onClick={async () => {
+                                          if (!confirm(`Permanently delete module "${displayName}"?`)) return;
+                                          setDeletingModule(mod.module_name);
+                                          const res = await deleteProblemModule(mod.module_name);
+                                          if (res.success) {
+                                            toast.success(`"${displayName}" deleted`);
+                                            clearCache("/admin/problems");
+                                            await loadData();
+                                          } else {
+                                            toast.error(res.error?.message || "Failed to delete module");
+                                          }
+                                          setDeletingModule(null);
+                                        }}
+                                        className="h-7 w-7 p-0 text-red-400/40 hover:text-red-400 hover:bg-red-500/10"
+                                        title="Delete module"
+                                      >
+                                        <Trash2 size={12} />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Curriculum Module Locks Panel */}
       {courses.length > 0 && !loadingCourses && (
-        <div className="bg-brand-charcoal-card border border-amber-600/20 rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
-            <BookOpen size={16} className="text-amber-400" />
-            <span className="font-medium text-brand-offwhite">Curriculum Module Locks</span>
-            <span className="text-xs text-brand-offwhite-muted/60">Lock entire curriculum modules from student access</span>
-          </div>
-          <div className="space-y-3">
-            {courses.map((course) => {
-              const modules = courseModules[course.id] || [];
-              if (modules.length === 0) return null;
-              return (
-                <details key={course.id} className="group">
-                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-amber-300 transition-colors [&::-webkit-details-marker]:hidden">
-                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
-                    <BookOpen size={14} className="text-brand-offwhite-muted shrink-0" />
-                    {course.title}
-                    <span className="text-xs text-brand-offwhite-muted/50 font-normal">
-                      ({modules.filter((m) => m.locked).length}/{modules.length} locked)
-                    </span>
-                  </summary>
-                  <div className="mt-3 flex flex-wrap gap-2 pl-6">
-                    {modules.map((mod) => (
-                      <button
-                        key={mod.id}
-                        onClick={async () => {
-                          setTogglingCourseModule(mod.id);
-                          const res = await toggleModuleLock(mod.id);
-                          if (res.success) {
-                            setCourseModules((prev) => ({
-                              ...prev,
-                              [course.id]: prev[course.id].map((m) =>
-                                m.id === mod.id ? { ...m, locked: !m.locked } : m
-                              ),
-                            }));
-                            toast.success(mod.locked ? `"${mod.title}" unlocked` : `"${mod.title}" locked`);
-                          } else {
-                            toast.error(res.error?.message || "Failed to toggle");
-                          }
-                          setTogglingCourseModule(null);
-                        }}
-                        disabled={togglingCourseModule === mod.id}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                          mod.locked
-                            ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                            : "bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted hover:border-amber-500/30 hover:text-amber-400",
-                        )}
-                      >
-                        {mod.locked ? <Lock size={12} /> : <LockOpen size={12} />}
-                        {mod.title}
-                      </button>
-                    ))}
+        <div className="relative group">
+          <div className="absolute -z-10 rounded-2xl transition-all duration-300 ease-out bg-black/10 dark:bg-white/[0.06] left-2 top-2 -right-1.5 -bottom-1.5 opacity-0 scale-[0.96] blur-[0.5px] group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+          <Card className="border-brand-charcoal-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                    <BookOpen size={16} className="text-amber-400" />
                   </div>
-                </details>
-              );
-            })}
-          </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-brand-offwhite">Curriculum Module Locks</h3>
+                    <p className="text-[11px] text-brand-offwhite-muted/60">Lock curriculum modules from student access</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted/70">
+                  <Lock size={10} className="mr-1 text-amber-400/70" />
+                  {courses.reduce((acc, c) => acc + (courseModules[c.id] || []).filter(m => m.locked).length, 0)}/
+                  {courses.reduce((acc, c) => acc + (courseModules[c.id] || []).length, 0)}
+                </Badge>
+              </div>
+              <div className="p-5 space-y-3">
+                {courses.map((course) => {
+                  const mods = courseModules[course.id] || [];
+                  if (mods.length === 0) return null;
+                  const lockedCount = mods.filter(m => m.locked).length;
+                  return (
+                    <details key={course.id} className="group/cc" open={lockedCount > 0}>
+                      <summary className="flex items-center gap-2.5 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-amber-300 transition-colors [&::-webkit-details-marker]:hidden rounded-lg px-3 py-2 hover:bg-brand-charcoal-base/50 -mx-3">
+                        <ChevronDown size={14} className="text-brand-offwhite-muted group-open/cc:rotate-180 transition-transform shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="truncate">{course.title}</span>
+                        </div>
+                        <Badge variant="outline" className={cn(
+                          "text-[10px] px-2 py-0 h-5 font-normal",
+                          lockedCount > 0
+                            ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
+                            : "border-brand-charcoal-border text-brand-offwhite-muted/50"
+                        )}>
+                          {lockedCount}/{mods.length} locked
+                        </Badge>
+                      </summary>
+                      <div className="mt-2 flex flex-wrap gap-2 pl-7">
+                        {mods.map((mod) => (
+                          <div key={mod.id} className="group/pill">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={togglingCourseModule === mod.id}
+                              onClick={async () => {
+                                setTogglingCourseModule(mod.id);
+                                const res = await toggleModuleLock(mod.id);
+                                if (res.success) {
+                                  setCourseModules((prev) => ({
+                                    ...prev,
+                                    [course.id]: prev[course.id].map((m) =>
+                                      m.id === mod.id ? { ...m, locked: !m.locked } : m
+                                    ),
+                                  }));
+                                  toast.success(mod.locked ? `"${mod.title}" unlocked` : `"${mod.title}" locked`);
+                                } else {
+                                  toast.error(res.error?.message || "Failed to toggle");
+                                }
+                                setTogglingCourseModule(null);
+                              }}
+                              className={cn(
+                                "h-8 text-xs gap-1.5 px-3 transition-all rounded-lg",
+                                mod.locked
+                                  ? "bg-amber-500/12 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/40"
+                                  : "bg-brand-charcoal-base/50 border border-brand-charcoal-border text-brand-offwhite-muted/70 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/8"
+                              )}
+                            >
+                              {mod.locked ? <Lock size={12} /> : <LockOpen size={12} />}
+                              {mod.title}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Module Settings Panel */}
-      {Object.keys(moduleMeta).length > 0 && (
-        <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm text-brand-offwhite-muted mb-4">
-            <FileText size={16} className="text-brand-muted-gold" />
-            <span className="font-medium text-brand-offwhite">Module Settings</span>
-            <span className="text-xs text-brand-offwhite-muted/60">Rename modules and pin them to appear first</span>
-          </div>
-          <div className="space-y-3">
-            {(["go", "python"] as const).map((lang) => {
-              const modules = Object.keys(moduleMeta)
-                .filter((mod) => lang === "go" ? !mod.startsWith("python-") : mod.startsWith("python-"))
-                .sort();
-              if (modules.length === 0) return null;
-              const displayLang = lang === "go" ? "Go" : "Python";
-              return (
-                <details key={lang} className="group" open>
-                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-brand-offwhite hover:text-brand-muted-gold transition-colors [&::-webkit-details-marker]:hidden">
-                    <ChevronDown size={14} className="text-brand-offwhite-muted group-open:rotate-180 transition-transform shrink-0" />
-                    <div className={cn(
-                      "w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0",
-                      lang === "go" ? "bg-cyan-500/15 text-cyan-400" : "bg-amber-500/15 text-amber-400",
-                    )}>
-                      {lang === "go" ? "G" : "P"}
-                    </div>
-                    {displayLang}
-                  </summary>
-                  <div className="mt-3 space-y-1.5 pl-7">
-                    {modules.map((mod) => {
-                      const meta = moduleMeta[mod];
-                      const currentDisplayName = meta?.display_name || mod;
-                      const isPinned = meta?.is_pinned || false;
-                      const isEditing = editingModuleName === mod;
-                      return (
-                        <div key={mod} className="flex items-center gap-2 group/row">
-                          <span className="text-[11px] text-brand-offwhite-muted/50 font-mono w-36 truncate shrink-0" title={mod}>
-                            {mod}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={editingModuleValue}
-                                onChange={(e) => setEditingModuleValue(e.target.value)}
-                                onBlur={async () => {
-                                  const val = editingModuleValue.trim();
-                                  if (val && val !== currentDisplayName) {
-                                    const res = await upsertModuleMeta(mod, val);
-                                    if (res.success) {
-                                      toast.success(`Renamed "${mod}" to "${val}"`);
-                                      clearCache("/me/module-meta");
-                                      await loadData();
-                                    } else {
-                                      toast.error(res.error?.message || "Failed to rename");
-                                    }
-                                  }
-                                  setEditingModuleName(null);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    (e.currentTarget as HTMLInputElement).blur();
-                                  }
-                                  if (e.key === 'Escape') {
-                                    setEditingModuleName(null);
-                                  }
-                                }}
-                                className="w-full bg-brand-charcoal-base border border-brand-muted-gold/50 rounded px-2 py-1 text-sm text-brand-offwhite outline-none focus:border-brand-muted-gold"
-                                autoFocus
-                              />
-                            ) : (
-                              <span
-                                className="text-sm text-brand-offwhite cursor-pointer hover:text-brand-muted-gold transition-colors"
-                                onClick={() => {
-                                  setEditingModuleName(mod);
-                                  setEditingModuleValue(currentDisplayName);
-                                }}
-                                title="Click to rename"
-                              >
-                                {currentDisplayName}
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            onClick={async () => {
-                              const next = !isPinned;
-                              const res = await setModulePin(mod, next);
-                              if (res.success) {
-                                toast.success(next ? `"${currentDisplayName}" pinned` : `"${currentDisplayName}" unpinned`);
-                                clearCache("/me/module-meta");
-                                await loadData();
-                              } else {
-                                toast.error(res.error?.message || "Failed to toggle pin");
-                              }
-                            }}
-                            className={cn(
-                              "p-1.5 rounded-lg text-xs transition-all opacity-0 group-hover/row:opacity-100",
-                              isPinned
-                                ? "text-amber-400 bg-amber-500/10"
-                                : "text-brand-offwhite-muted/50 hover:text-amber-400 hover:bg-amber-500/10",
-                            )}
-                            title={isPinned ? "Unpin module" : "Pin module"}
-                          >
-                            {isPinned ? <Pin size={14} /> : <PinOff size={14} />}
-                          </button>
-                        </div>
-                      );
-                    })}
+      {allModules.length > 0 && (
+        <div className="relative group">
+          <div className="absolute -z-10 rounded-2xl transition-all duration-300 ease-out bg-black/10 dark:bg-white/[0.06] left-2 top-2 -right-1.5 -bottom-1.5 opacity-0 scale-[0.96] blur-[0.5px] group-hover:opacity-100 group-hover:scale-100 group-hover:-translate-y-1 group-hover:blur-0" />
+          <Card className="border-brand-charcoal-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-brand-muted-gold/15 flex items-center justify-center">
+                    <FileText size={16} className="text-brand-muted-gold" />
                   </div>
-                </details>
-              );
-            })}
-          </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-brand-offwhite">Module Settings</h3>
+                    <p className="text-[11px] text-brand-offwhite-muted/60">Rename modules and pin them to appear first</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite-muted/70">
+                  <Pin size={10} className="mr-1 text-brand-muted-gold/70" />
+                  {allModules.filter(m => m.is_pinned).length} pinned
+                </Badge>
+              </div>
+              <div className="p-5">
+                <Tabs defaultValue="go">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="go" className="text-xs data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-400">
+                      <span className="w-4 h-4 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-400 flex items-center justify-center mr-1.5">G</span>
+                      Go
+                    </TabsTrigger>
+                    <TabsTrigger value="python" className="text-xs data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400">
+                      <span className="w-4 h-4 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 flex items-center justify-center mr-1.5">P</span>
+                      Python
+                    </TabsTrigger>
+                  </TabsList>
+                  {(["go", "python"] as const).map((lang) => {
+                    const mods = allModules
+                      .filter((m) => lang === "go" ? !m.module_name.startsWith("python-") : m.module_name.startsWith("python-"))
+                      .sort((a, b) => a.module_name.localeCompare(b.module_name));
+                    if (mods.length === 0) return null;
+                    return (
+                      <TabsContent key={lang} value={lang} className="mt-0">
+                        <div className="space-y-2">
+                          {mods.map((mod) => {
+                            const currentDisplayName = mod.display_name;
+                            const isPinned = mod.is_pinned;
+                            const isEditing = editingModuleName === mod.module_name;
+                            return (
+                              <div key={mod.module_name} className="group/row bg-brand-charcoal-base/60 border border-brand-charcoal-border rounded-xl px-4 py-3 transition-all hover:border-brand-charcoal-hover hover:bg-brand-charcoal-base/80">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      {isEditing ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <Input
+                                            value={editingModuleValue}
+                                            onChange={(e) => setEditingModuleValue(e.target.value)}
+                                            onBlur={async () => {
+                                              const val = editingModuleValue.trim();
+                                              if (val && val !== currentDisplayName) {
+                                                const res = await upsertModuleMeta(mod.module_name, val);
+                                                if (res.success) {
+                                                  toast.success(`Renamed to "${val}"`);
+                                                  await loadData();
+                                                } else {
+                                                  toast.error(res.error?.message || "Failed to rename");
+                                                }
+                                              }
+                                              setEditingModuleName(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                              if (e.key === 'Escape') setEditingModuleName(null);
+                                            }}
+                                            className="h-8 text-sm bg-brand-charcoal-base border-brand-muted-gold/50 focus:border-brand-muted-gold"
+                                            autoFocus
+                                          />
+                                          <button
+                                            onClick={() => setEditingModuleName(null)}
+                                            className="p-1 rounded text-brand-offwhite-muted/50 hover:text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-all"
+                                          >
+                                            <X size={14} />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <span className="text-sm font-semibold text-brand-offwhite">{currentDisplayName}</span>
+                                          {isPinned && (
+                                            <Pin size={12} className="text-amber-400 shrink-0" />
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                    <span className="text-[11px] text-brand-offwhite-muted/40 font-mono block">
+                                      {mod.module_name} · {mod.problem_count} problem{mod.problem_count !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingModuleName(mod.module_name);
+                                        setEditingModuleValue(currentDisplayName);
+                                      }}
+                                      className={cn(
+                                        "h-8 w-8 p-0 text-brand-offwhite-muted/40 hover:text-brand-muted-gold hover:bg-brand-muted-gold/10",
+                                        isEditing && "hidden"
+                                      )}
+                                      title="Rename module"
+                                    >
+                                      <Pencil size={14} />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const next = !isPinned;
+                                        const res = await setModulePin(mod.module_name, next);
+                                        if (res.success) {
+                                          setAllModules((prev) =>
+                                            prev.map((m) =>
+                                              m.module_name === mod.module_name ? { ...m, is_pinned: next } : m
+                                            )
+                                          );
+                                          toast.success(next ? `"${currentDisplayName}" pinned` : `"${currentDisplayName}" unpinned`);
+                                        } else {
+                                          toast.error(res.error?.message || "Failed to toggle pin");
+                                        }
+                                      }}
+                                      className={cn(
+                                        "h-8 w-8 p-0 transition-all",
+                                        isPinned
+                                          ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                                          : "text-brand-offwhite-muted/30 hover:text-amber-400 hover:bg-amber-500/10"
+                                      )}
+                                      title={isPinned ? "Unpin module" : "Pin module"}
+                                    >
+                                      {isPinned ? <Pin size={14} /> : <PinOff size={14} />}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

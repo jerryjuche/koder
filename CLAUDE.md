@@ -441,7 +441,7 @@ koder/
 ├── pyint.md                                   # Pyodide client-side Python playground plan
 ├── CODEBASE_INDEX.md                          # Line-level file inventory
 ├── CODEBASE_ANALYSIS.md                       # Architectural analysis
-├── SESSION_LOG.md                             # 57+ session log (June 28 - July 22)
+├── SESSION_LOG.md                             # 59+ session log (June 28 - July 23)
 ├── progress.md                                # Curriculum CMS progress tracker
 └── CLAUDE.md                                  # This file — professional codebase index
 ```
@@ -1176,6 +1176,77 @@ npm run build   # Builds static + server components
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
+
+### 2026-07-23 — Session 69: Admin module management redesign — auto-discover new modules + professional UI
+
+**Commits:** (squashed — backend + frontend)
+
+**Functional fix — new `GET /admin/all-modules` endpoint:**
+- Admin panels previously derived modules from `module_meta` (fixed seed). New modules invisible.
+- New `ListAllModules` store function returns `SELECT DISTINCT p.module` from problems, `COALESCE`d with `module_meta`, joined with `module_locks`, plus `UNION` for orphan rows.
+- 5 backend files changed: `types.go`, `store.go`, `module_meta.go`, `admin.go`, `router.go`
+- Frontend: `AllModule` type in `types.ts`, `fetchAllModules()` in `api.ts`
+
+**Problem Module Locks redesign:** Card wrapper + CodePen shadow back plate + shadcn Tabs for Go/Python + grid of module cards (display name, slug, problem count, Lock/Locked toggle, conditional Delete)
+
+**Curriculum Module Locks redesign:** Same card pattern, course collapsible sections with locked count badges, per-module lock toggles
+
+**Module Settings redesign:** Language Tabs, inline rename via Input with Enter/blur/Escape, always-visible Pin toggle
+
+**Import changes:** Replaced `fetchModuleLocks()` + `fetchModuleMeta()` + `moduleLocks`/`moduleMeta` state with `fetchAllModules()` + `allModules: AllModule[]`. Added shadcn: Card, Button, Badge, Input, Tabs.
+
+**Verification:** `go vet` clean, `tsc --noEmit` clean, `npm run lint` 0 errors
+
+---
+
+### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
+
+**Commits:** `1e28c16`
+
+**ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+- **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
+- **Fix:** Added lock-status check (`lockedModules.has()`) as the primary sort key — locked modules always appear after all unlocked modules
+- **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- Pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
+
+**Commits:** `cf5435e`
+
+**Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+- Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx` into shared utility
+- ProblemWorkspaceClient now imports from the shared module instead of defining locally
+
+**Admin preview fix (`ProblemEditPanel.tsx`):**
+- **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made examples look like they vanished.
+- **Fix:** Preview now renders statement via `renderMarkdown()` (was `whitespace-pre-wrap` raw text), adds examples section from `problem.examples` with Input/Expected Output code blocks, constraints and learning objective also rendered via `renderMarkdown()`
+
+---
+
+### 2026-07-22 — Session 66: Seeded shuffle + filter bar redesign + beta gate for /problems
+
+**Commits:** `b527df2` `ff88299` `4cefe19`
+
+**Seeded random problem ordering (`frontend/lib/utils.ts`):**
+- Added `seededRandom(seed)` — mulberry32 PRNG + `shuffleArray(arr, seed)` — Fisher-Yates shuffle
+- Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
+- Removed `#001` numbering from problem cards (meaningless with random order)
+
+**Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+- Replaced sidebar `aside` with top-mounted card: search + language tabs + Status/Difficulty `Select` dropdowns + XP range inputs + active filter chips with dismiss + mobile slide-in drawer
+
+**Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+- TopNav: "Problems" nav link disabled for non-admins with amber BETA badge
+- problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon)
+- Matches existing Learn + Best Practices beta gate pattern
+
+---
 
 ### 2026-07-22 — Session 65: Dashboard nav corrected (dispatchEvent) + scrollable success page previews
 

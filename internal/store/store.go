@@ -198,6 +198,7 @@ type Store interface {
 	ListModuleMeta(ctx context.Context) ([]ModuleMeta, error)
 	UpsertModuleMeta(ctx context.Context, moduleName, displayName string) (*ModuleMeta, error)
 	SetModulePin(ctx context.Context, moduleName string, pinned bool) (*ModuleMeta, error)
+	ListAllModules(ctx context.Context) ([]AllModule, error)
 
 	// Lesson operations
 	ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error)

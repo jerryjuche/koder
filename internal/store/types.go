@@ -500,6 +500,15 @@ type ModuleMeta struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 }
 
+// AllModule represents a module with full metadata from all sources.
+type AllModule struct {
+	ModuleName   string `db:"module_name" json:"module_name"`
+	DisplayName  string `db:"display_name" json:"display_name"`
+	IsPinned     bool   `db:"is_pinned" json:"is_pinned"`
+	IsLocked     bool   `db:"is_locked" json:"is_locked"`
+	ProblemCount int    `db:"problem_count" json:"problem_count"`
+}
+
 // Project represents a hands-on coding project linked to a lesson.
 type Project struct {
 	ID           pgtype.UUID `db:"id" json:"id"`

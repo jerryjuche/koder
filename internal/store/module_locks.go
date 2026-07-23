@@ -94,5 +94,11 @@ func (s *PostgresStore) DeleteProblemModule(ctx context.Context, moduleName stri
 		return fmt.Errorf("failed to delete module lock: %w", err)
 	}
 
+	// Remove module metadata so it doesn't reappear as orphan with 0 problems
+	_, err = tx.Exec(ctx, `DELETE FROM module_meta WHERE module_name = $1`, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to delete module metadata: %w", err)
+	}
+
 	return tx.Commit(ctx)
 }
