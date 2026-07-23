@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Info, Sparkles, RefreshCw, Wrench, Megaphone, X, ArrowRight } from "lucide-react";
 import { fetchActiveBroadcasts, dismissBroadcast } from "@/lib/api";
+import { useWebSocket } from "@/lib/event";
 import { Broadcast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -80,21 +81,21 @@ export default function BroadcastBanner() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
+  const fetchBanners = useCallback(() => {
+    fetchActiveBroadcasts().then((res) => {
+      if (res.success && res.data) {
+        setBroadcasts(res.data);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-
-    const fetchBanners = () => {
-      fetchActiveBroadcasts().then((res) => {
-        if (res.success && res.data) {
-          setBroadcasts(res.data);
-        }
-      });
-    };
 
     fetchBanners();
 
     const scheduleNext = () => {
-      const delay = document.visibilityState === "visible" ? 30000 : 120000;
+      const delay = document.visibilityState === "visible" ? 7000 : 120000;
       timeoutId = setTimeout(() => {
         fetchBanners();
         scheduleNext();
@@ -118,7 +119,13 @@ export default function BroadcastBanner() {
       clearTimeout(timeoutId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [fetchBanners]);
+
+  useWebSocket({
+    'broadcast.created': useCallback(() => { fetchBanners(); }, [fetchBanners]),
+    'broadcast.updated': useCallback(() => { fetchBanners(); }, [fetchBanners]),
+    'broadcast.deleted': useCallback(() => { fetchBanners(); }, [fetchBanners]),
+  }, [fetchBanners]);
 
   const handleDismiss = async (id: string) => {
     await dismissBroadcast(id);
