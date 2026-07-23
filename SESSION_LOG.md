@@ -2070,3 +2070,20 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (all touched files)
 - All pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
+
+**Commits:** `1e28c16`
+
+**1. ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+- **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
+- **Fix:** Added lock-status check as the primary sort key — locked modules always appear after all unlocked modules
+- **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
+- Single change: `lookedModules.has()` check added before pin/alphabetical comparisons
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- All pushed to `origin/update`

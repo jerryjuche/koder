@@ -1177,6 +1177,22 @@ npm run build   # Builds static + server components
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
+### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
+
+**Commits:** `1e28c16`
+
+**ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+- **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
+- **Fix:** Added lock-status check (`lockedModules.has()`) as the primary sort key — locked modules always appear after all unlocked modules
+- **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- Pushed to `origin/update`
+
+---
+
 ### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
 
 **Commits:** `cf5435e`
