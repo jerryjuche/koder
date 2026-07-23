@@ -1,7 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
+import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
+import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
 
 export const metadata: Metadata = {
   title: 'Koder — Code. Learn. Master Go.',
@@ -15,7 +17,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"} />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"} />
+        <Suspense fallback={null}>
+          <DesktopOnlyOverlay />
+        </Suspense>
         {children}
         <Analytics />
         <Toaster
