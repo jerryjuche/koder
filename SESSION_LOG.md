@@ -2147,3 +2147,90 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - All pushed to `origin/update`
+
+---
+
+## Session 71 — 2026-07-23 — Google OAuth 401 fix, COOP header, logo preload, module lock endpoint
+
+**Commits:** `0f78c62`
+
+### 1. Google OAuth 401 fix
+`GOOGLE_CLIENT_ID` was missing from the backend environment — `POST /auth/google` returned `401 GOOGLE_AUTH_FAILED` because audience check failed against empty string. Added to backend env.
+
+### 2. COOP header for GIS popup
+Google Identity Services opens a popup requiring `Cross-Origin-Opener-Policy: cross-origin` (default is `same-origin`), otherwise popup returns `null` and One Tap breaks.
+
+| File | Change |
+|---|---|
+| `frontend/middleware.ts:28` | Added `Cross-Origin-Opener-Policy: cross-origin` to response headers |
+| `internal/api/middleware.go:495` | Added same header to SecurityHeadersMiddleware |
+
+### 3. Logo preload warning
+TopNav `<Image priority>` triggered React preload warnings. Removed `priority` from logo in `frontend/components/layout/TopNav.tsx:87-94`.
+
+### 4. Module lock endpoint for non-admin
+`fetchModuleLocks()` called `/admin/module-locks` (admin-only, returns 403 for students). Changed to `/me/module-locks` in `frontend/lib/api.ts:853`. Non-admin users now see lock icons on locked modules.
+
+### Verification
+- `go vet ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+- Pushed to `origin/update`
+
+---
+
+## Session 72 — 2026-07-23 — Real-time system: 7s polling + WebSocket subscriptions
+
+**Commits:** `6dfd1db`
+
+### Polling intervals (visible features)
+| Feature | File | Before | After |
+|---|---|---|---|
+| Notifications | `useNotifications.ts:70` | 15s | 7s |
+| Broadcasts | `BroadcastBanner.tsx:97` | 30s | 7s |
+| Leaderboard | `LeaderboardClient.tsx:140` | 30s | 7s |
+| Admin dashboard | `admin/page.tsx:117` | 60s | 7s |
+
+### WebSocket subscriptions
+- `BroadcastBanner.tsx` — subscribes to `broadcast.created/updated/deleted` — re-fetches immediately
+- `admin/page.tsx` — subscribes to `broadcast.*` + `feedback.submitted` — admin panels update in real-time
+
+### Verification
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- Pushed to `origin/update`
+
+---
+
+## Session 73 — 2026-07-23 — PIN removal from email sign-up
+
+**Commits:** `6e23cb8` `3dee92a`
+
+### Why
+Mandatory 6-digit PIN during registration adds friction. Users can set a PIN later via Settings for PIN-based recovery. Email-based forgot-password (via Resend) remains the primary recovery method.
+
+### Backend (`internal/api/auth.go`)
+- Removed `Pin` field from `registerRequest` struct
+- Removed PIN validation (6-digit) and bcrypt hashing block from `Register` handler
+
+### Frontend registration (`frontend/app/(auth)/register/page.tsx`)
+- Collapsed from 3-step (name → PIN → username) to 2-step (name → username)
+- Removed `step` state, `pin` state, `PinInput` import, step-2 UI, dead step-3/step-4 code
+- 647 lines → 466 lines
+
+### `completeOnboarding` fix (`frontend/lib/api.ts:244-252`)
+- Was returning the response without calling `handleAuthResponse` — JWT with `usernameSet=true` was never saved to localStorage
+- Caused infinite redirect loop: `/onboarding → /home → fetchUser() → usernameSet=false → /onboarding`
+- **Fix:** Added `handleAuthResponse(data.token!, data.refresh_token!)` before return
+
+### What's preserved
+- PIN management endpoints remain: `/auth/set-pin`, `/auth/verify-pin`, `/auth/change-password`, `/auth/forgot-password-pin`
+- Settings Security tab still offers PIN setup
+- PIN reset flow works for users who set a PIN
+
+### Verification
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `go test ./internal/...` — all pass
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- All pushed to `origin/update`
