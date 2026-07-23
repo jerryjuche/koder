@@ -31,7 +31,7 @@
 | **Go Sandbox** (`sandbox/`) | 6 source | ~850 | Zero external deps, 10-layer defense-in-depth |
 | **SQL Migrations** (`migrations/`) | 47 | ~16,480 | 46 numbered + 1 test seed, ~25 tables |
 | **Frontend TSX** (`app/`) | 72 | ~14,430 | 7 route groups, all with loading + error boundaries |
-| **Frontend Components** (`components/`) | 60 | ~7,880 | 19 shadcn/ui + 41 custom |
+| **Frontend Components** (`components/`) | 62 | ~8,080 | 19 shadcn/ui + 43 custom |
 | **Frontend Lib** (`lib/`, `hooks/`) | 18 | ~2,490 | 60+ API functions, 40+ TS interfaces, 4 hooks |
 | **Frontend Styles** (`styles/`) | 3 | ~1,230 | theme.css (856 vars), typography.css (430 lines) |
 | **Frontend Config** | 10 | ~280 | next.config, middleware, ESLint, TS, postcss |
@@ -228,7 +228,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 #### Root (4 files)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `layout.tsx` | 37 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics |
+| `layout.tsx` | 37 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics, DesktopOnlyOverlay |
 | `page.tsx` | 75 | Client | Loading guard → fetchUser → MultiStepLoader → `/home` or `/landing` |
 | `not-found.tsx` | 64 | Client | Animated 404 with Terminal icon, Home + Go Back |
 | `global-error.tsx` | 32 | Client | 500 error boundary with reset button |
@@ -387,7 +387,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 #### Layout (1 file)
 `layout/TopNav.tsx` (329 lines) — Logo, Dashboard/Problems/Learn links (BETA badges), notification bell, avatar menu, XP bar, Google link trigger
 
-#### Feature Components (8 files)
+#### Feature Components (9 files)
 | File | Lines | Purpose |
 |---|---|---|
 | `BroadcastBanner.tsx` | 170 | Color-coded, 30s polling, per-user dismiss |
@@ -400,6 +400,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `PyodideConsole.tsx` | 171 | Terminal-style (#0D0D14), Fira Code, colored output, auto-scroll |
 | `ResizableSplitPane.tsx` | 97 | Drag-resizable horizontal split |
 | `PyodidePreloader.tsx` | 9 | Eager CDN Pyodide load |
+| `DesktopOnlyOverlay.tsx` | ~100 | SSR-safe mobile overlay (< 900px), rAF debounced resize, body scroll lock |
 | `MultiFileEditor.tsx` | 290 | Tabbed multi-file editor, entry point markers |
 
 #### Auth Components (5 files)
@@ -867,6 +868,23 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 ---
 
 ## Session Log (Recent)
+
+### 2026-07-23 — Session 76: Data reset script for testing
+
+- `scripts/reset_data.sql` clears `submissions`, `submission_likes`, `feedback`, `activity_logs` only
+- Preserves accounts, XP, progress, problems, curriculum
+
+### 2026-07-23 — Session 75: Desktop-only overlay for mobile screens
+
+- `DesktopOnlyOverlay.tsx` — SSR-safe mobile overlay (< 900px), rAF debounced resize, body scroll lock
+- Uses `useState(false)` for SSR safety (no `next/dynamic`)
+- Static import in root layout
+
+### 2026-07-23 — Session 74: Register single-step + concurrency fix
+
+- `tryRefreshToken` missing `isRefreshing = true;` caused concurrent refresh → token revoked → sign-out
+- Register page simplified to single-step (name/email/password), redirects to `/onboarding`
+- 466 → 291 lines
 
 ### 2026-07-23 — Session 70: Problem edit dialog UX polish
 
