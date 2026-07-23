@@ -80,6 +80,10 @@
 | 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
 | 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
 | 74 | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews |
+| 75 | `b527df2` | feat: seeded shuffle + filter bar redesign for /problems page |
+| 76 | `ff88299` | style: add mt-2 to filter bar for top margin |
+| 77 | `4cefe19` | feat: beta-gate /problems page behind admin-only role |
+| 78 | `cf5435e` | fix: admin preview now shows rendered markdown + examples section |
 
 ---
 
@@ -2009,4 +2013,60 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `go vet/build/test ./sandbox/...` — clean
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 66: Seeded shuffle + filter bar redesign + beta gate for /problems
+
+**Commits:** `b527df2` `ff88299` `4cefe19`
+
+**1. Seeded random problem ordering (`frontend/lib/utils.ts`):**
+- Added `seededRandom(seed)` — mulberry32 PRNG for deterministic randomness
+- Added `shuffleArray(arr, seed)` — Fisher-Yates shuffle using seeded RNG
+- Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
+
+**2. Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+- Removed sidebar `aside` with Status/Difficulty/XP filter buttons
+- Replaced with top-mounted card (`bg-card border rounded-xl p-4 space-y-4 mt-2`):
+  - Search row with inline problem count badge
+  - Language tabs + Status `Select` dropdown + Difficulty `Select` dropdown + XP range inputs
+  - Active filter chips with dismiss (`×`) + "Clear all"
+- Mobile: Status/Difficulty/XP collapse into slide-in drawer ("Filters" button visible on `lg:hidden`)
+- Removed `#001` numbering from problem cards (meaningless with random order)
+
+**3. Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+- TopNav: "Problems" nav link disabled for non-admins with amber BETA badge + `cursor-not-allowed`
+- problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon, border-dashed)
+- Matches existing Learn + Best Practices beta gate pattern
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
+
+**Commits:** `cf5435e`
+
+**1. Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+- Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx`
+- Self-contained inline-styled markdown renderer (no GFM tables/blockquotes, blank lines as block separator)
+
+**2. ProblemWorkspaceClient updated:**
+- Imports `renderMarkdown` from shared module instead of defining locally
+- Removed 53 lines of duplicated functions
+
+**3. Admin preview fix (`ProblemEditPanel.tsx`):**
+- **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made it look like examples vanished.
+- **Fix:** Preview now renders:
+  - Statement via `renderMarkdown()` with `dangerouslySetInnerHTML` (was `whitespace-pre-wrap` raw text)
+  - Examples section from `problem.examples` with Input/Expected Output code blocks (matching workspace styling)
+  - Constraints and learning objective also via `renderMarkdown()`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (all touched files)
 - All pushed to `origin/update`

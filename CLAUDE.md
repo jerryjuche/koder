@@ -1177,6 +1177,39 @@ npm run build   # Builds static + server components
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 
+### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
+
+**Commits:** `cf5435e`
+
+**Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+- Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx` into shared utility
+- ProblemWorkspaceClient now imports from the shared module instead of defining locally
+
+**Admin preview fix (`ProblemEditPanel.tsx`):**
+- **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made examples look like they vanished.
+- **Fix:** Preview now renders statement via `renderMarkdown()` (was `whitespace-pre-wrap` raw text), adds examples section from `problem.examples` with Input/Expected Output code blocks, constraints and learning objective also rendered via `renderMarkdown()`
+
+---
+
+### 2026-07-22 — Session 66: Seeded shuffle + filter bar redesign + beta gate for /problems
+
+**Commits:** `b527df2` `ff88299` `4cefe19`
+
+**Seeded random problem ordering (`frontend/lib/utils.ts`):**
+- Added `seededRandom(seed)` — mulberry32 PRNG + `shuffleArray(arr, seed)` — Fisher-Yates shuffle
+- Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
+- Removed `#001` numbering from problem cards (meaningless with random order)
+
+**Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+- Replaced sidebar `aside` with top-mounted card: search + language tabs + Status/Difficulty `Select` dropdowns + XP range inputs + active filter chips with dismiss + mobile slide-in drawer
+
+**Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+- TopNav: "Problems" nav link disabled for non-admins with amber BETA badge
+- problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon)
+- Matches existing Learn + Best Practices beta gate pattern
+
+---
+
 ### 2026-07-22 — Session 65: Dashboard nav corrected (dispatchEvent) + scrollable success page previews
 
 **Commits:** `c2f0efa`
