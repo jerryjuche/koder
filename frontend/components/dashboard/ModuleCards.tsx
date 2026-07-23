@@ -275,6 +275,9 @@ export default React.memo(function ModuleCards({ modules, moduleMeta, moduleProg
   }
 
   const sorted = [...modules].sort((a, b) => {
+    const aLocked = lockedModules.has(a);
+    const bLocked = lockedModules.has(b);
+    if (aLocked !== bLocked) return aLocked ? 1 : -1;
     const aPinned = moduleMeta[a]?.is_pinned ?? false;
     const bPinned = moduleMeta[b]?.is_pinned ?? false;
     if (aPinned !== bPinned) return aPinned ? -1 : 1;
