@@ -9,9 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit, ChevronDown, ChevronRight, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit, ChevronDown, ChevronRight, Loader2, Check, AlertCircle, Terminal } from 'lucide-react';
 import { Problem, UpdateProblemPayload, AIAssistResponse, TestCase } from '@/lib/types';
 import { enrichProblem, fetchProblemTestCases, updateTestCase } from '@/lib/api';
+import { renderMarkdown } from '@/lib/markdown';
 import { toast } from '@/lib/toast';
 import AIAssistantPanel from '@/components/admin/AIAssistantPanel';
 
@@ -255,18 +256,54 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                     </span>
                   ))}
                 </div>
-                <div className="prose prose-invert max-w-none">
-                  <div className="text-sm text-brand-offwhite leading-relaxed whitespace-pre-wrap">
-                    {statement || problem.statement}
+                <div
+                  className="text-sm text-brand-offwhite leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(statement || problem.statement || ''),
+                  }}
+                />
+              </div>
+              {(problem.examples && problem.examples.length > 0) && (
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
+                  <h3 className="text-sm font-bold text-brand-success mb-3 flex items-center gap-2">
+                    <Terminal size={14} /> Examples
+                  </h3>
+                  <div className="space-y-4">
+                    {problem.examples.map((ex, idx) => (
+                      <div key={ex.id} className="bg-[#0F1115] border border-brand-charcoal-border/70 rounded-lg overflow-hidden">
+                        <div className="px-4 py-2 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50">
+                          <span className="text-xs font-bold tracking-wide text-brand-offwhite/70 uppercase">Example {idx + 1}</span>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Input</div>
+                            <code className="block font-mono text-xs text-brand-offwhite bg-[#050608] px-3 py-2 rounded border border-brand-charcoal-border/60 whitespace-pre-wrap break-words">
+                              {typeof ex.input === 'string' ? ex.input : JSON.stringify(ex.input)}
+                            </code>
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Expected Output</div>
+                            <code className="block font-mono text-xs text-brand-success bg-[#050608] px-3 py-2 rounded border border-brand-success/20 whitespace-pre-wrap break-words">
+                              {ex.expected}
+                            </code>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
               {(constraints || problem.constraints) && (
                 <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
                   <h3 className="text-sm font-bold text-brand-muted-gold mb-2 flex items-center gap-2">
                     <Braces size={14} /> Constraints
                   </h3>
-                  <p className="text-sm text-brand-offwhite whitespace-pre-wrap">{constraints || problem.constraints}</p>
+                  <div
+                    className="text-sm text-brand-offwhite leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(constraints || problem.constraints || ''),
+                    }}
+                  />
                 </div>
               )}
               {(learningObjective || problem.learningObjective) && (
@@ -274,7 +311,12 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                   <h3 className="text-sm font-bold text-[#8DB4B9] mb-2 flex items-center gap-2">
                     <BookOpen size={14} /> Learning Objective
                   </h3>
-                  <p className="text-sm text-brand-offwhite whitespace-pre-wrap">{learningObjective || problem.learningObjective}</p>
+                  <div
+                    className="text-sm text-brand-offwhite leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(learningObjective || problem.learningObjective || ''),
+                    }}
+                  />
                 </div>
               )}
             </div>
