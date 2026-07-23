@@ -4,7 +4,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Mail, ArrowLeft, Shield, CheckCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { register as registerUser, completeOnboarding, googleLogin, checkUsername } from '@/lib/api';
 import { Input } from '@/components/ui/input';
@@ -13,8 +13,6 @@ import { GoogleButton } from '@/components/auth/google-button';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { LabelInputContainer } from '@/components/auth/label-input-container';
 import { BottomGradient } from '@/components/auth/bottom-gradient';
-import { PinInput } from '@/components/base/input/pin-input';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
 
 const stepVariants = {
   enter: { opacity: 0, x: 40 },
@@ -54,20 +52,9 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [step1Errors, setStep1Errors] = useState<string[]>([]);
 
-  // Step 2 fields
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [step2Errors, setStep2Errors] = useState<string[]>([]);
-
-  const [showPin, setShowPin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const pinComplete = /^\d{6}$/.test(pin);
-  const confirmComplete = /^\d{6}$/.test(confirmPin);
-  const pinsMatch = pin === confirmPin;
-  const pinReady = pinComplete && confirmComplete && pinsMatch;
-
-  // Step 3 fields
+  // Step 2 fields
   const [username, setUsername] = useState('');
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -81,14 +68,6 @@ export default function RegisterPage() {
     if (password.length < 8) errors.push('Password must be at least 8 characters');
     if (password !== confirmPassword) errors.push('Passwords do not match');
     setStep1Errors(errors);
-    return errors.length === 0;
-  };
-
-  const validateStep2 = (): boolean => {
-    const errors: string[] = [];
-    if (!/^\d{6}$/.test(pin)) errors.push('PIN must be exactly 6 digits');
-    if (pin !== confirmPin) errors.push('PINs do not match');
-    setStep2Errors(errors);
     return errors.length === 0;
   };
 
@@ -119,12 +98,6 @@ export default function RegisterPage() {
     if (validateStep1()) setStep(2);
   };
 
-  const handleStep2Next = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    if (validateStep2()) setStep(3);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameAvailable) return;
@@ -138,7 +111,6 @@ export default function RegisterPage() {
         name: `${firstName} ${lastName}`.trim(),
         email,
         password,
-        pin,
       });
 
       if (!res.success || !res.data) {
@@ -187,9 +159,9 @@ export default function RegisterPage() {
         </motion.div>
 
         {/* Step indicator */}
-        {step < 4 && (
+        {step < 3 && (
           <div className="flex items-center gap-2 mb-4">
-            {[1, 2, 3].map((s) => (
+            {[1, 2].map((s) => (
               <div
                 key={s}
                 className={`w-2.5 h-2.5 rounded-full transition-all ${
@@ -225,47 +197,9 @@ export default function RegisterPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Shield size={20} className="text-brand-muted-gold" />
-                <h1 className="text-2xl font-bold text-brand-offwhite">Set recovery PIN</h1>
-                <button
-                  type="button"
-                  onClick={() => setShowPin((p) => !p)}
-                  className="ml-1 p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
-                  aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
-                >
-                  {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-                This 6-digit PIN is used to recover your account if you forget your password.
-              </p>
-            </motion.div>
-          )}
-          {step === 3 && (
-            <motion.div
-              key="step3-header"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
               <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Choose a username</h1>
               <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
                 This will be your public handle on Koder.
-              </p>
-            </motion.div>
-          )}
-          {step === 4 && (
-            <motion.div
-              key="step4-header"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            >
-              <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Account created!</h1>
-              <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-                Welcome to Koder, {firstName}. Start solving problems and earning XP.
               </p>
             </motion.div>
           )}
@@ -443,104 +377,6 @@ export default function RegisterPage() {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <form onSubmit={handleStep2Next} noValidate className="space-y-6">
-              {errorMsg && (
-                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                  {errorMsg}
-                </div>
-              )}
-
-              <PinInput size="md" mask={!showPin}>
-                <PinInput.Label className="text-sm font-semibold not-uppercase tracking-normal text-center w-full text-brand-offwhite-muted">Recovery PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={pin}
-                  onChange={setPin}
-                  autoFocus
-                  hasError={step2Errors.length > 0}
-                  className="mx-auto"
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-              </PinInput>
-
-              <PinInput size="md" mask={!showPin}>
-                <PinInput.Label className="text-sm font-semibold not-uppercase tracking-normal text-center w-full text-brand-offwhite-muted">Confirm PIN</PinInput.Label>
-                <PinInput.Group
-                  maxLength={6}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  value={confirmPin}
-                  onChange={setConfirmPin}
-                  hasError={(confirmPin.length > 0 && !pinsMatch) || step2Errors.length > 0}
-                  className="mx-auto"
-                >
-                  <PinInput.Slot index={0} />
-                  <PinInput.Slot index={1} />
-                  <PinInput.Slot index={2} />
-                  <PinInput.Separator />
-                  <PinInput.Slot index={3} />
-                  <PinInput.Slot index={4} />
-                  <PinInput.Slot index={5} />
-                </PinInput.Group>
-                {confirmPin.length > 0 && (
-                  <div className="flex items-center justify-center gap-1.5 mt-1">
-                    {pinsMatch && confirmComplete ? (
-                      <span className="text-green-400 text-xs font-medium flex items-center gap-1">
-                        <CheckCircle size={12} /> PINs match
-                      </span>
-                    ) : !pinsMatch ? (
-                      <span className="text-brand-error text-xs font-medium">PINs do not match</span>
-                    ) : null}
-                  </div>
-                )}
-              </PinInput>
-
-              {step2Errors.length > 0 && (
-                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 rounded-xl px-4 py-3">
-                  {step2Errors.map((err, i) => (
-                    <p key={i} className="text-brand-error text-xs">{err}</p>
-                  ))}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={!pinReady}
-                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-              >
-                Continue
-                <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-                <BottomGradient />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full text-center text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ArrowLeft size={14} />
-                Back to details
-              </button>
-            </form>
-          </motion.div>
-        )}
-
-        {step === 3 && (
-          <motion.div
-            key="step3"
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3 }}
-          >
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {errorMsg && (
                 <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
@@ -600,36 +436,19 @@ export default function RegisterPage() {
 
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(1)}
                 className="w-full text-center text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft size={14} />
-                Back to PIN
+                Back to details
               </button>
             </form>
           </motion.div>
         )}
 
-        {step === 4 && (
-          <motion.div
-            key="step4"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="text-center"
-          >
-            <button
-              onClick={() => router.push('/home')}
-              className="inline-flex items-center gap-2 bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base px-8 h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20"
-            >
-              Go to Dashboard
-              <ArrowRight size={18} />
-            </button>
-          </motion.div>
-        )}
       </AnimatePresence>
 
-      {step < 4 && (
+      {step < 3 && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

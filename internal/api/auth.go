@@ -31,10 +31,9 @@ func NewAuthHandler(store store.Store, cfg *config.Config) *AuthHandler {
 }
 
 type registerRequest struct {
-	Name         string  `json:"name"`
-	Password     string  `json:"password"`
-	Email        *string `json:"email,omitempty"`
-	Pin          string  `json:"pin"`
+	Name     string  `json:"name"`
+	Password string  `json:"password"`
+	Email    *string `json:"email,omitempty"`
 }
 
 type loginRequest struct {
@@ -91,22 +90,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Pin == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN is required", nil)
-		return
-	}
-	if matched, _ := regexp.MatchString(`^\d{6}$`, req.Pin); !matched {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN must be exactly 6 digits", nil)
-		return
-	}
-
-	// Hash the PIN with bcrypt
-	pinHash, err := auth.HashPassword(req.Pin)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "PIN_HASH_FAILED", "Unable to process PIN", nil)
-		return
-	}
-
 	// Generate temporary username and student_id
 	tempUsername := "u_" + uuid.New().String()[:8]
 
@@ -116,7 +99,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Name:      req.Name,
 		Email:     req.Email,
 		Password:  req.Password,
-		PINHash:   pinHash,
 		Role:      "student",
 	}
 

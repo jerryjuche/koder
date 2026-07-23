@@ -114,7 +114,7 @@ export default function AdminDashboard() {
 
     load();
 
-    const interval = setInterval(loadData, 60000);
+    const interval = setInterval(loadData, 7000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -133,6 +133,10 @@ export default function AdminDashboard() {
     'problem.publish-all': useCallback(() => {
       loadData();
     }, [loadData]),
+    'broadcast.created': useCallback(() => { loadData(); }, [loadData]),
+    'broadcast.updated': useCallback(() => { loadData(); }, [loadData]),
+    'broadcast.deleted': useCallback(() => { loadData(); }, [loadData]),
+    'feedback.submitted': useCallback(() => { loadData(); }, [loadData]),
   }, [loadData]);
 
   const handleIngest = async () => {
