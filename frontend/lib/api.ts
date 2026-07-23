@@ -850,7 +850,7 @@ export interface ModuleLock {
 }
 
 export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
-  return fetchApi<ModuleLock[]>("/admin/module-locks");
+  return fetchApi<ModuleLock[]>("/me/module-locks");
 }
 
 export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
