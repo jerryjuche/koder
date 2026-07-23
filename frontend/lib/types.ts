@@ -405,6 +405,14 @@ export interface Module {
   completed_lessons?: number;
 }
 
+export interface AllModule {
+  module_name: string;
+  display_name: string;
+  is_pinned: boolean;
+  is_locked: boolean;
+  problem_count: number;
+}
+
 export interface Lesson {
   id: string;
   module_id: string;

@@ -69,3 +69,42 @@ func (s *PostgresStore) SetModulePin(ctx context.Context, moduleName string, pin
 
 	return &m, nil
 }
+
+// ListAllModules returns all distinct modules from the problems table merged with module_meta and lock state.
+func (s *PostgresStore) ListAllModules(ctx context.Context) ([]AllModule, error) {
+	query := `
+		SELECT DISTINCT p.module AS module_name,
+			COALESCE(m.display_name, p.module) AS display_name,
+			COALESCE(m.is_pinned, false) AS is_pinned,
+			EXISTS(SELECT 1 FROM module_locks ml WHERE ml.module_name = p.module) AS is_locked,
+			(SELECT COUNT(*) FROM problems p2 WHERE p2.module = p.module) AS problem_count
+		FROM problems p
+		LEFT JOIN module_meta m ON m.module_name = p.module
+		UNION
+		SELECT m.module_name,
+			m.display_name,
+			m.is_pinned,
+			EXISTS(SELECT 1 FROM module_locks ml WHERE ml.module_name = m.module_name),
+			0
+		FROM module_meta m
+		WHERE NOT EXISTS (SELECT 1 FROM problems p WHERE p.module = m.module_name)
+		ORDER BY is_pinned DESC, module_name ASC`
+	rows, err := s.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all modules: %w", err)
+	}
+	defer rows.Close()
+
+	var modules []AllModule
+	for rows.Next() {
+		var m AllModule
+		if err := rows.Scan(&m.ModuleName, &m.DisplayName, &m.IsPinned, &m.IsLocked, &m.ProblemCount); err != nil {
+			return nil, fmt.Errorf("failed to scan all module: %w", err)
+		}
+		modules = append(modules, m)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("row iteration error: %w", rows.Err())
+	}
+	return modules, nil
+}

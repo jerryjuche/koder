@@ -31,6 +31,7 @@ import {
   Project,
   NewLessonSection,
   TestCase,
+  AllModule,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -46,7 +47,6 @@ async function tryRefreshToken(): Promise<boolean> {
   if (isRefreshing) {
     return new Promise((resolve) => refreshQueue.push({ resolve }));
   }
-  isRefreshing = true;
 
   let success = false;
   try {
@@ -82,6 +82,10 @@ async function tryRefreshToken(): Promise<boolean> {
     refreshQueue = [];
   }
   return success;
+}
+
+export async function fetchAllModules(): Promise<ApiResponse<AllModule[]>> {
+  return fetchApi<AllModule[]>("/admin/all-modules");
 }
 
 export async function fetchApi<T>(

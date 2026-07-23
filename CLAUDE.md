@@ -441,7 +441,7 @@ koder/
 ├── pyint.md                                   # Pyodide client-side Python playground plan
 ├── CODEBASE_INDEX.md                          # Line-level file inventory
 ├── CODEBASE_ANALYSIS.md                       # Architectural analysis
-├── SESSION_LOG.md                             # 57+ session log (June 28 - July 22)
+├── SESSION_LOG.md                             # 59+ session log (June 28 - July 23)
 ├── progress.md                                # Curriculum CMS progress tracker
 └── CLAUDE.md                                  # This file — professional codebase index
 ```
@@ -1176,6 +1176,28 @@ npm run build   # Builds static + server components
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
+
+### 2026-07-23 — Session 69: Admin module management redesign — auto-discover new modules + professional UI
+
+**Commits:** (squashed — backend + frontend)
+
+**Functional fix — new `GET /admin/all-modules` endpoint:**
+- Admin panels previously derived modules from `module_meta` (fixed seed). New modules invisible.
+- New `ListAllModules` store function returns `SELECT DISTINCT p.module` from problems, `COALESCE`d with `module_meta`, joined with `module_locks`, plus `UNION` for orphan rows.
+- 5 backend files changed: `types.go`, `store.go`, `module_meta.go`, `admin.go`, `router.go`
+- Frontend: `AllModule` type in `types.ts`, `fetchAllModules()` in `api.ts`
+
+**Problem Module Locks redesign:** Card wrapper + CodePen shadow back plate + shadcn Tabs for Go/Python + grid of module cards (display name, slug, problem count, Lock/Locked toggle, conditional Delete)
+
+**Curriculum Module Locks redesign:** Same card pattern, course collapsible sections with locked count badges, per-module lock toggles
+
+**Module Settings redesign:** Language Tabs, inline rename via Input with Enter/blur/Escape, always-visible Pin toggle
+
+**Import changes:** Replaced `fetchModuleLocks()` + `fetchModuleMeta()` + `moduleLocks`/`moduleMeta` state with `fetchAllModules()` + `allModules: AllModule[]`. Added shadcn: Card, Button, Badge, Input, Tabs.
+
+**Verification:** `go vet` clean, `tsc --noEmit` clean, `npm run lint` 0 errors
+
+---
 
 ### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
 

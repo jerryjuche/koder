@@ -2087,3 +2087,48 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - All pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 69: Admin panel module management redesign — new modules auto-appear + professional UI
+
+**Commits:** (pending — squashed)
+
+**1. Functional fix — new `GET /admin/all-modules` endpoint:**
+- **Problem:** Admin panels derived module list from `module_meta` table (fixed seed). New modules from ingested problems never appeared.
+- **Fix:** New `ListAllModules` store function returns `SELECT DISTINCT p.module` from `problems` table, `COALESCE`d with `module_meta` display names, joined with `module_locks` lock state, plus `UNION` for orphan `module_meta` rows with zero problems
+- **Backend struct:** `AllModule` — `module_name`, `display_name`, `is_pinned`, `is_locked`, `problem_count`
+- **Backend files:** `internal/store/types.go`, `internal/store/store.go`, `internal/store/module_meta.go`, `internal/api/admin.go`, `internal/api/router.go`
+- **Frontend types:** `AllModule` in `frontend/lib/types.ts`
+- **Frontend API:** `fetchAllModules()` in `frontend/lib/api.ts`
+
+**2. Problem Module Locks panel — professional redesign:**
+- Card wrapper with CodePen shadow back plate depth effect
+- shadcn Tabs for Go/Python language filtering
+- Grid of compact module cards (1→2→3 columns responsive)
+- Each card: display name (bold) + slug (muted mono), problem count badge, Lock/Locked toggle button, conditional Delete button (empty modules only)
+- Optimistic lock state updates — no re-fetch needed on toggle
+
+**3. Curriculum Module Locks panel — professional redesign:**
+- Same card wrapper + shadow back plate pattern
+- Course-level collapsible sections (`<details>`) with locked count badges
+- Per-module lock toggle as styled `Button` with Lock/LockOpen icons
+- Auto-opens courses that have locked modules
+
+**4. Module Settings panel — professional redesign:**
+- Same card wrapper + shadow back plate + language Tabs pattern
+- Inline rename via shadcn `Input` with Enter/blur save + Escape/X cancel
+- Pin toggle always visible (not hover-only) with active/inactive styling
+- Display name + slug + problem count per row
+
+**5. Import changes:**
+- Removed `fetchModuleLocks()`, `fetchModuleMeta()` — replaced by `fetchAllModules()`
+- Removed `moduleLocks` Set state, `moduleMeta` Record state — replaced by `allModules: AllModule[]`
+- Added shadcn: `Card`, `CardContent`, `Button`, `Badge`, `Input`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
+- Added lucide icons: `ShieldCheck`, `ShieldOff`, `Plus`, `X`, `Check`, `Sparkles`
+
+**Verification:**
+- `go vet ./internal/api/ ./internal/store/` — clean
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- All pushed to `origin/update`
