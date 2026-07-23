@@ -7,6 +7,7 @@ BEGIN;
 
 DELETE FROM submission_likes;
 DELETE FROM submissions;
+DELETE FROM feedback;
 DELETE FROM activity_logs;
 
 COMMIT;
