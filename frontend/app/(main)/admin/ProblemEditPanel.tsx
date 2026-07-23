@@ -208,7 +208,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-4xl")}>
+      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-5xl")}>
         <DialogHeader className="shrink-0 border-b border-brand-charcoal-border pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
 
         <div className="flex-1 flex overflow-hidden">
           <div className={cn(
-            "flex-1 overflow-y-auto scrollbar-thin space-y-6 py-5 px-1 transition-all duration-300",
+            "flex-1 overflow-y-auto scrollbar-thin space-y-4 py-5 px-1 transition-all duration-300",
             aiPanelOpen && "pr-0"
           )}>
           {livePreview ? (
@@ -357,7 +357,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
               {/* Description */}
               <Section icon={<BookOpen size={16} />} title="Description">
                 <Field label="Statement">
-                  <textarea value={statement} onChange={e => setStatement(e.target.value)} className="input-field min-h-[200px] font-mono text-sm leading-relaxed" placeholder="Problem statement in markdown..." />
+                  <textarea value={statement} onChange={e => setStatement(e.target.value)} className="input-field min-h-[350px] font-mono text-sm leading-relaxed" placeholder="Problem statement in markdown..." />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Constraints">
@@ -501,40 +501,40 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
       </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-brand-charcoal-border pt-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
-            <Hash size={12} />
-            <span>ID: <span className="font-mono">{problem.id.substring(0, 8)}...</span></span>
+        <div className="shrink-0 border-t border-brand-charcoal-border pt-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted min-w-0">
+            <Hash size={12} className="shrink-0" />
+            <span className="truncate">ID: <span className="font-mono">{problem.id.substring(0, 8)}...</span></span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => setAiPanelOpen(!aiPanelOpen)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-2",
+                "px-3 py-2 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5",
                 aiPanelOpen
                   ? "bg-brand-cool-accent/10 text-brand-cool-accent border-brand-cool-accent/30"
                   : "bg-brand-charcoal-base text-brand-offwhite-muted hover:text-brand-offwhite border-brand-charcoal-border hover:bg-brand-charcoal-hover"
               )}
               aria-label={aiPanelOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
             >
-              <BrainCircuit size={16} />
-              AI Assistant
+              <BrainCircuit size={14} />
+              AI
             </button>
             <button
               onClick={handleEnrich}
               disabled={enriching}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-[#1A2521] text-brand-success border border-brand-success/30 hover:bg-brand-success/10 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-3 py-2 rounded-lg text-xs font-medium bg-[#1A2521] text-brand-success border border-brand-success/30 hover:bg-brand-success/10 transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              {enriching ? <Activity size={16} className="animate-spin" /> : <Wand2 size={16} />}
-              {enriching ? 'Enriching...' : 'Enrich with AI'}
+              {enriching ? <Activity size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {enriching ? 'Enriching...' : 'Enrich'}
             </button>
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-brand-offwhite-muted hover:text-brand-offwhite border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors flex items-center gap-2">
-              <X size={16} /> Cancel
+            <button onClick={onClose} className="px-3 py-2 rounded-lg text-xs font-medium text-brand-offwhite-muted hover:text-brand-offwhite border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors flex items-center gap-1.5">
+              <X size={14} /> Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-5 py-2 rounded-lg text-sm font-medium bg-brand-muted-gold text-brand-charcoal-base hover:bg-brand-muted-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg text-sm font-bold bg-brand-muted-gold text-brand-charcoal-base hover:bg-brand-muted-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-brand-muted-gold/20"
             >
               {saving ? <Activity size={16} className="animate-spin" /> : <Save size={16} />}
               {saving ? 'Saving...' : 'Save Changes'}
