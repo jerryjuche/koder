@@ -16,7 +16,6 @@
 | **Auth** | golang-jwt/v5 (HS256), bcrypt (cost=12), Google Identity Services | JWT tokens with rotation, password hashing, OAuth |
 | **AI** | NVIDIA NIM (DeepSeek V4 Flash) | Test case generation + 8-action admin AI assist |
 | **Execution** | Remote sandbox (Railway) + local Docker fallback | Isolated `go test` / `python3` execution, semaphore=6 |
-| **Background** | Three.js 0.185, custom GLSL shaders | PixelSnow — WebGL pixel snow background on root layout |
 | **Real-time** | gorilla/websocket, in-memory pub/sub | Live XP/progress/broadcast WebSocket events |
 | **Frontend** | Next.js 15, React 19, Tailwind CSS 4 | App Router, server components, shadcn/ui, Monaco Editor |
 | **Client Python** | Pyodide v0.27.4 (CDN) | In-browser Python playground & lesson exercises |
@@ -230,7 +229,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 #### Root (4 files)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `layout.tsx` | 37 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics, DesktopOnlyOverlay, PixelSnow background |
+| `layout.tsx` | 37 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics, DesktopOnlyOverlay |
 | `page.tsx` | 75 | Client | Loading guard → fetchUser → MultiStepLoader → `/home` or `/landing` |
 | `not-found.tsx` | 64 | Client | Animated 404 with Terminal icon, Home + Go Back |
 | `global-error.tsx` | 32 | Client | 500 error boundary with reset button |
@@ -403,7 +402,6 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `ResizableSplitPane.tsx` | 97 | Drag-resizable horizontal split |
 | `PyodidePreloader.tsx` | 9 | Eager CDN Pyodide load |
 | `DesktopOnlyOverlay.tsx` | ~100 | SSR-safe mobile overlay (< 900px), rAF debounced resize, body scroll lock |
-| `PixelSnow.tsx` | ~230 | Fullscreen WebGL pixel snow background — Three.js + custom GLSL shader |
 | `MultiFileEditor.tsx` | 290 | Tabbed multi-file editor, entry point markers |
 
 #### Auth Components (5 files)
