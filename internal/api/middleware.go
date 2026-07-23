@@ -492,6 +492,7 @@ func SecurityHeadersMiddleware(cfg *config.Config) func(http.Handler) http.Handl
 			)
 
 			w.Header().Set("Content-Security-Policy", csp)
+			w.Header().Set("Cross-Origin-Opener-Policy", "cross-origin")
 			w.Header().Set("X-Frame-Options", "DENY")
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
