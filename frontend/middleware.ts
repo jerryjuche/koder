@@ -25,6 +25,7 @@ export function middleware(request: NextRequest) {
   `.replace(/\s+/g, ' ').trim();
 
   response.headers.set('Content-Security-Policy', csp);
+  response.headers.set('Cross-Origin-Opener-Policy', 'cross-origin');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
