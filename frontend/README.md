@@ -1,20 +1,29 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Koder Frontend
 
-# Run and deploy your AI Studio app
+Next.js 15 (App Router, React 19) frontend for the Koder automated code-grading platform. Features a Monaco Editor workspace, Pyodide client-side Python execution, curriculum CMS, and real-time WebSocket updates.
 
-This contains everything you need to run your app locally.
+## Setup
 
-View your app in AI Studio: https://ai.studio/apps/7c89cf04-0788-427a-87ec-9e9555e27583
+```bash
+npm install
+cp .env.example .env.local
+# Set NEXT_PUBLIC_API_URL (default http://localhost:8080)
+# Set NEXT_PUBLIC_GOOGLE_CLIENT_ID
+npm run dev
+```
 
-## Run Locally
+## Build
 
-**Prerequisites:**  Node.js
+```bash
+npm run build    # Copies Monaco workers + builds Next.js
+npm run start    # Production server
+```
 
+## Scripts
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+| Script | Command |
+|---|---|
+| `dev` | `next dev` |
+| `build` | `node scripts/copy-monaco.mjs && next build` |
+| `lint` | `eslint .` |
+| `clean` | `next clean` |

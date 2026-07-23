@@ -5,14 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Editor, { loader } from "@monaco-editor/react";
 
-import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
-
 // This eliminates network dependency — faster load, works offline after first visit
 loader.config({ paths: { vs: "/vs" } });
-loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
+
 import {
   ChevronLeft,
   Play,
@@ -36,6 +31,7 @@ import {
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
+import { renderMarkdown } from "@/lib/markdown";
 import {
   fetchProblem,
   submitSolution,
@@ -45,6 +41,7 @@ import {
   updateProblem,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { clearCache } from "@/lib/cache";
 import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
@@ -210,6 +207,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   });
   const { user } = useUser();
 
+  const returnTo = typeof window !== "undefined"
+    ? sessionStorage.getItem("return_to") || "/home"
+    : "/home";
+
   useEffect(() => {
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
@@ -225,9 +226,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
-        // Only overwrite code with scaffold if no saved code exists in localStorage
+        // Restore saved code if it exists, otherwise use scaffold
         const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
-        if (!stored) {
+        if (stored) {
+          setCode(stored);
+        } else {
           setCode(scaffold);
         }
         setScaffoldAtToggle(scaffold);
@@ -255,18 +258,23 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [code, slug, problem, activeLanguage]);
 
+
+
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (e.shiftKey) handleSubmitRef.current();
-        else handleTestRef.current();
+        if (e.shiftKey) {
+          handleSubmitRef.current();
+        } else {
+          handleTestRef.current();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [activeLanguage]);
 
   const handleReset = () => {
     let fresh = generateScaffold(problem, activeLanguage);
@@ -354,6 +362,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           toast.success("Solution accepted!");
           window.dispatchEvent(new Event("user-updated"));
           sessionStorage.setItem(`koder_solution_${slug}`, code);
+          sessionStorage.setItem(`koder_solution_lang_${slug}`, activeLanguage);
           if (problem)
             sessionStorage.setItem(
               `koder_problem_${slug}`,
@@ -448,7 +457,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     setSubmitting(false);
   }
-
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
@@ -499,18 +507,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       };
       const res = await updateProblem(String(problem.id), payload);
       if (res.success) {
+        clearCache(`/problems/${problem.slug}`);
         toast.success("Problem updated successfully");
-        setProblem({
-          ...problem,
-          title: payload.title ?? problem.title,
-          statement: payload.statement ?? problem.statement,
-          difficulty: payload.difficulty ?? problem.difficulty,
-          xpReward: payload.xp_reward ?? problem.xpReward,
-          tags: payload.tags ?? problem.tags,
-          module: payload.module ?? problem.module,
-          constraints: payload.constraints ?? problem.constraints,
-          learningObjective: payload.learning_objective ?? problem.learningObjective,
-        });
+        if (res.data) {
+          setProblem(res.data);
+        }
         setEditOpen(false);
       } else {
         toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
@@ -544,32 +545,23 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
-            href={`/home?module=${encodeURIComponent(problem.module)}`}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors"
+            href={returnTo}
+            className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
           >
-            <ChevronLeft size={16} /> Problems
+            <ChevronLeft size={16} /> Back
           </Link>
-          <div className="w-px h-5 bg-brand-charcoal-border"></div>
-          <div className="flex items-center gap-3">
-            <span className="font-bold">{problem.title}</span>
-            <span
-              className={cn(
-                "text-xs font-bold",
-                getDifficultyColor(problem.difficulty),
-              )}
-            >
-              {getDifficultyLabel(problem.difficulty)}
-            </span>
-            
-            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border">
+          <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-bold truncate">{problem.title}</span>
+            <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold bg-brand-muted-gold/10 px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 mr-2">
             <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
@@ -578,9 +570,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           <button
-            onClick={() =>
-              setPanelMode(panelMode === "hints" ? "tests" : "hints")
-            }
+            onClick={() => setPanelMode(panelMode === "hints" ? "tests" : "hints")}
             className={cn(
               "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
               panelMode === "hints"
@@ -747,16 +737,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
                 <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-6 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-brand-muted-gold/5">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70"></div>
-                  <div className="prose prose-invert prose-brand prose-sm sm:prose-base max-w-none text-brand-offwhite-muted leading-relaxed prose-pre:bg-[#0B0B0B] prose-pre:border prose-pre:border-brand-charcoal-border prose-a:text-brand-muted-gold hover:prose-a:text-brand-offwhite transition-colors">
-                    <Markdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeSanitize]}
-                    >
-                      {problem?.statement ||
-                        problem?.descriptionMarkdown ||
-                        "No problem statement available yet. This exercise is pending enrichment."}
-                    </Markdown>
-                  </div>
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(
+                        problem?.statement ||
+                          problem?.descriptionMarkdown ||
+                          "No problem statement available yet. This exercise is pending enrichment."
+                      ),
+                    }}
+                  />
                 </div>
               </div>
 
@@ -1015,7 +1004,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="vs-dark-plus"
+              theme="vs-dark"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -1034,729 +1023,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
-
-                registerVSCodeDarkPlusTheme(monaco);
-                const pkgMethods: Record<
-                  string,
-                  { label: string; detail: string; insertText: string }[]
-                > = {
-                  fmt: [
-                    {
-                      label: "Println(a ...any)",
-                      detail: "fmt.Println",
-                      insertText: "Println(${1:})",
-                    },
-                    {
-                      label: "Printf(format string, a ...any)",
-                      detail: "fmt.Printf",
-                      insertText: 'Printf("${1:}\\n", ${2:})',
-                    },
-                    {
-                      label: "Sprintf(format string, a ...any)",
-                      detail: "fmt.Sprintf",
-                      insertText: 'Sprintf("${1:}\\n", ${2:})',
-                    },
-                    {
-                      label: "Fprint(w io.Writer, a ...any)",
-                      detail: "fmt.Fprint",
-                      insertText: "Fprint(${1:w}, ${2:})",
-                    },
-                    {
-                      label: "Fprintln(w io.Writer, a ...any)",
-                      detail: "fmt.Fprintln",
-                      insertText: "Fprintln(${1:w}, ${2:})",
-                    },
-                    {
-                      label: "Errorf(format string, a ...any)",
-                      detail: "fmt.Errorf",
-                      insertText: 'Errorf("${1:}\\n", ${2:})',
-                    },
-                    {
-                      label: "Scan(a ...any)",
-                      detail: "fmt.Scan",
-                      insertText: "Scan(${1:})",
-                    },
-                    {
-                      label: "Scanf(format string, a ...any)",
-                      detail: "fmt.Scanf",
-                      insertText: 'Scanf("${1:}", ${2:})',
-                    },
-                    {
-                      label: "Sscan(str string, a ...any)",
-                      detail: "fmt.Sscan",
-                      insertText: 'Sscan("${1:}", ${2:})',
-                    },
-                  ],
-                  strings: [
-                    {
-                      label: "Contains(s, substr string) bool",
-                      detail: "strings.Contains",
-                      insertText: "Contains(${1:s}, ${2:substr})",
-                    },
-                    {
-                      label: "Count(s, substr string) int",
-                      detail: "strings.Count",
-                      insertText: "Count(${1:s}, ${2:substr})",
-                    },
-                    {
-                      label: "HasPrefix(s, prefix string) bool",
-                      detail: "strings.HasPrefix",
-                      insertText: "HasPrefix(${1:s}, ${2:prefix})",
-                    },
-                    {
-                      label: "HasSuffix(s, suffix string) bool",
-                      detail: "strings.HasSuffix",
-                      insertText: "HasSuffix(${1:s}, ${2:suffix})",
-                    },
-                    {
-                      label: "Index(s, substr string) int",
-                      detail: "strings.Index",
-                      insertText: "Index(${1:s}, ${2:substr})",
-                    },
-                    {
-                      label: "Join(elems []string, sep string) string",
-                      detail: "strings.Join",
-                      insertText: 'Join(${1:elems}, "${2:sep}")',
-                    },
-                    {
-                      label: "Split(s, sep string) []string",
-                      detail: "strings.Split",
-                      insertText: 'Split(${1:s}, "${2:sep}")',
-                    },
-                    {
-                      label: "ToLower(s string) string",
-                      detail: "strings.ToLower",
-                      insertText: "ToLower(${1:s})",
-                    },
-                    {
-                      label: "ToUpper(s string) string",
-                      detail: "strings.ToUpper",
-                      insertText: "ToUpper(${1:s})",
-                    },
-                    {
-                      label: "Trim(s, cutset string) string",
-                      detail: "strings.Trim",
-                      insertText: 'Trim(${1:s}, "${2:cutset}")',
-                    },
-                    {
-                      label: "TrimSpace(s string) string",
-                      detail: "strings.TrimSpace",
-                      insertText: "TrimSpace(${1:s})",
-                    },
-                    {
-                      label: "Replace(s, old, new string, n int) string",
-                      detail: "strings.Replace",
-                      insertText:
-                        'Replace(${1:s}, "${2:old}", "${3:new}", ${4:n})',
-                    },
-                    {
-                      label: "Fields(s string) []string",
-                      detail: "strings.Fields",
-                      insertText: "Fields(${1:s})",
-                    },
-                  ],
-                  math: [
-                    {
-                      label: "Abs(x float64) float64",
-                      detail: "math.Abs",
-                      insertText: "Abs(${1:x})",
-                    },
-                    {
-                      label: "Pow(x, y float64) float64",
-                      detail: "math.Pow",
-                      insertText: "Pow(${1:x}, ${2:y})",
-                    },
-                    {
-                      label: "Sqrt(x float64) float64",
-                      detail: "math.Sqrt",
-                      insertText: "Sqrt(${1:x})",
-                    },
-                    {
-                      label: "Max(x, y float64) float64",
-                      detail: "math.Max",
-                      insertText: "Max(${1:x}, ${2:y})",
-                    },
-                    {
-                      label: "Min(x, y float64) float64",
-                      detail: "math.Min",
-                      insertText: "Min(${1:x}, ${2:y})",
-                    },
-                    {
-                      label: "Floor(x float64) float64",
-                      detail: "math.Floor",
-                      insertText: "Floor(${1:x})",
-                    },
-                    {
-                      label: "Ceil(x float64) float64",
-                      detail: "math.Ceil",
-                      insertText: "Ceil(${1:x})",
-                    },
-                    {
-                      label: "Round(x float64) float64",
-                      detail: "math.Round",
-                      insertText: "Round(${1:x})",
-                    },
-                    {
-                      label: "Sin(x float64) float64",
-                      detail: "math.Sin",
-                      insertText: "Sin(${1:x})",
-                    },
-                    {
-                      label: "Cos(x float64) float64",
-                      detail: "math.Cos",
-                      insertText: "Cos(${1:x})",
-                    },
-                    {
-                      label: "Exp(x float64) float64",
-                      detail: "math.Exp",
-                      insertText: "Exp(${1:x})",
-                    },
-                    {
-                      label: "Log(x float64) float64",
-                      detail: "math.Log",
-                      insertText: "Log(${1:x})",
-                    },
-                  ],
-                  sort: [
-                    {
-                      label: "Ints(a []int)",
-                      detail: "sort.Ints",
-                      insertText: "Ints(${1:a})",
-                    },
-                    {
-                      label: "Strings(a []string)",
-                      detail: "sort.Strings",
-                      insertText: "Strings(${1:a})",
-                    },
-                    {
-                      label: "Float64s(a []float64)",
-                      detail: "sort.Float64s",
-                      insertText: "Float64s(${1:a})",
-                    },
-                    {
-                      label: "SearchInts(a []int, x int) int",
-                      detail: "sort.SearchInts",
-                      insertText: "SearchInts(${1:a}, ${2:x})",
-                    },
-                    {
-                      label: "SearchStrings(a []string, x string) int",
-                      detail: "sort.SearchStrings",
-                      insertText: 'SearchStrings(${1:a}, "${2:x}")',
-                    },
-                    {
-                      label: "Slice(x any, less func(i, j int) bool)",
-                      detail: "sort.Slice",
-                      insertText:
-                        "Slice(${1:x}, func(i, j int) bool { return ${2:} })",
-                    },
-                    {
-                      label: "IsSorted(data Interface) bool",
-                      detail: "sort.IsSorted",
-                      insertText: "IsSorted(${1:data})",
-                    },
-                    {
-                      label: "Reverse(data Interface) Interface",
-                      detail: "sort.Reverse",
-                      insertText: "Reverse(${1:data})",
-                    },
-                  ],
-                  os: [
-                    {
-                      label: "Getenv(key string) string",
-                      detail: "os.Getenv",
-                      insertText: 'Getenv("${1:key}")',
-                    },
-                    {
-                      label: "Setenv(key, value string) error",
-                      detail: "os.Setenv",
-                      insertText: 'Setenv("${1:key}", "${2:value}")',
-                    },
-                    {
-                      label: "Getwd() (string, error)",
-                      detail: "os.Getwd",
-                      insertText: "Getwd()",
-                    },
-                    {
-                      label: "Chdir(dir string) error",
-                      detail: "os.Chdir",
-                      insertText: 'Chdir("${1:dir}")',
-                    },
-                    {
-                      label: "Exit(code int)",
-                      detail: "os.Exit",
-                      insertText: "Exit(${1:code})",
-                    },
-                    {
-                      label: "ReadFile(name string) ([]byte, error)",
-                      detail: "os.ReadFile",
-                      insertText: 'ReadFile("${1:name}")',
-                    },
-                    {
-                      label:
-                        "WriteFile(name string, data []byte, perm FileMode) error",
-                      detail: "os.WriteFile",
-                      insertText:
-                        'WriteFile("${1:name}", ${2:data}, ${3:0644})',
-                    },
-                  ],
-                  strconv: [
-                    {
-                      label: "Atoi(s string) (int, error)",
-                      detail: "strconv.Atoi",
-                      insertText: "Atoi(${1:s})",
-                    },
-                    {
-                      label: "Itoa(i int) string",
-                      detail: "strconv.Itoa",
-                      insertText: "Itoa(${1:i})",
-                    },
-                    {
-                      label:
-                        "ParseFloat(s string, bitSize int) (float64, error)",
-                      detail: "strconv.ParseFloat",
-                      insertText: 'ParseFloat("${1:s}", ${2:bitSize})',
-                    },
-                    {
-                      label:
-                        "FormatFloat(f float64, fmt byte, prec, bitSize int) string",
-                      detail: "strconv.FormatFloat",
-                      insertText:
-                        "FormatFloat(${1:f}, '${2:f}', ${3:-1}, ${4:64})",
-                    },
-                  ],
-                  time: [
-                    {
-                      label: "Now() Time",
-                      detail: "time.Now",
-                      insertText: "Now()",
-                    },
-                    {
-                      label: "Since(t Time) Duration",
-                      detail: "time.Since",
-                      insertText: "Since(${1:t})",
-                    },
-                    {
-                      label: "Sleep(d Duration)",
-                      detail: "time.Sleep",
-                      insertText: "Sleep(${1:d})",
-                    },
-                    {
-                      label: "Parse(layout, value string) (Time, error)",
-                      detail: "time.Parse",
-                      insertText: 'Parse("${1:2006-01-02}", "${2:value}")',
-                    },
-                  ],
-                  errors: [
-                    {
-                      label: "New(text string) error",
-                      detail: "errors.New",
-                      insertText: 'New("${1:text}")',
-                    },
-                    {
-                      label: "As(err error, target any) bool",
-                      detail: "errors.As",
-                      insertText: "As(${1:err}, ${2:target})",
-                    },
-                    {
-                      label: "Is(err, target error) bool",
-                      detail: "errors.Is",
-                      insertText: "Is(${1:err}, ${2:target})",
-                    },
-                    {
-                      label: "Unwrap(err error) error",
-                      detail: "errors.Unwrap",
-                      insertText: "Unwrap(${1:err})",
-                    },
-                  ],
-                  "encoding/json": [
-                    {
-                      label: "Marshal(v any) ([]byte, error)",
-                      detail: "json.Marshal",
-                      insertText: "Marshal(${1:v})",
-                    },
-                    {
-                      label: "Unmarshal(data []byte, v any) error",
-                      detail: "json.Unmarshal",
-                      insertText: "Unmarshal(${1:data}, ${2:v})",
-                    },
-                    {
-                      label: "NewDecoder(r io.Reader) *Decoder",
-                      detail: "json.NewDecoder",
-                      insertText: "NewDecoder(${1:r})",
-                    },
-                    {
-                      label: "NewEncoder(w io.Writer) *Encoder",
-                      detail: "json.NewEncoder",
-                      insertText: "NewEncoder(${1:w})",
-                    },
-                  ],
-                };
-
-                monaco.languages.registerHoverProvider("go", {
-                  provideHover: (model: any, position: any) => {
-                    const word = model.getWordAtPosition(position);
-                    if (!word) return null;
-                    const lineContent = model.getLineContent(
-                      position.lineNumber,
-                    );
-                    const beforeMatch = lineContent
-                      .slice(0, word.startColumn - 1)
-                      .match(/(\w+)\.\s*$/);
-                    if (beforeMatch) {
-                      const pkgName = beforeMatch[1];
-                      const fnName = word.word;
-                      const methods = pkgMethods[pkgName];
-                      if (methods) {
-                        const match = methods.find((m) =>
-                          m.label.startsWith(fnName),
-                        );
-                        if (match) {
-                          return {
-                            contents: [
-                              { value: `**${match.detail}**` },
-                              {
-                                value: `\`\`\`go\nfunc ${match.label}\n\`\`\``,
-                              },
-                            ],
-                          };
-                        }
-                      }
-                    }
-                    return null;
-                  },
-                });
-
-                const goSnippets = [
-                  {
-                    label: "for",
-                    insertText: "for i := 0; i < ${1:n}; i++ {\n\t${0}\n}",
-                    detail: "For loop (classic)",
-                  },
-                  {
-                    label: "forr",
-                    insertText: "for ${1:_}, ${2:v} := range ${3:collection} {\n\t${0}\n}",
-                    detail: "For range loop",
-                  },
-                  {
-                    label: "iferr",
-                    insertText: "if ${1:err} != nil {\n\treturn ${0}\n}",
-                    detail: "If err != nil guard",
-                  },
-                  {
-                    label: "fn",
-                    insertText: "func ${1:name}(${2:args}) ${3:return} {\n\t${0}\n}",
-                    detail: "Function declaration",
-                  },
-                  {
-                    label: "switch",
-                    insertText: "switch ${1:expr} {\ncase ${2}:\n\t${0}\n}",
-                    detail: "Switch statement",
-                  },
-                  {
-                    label: "struct",
-                    insertText: "type ${1:Name} struct {\n\t${0}\n}",
-                    detail: "Struct type definition",
-                  },
-                  {
-                    label: "main",
-                    insertText: "func main() {\n\t${0}\n}",
-                    detail: "Main function",
-                  },
-                  {
-                    label: "type",
-                    insertText: "type ${1:Name} ${2:underlyingType}",
-                    detail: "Type definition",
-                  },
-                ];
-
-                monaco.languages.registerCompletionItemProvider("go", {
-                  triggerCharacters: ["."],
-                  provideCompletionItems: (model: any, position: any) => {
-                    const word = model.getWordUntilPosition(position);
-                    const range = {
-                      startLineNumber: position.lineNumber,
-                      endLineNumber: position.lineNumber,
-                      startColumn: word.startColumn,
-                      endColumn: position.column,
-                    };
-
-                    const textUntilPos = model.getValueInRange({
-                      startLineNumber: position.lineNumber,
-                      startColumn: 1,
-                      endLineNumber: position.lineNumber,
-                      endColumn: position.column,
-                    });
-
-                    const dotMatch = textUntilPos.match(/(\w+)\.\s*$/);
-
-                    if (dotMatch) {
-                      const pkgName = dotMatch[1];
-                      const methods = pkgMethods[pkgName];
-                      if (methods) {
-                        return {
-                          suggestions: methods.map((m) => ({
-                            label: m.label,
-                            kind: monaco.languages.CompletionItemKind.Function,
-                            insertText: m.insertText,
-                            insertTextRules:
-                              monaco.languages.CompletionItemInsertTextRule
-                                .InsertAsSnippet,
-                            range,
-                            detail: m.detail,
-                          })),
-                        };
-                      }
-                      return { suggestions: [] };
-                    }
-
-                    // Snippets available via Ctrl+Space
-                    const suggestions = goSnippets.map((s) => ({
-                      label: s.label,
-                      kind: monaco.languages.CompletionItemKind.Snippet,
-                      insertText: s.insertText,
-                      insertTextRules:
-                        monaco.languages.CompletionItemInsertTextRule
-                          .InsertAsSnippet,
-                      range,
-                      detail: s.detail,
-                    }));
-
-                    return { suggestions };
-                  },
-                });
-
-                const pythonKeywords = [
-                  "False",
-                  "None",
-                  "True",
-                  "and",
-                  "as",
-                  "assert",
-                  "async",
-                  "await",
-                  "break",
-                  "class",
-                  "continue",
-                  "def",
-                  "del",
-                  "elif",
-                  "else",
-                  "except",
-                  "finally",
-                  "for",
-                  "from",
-                  "global",
-                  "if",
-                  "import",
-                  "in",
-                  "is",
-                  "lambda",
-                  "nonlocal",
-                  "not",
-                  "or",
-                  "pass",
-                  "raise",
-                  "return",
-                  "try",
-                  "while",
-                  "with",
-                  "yield",
-                ];
-
-                const pythonBuiltins = [
-                  "abs",
-                  "all",
-                  "any",
-                  "bin",
-                  "bool",
-                  "chr",
-                  "dict",
-                  "dir",
-                  "enumerate",
-                  "filter",
-                  "float",
-                  "format",
-                  "frozenset",
-                  "getattr",
-                  "hasattr",
-                  "hash",
-                  "hex",
-                  "id",
-                  "input",
-                  "int",
-                  "isinstance",
-                  "issubclass",
-                  "iter",
-                  "len",
-                  "list",
-                  "map",
-                  "max",
-                  "min",
-                  "next",
-                  "object",
-                  "oct",
-                  "open",
-                  "ord",
-                  "pow",
-                  "print",
-                  "range",
-                  "repr",
-                  "reversed",
-                  "round",
-                  "set",
-                  "slice",
-                  "sorted",
-                  "str",
-                  "sum",
-                  "tuple",
-                  "type",
-                  "vars",
-                  "zip",
-                ];
-
-                const pythonStdlibHints: Record<string, string> = {
-                  len: "Return the number of items in a container.",
-                  range:
-                    "Return an object that produces a sequence of integers from start (inclusive) to stop (exclusive).",
-                  enumerate:
-                    "Return an enumerate object yielding pairs of index and value.",
-                  zip: "Iterate over several iterables in parallel.",
-                  map: "Return an iterator that applies function to every item of iterable.",
-                  filter:
-                    "Return an iterator yielding items of iterable for which function returns true.",
-                  sorted:
-                    "Return a new sorted list from the items in iterable.",
-                  reversed: "Return a reverse iterator.",
-                  print:
-                    "Prints values to a stream, or to sys.stdout by default.",
-                  isinstance:
-                    "Return whether an object is an instance of a class or of a subclass thereof.",
-                  int: "Return an integer object constructed from a number or string.",
-                  str: "Return a string object.",
-                  bool: "Return a Boolean value.",
-                  list: "Rather than being a function, list is a mutable sequence type.",
-                  dict: "Rather than being a function, dict is a mapping type.",
-                };
-
-                const pythonSnippets = [
-                  {
-                    label: "def",
-                    insertText: "def ${1:name}(${2:args}):\n\t${0}\n",
-                    detail: "Function definition",
-                  },
-                  {
-                    label: "for",
-                    insertText: "for ${1:item} in ${2:collection}:\n\t${0}\n",
-                    detail: "For loop",
-                  },
-                  {
-                    label: "fori",
-                    insertText: "for ${1:i} in range(${2:n}):\n\t${0}\n",
-                    detail: "For i in range loop",
-                  },
-                  {
-                    label: "ifmain",
-                    insertText: "if __name__ == \"__main__\":\n\t${0}\n",
-                    detail: "Main guard",
-                  },
-                  {
-                    label: "if",
-                    insertText: "if ${1:condition}:\n\t${0}\n",
-                    detail: "If statement",
-                  },
-                  {
-                    label: "else",
-                    insertText: "else:\n\t${0}\n",
-                    detail: "Else statement",
-                  },
-                  {
-                    label: "elif",
-                    insertText: "elif ${1:condition}:\n\t${0}\n",
-                    detail: "Elif statement",
-                  },
-                  {
-                    label: "class",
-                    insertText: "class ${1:Name}:\n\tdef __init__(self${2:, args}):\n\t\t${0}\n",
-                    detail: "Class definition",
-                  },
-                  {
-                    label: "try",
-                    insertText: "try:\n\t${1}\nexcept ${2:Exception} as e:\n\t${0}\n",
-                    detail: "Try except block",
-                  },
-                  {
-                    label: "with",
-                    insertText: "with ${1:open}(${2:args}) as ${3:var}:\n\t${0}\n",
-                    detail: "With statement",
-                  },
-                  {
-                    label: "compr",
-                    insertText: "[${1:expr} for ${2:item} in ${3:collection}]",
-                    detail: "List comprehension",
-                  },
-                  {
-                    label: "enum",
-                    insertText: "for ${1:i}, ${2:item} in enumerate(${3:collection}):\n\t${0}\n",
-                    detail: "Enumerate loop",
-                  },
-                ];
-
-                monaco.languages.registerCompletionItemProvider("python", {
-                  triggerCharacters: ["."],
-                  provideCompletionItems: (model: any, position: any) => {
-                    const word = model.getWordUntilPosition(position);
-                    const range = {
-                      startLineNumber: position.lineNumber,
-                      endLineNumber: position.lineNumber,
-                      startColumn: word.startColumn,
-                      endColumn: position.column,
-                    };
-                    const suggestions = [
-                      ...pythonSnippets.map((s) => ({
-                        label: s.label,
-                        kind: monaco.languages.CompletionItemKind.Snippet,
-                        insertText: s.insertText,
-                        insertTextRules:
-                          monaco.languages.CompletionItemInsertTextRule
-                            .InsertAsSnippet,
-                        range,
-                        detail: s.detail,
-                      })),
-                      ...pythonBuiltins.map((fn) => ({
-                        label: fn,
-                        kind: monaco.languages.CompletionItemKind.Function,
-                        insertText: fn,
-                        range,
-                        detail: pythonStdlibHints[fn] || "Python built-in",
-                      })),
-                    ];
-                    return { suggestions };
-                  },
-                });
-
-                monaco.languages.registerHoverProvider("python", {
-                  provideHover: (model: any, position: any) => {
-                    const word = model.getWordAtPosition(position);
-                    if (!word) return null;
-                    const hint = pythonStdlibHints[word.word];
-                    if (hint) {
-                      return {
-                        contents: [
-                          { value: `**${word.word}**` },
-                          { value: `\`\`\`\n${hint}\n\`\`\`` },
-                        ],
-                      };
-                    }
-                    if (pythonKeywords.includes(word.word)) {
-                      return {
-                        contents: [
-                          { value: `**${word.word}** — Python keyword` },
-                        ],
-                      };
-                    }
-                    return null;
-                  },
-                });
 
                 editor.addAction({
                   id: "koder-format",
@@ -1798,21 +1064,18 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 hideCursorInOverviewRuler: false,
                 bracketPairColorization: { enabled: true },
                 matchBrackets: "always",
-                autoClosingBrackets: "always",
-                autoClosingQuotes: "always",
+                autoClosingBrackets: "never",
+                autoClosingQuotes: "never",
                 autoIndent: "full",
                 formatOnPaste: true,
                 tabSize: 4,
                 insertSpaces: true,
-                quickSuggestions: {
-                  other: true,
-                  comments: false,
-                  strings: false,
-                },
-                snippetSuggestions: "inline",
-                suggestOnTriggerCharacters: true,
-                acceptSuggestionOnEnter: "smart",
-                suggestSelection: "first",
+                quickSuggestions: false,
+                snippetSuggestions: "none",
+                suggestOnTriggerCharacters: false,
+                acceptSuggestionOnEnter: "off",
+                suggestSelection: "recentlyUsed",
+                parameterHints: { enabled: false },
                 wordWrap: "off",
                 folding: true,
                 foldingHighlight: true,
@@ -1831,10 +1094,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           />
         </div>
 
-        {/* Right: Hints Panel (Collapsible) */}
+        {/* Right: Hints Panel */}
         {panelMode === "hints" && (
-          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-y-auto custom-scrollbar">
-            <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between">
+          <div className="w-80 shrink-0 border-l border-brand-charcoal-border bg-brand-charcoal-card animate-in slide-in-from-right overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-brand-charcoal-border flex items-center justify-between shrink-0">
               <div className="font-bold flex items-center gap-2 text-brand-muted-gold">
                 <Lightbulb size={18} /> Progressive Hints
               </div>
@@ -1843,7 +1106,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 viewed)
               </span>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
               {(problem.hints && problem.hints.length > 0
                 ? problem.hints
                 : [

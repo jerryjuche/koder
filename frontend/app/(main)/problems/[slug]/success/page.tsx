@@ -23,6 +23,7 @@ import {
   LayoutDashboard,
   Trophy,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +40,21 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   const router = useRouter();
   const { slug } = React.use(params);
 
+  // Consume-and-remove: ensures lesson context only shows if user actually
+  // navigated from a lesson to this specific problem. Prevents stale context
+  // from a previous lesson visit bleeding into direct problem solves.
+  const lessonContext = typeof window !== "undefined"
+    ? (() => {
+        try {
+          const raw = sessionStorage.getItem("koder_lesson_context");
+          if (!raw) return null;
+          sessionStorage.removeItem("koder_lesson_context");
+          return JSON.parse(raw);
+        } catch { return null; }
+      })()
+    : null;
+  const isFromLesson = lessonContext?.courseSlug && lessonContext?.lessonSlug;
+
   const [problem, setProblem] = useState<Problem | null>(null);
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -48,7 +64,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   });
   const lang =
     typeof window !== "undefined"
-      ? localStorage.getItem("koder_language") || "go"
+      ? sessionStorage.getItem(`koder_solution_lang_${slug}`) || localStorage.getItem("koder_language") || "go"
       : "go";
   const displayLang = lang === "python" ? "python" : "go";
   const extension = displayLang === "python" ? "py" : "go";
@@ -101,11 +117,17 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         }
 
         if (currentProb && allProblems) {
-          const moduleProblems = allProblems.filter(
-            (p) => p.module === currentProb!.module && p.id !== currentProb!.id,
+          const others = allProblems.filter((p) => p.id !== currentProb!.id);
+          const sameModule = others.filter(
+            (p) => p.module === currentProb!.module,
           );
-          const unsolved = moduleProblems.find((p) => !p.solved);
-          setNextProblem(unsolved || moduleProblems[0] || null);
+          const unsolvedInModule = sameModule.find((p) => !p.solved);
+          if (unsolvedInModule) {
+            setNextProblem(unsolvedInModule);
+          } else {
+            const anyUnsolved = others.find((p) => !p.solved);
+            setNextProblem(anyUnsolved || sameModule[0] || others[0] || null);
+          }
         }
       } catch (err) {
         console.error("Failed to load success page data", err);
@@ -209,14 +231,32 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
-          <Link
-            href={`/home?module=${encodeURIComponent(problem.module)}`}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
-          >
-            <LayoutDashboard size={18} />
-            Back to Dashboard
-          </Link>
-          {nextProblem ? (
+          {isFromLesson ? (
+            <Link
+              href={`/learn/courses/${lessonContext.courseSlug}/modules/${lessonContext.moduleSlug}/lessons/${lessonContext.lessonSlug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
+            >
+              <BookOpen size={18} />
+              Back to Lesson
+            </Link>
+          ) : (
+            <Link
+              href={`/home?module=${encodeURIComponent(problem.module)}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
+            >
+              <LayoutDashboard size={18} />
+              Back to Dashboard
+            </Link>
+          )}
+          {isFromLesson ? (
+            <Link
+              href={`/learn/courses/${lessonContext.courseSlug}/modules/${lessonContext.moduleSlug}/lessons/${lessonContext.lessonSlug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+            >
+              Continue Lesson
+              <ArrowRight size={18} />
+            </Link>
+          ) : nextProblem ? (
             <Link
               href={`/problems/${nextProblem.slug}`}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
@@ -242,42 +282,43 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             Your Solution
           </h2>
-          <CodeBlock
-            data={[
-              {
-                language: displayLang,
-                filename: `solution.${extension}`,
-                code,
-              },
-            ]}
-            defaultValue={displayLang}
-            className="h-[400px]"
-          >
-            <CodeBlockHeader>
-              <CodeBlockFiles>
+          <div className="max-h-[220px] overflow-y-auto rounded-xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+            <CodeBlock
+              data={[
+                {
+                  language: displayLang,
+                  filename: `solution.${extension}`,
+                  code,
+                },
+              ]}
+              defaultValue={displayLang}
+            >
+              <CodeBlockHeader>
+                <CodeBlockFiles>
+                  {(item) => (
+                    <CodeBlockFilename
+                      key={item.language}
+                      value={item.language}
+                    >
+                      {item.filename}
+                    </CodeBlockFilename>
+                  )}
+                </CodeBlockFiles>
+                <CodeBlockCopyButton />
+              </CodeBlockHeader>
+              <CodeBlockBody>
                 {(item) => (
-                  <CodeBlockFilename
-                    key={item.language}
-                    value={item.language}
-                  >
-                    {item.filename}
-                  </CodeBlockFilename>
+                  <CodeBlockItem key={item.language} value={item.language}>
+                    <CodeBlockContent
+                      language={item.language as BundledLanguage}
+                    >
+                      {item.code}
+                    </CodeBlockContent>
+                  </CodeBlockItem>
                 )}
-              </CodeBlockFiles>
-              <CodeBlockCopyButton />
-            </CodeBlockHeader>
-            <CodeBlockBody>
-              {(item) => (
-                <CodeBlockItem key={item.language} value={item.language}>
-                  <CodeBlockContent
-                    language={item.language as BundledLanguage}
-                  >
-                    {item.code}
-                  </CodeBlockContent>
-                </CodeBlockItem>
-              )}
-            </CodeBlockBody>
-          </CodeBlock>
+              </CodeBlockBody>
+            </CodeBlock>
+          </div>
         </div>
 
         {/* Right: Community Solutions */}
@@ -296,12 +337,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                 <p className="text-sm mt-1">Be the first to get liked!</p>
               </div>
             ) : (
-              communitySolutions.map((sol, idx) => (
+              communitySolutions.map((sol) => (
                 <div
                   key={sol.id}
-                  className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden hover:border-brand-charcoal-border/80 transition-colors"
+                  className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl hover:border-brand-charcoal-border/80 transition-colors"
                 >
-                  <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30">
+                  <div className="p-4 flex items-center justify-between border-b border-brand-charcoal-border/50 bg-brand-charcoal-base/30 rounded-t-xl">
                     <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
                       <div className="flex items-center gap-3 cursor-pointer">
                         <Avatar
@@ -335,45 +376,46 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
                       {sol.likes}
                     </button>
                   </div>
-                  <CodeBlock
-                    data={[
-                      {
-                        language: sol.language || displayLang,
-                        filename: `solution.${sol.language === "python" ? "py" : "go"}`,
-                        code: sol.code,
-                      },
-                    ]}
-                    defaultValue={sol.language || displayLang}
-                    className="h-[200px]"
-                  >
-                    <CodeBlockHeader>
-                      <CodeBlockFiles>
+                  <div className="max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+                    <CodeBlock
+                      data={[
+                        {
+                          language: sol.language || displayLang,
+                          filename: `solution.${sol.language === "python" ? "py" : "go"}`,
+                          code: sol.code,
+                        },
+                      ]}
+                      defaultValue={sol.language || displayLang}
+                    >
+                      <CodeBlockHeader>
+                        <CodeBlockFiles>
+                          {(item) => (
+                            <CodeBlockFilename
+                              key={item.language}
+                              value={item.language}
+                            >
+                              {item.filename}
+                            </CodeBlockFilename>
+                          )}
+                        </CodeBlockFiles>
+                        <CodeBlockCopyButton />
+                      </CodeBlockHeader>
+                      <CodeBlockBody>
                         {(item) => (
-                          <CodeBlockFilename
+                          <CodeBlockItem
                             key={item.language}
                             value={item.language}
                           >
-                            {item.filename}
-                          </CodeBlockFilename>
+                            <CodeBlockContent
+                              language={item.language as BundledLanguage}
+                            >
+                              {item.code}
+                            </CodeBlockContent>
+                          </CodeBlockItem>
                         )}
-                      </CodeBlockFiles>
-                      <CodeBlockCopyButton />
-                    </CodeBlockHeader>
-                    <CodeBlockBody>
-                      {(item) => (
-                        <CodeBlockItem
-                          key={item.language}
-                          value={item.language}
-                        >
-                          <CodeBlockContent
-                            language={item.language as BundledLanguage}
-                          >
-                            {item.code}
-                          </CodeBlockContent>
-                        </CodeBlockItem>
-                      )}
-                    </CodeBlockBody>
-                  </CodeBlock>
+                      </CodeBlockBody>
+                    </CodeBlock>
+                  </div>
                 </div>
               ))
             )}

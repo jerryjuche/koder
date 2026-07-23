@@ -206,7 +206,7 @@ If you didn't request this, you can safely ignore this email.
 <p style="color:#999;font-size:14px;">— The Koder Team</p>`, name, resetLink, resetLink)
 
 	payload := map[string]interface{}{
-		"from":    "Koder <noreply@koder.app>",
+		"from":    h.cfg.EmailFrom,
 		"to":      []string{email},
 		"subject": subject,
 		"text":    textBody,

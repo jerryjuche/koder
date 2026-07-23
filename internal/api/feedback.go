@@ -263,7 +263,7 @@ Description:
 </table>`, safeTypeLabel, safePriority, safeTitle, safeUserID, safeDesc)
 
 	payload := map[string]interface{}{
-		"from":    "Koder Feedback <feedback@koder.app>",
+		"from":    h.cfg.EmailFrom,
 		"to":      []string{h.cfg.AdminEmail},
 		"subject": subject,
 		"text":    textBody,

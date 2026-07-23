@@ -1105,6 +1105,7 @@ func (s *PostgresStore) GetModuleProficiency(ctx context.Context, userID uuid.UU
 		FROM problems pr
 		LEFT JOIN progress pg ON pr.id = pg.problem_id AND pg.user_id = $1
 		WHERE pr.visible = true
+			AND NOT EXISTS (SELECT 1 FROM module_locks ml WHERE ml.module_name = pr.module)
 		GROUP BY pr.module
 		ORDER BY pr.module
 	`

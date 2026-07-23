@@ -35,7 +35,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 		) s ON true
 		WHERE p.visible = true
 		ORDER BY p.created_at DESC
-		LIMIT 200
+		LIMIT 500
 	`
 
 	rows, err := s.pool.Query(ctx, query, userID)
@@ -567,6 +567,32 @@ func (s *PostgresStore) PublishAllDrafts(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("failed to publish all drafts: %w", err)
 	}
 	return int(tag.RowsAffected()), nil
+}
+
+// UpdateTestCase updates a single test case by ID (input, expected, is_hidden, ordinal).
+func (s *PostgresStore) UpdateTestCase(ctx context.Context, tc *TestCase) error {
+	if tc == nil {
+		return fmt.Errorf("test case cannot be nil")
+	}
+	if tc.ID.Bytes == [16]byte{} {
+		return fmt.Errorf("test case ID cannot be nil")
+	}
+
+	query := `
+		UPDATE test_cases
+		SET input = $1, expected = $2, is_hidden = $3, ordinal = $4
+		WHERE id = $5
+	`
+
+	tag, err := s.pool.Exec(ctx, query, tc.Input, tc.Expected, tc.IsHidden, tc.Ordinal, tc.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update test case: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("test case not found")
+	}
+
+	return nil
 }
 
 // UpsertTestCasesForProblem deletes existing case rows for a problem and inserts the current set.

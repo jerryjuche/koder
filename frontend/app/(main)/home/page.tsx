@@ -19,10 +19,11 @@ import {
   Trophy,
   ArrowLeft,
   BookOpen,
+  FlaskConical,
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -36,17 +37,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  CodeBlock,
-  CodeBlockBody,
-  CodeBlockContent,
-  CodeBlockCopyButton,
-  CodeBlockFilename,
-  CodeBlockFiles,
-  CodeBlockHeader,
-  CodeBlockItem,
-} from "@/components/kibo-ui/code-block";
-import type { BundledLanguage } from "@/components/kibo-ui/code-block";
+import { CodeSnippet } from "@/components/application/code-snippet";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
 import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
@@ -55,6 +46,8 @@ import { Avatar } from "@/components/base/avatar/avatar";
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [lockedModules, setLockedModules] = useState<Set<string>>(new Set());
+  const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,8 +56,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
   const [selectedModule, setSelectedModule] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    const moduleParam = new URLSearchParams(window.location.search).get("module");
-    return moduleParam || null;
+    return new URLSearchParams(window.location.search).get("module") || null;
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
@@ -77,13 +69,26 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 18;
 
+  // Sync state with browser back/forward
+  useEffect(() => {
+    const handlePop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const mod = params.get("module");
+      const tab = params.get("tab");
+      setSelectedModule(mod);
+      setLanguageFilter(tab === "go" || tab === "python" ? tab : "all");
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20)]).then(
-        ([probRes, userRes, bpRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -91,6 +96,16 @@ export default function Dashboard() {
           }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
+          if (locksRes.success && locksRes.data) {
+            setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
+          }
+          if (metaRes.success && metaRes.data) {
+            const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+            for (const m of metaRes.data) {
+              metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+            }
+            setModuleMeta(metaMap);
+          }
           setLoading(false);
         }
       );
@@ -111,9 +126,26 @@ export default function Dashboard() {
     };
 
     window.addEventListener("user-updated", handleUserUpdated);
+
+    // Refresh moduleMeta when returning from another tab (e.g. admin renamed/pinned modules)
+    const handleFocus = () => {
+      clearCache("/me/module-meta");
+      fetchModuleMeta().then((res) => {
+        if (mounted && res.success && res.data) {
+          const metaMap: Record<string, { display_name: string; is_pinned: boolean }> = {};
+          for (const m of res.data) {
+            metaMap[m.module_name] = { display_name: m.display_name, is_pinned: m.is_pinned };
+          }
+          setModuleMeta(metaMap);
+        }
+      });
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       mounted = false;
       window.removeEventListener("user-updated", handleUserUpdated);
+      window.removeEventListener("focus", handleFocus);
       clearTimeout(debounceTimer);
     };
   }, [languageFilter]);
@@ -139,8 +171,8 @@ export default function Dashboard() {
   };
 
   const modules = useMemo(
-    () => Array.from(new Set(problems.map((p) => p.module))).sort(),
-    [problems]
+    () => Array.from(new Set([...problems.map((p) => p.module), ...Array.from(lockedModules)])).sort(),
+    [problems, lockedModules]
   );
 
   const moduleProgress = useMemo(() => {
@@ -157,6 +189,7 @@ export default function Dashboard() {
 
   const filteredProblems = useMemo(() => problems
     .filter((p) => {
+      if (p.locked) return false;
       if (selectedModule && p.module !== selectedModule) return false;
       if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && !p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
       if (difficultyFilter !== "All" && getDifficultyLabel(p.difficulty) !== difficultyFilter) return false;
@@ -173,7 +206,8 @@ export default function Dashboard() {
     safePage * ITEMS_PER_PAGE,
   );
 
-  const solvedCount = problems.filter((p) => p.solved).length;
+  const visibleSolved = problems.filter((p) => p.solved).length;
+  const totalSolved = user?.solvedCount ?? visibleSolved;
 
   // Reset to page 1 when filters change
   const filtersKey = `${selectedModule}-${searchQuery}-${difficultyFilter}-${statusFilter}`;
@@ -188,12 +222,15 @@ export default function Dashboard() {
     setSearchQuery("");
     setDifficultyFilter("All");
     setStatusFilter("all");
+    const params = new URLSearchParams(window.location.search);
+    params.set("module", mod);
+    window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
-  const showTopicCards = !selectedModule;
+  const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 py-6 animate-in fade-in duration-500">
       {/* Header Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
@@ -202,7 +239,7 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-muted-foreground text-sm">
-              {solvedCount} of {problems.length} problems solved
+              {visibleSolved} of {problems.length} problems solved
             </p>
           </div>
         </div>
@@ -214,7 +251,7 @@ export default function Dashboard() {
             </div>
             <div className="text-right">
               <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {solvedCount}
+                {totalSolved}
               </div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                 Solved
@@ -278,14 +315,26 @@ export default function Dashboard() {
           )}
         </button>
         <button
-          onClick={() => setActiveTab("best-practices")}
+          onClick={() => { if (user?.role === "admin") setActiveTab("best-practices"); }}
+          aria-disabled={user?.role !== "admin" ? true : undefined}
+          title={user?.role !== "admin" ? "Private beta — administrators only" : undefined}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "best-practices" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            activeTab === "best-practices"
+              ? "text-foreground"
+              : user?.role === "admin"
+                ? "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground/40 cursor-not-allowed select-none"
           )}
         >
           <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
           Best Practices
+          {user?.role !== "admin" && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
+              <FlaskConical size={10} />
+              BETA
+            </span>
+          )}
           {activeTab === "best-practices" && (
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
@@ -317,7 +366,9 @@ export default function Dashboard() {
               ) : (
                 <ModuleCards
                   modules={modules}
+                  moduleMeta={moduleMeta}
                   moduleProgress={moduleProgress}
+                  lockedModules={lockedModules}
                   onSelect={handleSelectModule}
                 />
               )}
@@ -329,7 +380,13 @@ export default function Dashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setSelectedModule(null)}
+                    onClick={() => {
+                      setSelectedModule(null);
+                      const params = new URLSearchParams(window.location.search);
+                      params.delete("module");
+                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                      window.history.pushState({}, "", newUrl);
+                    }}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                   >
                     <ArrowLeft size={16} />
@@ -360,7 +417,7 @@ export default function Dashboard() {
                         params.set("tab", lang);
                       }
                       const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.replaceState({}, "", newUrl);
+                      window.history.pushState({}, "", newUrl);
                       clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
                       setLoading(true);
                       fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
@@ -475,6 +532,7 @@ export default function Dashboard() {
                       <Link
                         key={problem.id}
                         href={`/problems/${problem.slug}`}
+                        onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
                         style={{
                           animationFillMode: "both",
@@ -510,7 +568,7 @@ export default function Dashboard() {
                           {/* Header */}
                           <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0 relative z-10">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono text-muted-foreground/30 font-semibold tabular-nums">
+                              <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
                               <span className={cn(
@@ -544,7 +602,7 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <p className="text-xs text-muted-foreground/60 leading-relaxed line-clamp-2 mb-auto">
+                            <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-auto">
                               {problem.statement ? (
                                 problem.statement
                                   .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
@@ -558,12 +616,12 @@ export default function Dashboard() {
                             {problem.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-3">
                                 {problem.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="text-[10px] font-medium text-muted-foreground/50 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
+                                  <span key={tag} className="text-[10px] font-semibold text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
                                     {tag}
                                   </span>
                                 ))}
                                 {problem.tags.length > 3 && (
-                                  <span className="text-[10px] text-muted-foreground/30 font-medium px-1">+{problem.tags.length - 3}</span>
+                                  <span className="text-[10px] text-muted-foreground/60 font-semibold px-1">+{problem.tags.length - 3}</span>
                                 )}
                               </div>
                             )}
@@ -571,21 +629,21 @@ export default function Dashboard() {
 
                           {/* Footer */}
                           <CardFooter className="px-5 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium">
-                                <span className="flex items-center gap-1">
-                                  <Code size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {problem.total_submissions || 0}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <BarChart2 size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {Math.round(problem.success_rate || 0)}%
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock size={11} className="shrink-0 text-muted-foreground/30" />
-                                  {problem.estTimeMinutes || 0}m
-                                </span>
-                              </div>
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/80 font-semibold">
+                                  <span className="flex items-center gap-1">
+                                    <Code size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {problem.total_submissions || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <BarChart2 size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {Math.round(problem.success_rate || 0)}%
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock size={11} className="shrink-0 text-muted-foreground/50" />
+                                    {problem.estTimeMinutes || 0}m
+                                  </span>
+                                </div>
                               <div className={cn(
                                 "flex items-center gap-1 px-2 py-1 rounded-md transition-all",
                                 problem.solved
@@ -675,6 +733,17 @@ export default function Dashboard() {
             </div>
           )}
         </>
+      ) : user?.role !== "admin" ? (
+        <div>
+          <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
+            <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
+            <h3 className="text-lg font-bold text-foreground mb-2">Best Practices — Coming Soon</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              This feature is in private beta and currently available to administrators only.
+              Stay tuned for the public release.
+            </p>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {loading ? (
@@ -710,7 +779,7 @@ export default function Dashboard() {
                         <div className="font-bold text-sm text-foreground flex items-center gap-2">
                           {sol.user_name}
                         {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} className="text-xs text-primary hover:underline font-mono">
+                          <Link href={`/problems/${sol.problem_slug}`} onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))} className="text-xs text-primary hover:underline font-mono">
                             in {sol.problem_slug}
                           </Link>
                         )}
@@ -739,45 +808,16 @@ export default function Dashboard() {
                   </button>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <CodeBlock
-                    data={[
-                      {
-                        language: "go",
-                        filename: "solution.go",
-                        code: sol.code,
-                      },
-                    ]}
-                    defaultValue="go"
-                    className="h-[250px]"
-                  >
-                    <CodeBlockHeader>
-                      <CodeBlockFiles>
-                        {(item) => (
-                          <CodeBlockFilename
-                            key={item.language}
-                            value={item.language}
-                          >
-                            {item.filename}
-                          </CodeBlockFilename>
-                        )}
-                      </CodeBlockFiles>
-                      <CodeBlockCopyButton />
-                    </CodeBlockHeader>
-                    <CodeBlockBody>
-                      {(item) => (
-                        <CodeBlockItem
-                          key={item.language}
-                          value={item.language}
-                        >
-                          <CodeBlockContent
-                            language={item.language as BundledLanguage}
-                          >
-                            {item.code}
-                          </CodeBlockContent>
-                        </CodeBlockItem>
-                      )}
-                    </CodeBlockBody>
-                  </CodeBlock>
+                  <CodeSnippet
+                    files={[{
+                      language: "go",
+                      filename: "solution.go",
+                      code: sol.code,
+                    }]}
+                    collapsed
+                    maxHeight={140}
+                    className="rounded-none border-0 shadow-none"
+                  />
                 </CardContent>
               </Card>
             ))

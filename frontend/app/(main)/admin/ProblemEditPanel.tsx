@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   Dialog,
@@ -9,9 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit } from 'lucide-react';
-import { Problem, UpdateProblemPayload, AIAssistResponse } from '@/lib/types';
-import { enrichProblem } from '@/lib/api';
+import { Activity, BookOpen, Code2, Lightbulb, Eye, EyeOff, Save, X, Hash, Type, Braces, Wand2, BrainCircuit, ChevronDown, ChevronRight, Loader2, Check, AlertCircle, Terminal } from 'lucide-react';
+import { Problem, UpdateProblemPayload, AIAssistResponse, TestCase } from '@/lib/types';
+import { enrichProblem, fetchProblemTestCases, updateTestCase } from '@/lib/api';
+import { renderMarkdown } from '@/lib/markdown';
 import { toast } from '@/lib/toast';
 import AIAssistantPanel from '@/components/admin/AIAssistantPanel';
 
@@ -61,6 +62,10 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
   const [enriching, setEnriching] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [livePreview, setLivePreview] = useState(false);
+  const [testCases, setTestCases] = useState<TestCase[] | null>(null);
+  const [testCasesLoading, setTestCasesLoading] = useState(false);
+  const [testCasesOpen, setTestCasesOpen] = useState(false);
+  const [savingTestCase, setSavingTestCase] = useState<string | null>(null);
 
   const handleAIApply = useCallback((response: AIAssistResponse) => {
     if (response.statement) setStatement(response.statement);
@@ -151,12 +156,59 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
     }
   };
 
+  const loadTestCases = useCallback(async () => {
+    if (testCases !== null) { setTestCasesOpen(!testCasesOpen); return; }
+    setTestCasesLoading(true);
+    try {
+      const res = await fetchProblemTestCases(problem.id);
+      if (res.success && res.data) {
+        setTestCases(res.data);
+        setTestCasesOpen(true);
+      } else {
+        toast.error(res.error?.message || 'Failed to load test cases');
+      }
+    } finally {
+      setTestCasesLoading(false);
+    }
+  }, [problem.id, testCases, testCasesOpen]);
+
+  const handleUpdateTestCase = useCallback(async (tc: TestCase) => {
+    if (!tc.id) return;
+    setSavingTestCase(tc.id);
+    try {
+      const res = await updateTestCase(tc.id, {
+        expected: tc.expected,
+        is_hidden: tc.is_hidden,
+        ordinal: tc.ordinal,
+        input: tc.input,
+      });
+      if (res.success) {
+        setTestCases(prev => prev?.map(t => t.id === tc.id ? { ...tc } : t) || null);
+        toast.success('Test case updated');
+      } else {
+        toast.error(res.error?.message || 'Failed to update test case');
+      }
+    } finally {
+      setSavingTestCase(null);
+    }
+  }, []);
+
+  const toggleHidden = useCallback((tc: TestCase) => {
+    const updated = { ...tc, is_hidden: !tc.is_hidden };
+    handleUpdateTestCase(updated);
+  }, [handleUpdateTestCase]);
+
+  const updateExpected = useCallback((tc: TestCase, expected: string) => {
+    const updated = { ...tc, expected };
+    handleUpdateTestCase(updated);
+  }, [handleUpdateTestCase]);
+
   const diffLabel = DIFFICULTIES.find(d => d.value === difficulty)?.label || 'Beginner';
   const diffColor = DIFFICULTY_COLORS[difficulty - 1] || 'text-brand-offwhite-muted';
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-4xl")}>
+      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-5xl")}>
         <DialogHeader className="shrink-0 border-b border-brand-charcoal-border pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -190,7 +242,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
 
         <div className="flex-1 flex overflow-hidden">
           <div className={cn(
-            "flex-1 overflow-y-auto scrollbar-thin space-y-6 py-5 px-1 transition-all duration-300",
+            "flex-1 overflow-y-auto scrollbar-thin space-y-4 py-5 px-1 transition-all duration-300",
             aiPanelOpen && "pr-0"
           )}>
           {livePreview ? (
@@ -204,18 +256,54 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                     </span>
                   ))}
                 </div>
-                <div className="prose prose-invert max-w-none">
-                  <div className="text-sm text-brand-offwhite leading-relaxed whitespace-pre-wrap">
-                    {statement || problem.statement}
+                <div
+                  className="text-sm text-brand-offwhite leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(statement || problem.statement || ''),
+                  }}
+                />
+              </div>
+              {(problem.examples && problem.examples.length > 0) && (
+                <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
+                  <h3 className="text-sm font-bold text-brand-success mb-3 flex items-center gap-2">
+                    <Terminal size={14} /> Examples
+                  </h3>
+                  <div className="space-y-4">
+                    {problem.examples.map((ex, idx) => (
+                      <div key={ex.id} className="bg-[#0F1115] border border-brand-charcoal-border/70 rounded-lg overflow-hidden">
+                        <div className="px-4 py-2 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50">
+                          <span className="text-xs font-bold tracking-wide text-brand-offwhite/70 uppercase">Example {idx + 1}</span>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Input</div>
+                            <code className="block font-mono text-xs text-brand-offwhite bg-[#050608] px-3 py-2 rounded border border-brand-charcoal-border/60 whitespace-pre-wrap break-words">
+                              {typeof ex.input === 'string' ? ex.input : JSON.stringify(ex.input)}
+                            </code>
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Expected Output</div>
+                            <code className="block font-mono text-xs text-brand-success bg-[#050608] px-3 py-2 rounded border border-brand-success/20 whitespace-pre-wrap break-words">
+                              {ex.expected}
+                            </code>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
               {(constraints || problem.constraints) && (
                 <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-5">
                   <h3 className="text-sm font-bold text-brand-muted-gold mb-2 flex items-center gap-2">
                     <Braces size={14} /> Constraints
                   </h3>
-                  <p className="text-sm text-brand-offwhite whitespace-pre-wrap">{constraints || problem.constraints}</p>
+                  <div
+                    className="text-sm text-brand-offwhite leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(constraints || problem.constraints || ''),
+                    }}
+                  />
                 </div>
               )}
               {(learningObjective || problem.learningObjective) && (
@@ -223,7 +311,12 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                   <h3 className="text-sm font-bold text-[#8DB4B9] mb-2 flex items-center gap-2">
                     <BookOpen size={14} /> Learning Objective
                   </h3>
-                  <p className="text-sm text-brand-offwhite whitespace-pre-wrap">{learningObjective || problem.learningObjective}</p>
+                  <div
+                    className="text-sm text-brand-offwhite leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(learningObjective || problem.learningObjective || ''),
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -264,7 +357,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
               {/* Description */}
               <Section icon={<BookOpen size={16} />} title="Description">
                 <Field label="Statement">
-                  <textarea value={statement} onChange={e => setStatement(e.target.value)} className="input-field min-h-[200px] font-mono text-sm leading-relaxed" placeholder="Problem statement in markdown..." />
+                  <textarea value={statement} onChange={e => setStatement(e.target.value)} className="input-field min-h-[350px] font-mono text-sm leading-relaxed" placeholder="Problem statement in markdown..." />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Constraints">
@@ -323,6 +416,54 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                 </div>
               </Section>
 
+              {/* Test Cases */}
+              <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden">
+                <button
+                  onClick={loadTestCases}
+                  className="w-full px-5 py-3 border-b border-brand-charcoal-border bg-brand-charcoal-card/50 flex items-center justify-between hover:bg-brand-charcoal-hover/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-brand-muted-gold"><Check size={16} /></span>
+                    <h3 className="text-sm font-bold text-brand-offwhite">Test Cases</h3>
+                    {testCases !== null && (
+                      <span className="text-xs text-brand-offwhite-muted ml-2">({testCases.length} cases)</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {testCasesLoading && <Loader2 size={14} className="animate-spin text-brand-offwhite-muted" />}
+                    {testCasesOpen ? <ChevronDown size={16} className="text-brand-offwhite-muted" /> : <ChevronRight size={16} className="text-brand-offwhite-muted" />}
+                  </div>
+                </button>
+                {testCasesOpen && testCases && (
+                  <div className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-brand-charcoal-border">
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-12">#</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider">Input</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-48">Expected</th>
+                            <th className="text-center px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-20">Hidden</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-medium text-brand-offwhite-muted uppercase tracking-wider w-20">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {testCases.map((tc) => (
+                            <TestCaseRow
+                              key={`${tc.id}-${tc.expected}`}
+                              tc={tc}
+                              saving={savingTestCase === tc.id}
+                              onToggleHidden={() => toggleHidden(tc)}
+                              onExpectedChange={(val) => updateExpected(tc, val)}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Visibility */}
               <Section icon={<Eye size={16} />} title="Visibility">
                 <div className="flex items-center justify-between">
@@ -360,40 +501,40 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
       </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-brand-charcoal-border pt-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted">
-            <Hash size={12} />
-            <span>ID: <span className="font-mono">{problem.id.substring(0, 8)}...</span></span>
+        <div className="shrink-0 border-t border-brand-charcoal-border pt-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-brand-offwhite-muted min-w-0">
+            <Hash size={12} className="shrink-0" />
+            <span className="truncate">ID: <span className="font-mono">{problem.id.substring(0, 8)}...</span></span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => setAiPanelOpen(!aiPanelOpen)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-2",
+                "px-3 py-2 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5",
                 aiPanelOpen
                   ? "bg-brand-cool-accent/10 text-brand-cool-accent border-brand-cool-accent/30"
                   : "bg-brand-charcoal-base text-brand-offwhite-muted hover:text-brand-offwhite border-brand-charcoal-border hover:bg-brand-charcoal-hover"
               )}
               aria-label={aiPanelOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
             >
-              <BrainCircuit size={16} />
-              AI Assistant
+              <BrainCircuit size={14} />
+              AI
             </button>
             <button
               onClick={handleEnrich}
               disabled={enriching}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-[#1A2521] text-brand-success border border-brand-success/30 hover:bg-brand-success/10 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-3 py-2 rounded-lg text-xs font-medium bg-[#1A2521] text-brand-success border border-brand-success/30 hover:bg-brand-success/10 transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              {enriching ? <Activity size={16} className="animate-spin" /> : <Wand2 size={16} />}
-              {enriching ? 'Enriching...' : 'Enrich with AI'}
+              {enriching ? <Activity size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {enriching ? 'Enriching...' : 'Enrich'}
             </button>
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-brand-offwhite-muted hover:text-brand-offwhite border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors flex items-center gap-2">
-              <X size={16} /> Cancel
+            <button onClick={onClose} className="px-3 py-2 rounded-lg text-xs font-medium text-brand-offwhite-muted hover:text-brand-offwhite border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors flex items-center gap-1.5">
+              <X size={14} /> Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-5 py-2 rounded-lg text-sm font-medium bg-brand-muted-gold text-brand-charcoal-base hover:bg-brand-muted-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg text-sm font-bold bg-brand-muted-gold text-brand-charcoal-base hover:bg-brand-muted-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-brand-muted-gold/20"
             >
               {saving ? <Activity size={16} className="animate-spin" /> : <Save size={16} />}
               {saving ? 'Saving...' : 'Save Changes'}
@@ -430,4 +571,96 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
+}
+
+function TestCaseRow({ tc, saving, onToggleHidden, onExpectedChange }: {
+  tc: TestCase;
+  saving: boolean;
+  onToggleHidden: () => void;
+  onExpectedChange: (val: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tc.expected);
+
+  const inputStr = typeof tc.input === 'string'
+    ? tc.input
+    : JSON.stringify(tc.input);
+  const inputPreview = inputStr.length > 60 ? inputStr.slice(0, 60) + '…' : inputStr;
+
+  const handleBlur = () => {
+    setEditing(false);
+    if (draft !== tc.expected) {
+      onExpectedChange(draft);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+    if (e.key === 'Escape') { setDraft(tc.expected); setEditing(false); }
+  };
+
+  return (
+    <tr className={cn(
+      "border-b border-brand-charcoal-border last:border-0 transition-colors",
+      tc.is_hidden ? "opacity-60" : "hover:bg-brand-charcoal-hover/30"
+    )}>
+      <td className="px-4 py-2.5 text-xs font-mono text-brand-offwhite-muted">{tc.ordinal}</td>
+      <td className="px-4 py-2.5">
+        <code className="text-xs font-mono text-brand-offwhite/80 bg-brand-charcoal-hover px-2 py-0.5 rounded">
+          {inputPreview}
+        </code>
+      </td>
+      <td className="px-4 py-2.5">
+        {editing ? (
+          <input
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="w-full bg-brand-charcoal-hover border border-brand-muted-gold/40 rounded px-2 py-1 text-xs font-mono text-brand-offwhite outline-none focus:border-brand-muted-gold"
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="w-full text-left text-xs font-mono text-brand-offwhite px-2 py-1 rounded hover:bg-brand-charcoal-hover transition-colors"
+          >
+            {tc.expected}
+          </button>
+        )}
+      </td>
+      <td className="px-4 py-2.5 text-center">
+        <button
+          onClick={onToggleHidden}
+          disabled={saving}
+          className={cn(
+            "p-1.5 rounded-md transition-colors",
+            tc.is_hidden
+              ? "text-amber-400/70 hover:text-amber-400 hover:bg-amber-400/10"
+              : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover"
+          )}
+          title={tc.is_hidden ? 'Hidden (click to show)' : 'Visible (click to hide)'}
+        >
+          {saving ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : tc.is_hidden ? (
+            <EyeOff size={14} />
+          ) : (
+            <Eye size={14} />
+          )}
+        </button>
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        {tc.is_hidden ? (
+          <span className="inline-flex items-center gap-1 text-xs text-amber-400/60">
+            <AlertCircle size={12} /> hidden
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs text-brand-success/60">
+            <Check size={12} /> visible
+          </span>
+        )}
+      </td>
+    </tr>
+  );
 }

@@ -27,7 +27,7 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
           <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Rank</span>
           <div className="flex items-center gap-1.5">
             <Hash size={13} className="text-[#7B8CBB]" />
-            <span className="text-lg font-extrabold font-mono text-[#7B8CBB]">#{profile.global_rank || "-"}</span>
+            <span className="text-lg font-extrabold font-mono text-[#7B8CBB]">{profile.global_rank ?? "-"}</span>
           </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">

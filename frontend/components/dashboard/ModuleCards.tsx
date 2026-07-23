@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, LockKeyhole, Pin, PinOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -123,6 +123,31 @@ const MODULE_META: Record<string, ModuleMeta> = {
     description: "Singly/doubly linked lists, cycle detection, mergers",
     barColor: "bg-gradient-to-r from-gray-500 to-slate-400",
   },
+  "python-arrays-strings": {
+    image: "/modules/python-arrays-strings.webp",
+    description: "Python list operations, slicing, comprehensions, string methods",
+    barColor: "bg-gradient-to-r from-amber-500 to-yellow-400",
+  },
+  "python-challenges": {
+    image: "/modules/python-challenges.webp",
+    description: "Python coding challenges and problem-solving exercises",
+    barColor: "bg-gradient-to-r from-orange-500 to-amber-400",
+  },
+  "python-fundamentals": {
+    image: "/modules/python-fundamentals.webp",
+    description: "Python basics: variables, data types, control flow, functions",
+    barColor: "bg-gradient-to-r from-blue-500 to-cyan-400",
+  },
+  "python-intermediate": {
+    image: "/modules/python-intermediate.webp",
+    description: "Advanced Python: decorators, generators, context managers",
+    barColor: "bg-gradient-to-r from-purple-500 to-violet-400",
+  },
+  "python-variables-math": {
+    image: "/modules/python-variables-math.webp",
+    description: "Python variables, arithmetic, type conversion, math module",
+    barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
+  },
 };
 
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
@@ -175,6 +200,11 @@ const MODULE_COLORS: Record<string, { bg: string; text: string }> = {
   "design-patterns": { bg: "bg-yellow-500/20", text: "text-yellow-400" },
   "encoding-serialization": { bg: "bg-sky-500/20", text: "text-sky-400" },
   "linked-lists": { bg: "bg-gray-500/20", text: "text-gray-400" },
+  "python-arrays-strings": { bg: "bg-amber-500/20", text: "text-amber-400" },
+  "python-challenges": { bg: "bg-orange-500/20", text: "text-orange-400" },
+  "python-fundamentals": { bg: "bg-blue-500/20", text: "text-blue-400" },
+  "python-intermediate": { bg: "bg-purple-500/20", text: "text-purple-400" },
+  "python-variables-math": { bg: "bg-emerald-500/20", text: "text-emerald-400" },
 };
 
 const FALLBACK_COLOR = { bg: "bg-gray-500/20", text: "text-gray-400" };
@@ -225,11 +255,13 @@ function displayName(slug: string): string {
 
 interface ModuleCardsProps {
   modules: string[];
+  moduleMeta: Record<string, { display_name: string; is_pinned: boolean }>;
   moduleProgress: Record<string, { solved: number; total: number }>;
+  lockedModules: Set<string>;
   onSelect: (module: string) => void;
 }
 
-export default React.memo(function ModuleCards({ modules, moduleProgress, onSelect }: ModuleCardsProps) {
+export default React.memo(function ModuleCards({ modules, moduleMeta, moduleProgress, lockedModules, onSelect }: ModuleCardsProps) {
   if (modules.length === 0) {
     return (
       <Card className="p-12 text-center border-dashed border-border/50 bg-card/50">
@@ -242,36 +274,69 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
     );
   }
 
+  const sorted = [...modules].sort((a, b) => {
+    const aLocked = lockedModules.has(a);
+    const bLocked = lockedModules.has(b);
+    if (aLocked !== bLocked) return aLocked ? 1 : -1;
+    const aPinned = moduleMeta[a]?.is_pinned ?? false;
+    const bPinned = moduleMeta[b]?.is_pinned ?? false;
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return a.localeCompare(b);
+  });
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {modules.map((mod, i) => {
-        const name = displayName(mod);
+      {sorted.map((mod, i) => {
+        const metaName = moduleMeta[mod]?.display_name;
+        const name = metaName || displayName(mod);
         const meta = MODULE_META[mod] || FALLBACK;
         const progress = moduleProgress[mod];
         const solved = progress?.solved ?? 0;
         const total = progress?.total ?? 0;
         const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
         const isComplete = solved > 0 && solved === total;
+        const isLocked = lockedModules.has(mod);
 
         return (
           <button
             key={mod}
-            onClick={() => onSelect(mod)}
-            className="group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl"
-          >
-            <Card
-              style={{ animationDelay: `${i * 60}ms` }}
+            onClick={() => { if (!isLocked) onSelect(mod); }}
+            disabled={isLocked}
               className={cn(
-                "relative overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-3 pt-0",
-                "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5",
-                "h-full flex flex-col",
-                isComplete && "ring-1 ring-emerald-500/20",
+                "group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl",
+                isLocked && "cursor-not-allowed",
               )}
             >
-              <div className="relative">
-                <ModuleImage src={meta.image} alt={name} initial={name[0]} />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
-              </div>
+              <Card
+                style={{ animationDelay: `${i * 60}ms` }}
+                className={cn(
+                  "relative overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-3 pt-0",
+                  "h-full flex flex-col",
+                  isComplete && "ring-1 ring-emerald-500/20",
+                  isLocked
+                    ? "border-primary/15 hover:border-primary/30 hover:shadow-[0_0_24px_-6px_rgba(212,175,55,0.12)] opacity-80 hover:opacity-90"
+                    : "hover:-translate-y-1.5 hover:shadow-xl",
+                )}
+              >
+                <div className="relative">
+                  <ModuleImage src={meta.image} alt={name} initial={name[0]} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent pointer-events-none" />
+                  {isLocked && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-charcoal-base/40 via-brand-charcoal-base/20 to-transparent pointer-events-none z-10" />
+                      <div className="absolute top-2 right-2 z-20 w-8 h-8 rounded-xl bg-primary/20 backdrop-blur-md flex items-center justify-center shadow-lg shadow-primary/25 ring-1 ring-primary/20">
+                        <LockKeyhole size={16} className="text-primary" />
+                      </div>
+                      <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-brand-charcoal-base/40 backdrop-blur-[2px]">
+                        <div className="flex flex-col items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-b from-brand-charcoal-panel/90 to-brand-charcoal-base/95 backdrop-blur-md border border-primary/20 shadow-[0_0_30px_-8px_rgba(212,175,55,0.15)]">
+                          <LockKeyhole size={22} className="text-primary" />
+                          <span className="text-xs font-bold text-primary tracking-[0.15em] uppercase">Locked</span>
+                          <span className="text-[10px] text-primary/60 font-medium">by instructor</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
 
               <CardHeader className="p-5 pb-2 relative z-10">
                 <div className="flex items-start justify-between gap-2">
@@ -284,7 +349,7 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
                     </Badge>
                   )}
                 </div>
-                <CardDescription className="text-xs mt-1 leading-relaxed line-clamp-2">
+                <CardDescription className="text-xs mt-1 leading-relaxed line-clamp-2 whitespace-pre-line">
                   {meta.description}
                 </CardDescription>
               </CardHeader>
@@ -350,17 +415,19 @@ export default React.memo(function ModuleCards({ modules, moduleProgress, onSele
                 <div className="flex items-center justify-between w-full">
                   <span className={cn(
                     "text-xs font-semibold tracking-wide transition-colors duration-200",
-                    "text-muted-foreground group-hover:text-primary",
+                    isLocked
+                      ? "text-primary/50"
+                      : "text-muted-foreground group-hover:text-primary",
                   )}>
-                    {isComplete ? "Review problems" : "Start practicing"}
+                    {isLocked ? "Locked" : isComplete ? "Review problems" : "Start practicing"}
                   </span>
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
-                    "bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary",
-                    "group-hover:translate-x-0.5",
-                    "text-muted-foreground",
+                    isLocked
+                      ? "bg-primary/10 text-primary/40"
+                      : "bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary group-hover:translate-x-0.5 text-muted-foreground",
                   )}>
-                    <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                    {isLocked ? <LockKeyhole size={12} /> : <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
                   </div>
                 </div>
               </CardFooter>

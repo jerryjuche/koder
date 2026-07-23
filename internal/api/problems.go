@@ -37,6 +37,20 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Stamp locked flag on problems from locked modules (admins see all unlocked)
+	if claims.Role != "admin" {
+		lockedModules, err := h.store.ListLockedModules(r.Context())
+		if err == nil && len(lockedModules) > 0 {
+			locked := make(map[string]bool, len(lockedModules))
+			for _, lm := range lockedModules {
+				locked[lm.ModuleName] = true
+			}
+			for i := range problems {
+				problems[i].Locked = locked[problems[i].Module]
+			}
+		}
+	}
+
 	languageFilter := r.URL.Query().Get("language")
 	if languageFilter != "" && languageFilter != "go" && languageFilter != "python" {
 		languageFilter = ""
@@ -80,6 +94,17 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		}
 		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem", nil)
 		return
+	}
+
+	// Check if problem's module is locked (admins bypass)
+	if problem.Module != "" {
+		locked, err := h.store.IsModuleLocked(r.Context(), problem.Module)
+		if err == nil && locked {
+			if claims == nil || claims.Role != "admin" {
+				RespondError(w, http.StatusForbidden, "MODULE_LOCKED", "This problem's module is locked by the instructor", nil)
+				return
+			}
+		}
 	}
 
 	// Convert example inputs (byte arrays) to readable strings for JSON payload

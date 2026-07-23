@@ -14,6 +14,8 @@ import {
   CheckCheck,
   ChevronDown,
   Code2,
+  BookOpen,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -67,6 +69,7 @@ export default function TopNav() {
   const navLinks = [
     { name: "Dashboard", href: "/home", icon: LayoutDashboard },
     { name: "Problems", href: "/problems", icon: Code2 },
+    { name: "Learn", href: "/learn/courses", icon: BookOpen },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
   ];
 
@@ -96,18 +99,46 @@ export default function TopNav() {
             {navLinks
               .filter((link) => link.name !== "Admin" || user?.role === "admin")
               .map((link) => {
+                const Icon = link.icon;
+                const isLearn = link.name === "Learn";
+                const isProblems = link.name === "Problems";
+                const linkDisabled = (isLearn || isProblems) && user?.role !== "admin";
+
+                if (linkDisabled) {
+                  return (
+                    <span
+                      key={link.name}
+                      title="Coming soon — available to administrators only"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground/40 cursor-not-allowed select-none"
+                    >
+                      <Icon size={16} />
+                      {link.name}
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                        <FlaskConical size={10} />
+                        BETA
+                      </span>
+                    </span>
+                  );
+                }
+
                 const isActive =
                   pathname === link.href ||
                   (pathname !== "/" &&
                     link.href !== "/" &&
                     pathname?.startsWith(link.href));
-                const Icon = link.icon;
+
                 return (
-                  <Link
+                  <button
                     key={link.name}
-                    href={link.href}
+                    onClick={() => {
+                      if (pathname === link.href) {
+                        window.dispatchEvent(new Event("user-updated"));
+                      } else {
+                        router.push(link.href);
+                      }
+                    }}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
+                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer",
                       isActive
                         ? "bg-muted text-foreground border border-border/50"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
@@ -115,7 +146,7 @@ export default function TopNav() {
                   >
                     <Icon size={16} />
                     {link.name}
-                  </Link>
+                  </button>
                 );
               })}
           </nav>

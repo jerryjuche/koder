@@ -19,8 +19,21 @@ import {
   AIAssistResponse,
   PublicUserData,
   UserSearchResult,
+  Course,
+  CourseWithModules,
+  ModuleWithLessons,
+  LessonWithSections,
+  ProgressResponse,
+  LessonProgress,
+  Module,
+  Lesson,
+  LessonSection,
+  Project,
+  NewLessonSection,
+  TestCase,
+  AllModule,
 } from "./types";
-import { getCache, setCache } from "./cache";
+import { getCache, setCache, clearCache } from "./cache";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -34,7 +47,6 @@ async function tryRefreshToken(): Promise<boolean> {
   if (isRefreshing) {
     return new Promise((resolve) => refreshQueue.push({ resolve }));
   }
-  isRefreshing = true;
 
   let success = false;
   try {
@@ -45,16 +57,23 @@ async function tryRefreshToken(): Promise<boolean> {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!res.ok) {
+      localStorage.removeItem("koder_token");
       localStorage.removeItem("refresh_token");
       success = false;
     } else {
       const data = await res.json();
-      if (data?.data?.refresh_token) {
-        localStorage.setItem("refresh_token", data.data.refresh_token);
+      if (data?.data) {
+        if (data.data.token) {
+          localStorage.setItem("koder_token", data.data.token);
+        }
+        if (data.data.refresh_token) {
+          localStorage.setItem("refresh_token", data.data.refresh_token);
+        }
       }
       success = true;
     }
   } catch {
+    localStorage.removeItem("koder_token");
     localStorage.removeItem("refresh_token");
     success = false;
   } finally {
@@ -63,6 +82,10 @@ async function tryRefreshToken(): Promise<boolean> {
     refreshQueue = [];
   }
   return success;
+}
+
+export async function fetchAllModules(): Promise<ApiResponse<AllModule[]>> {
+  return fetchApi<AllModule[]>("/admin/all-modules");
 }
 
 export async function fetchApi<T>(
@@ -79,11 +102,13 @@ export async function fetchApi<T>(
   }
 
   const doFetch = async (): Promise<ApiResponse<T>> => {
+    const token = !isAuthEndpoint ? localStorage.getItem("koder_token") : null;
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });
@@ -138,13 +163,6 @@ export async function fetchApi<T>(
   }
 }
 
-export async function refreshToken(): Promise<ApiResponse<AuthResponse>> {
-  const res = await fetchApi<AuthResponse>("/auth/refresh", {
-    method: "POST",
-  });
-  return handleAuthResponse(res);
-}
-
 // ============================================
 // API ENDPOINTS
 // ============================================
@@ -152,8 +170,13 @@ export async function refreshToken(): Promise<ApiResponse<AuthResponse>> {
 type AuthResponse = { token: string; refresh_token?: string; onboarding?: boolean };
 
 function handleAuthResponse(res: ApiResponse<AuthResponse>): ApiResponse<AuthResponse> {
-  if (res.success && res.data?.refresh_token) {
-    localStorage.setItem("refresh_token", res.data.refresh_token);
+  if (res.success && res.data) {
+    if (res.data.token) {
+      localStorage.setItem("koder_token", res.data.token);
+    }
+    if (res.data.refresh_token) {
+      localStorage.setItem("refresh_token", res.data.refresh_token);
+    }
   }
   return res;
 }
@@ -216,12 +239,6 @@ export async function resetPasswordPin(
     method: "POST",
     body: JSON.stringify({ token, password }),
   });
-}
-
-export async function completeGoogleOnboarding(
-  username: string,
-): Promise<ApiResponse<{ token: string; refresh_token?: string }>> {
-  return completeOnboarding(username);
 }
 
 export async function completeOnboarding(
@@ -484,6 +501,22 @@ export async function updateProblem(id: string, data: UpdateProblemPayload): Pro
   });
 }
 
+export async function fetchProblemTestCases(id: string): Promise<ApiResponse<TestCase[]>> {
+  return fetchApi<TestCase[]>(`/admin/problems/${id}/test-cases`);
+}
+
+export async function updateTestCase(id: string, data: {
+  input?: any;
+  expected?: string;
+  is_hidden?: boolean;
+  ordinal?: number;
+}): Promise<ApiResponse<TestCase>> {
+  return fetchApi<TestCase>(`/admin/test-cases/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 // Feedback
 
 export async function submitFeedback(data: {
@@ -605,6 +638,257 @@ export async function searchUsers(q: string): Promise<ApiResponse<UserSearchResu
 export async function toggleUserVerified(id: string): Promise<ApiResponse<{ verified: boolean }>> {
   return fetchApi<{ verified: boolean }>(`/admin/users/${id}/verified`, {
     method: "PATCH",
+  });
+}
+
+// ── Curriculum CMS API ──
+
+// Student endpoints
+export async function fetchCourses(): Promise<ApiResponse<Course[]>> {
+  return fetchApi<Course[]>("/learn/courses");
+}
+
+export async function fetchCourse(slug: string): Promise<ApiResponse<CourseWithModules>> {
+  return fetchApi<CourseWithModules>(`/learn/courses/${encodeURIComponent(slug)}`);
+}
+
+export async function fetchModule(courseSlug: string, moduleSlug: string): Promise<ApiResponse<ModuleWithLessons>> {
+  return fetchApi<ModuleWithLessons>(`/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}`);
+}
+
+export async function fetchLesson(courseSlug: string, moduleSlug: string, lessonSlug: string): Promise<ApiResponse<LessonWithSections>> {
+  return fetchApi<LessonWithSections>(`/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}/lessons/${encodeURIComponent(lessonSlug)}`);
+}
+
+export async function fetchProgress(): Promise<ApiResponse<ProgressResponse>> {
+  return fetchApi<ProgressResponse>("/learn/progress");
+}
+
+export async function completeLesson(lessonId: string): Promise<ApiResponse<LessonProgress>> {
+  const res = await fetchApi<LessonProgress>(`/learn/lessons/${lessonId}/complete`, {
+    method: "POST",
+  });
+  if (res.success) {
+    clearCache("/learn");
+  }
+  return res;
+}
+
+// Admin endpoints
+export async function fetchAllCourses(): Promise<ApiResponse<Course[]>> {
+  return fetchApi<Course[]>("/admin/courses");
+}
+
+export async function createCourse(data: Partial<Course>): Promise<ApiResponse<Course>> {
+  return fetchApi<Course>("/admin/courses", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCourse(id: string, data: Partial<Course>): Promise<ApiResponse<Course>> {
+  return fetchApi<Course>(`/admin/courses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCourse(id: string): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/courses/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function toggleCourseVisibility(id: string): Promise<ApiResponse<Course>> {
+  return fetchApi<Course>(`/admin/courses/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
+export async function fetchModules(courseId: string): Promise<ApiResponse<Module[]>> {
+  return fetchApi<Module[]>(`/admin/courses/${courseId}/modules`);
+}
+
+export async function createModule(courseId: string, data: Partial<Module>): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/courses/${courseId}/modules`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateModule(id: string, data: Partial<Module>): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteModule(id: string): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/modules/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function toggleModuleVisibility(id: string): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
+export async function toggleModuleLock(id: string): Promise<ApiResponse<Module>> {
+  return fetchApi<Module>(`/admin/modules/${id}/lock`, {
+    method: "PATCH",
+  });
+}
+
+export async function fetchLessons(moduleId: string): Promise<ApiResponse<Lesson[]>> {
+  return fetchApi<Lesson[]>(`/admin/modules/${moduleId}/lessons`);
+}
+
+export async function createLesson(moduleId: string, data: { lesson: Partial<Lesson>; sections?: Partial<LessonSection>[]; dependency_ids?: string[] }): Promise<ApiResponse<Lesson>> {
+  return fetchApi<Lesson>(`/admin/modules/${moduleId}/lessons`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateLesson(id: string, data: Partial<Lesson>): Promise<ApiResponse<Lesson>> {
+  return fetchApi<Lesson>(`/admin/lessons/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteLesson(id: string): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/lessons/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function toggleLessonVisibility(id: string): Promise<ApiResponse<Lesson>> {
+  return fetchApi<Lesson>(`/admin/lessons/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
+export async function fetchProjects(lessonId: string): Promise<ApiResponse<Project[]>> {
+  return fetchApi<Project[]>(`/admin/lessons/${lessonId}/projects`);
+}
+
+export async function createProject(lessonId: string, data: Partial<Project>): Promise<ApiResponse<Project>> {
+  return fetchApi<Project>(`/admin/lessons/${lessonId}/projects`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProject(id: string, data: Partial<Project>): Promise<ApiResponse<Project>> {
+  return fetchApi<Project>(`/admin/projects/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProject(id: string): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/projects/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function toggleProjectVisibility(id: string): Promise<ApiResponse<Project>> {
+  return fetchApi<Project>(`/admin/projects/${id}/visibility`, {
+    method: "PATCH",
+  });
+}
+
+// ── Section CRUD (Admin) ──
+
+export async function fetchLessonSections(lessonId: string): Promise<ApiResponse<LessonSection[]>> {
+  return fetchApi<LessonSection[]>(`/admin/lessons/${lessonId}/sections`);
+}
+
+export async function createSection(lessonId: string, data: NewLessonSection): Promise<ApiResponse<LessonSection>> {
+  return fetchApi<LessonSection>(`/admin/lessons/${lessonId}/sections`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSection(id: string, data: Partial<LessonSection>): Promise<ApiResponse<LessonSection>> {
+  return fetchApi<LessonSection>(`/admin/sections/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSection(id: string): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/sections/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function reorderSections(lessonId: string, orderedIds: string[]): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/sections/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}
+
+export async function updateLessonDependencies(lessonId: string, dependencyIds: string[]): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/dependencies`, {
+    method: "PUT",
+    body: JSON.stringify({ dependency_ids: dependencyIds }),
+  });
+}
+
+// ── Problem module locks ──
+
+export interface ModuleLock {
+  module_name: string;
+  locked?: boolean;
+  created_at?: string;
+}
+
+export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
+  return fetchApi<ModuleLock[]>("/admin/module-locks");
+}
+
+export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
+  return fetchApi<ModuleLock>(`/admin/module-locks/${encodeURIComponent(moduleName)}`, {
+    method: "POST",
+  });
+}
+
+export async function deleteProblemModule(moduleName: string): Promise<ApiResponse<{ module_name: string; status: string }>> {
+  return fetchApi<{ module_name: string; status: string }>(`/admin/problem-modules/${encodeURIComponent(moduleName)}`, {
+    method: "DELETE",
+  });
+}
+
+// ── Module metadata (display names, pinning) ──
+
+export interface ModuleMeta {
+  module_name: string;
+  display_name: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export async function fetchModuleMeta(): Promise<ApiResponse<ModuleMeta[]>> {
+  return fetchApi<ModuleMeta[]>("/me/module-meta");
+}
+
+export async function upsertModuleMeta(moduleName: string, displayName: string): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}`, {
+    method: "PUT",
+    body: JSON.stringify({ display_name: displayName }),
+  });
+}
+
+export async function setModulePin(moduleName: string, pinned: boolean): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}/pin`, {
+    method: "PATCH",
+    body: JSON.stringify({ pinned }),
   });
 }
 

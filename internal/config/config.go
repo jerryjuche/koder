@@ -25,7 +25,9 @@ type Config struct {
 	EnrichmentProvider string
 
 	// NVIDIA NIM (DeepSeek V4 Flash)
-	NVIDIAAPIKey string
+	NVIDIAAPIKey  string
+	NVIDIAModel   string // default: deepseek-ai/deepseek-v4-flash
+	NVIDIABaseURL string // default: https://integrate.api.nvidia.com/v1
 
 	// Execution
 	ExecutorMaxConcurrency int
@@ -49,7 +51,8 @@ type Config struct {
 	Port        int
 	Environment string
 
-	// CORS
+	// CORS (comma-separated origins, e.g. "https://koder.sbs,https://www.koder.sbs,http://localhost:3000")
+	// Reads from ALLOWED_ORIGINS (preferred) or ALLOWED_ORIGIN (legacy).
 	AllowedOrigin string
 
 	// Google OAuth2
@@ -57,6 +60,7 @@ type Config struct {
 
 	// Notifications
 	ResendAPIKey string
+	EmailFrom    string // sender address for transactional emails
 
 	// Frontend URL for reset links
 	FrontendURL string
@@ -67,6 +71,9 @@ type Config struct {
 }
 
 func loadEnvFile() {
+	if strings.HasSuffix(os.Args[0], ".test") {
+		return
+	}
 	file, err := os.Open(".env")
 	if err != nil {
 		return
@@ -164,6 +171,17 @@ func Load() (*Config, error) {
 	if cfg.NVIDIAAPIKey == "" {
 		return nil, fmt.Errorf("NVIDIA_API_KEY is required for DeepSeek V4 Flash via NVIDIA NIM")
 	}
+
+	cfg.NVIDIAModel = os.Getenv("NVIDIA_MODEL")
+	if cfg.NVIDIAModel == "" {
+		cfg.NVIDIAModel = "deepseek-ai/deepseek-v4-flash"
+	}
+
+	cfg.NVIDIABaseURL = os.Getenv("NVIDIA_BASE_URL")
+	if cfg.NVIDIABaseURL == "" {
+		cfg.NVIDIABaseURL = "https://integrate.api.nvidia.com/v1"
+	}
+
 	slog.Info("config: using NVIDIA NIM (DeepSeek V4 Flash) for problem enrichment")
 
 	// Execution
@@ -266,21 +284,36 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("ENVIRONMENT must be 'development' or 'production'")
 	}
 
-	// CORS (comma-separated for multiple origins, e.g. "http://localhost:3000,https://koder.app")
-	cfg.AllowedOrigin = os.Getenv("ALLOWED_ORIGIN")
+	// CORS — ALLOWED_ORIGINS (plural) preferred, ALLOWED_ORIGIN (singular) for backward compat.
+	// In production, this MUST be explicitly set to your frontend domain(s).
+	cfg.AllowedOrigin = os.Getenv("ALLOWED_ORIGINS")
 	if cfg.AllowedOrigin == "" {
-		cfg.AllowedOrigin = "http://localhost:3000"
+		cfg.AllowedOrigin = os.Getenv("ALLOWED_ORIGIN")
+		if cfg.AllowedOrigin != "" {
+			slog.Warn("config: ALLOWED_ORIGIN is deprecated, use ALLOWED_ORIGINS (plural)")
+		}
+	}
+	if cfg.AllowedOrigin == "" {
+		cfg.AllowedOrigin = "https://koder.sbs,https://www.koder.sbs,http://localhost:3000"
 	}
 
 	// Google OAuth2
 	cfg.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
 
-	// Notifications
+	// Email sender address for transactional emails (Resend)
 	cfg.ResendAPIKey = os.Getenv("RESEND_API_KEY")
+	cfg.EmailFrom = os.Getenv("EMAIL_FROM")
+	if cfg.EmailFrom == "" {
+		cfg.EmailFrom = "Koder <noreply@koder.sbs>"
+	}
 
-	// Frontend URL
+	// Frontend URL (used for password reset links, CORS, etc.)
+	// In production, this MUST be explicitly set to your frontend domain.
 	cfg.FrontendURL = os.Getenv("FRONTEND_URL")
 	if cfg.FrontendURL == "" {
+		if cfg.Environment == "production" {
+			slog.Warn("config: FRONTEND_URL not set in production — password reset links will be broken")
+		}
 		cfg.FrontendURL = "http://localhost:3000"
 	}
 

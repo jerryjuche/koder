@@ -41,6 +41,49 @@
 | 33 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
 | 34 | `c093540` | Replace arrays-strings module image with professional version |
 | 35 | `0ecd5ef` | Use local image for all module cards |
+| 36 | `582917b` | fix: use profile as source of truth for solved count in ProfileHeader |
+| 37 | `ac5cbb8` | fix: store package import shadowed by parameter name |
+| 38 | `12bbc34` | fix: dashboard solved count reads from GET /me, same source as XP and streak |
+| 39 | `8d1adb6` | docs: update session log, codebase index, CLAUDE.md for session 49 |
+| 40 | `6657efa` | polish: remove no-op col-span-full, move isActive into non-disabled branch |
+| 41 | `77723fa` | feat: Beta-gate best-practices tab + Learn nav for non-admins |
+| 42 | `86258a4` | fix: copy button hover, multi-file key, type shadow |
+| 43 | `ac8a45e` | polish: CodeSnippet component + compact best-practices cards |
+| 44 | `6e7666f` | fix CSP errors |
+| 45 | `6473b91` | fix |
+| 46 | `b390378` | fix |
+| 47 | `2e8ec08` | docs: update codebase index, CLAUDE.md, session log and progress tracker |
+| 48 | `02aa051` | feat: problem module lock admin panel + locked module UI |
+| 49 | `dfe556a` | feat: add prominent curriculum card to admin dashboard with module lock access |
+| 50 | `62c53bc` | feat: add module lock/unlock with admin toggle and student enforcement |
+| 51 | `bee5837` | fix: restore saved code on refresh regardless of initial state |
+| 52 | `f57f867` | polish: professional typography for problem description |
+| 53 | `dc2d61b` | polish: professional typography for problem cards |
+| 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
+| 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
+| 56 | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard |
+| 57 | `4fc6cce` | fix: module selection updates URL via replaceState |
+| 58 | `32f264a` | fix: use pushState for module & tab selection (LIFO stack) |
+| 59 | `2ba2fac` | fix: clear cache after delete module so loadData() gets fresh data |
+| 60 | `f36bbdd` | docs: add sessions 54-57 (lock panel redesign, admin bypass, delete module, LIFO nav) |
+| 61 | `ef4f19b` | feat: module metadata system (rename + pin) + 4 Python WebP images |
+| 62 | `8497b09` | feat: add python-variables-math WebP image + ModuleCards entry |
+| 63 | `a513eed` | fix: remove source PNG (WebP is the deliverable) |
+| 64 | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks |
+| 65 | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency) |
+| 66 | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500 |
+| 67 | `1400598` | feat: auth guard middleware + UserContext fallback, fix locked module counts (handler-level stamping) |
+| 68 | `ba654d6` | fix: remove auth redirect guard from middleware (cookie lives on API domain, not frontend) |
+| 69 | `43eaef7` | fix: lint errors (key patterns, eslint-suppress) + add update branch to CI |
+| 70 | `bfadb3f` | fix: config tests — skip .env during tests, clear GO_VERSION for default test |
+| 71 | `549521f` | fix: config tests — clear CI env vars for missing-var tests |
+| 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
+| 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
+| 74 | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews |
+| 75 | `b527df2` | feat: seeded shuffle + filter bar redesign for /problems page |
+| 76 | `ff88299` | style: add mt-2 to filter bar for top margin |
+| 77 | `4cefe19` | feat: beta-gate /problems page behind admin-only role |
+| 78 | `cf5435e` | fix: admin preview now shows rendered markdown + examples section |
 
 ---
 
@@ -1111,3 +1154,996 @@ Fix Python compiler error formatting so tracebacks and syntax errors show proper
 3. Verified full test suite passes (124 tests).
 
 ---
+
+## Session 39 — 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block dark mode fix
+
+### Goal
+Restructure lesson viewer to show sections as individual step-by-step pages with quiz consolidation, fix Pyodide execution issues, and repair code block dark mode rendering.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `8e6f7d1` | Implement input() via window.prompt in Pyodide |
+| `3434279` | Fix no-output in free-form Python: use standalone print templates |
+| `472554f` | Block input() in Pyodide with friendly error message |
+| `4b4bb4e` | Fix double prompt prefix in Pyodide console output |
+| `d947af5` | Fix Run in Browser disabled state & match editor theme with ProblemWorkspaceClient |
+| `005ccc8` | Rewrite lesson as step-by-step page with quiz consolidation |
+| `12b7a45` | Fix code block dark mode & exercise results spacing |
+
+### Changes
+
+#### Lesson step-by-step navigation
+- Sections shown one at a time with prev/next buttons and ArrowLeft/Right/Space keyboard shortcuts
+- All quizzes consolidated into a single Quiz Review step at the end with gradient card
+- Progress bar with step indicator dots and step counter
+- Professional gradient-bordered card component per section type with AnimatePresence transitions
+
+#### Pyodide console & execution fixes
+- `input()` now works via `window.prompt()` shim installed at init time (removed blocking check)
+- Removed `!pyodideReady` guard on Run in Browser button so lazy Pyodide can be triggered
+- Fixed `handlePyodideRun` with try/finally `setTesting(true/false)`
+- Fixed double prompt prefix (`> >>>` → `> `)
+- Replaced emoji/special char console prefixes (`✗`/`ℹ`/`❯` → `[error]`/`[info]`/`>`)
+- Free-form Python defaults to standalone `print()` templates
+
+#### Editor theme & spacing alignment
+- Editor options aligned with ProblemWorkspaceClient (fontFamily, bracketPairColorization, smoothScrolling)
+- Results panel now shows for all languages (not just non-Python)
+- Results padding increased (`px-1`→`px-2`, `mt-4`→`mt-5`)
+
+#### Code block dark mode fix
+- Added `darkModeClassNames` + `codeBlockClassName` + `lineHighlightClassNames` to `CodeBlockContent` rendered div (was rendering Shiki HTML without dark mode CSS)
+- Fixed `CodeBlockFallback` with proper dark mode text color, padding, overflow
+
+### Verification
+- `npx tsc --noEmit` — clean
+
+---
+
+## Session 40 — 2026-07-16 — Course/Module/Lesson page professional redesign & audit fixes
+
+### Goal
+Redesign learn course/module/lesson pages with professional card components matching dashboard styling, then audit and fix all implementation issues.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `aa02d24` | Redesign learn course/module/lesson pages with professional card components |
+| `d1172fb` | Professional redesign: learn course/module/lesson pages |
+| `0771f5e` | Fix audit issues: error states, unused imports, edge case guards |
+
+### Changes — Professional Card Redesign
+
+#### Course Catalog (`courses/page.tsx`)
+- Full gradient hero backgrounds per course (blue/cyan/violet/amber/slate)
+- Lucide icons in glass-morphism container with scale+rotate hover
+- Difficulty pill with colored dot indicator (Beginner/Intermediate/Advanced)
+- CTA with arrow button that turns primary on hover
+- `border-0` cards with shadow-lift animation (`-translate-y-2`, `shadow-2xl`)
+- Draft badge for unpublished courses
+
+#### Course Detail (`[courseSlug]/page.tsx`)
+- Hero section with course title, description, difficulty pill, metadata row
+- Course progress bar (gradient fill, shown only when started)
+- Module cards with 6px gradient stripe and colored lucide icons
+- Two-digit module numbering, Complete/In progress badges
+- Lesson counts with completed count, gradient progress bars
+- Hover: icon scale + CTA arrow turns primary
+
+#### Module Detail (`[moduleSlug]/page.tsx`)
+- Module header with gradient stripe + stats bar (lessons, XP, completion %)
+- Lesson cards with rich status indicators (emerald checkmark, primary circle-dot, numbered circle)
+- Green highlight background on completed lessons, primary ring on current lesson
+- XP badges (amber), difficulty pills (color-coded with ring), time estimates
+- Completed arrows fade to 40% opacity, full opacity on hover
+- Total XP earned counter in module header
+
+### Changes — Audit Fixes
+| Issue | File | Fix |
+|---|---|---|
+| Unused `CardContent` import | `courses/page.tsx` | Removed |
+| Unused `Cpu` import | `courses/page.tsx` | Removed |
+| Unused `letters` variable + `getCourseLetters` | `courses/page.tsx` | Removed dead code |
+| API failure → silent empty state | All 3 pages | Added `error` state + retry button with `Try again` |
+| `resolveModuleGradient` buggy first loop | `module/page.tsx` | Removed buggy loop (was matching wrong gradient val) |
+| `lesson_count` undefined breaks `firstIncomplete` | `course/page.tsx` | Now treats undefined as "incomplete if not started" |
+| `isCurrent` missing `!isComplete` guard | `module/page.tsx` | Added for consistency |
+
+### Verification
+- `npx tsc --noEmit` — clean
+- Pushed to `origin/update` (`0771f5e`)
+
+---
+
+## Session 41 — 2026-07-17 — Layout refactor, multi-file Pyodide, admin CMS polish
+
+### Goal
+Professional layout refinement (compact cards, wider containers), multi-file Pyodide execution support, and admin CMS UX improvements.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `03b8430` | Compact card sizes and horizontal grid layouts |
+| `e5a7f98` | Remove unused gradient prop from LearningCard |
+| `d57f812` | Increase card grid gaps to 5 for breathing room |
+| `2ea6751` | Widen page containers to max-w-screen-2xl |
+| `e923a4f` | Remove max-w-7xl mx-auto from main layout |
+| `62e850f` | Multi-file Pyodide execution for modular Python exercises |
+| `0323856` | JSON metadata editor for non-quiz sections in admin CMS |
+| `ef3c060` | Multi-file support for mini_project sections |
+| `ac1f5bb` | Fix visibility publish for courses |
+| `1e5f575` | Admin CMS UX: always-visible toggles, auto order_number, stale sections fix |
+| `1ac3d21` | 16:9 LearningCard, remove mock ratings from course catalog |
+| `9404250` | Lesson-aware problem success page — back to lesson, continue lesson |
+| `64792ab` | Remove dead hovered state, shadowing sections var, dynamic import, unused icons |
+
+### Changes
+
+#### Layout refactor
+- All card grids: compact card sizes with `gap-5` for breathing room
+- Containers widened from `max-w-6xl/7xl` → `max-w-screen-2xl` to fill large monitors
+- Removed `max-w-7xl mx-auto` from main layout — was constraining all pages unnecessarily
+- Removed unused `gradient` prop from `LearningCard` component
+- LoadingCard inner container changed to `aspect-[16/9]` with gradient stripe `h-16 → h-12`
+
+#### Multi-file Pyodide
+- `frontend/lib/pyodide.ts`: Added `FS.writeFile`, `FS.readFile`, `FS.mkdir`, `executeMultiFile`, and `MultiFileSpec` interface
+- `MultiFileConfigPanel.tsx`: Visual multi-file editor in admin CMS with file tabs, add/remove, path+content editing, entry point toggle
+- Auto-initializes on section type change to exercises/assessment/mini_project
+- `SectionExercise.tsx` uses `executeMultiFile` for multi-file exercises
+
+#### Admin CMS UX
+- Visibility toggles, action buttons, chevron icons: always visible (removed all `opacity-0` hover gates across AdminCards.tsx)
+- Order numbers auto-compute from existing array length in form defaults
+- Stale `sections` state cleared when opening create lesson dialog
+- JSON metadata editor for non-quiz sections
+
+#### Code cleanup
+- Removed dead `hovered`/`setHovered` state + handlers from AdminCourseCard, AdminModuleCard, AdminProjectCard
+- Fixed local variable shadowing (`sections` → `quizSections`)
+- `fetchLessonSections` changed to static import
+- Removed mock ratings (RatingBadge, likes/views stats) from course catalog
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 42 — 2026-07-17 — Real-time XP/progress WebSocket + 16:9 admin cards
+
+### Goal
+Complete professional real-time progress system (XP, levels, progress via WebSocket) and polish all admin cards to 16:9 aspect ratio.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `7634ab3` | Real-time XP/progress WebSocket system + 16:9 admin cards |
+| `6bcd102` | Fix page spacing, add progress.updated event, 16:9 all admin cards |
+
+### Changes
+
+#### Real-time WebSocket events
+- Backend Broker (`internal/broker/broker.go`) with global fan-out via `/ws` WebSocket
+- `SubmissionHandler` has broker reference; publishes `user.xp.updated` + `progress.updated` on successful problem solve
+- `CompleteLesson` (in `cms.go`) publishes all three events (`lesson.completed`, `user.xp.updated`, `progress.updated`)
+- Frontend `event.ts` has `user.xp.updated`, `progress.updated`, and `lesson.completed` event types
+- `UserContext` subscribes to `user.xp.updated` via `useWebSocket` — auto-refreshes XP, level, solved count without page reload
+- Course detail and module detail pages subscribe to all three events — progress bars update live
+- `LessonViewerClient` stores `koder_lesson_context` in sessionStorage for lesson-aware problem success page
+
+#### 16:9 admin cards
+- `AdminCourseCard`: `aspect-[16/9] min-h-[96px]` on hero section
+- `AdminModuleCard`: Converted from sidebar row to full `aspect-[16/9]` card
+- `AdminLessonCard`: `aspect-[16/9]` with icon, title, description, metadata
+- `AdminProjectCard`: `aspect-[16/9]` with icon, title, difficulty, XP
+- All admin cards: always-visible visibility toggles, edit, and delete buttons
+
+#### Page spacing fix
+- Main layout removed `py-8` to eliminate double-padding (each page controls its own vertical spacing)
+- Home page added `py-6` wrapper
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 43 — 2026-07-17 — Hero styling polish (16:9 + revert + natural height)
+
+### Goal
+Apply consistent LearningCard visual DNA to all hero sections (course detail, module detail, lesson success) with proper sizing.
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `61ecf5f` | All heroes 16:9 with exact LearningCard styling (back plate, brand-charcoal, same classes) |
+| `d732545` | Fix: remove aspect-16/9 from heroes, keep LearningCard styling but natural height |
+
+### Changes
+
+#### Initial attempt (61ecf5f)
+- All three heroes (course, module, lesson success) given same exact classes as LearningCard:
+  - Back plate: `absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm`
+  - Container: `bg-brand-charcoal-base border-brand-charcoal-border rounded-xl` with hover shadow
+  - Glass icon: `w-8 h-8 rounded-lg border-white/10 backdrop-blur-md shadow-inner`
+  - Badges: `text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80`
+  - Progress bar: `h-1 bg-brand-charcoal-card border-brand-charcoal-border/30`
+- Forced to `aspect-[16/9]` — made heroes too tall at full width (~1200px → 675px)
+
+#### Fix (d732545)
+- Removed `aspect-[16/9]` from all three heroes — natural height based on content
+- Removed `flex flex-col h-full` and `mt-auto` patterns only needed for fixed aspect ratio
+- Used `p-4 md:p-5` padding for compact but comfortable spacing
+- Enlarged title text (`text-base md:text-lg`) for hero context
+- Removed truncation from titles (heroes have room for full text)
+
+#### Result
+- All heroes use identical design tokens as LearningCard but with natural content-based height
+- 16/9 ratio kept on LearningCard and AdminCards (used in grids, not full-width)
+- `cn` import added to success page
+
+### Verification
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+## Session 44 — 2026-07-17 — Python Mastery: Build Your Own Games seed migration
+
+### Goal
+Create the seed SQL migration for the new "Python Mastery: Build Your Own Games" elective course with 2 modules, 6 lessons, 5 dependencies, full lesson sections, quiz metadata, and 1 project.
+
+### Changes
+
+#### New migration file: `migrations/042_seed_python_mastery_games.sql`
+- **Course:** `python-mastery-games` — "Python Mastery: Build Your Own Games" (difficulty 3, ~12 hours)
+  - 2 taglines, 8 tags, icon: `gamepad-2`, cover_image, `visible=false`
+- **Module 1:** `text-adventure` — "Build a Text Adventure Game" (5 lessons, 5 linear deps)
+  - Lessons: `intro-to-text-adventure`, `game-state-and-variables`, `player-actions-and-conditionals`, `functions-and-game-logic`, `building-the-full-game`
+  - 6 sections per lesson (overview, explanation, examples, best_practices, common_mistakes, summary) + quizzes via metadata UPDATE
+  - All content stored as `$py$...$py$` dollar-quoted strings
+- **Module 2:** `quiz-game` — "Build a Quiz Game" (1 lesson, no dependencies)
+  - Lesson: `intro-to-quiz-game` (4 sections)
+- **Project:** `final-project` — "Personal Game Project" (difficulty 4, 80 XP, `visible=false`)
+- All `ON CONFLICT ... DO NOTHING` for safe re-runs; single `BEGIN; ... COMMIT;` transaction
+
+### Supabase RLS Error
+- `ALTER TABLE full ENABLE ROW LEVEL SECURITY` error is NOT from this SQL — it's from Supabase's auto-RLS step
+- Workaround: run SQL directly or disable auto-apply in SQL editor
+
+### Verification
+- SQL file saved and complete, ready to run against database
+
+---
+
+## Session 45 — Lesson Prerequisite Enforcement + Admin Dependency Picker
+
+**Date:** 2026-07-17
+**Branch:** `update`
+**Commits:** `4554979`
+
+### What Was Built
+
+Full-stack lesson prerequisite/dependency management system — admin UI for setting dependencies, student-facing enforcement with locked states.
+
+### Backend Changes
+
+**`internal/api/cms.go` — `GetModuleDetail` handler:**
+- Added `Dependencies []store.LessonPrereq` to the inline `lessonWithProgress` struct (with `json:"dependencies,omitempty"`)
+- Bulk-fetches all lesson dependencies for the module in a single `ANY($1)` query via new `GetLessonDependenciesByLessonIDs` store function
+- Attaches dependencies to each lesson in the response
+- Uses `string(l.ID.Bytes[:])` for map keys (pgtype.UUID has no `.String()` method)
+
+**`internal/store/curriculum.go` — new `GetLessonDependenciesByLessonIDs`:**
+- Batch query: `SELECT lesson_id, depends_on_lesson_id FROM lesson_dependencies WHERE lesson_id = ANY($1)`
+- Returns early if `lessonIDs` is empty
+- Same scan pattern as `GetLessonDependencies`
+
+**`internal/store/store.go` — interface updated:**
+- Added `GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error)`
+
+### Frontend Changes
+
+**`frontend/lib/types.ts`:**
+- `ModuleWithLessons.lessons` type updated: `(Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[]`
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module Detail:**
+- Computes `isLocked` per lesson: locked if any dependency lesson is incomplete
+- Locked lessons get `status="locked"` → `LearningCard` renders with lock overlay, no clickable link
+
+**`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/LessonViewerClient.tsx`:**
+- New locked overlay when `!lessonData.prerequisites_met`
+- Shows amber lock icon, "Complete Prerequisites First" heading
+- Lists all unmet prerequisites with warning icons
+- "Back to Module" button
+- Sidebar still renders for navigation context
+- Lesson content (sections, quizzes, exercises) not rendered when locked
+- Added `Lock`, `AlertTriangle` to lucide imports
+
+**`frontend/components/learn/LessonSidebar.tsx`:**
+- Props updated: `lessons` type now includes optional `dependencies?: LessonPrereq[]`
+- Computes per-lesson locked state from `dependencies` array + completion status
+- Locked lessons show `Lock` icon instead of numbered circle
+- Locked lessons are `cursor-not-allowed opacity-50` (non-clickable div, not a Link)
+- Active/completed/available states unchanged
+
+**`frontend/app/(main)/admin/curriculum/page.tsx` — Admin Dependency Picker:**
+- Imports: added `updateLessonDependencies`, `fetchLesson`, `GitBranch`, `Check`, `Search`, `ChevronDown`, `ChevronUp`
+- New state: `lessonDependencies`, `loadingDeps`, `depSearch`
+- New function: `loadLessonDeps(lessonSlug)` — fetches lesson detail via public API to get current dependencies
+- Settings tab: full dependency picker UI with search, checkbox multi-select, pill badges
+- `openEditForm` calls `loadLessonDeps` when editing a lesson
+- `handleUpdateLesson` calls `updateLessonDependencies` after lesson update
+- `handleCreateLesson` sends `dependency_ids` from `lessonDependencies` state
+- Form state cleared on open/close/save
+
+### Verification
+- `go build ./cmd/server/` — clean
+- `npx tsc --noEmit` — 0 errors
+
+---
+
+## Session 46 — 2026-07-20: Full codebase re-index + Python Mastery Practice seed
+
+**Commit:** `3aef8d2`
+
+**New Files:**
+- `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review course (1 module, 5 lessons)
+
+**Modified Files:**
+- `frontend/app/(main)/learn/courses/page.tsx` — Course catalog with improved LearningCard integration
+- `frontend/app/(main)/learn/courses/[courseSlug]/page.tsx` — Course detail page enhancements
+- `frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module detail page updates
+- `frontend/components/ui/learning-card.tsx` — LearningCard component improvements
+
+**What was done:**
+- Full professional codebase re-index: read all 80 Go source files, ~200 frontend source files, 44 migration SQL files, 14 documentation files
+- Updated CLAUDE.md with migration 043 in seed data summary and repository structure
+- Updated CODEBASE_INDEX.md with current counts
+- Added SESSION_LOG.md entry for Session 46
+- Verified `go vet`, `go build`, `go test` (9/9 packages pass) — clean
+
+**Codebase Statistics (current):**
+- Go source files: 80 (49 source + 13 test in internal/, 8 sandbox, 1 cmd)
+- Frontend source files: ~200
+- Migration SQL files: 44 (043 + 999_test)
+- Total seed problems: ~228
+- Go tests: 124+ passing
+- Total LOC: ~52,000
+
+---
+
+### 2026-07-21 — Session 47: Remove Console/Play in Browser from problem workspace
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.
+
+---
+
+### 2026-07-21 — Session 48: Problem module locks + admin lock panel + locked module UI
+
+**Commits:** `02aa051`
+
+**Problem module lock system (full stack):**
+- `migrations/045_add_module_locks.sql` — `module_locks` table (module_name TEXT PK, created_at TIMESTAMPTZ)
+- `internal/store/module_locks.go` — 3 store functions: `ListLockedModules`, `ToggleProblemModuleLock`, `IsModuleLocked`
+- `internal/store/types.go` — `ModuleLock` struct (ModuleName, CreatedAt)
+- `internal/api/admin.go` — `ListProblemModuleLocks` (GET) + `ToggleProblemModuleLock` (POST) handlers
+- `internal/api/router.go` — Route registration for GET + POST /admin/module-locks
+- `internal/api/problems.go` — `ListVisibleProblems` filters out locked modules; `GetProblemBySlug` returns 403 `MODULE_LOCKED`
+- `internal/store/users.go` — `GetModuleProficiency` excludes locked modules via `NOT EXISTS` subquery
+
+**Admin frontend:**
+- `frontend/app/(main)/admin/page.tsx` — Module Locks panel: fetches locks alongside stats, per-module lock/unlock buttons with Lock/LockOpen icons, amber styling, toast feedback
+
+**Student-facing UI:**
+- `frontend/components/dashboard/ModuleCards.tsx` — New `lockedModules: Set<string>` prop; amber padlock overlay; `cursor-not-allowed opacity-60` with `disabled={isLocked}`
+- `frontend/app/(main)/home/page.tsx` — Fetches `fetchModuleLocks()` alongside problems, passes `lockedModules` to ModuleCards
+
+**Bug fixes:**
+- Paragraph spacing: `[&_p]:mb-3` on problem statement prose container
+- Saved code restore: always restores saved code when found, regardless of initial state
+
+**Curriculum module lock (carried from prior sub-session):**
+- `migrations/044_add_module_locked.sql` — `locked BOOLEAN` on `modules` table
+- `internal/api/cms.go` — `ToggleModuleLock` handler, 403 on locked module detail
+- `frontend/components/learn/admin/AdminCards.tsx` — amber badge + lock/unlock button on AdminModuleCard
+- `frontend/app/(main)/admin/page.tsx` — Curriculum Manager card added to admin dashboard
+
+---
+
+### 2026-07-22 — Session 49: CodeSnippet polish, best-practices + Learn Beta-gate, docs update
+
+**Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
+
+**CodeSnippet component rewrite:**
+- `frontend/components/application/code-snippet/index.tsx` — Rewrote from 476→314 lines: removed `react-icons` (heavy), simplified compound-API to single component, added `collapsed`/`maxHeight` props with gradient-fade "Show more/less" toggle
+- `frontend/components/application/code-snippet/code-snippet.story.tsx` — Updated stories to match new API
+
+**Best-practices cards compacted:**
+- `frontend/app/(main)/home/page.tsx` — Replaced 40-line CodeBlock compound usage with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
+
+**Bug fixes:**
+- Copy button was permanently invisible — added `group` class to root div for `group-hover:opacity-100`
+- Multi-file tab keys used `f.language` (collision risk) — changed to `f.filename`
+- `SnippetCtx` type alias shadowed const — renamed to `SnippetCtxType`
+
+**Beta-gate features (non-admin only):**
+- Best-practices tab: `cursor-not-allowed`, muted text, amber BETA badge with `FlaskConical`; `onClick` gated to `user?.role === "admin"`; `aria-disabled` + `title` for a11y; coming-soon card if state reached
+- Learn nav link (TopNav): rendered as disabled `<span>` (not `<Link>`) with BETA badge for non-admins; `title` tooltip explaining "Coming soon"
+
+**Polish:**
+- Removed no-op `col-span-full` from coming-soon card
+- Moved `isActive` computation inside non-disabled branch in TopNav loop
+- `tsc --noEmit`: clean throughout
+
+---
+
+### 2026-07-22 — Session 50: Solved count consistency + import alias fix
+
+**Commits:** `582917b` `ac5cbb8` `12bbc34`
+
+**Solved count source of truth:**
+- Dashboard solved stat (`totalSolved`) now reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of deriving from the language-filtered problems list (which has LIMIT 200)
+- `frontend/app/(main)/home/page.tsx` — Stats card: `totalSolved` renamed to reflect true total; subtitle shows `visibleSolved` (view-specific)
+- `frontend/lib/api.ts` — `fetchUser()` maps `solved_count` → `solvedCount`
+- `frontend/lib/UserContext.tsx` — User type includes `solvedCount`
+- `frontend/lib/types.ts` — `User` interface: `solvedCount` field
+
+**Build fix:**
+- `internal/api/router.go` — Store package import aliased as `storepkg` to avoid shadowing by handler parameter name
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 51: Professional typography polish
+
+**Commits:** `f57f867` `dc2d61b`
+
+**Problem description (workspace):**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Typography overhaul on the prose description container:
+  - Text color: `text-brand-offwhite-muted` → `text-brand-offwhite/90` (bright, high contrast)
+  - Size: `prose-sm` → `prose-base`
+  - Line height: `leading-relaxed` → `leading-[1.75]` + `prose-p:leading-7`
+  - Headings: added `font-bold` + `tracking-tight` + white
+  - Strong text: `font-bold` + `text-brand-offwhite`
+  - Inline code: gold accent, subtle background, monospace, rounded
+  - Code blocks: added `shadow-inner`
+  - Lists: bright text + `leading-7`
+  - Paragraph spacing: `[&_p]:mb-5` → `prose-p:mb-4`
+
+**Problem cards (problems + home page):**
+
+`frontend/app/(main)/problems/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Title: `font-semibold text-sm` → `font-bold text-base`
+- Description: `text-xs` / `opacity-70` → `text-sm` / `opacity-90`
+- XP: `font-semibold` → `font-bold`
+- Solved: `font-medium` → `font-bold`
+
+`frontend/app/(main)/home/page.tsx`:
+- Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
+- Description: `text-xs` / `opacity-60` → `text-sm` / `opacity-90`
+- Tags: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Footer stats: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
+- Stat icons: `opacity-30` → `opacity-50`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 52: Workspace editor cleanup
+
+**Commits:** `2c472ac` `f9690b1`
+
+**Removed duplicate difficulty badge:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed the duplicate difficulty badge from the top toolbar header. The difficulty badge remains in the description area (left sidebar) where users read the problem context.
+
+**Removed custom intellisense/hover providers:**
+- Removed `registerVSCodeDarkPlusTheme` import and custom theme registration (deleted entire `frontend/lib/monaco-theme.ts` usage)
+- Removed `loader.init()` pre-initialization effect
+- Removed all custom completion providers (~740 lines):
+  - Go: `pkgMethods` (fmt/strings/math/sort/os/strconv/time/errors/json), `goSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+  - Python: `pythonKeywords`, `pythonBuiltins`, `pythonStdlibHints`, `pythonSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
+
+**Editor config updated:**
+- Theme: `vs-dark-plus` (custom) → `vs-dark` (built-in VS Code Dark+)
+- `quickSuggestions`: `{ other: true, ... }` → `false`
+- `snippetSuggestions`: `inline` → `none`
+- `suggestOnTriggerCharacters`: `true` → `false`
+- `acceptSuggestionOnEnter`: `smart` → `off`
+- `parameterHints`: (unset) → `{ enabled: false }`
+- `autoClosingBrackets`: `always` → `never`
+- `autoClosingQuotes`: `always` → `never`
+
+**Result:** Clean VS Code Dark+ experience — syntax coloring only, no popups, no autocomplete, no hover tooltips. Only the keyboard shortcuts remain: Ctrl+S (format), Ctrl+Enter (test), Ctrl+Shift+Enter (submit).
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 53: Curriculum module lock panel on admin dashboard
+
+**Commit:** `d0ae5ac`
+
+**What was built:**
+- New "Curriculum Module Locks" panel on the main admin dashboard (below existing "Problem Module Locks")
+- Fetches all courses + their modules via `fetchAllCourses()` and `fetchModules()` in `loadData`
+- Courses are collapsible accordions (`<details>`/`<summary>`) with chevron animation
+- Each course header shows locked count (e.g. "2/5 locked")
+- Each module has a lock/unlock toggle button with amber styling matching the Problem Module Locks panel
+- Optimistic UI update — state flips immediately, toast on success/error
+- Uses existing `toggleModuleLock(id)` API → `PATCH /admin/modules/{id}/lock`
+
+**Existing lock enforcement (already in place):**
+- `CourseDetail` page: `mod.locked` → `status="locked"` → `LearningCard` renders lock overlay with amber padlock
+- `ModuleDetail` page: backend returns 403 `MODULE_LOCKED` → amber lock screen with retry
+- `ModuleCards` (dashboard): locked problem modules show amber padlock via `lockedModules` prop
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Added imports, state, data fetching, and curriculum module locks panel
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 54: Problem module lock panel + locked card redesign + dashboard fix
+
+**Commits:** `d1495d6` `486ae78` `55e054c`
+
+**Problem module lock panel (admin dashboard):**
+- New "Problem Module Locks" panel below stats — grouped by Go/Python in collapsible accordions
+- Display names (e.g. "Arrays & Strings") instead of raw slugs
+- Lock count per language (e.g. "2/8 locked")
+- Inline lock/unlock toggle with amber styling
+
+**Locked module card redesign:**
+- Locked cards remain fully visible (no `opacity-60` dimming) — subtle amber border instead
+- Small amber lock badge fixed at top-right corner
+- Hover reveals "LOCKED" pill overlay centered on card image with backdrop blur
+- Footer shows "Locked by instructor" with lock icon
+
+**Dashboard fix:**
+- Locked modules now appear on the dashboard module list — included `lockedModules` set in module list derivation so locked modules render even when their problems are filtered out by the backend
+
+**Files modified:**
+- `frontend/app/(main)/admin/page.tsx` — Problem Module Locks panel
+- `frontend/components/dashboard/ModuleCards.tsx` — Locked card visual redesign
+- `frontend/app/(main)/home/page.tsx` — Include lockedModules in module list
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 55: Admin bypass for module locks + delete problem module
+
+**Commits:** `345edcb`
+
+**Admin bypass for module locks (4 endpoints):**
+- `GetProblemBySlug` — admins can view locked module problems (nil-safe claims check)
+- `ListVisibleProblems` — admins see ALL problems; students still filtered
+- `Submit` — admins can submit to locked modules
+- `Test` — admins can test against locked modules
+
+**Delete problem module (end-to-end):**
+- **Store:** `DeleteProblemModule` — transaction-safe: deletes submissions → progress → problems (cascades test_cases) → module lock
+- **Handler:** `DELETE /admin/problem-modules/{moduleName}`
+- **Frontend:** Trash icon button next to each module in Problem Module Locks panel with `confirm()` dialog
+- Activity log entry on successful deletion
+
+**Cache invalidation:** `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` after delete — stale 30s cache was masking deletions
+
+**Backend files:**
+- `internal/api/problems.go` — bypass in `GetProblemBySlug` + `ListVisibleProblems`
+- `internal/api/submissions.go` — bypass in `Submit`
+- `internal/api/test.go` — bypass in `Test`
+- `internal/store/module_locks.go` — `DeleteProblemModule` store function
+- `internal/store/store.go` — interface method
+- `internal/api/admin.go` — `DeleteProblemModule` handler
+- `internal/api/router.go` — route registration
+
+**Frontend files:**
+- `frontend/app/(main)/admin/page.tsx` — delete button, state, handlers; cache imports
+- `frontend/lib/api.ts` — `deleteProblemModule()` API function
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 56: Smart back navigation + full SPA links
+
+**Commits:** `843d315`
+
+**Navigation audit findings:**
+| Issue | Severity | Files |
+|---|---|---|
+| Workspace "Back" always goes to `/home` regardless of referrer | High | `ProblemWorkspaceClient.tsx:548` |
+| 2 `<a href>` tags causing full page reloads | High | `MyContributions.tsx:78`, `admin/page.tsx:279` |
+
+**Smart back navigation:**
+- Workspace stores `return_to` in `sessionStorage` on every problem link click (`/home` and `/problems` pages)
+- Workspace reads `sessionStorage.getItem("return_to")` for the "Back" link href — falls back to `/home`
+- Label changed from "Problems" to "Back" to reflect dynamic destination
+
+**Full SPA navigation:**
+- `MyContributions.tsx:78` — `<a href="/contribute">` → `<Link href="/contribute">`
+- `admin/page.tsx:279` — `<a href="/admin/curriculum">` → `<Link href="/admin/curriculum">`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 57: LIFO navigation stack + module URL persistence
+
+**Commits:** `4fc6cce` `32f264a` `2ba2fac`
+
+**LIFO navigation stack:**
+- Module card clicks use `pushState` instead of `replaceState` — each selection is a proper history entry
+- Language filter tabs use `pushState` — back/forward navigates through tab changes
+- "Back to topics" uses `pushState` to return to all-modules view
+- `popstate` event listener syncs React state (selectedModule + languageFilter) with URL on browser back/forward
+
+**Module URL persistence:**
+- `handleSelectModule` writes `?module=xxx` to URL via `pushState`
+- Refresh preserves the module filter state — reads from URL params on mount
+
+**Cache invalidation for delete module:**
+- Added `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` in delete handler — stale 30s cache was returning old data, making deletes appear to do nothing
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 59: Module metadata system + Python module images
+
+**Module metadata system:**
+- Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
+- `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions
+- `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
+- `internal/api/router.go` — 3 admin routes + student `GET /me/module-meta`
+- `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
+
+**Admin panel — Module Settings panel:**
+- New "Module Settings" panel — inline rename + pin toggle
+- Modules from `moduleMeta` keys (all known modules)
+- Inline rename with Enter/blur/Escape keyboard support
+- Pin toggle with Pin/PinOff icons
+- Cache invalidation before re-fetch after mutations
+
+**Admin panel — Problem Module Locks fixes:**
+- Modules now derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
+- Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
+- Delete button only renders when module has problems
+- `await loadData()` before re-enabling button
+- Removed hardcoded `MODULE_DISPLAY_NAMES`
+
+**ModuleCards integration:**
+- Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
+- `home/page.tsx` fetches moduleMeta on load + window focus refresh
+
+**Python module images (4 new WebP):**
+- `python-arrays-strings.webp` (31KB), `python-challenges.webp` (25KB)
+- `python-fundamentals.webp` (32KB), `python-intermediate.webp` (35KB)
+- Full `MODULE_META` + `MODULE_COLORS` entries for each
+
+**Backend files:**
+- `internal/store/module_meta.go` — new
+- `internal/store/types.go` — `ModuleMeta` struct
+- `internal/store/store.go` — interface methods
+- `internal/api/admin.go` — handlers
+- `internal/api/router.go` — routes
+- `migrations/046_module_meta.sql` — new
+
+**Frontend files:**
+- `frontend/lib/api.ts` — types + API functions
+- `frontend/app/(main)/admin/page.tsx` — Module Settings panel, locks panel fixes
+- `frontend/app/(main)/home/page.tsx` — focus refresh
+- `frontend/components/dashboard/ModuleCards.tsx` — pin sort, display_name, Python images
+- `frontend/public/modules/python-*.webp` — 4 new images
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./...` — clean
+- `./node_modules/.bin/tsc --noEmit` — clean
+
+---
+
+### 2026-07-22 — Session 60: Markdown renderer rewrite + paragraph spacing fix
+
+**Commits:** `528cd8b`
+
+**Problem statement rendering — root cause fix:**
+- `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` Tailwind classes were no-ops (headings, paragraph spacing, code styling, bold color all did nothing)
+- Removed `react-markdown` / `remark-gfm` dependency — replaced with self-contained `renderMarkdown()` + `inlineMd()` functions using `dangerouslySetInnerHTML`
+- All styling now uses inline `style=` attributes — deterministic, no CSS plugin required
+
+**Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
+- Split on `\n\s*\n` (blank lines) → paragraphs with `0.75rem` bottom margin
+- `#` / `##` / `###` → `h1`/`h2`/`h3` with proper sizing and bold
+- `-` / `*` at line start → bullet lists
+- `1.` / `2.` at line start → numbered lists
+- `**bold**` → gold (`#D4AF37`)
+- `*italic*` → em
+- `` `code` `` → gold monospace with dark bg
+- `[text](url)` → gold links
+- HTML escaped before processing (XSS safe)
+
+**Key insight for AI:** The renderer is intentionally simple — no GFM tables, no blockquotes, no strikethrough. Blank lines (`\n\n`) are the only block separator.
+
+**Files modified:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — full renderer rewrite
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
+
+**Commits:** `824fc10`
+
+**Locked module cards — fix problem counts:**
+- `internal/store/types.go` — Added `Locked bool` field to `Problem` struct
+- `internal/store/problems.go` — SQL now includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`
+- `internal/store/problems.go` — Scans `is_locked` into `problem.Locked`; `LIMIT` raised from 200 to 500
+- `internal/api/problems.go` — Removed handler-level locked module filter — problems now include `locked: true` instead of being excluded
+- `frontend/lib/types.ts` — Added `locked: boolean` to `Problem` interface; merged duplicate `TestCase` definitions
+- `frontend/app/(main)/home/page.tsx` — `filteredProblems` excludes `p.locked` from grid; `moduleProgress` derives from ALL problems including locked; `showTopicCards` includes `lockedModules.has(selectedModule)` guard
+- Locked module cards now show `12 problems · 3 solved · 25%` — identical visual treatment to unlocked cards
+
+**Community solutions — remove AND EXISTS:**
+- `internal/store/submissions.go:146` — Removed `AND EXISTS (SELECT 1 FROM submission_likes ...)` — solutions with 0 likes now surface, sorted by likes DESC
+
+**Community solution cards — auto-height + collapse:**
+- `frontend/app/(main)/problems/[slug]/success/page.tsx` — Each card uses per-card `expandedSolutions` Set + `toggleSolution`. Code >8 lines collapses to `max-h-[220px]` with gradient fade + "Show full solution" toggle. Cards use `rounded-xl` (no double-radius). Removed fixed `h-[200px]`.
+
+**Bug fix:**
+- `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx:427` — Fixed `lang` → `activeLanguage` (undefined variable)
+
+**Files modified (14):**
+`CLAUDE.md`, `ProblemEditPanel.tsx`, `home/page.tsx`, `success/page.tsx`, `ProblemWorkspaceClient.tsx`, `api.ts`, `types.ts`, `admin.go`, `problems.go` (api), `router.go`, `problems.go` (store), `store.go`, `submissions.go`, `types.go`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 62: Middleware auth redirect fix
+
+**Problem:** Auth guard added in session 61 checked for `koder_token` cookie in Next.js middleware, but the cookie is set on the API domain (`koder-api.onrender.com`), not the frontend (`update.koder.sbs`). Every RSC request to protected routes was redirected to `/`, creating an invisible redirect loop — blank charcoal screen.
+
+**Fix:** Removed auth redirect guard from `frontend/middleware.ts`. Auth remains handled client-side via UserContext's 401 fallback.
+
+**Commit:** `ba654d6`
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `npx tsc --noEmit` — clean
+
+### 2026-07-22 — Session 63: ESLint errors fix + staging CI/CD + branch rename
+
+**Commits:** `43eaef7`
+
+**Lint fixes (6 errors → 0):**
+- `ProblemEditPanel.tsx` — changed `key={tc.id}` → `key={\`\${tc.id}-\${tc.expected}\`}` so row re-mounts on expected change, removing `useEffect`/`useRef` sync pattern
+- `home/page.tsx` — initialized `selectedModule` from URL in `useState` lazy initializer, removed mount-time `useEffect`
+- `LessonViewerClient.tsx` — added `key={lessonSlug}` to root div so component remounts on lesson navigation, removing step-reset `useEffect`/`useRef`
+- `MultiFileConfigPanel.tsx` — used `eslint-disable` block comments for legitimate external-system sync (spec prop → local state)
+
+**CI/CD:**
+- Added `update` branch to both push and pull_request triggers in `.github/workflows/ci.yml` — same 2-job pipeline (backend: vet/test/build, frontend: lint/tsc/build)
+
+**Branch rename:**
+- Remote branch renamed from `update` → `staging`; `origin/update` force-pushed to match old staging
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors, 1 pre-existing warning (unrelated `<img>` tag)
+- `go test ./internal/...` — all pass (4 pre-existing config env mismatch failures)
+
+---
+
+### 2026-07-22 — Session 64: Config test fixes, CI env var isolation, dashboard nav link, global rank fix
+
+**Commits:** `bfadb3f` `549521f` `9b882aa` `c8c260c`
+
+**1. Config test fixes (4 failing → all pass):**
+- `internal/config/config.go` — `loadEnvFile()` now skips loading `.env` during tests (checks `os.Args[0]` suffix `.test`), so "missing var" tests correctly see empty env
+- `internal/config/config_test.go` — All 3 "missing" tests (`MissingDatabaseURL`, `MissingJWTSecret`, `MissingNvidiaKey`) now call `t.Setenv("VAR", "")` before `Load()` to clear CI-provided env vars
+- `TestLoadConfig_Defaults` — clears `GO_VERSION` before testing, so the code's default `"1.23"` is tested (not CI's `"1.26"` override)
+
+**2. Dashboard nav link fix (`TopNav.tsx`):**
+- Added `onClick` handler to nav links: `if (pathname === link.href) { e.preventDefault(); router.refresh(); }`
+- Clicking Dashboard when already on `/home` now forces a fresh RSC payload
+
+**3. Global rank `# #1` fix (`StatsOverview.tsx`):**
+- Removed duplicate `#` from template literal — `#{profile.global_rank}` → `{profile.global_rank}`
+- The `Hash` icon already serves as the `#` symbol, so icon + number = clean `#1` display
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `go test ./internal/...` — all 8 packages pass (24 tests)
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 65: Dashboard nav corrected (dispatchEvent) + scrollable success page previews
+
+**Commits:** `c2f0efa`
+
+**1. Dashboard nav link — fix corrected:**
+- `TopNav.tsx` — `router.refresh()` didn't work because it doesn't re-run client `useEffect` hooks
+- Changed to `window.dispatchEvent(new Event("user-updated"))` — the dashboard (`home/page.tsx:118`) already listens for this event, clears cache, and re-fetches all data with 300ms debounce
+
+**2. Success page — scrollable code previews:**
+- `success/page.tsx` — Removed 141 lines of collapse/expand machinery:
+  - Removed `showFullCode` state, `expandedSolutions` state, `toggleSolution` function
+  - Removed `codeLines`/`isLongCode`/`solCodeLines`/`solIsLong`/`solShowFull` calculations
+  - Removed gradient fade overlays (z-index conflict with CodeBlock copy button)
+  - Removed "Show full solution" / "Show less" toggle buttons
+  - Removed `ChevronDown` import
+- Both "Your Solution" and community solution code blocks now use `max-h-[220px] overflow-y-auto` with thin custom scrollbar visible on hover
+
+**Verification:**
+- `go vet ./internal/...` — clean
+- `go build ./internal/...` — clean
+- `go test ./internal/...` — all 8 packages pass
+- `go vet/build/test ./sandbox/...` — clean
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 66: Seeded shuffle + filter bar redesign + beta gate for /problems
+
+**Commits:** `b527df2` `ff88299` `4cefe19`
+
+**1. Seeded random problem ordering (`frontend/lib/utils.ts`):**
+- Added `seededRandom(seed)` — mulberry32 PRNG for deterministic randomness
+- Added `shuffleArray(arr, seed)` — Fisher-Yates shuffle using seeded RNG
+- Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
+
+**2. Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+- Removed sidebar `aside` with Status/Difficulty/XP filter buttons
+- Replaced with top-mounted card (`bg-card border rounded-xl p-4 space-y-4 mt-2`):
+  - Search row with inline problem count badge
+  - Language tabs + Status `Select` dropdown + Difficulty `Select` dropdown + XP range inputs
+  - Active filter chips with dismiss (`×`) + "Clear all"
+- Mobile: Status/Difficulty/XP collapse into slide-in drawer ("Filters" button visible on `lg:hidden`)
+- Removed `#001` numbering from problem cards (meaningless with random order)
+
+**3. Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+- TopNav: "Problems" nav link disabled for non-admins with amber BETA badge + `cursor-not-allowed`
+- problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon, border-dashed)
+- Matches existing Learn + Best Practices beta gate pattern
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-22 — Session 67: Admin preview fix — render markdown + examples section
+
+**Commits:** `cf5435e`
+
+**1. Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+- Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx`
+- Self-contained inline-styled markdown renderer (no GFM tables/blockquotes, blank lines as block separator)
+
+**2. ProblemWorkspaceClient updated:**
+- Imports `renderMarkdown` from shared module instead of defining locally
+- Removed 53 lines of duplicated functions
+
+**3. Admin preview fix (`ProblemEditPanel.tsx`):**
+- **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made it look like examples vanished.
+- **Fix:** Preview now renders:
+  - Statement via `renderMarkdown()` with `dangerouslySetInnerHTML` (was `whitespace-pre-wrap` raw text)
+  - Examples section from `problem.examples` with Input/Expected Output code blocks (matching workspace styling)
+  - Constraints and learning objective also via `renderMarkdown()`
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (all touched files)
+- All pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 68: Locked modules sort to bottom of ModuleCards grid
+
+**Commits:** `1e28c16`
+
+**1. ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+- **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
+- **Fix:** Added lock-status check as the primary sort key — locked modules always appear after all unlocked modules
+- **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
+- Single change: `lookedModules.has()` check added before pin/alphabetical comparisons
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- All pushed to `origin/update`
+
+### 2026-07-23 — Session 70: Problem edit dialog UX improvements
+
+**Commit:** `ac7b4d4`
+
+**Changes to `frontend/app/(main)/admin/ProblemEditPanel.tsx`:**
+- Dialog width: `max-w-4xl` (896px) → `max-w-5xl` (1024px) — more breathing room for 8-section form
+- Content spacing: `space-y-6` → `space-y-4` — tighter vertical gaps reduce scrolling
+- Description textarea: `min-h-[200px]` → `min-h-[350px]` — more editing room for markdown
+- Footer buttons: wrapped with `flex-wrap`, condensed labels (`AI` / `Enrich`), bold + shadow on Save Changes, `gap-2` instead of `gap-3` — no overflow even at smaller widths
+
+**Verification:**
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- Pushed to `origin/update`
+
+---
+
+### 2026-07-23 — Session 69: Admin panel module management redesign — new modules auto-appear + professional UI
+
+**Commits:** (pending — squashed)
+
+**1. Functional fix — new `GET /admin/all-modules` endpoint:**
+- **Problem:** Admin panels derived module list from `module_meta` table (fixed seed). New modules from ingested problems never appeared.
+- **Fix:** New `ListAllModules` store function returns `SELECT DISTINCT p.module` from `problems` table, `COALESCE`d with `module_meta` display names, joined with `module_locks` lock state, plus `UNION` for orphan `module_meta` rows with zero problems
+- **Backend struct:** `AllModule` — `module_name`, `display_name`, `is_pinned`, `is_locked`, `problem_count`
+- **Backend files:** `internal/store/types.go`, `internal/store/store.go`, `internal/store/module_meta.go`, `internal/api/admin.go`, `internal/api/router.go`
+- **Frontend types:** `AllModule` in `frontend/lib/types.ts`
+- **Frontend API:** `fetchAllModules()` in `frontend/lib/api.ts`
+
+**2. Problem Module Locks panel — professional redesign:**
+- Card wrapper with CodePen shadow back plate depth effect
+- shadcn Tabs for Go/Python language filtering
+- Grid of compact module cards (1→2→3 columns responsive)
+- Each card: display name (bold) + slug (muted mono), problem count badge, Lock/Locked toggle button, conditional Delete button (empty modules only)
+- Optimistic lock state updates — no re-fetch needed on toggle
+
+**3. Curriculum Module Locks panel — professional redesign:**
+- Same card wrapper + shadow back plate pattern
+- Course-level collapsible sections (`<details>`) with locked count badges
+- Per-module lock toggle as styled `Button` with Lock/LockOpen icons
+- Auto-opens courses that have locked modules
+
+**4. Module Settings panel — professional redesign:**
+- Same card wrapper + shadow back plate + language Tabs pattern
+- Inline rename via shadcn `Input` with Enter/blur save + Escape/X cancel
+- Pin toggle always visible (not hover-only) with active/inactive styling
+- Display name + slug + problem count per row
+
+**5. Import changes:**
+- Removed `fetchModuleLocks()`, `fetchModuleMeta()` — replaced by `fetchAllModules()`
+- Removed `moduleLocks` Set state, `moduleMeta` Record state — replaced by `allModules: AllModule[]`
+- Added shadcn: `Card`, `CardContent`, `Button`, `Badge`, `Input`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
+- Added lucide icons: `ShieldCheck`, `ShieldOff`, `Plus`, `X`, `Check`, `Sparkles`
+
+**Verification:**
+- `go vet ./internal/api/ ./internal/store/` — clean
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
+- All pushed to `origin/update`

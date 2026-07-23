@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { User } from "@/lib/types";
 import { fetchUser, updatePrimaryLanguage } from "@/lib/api";
+import { useWebSocket } from "@/lib/event";
 
 type UserContextType = {
   user: User | null;
@@ -19,21 +21,29 @@ const UserContext = createContext<UserContextType>({
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const redirecting = useRef(false);
 
   const loadUser = useCallback(async () => {
     try {
       const res = await fetchUser();
       if (res.success && res.data) {
         setUser(res.data);
+      } else if (!redirecting.current) {
+        redirecting.current = true;
+        router.replace("/");
       }
     } catch {
-      // silently fail — handled by login redirect
+      if (!redirecting.current) {
+        redirecting.current = true;
+        router.replace("/");
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const initialLoad = async () => {
@@ -41,9 +51,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const res = await fetchUser();
         if (res.success && res.data) {
           setUser(res.data);
+        } else if (!redirecting.current) {
+          redirecting.current = true;
+          router.replace("/");
         }
       } catch {
-        // silently fail
+        if (!redirecting.current) {
+          redirecting.current = true;
+          router.replace("/");
+        }
       } finally {
         setLoading(false);
       }
@@ -51,7 +67,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     initialLoad();
     window.addEventListener("user-updated", loadUser);
     return () => window.removeEventListener("user-updated", loadUser);
-  }, [loadUser]);
+  }, [loadUser, router]);
+
+  useWebSocket({
+    "user.xp.updated": useCallback(() => {
+      loadUser();
+    }, [loadUser]),
+  });
 
   const refreshUser = useCallback(() => {
     loadUser();
