@@ -241,7 +241,7 @@ export default function ProblemsPage() {
   }
 
   const filtersBar = (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+    <div className="bg-card border border-border rounded-xl p-4 space-y-4 mt-2">
       {/* Search row */}
       <div className="relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
