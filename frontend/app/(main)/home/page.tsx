@@ -540,14 +540,14 @@ export default function Dashboard() {
                           animationDelay: i * 50 + "ms",
                         }}
                       >
-                        <Card
-                          className={cn(
-                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
-                            "hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8",
-                            "animate-in fade-in slide-in-from-bottom-2",
-                            problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
-                          )}
-                        >
+                          <Card
+                            className={cn(
+                              "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border shadow-sm hover:shadow-xl hover:shadow-primary/8",
+                              "hover:-translate-y-1.5 hover:border-primary/30",
+                              "animate-in fade-in slide-in-from-bottom-2",
+                              problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
+                            )}
+                          >
                           {/* Background image with gradient fade */}
                           <div className="absolute inset-0 pointer-events-none">
                             <Image
@@ -603,12 +603,12 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <div className="text-sm md:text-base text-muted-foreground/90 leading-relaxed line-clamp-2 mb-auto [&_p]:mb-0 [&_p]:inline [&_ul]:mb-0 [&_ol]:mb-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_li]:inline">
+                            <div className="text-sm md:text-base text-muted-foreground/80 leading-relaxed line-clamp-2 mb-auto space-y-0 [&_p]:inline [&_p]:m-0 [&_p]:text-muted-foreground/80 [&_strong]:text-foreground/80 [&_code]:text-[13px] [&_code]:bg-white/[0.04] [&_code]:px-1 [&_code]:py-[1px] [&_code]:rounded [&_code]:font-mono [&_ul]:inline [&_ul]:m-0 [&_ol]:inline [&_ol]:m-0 [&_li]:inline [&_li]:m-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_h1]:m-0 [&_h2]:m-0 [&_h3]:m-0 [&_h1]:text-inherit [&_h2]:text-inherit [&_h3]:text-inherit">
                               {problem.statement ? (
                                 <span dangerouslySetInnerHTML={{
                                   __html: renderMarkdown(
                                     problem.statement.split(/\n\s*\n/)[0]
-                                  ),
+                                  ).replace(/\sstyle="[^"]*"/g, ''),
                                 }} />
                               ) : (
                                 <span className="italic">No description</span>
@@ -633,16 +633,16 @@ export default function Dashboard() {
                           <CardFooter className="px-5 py-3.5 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
                                 <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-3 text-xs text-muted-foreground/80 font-semibold">
-                                  <span className="flex items-center gap-1">
-                                    <Code size={11} className="shrink-0 text-muted-foreground/50" />
+                                  <span className="flex items-center gap-1.5">
+                                    <Code size={13} className="shrink-0 text-muted-foreground/50" />
                                     {problem.total_submissions || 0}
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <BarChart2 size={11} className="shrink-0 text-muted-foreground/50" />
+                                  <span className="flex items-center gap-1.5">
+                                    <BarChart2 size={13} className="shrink-0 text-muted-foreground/50" />
                                     {Math.round(problem.success_rate || 0)}%
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock size={11} className="shrink-0 text-muted-foreground/50" />
+                                  <span className="flex items-center gap-1.5">
+                                    <Clock size={13} className="shrink-0 text-muted-foreground/50" />
                                     {problem.estTimeMinutes || 0}m
                                   </span>
                                 </div>
