@@ -490,7 +490,8 @@ func (s *PostgresStore) UpdateUserRole(ctx context.Context, id uuid.UUID, role s
 	return nil
 }
 
-// GetLeaderboard fetches the top users ranked by XP, then solved count.
+// GetLeaderboard fetches the top users ranked by XP descending, solved count descending,
+// then most-recent passing submission time descending (latest solver ranks higher on ties).
 func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]LeaderboardEntry, error) {
 	var query string
 
@@ -515,10 +516,16 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				GROUP BY user_id, problem_id
 			) sub ON u.id = sub.user_id
 			LEFT JOIN problems pr ON sub.problem_id = pr.id
+			LEFT JOIN (
+				SELECT user_id, MAX(created_at) as latest_submission_at
+				FROM submissions
+				WHERE status = 'passed'
+				GROUP BY user_id
+			) ls ON u.id = ls.user_id
 			WHERE u.role != 'admin'
-			GROUP BY u.id
+			GROUP BY u.id, ls.latest_submission_at
 			HAVING COALESCE(SUM(pr.xp_reward), 0) > 0
-			ORDER BY xp DESC, solved_count DESC, u.id
+			ORDER BY xp DESC, solved_count DESC, ls.latest_submission_at DESC NULLS LAST, u.id
 			LIMIT 100
 		`, interval)
 	} else {
@@ -532,9 +539,15 @@ func (s *PostgresStore) GetLeaderboard(ctx context.Context, period string) ([]Le
 				u.verified
 			FROM users u
 			LEFT JOIN progress p ON u.id = p.user_id
+			LEFT JOIN (
+				SELECT user_id, MAX(created_at) as latest_submission_at
+				FROM submissions
+				WHERE status = 'passed'
+				GROUP BY user_id
+			) ls ON u.id = ls.user_id
 			WHERE u.role != 'admin' AND u.xp > 0
-			GROUP BY u.id
-			ORDER BY u.xp DESC, solved_count DESC, u.id
+			GROUP BY u.id, ls.latest_submission_at
+			ORDER BY u.xp DESC, solved_count DESC, ls.latest_submission_at DESC NULLS LAST, u.id
 			LIMIT 100
 		`
 	}
