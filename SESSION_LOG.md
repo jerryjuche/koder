@@ -98,6 +98,11 @@
 | 90 | `f757c9e` | fix: reset_data.sql preserves admin progress, XP, submissions |
 | 91 | `88771ff` | chore: reset_data.sql only clears submissions + activity logs |
 | 92 | `6a42f0b` | chore: also clear feedback in reset_data.sql |
+| 93 | `ca35d68` | feat: add PixelSnow WebGL background (Three.js snowflake shader) on root layout |
+| 94 | `e9cba64` | fix: move PixelSnow to main layout with correct z-index stacking (z-0 above bg, z-10 for content) |
+| 95 | `6c3941c` | revert: remove PixelSnow (Three.js snowflake background) — restore original layout |
+| 96 | `0b81240` | Polish problem cards: larger titles, rendered markdown, professional spacing |
+| 97 | `4564d69` | Fix card description: strip inline styles from rendered markdown so card Tailwind classes apply |
 
 ---
 
@@ -2339,3 +2344,50 @@ Safe cleanup script that clears student solution data while preserving accounts,
 **Verification:**
 - Script runs without error against a populated database
 - All pushed to `origin/update`
+
+---
+
+## Session 77 — 2026-07-24 — PixelSnow WebGL experiment (reverted)
+
+**Commits:** `ca35d68` `e9cba64` `6c3941c`
+
+### What happened
+- Added `three` and `@types/three` dependencies
+- Created `PixelSnow.tsx` with Three.js snowflake shader — 60fps WebGL canvas with perspective snow effect
+- Integrated into root layout (`app/layout.tsx`) with `-z-10` — hidden behind `bg-background`
+- Moved to `(main)/layout.tsx` with `z-0`/`z-10` stacking — still didn't look right
+- **Reverted entirely** — `PixelSnow.tsx` deleted, `three` uninstalled, layouts restored
+
+### Why reverted
+Snowflake background didn't match Koder's professional amber/charcoal brand aesthetic. Felt distracting rather than polished.
+
+---
+
+## Session 78 — 2026-07-24 — Problem card polish: larger text, rendered markdown, professional spacing
+
+**Commits:** `0b81240` `4564d69`
+
+### Changes to `frontend/app/(main)/home/page.tsx`
+
+| Change | Before | After |
+|--------|--------|-------|
+| **Title** | `text-sm font-bold` → `text-primary` | `text-base font-extrabold md:text-lg tracking-tight` → `text-brand-muted-gold` |
+| **Description** | Regex-stripped raw text (leaked `**bold**`, `` `code` ``) | `renderMarkdown()` on first paragraph via `dangerouslySetInnerHTML` |
+| **Inline style fix** | `renderMarkdown()` injected `style="..."` attributes (overrode card Tailwind) | `.replace(/\sstyle="[^"]*"/g, '')` strips inline styles; card CSS controls preview |
+| **Description styling** | `<p>` element with regex | `<div>` with `[&_p]:inline [&_p]:m-0 [&_strong]:text-foreground/80 [&_code]:text-[13px] bg-white/[0.04] ...` |
+| **Difficulty badge** | `text-[10px]` | `text-[11px] px-2.5` |
+| **Tags** | `text-[10px] font-semibold` | `text-xs font-medium` |
+| **Footer stats** | `text-[11px] gap-2.5` icons `size={11}` | `text-xs gap-3` icons `size={13}` |
+| **XP badge** | `text-[11px]` | `text-xs` |
+| **Card base** | No default shadow | `shadow-sm` |
+| **Card hover** | `hover:-translate-y-1 hover:shadow-lg` | `hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8` |
+| **Grid gap** | `gap-5` | `gap-6` |
+| **Spacing** | Header `pb-3`, Content `pb-3`, Footer `py-3` | Header `pb-2`, Content `pb-2`, Footer `py-3.5` |
+
+### Files modified
+- `frontend/app/(main)/home/page.tsx` — 30+ line changes, 1 new import (`renderMarkdown`)
+
+### Verification
+- ✅ `npx tsc --noEmit` — 0 errors
+- ✅ `npm run lint` — 0 errors (1 pre-existing warning in `MarkdownPreview.tsx`)
+- ✅ All pushed to `origin/update`

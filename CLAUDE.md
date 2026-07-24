@@ -832,7 +832,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 1. **`.github/copilot-instructions.md`** — References Gemini genai SDK (removed), httpOnly cookies (JWT in localStorage), semaphore cap=2 (now 6), timeout 5s (now 30s), Docker memory 64m (now 256m). Needs full rewrite.
 2. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
-3. **Session log duplication** — `.opencode/session-log.md` is stale (last entry July 9). Canonical log is `SESSION_LOG.md`.
+3. **Session log duplication** — `.opencode/` directory exists but is empty (no session-log.md). Canonical log is `SESSION_LOG.md`.
 4. **`sandbox/secure_unix.go`** — `resourceLimits` uses raw numeric values for `RLIMIT_NPROC` (6) and `RLIMIT_NOFILE` (7) instead of `syscall.RLIMIT_NPROC` / `syscall.RLIMIT_NOFILE`. Works on linux/arm64 but needs verification.
 5. **`sandbox/main.go`** — `forcePackageKoder` regex is duplicated in both `sandbox/runtest_go.go` and `internal/executor/sandbox.go`. Should be shared.
 6. **`@google/genai` dep** — Listed in `go.mod` but may be unused after NVIDIA NIM migration.
@@ -868,6 +868,21 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 ---
 
 ## Session Log (Recent)
+
+### 2026-07-24 — Session 78: Problem card polish — larger text, rendered markdown
+
+- Title: `text-sm font-bold` → `text-base font-extrabold md:text-lg tracking-tight`, gold on hover
+- Description: replaced regex-stripped text with `renderMarkdown()` via `dangerouslySetInnerHTML`
+- **Inline style fix:** `renderMarkdown()` injected `style="..."` attributes that overrode card Tailwind — stripped via `.replace(/\sstyle="[^"]*"/g, '')`
+- All text sizes bumped: difficulty `text-[10px]`→`text-[11px]`, tags `text-[10px]`→`text-xs`, footer `text-[11px]`→`text-xs`, icons `size={11}`→`size={13}`
+- Card base: added `shadow-sm`, hover `hover:shadow-xl hover:shadow-primary/8`, lift `hover:-translate-y-1.5`
+- Grid gap `gap-5`→`gap-6`, spacing adjustments
+
+### 2026-07-24 — Session 77: PixelSnow WebGL experiment (reverted)
+
+- Added `three@0.185.1`, created `PixelSnow.tsx` with Three.js snowflake shader
+- Tried root layout (`z-10`), then main layout (`z-0`) — didn't fit brand
+- **Reverted entirely** — component deleted, deps uninstalled, layouts restored
 
 ### 2026-07-23 — Session 76: Data reset script for testing
 
@@ -969,4 +984,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-07-23 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
+*Last indexed: 2026-07-24 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
