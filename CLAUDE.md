@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-07-24 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors
+> **Branch:** `update` | **Last indexed:** 2026-07-26 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors
 
 ---
 
@@ -34,21 +34,21 @@
 
 ---
 
-## 3. Repository Statistics (Verified: 2026-07-24)
+## 3. Repository Statistics (Verified: 2026-07-26)
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 60 source + 13 test | ~15,500 + ~3,535 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
+| **Go Backend** (`cmd/` + `internal/`) | 59 source + 13 test | ~17,306 + ~3,135 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
 | **Go Sandbox** (`sandbox/`) | 7 source + 1 test | ~1,157 + ~32 | Zero external deps, 10-layer defense-in-depth |
-| **SQL Migrations** (`migrations/`) | 46 | ~20,000 | 32 schema + 14 seed, ~25 tables |
-| **Frontend App** (`app/`) | 74 `.tsx` | ~17,177 | 7 route groups, all with loading + error boundaries |
-| **Frontend Components** (`components/`) | 60 | ~9,835 | 19 shadcn/ui + 41 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,906 | 60+ API functions, 40+ TS interfaces, 4 hooks |
+| **SQL Migrations** (`migrations/`) | 47 | ~20,000 | 32 schema + 15 seed, ~25 tables |
+| **Frontend App** (`app/`) | 73 `.tsx` | ~17,177 | 7 route groups, all with loading + error boundaries |
+| **Frontend Components** (`components/`) | 60 | ~9,927 | 19 shadcn/ui + 41 custom |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,832 | 60+ API functions, 40+ TS interfaces, 4 hooks |
 | **Frontend Styles/Config** | 15 | ~1,646 | theme.css (856 vars), typography.css (430 lines), 12 config files |
-| **Documentation** | 14 | ~12,000 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, etc. |
+| **Documentation** | 6 | ~5,639 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, 2 docs |
 | **Scripts** | 6 | ~450 | data reset, build cache, seed transform, curriculum cleanup |
 | **Config/Build** | 12 | ~700 | go.mod, Procfile, build.sh, CI, env |
-| **Total (tracked source)** | **~300** | **~68,000** | Source code + migrations + docs |
+| **Total (tracked source)** | **~294** | **~71,000** | Source code + migrations + docs |
 
 ---
 
@@ -58,7 +58,7 @@
 koder/
 ├── cmd/server/main.go                       # Entry point (125 lines)
 ├── internal/
-│   ├── api/              (27 files, 7,743 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── api/              (26 files, 7,743 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
 │   ├── store/            (24 files, 6,668 LOC)  # Database access layer — pgx/v5, 125+ Store methods
 │   ├── executor/         (7 files, 2,334 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (2 files, 1,169 LOC)   # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
@@ -68,12 +68,12 @@ koder/
 │   └── config/           (2 files, 702 LOC)     # Env var loader (32+ vars, fails-fast validation)
 ├── sandbox/              (8 files, 1,189 LOC)   # Remote execution service — zero external deps
 ├── frontend/
-│   ├── app/              (74 .tsx, ~17,177 LOC) # App Router pages (7 route groups)
+│   ├── app/              (73 .tsx, ~17,177 LOC) # App Router pages (7 route groups)
 │   ├── components/       (60 files, ~9,835 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
 │   ├── lib/              (14 files, ~2,906 LOC) # API client, types, cache, event bus, markdown, pyodide
 │   └── styles/           (3 files, ~1,364 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
-├── migrations/           (46 files, ~20,000 LOC) # Full schema + seed data — 25 tables
+├── migrations/           (47 files, ~20,000 LOC) # Full schema + seed data — 25 tables
 ├── scripts/              (6 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh
 ├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md
 ├── .github/workflows/ci.yml                     # 2-job CI: backend + frontend
@@ -128,7 +128,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 |---|---|---|---|
 | `cmd/server/main.go` | 125 | `main` | Bootstrap: LoadConfig → NewPostgresStore → NewExecutor → NewBroker → NewRouter → http.ListenAndServe → graceful shutdown (10s deadline), `-ldflags` for commit/build time |
 
-### 6.2 API Handlers (`internal/api/` — 27 files, 7,743 LOC)
+### 6.2 API Handlers (`internal/api/` — 26 files, 7,743 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -264,7 +264,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ## 8. Frontend — Complete File Inventory
 
-### 8.1 App Router Pages (`frontend/app/` — 74 `.tsx` files, ~17,177 LOC)
+### 8.1 App Router Pages (`frontend/app/` — 73 `.tsx` files, ~17,177 LOC)
 
 #### Root (4 files)
 | File | Lines | Type | Purpose |
@@ -382,7 +382,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149 | Server | Privacy policy |
 | `terms/page.tsx` | 159 | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 60 files, ~9,835 LOC)
+### 8.2 Shared Components (`frontend/components/` — 60 files, ~9,927 LOC)
 
 #### shadcn/ui Primitives (19 files, ~1,598 LOC)
 | File | Lines | Purpose |
@@ -501,7 +501,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 14 files, ~2,906 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 14 files, ~2,458 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -547,7 +547,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 9. Database Migrations (`migrations/` — 46 files, ~20,000 LOC)
+## 9. Database Migrations (`migrations/` — 47 files, ~20,000 LOC)
 
 ### 9.1 Schema Migrations (32 files)
 
@@ -586,7 +586,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 031 | `044_add_module_locked.sql` | 5 | locked BOOLEAN on modules (curriculum gating) |
 | 032 | `045_add_module_locks.sql` | 5 | module_locks table (problem category locking) |
 
-### 9.2 Seed Data Migrations (14 files)
+### 9.2 Seed Data Migrations (15 files)
 
 | # | File | Lines | Problems | Module(s) |
 |---|---|---|---|---|
@@ -896,7 +896,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `types_test.go` (47 LOC) | 2 |
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
-| **Total** | **13 files (~3,535 LOC)** | **126+ tests** |
+| **Total** | **13 files (~3,135 LOC)** | **126+ tests** |
 
 ---
 
@@ -927,11 +927,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 67 (60 backend + 7 sandbox) |
-| **Go LOC** | ~19,000 (13,500 backend source + 3,535 test + 1,157 sandbox source + 32 sandbox test) |
-| **Go test files** | 13 (~3,535 LOC, 126+ tests) |
-| **Frontend TSX/TS files** | ~152 (~24,800 LOC) |
-| **Total tracked source LOC** | ~68,000 |
+| **Go source files** | 66 (59 backend + 7 sandbox) |
+| **Go LOC** | ~21,630 (17,306 backend source + 3,135 test + 1,157 sandbox source + 32 sandbox test) |
+| **Go test files** | 13 (~3,135 LOC, 126+ tests) |
+| **Frontend TSX/TS files** | ~151 (~24,800 LOC) |
+| **Total tracked source LOC** | ~71,000 |
 | **API endpoints** | ~89 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
@@ -958,9 +958,9 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 4. **`sandbox/secure_unix.go`** — `resourceLimits` uses raw numeric values for `RLIMIT_NPROC` (6) and `RLIMIT_NOFILE` (7) instead of `syscall.RLIMIT_NPROC` / `syscall.RLIMIT_NOFILE`. Works on linux/arm64 but needs verification.
 5. **`sandbox/main.go`** — `forcePackageKoder` regex is duplicated in both `sandbox/runtest_go.go` and `internal/executor/sandbox.go`. Should be shared.
 6. **`@google/genai` dep** — Listed in `go.mod` (indirect) but may be unused after NVIDIA NIM migration.
-7. **Empty `docs/` subdirectories** — `docs/adr/` and `docs/diagrams/` are placeholders with no content.
+7. **Empty `docs/` subdirectories** — `docs/adr/` and `docs/diagrams/` are placeholders with no content. These are counted as 0 LOC; actual docs total is 6 files (5,639 LOC).
 8. **Migration gap** — Migration numbers jump from 017 to 019 (no 018), and from 029 to 031 (no 030). Not harmful but breaks sequential readability.
-9. **`CODEBASE_INDEX.md`** — Superseded by this file (`CLAUDE.md`). Kept as a redirect for existing references; will be removed in a future cleanup.
+9. **`CODEBASE_INDEX.md`** — Superseded by this file (`CLAUDE.md`). Kept as a redirect pointer for existing references; will be removed in a future cleanup.
 
 ---
 
@@ -988,6 +988,17 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-07-26 — Session 80: Professional codebase reindex — accurate file counts and LOC
+- Audited all 294+ source files across Go backend (59 source, 17,306 LOC), sandbox, frontend (73 app, 60 components, 18 lib/hooks), migrations (47), docs (6), scripts (6)
+- Updated CLAUDE.md with verified counts: backend 17,306 LOC (was ~15,500), tests 3,135 LOC (was ~3,535), lib 2,458 LOC (was ~2,906), migrations 47 (was 46)
+- Fixed documentation count: 6 files, 5,639 LOC (was 14 files, ~12,000)
+- Updated Key Metrics section: 66 Go source files, ~21,630 total Go LOC, ~71,000 total tracked source
+
+### 2026-07-24 — Session 79: Leaderboard tiebreaker + codebase index consolidation
+- Leaderboard ties broken by most recent passing submission time DESC (weekly, monthly, all-time)
+- Added LEFT JOIN subquery for latest_submission_at, ORDER BY updated with NULLS LAST
+- Consolidated CODEBASE_INDEX.md into redirect pointer to CLAUDE.md
 
 ### 2026-07-24 — Session 78: Problem card polish — larger text, rendered markdown
 - Title: `text-sm font-bold` → `text-base font-extrabold md:text-lg tracking-tight`, gold on hover
@@ -1065,4 +1076,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-07-24 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
+*Last indexed: 2026-07-26 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*

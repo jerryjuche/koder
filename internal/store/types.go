@@ -109,6 +109,7 @@ type Problem struct {
 	FuncName         string      `db:"func_name" json:"func_name"`
 	ReturnType       string      `db:"return_type" json:"return_type"`
 	ParamTypes       []string    `db:"param_types" json:"param_types"`
+	ParamNames       []string    `db:"param_names" json:"param_names"`
 	Hints            []string    `db:"hints" json:"hints"`
 	Difficulty       int         `db:"difficulty" json:"difficulty"`
 	XPReward         int         `db:"xp_reward" json:"xpReward"`
@@ -136,6 +137,7 @@ type LanguageSpec struct {
 	FuncName   string         `json:"func_name"`
 	ReturnType string         `json:"return_type"`
 	ParamTypes FlexibleStrings `json:"param_types"`
+	ParamNames []string       `json:"param_names,omitempty"`
 }
 
 // TestCase represents a single problem test case.
@@ -266,6 +268,7 @@ type UserProblem struct {
 	FuncName         string                `db:"func_name" json:"func_name"`
 	ReturnType       string                `db:"return_type" json:"return_type"`
 	ParamTypes       []string              `db:"param_types" json:"param_types"`
+	ParamNames       []string              `db:"param_names" json:"param_names"`
 	LanguageVersions *map[string]LanguageSpec `db:"language_versions" json:"language_versions,omitempty"`
 	Hints            []string              `db:"hints" json:"hints"`
 	Difficulty       int                   `db:"difficulty" json:"difficulty"`
@@ -297,6 +300,7 @@ type NewUserProblem struct {
 	FuncName         string                     `json:"func_name"`
 	ReturnType       string                     `json:"return_type"`
 	ParamTypes       []string                   `json:"param_types"`
+	ParamNames       []string                   `json:"param_names"`
 	LanguageVersions *map[string]LanguageSpec   `json:"language_versions,omitempty"`
 	Hints            []string                   `json:"hints"`
 	Difficulty       int                        `json:"difficulty"`

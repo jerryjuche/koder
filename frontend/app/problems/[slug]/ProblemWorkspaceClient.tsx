@@ -132,13 +132,17 @@ function formatCode(code: string, lang: string): string {
 }
 
 function generateScaffold(problem: Problem | null, lang: string): string {
+  const paramName = (names: string[] | undefined, idx: number): string =>
+    names?.[idx] || `arg${idx + 1}`;
+
   const lv = problem?.language_versions?.[lang];
   if (lv?.func_name) {
     const params =
       lv.param_types
-        ?.map((t, i) =>
-          lang === "python" ? `arg${i + 1}` : `arg${i + 1} ${t}`,
-        )
+        ?.map((t, i) => {
+          const name = paramName(lv.param_names ?? problem?.param_names, i);
+          return lang === "python" ? name : `${name} ${t}`;
+        })
         .join(", ") || "";
     if (lang === "python") {
       return `def ${lv.func_name}(${params}):\n    pass\n`;
@@ -149,7 +153,12 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   // Fallback: try top-level Go fields
   if (lang !== "python" && problem?.func_name) {
     const params =
-      problem.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
+      problem.param_types
+        ?.map((t, i) => {
+          const name = paramName(problem.param_names, i);
+          return `${name} ${t}`;
+        })
+        .join(", ") || "";
     const ret = problem.return_type ? ` ${problem.return_type}` : "";
     return `package koder\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
   }
