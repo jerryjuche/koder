@@ -1,0 +1,542 @@
+[
+  {
+    "slug": "python-challenge-trim-outer-characters",
+    "title": "Inner-Core Extraction: Trimming String Edges",
+    "module": "python-challenges",
+    "statement": "Every text string has a beginning and an end. Sometimes the outermost characters are just a boundary \u2014 markers that need to be discarded to reveal the actual content underneath.\n\nString trimming is a fundamental operation in text processing, data cleaning, and input validation, where only the interior portion of a string matters.\n\nIn this challenge, your task is to remove the very first character and the very last character from a string, and return whatever remains in between.\nThe input string is guaranteed to be at least two characters long.\n\nFor example:\n\n- **\u201chello\u201d** becomes **\u201cell\u201d** after removing the first (\u2018h\u2019) and last (\u2018o\u2019) characters.\n- **\u201cab\u201d** becomes **\u201c\u201d** (an empty string), since removing both characters leaves nothing behind.\n- This should work correctly for letters, digits, symbols, and any other characters.\n\nYour function should return the **remaining substring** after both ends have been trimmed away.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character positions.\n- Understanding how **indexing** identifies individual characters.\n- Extracting a **substring** using slicing.\n- Handling edge cases where trimming consumes the entire string.\n\nTrimming the outermost characters from a string is a foundational text-processing technique used in **parsing**, **data extraction**, **input sanitization**, and many other real-world applications.",
+    "original_statement": "Sometimes the outermost layer of a piece of text is just packaging \u2014 a leading and trailing marker that needs to be discarded to reveal the real content underneath.\r\n\r\nGiven a string that is at least two characters long, remove both the very first character and the very last character, and return whatever remains in between.\r\n\r\nFor example, the string \"hello\" becomes \"ell\" once its first and last characters are removed. A string that is exactly two characters long, such as \"ab\", should become a completely empty string once both of its characters are trimmed away. This should work correctly for letters, digits, and symbols alike.",
+    "func_name": "trim_outer_characters",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "The very first character of a string sits at position 0, and the very last character can always be reached with position -1, no matter how long the string is.",
+      "Python's slicing syntax can select everything between two boundaries in a single step, without needing a loop.",
+      "A string with exactly two characters has nothing left over once both ends are trimmed away, which should naturally produce an empty result rather than a special case you need to code separately."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-challenge-remove-exclamations",
+    "title": "Sanitization Engine: Exclamation Purge",
+    "module": "python-challenges",
+    "statement": "Text data often contains unwanted characters that need to be removed before it can be processed or displayed. \n\nCleaning and transforming strings is one of the most common tasks in software development.\n\nIn this challenge, your task is to remove every **exclamation mark** (`!`) from a given string. \nAll other characters, including letters, numbers, spaces, and punctuation, should remain unchanged.\n\nYour function should return a **new string** with all exclamation marks removed while preserving the original order of the remaining characters.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text data.\n- Identifying and removing specific characters from a string.\n- Creating a new string from an existing one.\n- Performing basic text-cleaning operations.\n\nString sanitization is a fundamental technique used in data processing, user input validation, text formatting, and many other real-world programming applications.",
+    "original_statement": "Text data often contains unwanted characters that need to be removed before it can be processed or displayed. \n\nCleaning and transforming strings is one of the most common tasks in software development.\n\nIn this challenge, your task is to remove every **exclamation mark** (`!`) from a given string. \nAll other characters, including letters, numbers, spaces, and punctuation, should remain unchanged.\n\nYour function should return a **new string** with all exclamation marks removed while preserving the original order of the remaining characters.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text data.\n- Identifying and removing specific characters from a string.\n- Creating a new string from an existing one.\n- Performing basic text-cleaning operations.\n\nString sanitization is a fundamental technique used in data processing, user input validation, text formatting, and many other real-world programming applications.",
+    "func_name": "remove_exclamation_marks",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Cleaning up text data by removing unwanted characters is a routine and essential part of preparing user input for further processing.",
+      "A string method exists that can find and remove every occurrence of a specific character in one single step, without needing to rebuild the string character by character.",
+      "The result should preserve every other character exactly as it was, in its original order, with only the targeted character missing."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-challenge-contains-value",
+    "title": "Strict Membership: The Containment Check",
+    "module": "python-challenges",
+    "statement": "One of the most basic questions you can ask about a collection of data is whether a particular value exists somewhere inside it.\n\nThis yes-or-no question forms the foundation of search functionality in databases, file systems, and nearly every software application that manages data.\n\nIn this challenge, your task is to determine whether a given **target integer** appears anywhere within a **list of integers**.\nThe value is either present somewhere in the list, or it is not \u2014 there are only two possible outcomes.\n\nFor example:\n\n- Searching for the value **`3`** in the list **`[1, 2, 3, 4]`** should confirm that it is present, returning **`True`**.\n- Searching for the value **`9`** in the same list should confirm that it is **not** present, returning **`False`**.\n\nYour function should return **`True`** if the target value appears at least once in the list, or **`False`** otherwise.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and collections.\n- Performing **membership testing** to determine if a value exists.\n- Returning a **boolean result** based on a search operation.\n- Understanding the fundamental building block of **search algorithms**.\n\nValue containment checking is the simplest form of search and is used in **data validation**, **access control**, **filtering systems**, and countless other applications where you need to know whether something exists in a dataset.",
+    "original_statement": "Before doing anything more sophisticated with a collection of data, it's often necessary to answer a simple yes-or-no question: does a specific value exist inside it at all?\r\n\r\nGiven a list of numbers and a target value, determine whether the target appears anywhere within the list.\r\n\r\nFor example, searching for the value 3 within the list containing 1, 2, 3, and 4 should confirm that it is present. Searching for the value 9 within that same list should confirm that it is not.",
+    "func_name": "contains_value",
+    "return_type": "bool",
+    "param_types": ["list", "int"],
+    "param_names": ["nums", "target"],
+    "hints": [
+      "Checking whether a specific value exists anywhere in a collection is one of the most fundamental questions you can ask about that collection.",
+      "Python has a direct, built-in way of asking this exact question, without needing to write a manual loop to check every element one at a time.",
+      "The result of this check should always be one of exactly two possibilities: the value is present, or it is not."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-challenge-cuboid-volume",
+    "title": "Freight Logistics: Cuboid Volume Calculator",
+    "module": "python-challenges",
+    "statement": "Calculating the volume of a three-dimensional object is a fundamental operation in mathematics, engineering, and logistics. \n\nIt helps determine how much space an object occupies and is widely used in packaging, storage, and shipping.\n\nIn this challenge, your task is to calculate the **volume** of a rectangular box using its **length**, **width**, and **height**.\n\nYour function should return the total volume of the box, which is obtained by multiplying its three dimensions together.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with numeric values and arithmetic operations.\n- Performing calculations using multiple inputs.\n- Returning the result of a mathematical expression.\n- Applying a simple geometric formula to solve a practical problem.\n\nVolume calculations are commonly used in inventory management, warehouse planning, manufacturing, and many other real-world applications.",
+    "original_statement": "Calculating the volume of a three-dimensional object is a fundamental operation in mathematics, engineering, and logistics. \n\nIt helps determine how much space an object occupies and is widely used in packaging, storage, and shipping.\n\nIn this challenge, your task is to calculate the **volume** of a rectangular box using its **length**, **width**, and **height**.\n\nYour function should return the total volume of the box, which is obtained by multiplying its three dimensions together.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with numeric values and arithmetic operations.\n- Performing calculations using multiple inputs.\n- Returning the result of a mathematical expression.\n- Applying a simple geometric formula to solve a practical problem.\n\nVolume calculations are commonly used in inventory management, warehouse planning, manufacturing, and many other real-world applications.",
+    "func_name": "calculate_cuboid_volume",
+    "return_type": "int",
+    "param_types": ["int", "int", "int"],
+    "param_names": ["length", "width", "height"],
+    "hints": [
+      "The volume of a rectangular box is found by multiplying all three of its dimensions together.",
+      "The order in which the three dimensions are multiplied does not affect the final result.",
+      "All three dimensions represent physical measurements, so they will always be positive whole numbers in this problem."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-challenge-squared-digits",
+    "title": "Digit-by-Digit Square Concatenation",
+    "module": "python-challenges",
+    "statement": "Numbers can be broken down into their individual digits, and each digit can be transformed independently before being reassembled into a new value.\n\nThis digit-by-digit approach is a common building block for many numeric puzzles, data transformations, and algorithmic challenges.\n\nIn this challenge, your task is to **isolate each digit** of an integer, **square each digit** independently, and then **concatenate the squared results** back together \u2014 in their original order \u2014 to form a single new integer.\n\nFor example:\n\n- The number **`9119`** has digits `9`, `1`, `1`, and `9`.\n- Squaring each digit gives **`81`**, **`1`**, **`1`**, and **`81`**.\n- Concatenating those squared results in order produces **`811181`**.\n\nYour function should return the **new integer** formed by concatenating each squared digit.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **numeric values** and their decimal representation.\n- Extracting individual **digits** from a number.\n- Applying a mathematical operation to each digit independently.\n- Building a new value by **concatenating** transformed results.\n- Understanding the difference between arithmetic addition and string concatenation.\n\nDigit-by-digit transformation is a fundamental technique used in **number theory**, **checksum algorithms**, **data encoding**, and many mathematical and cryptographic applications.",
+    "original_statement": "Transforming a number digit by digit, rather than treating it as a single indivisible value, is a common building block for many numeric puzzles.\r\n\r\nGiven an integer, isolate each of its individual digits, square each digit independently, and then glue the resulting squares back together, in their original order, to form one new integer.\r\n\r\nFor example, the number 9119 has digits 9, 1, 1, and 9. Squaring each digit gives 81, 1, 1, and 81. Gluing those squared results together in order produces the number 811181.",
+    "func_name": "concatenate_squared_digits",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["num"],
+    "hints": [
+      "A number can be broken down into its individual digits by first converting it into a string and then examining each character.",
+      "Every individual digit should be squared on its own, independently of every other digit in the number.",
+      "The squared digits are combined by gluing their text representations together in their original order, not by adding the squared values together."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-filter-positives",
+    "title": "The Conditional Sensor: Zero-Biased Filter",
+    "module": "python-challenges",
+    "statement": "Filtering a collection to include only the elements that meet a specific condition is one of the most fundamental data-processing operations.\n\nWhether you're cleaning sensor readings, processing survey responses, or analyzing financial transactions, you frequently need to select only the values that satisfy a particular criterion.\n\nIn this challenge, your task is to return a **new list** containing only the numbers that are **strictly greater than zero** from the input list.\nThe relative order of the remaining elements must be preserved.\n\nIf no values meet the condition \u2014 for example, if the list contains only negative numbers, only zeros, or some combination of the two \u2014 your function should return an **empty list**.\n\nFor example:\n\n- **`[-1, 2, 0, -3, 4]`** should produce the filtered result **`[2, 4]`**.\n- **`[-1, 0, -2]`** contains no positive values, so the result is **`[]`**.\n\nYour function should return a **new list** containing only the positive numbers, in their original order.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and ordered collections.\n- Using **conditional logic** to select elements.\n- Building a **new list** from filtered results.\n- Handling edge cases where the result is **empty**.\n- Understanding the difference between strict and non-strict comparisons.\n\nFiltering is a core operation in **data analysis**, **ETL pipelines**, **query systems**, and virtually every application that processes collections of data.",
+    "original_statement": "Filtering a collection down to only the values that matter is one of the most frequently needed data-processing operations, and it should behave sensibly even when nothing qualifies.\r\n\r\nGiven a list of numbers, return a new list containing only the numbers that are strictly greater than zero, preserving their original order. If the list contains only negative numbers, only zeros, or some combination of the two, the result should be a completely empty list.\r\n\r\nFor example, the list containing -1, 2, 0, -3, and 4 should produce the filtered result of 2 and 4. A list containing only -1, 0, and -2 should produce a completely empty result.",
+    "func_name": "filter_positive_numbers",
+    "return_type": "list",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "A list comprehension with a filtering condition naturally produces an empty list whenever nothing in the original collection satisfies that condition.",
+      "Only values strictly greater than zero should be kept \u2014 zero itself and every negative value should be excluded.",
+      "The relative order of the values that are kept should match their original order in the input."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-target-eraser",
+    "title": "Target Character Eraser: Dynamic Sanitization",
+    "module": "python-challenges",
+    "statement": "A sanitizer built to remove one specific, hardcoded character is useful, but a configurable version that can remove whichever character is needed at the time is considerably more flexible and reusable.\n\nThis pattern of **parameterized text processing** appears throughout software development, from input validation to data transformation.\n\nIn this challenge, your task is to remove **every occurrence** of a specified **target character** from a text string.\nUnlike a fixed sanitizer that always removes the same character, this function receives the character to remove as a parameter, making it adaptable to different cleaning needs.\n\nAll other characters \u2014 including letters, numbers, spaces, and other symbols \u2014 should remain unchanged and in their original order.\n\nFor example:\n\n- Removing every occurrence of **`\"a\"`** from **`\"banana\"`** should produce **`\"bnn\"`**.\n- Removing **`\"z\"`** from **`\"hello\"`** should leave the string unchanged as **`\"hello\"`**, since the target character does not appear.\n\nYour function should return the **cleaned string** with all occurrences of the target character removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character sequences.\n- Accepting **parameters** to control behavior dynamically.\n- Removing specific characters while preserving others.\n- Generalizing a solution so it works for any input.\n\nConfigurable text sanitization is a fundamental technique used in **form validation**, **data cleaning**, **search indexing**, and many other real-world applications where the characters to remove vary depending on the context.",
+    "original_statement": "A sanitizer built to remove one specific, hardcoded character is useful, but a configurable version that can remove whichever character is needed at the time is considerably more reusable.\r\n\r\nGiven a text string and a single target character, remove every occurrence of that target character from the text, and return the cleaned result.\r\n\r\nFor example, removing every occurrence of the character \"a\" from the text \"banana\" should produce \"bnn\".",
+    "func_name": "remove_target_character",
+    "return_type": "str",
+    "param_types": ["str", "str"],
+    "param_names": ["text", "target"],
+    "hints": [
+      "This problem generalizes a sanitizer that always removes one hardcoded character into one that can remove whichever single character is specified at call time.",
+      "The character being removed is provided as a separate parameter, rather than being fixed in the function itself.",
+      "Every other character in the original text should remain exactly where it was, in its original order, with only the targeted character missing."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-material-density",
+    "title": "Material Science: The Density Calculator",
+    "module": "python-challenges",
+    "statement": "Understanding how much mass is packed into a given volume is a fundamental concept in materials science and engineering.\n\nDensity calculations help determine whether an object will float, how much material is needed for manufacturing, and how to identify unknown substances.\n\nIn this challenge, your task is to calculate the **density** of a rectangular object.\nYou are given its **length**, **width**, **height**, and **total mass**.\n\nFirst, calculate the **volume** of the object by multiplying its three dimensions together.\nThen, calculate the **density** by dividing the mass by the volume.\n\nYour function should return the density **rounded to exactly two decimal places**.\n\nFor example:\n\n- An object with dimensions **`2`**, **`2`**, **`2`** has a volume of **`8`**.\n- If its mass is **`20`**, the density is `20 / 8`, which rounds to **`2.5`**.\n\nYour function should return the **density** as a floating-point number, rounded to two decimal places.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **multiple numeric inputs** of different types (integers and floats).\n- Performing a multi-step calculation (volume, then density).\n- Using **division** to compute a ratio.\n- **Rounding** a result to a specific number of decimal places.\n- Applying a scientific formula to solve a practical problem.\n\nDensity calculations are essential in **materials science**, **quality control**, **shipping and logistics**, **manufacturing**, and many other fields where the relationship between mass and volume matters.",
+    "original_statement": "Understanding how much mass is packed into a given volume is a fundamental concept in materials science and engineering, and it builds directly on a simple volume calculation.\r\n\r\nGiven the length, width, and height of a rectangular object, along with its total mass, calculate the density of the material \u2014 its mass divided by its volume \u2014 rounded to exactly two decimal places.\r\n\r\nFor example, an object with a length of 2, a width of 2, and a height of 2 has a volume of 8. If that object has a mass of 20, its density is 20 divided by 8, which rounds to 2.5.",
+    "func_name": "calculate_material_density",
+    "return_type": "float",
+    "param_types": ["int", "int", "int", "float"],
+    "param_names": ["length", "width", "height", "mass"],
+    "hints": [
+      "Density relates how much mass is packed into a given amount of space, calculated as mass divided by volume.",
+      "The volume needed for this calculation is found using the same length-times-width-times-height formula as a standalone cuboid volume calculation.",
+      "The final density result should be rounded to exactly two decimal places before it is returned."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-digit-inversion",
+    "title": "Structural Digit Inversion",
+    "module": "python-challenges",
+    "statement": "This challenge extends digit-based transformation with a crucial twist: instead of preserving the original order of the digits, they must be processed in reverse.\n\nReversing the order of elements before performing a transformation is a common pattern in algorithm design and data processing.\n\nIn this challenge, your task is to **reverse the digits** of an integer, **square each digit** independently, and then **concatenate the squared results** together in the reversed order to form a single new integer.\n\nFor example:\n\n- The number **`34`** has digits `3` and `4`.\n- Reversed, the digit order becomes `4` then `3`.\n- Squaring each gives **`16`** and **`9`**.\n- Concatenating those in the reversed order produces **`169`**.\n\nYour function should return the **new integer** formed by concatenating each squared digit in reversed order.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **numeric values** and their decimal representation.\n- Extracting individual **digits** from a number.\n- **Reversing** the order of a sequence.\n- Applying an operation to each element independently.\n- Building a new value by concatenating transformed results.\n\nDigit reversal with transformation is a technique used in **numeric puzzles**, **palindrome checking**, **radix conversion**, and many algorithmic challenges.",
+    "original_statement": "This problem extends an earlier digit-squaring exercise with an added twist: instead of preserving the digits' original order, they should be processed in reverse.\r\n\r\nGiven an integer, separate it into its individual digits, reverse their order, square each digit independently, and then glue the resulting squares back together in that reversed order to form a new integer.\r\n\r\nFor example, the number 34 has digits 3 and 4. Reversed, the digit order becomes 4 then 3. Squaring each gives 16 and 9. Gluing those together in that order produces the number 169.",
+    "func_name": "invert_and_square_digits",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["num"],
+    "hints": [
+      "This problem builds directly on digit-by-digit squaring, adding one twist: the digits are processed starting from the last one and working backward toward the first.",
+      "Reversing the order of the digits before processing them is enough to change which digit gets squared and placed first in the final result.",
+      "Just as before, the squared digits are combined by gluing their text forms together in sequence, not by summing the squared values."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-extreme-outlier-remover",
+    "title": "Extreme Outlier Remover",
+    "module": "python-challenges",
+    "statement": "Extreme values can distort the analysis of a dataset, and it is often useful to identify and set aside the most extreme readings before working with the remaining data.\n\nThis technique, known as **outlier removal**, is commonly used in statistical analysis, sensor data processing, and quality control.\n\nIn this challenge, your task is to parse a **space-separated string of numbers**, identify the **maximum** value and the **minimum** value, remove **exactly one occurrence** of each from the set, and return the remaining numbers as a new space-separated string in their original relative order.\n\nIf the input contains **fewer than three numbers**, there are not enough values remaining after removing two extremes, so your function should return an **empty string**.\n\nFor example:\n\n- The input **`\"1 9 3 4 -5\"`** has a maximum of `9` and a minimum of `-5`.\n- Removing one instance of each leaves **`\"1 3 4\"`**.\n- The input **`\"5 5 5\"`** has both maximum and minimum equal to `5` \u2014 removing two separate occurrences leaves **`\"5\"`**.\n\nYour function should return the **remaining numbers** as a single space-separated string, or an empty string if insufficient data remains.\n\nThis exercise reinforces several important programming concepts:\n\n- **Parsing** space-separated text into individual values.\n- Converting **strings** to numbers for comparison.\n- Identifying the **maximum** and **minimum** values in a collection.\n- Removing specific elements from a data set.\n- Handling **edge cases** involving insufficient data.\n- Formatting results back into a **string**.\n\nOutlier removal is a fundamental data-cleaning technique used in **statistics**, **data science**, **quality assurance**, **financial analysis**, and many other fields where extreme values can skew results.",
+    "original_statement": "Extreme values can sometimes distort an otherwise meaningful dataset, and it's often useful to set the most extreme readings aside before working with the rest.\r\n\r\nGiven a space-separated string of numbers, identify the maximum value and the minimum value, remove exactly one occurrence of each from the set, and return a new space-separated string containing only the remaining numbers, in their original relative order. If the input contains fewer than three numbers, there isn't enough data left to work with after removing two extremes, so the result should be an empty string.\r\n\r\nFor example, the string \"1 9 3 4 -5\" has a maximum of 9 and a minimum of -5. Removing one instance of each leaves \"1 3 4\".",
+    "func_name": "remove_extreme_outliers",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Parsing the space-separated text into actual numbers is a necessary first step, exactly as with an earlier range-finding exercise.",
+      "Exactly one occurrence of the overall maximum value and exactly one occurrence of the overall minimum value should be taken out \u2014 every other value, including any remaining duplicates of those same numbers, stays in the result.",
+      "If every value in the set happens to be identical, the maximum and the minimum are simply the same number, and removing 'the maximum' and 'the minimum' means removing two separate occurrences of that one value."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-age-relativity",
+    "title": "Generational Alignment: The Age Relativity Calculator",
+    "module": "python-challenges",
+    "statement": "Age-related problems are a classic way to practice translating a **real-world scenario** into a mathematical solution.\nBy analyzing how two people's ages change over time, you can determine when a specific relationship between them becomes true.\n\nIn this challenge, your task is to determine the number of **years** until\u2014or since\u2014the father's age is **exactly twice** the son's age.\nBoth the father and the son age at the same rate, so the difference between their ages remains constant over time.\nThe required moment may have occurred **in the past** or may happen **in the future**.\n\nYour function should **return the number of years** between the present and the moment when the father's age is exactly **twice** the son's age.\nThe result should always be a **non-negative integer**, regardless of whether that moment has already passed or is yet to come.\n\nFor example:\n\n- A father aged `50` and a son aged `20` will reach the two-to-one age ratio **10 years from now**, so the correct result is **`10`**.\n- A father aged `40` and a son aged `20` are already at the required ratio, so the correct result is **`0`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Solving **age-based mathematical problems**.\n- Performing arithmetic calculations with multiple values.\n- Reasoning about events in both the **past** and the **future**.\n- Working with **absolute differences** to produce a non-negative result.\n- Translating a real-world scenario into an algorithm.\n\nAge comparison problems are commonly used to strengthen **logical reasoning**, **algebraic thinking**, and **problem-solving skills**, making them a popular exercise in mathematics and programming alike.",
+    "original_statement": "Age-related problems are a classic way to practice translating a **real-world scenario** into a mathematical solution.\nBy analyzing how two people's ages change over time, you can determine when a specific relationship between them becomes true.\n\nIn this challenge, your task is to determine the number of **years** until\u2014or since\u2014the father's age is **exactly twice** the son's age.\nBoth the father and the son age at the same rate, so the difference between their ages remains constant over time.\nThe required moment may have occurred **in the past** or may happen **in the future**.\n\nYour function should **return the number of years** between the present and the moment when the father's age is exactly **twice** the son's age.\nThe result should always be a **non-negative integer**, regardless of whether that moment has already passed or is yet to come.\n\nFor example:\n\n- A father aged `50` and a son aged `20` will reach the two-to-one age ratio **10 years from now**, so the correct result is **`10`**.\n- A father aged `40` and a son aged `20` are already at the required ratio, so the correct result is **`0`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Solving **age-based mathematical problems**.\n- Performing arithmetic calculations with multiple values.\n- Reasoning about events in both the **past** and the **future**.\n- Working with **absolute differences** to produce a non-negative result.\n- Translating a real-world scenario into an algorithm.\n\nAge comparison problems are commonly used to strengthen **logical reasoning**, **algebraic thinking**, and **problem-solving skills**, making them a popular exercise in mathematics and programming alike.",
+    "func_name": "years_until_double_age",
+    "return_type": "int",
+    "param_types": ["int", "int"],
+    "param_names": ["father_age", "son_age"],
+    "hints": [
+      "Both ages change by exactly the same amount as time passes, since one full year adds exactly one year to everyone's age.",
+      "The moment when a father's age is exactly twice his son's age can be described with a simple algebraic equation relating the two current ages and however many years have passed.",
+      "This moment might lie in the past just as easily as it lies in the future, so the final answer should describe the size of that gap in years, not which direction it points."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-trimmed-average",
+    "title": "Outlier-Resilient Trim Average",
+    "module": "python-challenges",
+    "statement": "Averages provide a useful summary of a collection of numbers, but unusually high or low values\u2014known as **outliers**\u2014can significantly influence the result. \nOne way to reduce this effect is by calculating a **trimmed average**, which excludes the most extreme values before computing the average.\n\nIn this challenge, your task is to calculate the average of a list of numbers after removing **exactly one occurrence** of the overall **minimum** value and **exactly one occurrence** of the overall **maximum** value.\n\nIf the list contains **two or fewer elements**, there are not enough values remaining to calculate an average after removing both extremes. \nIn this case, your function should return `0`.\n\nYour function should return the average of the remaining values after the required elements have been removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** of numeric values.\n- Identifying the minimum and maximum elements in a collection.\n- Removing specific values from a dataset.\n- Calculating the average of a filtered collection.\n- Handling edge cases involving small input sizes.\n\nTrimmed averages are commonly used in statistics, data analysis, scientific research, and performance evaluation to reduce the impact of outliers and produce more representative results.",
+    "original_statement": "Averages provide a useful summary of a collection of numbers, but unusually high or low values\u2014known as **outliers**\u2014can significantly influence the result. \nOne way to reduce this effect is by calculating a **trimmed average**, which excludes the most extreme values before computing the average.\n\nIn this challenge, your task is to calculate the average of a list of numbers after removing **exactly one occurrence** of the overall **minimum** value and **exactly one occurrence** of the overall **maximum** value.\n\nIf the list contains **two or fewer elements**, there are not enough values remaining to calculate an average after removing both extremes. \nIn this case, your function should return `0`.\n\nYour function should return the average of the remaining values after the required elements have been removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** of numeric values.\n- Identifying the minimum and maximum elements in a collection.\n- Removing specific values from a dataset.\n- Calculating the average of a filtered collection.\n- Handling edge cases involving small input sizes.\n\nTrimmed averages are commonly used in statistics, data analysis, scientific research, and performance evaluation to reduce the impact of outliers and produce more representative results.",
+    "func_name": "trimmed_average",
+    "return_type": "float",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "This problem combines two ideas from earlier exercises: removing a single instance each of the maximum and minimum values, and then computing an ordinary average of what's left.",
+      "There must be more than two values to begin with for this operation to make sense at all \u2014 with two or fewer values, removing both an overall maximum and an overall minimum wouldn't leave a meaningful basis for an average.",
+      "If every value happens to be identical, the maximum and minimum are the same number, and two separate occurrences of that value are removed, exactly as in the standalone outlier-removal exercise."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-matrix-indexer",
+    "title": "Multi-Dimensional Inclusion Indexer",
+    "module": "python-challenges",
+    "statement": "Real-world data is frequently organized in two dimensions \u2014 rows and columns \u2014 rather than a single flat list.\n\nTables, spreadsheets, images, game boards, and many other structures use a grid layout that requires you to navigate both dimensions to find specific information.\n\nIn this challenge, your task is to search for a **target value** within a **nested list** (a grid of numbers) and return its position.\n\nThe grid is represented as a list of rows, where each row is itself a list of integers.\n\nScan the grid from the **top row downward**, and within each row from **left to right**, to find the first occurrence of the target value.\n\nFor example:\n\n- In a grid where the first row contains `[1, 2, 3]` and the second row contains `[4, 5, 6]`, searching for the value **`5`** should report row **`1`** and column **`1`** (using zero-based counting for both rows and columns).\n- If the target does not appear anywhere in the grid, return the pair **`[-1, -1]`** instead.\n\nYour function should return a **two-element list** containing the row index followed by the column index.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **nested lists** and two-dimensional data structures.\n- Using **nested loops** to traverse multiple dimensions.\n- Understanding **row-major** traversal order.\n- Using **zero-based indexing** for positions.\n- Handling the case where a value is **not found**.\n\nSearching through two-dimensional data is a fundamental skill used in **image processing**, **game development**, **spreadsheet applications**, **matrix mathematics**, and many other real-world applications.",
+    "original_statement": "Real-world data is frequently organized in two dimensions rather than a single flat list, and searching through it requires checking every position across both dimensions.\r\n\r\nGiven a nested array representing a grid of numbers, and a target value, search for that value's position within the grid. Return the row and column of the first matching position found, scanning from the top row downward and from left to right within each row, formatted as a two-element list. If the target does not appear anywhere in the grid, return the pair -1 and -1 instead.\r\n\r\nFor example, in a grid where the second row contains the values 4, 5, and 6, searching for the value 5 should report row 1 and column 1 (using zero-based counting for both rows and columns).",
+    "func_name": "find_in_matrix",
+    "return_type": "list",
+    "param_types": ["list", "int"],
+    "param_names": ["grid", "target"],
+    "hints": [
+      "A nested array is simply an array whose individual elements are themselves arrays, one level deeper than a simple flat list.",
+      "Searching a two-dimensional structure means checking every position in every row, so this naturally involves one loop over the rows and a second loop over the columns within each row.",
+      "The very first matching position found, scanning row by row from the top and left to right within each row, is the one that should be reported."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-segment-parity",
+    "title": "Array Segment Parity Summary",
+    "module": "python-challenges",
+    "statement": "Breaking a long sequence of data into fixed-size segments and analyzing each segment independently is a common technique for summarizing and processing large datasets in more manageable pieces.\n\nThis approach is widely used in **batch processing**, **data streaming**, and **signal processing**, where data arrives or is processed in chunks.\n\nIn this challenge, your task is to partition a list of integers into **consecutive chunks** of a given size `k`, and then calculate two metrics for each chunk: the **count of positive numbers** and the **sum of negative numbers**.\n\nThe final chunk may contain **fewer than `k` elements** if the list does not divide evenly.\n\nReturn all of these per-chunk summaries as a **nested list**, in the same order as the original chunks.\n\nFor example:\n\n- Given the list **`[1, -2, 3, -4, 5, -6, 7]`** with chunk size **`3`**:\n  - First chunk `[1, -2, 3]` has **1 positive** and a negative sum of **-2**.\n  - Second chunk `[-4, 5, -6]` has **1 positive** and a negative sum of **-10**.\n  - Third chunk `[7]` has **1 positive** and a negative sum of **0**.\n  - The result is **`[[1, -2], [1, -10], [1, 0]]`**.\n\nYour function should return a **list of pairs**, one pair for each chunk.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and **slicing** to create partitions.\n- Using **loops** to process each chunk independently.\n- Calculating multiple metrics in a **single pass** through each chunk.\n- Building a **nested data structure** to organize results.\n- Handling **partial final chunks** when the division is uneven.\n\nSegment-based analysis is a fundamental technique used in **time-series analysis**, **audio processing**, **network packet analysis**, **financial market data**, and many other applications that process sequential data.",
+    "original_statement": "Breaking a long sequence of data into fixed-size segments, and analyzing each segment independently, is a common technique for summarizing large datasets in more manageable pieces.\n\n\n\nGiven a list of integers and a chunk size k, partition the list into consecutive chunks of size k (with the final chunk possibly containing fewer than k elements, if the list doesn't divide evenly). For each chunk, calculate the count of positive numbers and the sum of negative numbers, exactly as in an earlier single-summary exercise. Return all of these per-chunk summaries together as a nested list, in the same order as the original chunks.\n\nFor example, given the list containing 1, -2, 3, -4, 5, -6, and 7 with a chunk size of 3, the first chunk (1, -2, 3) has one positive number and a negative sum of -2. The result should list a summary pair for every chunk, in order.",
+    "func_name": "segment_parity_summary",
+    "return_type": "list",
+    "param_types": ["list", "int"],
+    "param_names": ["nums", "k"],
+    "hints": [
+      "Partitioning a list into fixed-size chunks means repeatedly slicing off the next k elements, starting a new chunk each time the previous one is full.",
+      "Every individual chunk gets its own independent pair of statistics, calculated exactly the same way as the earlier positive-count-and-negative-sum exercise.",
+      "If the total number of elements doesn't divide evenly by the chunk size, the final chunk will simply contain whatever elements are left over, even if that's fewer than a full chunk's worth."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-high-low-digit-reducer",
+    "title": "High-Low Digit Map Reducer",
+    "module": "python-challenges",
+    "statement": "This challenge extends digit manipulation by focusing on only the two most extreme digits within a number, rather than transforming every single digit.\n\nSelectively targeting specific elements within a collection\u2014such as the highest and lowest values\u2014is a common pattern in data analysis and algorithmic problem solving.\n\nIn this challenge, your task is to **identify the highest digit** and the **lowest digit** within a large integer, **square each of these two extreme digits** independently, and then **concatenate the squared results** together, with the result from the highest digit listed first, to form a new integer.\n\nFor example:\n\n- The number **`2817`** has digits `2`, `8`, `1`, and `7`.\n- Its highest digit is **`8`**, which squares to **`64`**.\n- Its lowest digit is **`1`**, which squares to **`1`**.\n- Concatenating those together, highest first, produces **`641`**.\n\nYour function should return the **new integer** formed by concatenating the squared highest digit with the squared lowest digit.\n\nThis exercise reinforces several important programming concepts:\n\n- Extracting individual **digits** from a number.\n- Finding the **maximum** and **minimum** values in a collection.\n- Applying a **selective transformation** to only specific elements.\n- **Concatenating** results in a specific order.\n- Combining multiple algorithmic steps into a single solution.\n\nSelective element transformation is a technique used in **data normalization**, **feature extraction**, **signal processing**, and many other applications where only certain values within a dataset need to be processed.",
+    "original_statement": "This problem builds on earlier digit-manipulation exercises by focusing on only the two most extreme digits within a number, rather than every digit.\r\n\r\nGiven a large integer, isolate its individual digits and identify the highest digit and the lowest digit among them. Square each of these two extreme digits independently, and concatenate the squared results together, with the result from the highest digit listed first, to form a new integer.\r\n\r\nFor example, the number 2817 has digits 2, 8, 1, and 7. Its highest digit is 8, which squares to 64, and its lowest digit is 1, which squares to 1. Concatenating those together, highest first, produces the number 641.",
+    "func_name": "reduce_high_low_digits",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["num"],
+    "hints": [
+      "Only the single highest digit and the single lowest digit in the entire number actually matter here \u2014 every other digit can be set aside once those two extremes are identified.",
+      "Both extreme digits are squared independently of each other, exactly as in the earlier digit-squaring exercises.",
+      "The two squared results are combined by gluing their text forms together, high digit's square first, not by adding the two squared values together."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-shipping-optimization",
+    "title": "Shipping Container Optimization Engine",
+    "module": "python-challenges",
+    "statement": "Efficiently packing items into a fixed space is a common problem in **logistics**, **warehousing**, and **shipping**.\nDetermining how many boxes can fit inside a container helps maximize storage capacity and optimize transportation.\n\nIn this challenge, your task is to calculate the **maximum number of product boxes** that can fit inside a rectangular **container**.\nBoth the container and the product box are represented as lists containing their **length**, **width**, and **height**.\n\nEach box must remain in the **same orientation** as the container, meaning **rotation is not allowed**.\nDetermine how many boxes fit along **each dimension**, then calculate the **total number of boxes** that can be packed inside the container.\n\nFor example:\n\n- A container with dimensions **`[10, 10, 10]`** and boxes with dimensions **`[3, 3, 3]`** can fit `3` boxes along each dimension.\n- The total number of boxes is **`3 \u00d7 3 \u00d7 3 = 27`**.\n\nYour function should **return the maximum number of boxes** that can fit without exceeding the container's dimensions.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** to represent structured data.\n- Using **integer division** to determine how many items fit along each dimension.\n- Combining multiple calculations to compute a final result.\n- Solving a practical **optimization problem** using arithmetic and logical reasoning.\n\nPacking calculations are widely used in **inventory management**, **warehouse automation**, **shipping systems**, **manufacturing**, and other applications that optimize the use of physical space.",
+    "original_statement": "Efficiently packing items into a fixed space is a common problem in **logistics**, **warehousing**, and **shipping**.\nDetermining how many boxes can fit inside a container helps maximize storage capacity and optimize transportation.\n\nIn this challenge, your task is to calculate the **maximum number of product boxes** that can fit inside a rectangular **container**.\nBoth the container and the product box are represented as lists containing their **length**, **width**, and **height**.\n\nEach box must remain in the **same orientation** as the container, meaning **rotation is not allowed**.\nDetermine how many boxes fit along **each dimension**, then calculate the **total number of boxes** that can be packed inside the container.\n\nFor example:\n\n- A container with dimensions **`[10, 10, 10]`** and boxes with dimensions **`[3, 3, 3]`** can fit `3` boxes along each dimension.\n- The total number of boxes is **`3 \u00d7 3 \u00d7 3 = 27`**.\n\nYour function should **return the maximum number of boxes** that can fit without exceeding the container's dimensions.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** to represent structured data.\n- Using **integer division** to determine how many items fit along each dimension.\n- Combining multiple calculations to compute a final result.\n- Solving a practical **optimization problem** using arithmetic and logical reasoning.\n\nPacking calculations are widely used in **inventory management**, **warehouse automation**, **shipping systems**, **manufacturing**, and other applications that optimize the use of physical space.",
+    "func_name": "max_boxes_that_fit",
+    "return_type": "int",
+    "param_types": ["list", "list"],
+    "param_names": ["container", "box"],
+    "hints": [
+      "Along any single dimension, the number of boxes that can be lined up is found by dividing the container's length along that dimension by the box's corresponding length, and discarding any leftover fractional space.",
+      "This division-and-discard calculation is performed independently for each of the three dimensions, since a partially-filled row along one axis can't be combined with extra space from a different axis.",
+      "The total number of boxes that fit is the combined product of how many fit along each of the three dimensions independently, assuming every box is oriented the same way as the container."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-run-length-encoder",
+    "title": "Run-Length Compression Engine",
+    "module": "python-challenges",
+    "statement": "Repetitive data can often be represented far more compactly by recording how many times each value repeats consecutively, rather than writing out every single repetition explicitly.\n\nThis is the core idea behind **run-length encoding**, a simple but genuinely useful data compression technique used in image formats, data transmission, and storage optimization.\n\nIn this challenge, your task is to compress a string using run-length encoding.\nReplace every **run** of one or more identical consecutive characters with that character followed by the **count** of how many times it occurred in that run.\n\nFor example:\n\n- The string **`\"aaabbc\"`** contains a run of three `a`s, a run of two `b`s, and a run of one `c`.\n- Encoded, this becomes **`\"a3b2c1\"`**.\n- A string with no consecutive repeats, such as **`\"abc\"`**, becomes **`\"a1b1c1\"`**.\n\nYour function should return the **encoded string** where each run is replaced by the character and its count.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **string** one character at a time.\n- Identifying **consecutive runs** of identical characters.\n- Maintaining a **running count** during iteration.\n- Building a **new string** from processed data.\n- Understanding the fundamentals of **data compression**.\n\nRun-length encoding is a foundational compression technique used in **BMP and TIFF image formats**, **fax machines**, **simple data transmission protocols**, and many other applications where reducing repetitive data saves space.",
+    "original_statement": "Repetitive data can often be represented far more compactly by recording how many times each value repeats in a row, rather than writing out every single repetition explicitly. This is the core idea behind a simple but genuinely useful compression technique.\r\n\r\nGiven a string, compress it using run-length encoding: replace every run of one or more identical consecutive characters with that character followed by the count of how many times it occurred in that run.\r\n\r\nFor example, the string \"aaabbc\" contains a run of three a's, a run of two b's, and a run of one c. Encoded, this becomes \"a3b2c1\".",
+    "func_name": "run_length_encode",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Every run of one or more identical consecutive characters becomes exactly one entry in the compressed result: the character itself, followed immediately by how many times it repeated.",
+      "This applies even to a character that doesn't repeat at all \u2014 a run of length one is still recorded, just with a count of 1, rather than being left out.",
+      "Tracking the current run's character and its running count as you scan through the string one position at a time, and recording a completed run the moment a different character appears, builds the compressed result incrementally without needing to look ahead."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-bracket-depth",
+    "title": "Balanced Bracket Depth Mapper",
+    "module": "python-challenges",
+    "statement": "Parentheses are commonly used to group expressions and represent **nested structures** in programming, mathematics, and many text-based formats.\nDetermining how deeply these groups are nested is an important technique used in **parsing**, **syntax validation**, and expression evaluation.\n\nIn this challenge, your task is to determine the **maximum nesting depth** of a string containing only parenthesis characters.\nAs you process the string from **left to right**, keep track of the current nesting level and identify the **greatest depth** reached at any point.\n\nThe input is considered **valid** only if every opening parenthesis has a matching closing parenthesis, and no closing parenthesis appears before its corresponding opening parenthesis.\nIf the parentheses are **not properly balanced**, your function should **return `-1`**.\n\nFor example:\n\n- The string **`\"(()(()))\"`** has a maximum nesting depth of **`3`**.\n- The string **`\"()()\"`** has a maximum nesting depth of **`1`**.\n- The string **`\"(()\"`** is not balanced, so the function should return **`-1`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Processing a **string** one character at a time.\n- Maintaining a **running state** while iterating through data.\n- Validating **balanced pairs** of opening and closing symbols.\n- Tracking the **maximum value** reached during an iteration.\n- Handling **invalid input** by detecting unmatched parentheses.\n\nChecking balanced parentheses and measuring nesting depth are fundamental techniques used in **compilers**, **expression evaluators**, **syntax highlighters**, and many other applications that process structured text.",
+    "original_statement": "Parentheses are commonly used to group expressions and represent **nested structures** in programming, mathematics, and many text-based formats.\nDetermining how deeply these groups are nested is an important technique used in **parsing**, **syntax validation**, and expression evaluation.\n\nIn this challenge, your task is to determine the **maximum nesting depth** of a string containing only parenthesis characters.\nAs you process the string from **left to right**, keep track of the current nesting level and identify the **greatest depth** reached at any point.\n\nThe input is considered **valid** only if every opening parenthesis has a matching closing parenthesis, and no closing parenthesis appears before its corresponding opening parenthesis.\nIf the parentheses are **not properly balanced**, your function should **return `-1`**.\n\nFor example:\n\n- The string **`\"(()(()))\"`** has a maximum nesting depth of **`3`**.\n- The string **`\"()()\"`** has a maximum nesting depth of **`1`**.\n- The string **`\"(()\"`** is not balanced, so the function should return **`-1`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Processing a **string** one character at a time.\n- Maintaining a **running state** while iterating through data.\n- Validating **balanced pairs** of opening and closing symbols.\n- Tracking the **maximum value** reached during an iteration.\n- Handling **invalid input** by detecting unmatched parentheses.\n\nChecking balanced parentheses and measuring nesting depth are fundamental techniques used in **compilers**, **expression evaluators**, **syntax highlighters**, and many other applications that process structured text.",
+    "func_name": "max_bracket_depth",
+    "return_type": "int",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "A running depth counter, increased by one for every opening parenthesis and decreased by one for every closing parenthesis, tracks exactly how deeply nested the current position is.",
+      "The overall answer is the single highest value that running depth counter ever reaches at any point while scanning through the string, not merely its final value.",
+      "The string is unbalanced, and should be reported with a result of -1, if the depth counter is ever forced below zero by an unmatched closing parenthesis, or if it fails to return all the way back to zero by the very end of the string."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-longest-uniform-run",
+    "title": "Longest Uniform Stretch Finder",
+    "module": "python-challenges",
+    "statement": "Lists often contain values that appear multiple times in succession.\nIdentifying the **longest sequence of consecutive identical values** is a common task in **data analysis**, **pattern recognition**, and sequence processing.\n\nIn this challenge, your task is to **find the length of the longest consecutive run** of identical integers in a **list**.\nA **run** is a sequence of one or more **adjacent elements** that all contain the same value.\nFor example, in the list `[4, 4, 4, 2, 2, 7, 7, 7, 7, 1]`, the longest run is the four consecutive `7`s, so the correct result is `4`.\n\nYour function should **return the length** of the longest run found anywhere in the list.\nIf the list is **empty**, return `0`, since there are no elements to form a run.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** one element at a time.\n- Comparing **adjacent elements** to detect consecutive values.\n- Tracking both the **current run** and the **longest run** encountered.\n- Handling **edge cases**, such as an empty list.\n\nDetecting consecutive sequences is a fundamental programming technique used in **data analysis**, **compression algorithms**, **event monitoring**, and many other applications that process ordered data.",
+    "original_statement": "Lists often contain values that appear multiple times in succession.\nIdentifying the **longest sequence of consecutive identical values** is a common task in **data analysis**, **pattern recognition**, and sequence processing.\n\nIn this challenge, your task is to **find the length of the longest consecutive run** of identical integers in a **list**.\nA **run** is a sequence of one or more **adjacent elements** that all contain the same value.\nFor example, in the list `[4, 4, 4, 2, 2, 7, 7, 7, 7, 1]`, the longest run is the four consecutive `7`s, so the correct result is `4`.\n\nYour function should **return the length** of the longest run found anywhere in the list.\nIf the list is **empty**, return `0`, since there are no elements to form a run.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** one element at a time.\n- Comparing **adjacent elements** to detect consecutive values.\n- Tracking both the **current run** and the **longest run** encountered.\n- Handling **edge cases**, such as an empty list.\n\nDetecting consecutive sequences is a fundamental programming technique used in **data analysis**, **compression algorithms**, **event monitoring**, and many other applications that process ordered data.",
+    "func_name": "longest_uniform_run",
+    "return_type": "int",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "A running counter that increases whenever the current element matches the one immediately before it, and resets whenever it doesn't, tracks the length of whatever uniform run is currently in progress.",
+      "The final answer is the single longest such run seen anywhere in the entire list, not necessarily the run that happens to be in progress when the scan reaches the very end.",
+      "A completely empty list has no elements to form a run out of at all, and should be treated as having a longest run of length zero."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-prime-factorization",
+    "title": "Prime Factorization Signature",
+    "module": "python-challenges",
+    "statement": "Every **whole number** greater than `1` can be expressed as a unique product of **prime numbers**.\nThis process, known as **prime factorization**, is a fundamental concept in mathematics and forms the basis of many algorithms used in computer science and cryptography.\n\nIn this challenge, your task is to **determine the complete prime factorization** of a positive integer.\nIdentify every **prime factor**, count how many times it divides evenly into the original number, and represent the result using the required format.\n\nYour function should **return a single string** where:\n\n- Each **prime factor** is followed by its exponent using the format **`prime^count`**.\n- Factors are joined together with `*`.\n- All prime factors appear in **ascending numerical order**.\n\nFor example:\n\n- `360` is equal to `2 \u00d7 2 \u00d7 2 \u00d7 3 \u00d7 3 \u00d7 5`.\n- Its formatted prime factorization is **`\"2^3*3^2*5^1\"`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **loops** to repeatedly divide a number.\n- Identifying **prime numbers** and their factors.\n- Counting repeated occurrences of the same factor.\n- Building and formatting a **string** from computed results.\n- Solving mathematical problems through algorithmic reasoning.\n\nPrime factorization is a fundamental technique used in **number theory**, **cryptography**, **computer algebra systems**, and many mathematical algorithms that analyze the properties of integers.",
+    "original_statement": "Every **whole number** greater than `1` can be expressed as a unique product of **prime numbers**.\nThis process, known as **prime factorization**, is a fundamental concept in mathematics and forms the basis of many algorithms used in computer science and cryptography.\n\nIn this challenge, your task is to **determine the complete prime factorization** of a positive integer.\nIdentify every **prime factor**, count how many times it divides evenly into the original number, and represent the result using the required format.\n\nYour function should **return a single string** where:\n\n- Each **prime factor** is followed by its exponent using the format **`prime^count`**.\n- Factors are joined together with `*`.\n- All prime factors appear in **ascending numerical order**.\n\nFor example:\n\n- `360` is equal to `2 \u00d7 2 \u00d7 2 \u00d7 3 \u00d7 3 \u00d7 5`.\n- Its formatted prime factorization is **`\"2^3*3^2*5^1\"`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **loops** to repeatedly divide a number.\n- Identifying **prime numbers** and their factors.\n- Counting repeated occurrences of the same factor.\n- Building and formatting a **string** from computed results.\n- Solving mathematical problems through algorithmic reasoning.\n\nPrime factorization is a fundamental technique used in **number theory**, **cryptography**, **computer algebra systems**, and many mathematical algorithms that analyze the properties of integers.",
+    "func_name": "prime_factorization_signature",
+    "return_type": "str",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "Every whole number greater than 1 can be broken down into a unique combination of prime numbers multiplied together, some of which may repeat.",
+      "Testing whether small candidate divisors evenly divide the remaining value, starting from the smallest prime and working upward, reveals the full set of prime factors along with how many times each one divides in.",
+      "The final answer is formatted as each prime factor together with its repeat count, joined together in ascending order of the prime factor's own value."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-array-average",
+    "title": "The Empty Guard: Array Average Calculator",
+    "module": "python-challenges",
+    "statement": "Calculating the **average** (or **mean**) of a collection of numbers is one of the most common operations in programming.\nIt provides a single value that represents the overall distribution of a dataset and is widely used in statistics, analytics, and reporting.\n\nIn this challenge, your task is to **calculate the mathematical average** of all the numbers in a list.\nTo find the average, add all the values together and divide the total by the number of elements in the list.\n\nIf the list is **empty**, there are no values to average.\nIn this case, your function should **return `0`** instead of attempting to divide by zero.\n\nFor example:\n\n- The list `[1, 2, 3, 4]` has an average of **`2.5`**.\n- An empty list `[]` should return **`0`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** of numeric values.\n- Calculating the **sum** and **average** of a collection.\n- Performing arithmetic operations safely.\n- Handling **edge cases**, such as an empty list.\n- Preventing common runtime errors, such as **division by zero**.\n\nCalculating averages is a fundamental programming technique used in **data analysis**, **financial reporting**, **scientific computing**, **machine learning**, and countless other real-world applications.",
+    "original_statement": "Calculating the **average** (or **mean**) of a collection of numbers is one of the most common operations in programming.\nIt provides a single value that represents the overall distribution of a dataset and is widely used in statistics, analytics, and reporting.\n\nIn this challenge, your task is to **calculate the mathematical average** of all the numbers in a list.\nTo find the average, add all the values together and divide the total by the number of elements in the list.\n\nIf the list is **empty**, there are no values to average.\nIn this case, your function should **return `0`** instead of attempting to divide by zero.\n\nFor example:\n\n- The list `[1, 2, 3, 4]` has an average of **`2.5`**.\n- An empty list `[]` should return **`0`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** of numeric values.\n- Calculating the **sum** and **average** of a collection.\n- Performing arithmetic operations safely.\n- Handling **edge cases**, such as an empty list.\n- Preventing common runtime errors, such as **division by zero**.\n\nCalculating averages is a fundamental programming technique used in **data analysis**, **financial reporting**, **scientific computing**, **machine learning**, and countless other real-world applications.",
+    "func_name": "calculate_array_average",
+    "return_type": "float",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "The average of a collection of numbers is the total of every value divided by how many values there are.",
+      "Dividing by zero is not mathematically defined, so an empty collection needs to be checked for and handled before any division is attempted.",
+      "Guard against the empty case by returning zero immediately whenever there is nothing to average, rather than letting a division be attempted at all."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-challenge-positive-negative-summary",
+    "title": "Split-Metric Analysis: Positives and Negatives",
+    "module": "python-challenges",
+    "statement": "A single pass over a sequence of numbers can often reveal multiple useful statistics at once, combining analysis efficiently rather than requiring separate passes for each metric.\n\nThis technique of **multi-metric single-pass analysis** is widely used in data processing, reporting, and monitoring systems where performance matters.\n\nIn this challenge, your task is to compute **two metrics** from a list of integers in a single pass: the **count of positive numbers** (those strictly greater than zero) and the **sum of negative numbers** (those strictly less than zero).\n\nZero itself should not be counted toward either metric, since it is neither positive nor negative.\n\nFor example:\n\n- The list **`[3, -2, 5, -7, 0]`** has **2** positive numbers (`3` and `5`) and a negative sum of **-9** (`-2` and `-7` combined).\n- The result should be the pair **`[2, -9]`**.\n- An **empty list** should return **`[]`**, since there is nothing to summarize.\n\nYour function should return a **two-element list** containing the positive count followed by the negative sum, or an empty list if the input is empty.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** one element at a time.\n- Using **conditional logic** to process values differently based on their sign.\n- Calculating **multiple metrics** in a single pass.\n- Handling values that should be **excluded** from both metrics (zero).\n- Building and returning a **structured result**.\n\nMulti-metric analysis is a fundamental technique used in **data dashboards**, **financial reporting**, **sensor monitoring**, **performance analysis**, and many other applications where multiple statistics must be derived from the same dataset.",
+    "original_statement": "A single pass over a sequence of numbers can often reveal several useful statistics at once, rather than requiring a separate pass for each one.\n\nGiven a list of integers, determine two things: the total count of numbers strictly greater than zero, and the total sum of numbers strictly less than zero. \n\n\nReturn both results together as a two-element list, with the positive count listed first and the negative sum listed second. \n\n\nZero itself should not be counted toward either metric. If the input list is empty, return an empty list.\n\nFor example, the list containing 3, -2, 5, -7, and 0 has two positive numbers (3 and 5) and a negative sum of -9 (from -2 and -7 combined), so the result should be the pair 2 and -9.",
+    "func_name": "summarize_positives_and_negatives",
+    "return_type": "list",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "This problem asks for two separate metrics from the same pass over the data: a count of how many values are positive, and a total of the values that are negative.",
+      "Zero is neither positive nor negative, and should not be counted toward either metric.",
+      "An empty list has nothing to summarize at all, and should produce a completely empty result rather than a pair of zeros."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-variable-trim",
+    "title": "Custom Boundary Trim: Variable-Length Stripper",
+    "module": "python-challenges",
+    "statement": "Strings often need to be **trimmed** to remove unwanted characters from their beginning and end.\nThis type of operation is commonly used in **text processing**, **data extraction**, and **input sanitization**, where only a specific portion of the original string is needed.\n\nIn this challenge, your task is to **remove a specified number of characters from both ends** of a string.\nGiven a string and an integer `n`, remove the first `n` characters and the last `n` characters, then **return the remaining portion** of the string.\n\nIf the string's length is **less than or equal to `2 \u00d7 n`**, there will be no characters left after trimming both ends.\nIn this case, your function should **return an empty string** (`\"\"`).\n\nFor example:\n\n- Trimming `\"wonderful\"` by `2` characters from each end returns **`\"nder\"`**.\n- Trimming `\"code\"` by `2` characters from each end returns **`\"\"`**, since every character is removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character positions.\n- Extracting substrings using **indexing** or **slicing**.\n- Performing precise **string manipulation** without modifying the original value.\n- Handling **edge cases**, such as when the requested trim removes the entire string.\n\nString trimming is a fundamental technique used in **text processing**, **data cleaning**, **file parsing**, and many other real-world applications where only a specific section of a string is required.",
+    "original_statement": "Strings often need to be **trimmed** to remove unwanted characters from their beginning and end.\nThis type of operation is commonly used in **text processing**, **data extraction**, and **input sanitization**, where only a specific portion of the original string is needed.\n\nIn this challenge, your task is to **remove a specified number of characters from both ends** of a string.\nGiven a string and an integer `n`, remove the first `n` characters and the last `n` characters, then **return the remaining portion** of the string.\n\nIf the string's length is **less than or equal to `2 \u00d7 n`**, there will be no characters left after trimming both ends.\nIn this case, your function should **return an empty string** (`\"\"`).\n\nFor example:\n\n- Trimming `\"wonderful\"` by `2` characters from each end returns **`\"nder\"`**.\n- Trimming `\"code\"` by `2` characters from each end returns **`\"\"`**, since every character is removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character positions.\n- Extracting substrings using **indexing** or **slicing**.\n- Performing precise **string manipulation** without modifying the original value.\n- Handling **edge cases**, such as when the requested trim removes the entire string.\n\nString trimming is a fundamental technique used in **text processing**, **data cleaning**, **file parsing**, and many other real-world applications where only a specific section of a string is required.",
+    "func_name": "trim_by_length",
+    "return_type": "str",
+    "param_types": ["str", "int"],
+    "param_names": ["s", "n"],
+    "hints": [
+      "This problem generalizes a simple single-character trim into a configurable trim, where the amount removed from each end is given as a parameter.",
+      "Removing n characters from the front and n characters from the back means the middle portion that remains starts at position n and ends n positions before the end of the string.",
+      "If the total number of characters being trimmed away from both ends together is greater than or equal to the string's entire length, there is nothing left over, and the result should be an empty string."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-exact-match",
+    "title": "Exact Match Only: The Strict Equivalence Search",
+    "module": "python-challenges",
+    "statement": "Searching for a value within a collection is one of the most common operations in programming. \nIn many situations, an **exact match** is required, meaning every character\u2014including uppercase and lowercase letters\u2014must match perfectly.\n\nIn this challenge, your task is to determine whether a given **target string** exists in a list of words as an **exact, character-for-character match**. \nDifferences in capitalization, whitespace, or any other character should be treated as a mismatch.\n\nYour function should return whether the target string is present in the list exactly as provided.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and collections of strings.\n- Comparing strings for **exact equality**.\n- Understanding **case-sensitive** comparisons.\n- Searching for values within a collection.\n\nExact string matching is a fundamental operation used in authentication systems, data validation, searching, filtering, and many other real-world applications where precision is essential.",
+    "original_statement": "Searching for a value within a collection is one of the most common operations in programming. \nIn many situations, an **exact match** is required, meaning every character\u2014including uppercase and lowercase letters\u2014must match perfectly.\n\nIn this challenge, your task is to determine whether a given **target string** exists in a list of words as an **exact, character-for-character match**. \nDifferences in capitalization, whitespace, or any other character should be treated as a mismatch.\n\nYour function should return whether the target string is present in the list exactly as provided.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and collections of strings.\n- Comparing strings for **exact equality**.\n- Understanding **case-sensitive** comparisons.\n- Searching for values within a collection.\n\nExact string matching is a fundamental operation used in authentication systems, data validation, searching, filtering, and many other real-world applications where precision is essential.",
+    "func_name": "exact_match_exists",
+    "return_type": "bool",
+    "param_types": ["list", "str"],
+    "param_names": ["words", "target"],
+    "hints": [
+      "A strict search treats text as meaningfully different if it differs in even one character, including differences in capitalization or surrounding whitespace.",
+      "This is deliberately more demanding than a casual, human-style comparison, which might otherwise treat \"Hello\" and \"hello\" as the same word.",
+      "Python's exact string equality already behaves this strictly by default \u2014 the discipline required is choosing not to loosen it with any normalization step, such as lowercasing, before comparing."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-challenge-punctuation-condenser",
+    "title": "Sequential Punctuation Condenser",
+    "module": "python-challenges",
+    "statement": "Strings often contain repeated characters that may be unnecessary or the result of inconsistent input.\nReducing these repeated sequences makes text cleaner, more consistent, and easier to process.\n\nIn this challenge, your task is to **remove consecutive duplicate characters** from a string.\nWhenever the same character appears **multiple times in a row**, it should be replaced with a **single occurrence** of that character.\nOnly **consecutive** duplicates should be removed, meaning identical characters separated by other characters must remain unchanged.\n\nFor example:\n\n- **`\"aaabbbccdaa\"`** becomes **`\"abcda\"`**.\n- **`\"Wooow!!!\"`** becomes **`\"Wow!\"`**.\n\nYour function should **return a new string** where every sequence of repeated consecutive characters has been condensed into a single character, while preserving the original order of the remaining characters.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character sequences.\n- Iterating through text **one character at a time**.\n- Comparing **adjacent characters**.\n- Building a **new string** based on specific conditions.\n- Preserving the original order of characters while removing redundant repetitions.\n\nRemoving consecutive duplicate characters is a common text-processing technique used in **data cleaning**, **compression algorithms**, **input normalization**, and many other applications that process textual data.",
+    "original_statement": "Strings often contain repeated characters that may be unnecessary or the result of inconsistent input.\nReducing these repeated sequences makes text cleaner, more consistent, and easier to process.\n\nIn this challenge, your task is to **remove consecutive duplicate characters** from a string.\nWhenever the same character appears **multiple times in a row**, it should be replaced with a **single occurrence** of that character.\nOnly **consecutive** duplicates should be removed, meaning identical characters separated by other characters must remain unchanged.\n\nFor example:\n\n- **`\"aaabbbccdaa\"`** becomes **`\"abcda\"`**.\n- **`\"Wooow!!!\"`** becomes **`\"Wow!\"`**.\n\nYour function should **return a new string** where every sequence of repeated consecutive characters has been condensed into a single character, while preserving the original order of the remaining characters.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character sequences.\n- Iterating through text **one character at a time**.\n- Comparing **adjacent characters**.\n- Building a **new string** based on specific conditions.\n- Preserving the original order of characters while removing redundant repetitions.\n\nRemoving consecutive duplicate characters is a common text-processing technique used in **data cleaning**, **compression algorithms**, **input normalization**, and many other applications that process textual data.",
+    "func_name": "condense_repeated_characters",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Only immediately adjacent repeated characters should ever be collapsed together \u2014 two identical characters with something different between them are not part of the same run.",
+      "Building the cleaned-up result one character at a time, and only adding a new character when it differs from whatever was most recently added, naturally collapses every run of repeats down to one instance.",
+      "This general character-collapsing approach works identically whether the repeated character is punctuation like an exclamation mark, or any other ordinary letter or symbol."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-milestone-planner",
+    "title": "Historical Milestone Planner: The Century Calculator",
+    "module": "python-challenges",
+    "statement": "Age comparisons are a common programming exercise that combine **arithmetic** with **logical reasoning**.\nBy analyzing the relationship between different ages, you can determine when a specific condition will be true.\n\nIn this challenge, your task is to determine the **future calendar year** in which the **oldest** member of a family will be exactly **twice the age** of the **youngest** member.\nThe input consists of a **list of current ages** and the **current calendar year**.\n\nOnly the **oldest** and **youngest** ages are relevant to the calculation.\nAny other ages in the list do **not** affect the final result.\n\nFor example:\n\n- If the family ages are `[50, 20]` and the current year is `2024`, the oldest member will be exactly twice the youngest member's age **10 years later**.\n- The correct result is **`2034`**.\n\nYour function should **return the calendar year** in which this double-age relationship occurs.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** to identify the **minimum** and **maximum** values.\n- Performing arithmetic calculations using **age differences**.\n- Solving **time-based** problems through logical reasoning.\n- Combining multiple pieces of information to produce a single result.\n\nAge-based calculations are commonly used to develop **problem-solving skills** and appear in scheduling systems, simulations, planning tools, and many other real-world applications.",
+    "original_statement": "Age comparisons are a common programming exercise that combine **arithmetic** with **logical reasoning**.\nBy analyzing the relationship between different ages, you can determine when a specific condition will be true.\n\nIn this challenge, your task is to determine the **future calendar year** in which the **oldest** member of a family will be exactly **twice the age** of the **youngest** member.\nThe input consists of a **list of current ages** and the **current calendar year**.\n\nOnly the **oldest** and **youngest** ages are relevant to the calculation.\nAny other ages in the list do **not** affect the final result.\n\nFor example:\n\n- If the family ages are `[50, 20]` and the current year is `2024`, the oldest member will be exactly twice the youngest member's age **10 years later**.\n- The correct result is **`2034`**.\n\nYour function should **return the calendar year** in which this double-age relationship occurs.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** to identify the **minimum** and **maximum** values.\n- Performing arithmetic calculations using **age differences**.\n- Solving **time-based** problems through logical reasoning.\n- Combining multiple pieces of information to produce a single result.\n\nAge-based calculations are commonly used to develop **problem-solving skills** and appear in scheduling systems, simulations, planning tools, and many other real-world applications.",
+    "func_name": "find_milestone_year",
+    "return_type": "int",
+    "param_types": ["list", "int"],
+    "param_names": ["ages", "current_year"],
+    "hints": [
+      "Only the oldest family member's age and the youngest family member's age actually matter for this calculation \u2014 every other age in between can be set aside entirely.",
+      "The same underlying algebraic relationship used for a two-person age comparison still applies here; it's simply being applied to whichever two ages represent the extremes of the group.",
+      "This problem guarantees that the target moment always lies in the future relative to the current year, so the number of years to add will never come out negative."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-challenge-spiral-matrix",
+    "title": "Matrix Spiral Unwind",
+    "module": "python-challenges",
+    "statement": "A **two-dimensional grid** organizes data into rows and columns, making it useful for representing tables, matrices, game boards, and images. While grids are often processed row by row, some problems require following a specific traversal pattern to visit every element.\n\nIn this challenge, your task is to traverse a grid in **spiral order**. The grid is provided as a flattened list in **row-major order**, along with its number of rows and columns.\n\nBegin at the **top-left corner** and visit the elements by moving:\n\n- Across the top row from left to right.\n- Down the rightmost column.\n- Across the bottom row from right to left.\n- Up the leftmost column.\n\nContinue this pattern, moving inward one layer at a time, until every value in the grid has been visited exactly once.\n\nYour function should return a list containing the values in the order they were visited during the spiral traversal.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **two-dimensional data** represented in a one-dimensional structure.\n- Traversing a matrix using changing boundaries.\n- Managing row and column indices.\n- Processing every element exactly once using a non-linear traversal pattern.\n\nSpiral traversal is a classic algorithmic problem that appears in technical interviews and is commonly used to strengthen matrix manipulation and traversal skills.",
+    "original_statement": "A **two-dimensional grid** organizes data into rows and columns, making it useful for representing tables, matrices, game boards, and images. While grids are often processed row by row, some problems require following a specific traversal pattern to visit every element.\n\nIn this challenge, your task is to traverse a grid in **spiral order**. The grid is provided as a flattened list in **row-major order**, along with its number of rows and columns.\n\nBegin at the **top-left corner** and visit the elements by moving:\n\n- Across the top row from left to right.\n- Down the rightmost column.\n- Across the bottom row from right to left.\n- Up the leftmost column.\n\nContinue this pattern, moving inward one layer at a time, until every value in the grid has been visited exactly once.\n\nYour function should return a list containing the values in the order they were visited during the spiral traversal.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **two-dimensional data** represented in a one-dimensional structure.\n- Traversing a matrix using changing boundaries.\n- Managing row and column indices.\n- Processing every element exactly once using a non-linear traversal pattern.\n\nSpiral traversal is a classic algorithmic problem that appears in technical interviews and is commonly used to strengthen matrix manipulation and traversal skills.",
+    "func_name": "traverse_matrix_spiral",
+    "return_type": "list",
+    "param_types": ["list", "int", "int"],
+    "param_names": ["grid", "rows", "cols"],
+    "hints": [
+      "The grid is given as one flattened, row-by-row list along with its dimensions, so it needs to be reconstructed into its proper rows and columns before it can be traversed as a grid at all.",
+      "A spiral traversal visits the entire top row left to right, then the entire right column top to bottom, then the entire bottom row right to left, then the entire left column bottom to top, and repeats this pattern on the ever-shrinking inner rectangle that remains.",
+      "After each of the four directional sweeps, the boundary on that side of the grid should shrink inward by one, so the next sweep in the sequence never revisits a position that's already been collected."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-challenge-substring-boundary-eraser",
+    "title": "Substring Boundary Eraser",
+    "module": "python-challenges",
+    "statement": "Strings often need to be processed by locating specific pieces of text and modifying only the characters around them.\nThis type of **targeted string manipulation** is commonly used in **text parsing**, **data cleaning**, **search utilities**, and other applications that transform structured text.\n\nIn this challenge, your task is to locate the **first occurrence** of a target substring within a source string.\nOnce the target has been found, remove the single character immediately **before** it and the single character immediately **after** it, if those characters exist.\nThe **target substring itself must remain unchanged**, and every other character in the source string should be preserved.\n\nIf the target substring **does not exist** in the source string, your function should **return the original string unchanged**.\n\nFor example:\n\n- Removing the surrounding characters of **`\"XYZ\"`** in **`\"helloXYZworld\"`** produces **`\"hellXYZorld\"`**.\n- If the target substring cannot be found, the original string should be returned without any modifications.\n\nYour function should return the **modified string** after applying the required transformation.\n\nThis exercise reinforces several important programming concepts:\n\n- Searching for the **first occurrence** of a substring.\n- Working with **string indices** and character positions.\n- Manipulating text while preserving unaffected content.\n- Handling **edge cases**, such as missing surrounding characters or an absent target substring.\n\nTargeted string manipulation is a fundamental programming technique used in **text processing**, **parsers**, **search engines**, **code editors**, and many other real-world applications where precise modifications to text are required.",
+    "original_statement": "Strings often need to be processed by locating specific pieces of text and modifying only the characters around them.\nThis type of **targeted string manipulation** is commonly used in **text parsing**, **data cleaning**, **search utilities**, and other applications that transform structured text.\n\nIn this challenge, your task is to locate the **first occurrence** of a target substring within a source string.\nOnce the target has been found, remove the single character immediately **before** it and the single character immediately **after** it, if those characters exist.\nThe **target substring itself must remain unchanged**, and every other character in the source string should be preserved.\n\nIf the target substring **does not exist** in the source string, your function should **return the original string unchanged**.\n\nFor example:\n\n- Removing the surrounding characters of **`\"XYZ\"`** in **`\"helloXYZworld\"`** produces **`\"hellXYZorld\"`**.\n- If the target substring cannot be found, the original string should be returned without any modifications.\n\nYour function should return the **modified string** after applying the required transformation.\n\nThis exercise reinforces several important programming concepts:\n\n- Searching for the **first occurrence** of a substring.\n- Working with **string indices** and character positions.\n- Manipulating text while preserving unaffected content.\n- Handling **edge cases**, such as missing surrounding characters or an absent target substring.\n\nTargeted string manipulation is a fundamental programming technique used in **text processing**, **parsers**, **search engines**, **code editors**, and many other real-world applications where precise modifications to text are required.",
+    "func_name": "erase_substring_boundary",
+    "return_type": "str",
+    "param_types": ["str", "str"],
+    "param_names": ["source", "target"],
+    "hints": [
+      "Locating a substring within a larger string first requires finding exactly where that substring begins.",
+      "Only the very first occurrence of the target substring matters \u2014 anything after that first match should be left completely untouched by this process.",
+      "The target substring itself must be preserved exactly as it is; only the single characters immediately touching it on either side, if they exist at all, should be removed."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-account-ledger",
+    "title": "Balanced Books: The Account Ledger Analyzer",
+    "module": "python-challenges",
+    "statement": "Financial systems record every **transaction** that affects an account's balance.\nBy combining all deposits and withdrawals, you can determine the account's **net balance** and evaluate its overall financial status.\n\nIn this challenge, your task is to **calculate the net balance** from a list of transactions.\nEach **positive integer** represents a **deposit**, while each **negative integer** represents a **withdrawal**.\nAfter calculating the total balance, determine the account's status based on the final result.\n\nYour function should **return a two-element list** containing:\n\n- The **net balance**.\n- A status label:\n  - **`\"PROFIT\"`** if the balance is greater than `0`.\n  - **`\"DEBT\"`** if the balance is less than `0`.\n  - **`\"BALANCED\"`** if the balance is exactly `0`.\n\nFor example, the transaction history `[100, -30, -20]` produces a net balance of `50`, so the function should return `[50, \"PROFIT\"]`.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** of numeric values.\n- Calculating a **running total** from multiple transactions.\n- Using **conditional statements** to classify the final result.\n- Returning multiple related values in a single collection.\n\nProcessing transaction histories is a fundamental technique used in **banking systems**, **expense trackers**, **accounting software**, and other financial applications where balances must be calculated and evaluated accurately.",
+    "original_statement": "Financial systems record every **transaction** that affects an account's balance.\nBy combining all deposits and withdrawals, you can determine the account's **net balance** and evaluate its overall financial status.\n\nIn this challenge, your task is to **calculate the net balance** from a list of transactions.\nEach **positive integer** represents a **deposit**, while each **negative integer** represents a **withdrawal**.\nAfter calculating the total balance, determine the account's status based on the final result.\n\nYour function should **return a two-element list** containing:\n\n- The **net balance**.\n- A status label:\n  - **`\"PROFIT\"`** if the balance is greater than `0`.\n  - **`\"DEBT\"`** if the balance is less than `0`.\n  - **`\"BALANCED\"`** if the balance is exactly `0`.\n\nFor example, the transaction history `[100, -30, -20]` produces a net balance of `50`, so the function should return `[50, \"PROFIT\"]`.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** of numeric values.\n- Calculating a **running total** from multiple transactions.\n- Using **conditional statements** to classify the final result.\n- Returning multiple related values in a single collection.\n\nProcessing transaction histories is a fundamental technique used in **banking systems**, **expense trackers**, **accounting software**, and other financial applications where balances must be calculated and evaluated accurately.",
+    "func_name": "analyze_account_ledger",
+    "return_type": "list",
+    "param_types": ["list"],
+    "param_names": ["transactions"],
+    "hints": [
+      "Every transaction contributes to a single running total: positive integers represent deposits, and negative integers represent withdrawals.",
+      "The account's overall status depends entirely on the sign of that final combined total, once every transaction has been accounted for.",
+      "There are exactly three possible outcomes to report: the total came out positive, the total came out negative, or the total came out to precisely zero."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-challenge-extreme-bounds",
+    "title": "Extreme Bounds: The Range Finder",
+    "module": "python-challenges",
+    "statement": "Raw data often arrives as a **single line of text** rather than a ready-to-use collection of values.\nBefore performing calculations, the data must first be **parsed** into a format that your program can process.\n\nIn this challenge, your task is to parse a string containing **space-separated numbers**.\nAfter converting the values into numbers, identify the **largest (maximum)** value and the **smallest (minimum)** value in the collection.\n\nYour function should **return a single string** containing the maximum value followed by the minimum value, separated by a single space.\n\nFor example:\n\n- The input **`\"1 9 3 4 -5\"`** contains a maximum value of **`9`** and a minimum value of **`-5`**.\n- The correct result is **`\"9 -5\"`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Parsing **space-separated** text into individual values.\n- Converting **strings** into numeric data.\n- Finding the **maximum** and **minimum** values in a collection.\n- Formatting multiple results into a **single string**.\n- Combining text processing with numeric operations.\n\nParsing textual data is a fundamental programming skill used in **data processing**, **configuration files**, **command-line tools**, **log analysis**, and many other real-world applications.",
+    "original_statement": "Raw data often arrives as a **single line of text** rather than a ready-to-use collection of values.\nBefore performing calculations, the data must first be **parsed** into a format that your program can process.\n\nIn this challenge, your task is to parse a string containing **space-separated numbers**.\nAfter converting the values into numbers, identify the **largest (maximum)** value and the **smallest (minimum)** value in the collection.\n\nYour function should **return a single string** containing the maximum value followed by the minimum value, separated by a single space.\n\nFor example:\n\n- The input **`\"1 9 3 4 -5\"`** contains a maximum value of **`9`** and a minimum value of **`-5`**.\n- The correct result is **`\"9 -5\"`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Parsing **space-separated** text into individual values.\n- Converting **strings** into numeric data.\n- Finding the **maximum** and **minimum** values in a collection.\n- Formatting multiple results into a **single string**.\n- Combining text processing with numeric operations.\n\nParsing textual data is a fundamental programming skill used in **data processing**, **configuration files**, **command-line tools**, **log analysis**, and many other real-world applications.",
+    "func_name": "find_extreme_bounds",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Splitting a string on its spaces produces a list of the individual number substrings it contains.",
+      "Each of those substrings needs to be converted into an actual integer before any numeric comparison like maximum or minimum can be meaningfully applied to it.",
+      "The final answer should combine the maximum and minimum values into one string, with the maximum written first, then a single space, then the minimum."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  }
+]
