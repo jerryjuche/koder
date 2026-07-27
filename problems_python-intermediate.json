@@ -1,0 +1,682 @@
+[
+  {
+    "slug": "py-inter-bank-account",
+    "title": "Simulate a Simple Bank Account",
+    "module": "python-intermediate",
+    "statement": "Functions in Python can carry hidden state with them through a powerful mechanism known as **closures**. When an inner function references a variable from its enclosing scope, that variable persists across calls, even after the outer function has finished executing.\n\nIn this challenge, your task is to create a closure-based bank account. The outer function should initialize a private `balance` variable at `0`. It should return two inner functions:\n\n- **`deposit(amount)`** — adds the given amount to the balance.\n- **`get_balance()`** — returns the current balance.\n\nThe balance must remain **private** — it should not be accessible as a global variable or attribute, only through the two returned functions.\n\nFor example:\n\n- After depositing `100` and then `50`, calling **`get_balance()`** returns **`150`**.\n- A new account with no deposits returns **`0`**.\n\nYour function should return a **tuple** containing the two inner functions `(deposit, get_balance)`.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating **closures** that retain access to enclosing scope variables.\n- Using the **`nonlocal`** keyword to modify outer variables from within an inner function.\n- Implementing **private state** that can only be modified through controlled interfaces.\n- Returning multiple functions from a single function call.\n\nClosures are widely used in Python for data encapsulation, decorators, callbacks, and many other patterns where functions need to remember contextual information.",
+    "original_statement": "Write a function **`bank_account()`** that returns a tuple of two functions: `deposit(amount)` and `get_balance()`. The deposit function should add the given amount to a balance that persists across calls, and get_balance should return the current balance.\r\n\r\nThe balance should start at 0 and be **private** — it should not be accessible as a global variable or attribute, only through the returned functions.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef bank_account():\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `deposit, get_balance = bank_account(); deposit(100); deposit(50); get_balance()` returns `150`\r\n- `deposit, get_balance = bank_account(); get_balance()` returns `0`",
+    "func_name": "bank_account",
+    "return_type": "tuple",
+    "param_types": [],
+    "param_names": [],
+    "hints": [
+      "bank_account should define a local variable balance = 0 at the top — this is the private state.",
+      "Define two inner functions inside bank_account: deposit(amount) uses nonlocal balance to modify the outer variable, and get_balance() just returns balance.",
+      "Return a tuple (deposit, get_balance) — the caller unpacks it to get access to the two functions, which both share the same private balance variable via closure."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "py-inter-flatten-list",
+    "title": "Flatten a Nested List",
+    "module": "python-intermediate",
+    "statement": "Data often arrives in nested structures — lists containing other lists, which may themselves contain more lists. Processing such structures requires an approach that can handle **arbitrary levels of nesting**.\n\nIn this challenge, your task is to flatten a nested list into a single-level list containing every non-list element in their original order.\n\nThe nesting can be arbitrarily deep, meaning a list may contain lists that contain lists, and so on.\n\nFor example:\n\n- **`[1, [2, [3, 4], 5], 6]`** becomes **`[1, 2, 3, 4, 5, 6]`**.\n- A list with **no nesting**, such as `[1, 2, 3]`, remains **`[1, 2, 3]`**.\n- An **empty list** returns **`[]`**.\n\nYour function should return a **new flat list** with all nested levels collapsed into one.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **recursion** to process structures of unknown depth.\n- Identifying **base cases** that stop the recursion.\n- Distinguishing between **lists** and non-list values using **`isinstance`**.\n- Building a result list by combining recursive and direct results.\n\nRecursive flattening is a fundamental technique used in processing JSON data, handling tree structures, parsing configuration files, and many other real-world applications where data is naturally nested.",
+    "original_statement": "Write a function **`flatten_list(nested)`** that takes a list which may contain other lists as elements (nested arbitrarily deep) and returns a new list containing every non-list element in their original order, with no nesting.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef flatten_list(nested: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `flatten_list([1, [2, [3, 4], 5], 6])` returns `[1, 2, 3, 4, 5, 6]`\r\n- `flatten_list([1, 2, 3])` returns `[1, 2, 3]`\r\n- `flatten_list([])` returns `[]`",
+    "func_name": "flatten_list",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "nested"
+    ],
+    "hints": [
+      "A recursive function to flatten needs a base case and a recursive case — the base case returns the element itself when it's not a list.",
+      "Iterate over each item in the input list; if the item is itself a list (isinstance(item, list)), call flatten_list on it recursively.",
+      "Use a helper accumulator pattern: create an empty result list, extend it with recursive calls for nested items, and append for non-list items."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-inter-map-filter",
+    "title": "Map and Filter with Lambdas",
+    "module": "python-intermediate",
+    "statement": "Functional programming techniques allow you to process collections of data by composing operations rather than writing explicit loops.\n\nIn this challenge, your task is to process a list of integers using `filter()` and `map()` with **lambda functions**:\n\n1. **Filter** out any numbers that are negative or divisible by 3.\n2. **Map** the remaining numbers to their squares.\n3. Return the result as a new list, preserving the original order.\n\nFor example:\n\n- **`[1, 2, 3, 4, 5, 6]`** — `3` and `6` are divisible by 3 (removed); `1, 2, 4, 5` remain and become **`[1, 4, 16, 25]`**.\n- **`[-1, 2, -3, 4]`** — `-1` and `-3` are negative (removed); `2` and `4` become **`[4, 16]`**.\n\nYour function should return the **new transformed list**.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating anonymous functions with **`lambda`**.\n- Using **`filter()`** to select elements that satisfy a condition.\n- Using **`map()`** to transform selected elements.\n- Chaining functional operations for clean, expressive data processing.\n\nThe combination of `filter()`, `map()`, and lambda functions is a common functional programming pattern used in data processing pipelines, event-driven systems, and many other contexts where collections must be transformed declaratively rather than with explicit loops.",
+    "original_statement": "Write a function **`process_numbers(nums)`** that takes a list of integers and:\r\n1. Filters out any numbers that are **negative** or **divisible by 3**\r\n2. Squares each remaining number\r\n3. Returns the result as a new list, ordered as they appeared originally\r\n\r\nUse `filter()` and `map()` with **lambda functions** to accomplish this.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef process_numbers(nums: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `process_numbers([1, 2, 3, 4, 5, 6])` returns `[1, 4, 16, 25]` (3 and 6 are divisible by 3 and removed; 1, 2, 4, 5 remain and are squared)\r\n- `process_numbers([-1, 2, -3, 4])` returns `[4, 16]` (-1 and -3 are negative, removed; 2 and 4 remain and are squared)",
+    "func_name": "process_numbers",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "nums"
+    ],
+    "hints": [
+      "A lambda is a compact anonymous function written as lambda x: expression — it has no def or return, the expression after the colon is automatically returned.",
+      "filter() takes a predicate function (returning True/False) and an iterable, and returns only items for which the predicate is True — wrap it in list() to get a concrete list.",
+      "map() takes a transformation function and an iterable, and applies the function to every element — chain it after filter() to first filter, then transform."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-inter-memoized-fib",
+    "title": "Memoized Fibonacci",
+    "module": "python-intermediate",
+    "statement": "A naive recursive Fibonacci function is extremely inefficient because it recomputes the same values many times. For example, computing `fib(5)` calls `fib(3)` multiple times through different recursive branches, wasting effort on identical work.\n\nIn this challenge, your task is to implement the Fibonacci sequence using **recursion with memoization**. Memoization caches the result of each Fibonacci calculation the first time it is computed, so any subsequent request for the same value is an instant dictionary lookup instead of a full recomputation.\n\nThe sequence is **zero-indexed**: `fib(0) == 0`, `fib(1) == 1`.\n\nFor example:\n\n- **`fib_memo(0)`** returns **`0`**.\n- **`fib_memo(1)`** returns **`1`**.\n- **`fib_memo(10)`** returns **`55`**.\n- **`fib_memo(30)`** returns **`832040`** (still fast, thanks to memoization).\n\nYour function should return the **n-th Fibonacci number**.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding the performance problems of **naive recursion**.\n- Using a **cache** (dictionary) to store previously computed results.\n- Checking the cache before performing recursive work.\n- Transforming an exponential-time algorithm into a linear-time one.\n\nMemoization is one of the most impactful optimizations in computer science and forms the foundation of **dynamic programming**. Python even provides a built-in decorator, `functools.lru_cache`, that adds memoization to any function automatically.",
+    "original_statement": "Write a function **`fib_memo(n)`** that returns the `n`-th Fibonacci number (0-indexed: `fib_memo(0) == 0`, `fib_memo(1) == 1`) using **recursion with memoization**. A naive recursive Fibonacci is exponential — memoization stores already-computed results so each number is only calculated once.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef fib_memo(n: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `fib_memo(0)` returns `0`\r\n- `fib_memo(1)` returns `1`\r\n- `fib_memo(10)` returns `55`\r\n- `fib_memo(30)` returns `832040`",
+    "func_name": "fib_memo",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "Create a cache dictionary at the top of the function (or use functools.lru_cache) to store already-computed Fibonacci numbers.",
+      "Check if n is already in the cache before computing — if it is, return it immediately without recursing.",
+      "After computing fib_memo(n - 1) + fib_memo(n - 2), store the result in cache[n] before returning it, so future calls with the same n are instant."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "py-inter-merge-dicts",
+    "title": "Dictionary Merge with Sum",
+    "module": "python-intermediate",
+    "statement": "Dictionaries are often combined when aggregating data from multiple sources. When the same key appears in both dictionaries, the values must be merged rather than simply overwritten.\n\nIn this challenge, your task is to merge two dictionaries. When both dictionaries contain the same key, the merged result should contain the **sum** of their values for that key. Keys that appear in only one dictionary should keep their original value.\n\nThe original dictionaries must not be modified; the function should create and return a **new dictionary**.\n\nFor example:\n\n- Merging **`{\"a\": 1, \"b\": 2}`** with **`{\"b\": 3, \"c\": 4}`** produces **`{\"a\": 1, \"b\": 5, \"c\": 4}`**.\n- Merging **`{\"x\": 10}`** with an **empty dictionary** produces **`{\"x\": 10}`**.\n\nYour function should return the **merged dictionary** with summed values for shared keys.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **dictionaries** and key-value pairs.\n- Iterating over dictionary items using **`.items()`**.\n- Checking for key existence and combining values.\n- Avoiding mutation of input data by creating a **new dictionary**.\n\nDictionary merging with custom conflict resolution is a common operation in data aggregation, configuration management, event processing, and many other applications where information from multiple sources needs to be combined.",
+    "original_statement": "Write a function **`merge_dicts(dict_a, dict_b)`** that merges two dictionaries. When both dictionaries have the same key, the merged result should contain the **sum** of their values for that key. Keys that appear in only one dictionary should keep their original value.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef merge_dicts(dict_a: dict, dict_b: dict) -> dict:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `merge_dicts({\"a\": 1, \"b\": 2}, {\"b\": 3, \"c\": 4})` returns `{\"a\": 1, \"b\": 5, \"c\": 4}`\r\n- `merge_dicts({\"x\": 10}, {})` returns `{\"x\": 10}`",
+    "func_name": "merge_dicts",
+    "return_type": "dict",
+    "param_types": [
+      "dict",
+      "dict"
+    ],
+    "param_names": [
+      "dict_a",
+      "dict_b"
+    ],
+    "hints": [
+      "Start by copying one dictionary (dict_a) into a new result dictionary using .copy() to avoid mutating the input.",
+      "Iterate over dict_b's items using .items() — for each key, add its value to result[key] if the key already exists, or set it if it doesn't.",
+      "The dict.get(key, 0) method is useful here: result[key] = result.get(key, 0) + value handles both cases in one line."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-inter-range-generator",
+    "title": "Range Generator",
+    "module": "python-intermediate",
+    "statement": "Python's built-in `range()` function is a powerful tool for generating sequences of numbers. But have you ever wondered how it works under the hood?\n\nIn this challenge, your task is to implement your own version of `range()` using a **generator function** with `yield`. Your generator should produce numbers starting from `start`, incrementing by `step`, up to (but not including) `stop`.\n\nIf `step` is positive and `start >= stop`, the generator should yield no values. If `step` is negative and `start <= stop`, it should also yield nothing.\n\nFor example:\n\n- **`list(my_range(1, 5, 1))`** produces **`[1, 2, 3, 4]`**.\n- **`list(my_range(5, 1, -1))`** produces **`[5, 4, 3, 2]`**.\n- **`list(my_range(0, 3, 5))`** produces **`[0]`**.\n\nYour function should be a **generator** that yields each value one at a time.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining **generator functions** using `yield`.\n- Understanding how generators produce values **lazily**.\n- Handling different **step directions** (positive and negative).\n- Implementing the same logic as a built-in Python function.\n\nGenerators are a fundamental part of Python's iteration system and are used extensively in data streaming, file processing, and any scenario where memory-efficient production of sequences is required.",
+    "original_statement": "Write a **generator function** **`my_range(start, stop, step)`** that yields numbers from `start` up to (but not including) `stop`, incrementing by `step` each time. It should behave like the built-in `range()` but implemented using `yield`.\r\n\r\nIf `step` is positive and `start >= stop`, the generator should yield nothing. If `step` is negative and `start <= stop`, it should also yield nothing.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef my_range(start: int, stop: int, step: int) -> int:\r\n    # Your code here\r\n    yield\r\n```\r\n\r\n### Examples\r\n\r\n- `list(my_range(1, 5, 1))` returns `[1, 2, 3, 4]`\r\n- `list(my_range(5, 1, -1))` returns `[5, 4, 3, 2]`\r\n- `list(my_range(0, 3, 5))` returns `[0]`",
+    "func_name": "my_range",
+    "return_type": "int",
+    "param_types": [
+      "int",
+      "int",
+      "int"
+    ],
+    "param_names": [
+      "start",
+      "stop",
+      "step"
+    ],
+    "hints": [
+      "A generator function uses yield instead of return — each time yield is reached, the function pauses and gives back one value, resuming from where it left off when the next value is requested.",
+      "Use a while loop that continues while (step > 0 and current < stop) or (step < 0 and current > stop).",
+      "Inside the loop, yield current, then increment current by step — the loop condition naturally stops when the boundary is crossed."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-inter-reverse-words",
+    "title": "Reverse Words in a Sentence",
+    "module": "python-intermediate",
+    "statement": "Manipulating text at the **word level** is a common task in natural language processing, text formatting, and data transformation.\n\nIn this challenge, your task is to reverse the **order of the words** in a sentence while keeping each word itself intact and in its original casing.\n\nFor example:\n\n- **`\"hello world\"`** reversed becomes **`\"world hello\"`**.\n- **`\"Python is fun\"`** reversed becomes **`\"fun is Python\"`**.\n- A **single word** like **`\"a\"`** remains **`\"a\"`**.\n\nYour function should return the **reversed sentence** as a single string with words separated by spaces.\n\nThis exercise reinforces several important programming concepts:\n\n- **Splitting** a string into a list of words.\n- **Reversing** the order of elements in a list.\n- **Joining** a list of words back into a single string.\n- Manipulating text at the word level rather than the character level.\n\nReversing the order of words in a sentence is a classic interview problem that demonstrates your understanding of string splitting, list manipulation, and joining techniques.",
+    "original_statement": "Write a function **`reverse_words(sentence)`** that takes a sentence as a string and returns the sentence with the order of the words reversed, while keeping each word itself intact and in its original casing.\r\n\r\nThis exercise is a classic interview warm-up that teaches you how Python's string splitting and joining work together to manipulate text at the word level rather than the character level.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef reverse_words(sentence: str) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `reverse_words(\"hello world\")` returns `\"world hello\"`\r\n- `reverse_words(\"Python is fun\")` returns `\"fun is Python\"`\r\n- `reverse_words(\"a\")` returns `\"a\"`",
+    "func_name": "reverse_words",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "sentence"
+    ],
+    "hints": [
+      "The .split() method with no arguments splits a string on whitespace and returns a list of words.",
+      "A list has a built-in .reverse() method that reverses it in place, or you can use the reversed() function.",
+      "Once your word list is reversed, use \" \".join(list) to glue them back together into a single string with spaces between them."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-inter-set-operations",
+    "title": "Set Operations on Lists",
+    "module": "python-intermediate",
+    "statement": "Sets in Python support powerful mathematical operations that make it easy to compare collections of data.\n\nIn this challenge, your task is to compute four set operations on two lists and return the results as a dictionary:\n\n- **`\"union\"`**: all unique elements from both lists combined.\n- **`\"intersection\"`**: elements present in both lists.\n- **`\"difference_a\"`**: elements in `list_a` but not in `list_b`.\n- **`\"difference_b\"`**: elements in `list_b` but not in `list_a`.\n\nAll result lists should be **sorted in ascending order**.\n\nFor example:\n\n- For **`[1, 2, 3]`** and **`[2, 3, 4]`**: union is `[1, 2, 3, 4]`, intersection is `[2, 3]`, difference_a is `[1]`, difference_b is `[4]`.\n- For **`[1, 1, 2]`** and **`[3, 4]`**: union is `[1, 2, 3, 4]`, intersection is `[]`, difference_a is `[1, 2]`, difference_b is `[3, 4]`.\n\nYour function should return a **dictionary** with the four keys described above.\n\nThis exercise reinforces several important programming concepts:\n\n- Converting lists to **sets** for efficient comparison.\n- Using set operators: **`|`** (union), **`&`** (intersection), **`-`** (difference).\n- Converting sets back to **sorted lists**.\n- Organizing multiple related results into a **structured return value**.\n\nSet operations are essential in data analysis, database queries, access control systems, and any application where comparing collections of items is required.",
+    "original_statement": "Write a function **`set_operations(list_a, list_b)`** that returns a dictionary with four keys:\r\n- `\"union\"`: all unique elements from both lists combined\r\n- `\"intersection\"`: elements present in both lists\r\n- `\"difference_a\"`: elements in list_a but not in list_b\r\n- `\"difference_b\"`: elements in list_b but not in list_a\r\n\r\nAll values should be returned as sorted lists.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef set_operations(list_a: list, list_b: list) -> dict:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `set_operations([1, 2, 3], [2, 3, 4])` returns `{\"union\": [1, 2, 3, 4], \"intersection\": [2, 3], \"difference_a\": [1], \"difference_b\": [4]}`\r\n- `set_operations([1, 1, 2], [3, 4])` returns `{\"union\": [1, 2, 3, 4], \"intersection\": [], \"difference_a\": [1, 2], \"difference_b\": [3, 4]}`",
+    "func_name": "set_operations",
+    "return_type": "dict",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "list_a",
+      "list_b"
+    ],
+    "hints": [
+      "A Python set automatically deduplicates its elements and supports fast membership tests (in) as well as set-specific operations.",
+      "Convert each list to a set with set(list_a), then use & (intersection), | (union), and - (difference) operators on the sets.",
+      "Return the results as sorted lists using sorted() — sets are unordered, so sorting guarantees consistent output order."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-inter-simple-decorator",
+    "title": "Simple Decorator",
+    "module": "python-intermediate",
+    "statement": "Python's ability to treat functions as **first-class objects** means you can pass them to other functions, return them, and assign them to variables. A **decorator** is a function that takes a function as input and returns a new, enhanced version of it.\n\nIn this challenge, your task is to create a decorator function `make_bold(func)` that wraps any function so that its return value is wrapped in HTML bold tags.\n\nThe wrapper should:\n1. Call the original function.\n2. Capture its return value.\n3. Return the value wrapped in `<b>` and `</b>` tags.\n\nYou do not need to use the `@` syntax — simply call `make_bold` on a function and then call the result.\n\nFor example:\n\n- Applying `make_bold` to a lambda that returns **`\"hello\"`** produces **`\"<b>hello</b>\"`**.\n- Applying it to a lambda that returns **`\"test\"`** produces **`\"<b>test</b>\"`**.\n\nYour function should return the **wrapped result** as a string with bold tags.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding that functions are **first-class objects**.\n- Creating a **wrapper function** inside another function.\n- Calling the original function from within the wrapper.\n- Modifying the return value of a function without altering its code.\n\nDecorators are a fundamental Python feature used extensively in web frameworks (Flask, Django), logging, access control, caching, and many other cross-cutting concerns.",
+    "original_statement": "Write a function **`make_bold(func)`** that takes a function as an argument and returns a **new function** that wraps the original. The wrapper should call the original function, take its return value (a string), and return it wrapped in `<b>` and `</b>` tags.\r\n\r\nYou do not need to use the `@` decorator syntax — just manually apply the decorator: call `make_bold` on a function and then call the result.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef make_bold(func):\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `make_bold(lambda: \"hello\")()` returns `\"<b>hello</b>\"`\r\n- `make_bold(lambda: \"test\")()` returns `\"<b>test</b>\"`",
+    "func_name": "make_bold",
+    "return_type": "str",
+    "param_types": [
+      "callable"
+    ],
+    "param_names": [
+      "func"
+    ],
+    "hints": [
+      "make_bold receives a function as its argument — inside it, define an inner wrapper function that calls the original with func().",
+      "The wrapper should capture the return value of func(), wrap it with \"<b>\" + result + \"</b>\", and return that.",
+      "make_bold itself must return the inner wrapper function (not call it — return wrapper, not wrapper()), so the caller can call it later."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-inter-title-case",
+    "title": "Title Case with Exceptions",
+    "module": "python-intermediate",
+    "statement": "Converting text to title case (capitalizing the first letter of each word) is a common formatting operation. However, real title case rules have exceptions — certain short words like articles and prepositions should remain lowercase unless they appear at the beginning or end of the title.\n\nIn this challenge, your task is to convert a string to title case, except for words that appear in a provided `exceptions` list. Those exception words should remain entirely in lowercase, unless they are the **first** or **last** word of the title, in which case they must always be capitalized.\n\nFor example:\n\n- **`\"the lord of the rings\"`** with exceptions `[\"the\", \"of\"]` becomes **`\"The Lord of the Rings\"`**.\n- **`\"a tale of two cities\"`** with exceptions `[\"a\", \"of\"]` becomes **`\"A Tale of Two Cities\"`**.\n- With an **empty exceptions list**, every word is capitalized: **`\"To Kill A Mockingbird\"`**.\n\nYour function should return the **formatted title string**.\n\nThis exercise reinforces several important programming concepts:\n\n- **Splitting** strings into words for individual processing.\n- Applying **conditional formatting** based on word position.\n- Using a **set** for fast exception lookup.\n- Handling special rules for first and last words.\n- Building a properly formatted result string.\n\nTitle case conversion with exceptions is a practical real-world problem encountered in content management systems, publishing platforms, bibliography tools, and any application that formats titles according to style guides.",
+    "original_statement": "Write a function **`title_case_except(title, exceptions)`** that converts a string to title case (first letter of each word capitalized, the rest lowercase), **except** for words that appear in the `exceptions` list — those should remain entirely in lowercase.\r\n\r\nThe title's **first and last word are always capitalized**, regardless of whether they appear in the exceptions list.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef title_case_except(title: str, exceptions: list) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `title_case_except(\"the lord of the rings\", [\"the\", \"of\"])` returns `\"The Lord of the Rings\"`\r\n- `title_case_except(\"a tale of two cities\", [\"a\", \"of\"])` returns `\"A Tale of Two Cities\"`\r\n- `title_case_except(\"to kill a mockingbird\", [])` returns `\"To Kill A Mockingbird\"`",
+    "func_name": "title_case_except",
+    "return_type": "str",
+    "param_types": [
+      "str",
+      "list"
+    ],
+    "param_names": [
+      "title",
+      "exceptions"
+    ],
+    "hints": [
+      "Split the title into words first with .lower().split() to normalize everything to lowercase.",
+      "Iterate over the word list by index — capitalize each word UNLESS it's in the exceptions set AND it's not the first or last word.",
+      "Use a set for the exceptions list (set(exceptions)) for O(1) membership checks instead of O(n) list lookups."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-intermediate-count-combinations",
+    "title": "Count Combinations with itertools",
+    "module": "python-intermediate",
+    "statement": "Python's **`itertools`** module provides a collection of efficient tools for working with iterators and sequences. \nThese utilities make it easy to solve common iteration problems without implementing the underlying algorithms yourself.\n\nIn this challenge, your task is to use **`itertools.combinations`** to determine how many unique ways there are to choose `k` items from a list. Since combinations are **order-independent**, selecting `(1, 2)` is considered the same as selecting `(2, 1)`, and each element in the list can only be selected once.\n\nFor example:\n\n- **Calling ** returns ****, representing the six unique pairs that can be formed from four items.\n- **Calling ** returns ****, since choosing one item from three gives three possibilities.\n- **Calling ** returns ****, because there is no way to choose five items from a list of only two.\n\nYour function should return the total number of distinct combinations that can be formed.\n\nThis exercise reinforces several important programming concepts:\n\n- Importing and using functions from Python's **standard library**.\n- Working with **iterators** and lazy evaluation.\n- Understanding the concept of **combinations**, where order does not matter.\n- Leveraging built-in tools to write clean, efficient, and idiomatic Python code.\n\nThe `itertools` module is widely used in data analysis, algorithm design, and combinatorial problems, making it an essential part of every Python developer's toolkit.",
+    "original_statement": "Python's **`itertools`** module provides a collection of efficient tools for working with iterators and sequences. \nThese utilities make it easy to solve common iteration problems without implementing the underlying algorithms yourself.\n\nIn this challenge, your task is to use **`itertools.combinations`** to determine how many unique ways there are to choose `k` items from a list. Since combinations are **order-independent**, selecting `(1, 2)` is considered the same as selecting `(2, 1)`, and each element in the list can only be selected once.\n\nYour function should return the total number of distinct combinations that can be formed.\n\nThis exercise reinforces several important programming concepts:\n\n- Importing and using functions from Python's **standard library**.\n- Working with **iterators** and lazy evaluation.\n- Understanding the concept of **combinations**, where order does not matter.\n- Leveraging built-in tools to write clean, efficient, and idiomatic Python code.\n\nThe `itertools` module is widely used in data analysis, algorithm design, and combinatorial problems, making it an essential part of every Python developer's toolkit.",
+    "func_name": "count_combinations",
+    "return_type": "int",
+    "param_types": [
+      "list",
+      "int"
+    ],
+    "param_names": [
+      "nums",
+      "k"
+    ],
+    "hints": [
+      "Python's itertools module provides fast, memory-efficient building blocks for working with combinations, permutations, and other iteration patterns.",
+      "itertools.combinations(nums, k) produces every possible way to choose k items from nums, without regard to order, and without repeating any item.",
+      "Since combinations(...) returns a lazy iterator rather than a list, wrap it in list(...) first if you need to know how many combinations it actually produced (via len())."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-intermediate-double-with-lambda",
+    "title": "Double Every Number with a Lambda",
+    "module": "python-intermediate",
+    "statement": "Python's **`lambda`** keyword allows you to create small, anonymous functions without using the `def` keyword. \nThese functions are commonly used when a short, one-time function is needed, especially when working with higher-order functions such as **`map()`**.\n\nIn this challenge, your task is to use a **`lambda`** function together with **`map()`** to create a new list in which every number has been doubled. Your solution should avoid using an explicit loop or a list comprehension.\n\nYour function should return a **new list** containing the transformed values while leaving the original list unchanged.\n\nFor example:\n\n- **Calling ** returns ****, with every element doubled.\n- **Calling ** returns ****, producing an empty list from an empty input.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating anonymous functions with **`lambda`**.\n- Using **`map()`** to apply a function to every element of a sequence.\n- Transforming data without modifying the original collection.\n- Writing concise and idiomatic Python code using functional programming techniques.\n\nThe combination of `lambda` and `map()` is a common pattern in Python that enables clean, expressive solutions for applying simple transformations to collections of data.",
+    "original_statement": "Python's **`lambda`** keyword allows you to create small, anonymous functions without using the `def` keyword. \nThese functions are commonly used when a short, one-time function is needed, especially when working with higher-order functions such as **`map()`**.\n\nIn this challenge, your task is to use a **`lambda`** function together with **`map()`** to create a new list in which every number has been doubled. Your solution should avoid using an explicit loop or a list comprehension.\n\nYour function should return a **new list** containing the transformed values while leaving the original list unchanged.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating anonymous functions with **`lambda`**.\n- Using **`map()`** to apply a function to every element of a sequence.\n- Transforming data without modifying the original collection.\n- Writing concise and idiomatic Python code using functional programming techniques.\n\nThe combination of `lambda` and `map()` is a common pattern in Python that enables clean, expressive solutions for applying simple transformations to collections of data.",
+    "func_name": "double_with_lambda",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "nums"
+    ],
+    "hints": [
+      "A lambda is a small, unnamed function written in a single expression: lambda x: x * 2 is a complete function that doubles whatever it's given.",
+      "Python's built-in map() applies a function to every item of a list, one at a time, producing a lazy sequence of results.",
+      "Wrapping the result in list(...) converts that lazy sequence into an actual list you can return."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-intermediate-extract-digits",
+    "title": "Extract Digits with Regex",
+    "module": "python-intermediate",
+    "statement": "Python's **`re`** module provides support for **regular expressions (regex)**, a powerful way to search, match, and extract text based on patterns. \nRegular expressions allow you to locate specific types of characters or text without manually inspecting each character in a string.\n\nIn this challenge, your task is to use the **`re`** module to extract every **digit** from a given string. The extracted digits should remain in their original order and be combined into a single string.\n\nYour function should return a string containing only the digit characters found in the input. If the string contains no digits, return an empty string.\n\nFor example:\n\n- **Calling ** returns ****, extracting only the digit characters in order.\n- **Calling ** returns ****, since there are no digits to extract.\n\nThis exercise reinforces several important programming concepts:\n\n- Using Python's **`re`** module for pattern matching.\n- Extracting specific characters from a larger body of text.\n- Working with strings and regular expressions.\n- Leveraging built-in libraries to solve text-processing problems efficiently.\n\nRegular expressions are widely used in software development for parsing logs, validating user input, processing documents, and extracting structured information from unstructured text.",
+    "original_statement": "Python's **`re`** module provides support for **regular expressions (regex)**, a powerful way to search, match, and extract text based on patterns. \nRegular expressions allow you to locate specific types of characters or text without manually inspecting each character in a string.\n\nIn this challenge, your task is to use the **`re`** module to extract every **digit** from a given string. The extracted digits should remain in their original order and be combined into a single string.\n\nYour function should return a string containing only the digit characters found in the input. If the string contains no digits, return an empty string.\n\nThis exercise reinforces several important programming concepts:\n\n- Using Python's **`re`** module for pattern matching.\n- Extracting specific characters from a larger body of text.\n- Working with strings and regular expressions.\n- Leveraging built-in libraries to solve text-processing problems efficiently.\n\nRegular expressions are widely used in software development for parsing logs, validating user input, processing documents, and extracting structured information from unstructured text.",
+    "func_name": "extract_digits",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "s"
+    ],
+    "hints": [
+      "Python's re module provides regular expression support — a mini-language for describing patterns to search for inside text.",
+      "The pattern d matches exactly one digit character (0-9); re.findall(pattern, s) finds every non-overlapping match of that pattern in s and returns them all as a list.",
+      "Joining that list of individual digit characters back together with ''.join(...) produces a single string containing every digit found, in their original order."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-intermediate-fibonacci-iterator-class",
+    "title": "A Custom Fibonacci Iterator",
+    "module": "python-intermediate",
+    "statement": "Every `for` loop in Python works because the thing being looped over implements a specific protocol. Understanding this protocol reveals how Python's entire iteration system works under the hood.\n\nIn this challenge, your task is to implement a **custom iterator class** that produces Fibonacci numbers. Define a `FibonacciIterator` class that implements the iterator protocol:\n\n- **`__iter__`** — returns the iterator object itself.\n- **`__next__`** — returns the next Fibonacci number in the sequence (`0, 1, 1, 2, 3, 5, ...`), one at a time, and raises `StopIteration` when `n` values have been produced.\n\nThe function `generate_fibonacci_sequence(n)` should create an instance of this iterator and collect all produced values into a list.\n\nFor example:\n\n- **`generate_fibonacci_sequence(5)`** returns **`[0, 1, 1, 2, 3]`**.\n- **`generate_fibonacci_sequence(0)`** returns **`[]`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a class that implements the **iterator protocol**.\n- Understanding the roles of **`__iter__`** and **`__next__`**.\n- Using **`StopIteration`** to signal the end of iteration.\n- Maintaining **state** between successive calls to `__next__`.\n\nEvery iterable in Python — lists, strings, ranges, dictionaries — works because it implements this exact protocol. Building a custom iterator from scratch demystifies how Python's `for` loops actually operate.",
+    "original_statement": "You've already written a generator *function* using `yield`. This exercise shows the lower-level machinery that generators are built on top of: any class that implements `__iter__` and `__next__` becomes a fully functional custom **iterator**, usable anywhere Python expects an iterable — including `for` loops and `list(...)`.\r\n\r\nWrite a function **`generate_fibonacci_sequence(n)`** that defines a `FibonacciIterator` class producing exactly `n` Fibonacci numbers (starting `0, 1, 1, 2, 3, ...`) one at a time via `__next__`, and returns all `n` of them collected into a list.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef generate_fibonacci_sequence(n: int) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `generate_fibonacci_sequence(5)` returns `[0, 1, 1, 2, 3]`\r\n- `generate_fibonacci_sequence(0)` returns `[]`\r\n\r\n### Why this matters\r\n\r\nEvery `for` loop you've ever written in Python — over a list, a string, a `range()`, or a dictionary — works because the thing being looped over implements this exact `__iter__`/`__next__` protocol somewhere under the hood. Understanding it directly demystifies how Python's entire iteration system actually works.",
+    "func_name": "generate_fibonacci_sequence",
+    "return_type": "list",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "A class becomes usable in a for loop (or with list(...)) by implementing two special methods: __iter__ (which returns the iterator itself) and __next__ (which produces the next value on each step).",
+      "__next__ must raise StopIteration once there's nothing left to produce — that's the signal that tells a for loop, or list(...), to stop asking for more values.",
+      "Store whatever state you need to remember between calls (like the two most recent Fibonacci numbers, and how many values have been produced so far) as attributes on self, since __next__ is called repeatedly and needs to pick up exactly where it left off each time."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-intermediate-fibonacci-memoized",
+    "title": "Fibonacci with Memoization",
+    "module": "python-intermediate",
+    "statement": "A plain recursive Fibonacci function becomes extremely slow for larger inputs because it recomputes the same values over and over. **Memoization** — caching results that have already been computed — fixes this by ensuring no Fibonacci value is ever calculated more than once.\n\nIn this challenge, your task is to implement the Fibonacci sequence using recursion combined with a memoization cache (a dictionary that stores results already computed).\n\nThe sequence is **zero-indexed**: `fib(0) == 0`, `fib(1) == 1`.\n\nFor example:\n\n- **`fibonacci_memoized(10)`** returns **`55`**.\n- **`fibonacci_memoized(30)`** returns **`832040`** (still fast, thanks to memoization).\n\nYour function should return the **n-th Fibonacci number**.\n\nThis exercise reinforces several important programming concepts:\n\n- Recognizing the **performance problem** with naive recursion.\n- Using a **cache dictionary** to store and retrieve computed results.\n- Checking the cache before performing recursive work.\n- Understanding how memoization turns exponential time into linear time.\n\nMemoization is one of the most impactful optimizations in programming. It is the foundation of **dynamic programming**, and Python even includes a built-in decorator, `functools.lru_cache`, that adds memoization to any function automatically.",
+    "original_statement": "You wrote a plain recursive Fibonacci function back in the Fundamentals track. For larger inputs, that naive approach becomes extremely slow, because it recomputes the exact same smaller Fibonacci values over and over again. **Memoization** — caching results you've already computed — fixes this.\r\n\r\nWrite a function **`fibonacci_memoized(n)`** that returns the `n`-th Fibonacci number using recursion combined with a memoization cache (a dictionary storing results you've already computed), so that no Fibonacci value is ever computed more than once.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef fibonacci_memoized(n: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `fibonacci_memoized(10)` returns `55`\r\n- `fibonacci_memoized(30)` returns `832040`\r\n\r\n### Why this matters\r\n\r\nMemoization is one of the most impactful optimizations in all of programming — turning an exponential-time recursive function into a linear-time one, just by remembering answers you've already worked out. It's the foundation of dynamic programming, and Python even has a built-in decorator, `functools.lru_cache`, that adds memoization to any function automatically.",
+    "func_name": "fibonacci_memoized",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "Plain recursive Fibonacci recomputes the same smaller values over and over — fib(5) calls fib(3) multiple times through different branches, wastefully redoing identical work.",
+      "Memoization means caching each result the first time it's computed, in a dictionary keyed by the input, so any repeat request for the same input is an instant lookup instead of a recomputation.",
+      "Before doing any recursive work for k, check whether memo already has an entry for k — if so, return that cached value immediately instead of recursing again."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-intermediate-flatten-nested-list",
+    "title": "Flatten a Nested List",
+    "module": "python-intermediate",
+    "statement": "Data doesn't always come in a neat, flat structure. JSON documents, file system trees, HTML structures, and abstract syntax trees are all naturally **nested**, and the nesting depth is rarely known in advance.\n\nIn this challenge, your task is to flatten an arbitrarily nested list structure into a single flat list containing every non-list value, in their original left-to-right order.\n\nUse **recursion** to handle any depth of nesting. When you encounter a nested list, flatten it first and then merge its contents into the overall result. When you encounter a non-list value, simply include it directly.\n\nFor example:\n\n- **`[1, [2, 3], [4, [5, 6]]]`** becomes **`[1, 2, 3, 4, 5, 6]`**.\n- An **empty list** returns **`[]`**.\n\nYour function should return a **new flat list** with all nesting removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **recursion** to process data of unknown depth.\n- Distinguishing between **lists** and atomic values with **`isinstance`**.\n- Combining recursive results using **`extend`** vs **`append`**.\n- Building a flat result from a hierarchical structure.\n\nRecursive flattening is a fundamental technique used in processing JSON data, navigating file systems, parsing markup languages, and any application that handles hierarchical or nested data structures.",
+    "original_statement": "Data doesn't always come in a neat, flat list — sometimes it's nested arbitrarily deep, like a list containing other lists, which might themselves contain more lists. **Recursion** is the natural tool for processing structures like this, since you don't know the nesting depth in advance.\r\n\r\nWrite a function **`flatten_nested_list(nested)`** that returns a single flat list containing every non-list value found anywhere inside `nested`, no matter how deeply it was nested, in their original left-to-right order.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef flatten_nested_list(nested: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `flatten_nested_list([1, [2, 3], [4, [5, 6]]])` returns `[1, 2, 3, 4, 5, 6]`\r\n- `flatten_nested_list([])` returns `[]`\r\n\r\n### Why this matters\r\n\r\nArbitrarily nested data shows up constantly in the real world — JSON documents, file system directory trees, HTML/XML structures, and abstract syntax trees are all naturally nested, and recursion is the standard, general-purpose tool for processing any of them without hardcoding a fixed depth.",
+    "func_name": "flatten_nested_list",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "nested"
+    ],
+    "hints": [
+      "isinstance(item, list) tells you whether a given item is itself a list (meaning it needs to be flattened further) or a plain value (meaning it's ready to keep as-is).",
+      "When an item turns out to be a nested list, recursively flatten that inner list first, then use .extend(...) to merge all of its flattened contents into the outer result — not .append(...), which would nest it again instead of merging it in.",
+      "A list with no further nested lists inside it is the base case: every item is appended directly, and the recursion naturally stops going any deeper."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-intermediate-indexed-items",
+    "title": "Indexed Items with enumerate()",
+    "module": "python-intermediate",
+    "statement": "When looping over a list, you often need to know the **position** of each item, not just its value. Python's `enumerate()` function solves this cleanly by producing a sequence of `(index, value)` pairs.\n\nIn this challenge, your task is to use `enumerate()` to create a new list where each element of the input has been turned into a string of the form `\"<index>:<word>\"`, using **0-based indexing**.\n\nFor example:\n\n- **`[\"apple\", \"banana\", \"cherry\"]`** becomes **`[\"0:apple\", \"1:banana\", \"2:cherry\"]`**.\n- An **empty list** returns **`[]`**.\n\nYour function should return the **new list** of formatted strings.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`enumerate()`** to access both index and value in a loop.\n- Formatting strings with **f-strings**.\n- Building a new list from a transformation of an existing one.\n- Writing idiomatic Python that replaces manual counter tracking.\n\n`enumerate()` is the standard, Pythonic way to loop with an index, replacing the older pattern of manually maintaining a counter variable. It is used constantly in real codebases for cleaner and less error-prone iteration.",
+    "original_statement": "When you loop over a list, you often need to know **where** an item is, not just what it is. Python's built-in `enumerate()` function solves this cleanly: instead of looping over a list's values alone, `enumerate(words)` produces a sequence of `(index, value)` pairs, letting you unpack both directly in your loop header.\r\n\r\nWrite a function **`indexed_items(words)`** that returns a new list where each element of `words` has been turned into a string of the form `\"<index>:<word>\"`, using 0-based indexing.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef indexed_items(words: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `indexed_items([\"apple\", \"banana\", \"cherry\"])` returns `[\"0:apple\", \"1:banana\", \"2:cherry\"]`\r\n- `indexed_items([])` returns `[]`\r\n\r\n### Why this matters\r\n\r\n`enumerate()` replaces the older, clunkier pattern of manually tracking a counter variable (`i = 0`, then `i += 1` inside the loop). It's more readable, less error-prone, and it's considered the idiomatic way to loop with an index in Python — you'll see it constantly in real codebases.",
+    "func_name": "indexed_items",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "words"
+    ],
+    "hints": [
+      "enumerate(words) hands you both the position and the value together on every pass through the loop, as a pair (index, value).",
+      "An f-string can combine that pair directly: f\"{i}:{w}\" builds one formatted piece per item.",
+      "A list comprehension wrapped around enumerate() collects every one of those formatted pieces into a single new list, in original order."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-intermediate-most-common-word",
+    "title": "Most Common Word",
+    "module": "python-intermediate",
+    "statement": "Counting how often items occur is such a common task that Python's standard library includes a purpose-built tool for it: **`collections.Counter`**, a specialized dictionary that tallies occurrences automatically.\n\nIn this challenge, your task is to use `collections.Counter` to find the most frequently occurring word in a list. If there is a tie, return whichever of the tied words appears **first** in the original list.\n\nFor example:\n\n- In **`[\"a\", \"b\", \"a\", \"c\", \"a\"]`**, the word **`\"a\"`** appears 3 times and is the most common.\n- In **`[\"x\", \"y\", \"y\", \"x\"]`**, both `\"x\"` and `\"y\"` appear twice, but **`\"x\"`** appears first, so it is returned.\n\nYour function should return the **most common word** as a string.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`collections.Counter`** for frequency counting.\n- Using the **`.most_common()`** method to find the top element.\n- Understanding tie-breaking rules for frequency-based selection.\n- Leveraging Python's standard library instead of writing manual counting code.\n\n`Counter` replaces the manual pattern of maintaining a dictionary and incrementing counts yourself. It is considered standard, idiomatic Python whenever you need frequency counts.",
+    "original_statement": "Counting how often items occur is such a common task that Python's standard library has a purpose-built tool for it: **`collections.Counter`**, a specialized dictionary that tallies occurrences for you automatically.\r\n\r\nWrite a function **`most_common_word(words)`** that returns whichever string occurs most frequently in the list `words`, using `collections.Counter`. If there's a tie, return whichever of the tied words appears first in `words`.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef most_common_word(words: list) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `most_common_word([\"a\", \"b\", \"a\", \"c\", \"a\"])` returns `\"a\"`\r\n- `most_common_word([\"x\", \"y\", \"y\", \"x\"])` returns `\"x\"` (tie, but x appeared first)\r\n\r\n### Why this matters\r\n\r\n`Counter` replaces a whole pattern of manually maintaining a dictionary and incrementing counts by hand (the exact pattern you used earlier in the Fundamentals track's letter-frequency exercise). Reaching for `Counter` when you need frequency counts is considered standard, idiomatic Python.",
+    "func_name": "most_common_word",
+    "return_type": "str",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "words"
+    ],
+    "hints": [
+      "collections.Counter takes any list and builds a specialized dictionary-like object mapping each distinct item to how many times it occurred.",
+      "Counter's .most_common(k) method returns the k most frequent items as a list of (item, count) tuples, ordered from most frequent to least.",
+      "Since .most_common(1) returns a list containing a single (item, count) tuple, you need to index into it twice — [0] for the tuple, then [0] again for just the item — to get the word itself."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-intermediate-pair-up",
+    "title": "Pair Up with zip()",
+    "module": "python-intermediate",
+    "statement": "It is common to have two related lists that line up position by position — a list of names and a matching list of scores, for example. Python's **`zip()`** function makes it easy to walk through both together without manual indexing.\n\nIn this challenge, your task is to pair up two lists and combine each pair into a formatted string `\"<name>:<score>\"`.\n\nIf the two lists have different lengths, only pair up as many items as the **shorter** list allows — any extra items in the longer list should be ignored.\n\nFor example:\n\n- **`[\"Ada\", \"Grace\"]`** and **`[95, 88]`** produces **`[\"Ada:95\", \"Grace:88\"]`**.\n- **`[\"A\"]`** and **`[1, 2, 3]`** produces **`[\"A:1\"]`** (stops at the shorter list).\n\nYour function should return a **new list** of formatted strings.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`zip()`** to iterate over multiple sequences simultaneously.\n- Understanding that `zip()` stops at the **shortest** input.\n- Handling lists of **different lengths** gracefully.\n- Combining data from parallel lists into formatted output.\n\n`zip()` appears constantly whenever you need to process two or more related sequences together — combining column data, matching keys to values, or comparing elements position by position.",
+    "original_statement": "It's common to have two related lists that line up position by position — a list of names and a matching list of scores, for example. Python's **`zip()`** function makes it easy to walk through both together, without manual indexing.\r\n\r\nWrite a function **`pair_up(names, scores)`** that returns a list of strings, each formatted as `\"<name>:<score>\"`, pairing up `names[i]` with `scores[i]` for every position `i`. If the two lists have different lengths, only pair up as many items as the shorter list allows.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef pair_up(names: list, scores: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `pair_up([\"Ada\", \"Grace\"], [95, 88])` returns `[\"Ada:95\", \"Grace:88\"]`\r\n- `pair_up([\"A\"], [1, 2, 3])` returns `[\"A:1\"]` (stops at the shorter list)\r\n\r\n### Why this matters\r\n\r\n`zip()` shows up constantly whenever you're processing two (or more) related sequences together — combining column data, matching keys to values before building a dictionary, or comparing two versions of the same list element by element.",
+    "func_name": "pair_up",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "names",
+      "scores"
+    ],
+    "hints": [
+      "zip(names, scores) walks through both lists side by side, pairing up the item at each matching position.",
+      "If the two lists have different lengths, zip() stops as soon as the shorter one runs out — the extra items in the longer list are simply ignored.",
+      "As with enumerate(), you can unpack each pair directly in the loop header: for n, s in zip(names, scores)."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-intermediate-person-greeting",
+    "title": "Your First Class: Person",
+    "module": "python-intermediate",
+    "statement": "This exercise introduces **object-oriented programming (OOP)** in Python — organizing code around **classes**, which are blueprints for creating objects that bundle together both data and the behavior that operates on that data.\n\nIn this challenge, your task is to define a `Person` class with an **`__init__`** method that stores `name` and `age`, and a **`greet()`** method that returns a greeting sentence using those stored values.\n\nCreate a `Person` instance and return the result of calling its `greet()` method.\n\nFor example:\n\n- A person named **`\"Jerry\"`** aged **`28`** returns **`\"Hi, I'm Jerry and I'm 28 years old.\"`**.\n- A person named **`\"Ada\"`** aged **`36`** returns **`\"Hi, I'm Ada and I'm 36 years old.\"`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a **class** with the `class` keyword.\n- Understanding the **`__init__`** constructor method.\n- Using **`self`** to refer to the current instance.\n- Creating **instance methods** that access stored attributes.\n- **Instantiating** an object from a class blueprint.\n\nClasses are the foundation of object-oriented Python and appear everywhere in real code — from web framework models to data structures. Understanding `__init__`, `self`, and instance methods is the single biggest unlock for reading and writing intermediate Python.",
+    "original_statement": "This exercise introduces **object-oriented programming (OOP)** in Python — organizing code around **classes**, which are blueprints for creating objects that bundle together both data and the behavior that acts on that data.\r\n\r\nWrite a function **`create_person_greeting(name, age)`** that defines a `Person` class with an `__init__` method (which stores `name` and `age`) and a `greet()` method (which returns a greeting sentence using those stored values), then creates a `Person` instance and returns the result of calling `greet()` on it.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef create_person_greeting(name: str, age: int) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `create_person_greeting(\"Jerry\", 28)` returns `\"Hi, I'm Jerry and I'm 28 years old.\"`\r\n- `create_person_greeting(\"Ada\", 36)` returns `\"Hi, I'm Ada and I'm 36 years old.\"`\r\n\r\n### Why this matters\r\n\r\nClasses are the foundation of object-oriented Python, and they're everywhere in real code — from Django models to the exceptions you'll define later in this track. Understanding `__init__`, `self`, and instance methods is the single biggest unlock for reading and writing intermediate Python.",
+    "func_name": "create_person_greeting",
+    "return_type": "str",
+    "param_types": [
+      "str",
+      "int"
+    ],
+    "param_names": [
+      "name",
+      "age"
+    ],
+    "hints": [
+      "A class is a blueprint for creating objects — the class keyword defines it, and calling the class like a function (Person(name, age)) creates an actual object, called an instance.",
+      "The __init__ method runs automatically when an instance is created, and it's where you store the values passed in as attributes on self (e.g. self.name = name).",
+      "self inside a method always refers to the specific instance the method is being called on — that's how greet() can access self.name and self.age even though they weren't passed in as arguments to greet() itself."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-intermediate-primes-up-to-n",
+    "title": "Prime Numbers with the Sieve of Eratosthenes",
+    "module": "python-intermediate",
+    "statement": "Finding all prime numbers up to a limit is a classic problem in computer science. The **Sieve of Eratosthenes** is one of the most efficient algorithms for this task, finding every prime up to `n` in roughly **O(n log log n)** time by eliminating multiples in bulk rather than testing each candidate individually.\n\nIn this challenge, your task is to implement the Sieve of Eratosthenes as a **generator function** using `yield`, and return every prime number from `2` up to and including `n` as a list.\n\nThe algorithm works by:\n1. Creating a boolean array marking all numbers from `2` to `n` as potential primes.\n2. Starting from `2`, marking all multiples of each prime as non-prime.\n3. Yielding each number that remains unmarked as a prime.\n\nFor example:\n\n- **`primes_up_to_n(10)`** returns **`[2, 3, 5, 7]`**.\n- **`primes_up_to_n(1)`** returns **`[]`** (no primes less than 2).\n\nThis exercise reinforces several important programming concepts:\n\n- Implementing the **Sieve of Eratosthenes** algorithm.\n- Using a **generator function** with `yield` to produce values lazily.\n- Optimizing by starting the marking process from `i * i`.\n- Understanding why the sieve is dramatically faster than trial division.\n\nPrime sieves are a fundamental algorithmic technique used in number theory, cryptography, and many mathematical computing applications.",
+    "original_statement": "\nWrite a function that returns a list of every prime number from 2 up to and including `n`, using a generator function that implements the Sieve of Eratosthenes.\n\n### Expected function\n\n```python\ndef primes_up_to_n(n: int) -> list:\n    # Your code here\n    pass\n```\n\n### Examples\n\n- `primes_up_to_n(10)` returns `[2, 3, 5, 7]`\n- `primes_up_to_n(1)` returns `[]`\n\n### Why this matters\n\nThe sieve is dramatically faster than checking every number individually for primality (the trial-division approach you may have written earlier in the Go curriculum) — it finds every prime up to a limit in roughly `O(n log log n)` time by eliminating multiples in bulk, rather than testing each candidate from scratch. Combining it with a generator ties together this entire track's themes: efficient algorithms, and Python's lazy-evaluation tools.",
+    "func_name": "primes_up_to_n",
+    "return_type": "list",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "The Sieve of Eratosthenes marks off multiples of each prime as 'not prime,' starting from 2 — whatever's left unmarked at the end must be prime.",
+      "You only need to sieve multiples starting from i * i, and only for i up to the square root of the limit — any composite number smaller than i * i would already have been marked off by a smaller prime factor.",
+      "Since sieve() uses yield, it's a generator: it builds the boolean is_prime array first, then yields each prime it finds one at a time, in ascending order, rather than returning them all as a list directly."
+    ],
+    "difficulty": 3,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-intermediate-product-of-list",
+    "title": "Product of a List with reduce()",
+    "module": "python-intermediate",
+    "statement": "You have used `sum()` to add up a list. **`functools.reduce()`** generalizes that idea to any combining operation, not just addition — it repeatedly applies a function to collapse an entire sequence down into a single final value.\n\nIn this challenge, your task is to use `functools.reduce()` to compute the product of every number in a list (all multiplied together).\n\nAn empty list should return `1`, matching the mathematical convention that an empty product equals `1`.\n\nFor example:\n\n- **`[1, 2, 3, 4]`** multiplied together equals **`24`**.\n- An **empty list** returns **`1`**.\n\nYour function should return the **product** of all numbers in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding how **`reduce()`** accumulates a result across a sequence.\n- Using **`lambda`** functions with `reduce()`.\n- Specifying an **initial value** for the accumulator.\n- Recognizing the pattern of collapsing a sequence into a single value.\n\n`reduce()` is the most general of Python's functional programming tools — `sum()`, `max()`, and `min()` are really just specific cases of the same underlying pattern. Recognizing this pattern helps you spot when `reduce()` is the right tool for a problem that doesn't have its own dedicated built-in function.",
+    "original_statement": "You've used `sum()` to add up a list. **`functools.reduce()`** generalizes that idea to *any* combining operation, not just addition — repeatedly applying a function to collapse an entire sequence down into one final value.\r\n\r\nWrite a function **`product_of_list(nums)`** that returns the product of every number in `nums` (multiplied together), using `functools.reduce`. An empty list should return `1`, matching the mathematical convention that an empty product equals 1.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef product_of_list(nums: list) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `product_of_list([1, 2, 3, 4])` returns `24`\r\n- `product_of_list([])` returns `1`\r\n\r\n### Why this matters\r\n\r\n`reduce()` is the most general of Python's functional-programming tools — `sum()`, and even (in spirit) `max()` and `min()`, are really just specific, common cases of the same underlying reduce-a-sequence-to-one-value idea. Recognizing that pattern helps you spot when `reduce()` is the right tool for a problem that doesn't have its own dedicated built-in function.",
+    "func_name": "product_of_list",
+    "return_type": "int",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "nums"
+    ],
+    "hints": [
+      "functools.reduce(function, iterable, initial) repeatedly applies function to a running accumulator and the next item of iterable, collapsing the whole sequence down to one final value.",
+      "The initial value (here, 1) is the accumulator's starting point before any items have been combined — 1 is the correct starting point for a product, the same way 0 is the correct starting point for a sum.",
+      "The lambda lambda a, b: a * b describes exactly how to combine the running accumulator (a) with the next item (b) at each step."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-intermediate-rectangle-area-class",
+    "title": "Rectangle Area with a Class",
+    "module": "python-intermediate",
+    "statement": "A class's methods can do more than simply report stored data back — they can **compute** new values from that data on demand.\n\nIn this challenge, your task is to define a `Rectangle` class that stores `width` and `height` in `__init__`, with an **`area()`** method that computes and returns the rectangle's area (`width × height`).\n\nCreate a `Rectangle` instance and return the result of calling its `area()` method.\n\nFor example:\n\n- A rectangle with width **`4`** and height **`5`** has an area of **`20`**.\n- A rectangle with width **`1`** and height **`1`** has an area of **`1`**.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a class with **attributes** stored in `__init__`.\n- Creating **methods** that compute values from instance data.\n- Understanding the difference between stored data and computed results.\n- Building reusable objects with built-in behavior.\n\nThis pattern — attributes storing raw data, methods computing derived values from that data on demand — is at the heart of good object-oriented design. It keeps related data and the logic that operates on it in one place, instead of scattered across separate variables and standalone functions.",
+    "original_statement": "Building on the previous exercise, a class's methods don't just have to report back stored data — they can **compute** new values from it, on demand.\r\n\r\nWrite a function **`compute_rectangle_area(width, height)`** that defines a `Rectangle` class (storing `width` and `height` in `__init__`) with an `area()` method that computes and returns the rectangle's area, then creates a `Rectangle` instance and returns the result of calling `area()` on it.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef compute_rectangle_area(width: int, height: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `compute_rectangle_area(4, 5)` returns `20`\r\n- `compute_rectangle_area(1, 1)` returns `1`\r\n\r\n### Why this matters\r\n\r\nThis pattern — attributes storing raw data, methods computing derived values from that data on demand — is at the heart of good object-oriented design. It keeps related data and the logic that operates on it in one place, instead of scattered across separate variables and standalone functions.",
+    "func_name": "compute_rectangle_area",
+    "return_type": "int",
+    "param_types": [
+      "int",
+      "int"
+    ],
+    "param_names": [
+      "width",
+      "height"
+    ],
+    "hints": [
+      "Just like the Person class, Rectangle stores its width and height as instance attributes inside __init__.",
+      "A method doesn't have to just return stored data directly — area() computes a brand-new value (self.width * self.height) from the instance's attributes.",
+      "You can call a method immediately on a freshly created instance without storing it in a variable first: Rectangle(width, height).area()."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-intermediate-resource-context-manager",
+    "title": "A Custom Context Manager",
+    "module": "python-intermediate",
+    "statement": "The `with` statement in Python is used to ensure that resources are properly managed — opened, used, and then cleaned up, even if an error occurs. This pattern is powered by **context managers**, objects that define `__enter__` and `__exit__` methods.\n\nIn this challenge, your task is to define a `Resource` class that implements `__enter__` and `__exit__`, use it in a `with` block that deliberately raises an error when `shouldFail` is `True`, and have the `__exit__` method catch and suppress that error so the function itself does not crash.\n\nYour function should return a status string:\n\n- If no error occurs: **`\"opened and closed successfully\"`**\n- If an error occurs and is handled: **`\"opened, error occurred, closed safely\"`**\n\nThis exercise reinforces several important programming concepts:\n\n- Implementing **`__enter__`** and **`__exit__`** methods.\n- Understanding how the `with` statement manages resources.\n- Handling exceptions inside **`__exit__`**.\n- Returning `True` from `__exit__` to suppress exceptions.\n\nThis is exactly the mechanism behind `with open(\"file.txt\") as f:` — the file's context manager guarantees the file is closed in `__exit__`, whether the code inside the block finished normally or crashed partway through. Understanding this pattern demystifies one of Python's most commonly used features.",
+    "original_statement": "You've used `with` statements before (for example, when opening files in other languages or tutorials) without necessarily seeing how they work under the hood. A **context manager** is any object that defines `__enter__` and `__exit__`, making it usable in a `with` block — guaranteeing cleanup code runs even if something goes wrong inside.\r\n\r\nWrite a function **`simulate_resource_usage(shouldFail)`** that defines a `Resource` class implementing `__enter__` and `__exit__`, uses it in a `with` block that deliberately raises an error when `shouldFail` is `True`, and returns a status string describing what happened — the `__exit__` method should catch and suppress that error so the function itself doesn't crash.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef simulate_resource_usage(shouldFail: bool) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `simulate_resource_usage(False)` returns `\"opened and closed successfully\"`\r\n- `simulate_resource_usage(True)` returns `\"opened, error occurred, closed safely\"`\r\n\r\n### Why this matters\r\n\r\nThis is exactly the mechanism behind `with open(\"file.txt\") as f:` — the file's context manager guarantees the file gets closed in `__exit__`, whether the code inside the block finished normally or crashed partway through. Understanding this pattern demystifies one of Python's most-used features.",
+    "func_name": "simulate_resource_usage",
+    "return_type": "str",
+    "param_types": [
+      "bool"
+    ],
+    "param_names": [
+      "shouldFail"
+    ],
+    "hints": [
+      "A class becomes usable in a with statement by defining two special methods: __enter__ (runs at the start of the block) and __exit__ (runs at the end, even if an error occurred inside).",
+      "__exit__ receives information about any exception that happened inside the with block through its exc_type, exc_val, and exc_tb parameters — exc_type is None if nothing went wrong.",
+      "If __exit__ returns True, it tells Python the exception has been handled and should not propagate any further outside the with block."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-intermediate-shape-area-oop",
+    "title": "Shape Areas with Inheritance",
+    "module": "python-intermediate",
+    "statement": "**Inheritance** is a fundamental object-oriented programming (OOP) concept that allows one class to inherit attributes and methods from another. \n\nThis promotes **code reuse**, reduces duplication, and makes it easier to organize related classes that share common behavior.\n\nIn this challenge, your task is to create a base **`Shape`** class and define three subclasses: **`Square`**, **`Rectangle`**, and **`Triangle`**. Each subclass should provide its own implementation of the **`area()`** method using the appropriate formula for that shape.\n\nBased on the provided `shapeType`, create an instance of the corresponding subclass and return the result of calling its **`area()`** method. If the given shape type is not recognized, your function should return `-1`.\n\nThis exercise also introduces **polymorphism**, where different objects respond to the same method call in their own way.\n\nFor example:\n\n- **Calling `compute_shape_area_oop(\"square\", [4])`** returns **`16`**, the area of a 4 by 4 square.\n- **Calling `compute_shape_area_oop(\"rectangle\", [3, 5])`** returns **`15`**, the area of a 3 by 5 rectangle.\n- **Calling `compute_shape_area_oop(\"triangle\", [4, 5])`** returns **`10`**, the area of a triangle with base 4 and height 5.\n\nRegardless of which shape is created, your code should calculate its area by calling the same **`area()`** method, allowing the correct implementation to be selected automatically.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating classes and **subclasses** using inheritance.\n- Overriding methods to provide specialized behavior.\n- Using **polymorphism** to write flexible and reusable code.\n- Selecting and instantiating objects based on runtime input.\n- Applying object-oriented design principles to solve real-world problems.\n\nInheritance and polymorphism are core principles of object-oriented programming and are widely used to build scalable, maintainable, and extensible software systems.",
+    "original_statement": "**Inheritance** is a fundamental object-oriented programming (OOP) concept that allows one class to inherit attributes and methods from another. \n\nThis promotes **code reuse**, reduces duplication, and makes it easier to organize related classes that share common behavior.\n\nIn this challenge, your task is to create a base **`Shape`** class and define three subclasses: **`Square`**, **`Rectangle`**, and **`Triangle`**. Each subclass should provide its own implementation of the **`area()`** method using the appropriate formula for that shape.\n\nBased on the provided `shapeType`, create an instance of the corresponding subclass and return the result of calling its **`area()`** method. If the given shape type is not recognized, your function should return `-1`.\n\nThis exercise also introduces **polymorphism**, where different objects respond to the same method call in their own way. \nRegardless of which shape is created, your code should calculate its area by calling the same **`area()`** method, allowing the correct implementation to be selected automatically.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating classes and **subclasses** using inheritance.\n- Overriding methods to provide specialized behavior.\n- Using **polymorphism** to write flexible and reusable code.\n- Selecting and instantiating objects based on runtime input.\n- Applying object-oriented design principles to solve real-world problems.\n\nInheritance and polymorphism are core principles of object-oriented programming and are widely used to build scalable, maintainable, and extensible software systems.",
+    "func_name": "compute_shape_area_oop",
+    "return_type": "int",
+    "param_types": [
+      "str",
+      "list"
+    ],
+    "param_names": [
+      "shapeType",
+      "args"
+    ],
+    "hints": [
+      "A subclass inherits from a base class by writing class Square(Shape): — every subclass then shares whatever the base class defines, while being free to override specific methods like area().",
+      "Polymorphism means different classes can each implement the same method name (area()) in their own way, and calling shape.area() runs whichever version belongs to that specific object's actual class.",
+      "A dictionary mapping shape-type names to small lambda functions that build the right class is a clean way to pick which subclass to instantiate, without writing a long if/elif chain."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-intermediate-sort-people",
+    "title": "Sort People by Age, Then Name",
+    "module": "python-intermediate",
+    "statement": "Python lists of names and ages need to be combined and sorted by multiple criteria. Sorting by one criterion is common, but real-world sorting often requires **tiebreaking** — using a secondary sort key when the primary key is equal.\n\nIn this challenge, your task is to pair up each name with its corresponding age (matched by position), sort the people primarily by age (youngest first), and use alphabetical name order to break ties.\n\nReturn just the names in the sorted order.\n\nFor example:\n\n- Names **`[\"Jerry\", \"Ada\", \"Grace\"]`** with ages **`[28, 36, 28]`**: sorted by age gives Ada (36), then Jerry and Grace (both 28). Among Jerry and Grace, alphabetical order puts Grace first: **`[\"Grace\", \"Jerry\", \"Ada\"]`**.\n\nYour function should return a **list of names** in the sorted order.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`zip()`** to pair parallel lists together.\n- Performing **multi-key sorting** with tuple keys.\n- Understanding that Python compares tuples **element by element**.\n- Using **`sorted()`** with a custom `key` function.\n\nMulti-key sorting is essential in data analysis, reporting, user interfaces, and any application where data must be organized by multiple attributes with clear precedence rules.",
+    "original_statement": "\nWrite a function that pairs up each name with its corresponding age (matched by position), sorts the people primarily by age (youngest first) and uses alphabetical name order to break ties, and returns just the names in that sorted order.\n",
+    "func_name": "sort_people_by_age_then_name",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "names",
+      "ages"
+    ],
+    "hints": [
+      "zip(names, ages) pairs up each person's name with their age, position by position, so you can sort them together as a single unit.",
+      "A sort key can be a tuple: key=lambda pair: (pair[1], pair[0]) sorts primarily by age (pair[1]), and only falls back to comparing names (pair[0]) when two people share the same age.",
+      "Python compares tuples element by element automatically — it only looks at the second element of each tuple if the first elements are equal — which is exactly what makes a tuple key work as a tiebreaker."
+    ],
+    "difficulty": 3,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-intermediate-sum-of-squares-generator",
+    "title": "Sum of Squares with a Generator",
+    "module": "python-intermediate",
+    "statement": "Generators provide an efficient way to produce values **one at a time** instead of creating and storing an entire collection in memory. \nThey are commonly used when working with sequences that can be processed incrementally.\n\nIn this challenge, your task is to define a **generator function** that yields the square of every whole number from `1` up to and including `n`.\nOnce the generator has produced all of its values, calculate and return the sum of the generated squares.\n\nYour function should return the total of all squared values produced by the generator.\n\nFor example:\n\n- **Calling ** returns ****, because 1² + 2² + 3² = 1 + 4 + 9 = 14.\n- **Calling ** returns ****, since 1² = 1.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining and using **generator functions**.\n- Producing values with the `yield` keyword.\n- Iterating over generated sequences.\n- Combining generated values into a single result through accumulation.\n\nGenerators are a powerful feature of Python that enable memory-efficient data processing and are widely used for streaming data, large datasets, and lazy evaluation.",
+    "original_statement": "Generators provide an efficient way to produce values **one at a time** instead of creating and storing an entire collection in memory. \nThey are commonly used when working with sequences that can be processed incrementally.\n\nIn this challenge, your task is to define a **generator function** that yields the square of every whole number from `1` up to and including `n`.\nOnce the generator has produced all of its values, calculate and return the sum of the generated squares.\n\nYour function should return the total of all squared values produced by the generator.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining and using **generator functions**.\n- Producing values with the `yield` keyword.\n- Iterating over generated sequences.\n- Combining generated values into a single result through accumulation.\n\nGenerators are a powerful feature of Python that enable memory-efficient data processing and are widely used for streaming data, large datasets, and lazy evaluation.",
+    "func_name": "sum_of_squares_generator",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "A function containing yield instead of return is a generator function — calling it doesn't run the code immediately, it hands back a generator object.",
+      "Each time the generator is asked for its next value (for example, by a for loop or sum()), the function runs until it hits yield, hands back that value, and pauses exactly there.",
+      "Python's built-in sum() can consume a generator directly, just like it consumes a list — it keeps pulling values until the generator is exhausted."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-intermediate-unique-common-elements",
+    "title": "Unique Common Elements",
+    "module": "python-intermediate",
+    "statement": "A **set** in Python is an unordered collection of unique values — it automatically removes duplicates and supports fast membership testing and mathematical operations like union and intersection.\r\n\r\nWrite a function **`unique_common_elements(a, b)`** that returns a list of the distinct values that appear in **both** `a` and `b`, sorted in ascending order, using set operations rather than nested loops.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef unique_common_elements(a: list, b: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `unique_common_elements([1, 2, 2, 3], [2, 3, 3, 4])` returns `[2, 3]`\r\n- `unique_common_elements([1, 2], [3, 4])` returns `[]`\r\n\r\n### Why this matters\r\n\r\nSets are one of Python's most underused data structures by beginners, but they're exactly the right tool whenever you care about **membership** ('is this value present?') or **uniqueness** ('give me every distinct value'), and they're dramatically faster than lists for both.",
+    "original_statement": "A **set** in Python is an unordered collection of unique values — it automatically removes duplicates and supports fast membership testing and mathematical operations like union and intersection.\r\n\r\nWrite a function **`unique_common_elements(a, b)`** that returns a list of the distinct values that appear in **both** `a` and `b`, sorted in ascending order, using set operations rather than nested loops.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef unique_common_elements(a: list, b: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `unique_common_elements([1, 2, 2, 3], [2, 3, 3, 4])` returns `[2, 3]`\r\n- `unique_common_elements([1, 2], [3, 4])` returns `[]`\r\n\r\n### Why this matters\r\n\r\nSets are one of Python's most underused data structures by beginners, but they're exactly the right tool whenever you care about **membership** ('is this value present?') or **uniqueness** ('give me every distinct value'), and they're dramatically faster than lists for both.",
+    "func_name": "unique_common_elements",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "a",
+      "b"
+    ],
+    "hints": [
+      "Converting a list to a set with set(...) automatically discards any duplicate values it contains.",
+      "The & operator between two sets computes their intersection — the values present in both.",
+      "sorted(...) converts the resulting set back into a list, in a predictable ascending order, since sets themselves have no guaranteed order."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-intermediate-uppercase-decorator",
+    "title": "Your First Decorator",
+    "module": "python-intermediate",
+    "statement": "A **decorator** is one of Python's most powerful features: a function that takes another function as input and returns a modified version of it, adding new behavior without changing the original function's own code.\n\nIn this challenge, your task is to define a decorator `uppercase_result` that wraps any function so that its return value is automatically converted to uppercase. Apply it to a small `greet(name)` function using the `@` syntax, then call the decorated function and return the result.\n\nFor example:\n\n- Calling with **`\"jerry\"`** returns **`\"HELLO, JERRY\"`**.\n- Calling with **`\"Ada\"`** returns **`\"HELLO, ADA\"`**.\n\nYour function should return the **uppercased greeting string**.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a **decorator function** that wraps another function.\n- Using the **`@decorator_name`** syntax.\n- Understanding how decorators transform function behavior.\n- Working with **`*args`** and **`**kwargs`** in wrapper functions.\n\nDecorators are everywhere in real Python code — from Flask's `@app.route(...)` to `@property` and `@staticmethod` in classes to `@functools.lru_cache`. Understanding how a decorator wraps a function is the key to understanding all of them.",
+    "original_statement": "A **decorator** is one of Python's most powerful features: a function that takes another function as input and returns a modified version of it, adding new behavior without changing the original function's own code.\r\n\r\nWrite a function **`apply_uppercase_decorator(name)`** that defines a decorator `uppercase_result`, which wraps any function so that its return value is automatically converted to uppercase, applies it to a small `greet(n)` function using the `@` syntax, and returns the result of calling the decorated `greet(name)`.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef apply_uppercase_decorator(name: str) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `apply_uppercase_decorator(\"jerry\")` returns `\"HELLO, JERRY\"`\r\n- `apply_uppercase_decorator(\"Ada\")` returns `\"HELLO, ADA\"`\r\n\r\n### Why this matters\r\n\r\nDecorators are everywhere in real Python code — from Flask's `@app.route(...)` to `@property` and `@staticmethod` in classes to `@functools.lru_cache` used later in this track. Understanding how a decorator wraps a function is the key to understanding all of them.",
+    "func_name": "apply_uppercase_decorator",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "name"
+    ],
+    "hints": [
+      "A decorator is a function that takes another function as input and returns a new function that wraps it, adding extra behavior.",
+      "The @decorator_name syntax written right above a function definition is shorthand for greet = uppercase_result(greet) — it replaces greet with the wrapped version.",
+      "Inside the wrapper, *args and **kwargs let the wrapper accept whatever arguments the original function needs, forward them along with func(*args, **kwargs), and still modify the result before returning it."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-intermediate-validate-positive",
+    "title": "Custom Exceptions",
+    "module": "python-intermediate",
+    "statement": "Python allows you to create **custom exceptions** by defining your own exception classes. \nCustom exceptions make your code more expressive by allowing you to represent specific error conditions that are unique to your application.\n\nIn this challenge, your task is to define a custom exception named **`NegativeValueError`**. When a helper function receives a negative number, it should raise this exception. \nUse a **`try`/`except`** block to catch the exception and return the appropriate result based on whether an error occurred.\n\nYour function should return `\"valid\"` if the input is non-negative, or `\"invalid\"` if the custom exception is raised.\n\nFor example:\n\n- **Calling ** returns ****, because 5 is a non-negative number.\n- **Calling ** returns ****, because the negative value triggers the custom exception.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating **custom exception classes** by inheriting from `Exception`.\n- Raising exceptions with the **`raise`** statement.\n- Handling exceptions using **`try`** and **`except`**.\n- Separating normal program flow from error-handling logic.\n\nCustom exceptions are widely used in professional software development to make programs easier to debug, improve code readability, and provide meaningful error messages that accurately describe specific failure conditions.",
+    "original_statement": "Python allows you to create **custom exceptions** by defining your own exception classes. \nCustom exceptions make your code more expressive by allowing you to represent specific error conditions that are unique to your application.\n\nIn this challenge, your task is to define a custom exception named **`NegativeValueError`**. When a helper function receives a negative number, it should raise this exception. \nUse a **`try`/`except`** block to catch the exception and return the appropriate result based on whether an error occurred.\n\nYour function should return `\"valid\"` if the input is non-negative, or `\"invalid\"` if the custom exception is raised.\n\nThis exercise reinforces several important programming concepts:\n\n- Creating **custom exception classes** by inheriting from `Exception`.\n- Raising exceptions with the **`raise`** statement.\n- Handling exceptions using **`try`** and **`except`**.\n- Separating normal program flow from error-handling logic.\n\nCustom exceptions are widely used in professional software development to make programs easier to debug, improve code readability, and provide meaningful error messages that accurately describe specific failure conditions.",
+    "func_name": "validate_positive",
+    "return_type": "str",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "hints": [
+      "You can define your own exception type by creating a class that inherits from Exception — even an empty class body (just pass) is enough to create a usable, distinct exception type.",
+      "The raise keyword triggers an exception on purpose, at the exact point in your code where a problem is detected.",
+      "A try/except block can catch your custom exception by name, just like it catches built-in ones such as ZeroDivisionError."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  }
+]
