@@ -8,7 +8,16 @@ import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Card } from "@/components/ui/card";
 import { type Language } from "@/components/LanguageLogo";
-import { BookOpen, GraduationCap, Sparkles } from "lucide-react";
+import {
+  BookOpen,
+  GraduationCap,
+  Sparkles,
+  Trophy,
+  Zap,
+  Target,
+  Filter,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function detectLanguage(slug: string): Language | undefined {
   if (slug.includes("python")) return "python";
@@ -20,22 +29,13 @@ const difficultyMeta = (d: number) => {
   if (d <= 2)
     return {
       label: "Beginner",
-      color: "from-emerald-500 to-green-600",
-      textColor: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
     };
   if (d <= 3)
     return {
       label: "Intermediate",
-      color: "from-amber-500 to-orange-600",
-      textColor: "text-amber-600 dark:text-amber-400",
-      bgColor: "bg-amber-100 dark:bg-amber-900/30",
     };
   return {
     label: "Advanced",
-    color: "from-red-500 to-rose-600",
-    textColor: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-100 dark:bg-red-900/30",
   };
 };
 
@@ -43,9 +43,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
@@ -61,11 +59,10 @@ const itemVariants = {
 export default function CourseCatalog() {
   const { user } = useUser();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [progressBySlug, setProgressBySlug] = useState<Record<string, number>>(
-    {},
-  );
+  const [progressBySlug, setProgressBySlug] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
 
   const totalCourses = courses.length;
   const completedCourses = courses.filter(
@@ -103,25 +100,29 @@ export default function CourseCatalog() {
     load();
   }, []);
 
+  const filteredCourses = courses.filter((course) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "python") return course.slug.includes("python");
+    if (activeFilter === "go") return course.slug.includes("go");
+    if (activeFilter === "beginner") return (course.difficulty_level ?? 1) <= 2;
+    if (activeFilter === "intermediate") return (course.difficulty_level ?? 1) === 3;
+    if (activeFilter === "advanced") return (course.difficulty_level ?? 1) >= 4;
+    return true;
+  });
+
   if (loading) {
     return (
-      <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
-        <div className="mb-6">
-          <div className="h-6 w-24 bg-muted rounded-lg animate-pulse mb-2" />
-          <div className="h-4 w-40 bg-muted rounded-lg animate-pulse" />
+      <div className="max-w-screen-2xl mx-auto px-4 py-8 md:px-6">
+        <div className="mb-8 space-y-3">
+          <div className="h-8 w-40 bg-muted rounded-xl animate-pulse" />
+          <div className="h-4 w-64 bg-muted rounded-lg animate-pulse" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
               key={i}
-              className="overflow-hidden animate-pulse pt-0 border-0 shadow-sm"
-            >
-              <div className="h-24 bg-muted" />
-              <div className="p-3 space-y-2">
-                <div className="h-4 w-3/4 bg-muted rounded" />
-                <div className="h-3 w-full bg-muted rounded" />
-              </div>
-            </Card>
+              className="h-60 overflow-hidden animate-pulse border-border/40 bg-card/50 rounded-2xl"
+            />
           ))}
         </div>
       </div>
@@ -130,14 +131,12 @@ export default function CourseCatalog() {
 
   if (error) {
     return (
-      <div className="max-w-screen-2xl mx-auto px-4 py-12 text-center">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/10 flex items-center justify-center">
-          <BookOpen className="h-6 w-6 text-destructive" />
+      <div className="max-w-screen-2xl mx-auto px-4 py-16 text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+          <BookOpen className="h-7 w-7 text-destructive" />
         </div>
-        <p className="text-destructive font-medium mb-1">
-          Failed to load courses
-        </p>
-        <p className="text-xs text-muted-foreground mb-4">{error}</p>
+        <h3 className="text-lg font-bold text-foreground mb-1">Failed to load courses</h3>
+        <p className="text-xs text-muted-foreground mb-6 max-w-sm mx-auto">{error}</p>
         <button
           onClick={() => {
             setLoading(true);
@@ -148,7 +147,7 @@ export default function CourseCatalog() {
               setLoading(false);
             });
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md"
         >
           Try again
         </button>
@@ -157,107 +156,131 @@ export default function CourseCatalog() {
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6">
+    <div className="max-w-screen-2xl mx-auto px-4 py-8 md:px-6">
+      {/* ── Glassmorphic Learning Profile Hero ── */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="mb-6"
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mb-8 relative rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-6 md:p-8 shadow-xl overflow-hidden"
       >
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-amber-400 flex items-center justify-center shadow shadow-primary/20 ring-1 ring-white/10">
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
+        {/* Radial ambient glow background */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary via-amber-400 to-amber-500 flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+              <GraduationCap className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                  Course Catalog
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> Explore
+                </span>
+              </div>
+              <p className="text-xs md:text-sm text-muted-foreground max-w-xl">
+                Master modern engineering skills through structured, hands-on courses designed with interactive code exercises and projects.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-              Courses
-            </h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-amber-500" /> Choose a course to
-              start learning
-            </p>
+
+          {/* User Progress Stats Grid */}
+          <div className="grid grid-cols-3 gap-3 shrink-0">
+            <div className="rounded-2xl bg-background/60 backdrop-blur-md p-3.5 border border-border/50 text-center shadow-sm">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block mb-1">
+                Level
+              </span>
+              <span className="text-xl font-extrabold text-foreground flex items-center justify-center gap-1">
+                <Trophy className="h-4 w-4 text-amber-400" />
+                {user?.level ?? 1}
+              </span>
+            </div>
+            <div className="rounded-2xl bg-background/60 backdrop-blur-md p-3.5 border border-border/50 text-center shadow-sm">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block mb-1">
+                Active
+              </span>
+              <span className="text-xl font-extrabold text-amber-400 flex items-center justify-center gap-1">
+                <Zap className="h-4 w-4 text-amber-400" />
+                {activeCourses}
+              </span>
+            </div>
+            <div className="rounded-2xl bg-background/60 backdrop-blur-md p-3.5 border border-border/50 text-center shadow-sm">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block mb-1">
+                Completed
+              </span>
+              <span className="text-xl font-extrabold text-emerald-400 flex items-center justify-center gap-1">
+                <Target className="h-4 w-4 text-emerald-400" />
+                {completedCourses}
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* Category & Difficulty Filter Pills */}
+        <div className="mt-6 pt-6 border-t border-border/40 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+            <Filter className="h-3.5 w-3.5" /> Filter:
+          </span>
+          {[
+            { id: "all", label: "All Tracks" },
+            { id: "python", label: "Python" },
+            { id: "go", label: "Golang" },
+            { id: "beginner", label: "Beginner" },
+            { id: "intermediate", label: "Intermediate" },
+            { id: "advanced", label: "Advanced" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setActiveFilter(f.id)}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 border",
+                activeFilter === f.id
+                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                  : "bg-background/40 text-muted-foreground border-border hover:bg-card hover:text-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </motion.div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] mb-6">
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Your learning profile
-          </p>
-          <div className="flex flex-col gap-3">
-            <div className="rounded-2xl bg-gradient-to-r from-primary/20 to-amber-400/10 p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] mb-2">
-                Current level
-              </p>
-              <p className="text-3xl font-bold">Level {user?.level ?? 1}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-2xl bg-background p-3 border border-border">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em]">
-                  Courses
-                </p>
-                <p className="mt-2 text-lg font-semibold">{totalCourses}</p>
-              </div>
-              <div className="rounded-2xl bg-background p-3 border border-border">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em]">
-                  Active
-                </p>
-                <p className="mt-2 text-lg font-semibold">{activeCourses}</p>
-              </div>
-              <div className="rounded-2xl bg-background p-3 border border-border">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em]">
-                  Completed
-                </p>
-                <p className="mt-2 text-lg font-semibold">{completedCourses}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Ready to learn
-          </p>
-          <p className="text-sm leading-6 text-foreground/80">
-            Browse the course catalog and pick a track with the skills you want
-            to build. Your progress updates automatically when lessons are
-            completed.
-          </p>
-        </div>
-      </div>
-
-      {courses.length === 0 && (
+      {/* ── Empty State ── */}
+      {filteredCourses.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-16"
+          className="text-center py-20 bg-card/30 rounded-3xl border border-border/40"
         >
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-            <BookOpen className="h-7 w-7 text-muted-foreground/30" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/60 flex items-center justify-center border border-border">
+            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
           </div>
-          <h3 className="text-base font-semibold mb-1">No courses yet</h3>
+          <h3 className="text-base font-bold mb-1">No matching courses</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Courses will appear here once they are published by your instructor.
+            Try adjusting your active filter options above.
           </p>
         </motion.div>
       )}
 
+      {/* ── 3D Learning Cards Grid ── */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
       >
-        {courses.map((course) => {
+        {filteredCourses.map((course) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);
           const lang = detectLanguage(course.slug);
+          const pct = progressBySlug[course.slug];
+          const isCompleted = pct !== undefined && pct >= 100;
+          const isInProgress = pct !== undefined && pct > 0 && pct < 100;
 
           return (
-            <motion.div
-              key={course.id}
-              variants={itemVariants}
-              className="h-full"
-            >
+            <motion.div key={course.id} variants={itemVariants} className="h-full">
               <LearningCard
                 type="course"
                 title={course.title}
@@ -265,16 +288,10 @@ export default function CourseCatalog() {
                 imageUrl={course.image_url || undefined}
                 href={`/learn/courses/${course.slug}`}
                 language={lang}
-                progress={progressBySlug[course.slug]}
-                meta={{
-                  difficulty: diff.label,
-                  count:
-                    progressBySlug[course.slug] !== undefined
-                      ? `${Math.round(progressBySlug[course.slug])}% complete`
-                      : `${course.estimated_hours ?? 0}h`,
-                }}
-                subtitle={`${course.estimated_hours ?? 0}h`}
-                badges={course.visible === false ? ["Draft"] : undefined}
+                progress={pct}
+                status={isCompleted ? "completed" : isInProgress ? "in-progress" : "available"}
+                subtitle={`${course.estimated_hours ?? 0}h total`}
+                badges={[diff.label]}
               />
             </motion.div>
           );

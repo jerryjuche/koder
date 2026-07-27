@@ -68,7 +68,6 @@ export function LearningCard({
   language,
 }: LearningCardProps) {
   const isLocked = status === "locked";
-
   const progress = explicitProgress ?? meta?.progress;
   const stats = explicitStats ?? (meta?.xp ? { xp: meta.xp } : undefined);
   const displaySubtitle = subtitle ?? meta?.count;
@@ -79,286 +78,170 @@ export function LearningCard({
   }
 
   const typeColors = {
-    course: "from-blue-600/30 via-blue-500/15 to-transparent",
-    module: "from-violet-600/30 via-violet-500/15 to-transparent",
-    lesson: "from-emerald-600/30 via-emerald-500/15 to-transparent",
-    section: "from-amber-600/30 via-amber-500/15 to-transparent",
-  };
-
-  const typeAccents = {
-    course: "from-blue-500 to-blue-600",
-    module: "from-violet-500 to-violet-600",
-    lesson: "from-emerald-500 to-emerald-600",
-    section: "from-amber-500 to-amber-600",
+    course: "from-blue-500/20 via-blue-500/10 to-transparent",
+    module: "from-violet-500/20 via-violet-500/10 to-transparent",
+    lesson: "from-emerald-500/20 via-emerald-500/10 to-transparent",
+    section: "from-amber-500/20 via-amber-500/10 to-transparent",
   };
 
   const typeGradients = {
-    course: "bg-gradient-to-br from-blue-500/20 to-blue-500/5",
-    module: "bg-gradient-to-br from-violet-500/20 to-violet-500/5",
-    lesson: "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5",
-    section: "bg-gradient-to-br from-amber-500/20 to-amber-500/5",
+    course: "bg-gradient-to-br from-blue-500/30 to-blue-500/10 border-blue-500/30",
+    module: "bg-gradient-to-br from-violet-500/30 to-violet-500/10 border-violet-500/30",
+    lesson: "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border-emerald-500/30",
+    section: "bg-gradient-to-br from-amber-500/30 to-amber-500/10 border-amber-500/30",
   };
 
   const content = (
     <div
       className={cn(
         "group relative z-10 w-full block",
-        isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+        isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer",
         className,
       )}
       onClick={isLocked ? undefined : onClick}
     >
-      {/* Shadow back plate */}
+      {/* 3D Tactile Back Plate */}
       <div
         className={cn(
-          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
-          "transition-all duration-300 ease-out -z-10",
-          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
+          "absolute rounded-2xl bg-card/80 border border-border/40 backdrop-blur-sm",
+          "transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] -z-10",
+          "top-3 left-3 right-[-0.75rem] bottom-[-0.75rem]",
           !isLocked &&
-            "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg",
+            "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-card/95 group-hover:border-primary/40 group-hover:shadow-2xl",
         )}
       />
 
-      {/* Card body */}
+      {/* Main Front Card */}
       <div
         className={cn(
-          "relative flex flex-col w-full",
-          size === "lg" ? "min-h-[140px]" : "aspect-[16/9]",
-          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden",
-          "transition-all duration-300 ease-out",
+          "relative flex flex-col justify-between h-full w-full",
+          size === "lg" ? "min-h-[160px]" : "min-h-[220px]",
+          "bg-card/95 border border-border/60 rounded-2xl overflow-hidden shadow-lg",
+          "transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]",
           !isLocked &&
-            "group-hover:shadow-[0_4px_20px_rgb(0,0,0,0.4)] group-hover:border-brand-charcoal-border/70",
+            "group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] group-hover:border-primary/50",
         )}
       >
-        {/* ── Top visual area: gradient + icon overlay ── */}
-        <div className="relative shrink-0">
-          {imageUrl ? (
-            <div
-              className={cn(
-                "w-full bg-cover bg-center",
-                size === "lg" ? "h-16" : "h-20",
-              )}
-              style={{ backgroundImage: `url(${imageUrl})` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/60 to-transparent" />
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "w-full bg-gradient-to-br",
-                typeColors[type],
-                size === "lg" ? "h-16" : "h-20",
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal-base via-brand-charcoal-base/40 to-transparent" />
-            </div>
-          )}
-
-          {/* Icon overlay */}
-          <div
-            className={cn(
-              "absolute bottom-0 left-3 translate-y-1/2",
-              "flex items-center justify-center rounded-xl border-2 border-brand-charcoal-base shadow-lg",
-              typeGradients[type],
-              size === "lg"
-                ? "w-11 h-11"
-                : type === "course"
-                  ? "w-10 h-10"
-                  : "w-9 h-9",
-              !isLocked &&
-                "group-hover:scale-110 group-hover:shadow-xl transition-all duration-300",
-            )}
-          >
-            {isLocked ? (
-              <Lock
-                className="text-white/50"
-                style={{
-                  width: size === "lg" ? 18 : 15,
-                  height: size === "lg" ? 18 : 15,
-                }}
-              />
-            ) : language ? (
-              <LanguageLogo
-                language={language}
-                size={size === "lg" ? 22 : type === "course" ? 22 : 18}
-              />
-            ) : icon ? (
-              React.isValidElement(icon) ? (
-                icon
-              ) : (
-                React.createElement(icon as React.ElementType, {
-                  className: cn(
-                    "text-white/90",
-                    size === "lg" ? "w-5 h-5" : "w-4 h-4",
-                  ),
-                })
-              )
-            ) : index != null ? (
-              <span
-                className={cn(
-                  "font-bold text-white/90",
-                  size === "lg" ? "text-sm" : "text-xs",
-                )}
-              >
-                {index}
-              </span>
-            ) : (
-              <BookOpen
-                className={cn(
-                  "text-white/90",
-                  size === "lg" ? "w-5 h-5" : "w-4 h-4",
-                )}
-              />
-            )}
-          </div>
-
-          {/* Status + badges — top right */}
-          <div className="absolute top-2 right-2 flex items-center gap-1 flex-wrap justify-end">
-            {status === "completed" && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-brand-success/20 text-brand-success border border-brand-success/30 backdrop-blur-sm">
-                <CheckCircle2 className="w-2.5 h-2.5" /> Done
-              </div>
-            )}
-            {status === "in-progress" && (
-              <div className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-brand-muted-gold/20 text-brand-muted-gold border border-brand-muted-gold/30 backdrop-blur-sm">
-                Active
-              </div>
-            )}
-            {status === "locked" && (
-              <div className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border backdrop-blur-sm">
-                Locked
-              </div>
-            )}
-            {allBadges?.map((badge) => (
-              <div
-                key={badge}
-                className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-brand-charcoal-card/80 text-brand-offwhite-muted border border-brand-charcoal-border backdrop-blur-sm"
-              >
-                {badge}
-              </div>
-            ))}
-            {!isLocked && (
-              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-brand-charcoal-hover/80 opacity-0 group-hover:opacity-100 transition-all duration-200 border border-brand-charcoal-border backdrop-blur-sm shrink-0">
-                <Play className="w-3 h-3 text-brand-offwhite pl-0.5" />
-              </div>
-            )}
-          </div>
-
-          {/* Accent stripe at very top */}
-          <div
-            className={cn(
-              "absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r",
-              typeAccents[type],
-              "opacity-60",
-            )}
-          />
-        </div>
-
-        {/* ── Bottom content area ── */}
+        {/* Top Decorative Gradient Stripe */}
         <div
           className={cn(
-            "relative z-10 flex flex-col flex-1",
-            size === "lg"
-              ? "px-3.5 pt-5 pb-3"
-              : type === "course"
-                ? "px-3.5 pt-5 pb-3"
-                : "px-3 pt-5 pb-2.5",
+            "absolute top-0 left-0 right-0 h-24 bg-gradient-to-b opacity-60 z-0 pointer-events-none",
+            typeColors[type],
           )}
-        >
-          {/* Title */}
-          <h3
-            className={cn(
-              "font-bold text-brand-offwhite leading-snug transition-colors duration-200 whitespace-pre-line",
-              size === "lg"
-                ? "text-base md:text-lg"
-                : type === "course"
-                  ? "text-[15px]"
-                  : "text-sm",
-              !isLocked && "group-hover:text-brand-muted-gold",
-              size !== "lg" && "line-clamp-2",
-            )}
-          >
-            {title}
-          </h3>
+        />
 
-          {/* Description */}
-          {description && (
-            <p
+        <div className="relative z-10 p-5 flex flex-col h-full">
+          {/* Top Row: Icon & Status / Badges */}
+          <div className="flex items-start justify-between mb-3 gap-2">
+            <div
               className={cn(
-                "text-brand-offwhite-muted leading-relaxed whitespace-pre-line mt-1",
-                size === "lg"
-                  ? "text-xs line-clamp-2"
-                  : type === "course"
-                    ? "text-xs line-clamp-4"
-                    : "text-[11px] line-clamp-2",
+                "flex items-center justify-center rounded-xl border backdrop-blur-md shadow-inner transition-transform duration-300 shrink-0",
+                typeGradients[type],
+                size === "lg" ? "w-12 h-12" : "w-11 h-11",
+                !isLocked && "group-hover:scale-110",
               )}
             >
-              {description}
-            </p>
-          )}
-
-          {/* Spacer */}
-          <div className="flex-1 min-h-[6px]" />
-
-          {/* Progress bar */}
-          {progress !== undefined && (
-            <div className="mb-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider">
-                  Progress
-                </span>
-                <span className="text-[10px] font-bold text-brand-muted-gold">
-                  {Math.round(progress)}%
-                </span>
-              </div>
-              <div className="h-1.5 w-full bg-brand-charcoal-card rounded-full overflow-hidden border border-brand-charcoal-border/30">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-700 ease-out",
-                    status === "completed"
-                      ? "bg-gradient-to-r from-brand-success to-emerald-400"
-                      : "bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark",
-                  )}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              {isLocked ? (
+                <Lock className="w-5 h-5 text-amber-500/80" />
+              ) : language ? (
+                <LanguageLogo language={language} size={22} />
+              ) : icon ? (
+                React.isValidElement(icon) ? (
+                  icon
+                ) : (
+                  React.createElement(icon as React.ElementType, {
+                    className: "w-5 h-5 text-foreground",
+                  })
+                )
+              ) : (
+                <BookOpen className="w-5 h-5 text-primary" />
+              )}
             </div>
-          )}
 
-          {/* Bottom meta row */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <div className="flex flex-wrap items-center gap-1.5 justify-end">
+              {status === "completed" && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Done
+                </span>
+              )}
+              {status === "in-progress" && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                  <Zap className="w-3 h-3" /> In Progress
+                </span>
+              )}
+              {status === "locked" && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-border flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Locked
+                </span>
+              )}
+              {allBadges.map((badge) => (
+                <span
+                  key={badge}
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-muted/60 text-muted-foreground border border-border"
+                >
+                  {badge}
+                </span>
+              ))}
+
+              {!isLocked && (
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/20 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 border border-primary/30 shadow-md">
+                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Title & Description */}
+          <div className="flex-1 mt-1">
+            <h3
+              className={cn(
+                "text-base font-bold text-foreground mb-1.5 transition-colors duration-300 line-clamp-2",
+                !isLocked && "group-hover:text-primary",
+              )}
+            >
+              {title}
+            </h3>
+            {description && (
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-normal">
+                {description}
+              </p>
+            )}
+          </div>
+
+          {/* Bottom Area: Progress & Metadata */}
+          <div className="mt-4 pt-3 flex flex-col gap-2.5 border-t border-border/40">
+            {progress !== undefined && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span>Progress</span>
+                  <span className="text-foreground font-bold">{Math.round(progress)}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden border border-border/40">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-700 ease-out",
+                      status === "completed"
+                        ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_8px_rgba(34,197,94,0.4)]"
+                        : "bg-gradient-to-r from-primary via-amber-400 to-amber-500 shadow-[0_0_8px_rgba(212,175,55,0.4)]",
+                    )}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs">
               {displaySubtitle && (
-                <span className="text-[10px] font-semibold text-brand-offwhite-muted uppercase tracking-wider truncate">
-                  {displaySubtitle}
+                <span className="text-muted-foreground font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {displaySubtitle}
                 </span>
               )}
-              {meta?.minutes && (
-                <span className="text-[10px] font-medium text-brand-offwhite-muted flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5" />
-                  {meta.minutes}m
-                </span>
-              )}
-            </div>
 
-            <div className="flex items-center gap-1 shrink-0">
               {stats?.xp !== undefined && (
-                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-brand-charcoal-card border border-brand-charcoal-border text-[9px] font-bold text-brand-muted-gold">
-                  <Zap className="w-2.5 h-2.5" />
-                  <span>{stats.xp}</span>
-                </div>
-              )}
-              {stats?.likes !== undefined && (
-                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-brand-charcoal-hover border border-brand-charcoal-border text-[9px] font-medium text-brand-offwhite opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <Heart className="w-2.5 h-2.5 text-rose-400" />
-                  <span>{stats.likes}</span>
-                </div>
-              )}
-              {stats?.views !== undefined && (
-                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-brand-charcoal-hover border border-brand-charcoal-border text-[9px] font-medium text-brand-offwhite opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <Eye className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>{stats.views}</span>
-                </div>
+                <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold">
+                  <Target className="w-3 h-3 text-amber-400" />
+                  {stats.xp} XP
+                </span>
               )}
             </div>
           </div>
@@ -368,11 +251,7 @@ export function LearningCard({
   );
 
   if (href && !isLocked) {
-    return (
-      <Link href={href} className="block w-full">
-        {content}
-      </Link>
-    );
+    return <Link href={href}>{content}</Link>;
   }
 
   return content;

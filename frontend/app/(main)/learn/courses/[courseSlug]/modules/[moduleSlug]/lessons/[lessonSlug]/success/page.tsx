@@ -61,18 +61,18 @@ function burstConfetti() {
 
     const frame = () => {
       confetti({
-        particleCount: 5,
+        particleCount: 6,
         angle: 60,
         spread: 55,
         origin: { x: 0 },
-        colors: ["#22c55e", "#3b82f6", "#eab308"]
+        colors: ["#10b981", "#f59e0b", "#3b82f6"]
       });
       confetti({
-        particleCount: 5,
+        particleCount: 6,
         angle: 120,
         spread: 55,
         origin: { x: 1 },
-        colors: ["#22c55e", "#3b82f6", "#eab308"]
+        colors: ["#10b981", "#f59e0b", "#3b82f6"]
       });
 
       if (Date.now() < end) {
@@ -112,6 +112,7 @@ export default function LessonSuccessPage() {
     }
     return cachedData?.moduleProgress ?? 0;
   })();
+
   interface NextLessonInfo {
     slug: string;
     title: string;
@@ -154,74 +155,68 @@ export default function LessonSuccessPage() {
     if (loading) return;
     const t = setTimeout(() => {
       burstConfetti();
-    }, 200);
+    }, 150);
     return () => clearTimeout(t);
   }, [loading]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Hero Banner */}
-      <div className="group relative max-w-screen-2xl mx-auto px-4 md:px-6 pt-6">
-        <div className={cn(
-          "absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm",
-          "transition-all duration-200 ease-out -z-10",
-          "top-2 left-2 right-[-0.5rem] bottom-[-0.5rem]",
-          "group-hover:top-[-0.5rem] group-hover:left-[-0.5rem] group-hover:right-[-0.5rem] group-hover:bottom-[-0.5rem] group-hover:bg-brand-charcoal-card/80 group-hover:border-brand-charcoal-border/40 group-hover:shadow-lg"
-        )} />
-        <div className={cn(
-          "relative w-full",
-          "bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl overflow-hidden text-center",
-          "transition-all duration-200 ease-out",
-          "group-hover:shadow-[0_4px_16px_rgb(0,0,0,0.35)] group-hover:border-brand-charcoal-border/70"
-        )}>
-          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-emerald-500/10 via-emerald-500/5 to-transparent opacity-40 z-0" />
+      {/* Hero Celebration Banner */}
+      <div className="relative max-w-screen-xl mx-auto px-4 md:px-6 pt-8">
+        <div className="relative rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-8 md:p-10 shadow-2xl overflow-hidden text-center">
+          {/* Top ambient glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 p-5 md:p-6 flex flex-col items-center justify-center">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 backdrop-blur-md shadow-inner bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 mb-2.5">
-              <CheckCircle2 className="w-5 h-5 text-brand-success" />
+          <div className="relative z-10 flex flex-col items-center justify-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/10">
+              <CheckCircle2 className="w-9 h-9 text-emerald-400" />
             </div>
-            <h1 className="text-lg md:text-xl font-semibold text-brand-offwhite mb-1">
+
+            <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight mb-2">
               Lesson Completed!
             </h1>
-            <div className="flex items-center gap-2 text-brand-offwhite-muted mb-3">
-              <span className="text-xs font-medium truncate max-w-[240px]">{title}</span>
-              <span className="w-1 h-1 rounded-full bg-brand-charcoal-border" />
-              <span className="flex items-center gap-1 text-xs font-bold text-brand-muted-gold">
-                <Trophy className="w-3 h-3" /> +{xpReward} XP
-              </span>
+
+            <p className="text-base text-muted-foreground font-medium mb-4">
+              "{title}"
+            </p>
+
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold text-sm mb-6 shadow-sm">
+              <Trophy className="w-4 h-4 fill-current" />
+              +{xpReward} XP Earned!
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md">
               <Link
                 href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border text-[11px] font-bold text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-card hover:bg-accent text-xs font-bold text-foreground transition-all"
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard className="w-4 h-4" />
                 Back to Module
               </Link>
+
               {nextLesson ? (
                 <Link
                   href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark text-[11px] font-bold text-black hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(212,175,55,0.2)]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-amber-500/20 transition-all"
                 >
-                  Continue to {nextLesson.title}
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  Next: {nextLesson.title}
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               ) : (
                 <Link
                   href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark text-[11px] font-bold text-black hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(212,175,55,0.2)]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-emerald-500/20 transition-all"
                 >
                   Module Complete!
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
             </div>
@@ -229,147 +224,142 @@ export default function LessonSuccessPage() {
         </div>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left: What You Covered */}
+      <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column: What You Covered */}
         <div>
-          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-            <BookOpen className="text-primary" size={22} />
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <BookOpen className="text-amber-400" size={20} />
             What You Covered
           </h2>
 
           {sections.length === 0 ? (
-            <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground">
-              <BookOpen className="mx-auto mb-3 opacity-20" size={32} />
-              <p>{sectionsCount} section{sectionsCount !== 1 ? "s" : ""} completed</p>
+            <div className="bg-card border border-border/60 rounded-2xl p-6 text-center text-muted-foreground">
+              <BookOpen className="mx-auto mb-2 opacity-30" size={28} />
+              <p className="text-xs font-medium">{sectionsCount} sections completed</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {sections.map((sec, i) => {
                 const Icon = SECTION_TYPE_ICONS[sec.section_type] || FileText;
                 const label = SECTION_TYPE_LABELS[sec.section_type] || sec.section_type;
                 return (
                   <div
                     key={sec.id || i}
-                    className="flex items-center gap-3 bg-card border border-border rounded-xl p-3.5 hover:border-border/80 transition-colors"
+                    className="flex items-center gap-3 bg-card border border-border/60 rounded-xl p-3.5 hover:border-amber-500/30 transition-colors"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                       <Icon size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{sec.title || label}</p>
-                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="font-bold text-sm text-foreground truncate">{sec.title || label}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{label}</p>
                     </div>
-                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* Summary stats */}
-          <div className={`grid gap-3 mt-6 ${statCount === 1 ? "grid-cols-1" : statCount === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-            <div className="bg-card border border-border rounded-xl p-4 text-center">
-              <BookOpen className="mx-auto h-5 w-5 text-primary mb-1.5" />
-              <p className="text-2xl font-bold tabular-nums">{sectionsCount}</p>
-              <p className="text-xs text-muted-foreground">Section{sectionsCount !== 1 ? "s" : ""}</p>
+          {/* Stats Badges */}
+          <div className="grid grid-cols-3 gap-3 mt-6">
+            <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+              <BookOpen className="mx-auto h-4 w-4 text-amber-400 mb-1" />
+              <p className="text-xl font-extrabold text-foreground">{sectionsCount}</p>
+              <p className="text-[11px] text-muted-foreground font-medium">Sections</p>
             </div>
             {quizCount > 0 && (
-              <div className="bg-card border border-border rounded-xl p-4 text-center">
-                <BrainCircuit className="mx-auto h-5 w-5 text-orange-400 mb-1.5" />
-                <p className="text-2xl font-bold tabular-nums">{quizCount}</p>
-                <p className="text-xs text-muted-foreground">Quiz{quizCount !== 1 ? "zes" : ""}</p>
+              <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+                <BrainCircuit className="mx-auto h-4 w-4 text-orange-400 mb-1" />
+                <p className="text-xl font-extrabold text-foreground">{quizCount}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Quizzes</p>
               </div>
             )}
             {exerciseCount > 0 && (
-              <div className="bg-card border border-border rounded-xl p-4 text-center">
-                <FlaskConical className="mx-auto h-5 w-5 text-teal-400 mb-1.5" />
-                <p className="text-2xl font-bold tabular-nums">{exerciseCount}</p>
-                <p className="text-xs text-muted-foreground">Exercise{exerciseCount !== 1 ? "s" : ""}</p>
+              <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+                <FlaskConical className="mx-auto h-4 w-4 text-teal-400 mb-1" />
+                <p className="text-xl font-extrabold text-foreground">{exerciseCount}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Exercises</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Module Progress */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Layers className="text-primary" size={22} />
-              Module Progress
-            </h2>
-          </div>
+        {/* Right Column: Module Progress & Next Lesson */}
+        <div className="space-y-6">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Layers className="text-amber-400" size={20} />
+            Module Progress
+          </h2>
 
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <div className="mb-5">
-              <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="font-semibold truncate">{moduleTitle}</span>
-                <span className="font-bold tabular-nums text-primary">
-                  {Math.round(moduleProgress)}%
-                </span>
+          <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-6 shadow-sm">
+            <div>
+              <div className="flex items-center justify-between text-xs font-bold mb-2">
+                <span className="truncate text-foreground">{moduleTitle}</span>
+                <span className="text-amber-400">{Math.round(moduleProgress)}%</span>
               </div>
-              <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-muted/60 rounded-full overflow-hidden border border-border/40">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-1000 ease-out shadow-[0_0_6px_rgba(34,197,94,0.3)]"
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-700 ease-out"
                   style={{ width: `${Math.round(moduleProgress)}%` }}
                 />
               </div>
             </div>
 
-            {/* Next lesson preview */}
+            {/* Next Lesson Box */}
             {nextLesson ? (
-              <div>
-                <p className="text-xs text-muted-foreground font-medium mb-3 flex items-center gap-1.5">
-                  <ArrowRight size={12} />
-                  Next lesson
-                </p>
+              <div className="pt-2 border-t border-border/40">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+                  Up Next
+                </span>
                 <Link
                   href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                  className="flex items-center gap-3 bg-background border border-border rounded-xl p-4 hover:bg-muted/50 transition-colors group"
+                  className="flex items-center gap-3 bg-background border border-border/60 rounded-xl p-4 hover:border-amber-500/40 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <BookOpen size={18} className="text-primary" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <BookOpen size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                    <h4 className="font-bold text-sm text-foreground truncate group-hover:text-amber-400 transition-colors">
                       {nextLesson.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                    </h4>
+                    <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 font-medium">
                       {nextLesson.estimated_minutes && (
                         <span className="flex items-center gap-1">
-                          <Clock size={11} /> {nextLesson.estimated_minutes}min
+                          <Clock size={11} /> {nextLesson.estimated_minutes}m
                         </span>
                       )}
                       {nextLesson.xp_reward && (
-                        <span className="flex items-center gap-1 text-primary">
+                        <span className="flex items-center gap-1 text-amber-400 font-bold">
                           <Zap size={11} /> +{nextLesson.xp_reward} XP
                         </span>
                       )}
                     </p>
                   </div>
-                  <ArrowRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  <ArrowRight size={16} className="text-muted-foreground group-hover:text-amber-400 transition-colors shrink-0" />
                 </Link>
               </div>
             ) : (
-              <div className="bg-background border border-border rounded-xl p-5 text-center">
-                <Trophy className="mx-auto mb-2 text-primary" size={28} />
-                <p className="font-semibold text-sm">All lessons complete!</p>
-                <p className="text-xs text-muted-foreground mt-1">You finished this module.</p>
+              <div className="pt-2 border-t border-border/40 text-center py-4">
+                <Trophy className="mx-auto mb-2 text-amber-400" size={28} />
+                <h4 className="font-bold text-sm text-foreground">Module Complete!</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">You've mastered all lessons in this module.</p>
               </div>
             )}
           </div>
 
-          {/* XP summary */}
-          <div className="bg-card border border-border rounded-2xl p-5 mt-4 flex items-center justify-between">
+          {/* XP Reward Summary Box */}
+          <div className="bg-card border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card rounded-2xl p-5 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Zap size={20} className="text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <Zap size={20} className="fill-current" />
               </div>
               <div>
-                <p className="font-bold text-sm">XP Earned</p>
-                <p className="text-xs text-muted-foreground">This lesson</p>
+                <p className="font-bold text-sm text-foreground">XP Awarded</p>
+                <p className="text-xs text-muted-foreground">Added to your global profile</p>
               </div>
             </div>
-            <span className="text-xl font-bold text-primary">+{xpReward}</span>
+            <span className="text-2xl font-extrabold text-amber-400">+{xpReward} XP</span>
           </div>
         </div>
       </div>
