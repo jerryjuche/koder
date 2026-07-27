@@ -72,6 +72,32 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 	RespondSuccess(w, problems)
 }
 
+func (h *ProblemHandler) GetProblemMeta(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if slug == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "slug is required", nil)
+		return
+	}
+
+	problem, err := h.store.GetProblemBySlugAny(r.Context(), slug)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "PROBLEM_FETCH_FAILED", "Unable to get problem", nil)
+		return
+	}
+
+	RespondSuccess(w, map[string]any{
+		"title":      problem.Title,
+		"module":     problem.Module,
+		"difficulty": problem.Difficulty,
+		"language":   problem.Language,
+		"slug":       problem.Slug,
+	})
+}
+
 func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {

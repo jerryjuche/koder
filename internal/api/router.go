@@ -110,6 +110,9 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
 	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
 
+	// Public problem metadata — no auth required (for social previews)
+	r.Get("/problems/{slug}/meta", problemHandler.GetProblemMeta)
+
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(cfg, store))
 
