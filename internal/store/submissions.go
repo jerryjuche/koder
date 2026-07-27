@@ -51,7 +51,7 @@ func (s *PostgresStore) GetProblemWithTestCases(ctx context.Context, problemID u
 	}
 
 	query := `
-		SELECT id, slug, module, type, language, title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, visible, source_hash, language_versions, raw_readme, created_at, updated_at
+		SELECT id, slug, module, type, language, title, statement, func_name, return_type, param_types, param_names, hints, difficulty, xp_reward, tags, visible, source_hash, language_versions, raw_readme, created_at, updated_at
 		FROM problems
 		WHERE id = $1
 	`
@@ -69,6 +69,7 @@ func (s *PostgresStore) GetProblemWithTestCases(ctx context.Context, problemID u
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
+		&problem.ParamNames,
 		&problem.Hints,
 		&problem.Difficulty,
 		&problem.XPReward,

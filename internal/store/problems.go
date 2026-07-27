@@ -16,7 +16,7 @@ import (
 func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUID) ([]Problem, error) {
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title,
-		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''), p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.statement, COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''), p.func_name, p.return_type, p.param_types, p.param_names, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions,
 		       p.created_at, p.updated_at,
 		       COALESCE(pr.solved, false), COALESCE(pr.stars, 0), COALESCE(pr.attempts, 0),
@@ -62,6 +62,7 @@ func (s *PostgresStore) ListVisibleProblems(ctx context.Context, userID uuid.UUI
 			&problem.FuncName,
 			&problem.ReturnType,
 			&problem.ParamTypes,
+			&problem.ParamNames,
 			&problem.Hints,
 			&problem.Difficulty,
 			&problem.XPReward,
@@ -108,7 +109,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
-			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+			   p.func_name, p.return_type, p.param_types, p.param_names, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 			   p.created_at, p.updated_at,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
@@ -136,6 +137,7 @@ func (s *PostgresStore) GetProblemBySlug(ctx context.Context, slug string, userI
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
+		&problem.ParamNames,
 		&problem.Hints,
 		&problem.Difficulty,
 		&problem.XPReward,
@@ -276,13 +278,13 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 	upsertQuery := `
 		INSERT INTO problems (
 		    slug, module, type, language, title, statement, func_name,
-		    return_type, param_types, hints, difficulty, xp_reward, tags,
+		    return_type, param_types, param_names, hints, difficulty, xp_reward, tags,
 		    visible, source_hash, raw_readme, language_versions, created_at, updated_at
 		)
 		VALUES (
 		    $1, $2, $3, $4, $5, $6, $7,
-		    $8, $9, $10, $11, $12, $13,
-		    $14, $15, $16, $17, NOW(), NOW()
+		    $8, $9, $10, $11, $12, $13, $14,
+		    $15, $16, $17, $18, NOW(), NOW()
 		)
 		ON CONFLICT (slug) DO UPDATE SET
 		    module = EXCLUDED.module,
@@ -293,6 +295,7 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 		    func_name = EXCLUDED.func_name,
 		    return_type = EXCLUDED.return_type,
 		    param_types = EXCLUDED.param_types,
+		    param_names = EXCLUDED.param_names,
 		    hints = EXCLUDED.hints,
 		    difficulty = EXCLUDED.difficulty,
 		    xp_reward = EXCLUDED.xp_reward,
@@ -312,7 +315,7 @@ func (s *PostgresStore) UpsertEnrichedProblem(ctx context.Context, problem *Prob
 	if _, err := tx.Exec(ctx, upsertQuery,
 		problem.Slug, problem.Module, problem.Type, problem.Language,
 		problem.Title, problem.Statement, problem.FuncName, problem.ReturnType,
-		problem.ParamTypes, problem.Hints, problem.Difficulty, problem.XPReward,
+		problem.ParamTypes, problem.ParamNames, problem.Hints, problem.Difficulty, problem.XPReward,
 		problem.Tags, problem.Visible, problem.SourceHash, problem.RawReadme, json.RawMessage(lvJSON),
 	); err != nil {
 		return fmt.Errorf("failed to upsert enriched problem: %w", err)
@@ -358,7 +361,7 @@ func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Prob
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
-		       p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+		       p.func_name, p.return_type, p.param_types, p.param_names, p.hints, p.difficulty,
 		       p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 		       p.created_at, p.updated_at
 		FROM problems p
@@ -380,6 +383,7 @@ func (s *PostgresStore) GetProblemByID(ctx context.Context, id uuid.UUID) (*Prob
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
+		&problem.ParamNames,
 		&problem.Hints,
 		&problem.Difficulty,
 		&problem.XPReward,
@@ -409,7 +413,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 	query := `
 		SELECT p.id, p.slug, p.module, p.type, p.language, p.title, p.statement,
 		       COALESCE(p.constraints, ''), COALESCE(p.learning_objective, ''),
-			   p.func_name, p.return_type, p.param_types, p.hints, p.difficulty,
+			   p.func_name, p.return_type, p.param_types, p.param_names, p.hints, p.difficulty,
 			   p.xp_reward, p.tags, p.visible, p.source_hash, p.language_versions, p.raw_readme,
 			   p.created_at, p.updated_at,
 			   (SELECT COUNT(*) FROM submissions WHERE problem_id = p.id) as total_subs,
@@ -435,6 +439,7 @@ func (s *PostgresStore) GetProblemBySlugAny(ctx context.Context, slug string) (*
 		&problem.FuncName,
 		&problem.ReturnType,
 		&problem.ParamTypes,
+		&problem.ParamNames,
 		&problem.Hints,
 		&problem.Difficulty,
 		&problem.XPReward,
@@ -721,12 +726,12 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		    language = $7, func_name = $8, return_type = $9,
 		    param_types = $10, hints = $11, difficulty = $12,
 		    xp_reward = $13, tags = $14, visible = $15,
-		    language_versions = $16,
+		    language_versions = $16, param_names = $17,
 		    updated_at = NOW()
-		WHERE id = $17
+		WHERE id = $18
 		RETURNING id, slug, module, type, language, title, statement,
 		          constraints, learning_objective,
-		          func_name, return_type, param_types, hints, difficulty,
+		          func_name, return_type, param_types, param_names, hints, difficulty,
 		          xp_reward, tags, visible, source_hash, language_versions,
 		          created_at, updated_at
 	`
@@ -755,6 +760,7 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		problem.Tags,
 		problem.Visible,
 		json.RawMessage(lvBytes),
+		problem.ParamNames,
 		problem.ID,
 	).Scan(
 		&updated.ID,
@@ -769,6 +775,7 @@ func (s *PostgresStore) UpdateProblem(ctx context.Context, problem *Problem) (*P
 		&updated.FuncName,
 		&updated.ReturnType,
 		&updated.ParamTypes,
+		&updated.ParamNames,
 		&updated.Hints,
 		&updated.Difficulty,
 		&updated.XPReward,
