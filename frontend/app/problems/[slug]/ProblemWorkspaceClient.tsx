@@ -28,12 +28,14 @@ import {
   Activity,
   Edit3,
   Save,
+  ChevronRight,
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
-import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
+import { cn, getDifficultyColor, getDifficultyLabel, shuffleArray } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/markdown";
 import {
   fetchProblem,
+  fetchProblems,
   submitSolution,
   testCode,
   submitFeedback,
@@ -222,6 +224,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+  const [allProblems, setAllProblems] = useState<Problem[]>([]);
 
   const returnTo = typeof window !== "undefined"
     ? sessionStorage.getItem("return_to") || "/home"
@@ -262,6 +265,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       }
     });
   }, [slug]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    clearCache("/problems");
+    fetchProblems().then((res) => {
+      if (res.success) setAllProblems(res.data || []);
+    });
+  }, [user?.id]);
 
   // Cooldown countdown for rate limiting
   useEffect(() => {
@@ -565,6 +576,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
   };
 
+  const nextProblem = problem && user?.id && allProblems.length > 0
+    ? (() => {
+        const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
+        const shuffled = shuffleArray(allProblems, seed);
+        const idx = shuffled.findIndex((p) => p.slug === slug);
+        return idx >= 0 && idx < shuffled.length - 1 ? shuffled[idx + 1] : null;
+      })()
+    : null;
+
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
@@ -582,6 +602,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
+            {nextProblem && (
+              <Link
+                href={`/problems/${nextProblem.slug}`}
+                onClick={() => sessionStorage.setItem("return_to", window.location.pathname)}
+                className="flex items-center gap-1 text-sm font-medium shrink-0 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors ml-2"
+                title={`Next: ${nextProblem.title}`}
+              >
+                Next <ChevronRight size={16} />
+              </Link>
+            )}
           </div>
         </div>
 
