@@ -166,6 +166,13 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   return lang === "python" ? PYTHON_CODE : GO_CODE;
 }
 
+function generateOldScaffold(lv: { func_name: string; return_type: string; param_types: string[] }, lang: string): string {
+  if (lang === "python") {
+    return `def ${lv.func_name}(${lv.param_types.map((_, i) => `arg${i + 1}`).join(", ")}):\n    pass\n`;
+  }
+  return `package koder\n\nfunc ${lv.func_name}(${lv.param_types.map((t, i) => `arg${i + 1} ${t}`).join(", ")})${lv.return_type ? " " + lv.return_type : ""} {\n\t// Write your solution here\n}\n`;
+}
+
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
@@ -239,7 +246,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         // Restore saved code if it exists, otherwise use scaffold
         const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
         if (stored) {
-          setCode(stored);
+          const lv = res.data.language_versions?.[lang];
+          const oldScaffold = lv?.func_name ? generateOldScaffold(lv, lang) : null;
+          if (oldScaffold && (stored === oldScaffold || stored.trimEnd() === oldScaffold.trimEnd())) {
+            setCode(scaffold);
+            localStorage.setItem(STORE_KEY(slug, lang), scaffold);
+          } else {
+            setCode(stored);
+          }
         } else {
           setCode(scaffold);
         }
