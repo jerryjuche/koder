@@ -159,6 +159,7 @@ func (h *ProblemHandler) GetProblemBySlug(w http.ResponseWriter, r *http.Request
 		"func_name": problem.FuncName,
 		"return_type": problem.ReturnType,
 		"param_types": problem.ParamTypes,
+		"param_names": problem.ParamNames,
 		"hints": problem.Hints,
 		"difficulty": problem.Difficulty,
 		"xpReward": problem.XPReward,
