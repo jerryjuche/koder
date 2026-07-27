@@ -40,13 +40,13 @@
 |---|---|---|---|
 | **Go Backend** (`cmd/` + `internal/`) | 59 source + 13 test | ~17,306 + ~3,135 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
 | **Go Sandbox** (`sandbox/`) | 7 source + 1 test | ~1,157 + ~32 | Zero external deps, 10-layer defense-in-depth |
-| **SQL Migrations** (`migrations/`) | 47 | ~20,000 | 32 schema + 15 seed, ~25 tables |
+| **SQL Migrations** (`migrations/`) | 48 | ~21,000 | 32 schema + 16 seed, ~25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,177 | 7 route groups, all with loading + error boundaries |
 | **Frontend Components** (`components/`) | 60 | ~9,927 | 19 shadcn/ui + 41 custom |
 | **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,832 | 60+ API functions, 40+ TS interfaces, 4 hooks |
 | **Frontend Styles/Config** | 15 | ~1,646 | theme.css (856 vars), typography.css (430 lines), 12 config files |
 | **Documentation** | 6 | ~5,639 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, 2 docs |
-| **Scripts** | 6 | ~450 | data reset, build cache, seed transform, curriculum cleanup |
+| **Scripts** | 7 | ~930 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
 | **Config/Build** | 12 | ~700 | go.mod, Procfile, build.sh, CI, env |
 | **Total (tracked source)** | **~294** | **~71,000** | Source code + migrations + docs |
 
@@ -73,7 +73,7 @@ koder/
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
 │   ├── lib/              (14 files, ~2,906 LOC) # API client, types, cache, event bus, markdown, pyodide
 │   └── styles/           (3 files, ~1,364 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
-├── migrations/           (47 files, ~20,000 LOC) # Full schema + seed data — 25 tables
+├── migrations/           (48 files, ~20,000 LOC) # Full schema + seed data — 25 tables
 ├── scripts/              (6 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh
 ├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md
 ├── .github/workflows/ci.yml                     # 2-job CI: backend + frontend
@@ -547,7 +547,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 9. Database Migrations (`migrations/` — 47 files, ~20,000 LOC)
+## 9. Database Migrations (`migrations/` — 48 files, ~20,000 LOC)
 
 ### 9.1 Schema Migrations (32 files)
 
@@ -604,8 +604,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 044 | `042_seed_python_mastery_games.sql` | 1,347 | N/A | Games course (2 modules, 6 lessons, 1 project) |
 | 045 | `043_seed_python_mastery_practice.sql` | 1,434 | 30 | python-practice (difficulty 1-5, Python-only) |
 | 046 | `046_module_meta.sql` | 37 | N/A | module_meta seed for 26 modules (display_name, is_pinned) |
+| 047 | `047_seed_python_practicals.sql` | 1095 | 25 | python-practicals seed: full INSERTs with 5–7 test cases each, module_meta for python-practice + python-practicals |
 | — | `999_seed_python_test.sql` | 62 | 1 | py-double-it (pipeline verification) |
-| **Total seeded** | | | **~238 problems** | **14 modules** |
+| **Total seeded** | | | **~263 problems** | **15 modules** |
 
 ---
 

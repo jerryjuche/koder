@@ -148,6 +148,16 @@ const MODULE_META: Record<string, ModuleMeta> = {
     description: "Python variables, arithmetic, type conversion, math module",
     barColor: "bg-gradient-to-r from-emerald-500 to-green-400",
   },
+  "python-practice": {
+    image: MODULE_IMAGE,
+    description: "Python coding practice problems for skill reinforcement",
+    barColor: "bg-gradient-to-r from-teal-500 to-cyan-400",
+  },
+  "python-practicals": {
+    image: MODULE_IMAGE,
+    description: "Real-world Python practical exercises and mini-projects",
+    barColor: "bg-gradient-to-r from-indigo-500 to-purple-400",
+  },
 };
 
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
@@ -171,6 +181,8 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   "design-patterns": "Design Patterns",
   "encoding-serialization": "Encoding & Serialization",
   "linked-lists": "Linked Lists",
+  "python-practice": "Python Practice",
+  "python-practicals": "Python Practicals",
 };
 
 const FALLBACK: ModuleMeta = {
@@ -205,6 +217,8 @@ const MODULE_COLORS: Record<string, { bg: string; text: string }> = {
   "python-fundamentals": { bg: "bg-blue-500/20", text: "text-blue-400" },
   "python-intermediate": { bg: "bg-purple-500/20", text: "text-purple-400" },
   "python-variables-math": { bg: "bg-emerald-500/20", text: "text-emerald-400" },
+  "python-practice": { bg: "bg-teal-500/20", text: "text-teal-400" },
+  "python-practicals": { bg: "bg-indigo-500/20", text: "text-indigo-400" },
 };
 
 const FALLBACK_COLOR = { bg: "bg-gray-500/20", text: "text-gray-400" };

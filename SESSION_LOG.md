@@ -2387,6 +2387,40 @@ Snowflake background didn't match Koder's professional amber/charcoal brand aest
 ### Files modified
 - `frontend/app/(main)/home/page.tsx` — 30+ line changes, 1 new import (`renderMarkdown`)
 
+---
+
+## Session 81 — 2026-07-27 — Python Practicals migration + frontend module visibility
+
+**Commits:** _(pending)_
+
+### Problem
+Two Python modules (`python-practice`, `python-practicals`) didn't show in the admin panel's Problem Module Locks tab or on the student home page. Root causes:
+- `migrations/046_module_meta.sql` — missing `module_meta` entries for both
+- `frontend/components/dashboard/ModuleCards.tsx` — missing `MODULE_META`/`MODULE_DISPLAY_NAMES`/`MODULE_COLORS` entries
+- `python-practicals` problems were never INSERTed into the DB (only UPDATE SQL existed)
+
+### Changes
+
+**`migrations/047_seed_python_practicals.sql`** (new, 1095 lines)
+- Full seed for 25 python-practicals problems with 7 test cases each (175 total)
+- Professional INSERTs with: constraints, learning_objective, tags, `language_versions` JSONB
+- 3 visible + 4 hidden test cases per problem
+- `module_meta` entries for both `python-practice` and `python-practicals`
+- Escaped double-quotes in PostgreSQL array hints (`\"`) and quoted JSONB inputs (`'[...]'::jsonb`)
+
+**`scripts/generate-practicals-migration.mjs`** (new, 480 lines)
+- Reads `problems_python-practicals.json`, outputs clean migration SQL
+- Handles: Parameterized test cases, pgArray escaping, JSONB quoting
+
+**`frontend/components/dashboard/ModuleCards.tsx`** (+14 lines)
+- Added `python-practice` and `python-practicals` to `MODULE_META`, `MODULE_DISPLAY_NAMES`, `MODULE_COLORS`
+
+### Verification
+- ✅ 25 problems, 175 test cases, correct difficulty distribution (6×1, 7×2, 6×3, 6×4)
+- ✅ JSONB inputs properly quoted, array elements properly escaped
+- ✅ Module meta entries for display names in admin panel
+- ✅ Frontend has fallback image/color/description for both modules
+
 ### Verification
 - ✅ `npx tsc --noEmit` — 0 errors
 - ✅ `npm run lint` — 0 errors (1 pre-existing warning in `MarkdownPreview.tsx`)
