@@ -1,0 +1,696 @@
+[
+  {
+    "slug": "py-avg-calculator",
+    "module": "python-practice",
+    "title": "Array Average Calculator",
+    "func_name": "average_calculator",
+    "return_type": "float",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "numbers"
+    ],
+    "statement": "Calculating an **average** is one of the most common operations performed on numerical data. By summing a collection of values and dividing by the count, you can determine a single value that represents the overall result.\n\nIn this challenge, your task is to write a function that computes the **arithmetic mean** of a list of numbers. If the list is empty, your function must handle this edge case gracefully by returning `0.0` instead of triggering a division-by-zero error.\n\nFor example:\n\n- Calling `average_calculator([1, 2, 3, 4])` returns **`2.5`**, since `(1 + 2 + 3 + 4) / 4 = 2.5`.\n- Calling `average_calculator([-2, 2])` returns **`0.0`**, as the positive and negative values cancel each other out.\n- Calling `average_calculator([])` returns **`0.0`**, handling the empty input safely.\n\nYour function should return the mathematical mean as a floating-point number.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** of numeric values.\n- Calculating the **sum** and **average** of a collection.\n- Handling **edge cases**, such as an empty list.\n- Using **conditional guards** to prevent runtime errors.\n\nComputing averages is a fundamental programming technique used in statistics, analytics, reporting, gaming, and many other real-world applications.",
+    "original_statement": "Write a function `average_calculator` that takes a list of numbers and returns its mathematical mean.\n\nYour system must remain stable even when handed an empty dataset — a rogue empty list must never trigger a division-by-zero error.\n\n**Examples:**\n- `average_calculator([1, 2, 3, 4])` → `2.5`\n- `average_calculator([-2, 2])` → `0.0`\n- `average_calculator([])` → `0.0`",
+    "hints": [
+      "Sum all elements with sum() then divide by the length — but only if the list is non-empty.",
+      "Use a conditional: if the list is empty, return 0.0 immediately.",
+      "Remember that dividing an int by an int in Python 3 yields a float automatically, but an empty sum([]) is 0, and 0 / 0 raises ZeroDivisionError."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-trim-ends",
+    "module": "python-practice",
+    "title": "Inner-Core Extraction: Trimming Strings",
+    "func_name": "trim_ends",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "text"
+    ],
+    "statement": "Python's **string slicing** syntax is one of the language's most elegant features, allowing you to extract substrings, skip characters, and even reverse text with minimal code.\n\nIn this challenge, your task is to use string slicing to remove the very first and very last character from a given string, effectively revealing its inner content while discarding the boundaries.\n\nFor example:\n\n- Calling `trim_ends(\"hello\")` returns **`\"ell\"`**, removing the `h` from the front and the `o` from the back.\n- Calling `trim_ends(\"ab\")` returns **`\"\"`**, an empty string with only two characters to remove.\n- Calling `trim_ends(\"a\")` returns **`\"\"`**, since a single-character string has no inner content.\n\nYour function should return the trimmed substring, or an empty string if the input has fewer than two characters.\n\nThis exercise reinforces several important programming concepts:\n\n- Using Python's **slice notation** with negative indices.\n- Understanding how slicing behaves at **boundaries**.\n- Handling **undersized inputs** gracefully.\n- Writing concise, expressive string manipulation code.\n\nString slicing is heavily used in data cleaning, text processing, log parsing, and any application that needs to extract or modify portions of text.",
+    "original_statement": "Write a function `trim_ends` that removes the very first and very last character from a string, revealing its inner content.\n\nThink of it as peeling away the outermost shell of data to reach the core.\n\n**Examples:**\n- `trim_ends(\"hello\")` → `\"ell\"`\n- `trim_ends(\"ab\")` → `\"\"`\n- `trim_ends(\"a\")` → `\"\"`",
+    "hints": [
+      "Python slicing with str[1:-1] removes the first and last character in one elegant expression.",
+      "If the string has 0 or 1 character, slicing str[1:-1] already returns \"\" — test this!",
+      "For a 2-character string, str[1:-1] gives the empty string, which is exactly the expected result."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-contains-value",
+    "module": "python-practice",
+    "title": "Strict Membership: The Containment Check",
+    "func_name": "contains_value",
+    "return_type": "bool",
+    "param_types": [
+      "list",
+      "any"
+    ],
+    "param_names": [
+      "items",
+      "target"
+    ],
+    "statement": "Python's **`in`** operator provides a clean, readable way to check whether a value exists within a collection. Understanding how membership testing works across different data types is essential for writing correct search logic.\n\nIn this challenge, your task is to implement a search function that checks whether a target value exists within a **heterogeneous list** — one that may contain integers, strings, booleans, and other types mixed together. The check should use Python's standard value equality (`==`) semantics.\n\nFor example:\n\n- Calling `contains_value([1, \"2\", 3], 1)` returns **`True`**, since the integer `1` is present as an element.\n- Calling `contains_value([1, \"2\", 3], \"2\")` returns **`True`**, matching the string `\"2\"` value.\n- Calling `contains_value([1, \"2\", 3], 2)` returns **`False`**, because neither the integer `2` nor the value `2` appears in the list.\n\nYour function should return `True` if the target exists in the list, and `False` otherwise.\n\nThis exercise reinforces several important programming concepts:\n\n- Using Python's **`in`** operator for membership testing.\n- Understanding **value equality** vs identity in Python.\n- Working with **heterogeneous** data collections.\n- Searching through lists efficiently.\n\nMembership testing is one of the most frequently used operations in programming, appearing everywhere from input validation to data filtering and search algorithms.",
+    "original_statement": "Build a search module `contains_value` that inspects a heterogeneous list — one mixing integers, strings, booleans, and other types — to determine whether a target value exists within it.\n\nThe check must use value equality (==), not identity (is), but must respect Python's natural type coercion rules.\n\n**Examples:**\n- `contains_value([1, \"2\", 3], 1)` → `True`\n- `contains_value([1, \"2\", 3], \"2\")` → `True`\n- `contains_value([1, \"2\", 3], 2)` → `False`",
+    "hints": [
+      "Python's `in` operator is the simplest way — `return x in a`.",
+      "The `in` operator uses `==` under the hood, so `1 == True` evaluates to True — be aware of this!",
+      "For an empty list, `in` always returns False, which is a safe default."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-positives-negatives",
+    "module": "python-practice",
+    "title": "Split-Metric Analysis: Positives & Negatives",
+    "func_name": "positives_negatives_summary",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "numbers"
+    ],
+    "statement": "When analyzing numerical data, it is often useful to compute **multiple statistics** in a single pass through the data rather than making several separate passes. This is both more efficient and a cleaner way to organize your logic.\n\nIn this challenge, your task is to write a function that processes a list of integers and produces a two-part statistical summary. In a single pass, compute the **count of numbers strictly greater than zero** and the **sum of numbers strictly less than zero**. The value zero is neutral and contributes to neither metric.\n\nFor example:\n\n- Calling `positives_negatives_summary([1, 2, 3, 4, -5, -2])` returns **`[4, -7]`**: four positive numbers and a negative sum of `-7`.\n- Calling `positives_negatives_summary([0, 0, 0])` returns **`[0, 0]`**, since no values are positive or negative.\n- Calling `positives_negatives_summary([])` returns **`[]`**, an empty list for empty input.\n\nYour function should return a list containing `[positive_count, negative_sum]`, or an empty list if the input is empty.\n\nThis exercise reinforces several important programming concepts:\n\n- Performing **single-pass** data analysis.\n- Using **conditional branching** to categorize values.\n- Handling **neutral values** that should be ignored.\n- Distinguishing between empty and zero-valued results.\n\nSingle-pass aggregation is widely used in data processing, real-time analytics, and performance-sensitive applications.",
+    "original_statement": "Process a sequence of integers with `positives_negatives_summary` and produce a two-part statistical report.\n\nYour function must compute two distinct metrics in a single pass: the count of all numbers strictly greater than zero, and the sum of all numbers strictly less than zero.\n\nZero is neutral — it contributes to neither metric and must be silently ignored.\n\n**Examples:**\n- `positives_negatives_summary([1, 2, 3, 4, -5, -2])` → `[4, -7]`\n- `positives_negatives_summary([0, 0, 0])` → `[0, 0]`\n- `positives_negatives_summary([])` → `[]`",
+    "hints": [
+      "Initialize two counters: pos_count = 0 and neg_sum = 0.",
+      "Loop through each number; if > 0 increment count, if < 0 add to sum.",
+      "After the loop, return [pos_count, neg_sum] — or [] if the original input was empty."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-sanitize-exclamations",
+    "module": "python-practice",
+    "title": "Sanitization Engine: Character Purge",
+    "func_name": "sanitize_exclamations",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "text"
+    ],
+    "statement": "Data cleaning is an essential skill in software development. Raw user input often contains unwanted characters that must be stripped before the data can be processed or stored reliably.\n\nIn this challenge, your task is to implement a character-level filter that scans an incoming string and removes every exclamation mark (`!`), returning a pristine, sanitized version of the original text. All other characters — letters, digits, spaces, punctuation — must remain untouched.\n\nFor example:\n\n- Calling `sanitize_exclamations(\"Hello! World!\")` returns **`\"Hello World\"`**, with both exclamation marks removed.\n- Calling `sanitize_exclamations(\"!!!\")` returns **`\"\"`**, an empty string with only exclamation marks to remove.\n- Calling `sanitize_exclamations(\"No exclamations here\")` returns **`\"No exclamations here\"`**, unchanged since there are no exclamation marks.\n\nYour function should return the sanitized string with all exclamation marks removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`str.replace()`** for character-level substitution.\n- Building **string filters** with comprehensions.\n- Handling **edge cases** like empty input or all-target strings.\n- Writing clean, readable data cleaning utilities.\n\nString sanitization is used everywhere from form validation and chat applications to log processing and database input cleaning.",
+    "original_statement": "Data cleaning is an essential software skill. Write a function `sanitize_exclamations` that scans an incoming string and ruthlessly strips every single exclamation mark (`!`), returning a pristine, sanitized version of the text.\n\n**Examples:**\n- `sanitize_exclamations(\"Hello! World!\")` → `\"Hello World\"`\n- `sanitize_exclamations(\"!!!\")` → `\"\"`\n- `sanitize_exclamations(\"No exclamations here\")` → `\"No exclamations here\"`",
+    "hints": [
+      "Python's `str.replace(\"!\", \"\")` removes all exclamation marks in one call.",
+      "Alternatively, use a generator: `\"\".join(c for c in text if c != \"!\")`.",
+      "Both approaches handle empty strings gracefully — an empty input returns an empty string."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-cuboid-volume",
+    "module": "python-practice",
+    "title": "Freight Logistics: Cuboid Volume",
+    "func_name": "cuboid_volume",
+    "return_type": "float",
+    "param_types": [
+      "float",
+      "float",
+      "float"
+    ],
+    "param_names": [
+      "length",
+      "width",
+      "height"
+    ],
+    "statement": "Geometric formulas are a great way to practice applying mathematical equations in code. The volume of a rectangular box (cuboid) is one of the simplest and most intuitive geometric calculations.\n\nIn this challenge, your task is to write a function that calculates the **volume** of a rectangular box given its three dimensions: length, width, and height. The formula is straightforward: Volume = length × width × height.\n\nFor example:\n\n- Calling `cuboid_volume(10, 5, 2)` returns **`100`**, since `10 × 5 × 2 = 100`.\n- Calling `cuboid_volume(1, 1, 1)` returns **`1`**, a unit cube with volume 1.\n- Calling `cuboid_volume(0, 5, 2)` returns **`0`**, because a zero dimension produces zero volume.\n\nYour function should return the computed volume, preserving the numeric type of the inputs.\n\nThis exercise reinforces several important programming concepts:\n\n- Applying a **geometric formula** in code.\n- Working with **multiple numeric parameters**.\n- Understanding **type preservation** in arithmetic operations.\n- Handling **zero values** correctly in calculations.\n\nVolume calculations are used in shipping logistics, packaging design, construction, fluid dynamics, and many engineering applications.",
+    "original_statement": "A logistics warehouse needs to automate packaging. Write a function `cuboid_volume` that accepts three dimensions of a rectangular box — length, width, and height — and calculates its total volumetric space.\n\n**Examples:**\n- `cuboid_volume(10, 5, 2)` → `100`\n- `cuboid_volume(1, 1, 1)` → `1`\n- `cuboid_volume(0, 5, 2)` → `0`",
+    "hints": [
+      "Volume is simply length * width * height — multiplication handles it all.",
+      "If all inputs are integers and the product is integral, Python returns an int; convert to float if consistency matters.",
+      "A zero dimension correctly yields zero volume."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-square-concat-digits",
+    "module": "python-practice",
+    "title": "Digit-by-Digit Square Concatenation",
+    "func_name": "square_concat_digits",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "statement": "Digit manipulation is a classic programming exercise that combines **string conversion**, **iteration**, and **mathematical operations** into a single, satisfying pipeline.\n\nIn this challenge, your task is to transform an integer by isolating each of its digits, squaring each digit independently, and concatenating the resulting squared values in their original order to form a new integer.\n\nFor example:\n\n- Calling `square_concat_digits(9119)` returns **`811181`**: digits are `9, 1, 1, 9`, squares are `81, 1, 1, 81`, concatenated as `811181`.\n- Calling `square_concat_digits(0)` returns **`0`**, the square of zero.\n- Calling `square_concat_digits(3)` returns **`9`**, the square of the single digit `3`.\n\nYour function should return the concatenated squared result as an integer.\n\nThis exercise reinforces several important programming concepts:\n\n- Converting between **integers and strings**.\n- **Iterating** over the digits of a number.\n- Performing per-element **mathematical transformations**.\n- **Concatenating** string representations of numbers.\n\nDigit-based transformations appear in checksum algorithms, data encoding, number theory problems, and various coding challenges.",
+    "original_statement": "Transform an integer by isolating each of its digits, squaring each one independently, and concatenating the resulting squares in their original order to form a new integer.\n\nFor example, 9119 becomes 9²=81, 1²=1, 1²=1, 9²=81 → concatenated as 811181.\n\n**Examples:**\n- `square_concat_digits(9119)` → `811181`\n- `square_concat_digits(0)` → `0`\n- `square_concat_digits(3)` → `9`",
+    "hints": [
+      "Convert the integer to a string to iterate over digits.",
+      "Square each digit using int(d)**2 and convert back to string for concatenation.",
+      "Handle the edge case of n=0 separately — int(\"0\")**2 = 0."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-min-max-range",
+    "module": "python-practice",
+    "title": "Extreme Bounds: Range Finder",
+    "func_name": "min_max_range",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "numbers_str"
+    ],
+    "statement": "Parsing structured text into usable data is a fundamental programming skill. Raw strings often encode information that must be extracted, converted, and analyzed before it becomes useful.\n\nIn this challenge, your task is to parse a space-separated string of integers, identify the **maximum** and **minimum** values, and return them formatted as a string in `\"MAX MIN\"` order.\n\nFor example:\n\n- Calling `min_max_range(\"1 9 3 4 -5\")` returns **`\"9 -5\"`**: the maximum is `9` and the minimum is `-5`.\n- Calling `min_max_range(\"42\")` returns **`\"42 42\"`**, since a single value is both the maximum and minimum.\n- Calling `min_max_range(\"-10 -20 -30\")` returns **`\"-10 -30\"`**: max is `-10`, min is `-30`.\n\nYour function should return the formatted string with the maximum and minimum separated by a single space.\n\nThis exercise reinforces several important programming concepts:\n\n- **Splitting** strings into component parts.\n- **Converting** string representations to numeric types.\n- Using built-in **`max()`** and **`min()`** functions.\n- **Formatting** results back into strings.\n\nText parsing and numeric extraction are essential skills used in log analysis, configuration files, data import, and many other real-world scenarios.",
+    "original_statement": "You are given a raw text string of numbers separated by single spaces. Parse this string, identify the maximum and minimum values, and return them formatted as `\"MAX MIN\"`.\n\n**Examples:**\n- `min_max_range(\"1 9 3 4 -5\")` → `\"9 -5\"`\n- `min_max_range(\"42\")` → `\"42 42\"`\n- `min_max_range(\"-10 -20 -30\")` → `\"-10 -30\"`",
+    "hints": [
+      "Split the string with `.split(\" \")` to get a list of digit-strings.",
+      "Convert each element to an integer using `map(int, ...)` or a list comprehension.",
+      "Use built-in `max()` and `min()`, convert back to strings, and format as `f\"{max_val} {min_val}\"`."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-years-to-double",
+    "module": "python-practice",
+    "title": "Generational Alignment: Age Relativity Calculator",
+    "func_name": "years_to_double_age",
+    "return_type": "int",
+    "param_types": [
+      "int",
+      "int"
+    ],
+    "param_names": [
+      "parent_age",
+      "child_age"
+    ],
+    "statement": "Algebraic relationships appear frequently in programming problems. Modeling a real-world relationship — such as age difference over time — with a simple equation is a great way to practice translating word problems into code.\n\nIn this challenge, your task is to calculate how many years it will take (or has taken) for a parent to be **exactly twice as old** as their child, given their current ages. The result should always be a non-negative integer, regardless of whether this moment lies in the past or the future.\n\nFor example:\n\n- Calling `years_to_double_age(30, 5)` returns **`20`**: in 20 years, the parent will be 50 and the child will be 25.\n- Calling `years_to_double_age(40, 20)` returns **`0`**: the parent is already exactly twice as old as the child.\n- Calling `years_to_double_age(50, 30)` returns **`10`**: 10 years ago, the parent was 40 and the child was 20.\n\nYour function should return the non-negative number of years until (or since) the parent is exactly twice the child's age.\n\nThis exercise reinforces several important programming concepts:\n\n- Translating a **word problem** into a mathematical equation.\n- Using **algebra** to model linear relationships.\n- Computing **absolute values** to guarantee non-negative results.\n- Understanding that time differences can be bidirectional.\n\nAge relationship problems are a classic introduction to algorithmic thinking and are commonly used in coding interviews and math competitions.",
+    "original_statement": "Given the current age of a parent and the current age of a child, calculate how many years it will take (or has taken) for the parent to be exactly twice as old as the child.\n\nThe result must always be a non-negative integer, regardless of whether this moment is in the past or the future.\n\n**Examples:**\n- `years_to_double_age(30, 5)` → `20` (in 20 years, father is 50, son is 25)\n- `years_to_double_age(40, 20)` → `0` (right now, father is exactly twice as old)\n- `years_to_double_age(50, 30)` → `10` (10 years ago, father was 40, son was 20)",
+    "hints": [
+      "The equation is: parent + years = 2 * (child + years).",
+      "Solve for years: years = parent - 2 * child.",
+      "Take the absolute value using abs() to guarantee a non-negative result."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-extract-positives",
+    "module": "python-practice",
+    "title": "The Conditional Sensor: Zero-Biased Filter",
+    "func_name": "extract_positives",
+    "return_type": "list",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "numbers"
+    ],
+    "statement": "Filtering data based on conditions is one of the most common operations in programming. Whether you are selecting valid records, removing outliers, or isolating specific categories, conditional filtering is a skill you will use constantly.\n\nIn this challenge, your task is to write a function that extracts only the **positive** elements from a list of numbers. If the list contains exclusively non-positive values (negatives and zeros), or is empty, your function should return an empty list.\n\nFor example:\n\n- Calling `extract_positives([-1, 0, 3, 5, -2])` returns **`[3, 5]`**, keeping only the positive values.\n- Calling `extract_positives([-1, -5, 0])` returns **`[]`**, since no values are positive.\n- Calling `extract_positives([])` returns **`[]`**, an empty list from empty input.\n\nYour function should return a new list containing only the positive elements, preserving their original order.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **list comprehensions** for filtering.\n- Applying **conditional guards** to select elements.\n- Understanding that **zero is not positive**.\n- Returning a **new list** without mutating the original.\n\nData filtering is essential in data analysis, search systems, report generation, and any application that processes collections of records.",
+    "original_statement": "Write a function `extract_positives` that processes a list of numbers and extracts only the positive elements. If the list contains exclusively non-positive numbers (negatives and zeros), return an empty list as a system flag.\n\n**Examples:**\n- `extract_positives([-1, 0, 3, 5, -2])` → `[3, 5]`\n- `extract_positives([-1, -5, 0])` → `[]`\n- `extract_positives([])` → `[]`",
+    "hints": [
+      "Use a list comprehension: `[x for x in arr if x > 0]`.",
+      "If no element satisfies the condition, the comprehension naturally returns an empty list.",
+      "The comprehension handles empty input correctly — it returns []."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-trim-variable-ends",
+    "module": "python-practice",
+    "title": "Custom Boundary Trim: Variable Index Stripper",
+    "func_name": "trim_variable_ends",
+    "return_type": "str",
+    "param_types": [
+      "str",
+      "int"
+    ],
+    "param_names": [
+      "text",
+      "n"
+    ],
+    "statement": "Generalizing a simple operation to accept **parameters** is a key step in building reusable, flexible functions. A fixed trim becomes far more useful when the number of characters to remove is configurable.\n\nIn this challenge, your task is to upgrade the basic string-trimming concept. Write a function that takes a string and an integer `n`, and removes `n` characters from both the front and the back of the string. If `2 × n` equals or exceeds the string length, return an empty string.\n\nFor example:\n\n- Calling `trim_variable_ends(\"hello world\", 3)` returns **`\"lo wo\"`**, removing three characters from each end.\n- Calling `trim_variable_ends(\"hello world\", 0)` returns **`\"hello world\"`** unchanged.\n- Calling `trim_variable_ends(\"abcd\", 2)` returns **`\"\"`**, since removing two from each end consumes the entire string.\n\nYour function should return the trimmed string, or an empty string if the trim amount is too large.\n\nThis exercise reinforces several important programming concepts:\n\n- **Generalizing** functions with configurable parameters.\n- Using **string slicing** with variable indices.\n- Handling **boundary conditions** where the trim exceeds the string length.\n- Understanding the relationship between string length and safe slicing ranges.\n\nConfigurable string operations are used in text formatting, data truncation, log processing, and user interface design.",
+    "original_statement": "Upgrade the basic string-trimming concept. Write `trim_variable_ends` that takes a string and an integer `n`, and removes `n` characters from the front and `n` characters from the back.\n\n**Examples:**\n- `trim_variable_ends(\"hello world\", 3)` → `\"lo wo\"`\n- `trim_variable_ends(\"hello world\", 0)` → `\"hello world\"`\n- `trim_variable_ends(\"abcd\", 2)` → `\"\"`",
+    "hints": [
+      "Slice with `str[n:-n]` — but only if `2*n < len(str)`.",
+      "If `n == 0`, the slice returns the entire string unchanged.",
+      "When `2*n >= len(str)` or the string is empty, return an empty string."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-strict-deep-equals",
+    "module": "python-practice",
+    "title": "Strict Deep Equivalence Search",
+    "func_name": "strict_deep_equals",
+    "return_type": "bool",
+    "param_types": [
+      "list",
+      "any"
+    ],
+    "param_names": [
+      "items",
+      "target"
+    ],
+    "statement": "Python's dynamic typing system is powerful, but it can lead to surprising behavior when comparing values of different types. Understanding the difference between **value equality** and **type identity** is crucial for writing robust search logic.\n\nIn this challenge, your task is to implement a strict search function that checks whether a target value exists in a list using both **value equality** AND **type matching**. The string `\"5\"` should NOT match the number `5`, and the boolean `True` should NOT match the integer `1`.\n\nFor example:\n\n- Calling `strict_deep_equals([1, \"2\", 3], 1)` returns **`True`**: the integer `1` matches in both value and type.\n- Calling `strict_deep_equals([1, \"2\", 3], \"1\")` returns **`False`**: the string `\"1\"` does not match the integer `1`.\n- Calling `strict_deep_equals([True, 0], 1)` returns **`False`**: `True` is a bool, not an int, even though `True == 1` in Python.\n\nYour function should return `True` only if the target value is found with an exact type match.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding **type identity** with `type()` versus value equality with `==`.\n- Recognizing Python's **bool-to-int** coercion behavior.\n- Implementing **type-aware search** logic.\n- Distinguishing between related but distinct data types.\n\nType-aware comparison is important in data validation, strict search systems, configuration checking, and any context where type safety matters.",
+    "original_statement": "Standard inclusion checks can fail due to weak type matching. Create a strict search function `strict_deep_equals` that ensures both the value AND the data type match exactly.\n\nThe string `\"5\"` should NOT match the number `5`. The boolean `True` should NOT match the integer `1`.\n\n**Examples:**\n- `strict_deep_equals([1, \"2\", 3], 1)` → `True`\n- `strict_deep_equals([1, \"2\", 3], \"1\")` → `False` (string \"1\" !== int 1)\n- `strict_deep_equals([True, 0], 1)` → `False` (True is bool, 1 is int)",
+    "hints": [
+      "Python's `type(x)` returns the exact type — `type(1) == int`, `type(True) == bool`.",
+      "Use `type(x) == type(y) and x == y` to enforce both type and value match.",
+      "Alternatively, `isinstance(x, int) and not isinstance(x, bool)` can distinguish bool from int."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  },
+  {
+    "slug": "py-account-ledger",
+    "module": "python-practice",
+    "title": "Balanced Account Ledger",
+    "func_name": "account_ledger",
+    "return_type": "dict",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "transactions"
+    ],
+    "statement": "Financial calculations are a practical and rewarding domain for practicing **aggregation** and **conditional classification**. Tracking income and expenses is a core feature of countless applications.\n\nIn this challenge, your task is to write a function that analyzes a list of financial transactions — where positive integers represent **deposits** and negative integers represent **withdrawals** — and returns a dictionary with the net balance and an account status.\n\nFor example:\n\n- Calling `account_ledger([100, -50, 200, -30])` returns **`{\"net_balance\": 220, \"status\": \"PROFIT\"}`**: net balance is 220, which is positive.\n- Calling `account_ledger([-100, -50])` returns **`{\"net_balance\": -150, \"status\": \"DEBT\"}`**: net balance is -150, which is negative.\n- Calling `account_ledger([10, -10, 0])` returns **`{\"net_balance\": 0, \"status\": \"BALANCED\"}`**: net balance is exactly zero.\n\nYour function should return a dictionary with keys `\"net_balance\"` (int) and `\"status\"` (one of `\"PROFIT\"`, `\"DEBT\"`, or `\"BALANCED\"`).\n\nThis exercise reinforces several important programming concepts:\n\n- **Summing** values across a collection.\n- Using **conditional logic** to classify outcomes.\n- Building and returning **structured dictionaries**.\n- Applying **real-world business rules** to data.\n\nFinancial aggregation is used in banking apps, budgeting tools, accounting software, and any system that tracks monetary flows.",
+    "original_statement": "Imagine a financial tracking app. Positive integers are deposits, negative integers are withdrawals. Write `account_ledger` that analyzes transaction history and returns a dictionary with the net balance and an account status.\n\n**Examples:**\n- `account_ledger([100, -50, 200, -30])` → `{\"net_balance\": 220, \"status\": \"PROFIT\"}`\n- `account_ledger([-100, -50])` → `{\"net_balance\": -150, \"status\": \"DEBT\"}`\n- `account_ledger([10, -10, 0])` → `{\"net_balance\": 0, \"status\": \"BALANCED\"}`",
+    "hints": [
+      "Compute net balance with `sum(transactions)`.",
+      "Use conditionals: if net > 0 → \"PROFIT\"; if net < 0 → \"DEBT\"; else → \"BALANCED\".",
+      "Return a dictionary: `{\"net_balance\": net, \"status\": status}`."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-erase-target-char",
+    "module": "python-practice",
+    "title": "Target Punctuation Eraser",
+    "func_name": "erase_target_char",
+    "return_type": "str",
+    "param_types": [
+      "str",
+      "str"
+    ],
+    "param_names": [
+      "text",
+      "target"
+    ],
+    "statement": "Building **reusable** and **configurable** utilities is a hallmark of good software design. A function that removes a hardcoded character becomes far more useful when the target character can be specified dynamically.\n\nIn this challenge, your task is to create a dynamic cleaning function that takes a text string and a **target character**, and removes every occurrence of that character from the text. If the target is an empty string, return the original text unchanged.\n\nFor example:\n\n- Calling `erase_target_char(\"Hello, World!\", \",\")` returns **`\"Hello World!\"`**, removing the comma.\n- Calling `erase_target_char(\"banana\", \"a\")` returns **`\"bnn\"`**, stripping every `a` from the word.\n- Calling `erase_target_char(\"Mississippi\", \"s\")` returns **`\"Miiippi\"`**, removing all `s` characters.\n\nYour function should return the sanitized string with all occurrences of the target character removed.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`str.replace()`** for global character removal.\n- Handling **edge cases** such as an empty target string.\n- Making functions **configurable** through parameters.\n- Understanding **string immutability** and the need to return new strings.\n\nDynamic character removal is used in text sanitization, input cleaning, data preprocessing, and formatting pipelines.",
+    "original_statement": "Expand the sanitization engine. Instead of hardcoding a specific character, create a dynamic cleaning function `erase_target_char` that takes a text string and a target character to eliminate globally.\n\n**Examples:**\n- `erase_target_char(\"Hello, World!\", \",\")` → `\"Hello World!\"`\n- `erase_target_char(\"banana\", \"a\")` → `\"bnn\"`\n- `erase_target_char(\"Mississippi\", \"s\")` → `\"Miiippi\"`",
+    "hints": [
+      "Use `text.replace(target, \"\")` to remove all instances of the target character.",
+      "If `target` is an empty string, return `text` unchanged to avoid an infinite loop.",
+      "Remember that `.replace()` returns a new string — strings in Python are immutable."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-calculate-density",
+    "module": "python-practice",
+    "title": "Material Density Calculator",
+    "func_name": "calculate_density",
+    "return_type": "float",
+    "param_types": [
+      "float",
+      "float",
+      "float",
+      "float"
+    ],
+    "param_names": [
+      "length",
+      "width",
+      "height",
+      "mass"
+    ],
+    "statement": "Combining **geometry** and **physics** formulas in code is a great way to practice multi-step mathematical functions. Density is a fundamental physical property that relates mass and volume.\n\nIn this challenge, your task is to write a function that calculates the **density** of a material given its three dimensions (length, width, height) and its mass. The formula is: Density = Mass / Volume, where Volume = length × width × height. The result should be rounded to exactly two decimal places.\n\nFor example:\n\n- Calling `calculate_density(10, 5, 2, 100)` returns **`1.0`**: volume is `100`, density is `100 / 100 = 1.0`.\n- Calling `calculate_density(1, 1, 1, 10)` returns **`10.0`**: volume is `1`, density is `10 / 1 = 10.0`.\n- Calling `calculate_density(3, 3, 3, 27)` returns **`1.0`**: volume is `27`, density is `27 / 27 = 1.0`.\n\nYour function should return the density rounded to two decimal places.\n\nThis exercise reinforces several important programming concepts:\n\n- Applying **multi-step mathematical formulas**.\n- Computing **volume** from three dimensions.\n- Using **`round()`** for output formatting.\n- Working with **multiple parameters** of the same type.\n\nDensity calculations are used in materials science, engineering, quality control, and logistics for determining material properties and shipping weights.",
+    "original_statement": "Advance the volume calculator into a physics utility. Write `calculate_density` that uses three dimensions (length, width, height) and a mass value to compute the material's density.\n\nDensity = Mass / Volume, where Volume = length × width × height.\n\nReturn the density rounded to exactly two decimal places.\n\n**Examples:**\n- `calculate_density(10, 5, 2, 100)` → `1.0`\n- `calculate_density(1, 1, 1, 10)` → `10.0`\n- `calculate_density(3, 3, 3, 27)` → `1.0`",
+    "hints": [
+      "Compute volume as `length * width * height`.",
+      "Divide mass by volume to get density: `mass / volume`.",
+      "Use `round(density, 2)` to format to two decimal places."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-reverse-square-concat",
+    "module": "python-practice",
+    "title": "Structural Digit Inversion",
+    "func_name": "reverse_square_concat",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "statement": "Combining **iteration**, **transformation**, and **reversal** into a single pipeline is a fun way to practice multi-step data processing. Small variations on a theme can produce entirely different results.\n\nIn this challenge, your task is to build on the digit-squaring concept but with a twist: after squaring each digit of an integer, concatenate the squared values in **reverse order** before converting back to an integer.\n\nFor example:\n\n- Calling `reverse_square_concat(34)` returns **`169`**: digits are `3` and `4`, squares are `9` and `16`, reversed concatenation is `169`.\n- Calling `reverse_square_concat(0)` returns **`0`**, the square of zero.\n- Calling `reverse_square_concat(10)` returns **`1`**: digits are `1` and `0`, squares are `1` and `0`, reversed is `01` → `1`.\n\nYour function should return the concatenated result as an integer.\n\nThis exercise reinforces several important programming concepts:\n\n- **Reversing** sequences in Python.\n- Building **processing pipelines** with multiple steps.\n- Converting between **numeric and string representations**.\n- Understanding how **leading zeros** behave in integer conversion.\n\nMulti-step digit transformations are used in checksum algorithms, data encoding schemes, and various mathematical puzzles.",
+    "original_statement": "Receive an integer, separate it into its individual digits, square each digit, and concatenate the squared values in REVERSE order.\n\nFor 34: digits are 3 and 4. Squares are 9 and 16. Reversed concatenation: 169.\n\n**Examples:**\n- `reverse_square_concat(34)` → `169`\n- `reverse_square_concat(0)` → `0`\n- `reverse_square_concat(10)` → `1`",
+    "hints": [
+      "Convert to string, iterate over digits in reverse with `reversed()`.",
+      "Square each digit: `int(d)**2` → convert to string.",
+      "Join all squared strings and convert back to integer with `int()`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  },
+  {
+    "slug": "py-remove-extremes",
+    "module": "python-practice",
+    "title": "Extreme Outlier Remover",
+    "func_name": "remove_extremes",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "numbers_str"
+    ],
+    "statement": "Outlier removal is a common technique in **statistical analysis** and **data cleaning**. By stripping away extreme values, you can analyze the central tendency of a dataset without being skewed by anomalies.\n\nIn this challenge, your task is to parse a space-separated string of integers, identify the maximum and minimum values, remove **all occurrences** of both extremes, and return the remaining numbers as a new space-separated string. If fewer than three numbers are provided, return an empty string.\n\nFor example:\n\n- Calling `remove_extremes(\"3 1 4 1 5 9\")` returns **`\"3 4 1 5\"`**: removes the max `9` and the min `1` (both occurrences).\n- Calling `remove_extremes(\"1 2\")` returns **`\"\"`**, since fewer than three numbers cannot spare the extremes.\n- Calling `remove_extremes(\"5 5 5 5\")` returns **`\"5 5\"`**: after removing all `5`s (both max and min), only the middle values remain.\n\nYour function should return the filtered string with extremes removed, or an empty string if input has fewer than three numbers.\n\nThis exercise reinforces several important programming concepts:\n\n- **Parsing** structured text into numeric data.\n- Computing **extrema** with `max()` and `min()`.\n- **Filtering** out all occurrences of specific values.\n- Handling **insufficient data** edge cases.\n\nExtreme value removal is used in scientific data analysis, survey processing, financial modeling, and quality control applications.",
+    "original_statement": "Given a space-separated string of integers, identify the maximum and minimum values, remove them completely, and return a new string of the remaining numbers.\n\nIf fewer than 3 numbers are provided, return an empty string — there are not enough elements to sacrifice the extremes.\n\n**Examples:**\n- `remove_extremes(\"3 1 4 1 5 9\")` → `\"3 4 1 5\"`\n- `remove_extremes(\"1 2\")` → `\"\"`\n- `remove_extremes(\"5 5 5 5\")` → `\"5 5\"`",
+    "hints": [
+      "Split the string into a list of integers.",
+      "Find the minimum and maximum with `min()` and `max()`.",
+      "Filter out elements that equal either extreme: `[x for x in nums if x != min_val and x != max_val]`, then join back."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  },
+  {
+    "slug": "py-century-milestone",
+    "module": "python-practice",
+    "title": "Historical Century Milestone Planner",
+    "func_name": "century_milestone",
+    "return_type": "int",
+    "param_types": [
+      "list",
+      "int"
+    ],
+    "param_names": [
+      "ages",
+      "current_year"
+    ],
+    "statement": "Working with **multiple data points** and projecting relationships into **future time** combines several important programming skills: finding extremes, applying formulas, and computing calendar years.\n\nIn this challenge, your task is to extend the age-ratio concept to multi-person datasets. Given a list of family member ages and the current calendar year, determine the exact future year when the **oldest** member will be exactly twice as old as the **youngest** member.\n\nFor example:\n\n- Calling `century_milestone([30, 5], 2026)` returns **`2046`**: oldest (30→50) will be twice youngest (5→25) in 20 years.\n- Calling `century_milestone([40, 20], 2026)` returns **`2026`**: the ages are already in the exact double relationship.\n- Calling `century_milestone([10, 5, 15], 2026)` returns **`2036`**: oldest (15→25) and youngest (5→15) reach the milestone in 10 years.\n\nYour function should return the calendar year as an integer.\n\nThis exercise reinforces several important programming concepts:\n\n- Finding **extrema** across a collection with `max()` and `min()`.\n- Applying **algebraic formulas** to time-based problems.\n- Computing **future dates** from mathematical relationships.\n- Handling **already-met** conditions correctly.\n\nTime-projection problems appear in financial planning, demographic analysis, project scheduling, and retirement calculators.",
+    "original_statement": "Given a list of family member ages and the current calendar year, determine the exact future year when the oldest member will be exactly twice as old as the youngest member.\n\n**Examples:**\n- `century_milestone([30, 5], 2026)` → `2046` (oldest 30→50, youngest 5→25 in 20 years)\n- `century_milestone([40, 20], 2026)` → `2026` (already exactly double)\n- `century_milestone([10, 5, 15], 2026)` → `2036` (oldest 15→25, youngest 5→15)",
+    "hints": [
+      "Find the oldest and youngest ages with `max(ages)` and `min(ages)`.",
+      "Use the formula: `years = oldest - 2 * youngest` (could be negative).",
+      "Add the absolute years to the current year, but handle past vs future correctly."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-trimmed-average",
+    "module": "python-practice",
+    "title": "Outlier-Resilient Trim Average",
+    "func_name": "trimmed_average",
+    "return_type": "float",
+    "param_types": [
+      "list"
+    ],
+    "param_names": [
+      "numbers"
+    ],
+    "statement": "**Robust statistics** are designed to resist the influence of outliers. The trimmed mean — which discards the highest and lowest values before averaging — is a classic example of a statistical estimator that reduces sensitivity to extreme data points.\n\nIn this challenge, your task is to implement a trimmed mean calculation: remove a single occurrence of the **maximum** value and a single occurrence of the **minimum** value from a list, then compute the average of the remaining elements. If the resulting list has two or fewer elements, return `0.0`.\n\nFor example:\n\n- Calling `trimmed_average([1, 2, 3, 4, 100])` returns **`3.0`**: removes `1` and `100`, averages `[2, 3, 4]`.\n- Calling `trimmed_average([5, 5, 5])` returns **`5.0`**: removes one `5` (max) and one `5` (min), averages `[5]`.\n- Calling `trimmed_average([1, 2])` returns **`0.0`**: after removing extremes, too few elements remain.\n\nYour function should return the trimmed mean as a floating-point number, or `0.0` for insufficient data.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`.remove()`** to delete specific elements from a list.\n- Computing **averages** after filtering.\n- Handling **small dataset** edge cases.\n- Implementing **robust statistical** estimators.\n\nTrimmed means are widely used in scientific research, economic indicators, performance benchmarking, and any analysis where outliers can distort results.",
+    "original_statement": "Calculate a robust average by stripping away the single highest and single lowest values before computing the mean. This outlier-resistant technique is used in scientific data analysis.\n\nIf removing the extremes leaves 2 or fewer elements (or the array was empty), return 0 — there is not enough data for a meaningful average.\n\n**Examples:**\n- `trimmed_average([1, 2, 3, 4, 100])` → `3.0` (removes 1 and 100, averages [2,3,4])\n- `trimmed_average([5, 5, 5])` → `5.0` (removes 5 and 5, averages [5])\n- `trimmed_average([1, 2])` → `0.0` (only 2 elements after trimming → 0)",
+    "hints": [
+      "Use `max()` and `min()` to find the extremes, then `.remove()` each once.",
+      "`.remove()` only removes the first occurrence, which is the correct behavior here.",
+      "If the remaining list has <= 2 elements after removal, return 0.0."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-remove-around-substring",
+    "module": "python-practice",
+    "title": "Substring Boundary Eraser",
+    "func_name": "remove_around_substring",
+    "return_type": "str",
+    "param_types": [
+      "str",
+      "str"
+    ],
+    "param_names": [
+      "source",
+      "target"
+    ],
+    "statement": "Advanced string manipulation often requires **precise index arithmetic** to locate and extract or remove specific portions of text. Combining search with slicing is a powerful technique for text processing.\n\nIn this challenge, your task is to create a function that locates the **first occurrence** of a target substring within a source string, then removes the characters immediately preceding and following it — along with the target itself. If the target is not found, return the original string unchanged.\n\nFor example:\n\n- Calling `remove_around_substring(\"abcdefg\", \"cd\")` returns **`\"abfg\"`**: removes `c` (before), `cd` (target), and `e` (after).\n- Calling `remove_around_substring(\"hello world\", \"lo wo\")` returns **`\"held\"`**: removes the target and its neighboring characters.\n- Calling `remove_around_substring(\"abcdefg\", \"xyz\")` returns **`\"abcdefg\"`**: unchanged because the target was not found.\n\nYour function should return the modified string after removing the target and its neighbors.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **`.find()`** to locate substrings.\n- Performing **index-based slicing** with boundary awareness.\n- Handling edge cases where the target is at the **start or end** of the string.\n- Combining **search and replace** logic.\n\nPrecision string manipulation is used in text editors, parsers, search-and-replace tools, and data extraction systems.",
+    "original_statement": "Create an advanced string parser. Given a primary string and a target substring, locate the first occurrence of that substring, then remove the characters immediately preceding and following it.\n\nIf the target is not found, return the original string unchanged.\n\n**Examples:**\n- `remove_around_substring(\"abcdefg\", \"cd\")` → `\"abfg\"` (removes \"cde\" — \"c\" before, \"cd\" target, \"e\" after)\n- `remove_around_substring(\"hello world\", \"lo wo\")` → `\"held\"` (removes \"lo wo\" and its neighbors)\n- `remove_around_substring(\"abcdefg\", \"xyz\")` → `\"abcdefg\"` (not found)",
+    "hints": [
+      "Use `source.find(target)` to locate the starting index. If -1, return source unchanged.",
+      "The slice to remove starts at `idx - 1` (if idx > 0) and ends at `idx + len(target) + 1` (if within bounds).",
+      "Construct the result by concatenating `source[:start] + source[end:]`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-find-in-nested",
+    "module": "python-practice",
+    "title": "Multi-Dimensional Inclusion Indexer",
+    "func_name": "find_in_nested",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "any"
+    ],
+    "param_names": [
+      "matrix",
+      "target"
+    ],
+    "statement": "**Nested data structures** are common in real-world programming. A matrix (list of lists) can represent grids, tables, images, or any two-dimensional dataset. Searching such structures requires navigating multiple levels of indexing.\n\nIn this challenge, your task is to search a 2D matrix — a list of lists — for a target value and return its coordinates as `[row, column]`. If the target does not exist anywhere in the matrix, return `[-1, -1]`.\n\nFor example:\n\n- Calling `find_in_nested([[1, 2], [3, 4]], 3)` returns **`[1, 0]`**: row `1`, column `0`.\n- Calling `find_in_nested([[1, 2], [3, 4]], 5)` returns **`[-1, -1]`**: the target is not present.\n- Calling `find_in_nested([[5]], 5)` returns **`[0, 0]`**: the only element in the matrix.\n\nYour function should return a list containing the row and column indices of the first occurrence, or `[-1, -1]` if not found.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **nested loops** to traverse 2D structures.\n- Tracking **positional indices** during iteration.\n- Returning **coordinates** rather than the value itself.\n- Handling **empty or absent** search results.\n\n2D searching is used in game development (grid-based games), image processing (pixel coordinates), data analysis (spreadsheets), and robotics (grid navigation).",
+    "original_statement": "Upgrade the containment check to handle nested data. Write `find_in_nested` that searches a 2D matrix (list of lists) for a target value and returns its `[row, column]` coordinates.\n\nIf the target does not exist, return `[-1, -1]`.\n\n**Examples:**\n- `find_in_nested([[1, 2], [3, 4]], 3)` → `[1, 0]`\n- `find_in_nested([[1, 2], [3, 4]], 5)` → `[-1, -1]`\n- `find_in_nested([[5]], 5)` → `[0, 0]`",
+    "hints": [
+      "Use a nested loop: `for i, row in enumerate(matrix): for j, val in enumerate(row):`.",
+      "When you find the target, immediately return `[i, j]`.",
+      "If the loop completes without finding the target, return `[-1, -1]`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-chunked-parity",
+    "module": "python-practice",
+    "title": "Array Segment Parity Summary",
+    "func_name": "chunked_parity_summary",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "int"
+    ],
+    "param_names": [
+      "numbers",
+      "k"
+    ],
+    "statement": "**Chunking** data into fixed-size segments and analyzing each segment independently is a common pattern in data processing. It combines list slicing, iteration with steps, and per-segment aggregation.\n\nIn this challenge, your task is to partition an array of integers into consecutive chunks of size `k`. For each chunk, calculate two metrics: the **count of positive numbers** and the **sum of negative numbers**. Return these as a list of `[pos_count, neg_sum]` pairs. The final chunk may be smaller than `k` if the array length is not evenly divisible.\n\nFor example:\n\n- Calling `chunked_parity_summary([1, -2, 3, -4, 5, -6], 2)` returns **`[[1, -2], [1, -4], [1, -6]]`**: three chunks of size 2.\n- Calling `chunked_parity_summary([1, -1, 2, -2, 3], 3)` returns **`[[1, -1], [1, -2]]`**: two chunks, the last being smaller.\n\nYour function should return a list of `[pos_count, neg_sum]` pairs for each chunk.\n\nThis exercise reinforces several important programming concepts:\n\n- **Slicing** lists into fixed-size chunks.\n- Iterating with a **step value** using `range()`.\n- Computing **per-chunk statistics**.\n- Handling **partial final chunks** correctly.\n\nChunked data processing is used in batch processing, pagination, signal processing, data streaming, and distributed computing.",
+    "original_statement": "Partition an array of integers into consecutive chunks of size `k`. For each chunk, calculate: the count of positive numbers and the sum of negative numbers. Return these summaries as a list of `[pos_count, neg_sum]` pairs.\n\nThe final chunk may be smaller than `k` if the array length is not evenly divisible.\n\n**Examples:**\n- `chunked_parity_summary([1, -2, 3, -4, 5, -6], 2)` → `[[1, -2], [1, -4], [1, -6]]`\n- `chunked_parity_summary([1, -1, 2, -2, 3], 3)` → `[[1, -1], [1, -2]]`",
+    "hints": [
+      "Iterate with step `k`: `for i in range(0, len(arr), k)`.",
+      "Slice the chunk: `chunk = arr[i:i+k]`.",
+      "For each chunk, count positives (x > 0) and sum negatives (x < 0), then append `[pos_count, neg_sum]`."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-condense-punctuation",
+    "module": "python-practice",
+    "title": "Sequential Punctuation Condenser",
+    "func_name": "condense_punctuation",
+    "return_type": "str",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "text"
+    ],
+    "statement": "**Regular expressions** provide a powerful way to search for and manipulate text patterns. While simple string methods handle many cases, regex becomes essential for pattern-based transformations like collapsing repeated characters.\n\nIn this challenge, your task is to write a function that scans text for consecutive repeated exclamation marks (`!`) or question marks (`?`) and collapses each run into a single instance. Other repeated characters — like letters or digits — must remain completely unchanged.\n\nFor example:\n\n- Calling `condense_punctuation(\"Hello!!! What???\")` returns **`\"Hello! What?\"`**: three `!` become one, three `?` become one.\n- Calling `condense_punctuation(\"No change\")` returns **`\"No change\"`**: no punctuation to condense.\n- Calling `condense_punctuation(\"!!!???!!!\")` returns **`\"!?\"`**: each run collapses to a single character.\n\nYour function should return the normalized string with consecutive `!` and `?` collapsed.\n\nThis exercise reinforces several important programming concepts:\n\n- Using the **`re` module** for pattern-based substitution.\n- Working with **backreferences** in regular expressions.\n- Building **text normalization** utilities.\n- Understanding the difference between **character-level and pattern-level** operations.\n\nText normalization is used in chat applications, search engines, data cleaning pipelines, and natural language processing systems.",
+    "original_statement": "Write a clean-up function that scans text for consecutive repeated `!` or `?` marks and collapses each run into a single instance.\n\nThis normalizes messy user inputs like \"Hello!!! What???\" into clean \"Hello! What?\" without affecting other repeated characters.\n\n**Examples:**\n- `condense_punctuation(\"Hello!!! What???\")` → `\"Hello! What?\"`\n- `condense_punctuation(\"No change\")` → `\"No change\"`\n- `condense_punctuation(\"!!!???!!!\")` → `\"!?\"`",
+    "hints": [
+      "Use `re.sub(r\"([!?])\\1+\", r\"\\1\", text)` with the `re` module.",
+      "The pattern `([!?])` captures one punctuation, `\\1+` matches one or more repeats.",
+      "Alternatively, iterate character-by-character and skip duplicates of `!` or `?`."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-max-boxes-in-container",
+    "module": "python-practice",
+    "title": "Shipping Container Optimization Engine",
+    "func_name": "max_boxes_in_container",
+    "return_type": "int",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "container",
+      "box"
+    ],
+    "statement": "**Optimization problems** that involve fitting items into a limited space are common in logistics, manufacturing, and resource allocation. Even a simple version of such a problem teaches important lessons about integer division and constraints.\n\nIn this challenge, your task is to calculate the maximum number of identical boxes that can fit inside a rectangular container — assuming all boxes are packed in the same orientation (no rotation). Given the container dimensions `[L, W, H]` and box dimensions `[l, w, h]`, compute how many boxes fit along each axis using integer division.\n\nFor example:\n\n- Calling `max_boxes_in_container([10, 10, 10], [2, 2, 2])` returns **`125`**: `5 × 5 × 5 = 125` boxes.\n- Calling `max_boxes_in_container([10, 10, 10], [3, 3, 3])` returns **`27`**: `3 × 3 × 3 = 27` boxes.\n- Calling `max_boxes_in_container([5, 5, 5], [6, 1, 1])` returns **`0`**: the box is too long for the container.\n\nYour function should return the maximum number of boxes that can fit, or `0` if the box cannot fit at all.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **integer division** (`//`) for discrete packing.\n- Solving **constrained optimization** problems.\n- Handling **infeasible** configurations gracefully.\n- Translating real-world **spatial reasoning** into code.\n\nContainer packing calculations are used in shipping logistics, warehouse management, packaging design, and inventory planning.",
+    "original_statement": "A logistics company needs to maximize container utilization. Given container dimensions `[L, W, H]` and product box dimensions `[l, w, h]`, calculate the maximum number of boxes that can fit inside the container — assuming all boxes are packed in the same orientation.\n\n**Examples:**\n- `max_boxes_in_container([10, 10, 10], [2, 2, 2])` → `125` (5×5×5 = 125 boxes)\n- `max_boxes_in_container([10, 10, 10], [3, 3, 3])` → `27` (3×3×3 = 27 boxes)\n- `max_boxes_in_container([5, 5, 5], [6, 1, 1])` → `0`",
+    "hints": [
+      "Compute how many boxes fit along each axis using integer division: `L // l`, `W // w`, `H // h`.",
+      "Multiply the three axis counts: `(L // l) * (W // w) * (H // h)`.",
+      "If any box dimension exceeds the container, the division yields 0, and the product becomes 0 — naturally correct."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "py-high-low-square-map",
+    "module": "python-practice",
+    "title": "High-Low Digit Map Reducer",
+    "func_name": "high_low_square_map",
+    "return_type": "int",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "statement": "Combining **extreme value detection** with digit manipulation creates an interesting multi-step pipeline that exercises several core programming skills at once.\n\nIn this challenge, your task is to isolate the digits of an integer, find the **highest** and **lowest** digit values, square each of these two extreme digits, concatenate the squared results (high first, then low), and convert back to an integer.\n\nFor example:\n\n- Calling `high_low_square_map(2817)` returns **`641`**: digits are `2, 8, 1, 7`, highest is `8` (`64`), lowest is `1` (`1`), concatenated as `641`.\n- Calling `high_low_square_map(5)` returns **`2525`**: highest and lowest are both `5` (`25`), concatenated twice gives `2525`.\n- Calling `high_low_square_map(100)` returns **`10`**: digits are `1, 0, 0`, highest is `1` (`1`), lowest is `0` (`0`), concatenated as `10`.\n\nYour function should return the concatenated squared result as an integer.\n\nThis exercise reinforces several important programming concepts:\n\n- Finding **extreme digits** within a number.\n- Building **multi-step processing pipelines**.\n- Converting between **strings and integers** repeatedly.\n- Handling **identical min and max** values correctly.\n\nExtreme digit analysis appears in checksum algorithms, number theory problems, and various data encoding schemes.",
+    "original_statement": "Given a large integer, isolate its digits, find the highest and lowest digit values. Square these two extreme digits, concatenate the squared results, and convert back to an integer.\n\nFor 2817: digits are 2, 8, 1, 7. Highest is 8 → 64. Lowest is 1 → 1. Concatenated: 641.\n\n**Examples:**\n- `high_low_square_map(2817)` → `641`\n- `high_low_square_map(5)` → `2525` (highest=5, lowest=5 → 25 concatenated with 25 = 2525)\n- `high_low_square_map(100)` → `10`",
+    "hints": [
+      "Extract digits using `str(n)` and convert to integers with `map(int, str(n))`.",
+      "Find `max_digit` and `min_digit`, then compute `max_sq = max_digit**2` and `min_sq = min_digit**2`.",
+      "Concatenate as strings: `int(str(max_sq) + str(min_sq))`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "py-is-palindrome",
+    "module": "python-practice",
+    "title": "Palindrome Verifier",
+    "func_name": "is_palindrome",
+    "return_type": "bool",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "s"
+    ],
+    "statement": "A **palindrome** is a word, phrase, or sequence that reads the same forwards and backwards. Palindrome checking is a classic programming exercise that combines string cleaning, case normalization, and comparison.\n\nIn this challenge, your task is to write a function that checks whether a given string is a palindrome, **ignoring case** and **non-alphanumeric characters**. Empty strings should be considered trivially palindrome.\n\nFor example:\n\n- Calling `is_palindrome(\"A man, a plan, a canal: Panama\")` returns **`True`**: after removing spaces and punctuation and ignoring case, it reads the same forwards and backwards.\n- Calling `is_palindrome(\"race a car\")` returns **`False`**: the cleaned string is not symmetric.\n- Calling `is_palindrome(\"\")` returns **`True`**: an empty string is trivially a palindrome.\n\nYour function should return `True` if the string is a palindrome, `False` otherwise.\n\nThis exercise reinforces several important programming concepts:\n\n- **Filtering** strings to keep only alphanumeric characters.\n- Performing **case-insensitive** comparisons.\n- **Reversing** strings with slicing.\n- Handling **edge cases** like empty input.\n\nPalindrome checking is a classic coding interview problem that tests string manipulation, filtering, and algorithmic thinking.",
+    "original_statement": "A palindrome reads the same forwards and backwards. Write `is_palindrome` that checks whether a given string is a palindrome, ignoring case and non-alphanumeric characters.\n\n**Examples:**\n- `is_palindrome(\"A man, a plan, a canal: Panama\")` → `True`\n- `is_palindrome(\"race a car\")` → `False`\n- `is_palindrome(\"\")` → `True` (empty string is trivially a palindrome)",
+    "hints": [
+      "Filter to keep only alphanumeric characters: `c.isalnum()`.",
+      "Convert to lowercase with `.lower()`.",
+      "Compare the cleaned string to its reverse: `cleaned == cleaned[::-1]`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  },
+  {
+    "slug": "py-count-vowels",
+    "module": "python-practice",
+    "title": "Vowel Counter",
+    "func_name": "count_vowels",
+    "return_type": "int",
+    "param_types": [
+      "str"
+    ],
+    "param_names": [
+      "s"
+    ],
+    "statement": "Character classification and counting is a fundamental string processing skill. Determining how many vowels appear in a piece of text is a simple but instructive exercise in **iteration**, **membership testing**, and **accumulation**.\n\nIn this challenge, your task is to write a function that counts the total number of vowels (`a, e, i, o, u`) in a given string, ignoring case. The letter `y` is not considered a vowel.\n\nFor example:\n\n- Calling `count_vowels(\"Hello World\")` returns **`3`**: vowels are `e`, `o`, and `o`.\n- Calling `count_vowels(\"PYTHON\")` returns **`1`**: only the letter `O` is a vowel.\n- Calling `count_vowels(\"Rhythm\")` returns **`0`**: no vowel characters found.\n\nYour function should return the integer count of vowels in the string.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a **set** of target characters for efficient lookup.\n- **Iterating** through characters in a string.\n- Performing **case-insensitive** comparisons.\n- **Accumulating** a count through summation.\n\nVowel counting is a common warm-up exercise for string processing and appears in text analysis, language processing, and educational software.",
+    "original_statement": "Write a function `count_vowels` that returns the total number of vowels (a, e, i, o, u) in a given string. The count must be case-insensitive.\n\n**Examples:**\n- `count_vowels(\"Hello World\")` → `3`\n- `count_vowels(\"PYTHON\")` → `1`\n- `count_vowels(\"Rhythm\")` → `0`",
+    "hints": [
+      "Define a set of vowels: `vowels = set(\"aeiou\")`.",
+      "Iterate through the lowercased string and count matches: `sum(1 for c in s.lower() if c in vowels)`.",
+      "Using a set for vowels gives O(1) lookup per character."
+    ],
+    "difficulty": 2,
+    "xp_reward": 90
+  },
+  {
+    "slug": "py-array-intersection",
+    "module": "python-practice",
+    "title": "Array Intersection Finder",
+    "func_name": "array_intersection",
+    "return_type": "list",
+    "param_types": [
+      "list",
+      "list"
+    ],
+    "param_names": [
+      "a",
+      "b"
+    ],
+    "statement": "Set operations are a powerful tool for working with collections of data. Finding the **intersection** of two lists — the elements they have in common — is a fundamental operation in data analysis and search.\n\nIn this challenge, your task is to write a function that takes two lists of integers and returns a **sorted list of the elements common to both lists**, with no duplicates. The order of the original lists should not affect the result.\n\nFor example:\n\n- Calling `array_intersection([1, 2, 3, 4], [3, 4, 5, 6])` returns **`[3, 4]`**: the common elements.\n- Calling `array_intersection([1, 2, 3], [4, 5, 6])` returns **`[]`**: no elements in common.\n- Calling `array_intersection([1, 1, 2, 2], [1, 2])` returns **`[1, 2]`**: duplicates are removed.\n\nYour function should return a sorted list of unique common elements.\n\nThis exercise reinforces several important programming concepts:\n\n- Converting lists to **sets** for efficient operations.\n- Using the **intersection operator** (`&`) for set operations.\n- Removing **duplicates** from results.\n- **Sorting** the final output.\n\nSet intersection is used in database queries, search engines, recommendation systems, and any application that compares collections of items.",
+    "original_statement": "Given two lists of integers, write `array_intersection` that returns a sorted list of elements common to both lists — with no duplicates.\n\n**Examples:**\n- `array_intersection([1, 2, 3, 4], [3, 4, 5, 6])` → `[3, 4]`\n- `array_intersection([1, 2, 3], [4, 5, 6])` → `[]`\n- `array_intersection([1, 1, 2, 2], [1, 2])` → `[1, 2]`",
+    "hints": [
+      "Convert both lists to sets: `set(a)` and `set(b)`.",
+      "Use the `&` operator for intersection: `set(a) & set(b)`.",
+      "Convert back to a sorted list: `sorted(list(result))`."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  },
+  {
+    "slug": "py-fizzbuzz-sequence",
+    "module": "python-practice",
+    "title": "FizzBuzz Sequence Generator",
+    "func_name": "fizzbuzz_sequence",
+    "return_type": "list",
+    "param_types": [
+      "int"
+    ],
+    "param_names": [
+      "n"
+    ],
+    "statement": "**FizzBuzz** is one of the most famous programming exercises, and for good reason: it elegantly tests your ability to combine **modular arithmetic**, **conditional chaining**, and **list accumulation** in a small amount of code.\n\nIn this challenge, your task is to generate the FizzBuzz sequence up to a given number `n`. For each number from `1` to `n`, determine its value:\n- If divisible by **both 3 and 5**: `\"FizzBuzz\"`\n- If divisible by **3 only**: `\"Fizz\"`\n- If divisible by **5 only**: `\"Buzz\"`\n- Otherwise: the number itself as a string\n\nReturn the results as a list of strings.\n\nFor example:\n\n- Calling `fizzbuzz_sequence(5)` returns **`[\"1\", \"2\", \"Fizz\", \"4\", \"Buzz\"]`**: the first five entries.\n- Calling `fizzbuzz_sequence(15)` returns a 15-element list ending with **`\"FizzBuzz\"`** at position 15.\n- Calling `fizzbuzz_sequence(0)` returns **`[]`**: no numbers to evaluate.\n\nYour function should return a list of strings representing the FizzBuzz sequence.\n\nThis exercise reinforces several important programming concepts:\n\n- Using the **modulo operator** (`%`) for divisibility checks.\n- Chaining **conditional checks** in the correct order.\n- Converting numbers to **string representations**.\n- Building a **list progressively** through iteration.\n\nFizzBuzz is famously used in programming interviews as a quick filter test and is an excellent benchmark of basic coding proficiency.",
+    "original_statement": "Generate the FizzBuzz sequence up to `n`. For each number from 1 to n:\n- If divisible by 3 and 5: `\"FizzBuzz\"`\n- If divisible by 3 only: `\"Fizz\"`\n- If divisible by 5 only: `\"Buzz\"`\n- Otherwise: the number as a string\n\nReturn the results as a list of strings.\n\n**Examples:**\n- `fizzbuzz_sequence(5)` → `[\"1\", \"2\", \"Fizz\", \"4\", \"Buzz\"]`\n- `fizzbuzz_sequence(15)` → `[\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\",\"Fizz\",\"7\",\"8\",\"Fizz\",\"Buzz\",\"11\",\"Fizz\",\"13\",\"14\",\"FizzBuzz\"]`\n- `fizzbuzz_sequence(0)` → `[]`",
+    "hints": [
+      "Loop from 1 to n with `range(1, n+1)`.",
+      "Check divisibility by 15 FIRST (`x % 15 == 0`), then 3, then 5.",
+      "Append the appropriate string to a result list each iteration."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-anagram-checker",
+    "module": "python-practice",
+    "title": "Anagram Checker",
+    "func_name": "anagram_checker",
+    "return_type": "bool",
+    "param_types": [
+      "str",
+      "str"
+    ],
+    "param_names": [
+      "a",
+      "b"
+    ],
+    "statement": "Two strings are **anagrams** if they contain the same characters in the same frequency. Anagram checking is a classic problem that tests string processing, sorting, and frequency analysis.\n\nIn this challenge, your task is to write a function that determines whether two strings are anagrams of each other. The comparison should **ignore case** and **ignore non-alphanumeric characters**. Empty strings are trivially anagrams of each other.\n\nFor example:\n\n- Calling `anagram_checker(\"listen\", \"silent\")` returns **`True`**: both contain the same letters in the same frequency.\n- Calling `anagram_checker(\"Hello\", \"Ole! h!\")` returns **`True`**: after cleaning and lowercasing, both reduce to `\"hello\"`.\n- Calling `anagram_checker(\"hello\", \"world\")` returns **`False`**: the character sets are entirely different.\n\nYour function should return `True` if the strings are anagrams, `False` otherwise.\n\nThis exercise reinforces several important programming concepts:\n\n- **Normalizing** strings by removing unwanted characters.\n- Performing **case-insensitive** comparisons.\n- Using **sorting** or **frequency counting** for comparison.\n- Handling **edge cases** like empty strings.\n\nAnagram checking is used in word games, spell checkers, cryptography, and natural language processing applications.",
+    "original_statement": "Two strings are anagrams if they contain the same characters in the same frequency. Write `anagram_checker` that determines whether two strings are anagrams, ignoring case and non-alphanumeric characters.\n\n**Examples:**\n- `anagram_checker(\"listen\", \"silent\")` → `True`\n- `anagram_checker(\"Hello\", \"Ole! h!\")` → `True`\n- `anagram_checker(\"hello\", \"world\")` → `False`",
+    "hints": [
+      "Sanitize both strings: keep only alphanumeric chars, convert to lowercase.",
+      "Compare sorted versions: `sorted(a) == sorted(b)`.",
+      "Or use collections.Counter: `Counter(a) == Counter(b)` — both handle character frequency."
+    ],
+    "difficulty": 3,
+    "xp_reward": 120
+  }
+]
