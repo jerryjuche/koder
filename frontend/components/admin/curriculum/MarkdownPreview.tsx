@@ -93,6 +93,7 @@ export default function MarkdownPreview({ content, className }: MarkdownPreviewP
           img({ src, alt }) {
             return (
               <div className="relative overflow-hidden rounded-lg border border-border my-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt={alt || ""} className="w-full h-auto object-cover" loading="lazy" />
               </div>
             );

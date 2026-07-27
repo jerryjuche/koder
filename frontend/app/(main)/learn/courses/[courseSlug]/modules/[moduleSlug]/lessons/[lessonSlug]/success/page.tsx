@@ -185,7 +185,7 @@ export default function LessonSuccessPage() {
             </h1>
 
             <p className="text-base text-muted-foreground font-medium mb-4">
-              "{title}"
+              &quot;{title}&quot;
             </p>
 
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold text-sm mb-6 shadow-sm">
@@ -343,7 +343,7 @@ export default function LessonSuccessPage() {
               <div className="pt-2 border-t border-border/40 text-center py-4">
                 <Trophy className="mx-auto mb-2 text-amber-400" size={28} />
                 <h4 className="font-bold text-sm text-foreground">Module Complete!</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">You've mastered all lessons in this module.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">You&apos;ve mastered all lessons in this module.</p>
               </div>
             )}
           </div>

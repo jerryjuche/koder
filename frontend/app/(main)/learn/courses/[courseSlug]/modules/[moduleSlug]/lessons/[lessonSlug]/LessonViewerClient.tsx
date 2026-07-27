@@ -104,6 +104,7 @@ export default function LessonViewerClient() {
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -270,7 +271,7 @@ export default function LessonViewerClient() {
   }, []);
 
   // Navigation
-  const allLessons = moduleData?.lessons || [];
+  const allLessons = useMemo(() => moduleData?.lessons || [], [moduleData?.lessons]);
   const currentIndex = allLessons.findIndex((l) => l.slug === lessonSlug);
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
