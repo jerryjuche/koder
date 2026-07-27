@@ -29,6 +29,7 @@ import {
   Edit3,
   Save,
   ChevronRight,
+  Home,
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { cn, getDifficultyColor, getDifficultyLabel, shuffleArray } from "@/lib/utils";
@@ -590,6 +591,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       {/* Workspace Header */}
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
         <div className="flex items-center gap-4 min-w-0 flex-1">
+          <Link
+            href="/home"
+            className="flex items-center justify-center w-8 h-8 text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover rounded-lg transition-colors shrink-0"
+            title="Home"
+          >
+            <Home size={18} />
+          </Link>
           <Link
             href={returnTo}
             className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
