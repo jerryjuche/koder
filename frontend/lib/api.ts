@@ -57,9 +57,11 @@ async function tryRefreshToken(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
-    if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
       localStorage.removeItem("koder_token");
       localStorage.removeItem("refresh_token");
+      success = false;
+    } else if (!res.ok) {
       success = false;
     } else {
       const data = await res.json();
@@ -74,8 +76,6 @@ async function tryRefreshToken(): Promise<boolean> {
       success = true;
     }
   } catch {
-    localStorage.removeItem("koder_token");
-    localStorage.removeItem("refresh_token");
     success = false;
   } finally {
     isRefreshing = false;

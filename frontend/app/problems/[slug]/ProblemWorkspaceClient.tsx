@@ -221,6 +221,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     : "/home";
 
   useEffect(() => {
+    clearCache(`/problems/${slug}`);
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
