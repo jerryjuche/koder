@@ -301,6 +301,35 @@ func AuthMiddleware(cfg *config.Config, store store.Store) func(http.Handler) ht
 	}
 }
 
+// OptionalAuthMiddleware validates the Authorization header or httpOnly cookie if present and attaches claims to context, but permits unauthenticated access.
+func OptionalAuthMiddleware(cfg *config.Config, store store.Store) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authorization := r.Header.Get("Authorization")
+			if authorization == "" {
+				cookie, err := r.Cookie("koder_token")
+				if err == nil && cookie.Value != "" {
+					authorization = "Bearer " + cookie.Value
+				}
+			}
+
+			const bearerPrefix = "Bearer "
+			if len(authorization) > len(bearerPrefix) && authorization[:len(bearerPrefix)] == bearerPrefix {
+				token := authorization[len(bearerPrefix):]
+				claims, err := auth.VerifyToken(token, cfg.JWTSecret)
+				if err == nil && claims != nil {
+					blacklisted, bErr := store.IsTokenBlacklisted(r.Context(), claims.ID)
+					if bErr == nil && !blacklisted {
+						ctx := context.WithValue(r.Context(), claimsContextKey, claims)
+						r = r.WithContext(ctx)
+					}
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // AdminOnly middleware restricts access to endpoints to users with the "admin" role.
 func AdminOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

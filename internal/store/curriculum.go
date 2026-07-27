@@ -360,10 +360,13 @@ func (s *PostgresStore) ToggleModuleLock(ctx context.Context, id uuid.UUID) (*Mo
 
 // ListLessons returns all lessons for a module ordered by order_number.
 func (s *PostgresStore) ListLessons(ctx context.Context, moduleID uuid.UUID) ([]Lesson, error) {
-	query := `SELECT id, module_id, slug, title, description, raw_readme,
-		difficulty, estimated_minutes, xp_reward, order_number, visible,
-		problem_references, created_at, updated_at
-		FROM lessons WHERE module_id = $1 ORDER BY order_number`
+	query := `SELECT l.id, l.module_id, l.slug, l.title, l.description, l.raw_readme,
+		l.difficulty, l.estimated_minutes, l.xp_reward, l.order_number, l.visible,
+		COALESCE(
+			(SELECT ARRAY_AGG(ref) FROM UNNEST(l.problem_references) ref WHERE EXISTS (SELECT 1 FROM problems p WHERE p.slug = ref)),
+			'{}'::text[]
+		) AS problem_references, l.created_at, l.updated_at
+		FROM lessons l WHERE l.module_id = $1 ORDER BY l.order_number`
 
 	rows, err := s.pool.Query(ctx, query, moduleID)
 	if err != nil {
@@ -393,7 +396,10 @@ func (s *PostgresStore) ListLessons(ctx context.Context, moduleID uuid.UUID) ([]
 func (s *PostgresStore) GetLessonBySlug(ctx context.Context, courseSlug, moduleSlug, lessonSlug string) (*Lesson, error) {
 	query := `SELECT l.id, l.module_id, l.slug, l.title, l.description, l.raw_readme,
 		l.difficulty, l.estimated_minutes, l.xp_reward, l.order_number, l.visible,
-		l.problem_references, l.created_at, l.updated_at
+		COALESCE(
+			(SELECT ARRAY_AGG(ref) FROM UNNEST(l.problem_references) ref WHERE EXISTS (SELECT 1 FROM problems p WHERE p.slug = ref)),
+			'{}'::text[]
+		) AS problem_references, l.created_at, l.updated_at
 		FROM lessons l
 		JOIN modules m ON m.id = l.module_id
 		JOIN courses c ON c.id = m.course_id
@@ -416,10 +422,13 @@ func (s *PostgresStore) GetLessonBySlug(ctx context.Context, courseSlug, moduleS
 
 // GetLessonByID returns a lesson by its ID.
 func (s *PostgresStore) GetLessonByID(ctx context.Context, id uuid.UUID) (*Lesson, error) {
-	query := `SELECT id, module_id, slug, title, description, raw_readme,
-		difficulty, estimated_minutes, xp_reward, order_number, visible,
-		problem_references, created_at, updated_at
-		FROM lessons WHERE id = $1`
+	query := `SELECT l.id, l.module_id, l.slug, l.title, l.description, l.raw_readme,
+		l.difficulty, l.estimated_minutes, l.xp_reward, l.order_number, l.visible,
+		COALESCE(
+			(SELECT ARRAY_AGG(ref) FROM UNNEST(l.problem_references) ref WHERE EXISTS (SELECT 1 FROM problems p WHERE p.slug = ref)),
+			'{}'::text[]
+		) AS problem_references, l.created_at, l.updated_at
+		FROM lessons l WHERE l.id = $1`
 
 	var l Lesson
 	err := s.pool.QueryRow(ctx, query, id).Scan(
