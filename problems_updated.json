@@ -1,0 +1,128 @@
+[
+  {
+    "slug": "py-arr-str-count-vowels",
+    "title": "Count Vowels",
+    "module": "python-arrays-strings",
+    "statement": "Text processing is one of the most common tasks in software development.\n\nWhether you're building a search engine, validating user input, or analyzing documents, you'll often need to examine a **string** one character at a time to identify specific patterns.\n\nIn this challenge, your task is to count the total number of **vowels** in a given string.\n\nA vowel is any of the following characters: `a`, `e`, `i`, `o`, or `u`.\nBoth **uppercase** and **lowercase** vowels must be included in the final count.\n\nAs you iterate through the string, examine each character individually.\nWhenever you encounter a vowel, **increase your running count**.\nContinue until every character has been processed.\n\nFor example:\n\n- **`\"Hello World\"`** contains **`3`** vowels (`e`, `o`, `o`).\n- **`\"PYTHON\"`** contains **`1`** vowel (`O`).\n- **`\"rhythm\"`** contains **`0`** vowels.\n\nYour function should return the **total number of vowels** found in the string.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **string** one character at a time.\n- Using **conditional statements** to evaluate characters.\n- Maintaining a **running counter** while processing data.\n- Comparing characters against a predefined set of values.\n\nCharacter-by-character processing is a fundamental technique used in **text analysis**, **data validation**, **search engines**, **natural language processing**, and many other real-world software applications.",
+    "original_statement": "A **string** is a sequence of characters that can be processed one character at a time. \n\nBy iterating through a string, you can inspect each character and perform operations based on specific conditions.\n\nIn this challenge, your task is to count the number of **vowels** in a given string. \n\nA vowel is any of the following characters: `a`, `e`, `i`, `o`, or `u`. \nBoth **uppercase** and **lowercase** vowels should be included in the final count.\n\nAs you examine each character, determine whether it is a vowel. If it is, increase your count and continue until every character in the string has been processed.\n\nThis exercise helps reinforce several core programming concepts:\n\n- Iterating through a **string** one character at a time.\n- Using **conditional statements** to test each character.\n- Maintaining a **running count** while processing data.\n- Solving a common text-processing problem found in many real-world applications.\n\nCharacter counting is a fundamental technique used in text analysis, data validation, search algorithms, and many other programming tasks.",
+    "func_name": "count_vowels",
+    "return_type": "int",
+    "param_types": ["text"],
+    "param_names": ["s"],
+    "hints": [
+      "Convert the string to lowercase with .lower() before checking so you only need to compare against lowercase vowels.",
+      "Use the in operator to check if a character is in the string \"aeiou\".",
+      "Initialize a counter variable to zero, then increment it for each vowel you find."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-arr-str-count-words",
+    "title": "Count Words",
+    "module": "python-arrays-strings",
+    "statement": "Applications that work with text frequently need to determine **how many words** a piece of content contains.\n\nWord counting is a fundamental operation used in document editors, blogging platforms, search engines, and natural language processing systems.\n\nIn this challenge, your task is to count the total number of **words** contained in a sentence.\n\nA word is any sequence of non-whitespace characters separated by one or more whitespace characters.\nYour solution should correctly handle **multiple consecutive spaces**, as well as **leading** and **trailing whitespace**.\n\nFor example:\n\n- **`\"Python makes programming fun\"`** contains **`4`** words.\n- **`\"  hello   world  \"`** contains **`2`** words, even though extra spaces appear between and around the words.\n- An **empty string** contains **`0`** words.\n\nYour function should return the **total number of words** found in the input string.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and textual data.\n- Separating text into individual **words**.\n- Counting the number of elements in a collection.\n- Handling **edge cases** involving empty input and irregular whitespace.\n\nWord counting is a foundational text-processing technique used in **document analysis**, **search indexing**, **content management systems**, **AI applications**, and many other real-world software systems.",
+    "original_statement": "A **sentence** is a sequence of words separated by whitespace. \nProcessing text often begins by identifying and working with these individual words.\n\nIn this challenge, your task is to determine how many **words** are contained in a given sentence. \n\nA word is any sequence of non-whitespace characters separated by one or more spaces.\n\nYour function should return the total number of words in the sentence. \nIt should correctly handle sentences with multiple spaces, as well as leading or trailing whitespace.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text data.\n- Splitting a string into individual words.\n- Counting the number of elements in a collection.\n- Breaking a larger problem into smaller, manageable steps.\n\nWord counting is a fundamental text-processing operation that is widely used in search engines, document analysis, natural language processing, and many other real-world applications.",
+    "func_name": "count_words",
+    "return_type": "int",
+    "param_types": ["text"],
+    "param_names": ["sentence"],
+    "hints": [
+      "The split() method with no arguments splits on any whitespace and handles multiple spaces automatically.",
+      "Calling split() on an empty string returns an empty list, which has length 0.",
+      "After splitting, use the len() function to count the number of words in the resulting list."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-arr-str-find-max",
+    "title": "Find Maximum Element",
+    "module": "python-arrays-strings",
+    "statement": "Finding the **largest value** in a collection is one of the most fundamental operations in programming.\n\nWhether you're identifying the highest exam score, the warmest temperature, or the largest financial transaction, the underlying approach remains the same: examine each value and keep track of the **best candidate** found so far.\n\nIn this challenge, your task is to determine the **maximum value** in a list of integers.\n\nStarting with an initial candidate, compare each element in the list against the current largest value.\nWhenever you encounter a larger number, **update your result** and continue processing the remaining elements.\n\nFor example:\n\n- **`[5, 2, 9, 1]`** has a maximum value of **`9`**.\n- **`[-8, -2, -15]`** has a maximum value of **`-2`**.\n- **`[7]`** has a maximum value of **`7`**.\n\nYour function should return the **largest integer** contained in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and indexed collections.\n- Iterating through a sequence one element at a time.\n- Using **conditional comparisons** to evaluate values.\n- Tracking and updating a **running maximum** while processing data.\n\nFinding the maximum value is a core programming pattern used in **data analysis**, **search algorithms**, **report generation**, **performance monitoring**, and countless other real-world applications.",
+    "original_statement": "A **list** is an ordered collection that allows you to store multiple values in a single variable. \nEach element has a specific position, known as its **index**, making it easy to access and process individual items.\n\nIn this challenge, your task is to find the **largest value** in a list of numbers. \nAs you iterate through the list, compare each element with the current largest value found so far, updating your result whenever a larger number is encountered.\n\nYour function should return the maximum value contained in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and indexed collections.\n- Iterating through a sequence one element at a time.\n- Comparing values using **conditional logic**.\n- Tracking and updating a result while processing data.\n\nFinding the largest value in a collection is a fundamental programming technique that forms the basis of many real-world applications, including statistical analysis, data processing, and search algorithms.",
+    "func_name": "find_max",
+    "return_type": "int",
+    "param_types": ["int[]"],
+    "param_names": ["nums"],
+    "hints": [
+      "Start by assuming the first element is the maximum, then iterate through the rest of the list.",
+      "Use a for loop to examine each element and update your candidate whenever you find a larger value.",
+      "Think about what happens with negative numbers — the same comparison logic works for all integers."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-arr-str-list-sum",
+    "title": "List Sum",
+    "module": "python-arrays-strings",
+    "statement": "Combining multiple values into a single total is one of the most common operations performed in programming.\n\nFrom calculating shopping expenses and game scores to summarizing sales reports and sensor readings, developers frequently need to process a collection by accumulating its values into a **running total**.\n\nIn this challenge, your task is to calculate the **sum** of all the integers in a list.\n\nProcess each element one at a time, adding its value to a running total until every item has been included.\nIf the list is **empty**, there are no values to add, so the result should be **`0`**.\n\nFor example:\n\n- **`[1, 2, 3, 4]`** produces a total of **`10`**.\n- **`[-5, 10, -2]`** produces **`3`**.\n- **`[]`** returns **`0`**.\n\nYour function should return the **sum of every value** in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** one element at a time.\n- Maintaining a **running total** while processing data.\n- Performing arithmetic operations inside a loop.\n- Producing a single result by combining multiple values.\n\nAccumulating values is a fundamental programming technique used in **financial software**, **analytics platforms**, **scientific computing**, **reporting systems**, and many other real-world applications.",
+    "original_statement": "A **list** is an ordered collection of values that can be processed one element at a time. \nOne of the most common operations performed on a list is calculating the **sum** of all its elements.\n\nIn this challenge, your task is to iterate through a list of numbers and compute their total. \nAs you process each element, add its value to a running total until every item in the list has been included.\n\nYour function should return the final sum of all the numbers in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Iterating through a **list** one element at a time.\n- Maintaining a **running total** while processing data.\n- Performing arithmetic operations within a loop.\n- Producing a single result by combining multiple values.\n\nCalculating the sum of a collection is a fundamental programming technique that serves as the basis for many other operations, including counting, averaging, statistical analysis, and data aggregation.",
+    "func_name": "list_sum",
+    "return_type": "int",
+    "param_types": ["int[]"],
+    "param_names": ["numbers"],
+    "hints": [
+      "Initialize a variable to 0 before the loop — this will hold your running total.",
+      "Add each element to your total inside the loop using the += operator.",
+      "An empty list should return 0 — the loop body simply never executes, so the initial value is returned."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "py-arr-str-palindrome",
+    "title": "Palindrome Check",
+    "module": "python-arrays-strings",
+    "statement": "Some words, numbers, and sequences have a unique property: they read exactly the same **forwards** and **backwards**.\n\nThese sequences are known as **palindromes** and are commonly encountered in word puzzles, algorithmic challenges, and string-processing exercises.\n\nIn this challenge, your task is to determine whether a given **string** is a palindrome.\n\nA string is considered a palindrome if reversing its characters produces **exactly the same sequence** as the original.\nEvery character matters, including **uppercase and lowercase letters**, **spaces**, and **punctuation**.\n\nFor example:\n\n- **`\"racecar\"`** is a palindrome because it reads the same in both directions.\n- **`\"level\"`** is also a palindrome.\n- **`\"Python\"`** is **not** a palindrome because its reversed form is different.\n\nYour function should return **`True`** if the input string is a palindrome, or **`False`** otherwise.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and ordered sequences.\n- Comparing two values for **equality**.\n- Understanding how reversing a sequence changes character positions.\n- Solving a classic **pattern-recognition** problem.\n\nPalindrome detection is a fundamental programming exercise that strengthens your understanding of **string manipulation**, **sequence processing**, and **logical reasoning**, making it a common interview question and an excellent introduction to text-based algorithms.",
+    "original_statement": "A **palindrome** is a word, phrase, or sequence of characters that reads the same forwards and backwards. \n\nExamples include `racecar`, `madam`, and `level`.\n\nIn this challenge, your task is to determine whether a given string is a **palindrome**. \n\nA string is considered a palindrome if its characters appear in the same order when read from left to right and from right to left.\n\nTo solve this problem, compare the original string with its reversed version. If both are identical, the string is a palindrome. \nOtherwise, it is not.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and character sequences.\n- Comparing two values to determine equality.\n- Understanding how reversing a sequence changes the order of its elements.\n- Solving a common pattern recognition problem used in algorithms and technical interviews.\n\nPalindrome checking is a fundamental exercise that helps build confidence with string manipulation and logical comparisons, making it an excellent introduction to sequence-based problem solving.",
+    "func_name": "is_palindrome",
+    "return_type": "bool",
+    "param_types": ["text"],
+    "param_names": ["s"],
+    "hints": [
+      "The most concise approach: reverse the string with [::-1] and check if it equals the original with ==.",
+      "A palindrome reads the same forwards and backwards — an empty string and a single character are both palindromes.",
+      "If you use a loop, compare characters from the start and end moving inward, and return False as soon as a mismatch is found."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-arr-str-remove-duplicates",
+    "title": "Remove Duplicates",
+    "module": "python-arrays-strings",
+    "statement": "Real-world datasets often contain **duplicate values**.\n\nBefore data can be analyzed, displayed, or stored efficiently, these repeated entries frequently need to be removed while preserving the original order of meaningful information.\n\nIn this challenge, your task is to remove **duplicate values** from a list while preserving the order of their **first appearance**.\n\nThe **first occurrence** of each value should be kept.\nAny subsequent occurrences of the same value should be ignored.\nThe relative order of the remaining elements must remain unchanged.\n\nFor example:\n\n- **`[1, 2, 2, 3, 1, 4]`** becomes **`[1, 2, 3, 4]`**.\n- **`[5, 5, 5]`** becomes **`[5]`**.\n- **`[]`** remains **`[]`**.\n\nYour function should return a **new list** containing each unique value **exactly once**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and ordered collections.\n- Identifying and filtering **duplicate** values.\n- Tracking previously encountered elements.\n- Building a new collection while preserving the original ordering.\n\nRemoving duplicates while maintaining order is a common operation in **data cleaning**, **ETL pipelines**, **database processing**, **analytics systems**, and many other real-world software applications.",
+    "original_statement": "A **list** is an ordered collection that can contain multiple values, including duplicate elements. \n\nWhile duplicates are sometimes useful, there are many situations where you need to work with only the unique values in a collection.\n\nIn this challenge, your task is to remove all duplicate values from a list while preserving the order in which each value first appears. \n\nThe first occurrence of every value should be kept, and any subsequent occurrences should be discarded.\n\nYour function should return a **new list** containing each unique value exactly once, without modifying the original ordering of the remaining elements.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and ordered collections.\n- Iterating through a sequence one element at a time.\n- Identifying and handling **duplicate** values.\n- Building a new collection while preserving the original order of unique elements.\n\nRemoving duplicates while maintaining order is a common operation in data processing, data cleaning, and many real-world programming tasks.",
+    "func_name": "remove_duplicates",
+    "return_type": "list",
+    "param_types": ["int[]"],
+    "param_names": ["nums"],
+    "hints": [
+      "Use a set to track which values you have already seen — membership testing with a set is fast.",
+      "Build a new result list by appending elements that are not yet in the seen set, then add them to the set.",
+      "An empty list should return an empty list — no iterations means nothing to add."
+    ],
+    "difficulty": 2,
+    "xp_reward": 100
+  },
+  {
+    "slug": "py-arr-str-reverse-string",
+    "title": "Reverse a String",
+    "module": "python-arrays-strings",
+    "statement": "Reordering text is one of the most common operations performed when working with **strings**.\n\nReversing a string is a classic programming exercise that helps you understand how characters are stored in sequence and how their positions can be manipulated to produce new results.\n\nIn this challenge, your task is to create a **new string** whose characters appear in the **reverse order** of the original.\n\nThe **first character** should become the **last**, the **second** should become the **second-to-last**, and this pattern should continue until every character has been reversed.\n\nFor example:\n\n- **`\"hello\"`** becomes **`\"olleh\"`**.\n- **`\"Python\"`** becomes **`\"nohtyP\"`**.\n- Reversing **`\"a\"`** still produces **`\"a\"`**.\n\nYour function should return a **new string** containing all of the original characters in reverse order.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** as ordered sequences.\n- Understanding **character positions** and indexing.\n- Transforming existing data to produce a new result.\n- Practicing a fundamental text-processing operation.\n\nString reversal is a foundational technique used in **algorithm design**, **data transformation**, **text processing**, and many coding interviews, making it an essential skill for every programmer.",
+    "original_statement": "A **string** is an ordered sequence of characters used to represent text. Each character has a numeric **index**, starting at `0`, which allows you to access and manipulate individual characters.\n\nIn this challenge, your task is to reverse a string by arranging its characters in the opposite order. \nAfter reversing, the first character should become the last, the second should become the second-to-last, and this pattern should continue until the entire string has been reversed.\n\nYour function should return a **new string** containing all of the original characters in reverse order.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** as ordered sequences.\n- Understanding how character positions change within a sequence.\n- Transforming existing data to produce a new result.\n- Practicing a fundamental text-processing operation used in many programming tasks.\n\nReversing a string is a common programming exercise that helps build confidence with sequence manipulation and serves as the foundation for many algorithms involving text processing and data transformation.",
+    "func_name": "reverse_string",
+    "return_type": "str",
+    "param_types": ["text"],
+    "param_names": ["s"],
+    "hints": [
+      "Python strings support slicing with the syntax [start:stop:step] — a step of -1 reverses the string.",
+      "If you iterate manually, track the index from the end of the string and build the result one character at a time.",
+      "An empty string reversed is still an empty string — handle that edge case naturally."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  }
+]

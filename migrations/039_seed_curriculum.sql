@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Koder :: Curriculum CMS Seed Data
 -- Courses → Modules → Lessons → Sections / Projects / Dependencies
 -- ============================================================================
@@ -152,12 +152,12 @@ ON CONFLICT (module_id, slug) DO NOTHING;
 -- ══════════ PYTHON BASICS ══════════
 -- Module: py-hello (2 lessons)
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
-SELECT m.id, 'py-first-program', 'Your First Python Program',    'Write and run your first Python script. Understand the Python REPL, print(), and basic program structure.',                        1, 10, 30, 1, false, ARRAY['py-double-it']::TEXT[]
+SELECT m.id, 'py-first-program', 'Your First Python Program',    'Write and run your first Python script. Understand the Python REPL, print(), and basic program structure.',                        1, 10, 30, 1, false, ARRAY['py-years-to-double']::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basics' AND m.slug = 'py-hello'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
-SELECT m.id, 'py-input-output', 'User Input & Output',           'Reading user input with input(), converting types, f-strings, and formatting output with f-strings and .format().',                1, 15, 40, 2, false, ARRAY['py-even-or-odd']::TEXT[]
+SELECT m.id, 'py-input-output', 'User Input & Output',           'Reading user input with input(), converting types, f-strings, and formatting output with f-strings and .format().',                1, 15, 40, 2, false, ARRAY['py-arr-str-reverse-string']::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basics' AND m.slug = 'py-hello'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
@@ -168,13 +168,13 @@ FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basic
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
-SELECT m.id, 'py-lists-tuples', 'Lists & Tuples',                'Ordered collections: creating, indexing, slicing lists and tuples. List methods: append, extend, insert, remove, sort, reverse.',  1, 20, 50, 2, false, ARRAY['py-reverse-string', 'py-sum-list']::TEXT[]
+SELECT m.id, 'py-lists-tuples', 'Lists & Tuples',                'Ordered collections: creating, indexing, slicing lists and tuples. List methods: append, extend, insert, remove, sort, reverse.',  1, 20, 50, 2, false, ARRAY['py-arr-str-reverse-string', 'py-arr-str-list-sum']::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basics' AND m.slug = 'py-variables'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
 -- Module: py-control (2 lessons)
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
-SELECT m.id, 'py-conditionals', 'Conditionals & Boolean Logic',  'if/elif/else, boolean operators (and, or, not), truthiness, and conditional expressions (ternary) in Python.',                     1, 15, 40, 1, false, ARRAY['py-palindrome-check']::TEXT[]
+SELECT m.id, 'py-conditionals', 'Conditionals & Boolean Logic',  'if/elif/else, boolean operators (and, or, not), truthiness, and conditional expressions (ternary) in Python.',                     1, 15, 40, 1, false, ARRAY['py-arr-str-palindrome']::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basics' AND m.slug = 'py-control'
 ON CONFLICT (module_id, slug) DO NOTHING;
 
@@ -185,7 +185,7 @@ ON CONFLICT (module_id, slug) DO NOTHING;
 
 -- Module: py-functions (2 lessons)
 INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references)
-SELECT m.id, 'py-def-functions', 'Defining Functions',           'def keyword, parameters, return values, default arguments, keyword arguments, *args and **kwargs, and docstrings.',               2, 20, 50, 1, false, ARRAY['py-factorial']::TEXT[]
+SELECT m.id, 'py-def-functions', 'Defining Functions',           'def keyword, parameters, return values, default arguments, keyword arguments, *args and **kwargs, and docstrings.',               2, 20, 50, 1, false, ARRAY['factorial']::TEXT[]
 FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = 'python-basics' AND m.slug = 'py-functions'
 ON CONFLICT (module_id, slug) DO NOTHING;
 

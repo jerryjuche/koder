@@ -25,6 +25,7 @@ import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
 import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
+import { renderMarkdown } from "@/lib/markdown";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
   cn,
@@ -496,13 +497,13 @@ export default function Dashboard() {
 
               {/* Problem Grid */}
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProblems.length === 0 ? (
                     <div className="col-span-full">
                       <Card className="p-10 text-center border-dashed border-white/10 bg-card/50">
@@ -539,14 +540,14 @@ export default function Dashboard() {
                           animationDelay: i * 50 + "ms",
                         }}
                       >
-                        <Card
-                          className={cn(
-                            "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
-                            "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/6",
-                            "animate-in fade-in slide-in-from-bottom-2",
-                            problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
-                          )}
-                        >
+                          <Card
+                            className={cn(
+                              "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border shadow-sm hover:shadow-xl hover:shadow-primary/8",
+                              "hover:-translate-y-1.5 hover:border-primary/30",
+                              "animate-in fade-in slide-in-from-bottom-2",
+                              problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
+                            )}
+                          >
                           {/* Background image with gradient fade */}
                           <div className="absolute inset-0 pointer-events-none">
                             <Image
@@ -566,13 +567,13 @@ export default function Dashboard() {
                           )} />
 
                           {/* Header */}
-                          <CardHeader className="flex-row items-start justify-between p-5 pb-3 space-y-0 relative z-10">
+                          <CardHeader className="flex-row items-start justify-between p-5 pb-2 space-y-0 relative z-10">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
                                 #{String(i + 1).padStart(3, "0")}
                               </span>
                               <span className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                "text-[11px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider",
                                 diffColor[d] || diffColor[3],
                               )}>
                                 {diffLabel[d] || "Medium"}
@@ -586,9 +587,9 @@ export default function Dashboard() {
                           </CardHeader>
 
                           {/* Body */}
-                          <CardContent className="px-5 pb-3 flex-1 flex flex-col relative z-10">
+                          <CardContent className="px-5 pb-2 flex-1 flex flex-col relative z-10">
                             <div className="flex items-start justify-between gap-3 mb-2">
-                              <CardTitle className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                              <CardTitle className="text-base font-extrabold md:text-lg tracking-tight text-foreground group-hover:text-brand-muted-gold transition-colors leading-snug">
                                 {problem.title}
                               </CardTitle>
                               {langs.length > 0 && (
@@ -602,45 +603,46 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-auto">
+                            <div className="text-sm md:text-base text-muted-foreground/80 leading-relaxed line-clamp-2 mb-auto space-y-0 [&_p]:inline [&_p]:m-0 [&_p]:text-muted-foreground/80 [&_strong]:text-foreground/80 [&_code]:text-[13px] [&_code]:bg-white/[0.04] [&_code]:px-1 [&_code]:py-[1px] [&_code]:rounded [&_code]:font-mono [&_ul]:inline [&_ul]:m-0 [&_ol]:inline [&_ol]:m-0 [&_li]:inline [&_li]:m-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_h1]:m-0 [&_h2]:m-0 [&_h3]:m-0 [&_h1]:text-inherit [&_h2]:text-inherit [&_h3]:text-inherit">
                               {problem.statement ? (
-                                problem.statement
-                                  .replace(/<[^>]*>/g, "").replace(/^#+\s+/gm, "")
-                                  .replace(/\*\*/g, "").replace(/```[\s\S]*?```/g, "")
-                                  .split("\n").filter(Boolean).slice(0, 2).join(" ").trim().substring(0, 120)
+                                <span dangerouslySetInnerHTML={{
+                                  __html: renderMarkdown(
+                                    problem.statement.split(/\n\s*\n/)[0]
+                                  ).replace(/\sstyle="[^"]*"/g, ''),
+                                }} />
                               ) : (
                                 <span className="italic">No description</span>
                               )}
-                            </p>
+                            </div>
 
                             {problem.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-3">
                                 {problem.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="text-[10px] font-semibold text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
+                                  <span key={tag} className="text-xs font-medium text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/20 backdrop-blur-[2px]">
                                     {tag}
                                   </span>
                                 ))}
                                 {problem.tags.length > 3 && (
-                                  <span className="text-[10px] text-muted-foreground/60 font-semibold px-1">+{problem.tags.length - 3}</span>
+                                  <span className="text-xs text-muted-foreground/60 font-semibold px-1">+{problem.tags.length - 3}</span>
                                 )}
                               </div>
                             )}
                           </CardContent>
 
                           {/* Footer */}
-                          <CardFooter className="px-5 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/80 font-semibold">
-                                  <span className="flex items-center gap-1">
-                                    <Code size={11} className="shrink-0 text-muted-foreground/50" />
+                          <CardFooter className="px-5 py-3.5 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
+                                <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground/80 font-semibold">
+                                  <span className="flex items-center gap-1.5">
+                                    <Code size={13} className="shrink-0 text-muted-foreground/50" />
                                     {problem.total_submissions || 0}
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <BarChart2 size={11} className="shrink-0 text-muted-foreground/50" />
+                                  <span className="flex items-center gap-1.5">
+                                    <BarChart2 size={13} className="shrink-0 text-muted-foreground/50" />
                                     {Math.round(problem.success_rate || 0)}%
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock size={11} className="shrink-0 text-muted-foreground/50" />
+                                  <span className="flex items-center gap-1.5">
+                                    <Clock size={13} className="shrink-0 text-muted-foreground/50" />
                                     {problem.estTimeMinutes || 0}m
                                   </span>
                                 </div>
@@ -653,7 +655,7 @@ export default function Dashboard() {
                                 <svg width="10" height="13" viewBox="0 0 12 16" fill="currentColor" className="shrink-0">
                                   <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
                                 </svg>
-                                <span className="font-bold text-[11px] tabular-nums">+{problem.xpReward ?? 0}</span>
+                                  <span className="font-bold text-xs tabular-nums">+{problem.xpReward ?? 0}</span>
                               </div>
                             </div>
                           </CardFooter>

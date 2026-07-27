@@ -5,10 +5,36 @@ import { Analytics } from '@vercel/analytics/next';
 import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
 
 export const metadata: Metadata = {
-  title: 'Koder — Code. Learn. Master Go.',
-  description: 'A zero-cost, production-grade automated code-grading platform for Go programming.',
+  metadataBase: new URL('https://koder.sbs'),
+  title: {
+    default: 'Koder — Master Go & Python Programming',
+    template: '%s — Koder',
+  },
+  description:
+    'Automated code-grading platform for Go and Python programming curricula. Solve problems, earn XP, and master software engineering.',
   icons: {
     icon: '/logo.png',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Koder',
+    title: 'Koder — Master Go & Python Programming',
+    description:
+      'Automated code-grading platform for Go and Python programming curricula. Solve problems, earn XP, and master software engineering.',
+    images: [
+      {
+        url: '/logo.png',
+        width: 512,
+        height: 512,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Koder — Master Go & Python Programming',
+    description:
+      'Automated code-grading platform for Go and Python programming curricula.',
+    images: ['/logo.png'],
   },
 };
 

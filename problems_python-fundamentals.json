@@ -1,0 +1,362 @@
+[
+  {
+    "slug": "python-add-and-sort",
+    "title": "Add and Sort",
+    "module": "python-fundamentals",
+    "statement": "Building a list one element at a time and then arranging its contents in order are two of the most common operations performed on collections in programming.\n\nFrom organizing search results to maintaining sorted records, the ability to add data and then sort it is essential in almost every software application.\n\nIn this challenge, your task is to add a new value to the end of a list and then sort the resulting list in ascending order.\n\nIt is important to avoid modifying the original list directly. Instead, create a copy of the input list before making any changes, so the caller's data remains unaffected.\n\nFor example:\n\n- Adding **`2`** to the list **`[3, 1, 4]`** and sorting produces **`[1, 2, 3, 4]`**.\n- Adding **`5`** to an **empty list** produces **`[5]`**.\n\nYour function should return the **new sorted list** containing the original values plus the new value.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **lists** and their contents.\n- **Appending** a new element to a list.\n- **Sorting** a list in ascending order.\n- Avoiding unintended side effects by working on a **copy** of the input.\n\nList manipulation and sorting are fundamental skills used in data processing, search functionality, reporting systems, and countless real-world applications where information must be organized and maintained in order.",
+    "original_statement": "Write a function **`add_and_sort(nums, value)`** that adds `value` to the end of the list `nums`, sorts the resulting list in ascending order, and returns it.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef add_and_sort(nums: list, value: int) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `add_and_sort([3, 1, 4], 2)` returns `[1, 2, 3, 4]`\r\n- `add_and_sort([], 5)` returns `[5]`",
+    "func_name": "add_and_sort",
+    "return_type": "list",
+    "param_types": ["list", "int"],
+    "param_names": ["nums", "value"],
+    "hints": [
+      "The .append() method adds a single new item onto the end of a list.",
+      "The .sort() method rearranges a list's existing items into ascending order, in place.",
+      "Make a copy of the input list before modifying it (list(nums)), so you don't accidentally change the caller's original list."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-apply-multiplier",
+    "title": "Apply a Multiplier",
+    "module": "python-fundamentals",
+    "statement": "Functions in Python are **first-class objects**, which means they can be created, passed around, and even returned by other functions. \nThis makes it possible to build functions that remember information from the scope in which they were created.\n\nIn this challenge, your task is to create a function that **internally defines and uses another function** to multiply a value by a given factor. The inner function should remember the provided `factor` and use it to calculate the final result.\n\nYour function should return the product of `value` and `factor`.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a **function inside another function**.\n- Understanding how inner functions can access variables from their enclosing scope.\n- Using functions as values in Python.\n- Applying closures to create reusable behavior.\n\nNested functions and closures are powerful features that are widely used in decorators, callbacks, higher-order functions, and functional programming patterns.",
+    "original_statement": "Functions in Python are **first-class objects**, which means they can be created, passed around, and even returned by other functions. \nThis makes it possible to build functions that remember information from the scope in which they were created.\n\nIn this challenge, your task is to create a function that **internally defines and uses another function** to multiply a value by a given factor. The inner function should remember the provided `factor` and use it to calculate the final result.\n\nYour function should return the product of `value` and `factor`.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a **function inside another function**.\n- Understanding how inner functions can access variables from their enclosing scope.\n- Using functions as values in Python.\n- Applying closures to create reusable behavior.\n\nNested functions and closures are powerful features that are widely used in decorators, callbacks, higher-order functions, and functional programming patterns.",
+    "func_name": "apply_multiplier",
+    "return_type": "int",
+    "param_types": ["int", "int"],
+    "param_names": ["factor", "value"],
+    "hints": [
+      "A function defined inside another function is called an inner function, and it can be returned just like any other value.",
+      "The inner function multiplier 'remembers' the value of f from the outer function even after make_multiplier has finished running — this remembered value is called a closure.",
+      "Once you have the returned function (times_factor), you call it normally, passing in value, to get the final result."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-classify-number",
+    "title": "Classify a Number",
+    "module": "python-fundamentals",
+    "statement": "Conditional statements allow a program to make decisions by evaluating whether a condition is **true** or **false**. \nThey enable your code to perform different actions depending on the values it receives.\n\nIn this challenge, your task is to determine whether a given number is **positive**, **negative**, or **zero**. Compare the value of `n` against `0` and return the appropriate classification based on the result.\n\nYour function should return one of the following strings:\n\n- `\"positive\"` if `n` is greater than `0`.\n- `\"negative\"` if `n` is less than `0`.\n- `\"zero\"` if `n` is exactly `0`.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **conditional statements** to control program flow.\n- Comparing numeric values with relational operators.\n- Returning different results based on multiple conditions.\n- Handling mutually exclusive cases in a clear and logical way.\n\nClassifying values based on conditions is a fundamental programming skill that appears in validation, decision-making, data processing, and countless real-world applications.",
+    "original_statement": "Conditional statements allow a program to make decisions by evaluating whether a condition is **true** or **false**. \nThey enable your code to perform different actions depending on the values it receives.\n\nIn this challenge, your task is to determine whether a given number is **positive**, **negative**, or **zero**. Compare the value of `n` against `0` and return the appropriate classification based on the result.\n\nYour function should return one of the following strings:\n\n- `\"positive\"` if `n` is greater than `0`.\n- `\"negative\"` if `n` is less than `0`.\n- `\"zero\"` if `n` is exactly `0`.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **conditional statements** to control program flow.\n- Comparing numeric values with relational operators.\n- Returning different results based on multiple conditions.\n- Handling mutually exclusive cases in a clear and logical way.\n\nClassifying values based on conditions is a fundamental programming skill that appears in validation, decision-making, data processing, and countless real-world applications.",
+    "func_name": "classify_number",
+    "return_type": "str",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "An if/elif/else chain checks conditions in order, top to bottom, and runs only the first branch that matches.",
+      "A number is positive if it's greater than 0, negative if it's less than 0, and neither of those covers exactly one remaining case: zero.",
+      "The else branch doesn't need a condition — it automatically catches whatever wasn't matched by if or elif above it."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-clean-and-capitalize",
+    "title": "Clean and Capitalize",
+    "module": "python-fundamentals",
+    "statement": "Real-world text input is often messy, containing extra spaces, inconsistent capitalization, or formatting that must be cleaned before it can be used.\n\nString cleaning and normalization are fundamental operations in text processing, form validation, and data preparation.\n\nIn this challenge, your task is to clean up a string by first removing any leading or trailing whitespace (spaces, tabs, newlines), and then capitalizing it so the first letter is uppercase and the remaining letters are lowercase.\n\nFor example:\n\n- **`\"  hELLO  \"`** becomes **`\"Hello\"`** after stripping whitespace and capitalizing.\n- **`\"python\"`** becomes **`\"Python\"`**.\n\nYour function should return the **cleaned and capitalized string**.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text data.\n- Using string methods to **strip** unwanted whitespace.\n- Using string methods to **capitalize** text with proper casing.\n- **Chaining** multiple method calls to perform sequential transformations.\n\nString cleaning and normalization are essential techniques used in user input processing, data pipelines, search indexing, content management, and many other real-world applications where text quality matters.",
+    "original_statement": "Write a function **`clean_and_capitalize(s)`** that removes any leading or trailing whitespace from `s`, then capitalizes it so the first letter is uppercase and the rest are lowercase.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef clean_and_capitalize(s: str) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `clean_and_capitalize(\"  hELLO  \")` returns `\"Hello\"`\r\n- `clean_and_capitalize(\"python\")` returns `\"Python\"`",
+    "func_name": "clean_and_capitalize",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "The .strip() method removes any leading and trailing whitespace (spaces, tabs, newlines) from a string.",
+      "The .capitalize() method makes the first character uppercase and every other character lowercase.",
+      "Methods can be chained one after another: s.strip().capitalize() runs strip() first, then capitalize() on the result."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-combine-info",
+    "title": "Combine Info",
+    "module": "python-fundamentals",
+    "statement": "Programs often need to combine different types of information\u2014such as text and numbers\u2014into a single, readable message.\n\nThis is one of the most common tasks in software development, appearing in user interfaces, reports, notifications, and logging systems.\n\nIn this challenge, your task is to combine a person's **name** (a string) and their **age** (an integer) into a single descriptive sentence.\n\nFor example:\n\n- A person named **`\"Jerry\"`** aged **`28`** should produce the sentence **`\"Jerry is 28 years old.\"`**\n- A person named **`\"Ada\"`** aged **`36`** should produce **`\"Ada is 36 years old.\"`**\n\nYour function should return a **properly formatted sentence** containing both pieces of information.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **different data types** (strings and integers) in the same function.\n- **Combining values** of different types into a single result.\n- Using **f-strings** for clean and readable string formatting.\n- Formatting output that matches an exact specification.\n\nCombining different types of information into formatted text is a fundamental programming skill used in generating reports, sending emails, creating user messages, logging events, and countless other real-world applications.",
+    "original_statement": "Write a function **`combine_info(name, age)`** that takes a person's `name` (a string) and their `age` (an integer) and returns a sentence describing them.\r\n\r\nThis introduces two of Python's most common variable **types** working together in one function:\r\n- `str` \u2014 text, like `\"Jerry\"`\r\n- `int` \u2014 whole numbers, like `28`\r\n\r\n### Expected function\r\n\r\n```python\r\ndef combine_info(name: str, age: int) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `combine_info(\"Jerry\", 28)` returns `\"Jerry is 28 years old.\"`\r\n- `combine_info(\"Ada\", 36)` returns `\"Ada is 36 years old.\"`",
+    "func_name": "combine_info",
+    "return_type": "str",
+    "param_types": ["str", "int"],
+    "param_names": ["name", "age"],
+    "hints": [
+      "A variable is just a name that points to a value \u2014 here, name points to a string and age points to an integer.",
+      "Python lets you build a new string out of variables with an f-string: f\"{name} is {age} years old.\" automatically substitutes the variable values in.",
+      "Make sure your sentence ends with a single period and matches the wording exactly, including the space before 'is' and 'years old'."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-fibonacci-recursive",
+    "title": "Fibonacci (Recursive)",
+    "module": "python-fundamentals",
+    "statement": "Recursion is a powerful programming technique in which a function solves a problem by **calling itself** with a smaller or simpler version of the same problem.\n\nIt is especially useful for problems that can be broken down into identical sub-problems, such as mathematical sequences, tree traversals, and divide-and-conquer algorithms.\n\nIn this challenge, your task is to implement the **Fibonacci sequence** using recursion.\nThe Fibonacci sequence begins with `0` and `1`, and each subsequent number is the sum of the two numbers that precede it:\n`0, 1, 1, 2, 3, 5, 8, 13, ...`\n\nYour function should be **zero-indexed**, meaning:\n\n- `fibonacci(0)` returns **`0`**\n- `fibonacci(1)` returns **`1`**\n- `fibonacci(6)` returns **`8`**\n\nFor any `n` greater than `1`, the result is the sum of the two preceding Fibonacci numbers, which you must compute by making **recursive calls** to the same function.\n\nYour function should return the **n-th Fibonacci number**.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding how **recursion** works.\n- Identifying and implementing **base cases** that stop the recursion.\n- Making **recursive calls** to break down a larger problem.\n- Recognizing when recursion is an appropriate solution.\n\nRecursion is a fundamental technique in computer science used in tree and graph traversal, search algorithms, divide-and-conquer strategies, and many mathematical computations.",
+    "original_statement": "Write a **recursive** function **`fibonacci_recursive(n)`** that returns the `n`-th number in the Fibonacci sequence (0-indexed, where `fibonacci_recursive(0) == 0` and `fibonacci_recursive(1) == 1`), calling itself rather than using a loop.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef fibonacci_recursive(n: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `fibonacci_recursive(0)` returns `0`\r\n- `fibonacci_recursive(1)` returns `1`\r\n- `fibonacci_recursive(6)` returns `8`",
+    "func_name": "fibonacci_recursive",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "A recursive function is one that calls itself, always working on a smaller version of the same problem each time.",
+      "The Fibonacci sequence has two base cases that stop the recursion: fibonacci_recursive(0) is 0, and fibonacci_recursive(1) is 1.",
+      "For any n greater than 1, the answer is the sum of the two Fibonacci numbers before it \u2014 fibonacci_recursive(n - 1) + fibonacci_recursive(n - 2) \u2014 which is exactly the recursive call you need to write."
+    ],
+    "difficulty": 5,
+    "xp_reward": 220
+  },
+  {
+    "slug": "python-first-and-last",
+    "title": "First and Last Character",
+    "module": "python-fundamentals",
+    "statement": "Every string is an ordered sequence of characters, and each character occupies a specific position known as its **index**.\n\nAccessing individual characters by their position is a fundamental skill in text processing, data parsing, and string manipulation.\n\nIn this challenge, your task is to extract the **first character** and the **last character** from a string and combine them into a single two-character string.\n\nThe first character is always at index `0`, and the last character can be accessed using the index `-1`, which Python provides as a convenient way to refer to the end of a sequence.\n\nFor example:\n\n- The string **`\"python\"`** has first character `'p'` and last character `'n'`, producing **`\"pn\"`**.\n- The string **`\"a\"`** has the same character for both first and last, producing **`\"aa\"`**.\n\nYour function should return a **new string** consisting of the first character followed by the last character.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding how **string indexing** works.\n- Using **positive indices** to access characters from the beginning.\n- Using **negative indices** to access characters from the end.\n- **Concatenating** strings to combine extracted characters.\n\nAccessing characters by index is a foundational skill used in text processing, data extraction, file parsing, and virtually every application that works with strings.",
+    "original_statement": "Write a function **`get_first_and_last(s)`** that returns a two-character string made of the first and last characters of `s`.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef get_first_and_last(s: str) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `get_first_and_last(\"python\")` returns `\"pn\"`\r\n- `get_first_and_last(\"a\")` returns `\"aa\"`",
+    "func_name": "get_first_and_last",
+    "return_type": "str",
+    "param_types": ["str"],
+    "param_names": ["s"],
+    "hints": [
+      "Every character in a string has a position (index), starting from 0 for the first character.",
+      "Python also supports negative indexing: s[-1] always means the last character, no matter how long the string is.",
+      "Concatenate the two single characters you find with +, the same way you'd join any two strings."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-format-price",
+    "title": "Format a Price Tag",
+    "module": "python-fundamentals",
+    "statement": "Displaying monetary values correctly is essential in e-commerce, financial software, and any application that involves pricing.\n\nCurrency values must always be shown with exactly two decimal places, even when the amount is a round number, to ensure clarity and professionalism.\n\nIn this challenge, your task is to format a product name and price into a price tag string.\n\nThe price must be displayed with exactly **two digits after the decimal point**, preceded by a dollar sign.\n\nFor example:\n\n- A coffee priced at **`4.5`** should appear as **`\"Coffee: $4.50\"`**.\n- A notebook priced at **`2.0`** should appear as **`\"Notebook: $2.00\"`**.\n\nYour function should return a **formatted string** following the exact pattern `\"<name>: $<price>\"`.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and numeric values together.\n- Using **f-strings** with format specifiers to control number display.\n- Formatting **floating-point** values to a fixed number of decimal places.\n- Producing output that matches an exact specification.\n\nCurrency formatting is a critical skill in financial software, e-commerce platforms, billing systems, and any application where monetary values must be displayed clearly and consistently.",
+    "original_statement": "Write a function **`format_price(name, price)`** that returns a price tag string in the exact form `\"<name>: $<price>\"`, where `<price>` is always shown with exactly two digits after the decimal point.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef format_price(name: str, price: float) -> str:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `format_price(\"Coffee\", 4.5)` returns `\"Coffee: $4.50\"`\r\n- `format_price(\"Notebook\", 2.0)` returns `\"Notebook: $2.00\"`",
+    "func_name": "format_price",
+    "return_type": "str",
+    "param_types": ["str", "float"],
+    "param_names": ["name", "price"],
+    "hints": [
+      "An f-string lets you embed a formatting instruction right after the value, separated by a colon: {price:.2f}.",
+      "The .2f format spec means 'display this as a fixed-point number with exactly 2 digits after the decimal point' \u2014 it will add trailing zeros if needed.",
+      "Don't forget the literal dollar sign and colon-space in the output: \"Name: $12.50\", not just the number by itself."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-full-name",
+    "title": "Full Name Builder",
+    "module": "python-fundamentals",
+    "statement": "Strings are often combined to create larger pieces of text, such as names, sentences, file paths, or messages. \nThis process is known as **string concatenation**, and it is one of the most common operations performed on text data.\n\nIn this challenge, your task is to combine a person's **first name** and **last name** into a single string. \nThe two names should be separated by exactly one space to produce a properly formatted full name.\n\nYour function should return the completed full name as a single string.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text values.\n- Combining multiple strings into a single result.\n- Formatting text with the correct spacing.\n- Returning a newly constructed string from a function.\n\nString concatenation is a fundamental programming skill that is widely used for formatting output, generating user-friendly messages, processing text, and displaying information in real-world applications.",
+    "original_statement": "Strings are often combined to create larger pieces of text, such as names, sentences, file paths, or messages. \nThis process is known as **string concatenation**, and it is one of the most common operations performed on text data.\n\nIn this challenge, your task is to combine a person's **first name** and **last name** into a single string. \nThe two names should be separated by exactly one space to produce a properly formatted full name.\n\nYour function should return the completed full name as a single string.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **strings** and text values.\n- Combining multiple strings into a single result.\n- Formatting text with the correct spacing.\n- Returning a newly constructed string from a function.\n\nString concatenation is a fundamental programming skill that is widely used for formatting output, generating user-friendly messages, processing text, and displaying information in real-world applications.",
+    "func_name": "full_name",
+    "return_type": "str",
+    "param_types": ["str", "str"],
+    "param_names": ["first", "last"],
+    "hints": [
+      "Two strings can be joined together with the + operator \u2014 this is called concatenation.",
+      "Don't forget the space between the first and last name \u2014 \"Jerry\" + \"Smith\" without a separator would give \"JerrySmith\".",
+      "You can concatenate a literal space by adding \"\" \" \" \"\" between the two variables: first + \" \" + last."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-greet",
+    "title": "Greet the World",
+    "module": "python-fundamentals",
+    "statement": "Every Python program is built from **functions**, which are reusable blocks of code designed to perform a specific task. \nFunctions help organize your code, improve readability, and make programs easier to maintain.\n\nIn this challenge, your task is to create a function named `greet()` that returns the string **`\"Hello, World!\"`**.\n\nAlthough this is a simple exercise, it introduces several fundamental programming concepts that you will use throughout your Python journey.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a function using the **`def`** keyword.\n- Returning a value with the **`return`** statement.\n- Understanding the difference between **returning** a value and **printing** it.\n- Writing and calling your first Python function.\n\nCreating a simple greeting function is a traditional first step in learning a programming language and provides the foundation for building more complex functions in future challenges.",
+    "original_statement": "Every Python program is built from **functions**, which are reusable blocks of code designed to perform a specific task. \nFunctions help organize your code, improve readability, and make programs easier to maintain.\n\nIn this challenge, your task is to create a function named `greet()` that returns the string **`\"Hello, World!\"`**.\n\nAlthough this is a simple exercise, it introduces several fundamental programming concepts that you will use throughout your Python journey.\n\nThis exercise reinforces several important programming concepts:\n\n- Defining a function using the **`def`** keyword.\n- Returning a value with the **`return`** statement.\n- Understanding the difference between **returning** a value and **printing** it.\n- Writing and calling your first Python function.\n\nCreating a simple greeting function is a traditional first step in learning a programming language and provides the foundation for building more complex functions in future challenges.",
+    "func_name": "greet",
+    "return_type": "str",
+    "param_types": [],
+    "param_names": [],
+    "hints": [
+      "A function is defined with the def keyword, followed by the function name and parentheses.",
+      "Use return to send a value back to the caller \u2014 print() only displays something on screen, it doesn't hand a value back to whoever called the function.",
+      "The return value must be a string, so wrap it in quotes: \"Hello, World!\" \u2014 matching the capitalization, comma, and exclamation point exactly."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-is-valid-age",
+    "title": "Is Valid Age",
+    "module": "python-fundamentals",
+    "statement": "Validation is the process of checking whether a value meets a set of predefined rules before it is accepted or processed. \nPerforming validation helps prevent invalid data from causing errors or unexpected behavior in a program.\n\nIn this challenge, your task is to determine whether a given age falls within a valid range. An age is considered **valid** if it is between `0` and `120`, inclusive.\n\nYour function should return `True` for valid ages and `False` for any value outside the allowed range.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **comparison operators** to evaluate numeric ranges.\n- Combining conditions with **logical operators**.\n- Returning **Boolean** values based on the result of a condition.\n- Implementing simple input validation.\n\nInput validation is an essential programming practice used in forms, databases, APIs, and countless real-world applications to ensure that data is accurate and reliable before it is processed.",
+    "original_statement": "Validation is the process of checking whether a value meets a set of predefined rules before it is accepted or processed. \nPerforming validation helps prevent invalid data from causing errors or unexpected behavior in a program.\n\nIn this challenge, your task is to determine whether a given age falls within a valid range. An age is considered **valid** if it is between `0` and `120`, inclusive.\n\nYour function should return `True` for valid ages and `False` for any value outside the allowed range.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **comparison operators** to evaluate numeric ranges.\n- Combining conditions with **logical operators**.\n- Returning **Boolean** values based on the result of a condition.\n- Implementing simple input validation.\n\nInput validation is an essential programming practice used in forms, databases, APIs, and countless real-world applications to ensure that data is accurate and reliable before it is processed.",
+    "func_name": "is_valid_age",
+    "return_type": "bool",
+    "param_types": ["int"],
+    "param_names": ["age"],
+    "hints": [
+      "A boolean expression combines comparisons using and, or, and not, and always evaluates to either True or False.",
+      "and requires both sides to be true for the whole expression to be true \u2014 age >= 0 and age <= 120 checks both bounds at once.",
+      "You can return the result of a boolean expression directly with return, without needing an if statement at all."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-letter-frequency",
+    "title": "Letter Frequency",
+    "module": "python-fundamentals",
+    "statement": "Counting how often each character appears in a piece of text is a fundamental operation in text analysis, cryptography, and data compression.\n\nDictionaries are the ideal data structure for this task, as they allow you to associate each character with its running count.\n\nIn this challenge, your task is to count how many times a specific character appears in a string.\n\nFirst, build a dictionary that maps every character in the string to its frequency. Then, look up the requested letter in that dictionary and return its count.\n\nIf the letter does not appear in the string at all, the count should be `0`.\n\nFor example:\n\n- In the string **`\"banana\"`**, the letter **`\"a\"`** appears **`3`** times.\n- In the string **`\"hello\"`**, the letter **`\"z\"`** appears **`0`** times.\n\nYour function should return the **count** of the specified letter in the string.\n\nThis exercise reinforces several important programming concepts:\n\n- Working with **dictionaries** to store key-value pairs.\n- Building a frequency map by iterating through a sequence.\n- Using dictionary methods to safely look up values.\n- Counting occurrences of specific elements.\n\nCharacter frequency analysis is a fundamental technique used in text analysis, spell checkers, search engines, compression algorithms, and many other real-world applications.",
+    "original_statement": "Write a function **`letter_frequency_of(s, letter)`** that counts how many times the single character `letter` appears in the string `s`, using a **dictionary** to tally up character counts.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef letter_frequency_of(s: str, letter: str) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `letter_frequency_of(\"banana\", \"a\")` returns `3`\r\n- `letter_frequency_of(\"hello\", \"z\")` returns `0`",
+    "func_name": "letter_frequency_of",
+    "return_type": "int",
+    "param_types": ["str", "str"],
+    "param_names": ["s", "letter"],
+    "hints": [
+      "A dictionary stores key-value pairs \u2014 here, each character becomes a key, and the number of times it's appeared so far is its value.",
+      "The .get(key, default) method looks up a key in a dictionary and returns default instead of crashing if the key isn't there yet \u2014 perfect for a running count that starts at 0.",
+      "Build the whole frequency dictionary first by scanning every character in s, and only then look up the specific letter you were asked about."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-multiplication-table-sum",
+    "title": "Multiplication Table Sum",
+    "module": "python-fundamentals",
+    "statement": "A multiplication table is a classic example of two-dimensional data, where every cell is the product of its row number and column number.\n\nComputing the sum of all entries in such a table requires **nested loops** \u2014 one loop for the rows and another loop inside it for the columns.\n\nIn this challenge, your task is to compute the sum of every entry in an `n` by `n` multiplication table.\n\nFor rows `i` and columns `k` ranging from `1` to `n`, each cell contains the value `i * k`. You must add every single cell to produce a total sum.\n\nFor example:\n\n- A `2` by `2` table contains the values: `1\u00d71=1`, `1\u00d72=2`, `2\u00d71=2`, `2\u00d72=4`. The total sum is **`9`**.\n- A `1` by `1` table contains only **`1`**.\n\nYour function should return the **sum of every entry** in the multiplication table.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **nested loops** \u2014 a loop inside another loop.\n- Understanding how the inner loop runs completely for every iteration of the outer loop.\n- Performing arithmetic operations within nested loops.\n- Calculating a **running total** across multiple dimensions.\n\nNested loops are a fundamental programming pattern used in matrix operations, image processing, grid-based algorithms, game development, and many other applications that involve multi-dimensional data.",
+    "original_statement": "Write a function **`multiplication_table_sum(n)`** that computes an `n` by `n` multiplication table (where the entry in row `i`, column `k` is `i * k`, for `i` and `k` from 1 to `n`) and returns the sum of every entry in that table, using two nested `for` loops.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef multiplication_table_sum(n: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `multiplication_table_sum(2)` returns `9` (1\u00d71 + 1\u00d72 + 2\u00d71 + 2\u00d72 = 1+2+2+4)\r\n- `multiplication_table_sum(1)` returns `1`",
+    "func_name": "multiplication_table_sum",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "A nested loop is simply a for loop written inside the body of another for loop \u2014 the inner loop runs completely, for every single iteration of the outer loop.",
+      "Here, the outer loop picks a row number i, and for each row, the inner loop walks through every column number k from 1 to n.",
+      "Each cell of the n by n multiplication table is i * k \u2014 add every one of those cells to a running total as you go."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-safe-divide",
+    "title": "Safe Division",
+    "module": "python-fundamentals",
+    "statement": "Division by zero is a common runtime error that will crash a program if left unhandled.\n\nRobust software anticipates and handles such exceptional situations gracefully using **error handling** techniques.\n\nIn this challenge, your task is to perform division while safely handling the case where the divisor is zero.\n\nUse a `try`/`except` block to attempt the division. If a `ZeroDivisionError` occurs, return the fallback value `-1.0` instead of letting the program crash.\n\nFor example:\n\n- **`10 / 2`** equals **`5.0`**.\n- **`7 / 0`** would normally cause an error, but your function should safely return **`-1.0`**.\n\nYour function should return the **result of the division** as a floating-point number, or **`-1.0`** if the division cannot be performed.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding **runtime errors** and why they occur.\n- Using **`try`/`except`** blocks to handle exceptions gracefully.\n- Providing a **fallback value** when an operation cannot be completed.\n- Writing defensive code that anticipates potential failures.\n\nError handling is a critical skill in building reliable software, used in file operations, network requests, user input processing, and countless other scenarios where operations can fail unexpectedly.",
+    "original_statement": "Write a function **`safe_divide(a, b)`** that returns `a / b` as a floating-point result, or `-1.0` if `b` is `0`, using a `try`/`except` block to handle the division-by-zero error instead of letting the program crash.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef safe_divide(a: int, b: int) -> float:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `safe_divide(10, 2)` returns `5.0`\r\n- `safe_divide(7, 0)` returns `-1.0`",
+    "func_name": "safe_divide",
+    "return_type": "float",
+    "param_types": ["int", "int"],
+    "param_names": ["a", "b"],
+    "hints": [
+      "Dividing by zero in Python raises a ZeroDivisionError, which would normally crash the whole program if left unhandled.",
+      "Wrapping the risky code in a try block lets you catch that specific error with except ZeroDivisionError, instead of letting it crash.",
+      "When the except block runs, it means the division failed \u2014 return the documented fallback value -1.0 in that case, rather than a real division result."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-sort-by-length",
+    "title": "Sort Words by Length",
+    "module": "python-fundamentals",
+    "statement": "Data can be sorted according to different criteria depending on the needs of the application.\n\nWhile alphabetical order is common, there are many situations where you need to sort by other attributes, such as the length of each item.\n\nIn this challenge, your task is to sort a list of words by their **length**, from shortest to longest.\n\nPython's `sorted()` function accepts a `key` argument that lets you specify how each element should be compared. By passing the `len` function as the key, the sorting will compare words by their character count rather than their alphabetical order.\n\nThe original list must not be modified; the function should return a **new sorted list**.\n\nFor example:\n\n- The list **`[\"banana\", \"kiwi\", \"fig\"]`** sorted by length becomes **`[\"fig\", \"kiwi\", \"banana\"]`**.\n- An **empty list** should return **`[]`**.\n\nYour function should return the **new list** sorted by word length in ascending order.\n\nThis exercise reinforces several important programming concepts:\n\n- Using Python's built-in **`sorted()`** function.\n- Understanding the **`key`** argument for custom sorting logic.\n- Passing a **function as an argument** to another function.\n- Returning a **new collection** without modifying the original.\n\nCustom sorting is a fundamental technique used in data analysis, report generation, search results, user interfaces, and many other applications where data must be organized by specific attributes.",
+    "original_statement": "Write a function **`sort_by_length(words)`** that returns a new list containing the strings in `words`, sorted from shortest to longest, using the `key` argument of Python's `sorted()`.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef sort_by_length(words: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `sort_by_length([\"banana\", \"kiwi\", \"fig\"])` returns `[\"fig\", \"kiwi\", \"banana\"]`\r\n- `sort_by_length([])` returns `[]`",
+    "func_name": "sort_by_length",
+    "return_type": "list",
+    "param_types": ["list"],
+    "param_names": ["words"],
+    "hints": [
+      "Python's built-in sorted() function accepts a key argument: a function that's applied to each item to decide how it should be ordered.",
+      "Passing key=len tells sorted() to compare words by their length, rather than comparing the words alphabetically.",
+      "sorted() always returns a brand-new list in sorted order \u2014 it never modifies the original list you passed in."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-squares-of-evens",
+    "title": "Squares of Even Numbers",
+    "module": "python-fundamentals",
+    "statement": "Transforming and filtering data in a single step is a common pattern in data processing.\n\nPython's **list comprehensions** provide a concise and readable way to apply a transformation to each element in a collection while optionally filtering out elements that don't meet a condition.\n\nIn this challenge, your task is to create a new list containing the **square of every even number** from the input list, preserving their original order.\n\nFor example:\n\n- The list **`[1, 2, 3, 4, 5]`** contains even numbers `2` and `4`. Their squares are **`4`** and **`16`**, producing **`[4, 16]`**.\n- The list **`[1, 3, 5]`** contains no even numbers, so the result is an **empty list** `[]`.\n\nYour function should return the **new list** of squared even numbers.\n\nThis exercise reinforces several important programming concepts:\n\n- Using **list comprehensions** for concise data transformation.\n- Combining **filtering** and **transformation** in a single expression.\n- Identifying even numbers using the **modulo operator**.\n- Building a new list from existing data without modifying the original.\n\nList comprehensions with filtering are widely used in data analysis, scientific computing, ETL pipelines, and many other real-world applications where data needs to be both selected and transformed efficiently.",
+    "original_statement": "Write a function **`squares_of_evens(nums)`** that returns a new list containing the square of every even number in `nums`, in their original order, using a **list comprehension**.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef squares_of_evens(nums: list) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `squares_of_evens([1, 2, 3, 4, 5])` returns `[4, 16]`\r\n- `squares_of_evens([1, 3, 5])` returns `[]`",
+    "func_name": "squares_of_evens",
+    "return_type": "list",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "A list comprehension builds a new list in a single line, following the pattern [expression for item in iterable].",
+      "Adding an if condition at the end, like if x % 2 == 0, filters out any items that don't satisfy it \u2014 only matching items make it into the new list.",
+      "The expression at the front (x * x) is what actually gets stored for each item that passes the filter, not the original item itself."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  },
+  {
+    "slug": "python-sum-all",
+    "title": "Sum All Arguments",
+    "module": "python-fundamentals",
+    "statement": "Sometimes a function needs to accept a variable number of arguments without knowing in advance how many will be provided.\n\nPython's `*args` syntax allows a function to collect any number of positional arguments into a single tuple, making it easy to write flexible and reusable functions.\n\nIn this challenge, your task is to write a function that accepts a list of numbers and returns their total sum.\n\nAlthough the function receives the numbers as a single list (for grading purposes), its internal logic should demonstrate the same concept as a variadic function: processing a collection of unknown size and summing every element.\n\nFor example:\n\n- The numbers **`[1, 2, 3]`** sum to **`6`**.\n- An **empty list** `[]` should return **`0`**.\n\nYour function should return the **total sum** of all numbers in the list.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding how **`*args`** collects variable numbers of arguments.\n- Using Python's built-in **`sum()`** function.\n- Processing collections of any size.\n- Handling edge cases such as **empty input**.\n\nVariadic functions are widely used in Python for flexible APIs, mathematical operations, logging functions, and many other situations where the number of inputs cannot be determined in advance.",
+    "original_statement": "In Python, `*args` lets a function accept **any number** of positional arguments, collected together as a tuple. Write a function **`sum_all(nums)`** that models this: internally, it should call a `*args`-style function to add up every number, and return the total. `nums` represents the collected arguments as a list for grading purposes.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef sum_all(nums: list) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `sum_all([1, 2, 3])` returns `6`\r\n- `sum_all([])` returns `0`",
+    "func_name": "sum_all",
+    "return_type": "int",
+    "param_types": ["list"],
+    "param_names": ["nums"],
+    "hints": [
+      "*args lets a function accept any number of positional arguments, which Python collects together into a single tuple named args inside the function.",
+      "Because this problem is graded with a list of numbers as input, the reference solution unpacks that list back into individual arguments with the * operator before calling the variadic function.",
+      "Python's built-in sum() function adds up every item in any iterable \u2014 including the args tuple collected by *args \u2014 in one call."
+    ],
+    "difficulty": 4,
+    "xp_reward": 190
+  },
+  {
+    "slug": "python-sum-even-numbers",
+    "title": "Sum of Even Numbers",
+    "module": "python-fundamentals",
+    "statement": "Not all loops iterate over every element in a sequence \u2014 sometimes you need more control over how the loop progresses.\n\nA `while` loop continues executing as long as a specified condition remains true, giving you the flexibility to control the step size and termination condition manually.\n\nIn this challenge, your task is to sum every even number from `2` up to and including `n` using a **`while` loop**.\n\nStart at `2` (the first even number) and increase by `2` each iteration to ensure you only encounter even numbers. Continue until the current value exceeds `n`.\n\nFor example:\n\n- Summing even numbers up to **`6`** gives **`2 + 4 + 6 = 12`**.\n- There are no even numbers up to **`1`**, so the result is **`0`**.\n\nYour function should return the **sum of all even numbers** in the specified range.\n\nThis exercise reinforces several important programming concepts:\n\n- Using a **`while` loop** with a manually controlled counter.\n- Understanding loop **conditions** and when the loop terminates.\n- Using a custom **step size** to skip unwanted values.\n- Accumulating a **running total** within a loop.\n\nThe `while` loop is an essential tool for situations where the number of iterations is not known in advance, such as reading data until a condition is met, implementing game loops, or processing user input.",
+    "original_statement": "Write a function **`sum_even_numbers(n)`** that returns the sum of every even number from 2 up to and including `n`, using a `while` loop.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef sum_even_numbers(n: int) -> int:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `sum_even_numbers(6)` returns `12` (2 + 4 + 6)\r\n- `sum_even_numbers(1)` returns `0` (no even numbers that small)",
+    "func_name": "sum_even_numbers",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "A while loop keeps repeating as long as its condition stays true \u2014 unlike a for loop, you control the counter yourself.",
+      "Start a counter i at 2 (the first even number), and increase it by 2 each time through the loop so it only ever lands on even numbers.",
+      "The loop should keep running while i <= n \u2014 once i passes n, the condition becomes false and the loop stops on its own."
+    ],
+    "difficulty": 2,
+    "xp_reward": 110
+  },
+  {
+    "slug": "python-sum-up-to",
+    "title": "Sum Up To N",
+    "module": "python-fundamentals",
+    "statement": "A **loop** allows you to execute a block of code repeatedly, making it ideal for problems that involve processing a sequence of values. \nOne common use of a loop is to calculate a **running total** by adding numbers one at a time.\n\nIn this challenge, your task is to write a function that calculates the sum of every whole number from `1` up to and including `n` using a **`for` loop**. If `n` is `0`, the function should return `0`.\n\nYour function should return the total sum of all whole numbers within the specified range.\n\nThis exercise reinforces several important programming concepts:\n\n- Using a **`for` loop** to iterate through a sequence of numbers.\n- Maintaining a **running total** while processing values.\n- Working with numeric ranges and inclusive bounds.\n- Handling simple edge cases, such as when the input is `0`.\n\nSumming a sequence of numbers is a fundamental programming task that forms the basis for many algorithms involving counting, accumulation, and numerical analysis.",
+    "original_statement": "A **loop** allows you to execute a block of code repeatedly, making it ideal for problems that involve processing a sequence of values. \nOne common use of a loop is to calculate a **running total** by adding numbers one at a time.\n\nIn this challenge, your task is to write a function that calculates the sum of every whole number from `1` up to and including `n` using a **`for` loop**. If `n` is `0`, the function should return `0`.\n\nYour function should return the total sum of all whole numbers within the specified range.\n\nThis exercise reinforces several important programming concepts:\n\n- Using a **`for` loop** to iterate through a sequence of numbers.\n- Maintaining a **running total** while processing values.\n- Working with numeric ranges and inclusive bounds.\n- Handling simple edge cases, such as when the input is `0`.\n\nSumming a sequence of numbers is a fundamental programming task that forms the basis for many algorithms involving counting, accumulation, and numerical analysis.",
+    "func_name": "sum_up_to",
+    "return_type": "int",
+    "param_types": ["int"],
+    "param_names": ["n"],
+    "hints": [
+      "A for loop with range(1, n + 1) visits every whole number from 1 up to and including n.",
+      "Start a variable called something like total at 0 before the loop begins, so you have somewhere to accumulate the running sum.",
+      "Inside the loop, add each number to total using total += i, then return total once the loop finishes."
+    ],
+    "difficulty": 1,
+    "xp_reward": 70
+  },
+  {
+    "slug": "python-swap-values",
+    "title": "Swap Two Values",
+    "module": "python-fundamentals",
+    "statement": "Swapping the values of two variables is a common operation in sorting algorithms, data rearrangement, and many other programming tasks.\n\nIn many programming languages, swapping requires a temporary third variable. Python, however, offers a more elegant approach using **tuple unpacking**.\n\nIn this challenge, your task is to swap the values of two integers and return them as a two-element list in their new order.\n\nFor example:\n\n- Swapping **`1`** and **`2`** produces **`[2, 1]`**.\n- Swapping **`5`** and **`5`** (identical values) still produces **`[5, 5]`**.\n\nYour function should return the **swapped values** as a list `[b, a]`.\n\nThis exercise reinforces several important programming concepts:\n\n- Understanding how **variable assignment** works.\n- Using **tuple unpacking** to swap values in a single line.\n- Recognizing how Python evaluates the right-hand side before performing any assignment.\n- Returning multiple values as a single structured result.\n\nTuple unpacking for swapping is a Pythonic technique that demonstrates the language's expressive power and is commonly used in sorting algorithms, data processing, and functional programming patterns.",
+    "original_statement": "Write a function **`swap_values(a, b)`** that swaps the values of `a` and `b` using Python's tuple unpacking, and returns them as a two-element list `[a, b]` in their new, swapped order.\r\n\r\n### Expected function\r\n\r\n```python\r\ndef swap_values(a: int, b: int) -> list:\r\n    # Your code here\r\n    pass\r\n```\r\n\r\n### Examples\r\n\r\n- `swap_values(1, 2)` returns `[2, 1]`\r\n- `swap_values(5, 5)` returns `[5, 5]`",
+    "func_name": "swap_values",
+    "return_type": "list",
+    "param_types": ["int", "int"],
+    "param_names": ["a", "b"],
+    "hints": [
+      "Python lets you assign to several variables at once, separated by commas, from a single line: a, b = b, a.",
+      "The right-hand side, b, a, is actually a tuple being built first \u2014 both original values are packaged up before anything gets reassigned.",
+      "Because the whole right-hand side is evaluated before any assignment happens, this swaps a and b without needing a temporary third variable."
+    ],
+    "difficulty": 3,
+    "xp_reward": 150
+  }
+]

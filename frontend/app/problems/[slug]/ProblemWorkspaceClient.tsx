@@ -28,12 +28,15 @@ import {
   Activity,
   Edit3,
   Save,
+  ChevronRight,
+  Home,
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
-import { cn, getDifficultyColor, getDifficultyLabel } from "@/lib/utils";
+import { cn, getDifficultyColor, getDifficultyLabel, shuffleArray } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/markdown";
 import {
   fetchProblem,
+  fetchProblems,
   submitSolution,
   testCode,
   submitFeedback,
@@ -132,13 +135,17 @@ function formatCode(code: string, lang: string): string {
 }
 
 function generateScaffold(problem: Problem | null, lang: string): string {
+  const paramName = (names: string[] | undefined, idx: number): string =>
+    names?.[idx] || `arg${idx + 1}`;
+
   const lv = problem?.language_versions?.[lang];
   if (lv?.func_name) {
     const params =
       lv.param_types
-        ?.map((t, i) =>
-          lang === "python" ? `arg${i + 1}` : `arg${i + 1} ${t}`,
-        )
+        ?.map((t, i) => {
+          const name = paramName(lv.param_names ?? problem?.param_names, i);
+          return lang === "python" ? name : `${name} ${t}`;
+        })
         .join(", ") || "";
     if (lang === "python") {
       return `def ${lv.func_name}(${params}):\n    pass\n`;
@@ -149,12 +156,24 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   // Fallback: try top-level Go fields
   if (lang !== "python" && problem?.func_name) {
     const params =
-      problem.param_types?.map((t, i) => `arg${i + 1} ${t}`).join(", ") || "";
+      problem.param_types
+        ?.map((t, i) => {
+          const name = paramName(problem.param_names, i);
+          return `${name} ${t}`;
+        })
+        .join(", ") || "";
     const ret = problem.return_type ? ` ${problem.return_type}` : "";
     return `package koder\n\nfunc ${problem.func_name}(${params})${ret} {\n\t// Write your solution here\n}\n`;
   }
   // Default constants
   return lang === "python" ? PYTHON_CODE : GO_CODE;
+}
+
+function generateOldScaffold(lv: { func_name: string; return_type: string; param_types: string[] }, lang: string): string {
+  if (lang === "python") {
+    return `def ${lv.func_name}(${lv.param_types.map((_, i) => `arg${i + 1}`).join(", ")}):\n    pass\n`;
+  }
+  return `package koder\n\nfunc ${lv.func_name}(${lv.param_types.map((t, i) => `arg${i + 1} ${t}`).join(", ")})${lv.return_type ? " " + lv.return_type : ""} {\n\t// Write your solution here\n}\n`;
 }
 
 export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
@@ -206,12 +225,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+  const [allProblems, setAllProblems] = useState<Problem[]>([]);
 
   const returnTo = typeof window !== "undefined"
     ? sessionStorage.getItem("return_to") || "/home"
     : "/home";
 
   useEffect(() => {
+    clearCache(`/problems/${slug}`);
     fetchProblem(slug).then((res) => {
       if (res.success && res.data) {
         setProblem(res.data);
@@ -229,7 +250,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         // Restore saved code if it exists, otherwise use scaffold
         const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
         if (stored) {
-          setCode(stored);
+          const lv = res.data.language_versions?.[lang];
+          const oldScaffold = lv?.func_name ? generateOldScaffold(lv, lang) : null;
+          if (oldScaffold && (stored === oldScaffold || stored.trimEnd() === oldScaffold.trimEnd())) {
+            setCode(scaffold);
+            localStorage.setItem(STORE_KEY(slug, lang), scaffold);
+          } else {
+            setCode(stored);
+          }
         } else {
           setCode(scaffold);
         }
@@ -238,6 +266,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       }
     });
   }, [slug]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    clearCache("/problems");
+    fetchProblems().then((res) => {
+      if (res.success) setAllProblems(res.data || []);
+    });
+  }, [user?.id]);
 
   // Cooldown countdown for rate limiting
   useEffect(() => {
@@ -541,11 +577,27 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
   };
 
+  const nextProblem = problem && user?.id && allProblems.length > 0
+    ? (() => {
+        const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
+        const shuffled = shuffleArray(allProblems, seed);
+        const idx = shuffled.findIndex((p) => p.slug === slug);
+        return idx >= 0 && idx < shuffled.length - 1 ? shuffled[idx + 1] : null;
+      })()
+    : null;
+
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
       <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
         <div className="flex items-center gap-4 min-w-0 flex-1">
+          <Link
+            href="/home"
+            className="flex items-center justify-center w-8 h-8 text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover rounded-lg transition-colors shrink-0"
+            title="Home"
+          >
+            <Home size={18} />
+          </Link>
           <Link
             href={returnTo}
             className="text-brand-offwhite-muted hover:text-brand-offwhite flex items-center gap-1 text-sm font-medium transition-colors shrink-0"
@@ -558,6 +610,16 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
+            {nextProblem && (
+              <Link
+                href={`/problems/${nextProblem.slug}`}
+                onClick={() => sessionStorage.setItem("return_to", window.location.pathname)}
+                className="flex items-center gap-1 text-sm font-medium shrink-0 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors ml-2"
+                title={`Next: ${nextProblem.title}`}
+              >
+                Next <ChevronRight size={16} />
+              </Link>
+            )}
           </div>
         </div>
 
