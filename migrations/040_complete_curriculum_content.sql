@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Koder :: Curriculum CMS Content Completion
 -- Adds ALL sections, exercises, quizzes, and projects to EVERY lesson.
 -- Also creates lessons for modules missing them + 8 Algorithms lessons.
@@ -102,16 +102,16 @@ FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.
 UPDATE lessons l SET problem_references = ARRAY['factorial', 'gcd-euclidean']::TEXT[]
 FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.slug = 'go-fundamentals' AND m.slug = 'go-functions' AND l.slug = 'func-decl';
 
-UPDATE lessons l SET problem_references = ARRAY['py-double-it']::TEXT[]
+UPDATE lessons l SET problem_references = ARRAY['py-years-to-double']::TEXT[]
 FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.slug = 'python-basics' AND m.slug = 'py-hello' AND l.slug = 'py-first-program';
 
-UPDATE lessons l SET problem_references = ARRAY['python-greet', 'python-full-name']::TEXT[]
+UPDATE lessons l SET problem_references = ARRAY['py-arr-str-reverse-string', 'py-arr-str-count-vowels']::TEXT[]
 FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.slug = 'python-basics' AND m.slug = 'py-hello' AND l.slug = 'py-input-output';
 
 UPDATE lessons l SET problem_references = ARRAY['py-arr-str-reverse-string', 'py-arr-str-list-sum']::TEXT[]
 FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.slug = 'python-basics' AND m.slug = 'py-variables' AND l.slug = 'py-lists-tuples';
 
-UPDATE lessons l SET problem_references = ARRAY['py-sum-up-to', 'py-sum-even-numbers']::TEXT[]
+UPDATE lessons l SET problem_references = ARRAY['py-arr-str-list-sum', 'py-arr-str-palindrome']::TEXT[]
 FROM modules m, courses c WHERE l.module_id = m.id AND m.course_id = c.id AND c.slug = 'python-basics' AND m.slug = 'py-control' AND l.slug = 'py-loops';
 
 UPDATE lessons l SET problem_references = ARRAY['py-inter-bank-account']::TEXT[]

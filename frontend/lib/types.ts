@@ -46,6 +46,7 @@ export type Problem = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  param_names?: string[];
   hints?: string[];
   total_submissions?: number;
   success_rate?: number;
@@ -55,6 +56,7 @@ export type Problem = {
     func_name: string;
     return_type: string;
     param_types: string[];
+    param_names?: string[];
   }>;
 };
 
@@ -290,10 +292,12 @@ export type UpdateProblemPayload = {
   func_name?: string;
   return_type?: string;
   param_types?: string[];
+  param_names?: string[];
   language_versions?: Record<string, {
     func_name: string;
     return_type: string;
     param_types: string[];
+    param_names?: string[];
   }>;
   hints?: string[];
   difficulty?: number;

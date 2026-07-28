@@ -84,6 +84,25 @@
 | 76 | `ff88299` | style: add mt-2 to filter bar for top margin |
 | 77 | `4cefe19` | feat: beta-gate /problems page behind admin-only role |
 | 78 | `cf5435e` | fix: admin preview now shows rendered markdown + examples section |
+| 79 | `0f78c62` | fix: COOP header for GIS popup + module lock endpoint for non-admin + logo preload |
+| 80 | `6dfd1db` | feat: real-time system — 7s polling + WebSocket subscriptions for broadcast/admin |
+| 81 | `6e23cb8` | feat: remove PIN from sign-up flow — email register goes straight to username |
+| 82 | `3dee92a` | fix: remove unreachable step-3 success header dead code |
+| 83 | `0f6f96c` | fix: register page single-step (remove username), fix tryRefreshToken concurrency bug |
+| 84 | `5580370` | feat: desktop-only overlay for mobile screens (< 900px) |
+| 85 | `d4d9410` | fix: polish desktop overlay — rAF debounce, body scroll lock, preconnect url |
+| 86 | `98e8eb4` | fix: hydration error #418 — use next/dynamic ssr:false for DesktopOnlyOverlay |
+| 87 | `ae60525` | fix: SSR-safe mounted guard for DesktopOnlyOverlay, remove next/dynamic |
+| 88 | `9ea2db5` | fix: remove mounted guard — useState(false) already SSR-safe, passes lint |
+| 89 | `ce79000` | chore: extend reset_data.sql to clear ai_usage_logs, refresh_tokens, password_reset_tokens, token_blacklist, solved_count |
+| 90 | `f757c9e` | fix: reset_data.sql preserves admin progress, XP, submissions |
+| 91 | `88771ff` | chore: reset_data.sql only clears submissions + activity logs |
+| 92 | `6a42f0b` | chore: also clear feedback in reset_data.sql |
+| 93 | `ca35d68` | feat: add PixelSnow WebGL background (Three.js snowflake shader) on root layout |
+| 94 | `e9cba64` | fix: move PixelSnow to main layout with correct z-index stacking (z-0 above bg, z-10 for content) |
+| 95 | `6c3941c` | revert: remove PixelSnow (Three.js snowflake background) — restore original layout |
+| 96 | `0b81240` | Polish problem cards: larger titles, rendered markdown, professional spacing |
+| 97 | `4564d69` | Fix card description: strip inline styles from rendered markdown so card Tailwind classes apply |
 
 ---
 
@@ -2234,3 +2253,175 @@ Mandatory 6-digit PIN during registration adds friction. Users can set a PIN lat
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors
 - All pushed to `origin/update`
+
+---
+
+## Session 74 — 2026-07-23 — Register page single-step + concurrency bug fix
+
+**Commits:** `0f6f96c`
+
+### 1. `tryRefreshToken` concurrency bug (`frontend/lib/api.ts:50`)
+**Root cause:** `isRefreshing` guard was there but the variable was never set to `true` — all concurrent refresh requests passed through, first one rotated the token, subsequent ones found the old token revoked and called `clearAuth()`, wiping localStorage (signing the user out mid-session).
+
+**Fix:** Added `isRefreshing = true;` right after the initial `if (isRefreshing)` guard check.
+
+### 2. Register page — single-step simplification (`frontend/app/(auth)/register/page.tsx`)
+**Before:** 3 steps — (1) name/email/password, (2) username with `completeOnboarding`, (3) redirect to `/onboarding` which asked for username again. UserContext never refreshed after step 2, so `/onboarding` firewalled.
+
+**After:** Single step — name/email/password form (291 lines). On success, redirects to `/onboarding` for username + language selection. UserContext correctly reflects new user after `handleAuthResponse` (fixed in session 73).
+
+**Changes:**
+- Removed step management (`step` state, step 2/3/4 UI, step back button)
+- Removed duplicate username input + `completeOnboarding` call
+- Removed `z.string().min(3)` username validation from step 2
+- Simplified success handler: only redirects to `/onboarding`
+- 466 lines → 291 lines
+
+### Verification
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- Pushed to `origin/update`
+
+---
+
+## Session 75 — 2026-07-23 — Desktop-only overlay for mobile screens
+
+**Commits:** `5580370` `d4d9410` `98e8eb4` `ae60525` `9ea2db5`
+
+### 1. DesktopOnlyOverlay (`frontend/components/DesktopOnlyOverlay.tsx` — NEW)
+Full-screen overlay for screens < 900px wide:
+
+- **Breakpoint:** 900px (`window.innerWidth < 900`)
+- **Resize listener:** rAF-debounced, checks `window.innerWidth` — adds/removes `overflow: hidden` on `<body>`
+- **SSR safety:** Uses `useState(false)` for `isDesktop` — both server and first client render return `null`, eliminating React hydration errors. No `next/dynamic` needed.
+- **Body scroll lock:** `document.body.style.overflow = 'hidden'` when overlay mounts, restores on unmount
+- **Preconnect:** `<link rel="preconnect" href="https://fonts.googleapis.com">` in case user rotates to landscape
+
+### 2. Git history of SSR fixes
+| Commit | Approach | Problem |
+|---|---|---|
+| `5580370` | Import directly in layout | Hydration error #418 — server `window is not defined` |
+| `d4d9410` | rAF debounce, body scroll lock | Still hydration error |
+| `98e8eb4` | `next/dynamic ssr:false` | Webpack build error — can't use next/dynamic in root layout |
+| `ae60525` | Custom `useHasMounted()` hook checking `useState(false)` | Works but extra hook file |
+| `9ea2db5` | `useState(false)` directly in component, remove hook | Clean, minimal — `useState(false)` is SSR-safe by default |
+
+**Verdict:** `useState(false)` returns `[false, setter]` on server and first client render, so `if (!isDesktop) return null;` always fires initially. After hydration, the `useEffect` runs and sets `isDesktop = window.innerWidth >= 900`.
+
+### 3. Layout integration (`frontend/app/layout.tsx`)
+- Static import: `import DesktopOnlyOverlay from "@/components/DesktopOnlyOverlay";`
+- Rendered after `<Toaster>` — no wrapping divs
+
+### Verification
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors
+- All pushed to `origin/update`
+
+---
+
+## Session 76 — 2026-07-23 — Data reset script for testing
+
+**Commits:** `ce79000` `f757c9e` `88771ff` `6a42f0b`
+
+### `scripts/reset_data.sql`
+Safe cleanup script that clears student solution data while preserving accounts, XP, progress, problems, and curriculum. Useful for testing pipelines end-to-end without a full database reset.
+
+**Tables cleared:**
+- `submissions` — all student code submissions
+- `submission_likes` — likes on submissions
+- `feedback` — bug reports and feature requests
+- `activity_logs` — admin audit trail
+
+**Preserved:**
+- `users` — all accounts, XP, progress, passwords, google_ids
+- `progress` — solved status, stars, XP awarded
+- `problems`, `test_cases` — all problems and their test cases
+- `courses`, `modules`, `lessons`, `lesson_sections`, `projects` — full curriculum
+- `course_progress`, `lesson_progress` — learning progress
+- `module_meta`, `module_locks` — module metadata
+- Admin users' data is preserved end-to-end
+
+**Verification:**
+- Script runs without error against a populated database
+- All pushed to `origin/update`
+
+---
+
+## Session 77 — 2026-07-24 — PixelSnow WebGL experiment (reverted)
+
+**Commits:** `ca35d68` `e9cba64` `6c3941c`
+
+### What happened
+- Added `three` and `@types/three` dependencies
+- Created `PixelSnow.tsx` with Three.js snowflake shader — 60fps WebGL canvas with perspective snow effect
+- Integrated into root layout (`app/layout.tsx`) with `-z-10` — hidden behind `bg-background`
+- Moved to `(main)/layout.tsx` with `z-0`/`z-10` stacking — still didn't look right
+- **Reverted entirely** — `PixelSnow.tsx` deleted, `three` uninstalled, layouts restored
+
+### Why reverted
+Snowflake background didn't match Koder's professional amber/charcoal brand aesthetic. Felt distracting rather than polished.
+
+---
+
+## Session 78 — 2026-07-24 — Problem card polish: larger text, rendered markdown, professional spacing
+
+**Commits:** `0b81240` `4564d69`
+
+### Changes to `frontend/app/(main)/home/page.tsx`
+
+| Change | Before | After |
+|--------|--------|-------|
+| **Title** | `text-sm font-bold` → `text-primary` | `text-base font-extrabold md:text-lg tracking-tight` → `text-brand-muted-gold` |
+| **Description** | Regex-stripped raw text (leaked `**bold**`, `` `code` ``) | `renderMarkdown()` on first paragraph via `dangerouslySetInnerHTML` |
+| **Inline style fix** | `renderMarkdown()` injected `style="..."` attributes (overrode card Tailwind) | `.replace(/\sstyle="[^"]*"/g, '')` strips inline styles; card CSS controls preview |
+| **Description styling** | `<p>` element with regex | `<div>` with `[&_p]:inline [&_p]:m-0 [&_strong]:text-foreground/80 [&_code]:text-[13px] bg-white/[0.04] ...` |
+| **Difficulty badge** | `text-[10px]` | `text-[11px] px-2.5` |
+| **Tags** | `text-[10px] font-semibold` | `text-xs font-medium` |
+| **Footer stats** | `text-[11px] gap-2.5` icons `size={11}` | `text-xs gap-3` icons `size={13}` |
+| **XP badge** | `text-[11px]` | `text-xs` |
+| **Card base** | No default shadow | `shadow-sm` |
+| **Card hover** | `hover:-translate-y-1 hover:shadow-lg` | `hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8` |
+| **Grid gap** | `gap-5` | `gap-6` |
+| **Spacing** | Header `pb-3`, Content `pb-3`, Footer `py-3` | Header `pb-2`, Content `pb-2`, Footer `py-3.5` |
+
+### Files modified
+- `frontend/app/(main)/home/page.tsx` — 30+ line changes, 1 new import (`renderMarkdown`)
+
+---
+
+## Session 81 — 2026-07-27 — Python Practicals migration + frontend module visibility
+
+**Commits:** _(pending)_
+
+### Problem
+Two Python modules (`python-practice`, `python-practicals`) didn't show in the admin panel's Problem Module Locks tab or on the student home page. Root causes:
+- `migrations/046_module_meta.sql` — missing `module_meta` entries for both
+- `frontend/components/dashboard/ModuleCards.tsx` — missing `MODULE_META`/`MODULE_DISPLAY_NAMES`/`MODULE_COLORS` entries
+- `python-practicals` problems were never INSERTed into the DB (only UPDATE SQL existed)
+
+### Changes
+
+**`migrations/047_seed_python_practicals.sql`** (new, 1095 lines)
+- Full seed for 25 python-practicals problems with 7 test cases each (175 total)
+- Professional INSERTs with: constraints, learning_objective, tags, `language_versions` JSONB
+- 3 visible + 4 hidden test cases per problem
+- `module_meta` entries for both `python-practice` and `python-practicals`
+- Escaped double-quotes in PostgreSQL array hints (`\"`) and quoted JSONB inputs (`'[...]'::jsonb`)
+
+**`scripts/generate-practicals-migration.mjs`** (new, 480 lines)
+- Reads `problems_python-practicals.json`, outputs clean migration SQL
+- Handles: Parameterized test cases, pgArray escaping, JSONB quoting
+
+**`frontend/components/dashboard/ModuleCards.tsx`** (+14 lines)
+- Added `python-practice` and `python-practicals` to `MODULE_META`, `MODULE_DISPLAY_NAMES`, `MODULE_COLORS`
+
+### Verification
+- ✅ 25 problems, 175 test cases, correct difficulty distribution (6×1, 7×2, 6×3, 6×4)
+- ✅ JSONB inputs properly quoted, array elements properly escaped
+- ✅ Module meta entries for display names in admin panel
+- ✅ Frontend has fallback image/color/description for both modules
+
+### Verification
+- ✅ `npx tsc --noEmit` — 0 errors
+- ✅ `npm run lint` — 0 errors (1 pre-existing warning in `MarkdownPreview.tsx`)
+- ✅ All pushed to `origin/update`

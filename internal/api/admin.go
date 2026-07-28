@@ -424,6 +424,7 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 		FuncName          *string                  `json:"func_name,omitempty"`
 		ReturnType        *string                  `json:"return_type,omitempty"`
 		ParamTypes        []string                 `json:"param_types,omitempty"`
+		ParamNames        []string                 `json:"param_names,omitempty"`
 		Hints             []string                 `json:"hints,omitempty"`
 		Difficulty        *int                     `json:"difficulty,omitempty"`
 		XPReward          *int                     `json:"xp_reward,omitempty"`
@@ -476,6 +477,9 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ParamTypes != nil {
 		existing.ParamTypes = req.ParamTypes
+	}
+	if req.ParamNames != nil {
+		existing.ParamNames = req.ParamNames
 	}
 	if req.Hints != nil {
 		existing.Hints = req.Hints

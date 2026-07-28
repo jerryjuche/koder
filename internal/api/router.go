@@ -110,6 +110,10 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
 	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
 
+	// Public problem metadata & problem details (OptionalAuth so visitors can view problem specs in lesson exercises)
+	r.Get("/problems/{slug}/meta", problemHandler.GetProblemMeta)
+	r.With(OptionalAuthMiddleware(cfg, store)).Get("/problems/{slug}", problemHandler.GetProblemBySlug)
+
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(cfg, store))
 
@@ -164,7 +168,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.Get("/users/{id}", usersHandler.GetUserPublicData)
 
 		r.Get("/problems", problemHandler.ListVisibleProblems)
-		r.Get("/problems/{slug}", problemHandler.GetProblemBySlug)
 
 		communityHandler := NewCommunityHandler(store)
 		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)

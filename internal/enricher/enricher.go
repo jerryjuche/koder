@@ -35,6 +35,7 @@ type enrichedResponse struct {
 	FuncName        string                        `json:"func_name"`
 	ReturnType      string                        `json:"return_type"`
 	ParamTypes      []string                      `json:"param_types"`
+	ParamNames      []string                      `json:"param_names,omitempty"`
 	Hints           []string                      `json:"hints"`
 	Difficulty      int                           `json:"difficulty"`
 	XPReward        int                           `json:"xp_reward"`
@@ -170,6 +171,7 @@ README:
 		FuncName:   strings.TrimSpace(parsed.FuncName),
 		ReturnType: strings.TrimSpace(parsed.ReturnType),
 		ParamTypes: parsed.ParamTypes,
+		ParamNames: parsed.ParamNames,
 		Hints:      parsed.Hints,
 		Difficulty: parsed.Difficulty,
 		XPReward:   parsed.XPReward,
@@ -191,11 +193,13 @@ README:
 				FuncName:   parsed.FuncName,
 				ReturnType: parsed.ReturnType,
 				ParamTypes: parsed.ParamTypes,
+				ParamNames: parsed.ParamNames,
 			},
 			"python": {
 				FuncName:   pythonFuncName,
 				ReturnType: pythonReturnType,
 				ParamTypes: pythonParamTypes,
+				ParamNames: parsed.ParamNames,
 			},
 		}
 	}

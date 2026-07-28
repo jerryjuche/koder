@@ -283,26 +283,20 @@ export default function OnboardingPage() {
 
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Go card */}
-              <button
-                onClick={() => handleLanguageSelect('go')}
-                disabled={isSubmitting}
-                className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card p-6 text-left transition-all duration-300 hover:border-[#00ADD8]/50 hover:shadow-lg hover:shadow-[#00ADD8]/10 disabled:opacity-50"
-              >
-                <div className="pointer-events-none absolute left-0 top-0 h-full w-full bg-gradient-to-b from-[#00ADD8]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card p-6 text-left opacity-50 cursor-not-allowed">
                 <LanguageLogo
                   language="go"
                   size={56}
-                  className="mb-4 drop-shadow-md transition-transform duration-300 group-hover:scale-110"
+                  className="mb-4 drop-shadow-md"
                 />
                 <h3 className="mb-1 text-xl font-bold text-white">Go</h3>
                 <p className="mb-4 text-center text-xs leading-relaxed text-brand-offwhite-muted">
                   Fast, statically typed, and built for concurrency.
                 </p>
-                <div className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-[#00ADD8]/10 py-2 text-sm font-bold text-[#00ADD8] transition-colors group-hover:bg-[#00ADD8] group-hover:text-white">
-                  Select Go
-                  <ChevronRight size={16} />
+                <div className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-brand-charcoal-hover py-2 text-sm font-bold text-brand-offwhite-muted">
+                  Unavailable
                 </div>
-              </button>
+              </div>
 
               {/* Python card */}
               <button
@@ -335,11 +329,11 @@ export default function OnboardingPage() {
 
             <div className="text-center">
               <button
-                onClick={() => handleLanguageSelect('go')}
+                onClick={() => handleLanguageSelect('python')}
                 disabled={isSubmitting}
                 className="text-sm text-brand-offwhite-muted underline underline-offset-4 transition-colors hover:text-brand-offwhite disabled:opacity-50"
               >
-                Skip for now (defaults to Go)
+                Skip for now (defaults to Python)
               </button>
             </div>
           </motion.div>
