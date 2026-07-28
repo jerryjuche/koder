@@ -32,7 +32,12 @@ import {
   Home,
 } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
-import { cn, getDifficultyColor, getDifficultyLabel, shuffleArray } from "@/lib/utils";
+import {
+  cn,
+  getDifficultyColor,
+  getDifficultyLabel,
+  shuffleArray,
+} from "@/lib/utils";
 import { renderMarkdown } from "@/lib/markdown";
 import {
   fetchProblem,
@@ -45,7 +50,12 @@ import {
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { clearCache } from "@/lib/cache";
-import { Problem, TestResult, ExecutionResult, UpdateProblemPayload } from "@/lib/types";
+import {
+  Problem,
+  TestResult,
+  ExecutionResult,
+  UpdateProblemPayload,
+} from "@/lib/types";
 import TestResultPanel from "@/components/TestResultPanel";
 import {
   Dialog,
@@ -68,7 +78,8 @@ const PYTHON_CODE = `def solution():
     pass
 `;
 
-const STORE_KEY = (s: string, lang?: string) => lang ? `koder_code_${s}_${lang}` : `koder_code_${s}`;
+const STORE_KEY = (s: string, lang?: string) =>
+  lang ? `koder_code_${s}_${lang}` : `koder_code_${s}`;
 
 function formatCode(code: string, lang: string): string {
   // Shared: normalize line endings, strip trailing whitespace, collapse excessive blank lines
@@ -83,7 +94,10 @@ function formatCode(code: string, lang: string): string {
     // Go: tabs for indent, brace on same line, block-aware
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
-      if (raw === "") { out.push(""); continue; }
+      if (raw === "") {
+        out.push("");
+        continue;
+      }
 
       const trimmed = raw.trimStart();
       // Strip inline comments before checking ending characters
@@ -99,7 +113,12 @@ function formatCode(code: string, lang: string): string {
       out.push("\t".repeat(indent) + trimmed);
 
       // Increase indent after opening tokens
-      if (stripped.endsWith("{") || stripped.endsWith("(") || stripped.endsWith("[")) indent++;
+      if (
+        stripped.endsWith("{") ||
+        stripped.endsWith("(") ||
+        stripped.endsWith("[")
+      )
+        indent++;
       if (isGoLabel) indent++;
     }
 
@@ -108,7 +127,10 @@ function formatCode(code: string, lang: string): string {
     // Python: 4-space indent, PEP 8
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
-      if (raw === "") { out.push(""); continue; }
+      if (raw === "") {
+        out.push("");
+        continue;
+      }
 
       const trimmed = raw.trimStart();
 
@@ -169,7 +191,10 @@ function generateScaffold(problem: Problem | null, lang: string): string {
   return lang === "python" ? PYTHON_CODE : GO_CODE;
 }
 
-function generateOldScaffold(lv: { func_name: string; return_type: string; param_types: string[] }, lang: string): string {
+function generateOldScaffold(
+  lv: { func_name: string; return_type: string; param_types: string[] },
+  lang: string,
+): string {
   if (lang === "python") {
     return `def ${lv.func_name}(${lv.param_types.map((_, i) => `arg${i + 1}`).join(", ")}):\n    pass\n`;
   }
@@ -227,9 +252,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const { user } = useUser();
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
 
-  const returnTo = typeof window !== "undefined"
-    ? sessionStorage.getItem("return_to") || "/home"
-    : "/home";
+  const returnTo =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem("return_to") || "/home"
+      : "/home";
 
   useEffect(() => {
     clearCache(`/problems/${slug}`);
@@ -242,17 +268,26 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               .map(([lang]) => lang)
           : [];
         const preferred = localStorage.getItem("koder_language") || "go";
-        const lang = available.length > 0 && !available.includes(preferred)
-          ? available[0]
-          : preferred;
+        const lang =
+          available.length > 0 && !available.includes(preferred)
+            ? available[0]
+            : preferred;
         const scaffold = generateScaffold(res.data, lang);
         setActiveLanguage(lang);
         // Restore saved code if it exists, otherwise use scaffold
-        const stored = localStorage.getItem(STORE_KEY(slug, lang)) || localStorage.getItem(STORE_KEY(slug));
+        const stored =
+          localStorage.getItem(STORE_KEY(slug, lang)) ||
+          localStorage.getItem(STORE_KEY(slug));
         if (stored) {
           const lv = res.data.language_versions?.[lang];
-          const oldScaffold = lv?.func_name ? generateOldScaffold(lv, lang) : null;
-          if (oldScaffold && (stored === oldScaffold || stored.trimEnd() === oldScaffold.trimEnd())) {
+          const oldScaffold = lv?.func_name
+            ? generateOldScaffold(lv, lang)
+            : null;
+          if (
+            oldScaffold &&
+            (stored === oldScaffold ||
+              stored.trimEnd() === oldScaffold.trimEnd())
+          ) {
             setCode(scaffold);
             localStorage.setItem(STORE_KEY(slug, lang), scaffold);
           } else {
@@ -293,8 +328,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }, 2000);
     return () => clearTimeout(timer);
   }, [code, slug, problem, activeLanguage]);
-
-
 
   // Keyboard shortcuts — use function declarations (hoisted) to satisfy no-hoisted-functions rule
   useEffect(() => {
@@ -346,11 +379,13 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     if (!ed) return;
     const raw = ed.getValue();
     const formatted = formatCode(raw, activeLanguage);
-    ed.executeEdits("format", [{
-      range: ed.getModel()!.getFullModelRange(),
-      text: formatted,
-      forceMoveMarkers: true,
-    }]);
+    ed.executeEdits("format", [
+      {
+        range: ed.getModel()!.getFullModelRange(),
+        text: formatted,
+        forceMoveMarkers: true,
+      },
+    ]);
     setCode(formatted);
     setSaved(true);
     toast.success("Code formatted");
@@ -550,7 +585,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         }
         setEditOpen(false);
       } else {
-        toast.error(typeof res.error === 'string' ? res.error : res.error?.message || "Failed to update problem");
+        toast.error(
+          typeof res.error === "string"
+            ? res.error
+            : res.error?.message || "Failed to update problem",
+        );
       }
     } catch {
       toast.error("Failed to update problem");
@@ -577,21 +616,24 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
   };
 
-  const nextProblem = problem && user?.id && allProblems.length > 0
-    ? (() => {
-        const unlockedProblems = allProblems.filter((p) => !p.locked);
-        if (unlockedProblems.length === 0) return null;
-        const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
-        const shuffled = shuffleArray(unlockedProblems, seed);
-        const idx = shuffled.findIndex((p) => p.slug === slug);
-        return idx >= 0 && idx < shuffled.length - 1 ? shuffled[idx + 1] : null;
-      })()
-    : null;
+  const nextProblem =
+    problem && user?.id && allProblems.length > 0
+      ? (() => {
+          const unlockedProblems = allProblems.filter((p) => !p.locked);
+          if (unlockedProblems.length === 0) return null;
+          const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
+          const shuffled = shuffleArray(unlockedProblems, seed);
+          const idx = shuffled.findIndex((p) => p.slug === slug);
+          return idx >= 0 && idx < shuffled.length - 1
+            ? shuffled[idx + 1]
+            : null;
+        })()
+      : null;
 
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Workspace Header */}
-      <header className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-4">
+      <header className="h-12 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-3">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href="/home"
@@ -607,16 +649,20 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <ChevronLeft size={16} /> Back
           </Link>
           <div className="w-px h-5 bg-brand-charcoal-border shrink-0"></div>
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="font-bold truncate">{problem.title}</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="font-semibold truncate text-sm">
+              {problem.title}
+            </span>
             <span className="bg-brand-charcoal-hover text-brand-offwhite-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-charcoal-border shrink-0">
               {problem.module}
             </span>
             {nextProblem && (
               <Link
                 href={`/problems/${nextProblem.slug}`}
-                onClick={() => sessionStorage.setItem("return_to", window.location.pathname)}
-                className="flex items-center gap-1 text-sm font-medium shrink-0 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors ml-2"
+                onClick={() =>
+                  sessionStorage.setItem("return_to", window.location.pathname)
+                }
+                className="flex items-center gap-1 text-xs font-medium shrink-0 text-brand-offwhite-muted hover:text-brand-offwhite transition-colors ml-2"
                 title={`Next: ${nextProblem.title}`}
               >
                 Next <ChevronRight size={16} />
@@ -626,7 +672,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
-          <div className="flex items-center gap-1 text-brand-muted-gold text-sm font-bold bg-brand-muted-gold/10 px-3 py-1.5 rounded-lg border border-brand-muted-gold/20 mr-2">
+          <div className="flex items-center gap-1 text-brand-muted-gold text-xs font-bold bg-brand-muted-gold/10 px-2.5 py-1 rounded-lg border border-brand-muted-gold/20 mr-2">
             <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
             </svg>
@@ -634,7 +680,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
 
           <button
-            onClick={() => setPanelMode(panelMode === "hints" ? "tests" : "hints")}
+            onClick={() =>
+              setPanelMode(panelMode === "hints" ? "tests" : "hints")
+            }
             className={cn(
               "flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border",
               panelMode === "hints"
@@ -661,7 +709,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 }
                 setEditOpen(true);
               }}
-              className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-accent-teal hover:border-brand-accent-teal/30 hover:bg-brand-accent-teal/5"
+              className="flex items-center gap-2 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-accent-teal hover:border-brand-accent-teal/30 hover:bg-brand-accent-teal/5"
               title="Edit problem"
             >
               <Edit3 size={15} /> Edit
@@ -673,7 +721,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               setReportSubmitted(false);
               setReportDescription("");
             }}
-            className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
+            className="flex items-center gap-2 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors border border-transparent text-brand-offwhite-muted hover:text-brand-error hover:border-brand-error/30 hover:bg-brand-error/5"
             title="Report a problem with this exercise"
           >
             <Bug size={15} /> Report Bug
@@ -688,7 +736,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <button
             onClick={handleTest}
             disabled={submitting || cooldown > 0}
-            className="text-brand-offwhite-muted hover:text-brand-offwhite px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
+            className="text-brand-offwhite-muted hover:text-brand-offwhite px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-colors border border-brand-charcoal-border hover:border-brand-offwhite/30 disabled:opacity-70"
           >
             {cooldown > 0 ? (
               <span className="text-brand-muted-gold font-mono">
@@ -705,7 +753,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             onClick={handleSubmit}
             disabled={submitting || cooldown > 0 || problem.solved}
             className={cn(
-              "px-5 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all",
+              "px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-md transition-all",
               problem.solved
                 ? "bg-brand-success/10 text-brand-success border border-brand-success/30 cursor-not-allowed"
                 : "bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base shadow-brand-muted-gold/10",
@@ -733,8 +781,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <div className="w-1/3 min-w-[350px] border-r border-brand-charcoal-border bg-brand-charcoal-base overflow-y-auto custom-scrollbar">
             <div className="p-6">
               {/* Problem Header */}
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold text-brand-offwhite mb-3">
+              <div className="mb-4">
+                <h1 className="text-2xl font-semibold text-brand-offwhite mb-2">
                   {problem.title}
                 </h1>
                 <div className="flex items-center gap-3 flex-wrap">
@@ -746,7 +794,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   >
                     {getDifficultyLabel(problem.difficulty)}
                   </span>
-                  
+
                   {problem.solved && (
                     <span className="text-xs font-bold text-brand-success bg-brand-success/10 px-2.5 py-1 rounded border border-brand-success/30">
                       ✓ Solved
@@ -806,7 +854,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                       __html: renderMarkdown(
                         problem?.statement ||
                           problem?.descriptionMarkdown ||
-                          "No problem statement available yet. This exercise is pending enrichment."
+                          "No problem statement available yet. This exercise is pending enrichment.",
                       ),
                     }}
                   />
@@ -984,7 +1032,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
                   {availableLanguages.map((lang, idx) => (
                     <React.Fragment key={lang}>
-                      {idx > 0 && <div className="w-px bg-brand-charcoal-border self-stretch" />}
+                      {idx > 0 && (
+                        <div className="w-px bg-brand-charcoal-border self-stretch" />
+                      )}
                       <button
                         onClick={async () => {
                           if (activeLanguage === lang) return;
@@ -998,11 +1048,15 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                         className={cn(
                           "flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-colors",
                           activeLanguage === lang
-                            ? (langColors[lang]?.active || "bg-primary/15 text-primary")
+                            ? langColors[lang]?.active ||
+                                "bg-primary/15 text-primary"
                             : "text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover",
                         )}
                       >
-                        <LanguageLogo language={lang as "go" | "python"} size={18} />
+                        <LanguageLogo
+                          language={lang as "go" | "python"}
+                          size={18}
+                        />
                         {langColors[lang]?.text || lang}
                       </button>
                     </React.Fragment>
@@ -1010,8 +1064,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-offwhite-muted">
-                  <LanguageLogo language={(availableLanguages[0] || "go") as "go" | "python"} size={18} />
-                  {langColors[availableLanguages[0]]?.text || (availableLanguages[0] === "python" ? "Python" : "Go")}
+                  <LanguageLogo
+                    language={
+                      (availableLanguages[0] || "go") as "go" | "python"
+                    }
+                    size={18}
+                  />
+                  {langColors[availableLanguages[0]]?.text ||
+                    (availableLanguages[0] === "python" ? "Python" : "Go")}
                 </div>
               )}
               <span className="text-xs font-mono text-brand-offwhite-muted">
@@ -1024,12 +1084,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   ● Unsaved
                 </span>
               )}
-              {saved &&
-                code !== scaffoldAtToggle && (
-                  <span className="text-[10px] text-brand-success/60">
-                    ● Saved
-                  </span>
-                )}
+              {saved && code !== scaffoldAtToggle && (
+                <span className="text-[10px] text-brand-success/60">
+                  ● Saved
+                </span>
+              )}
               <button
                 onClick={handleFormat}
                 className="text-xs text-brand-offwhite-muted hover:text-brand-offwhite px-2 py-1 rounded hover:bg-brand-charcoal-hover transition-colors border border-brand-charcoal-border font-mono"
@@ -1105,7 +1164,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 editor.addAction({
                   id: "koder-submit",
                   label: "Submit Solution",
-                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter],
+                  keybindings: [
+                    monaco.KeyMod.CtrlCmd |
+                      monaco.KeyMod.Shift |
+                      monaco.KeyCode.Enter,
+                  ],
                   run: () => handleSubmitRef.current(),
                 });
               }}
@@ -1387,8 +1450,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           <DialogHeader>
             <DialogTitle>Switch language?</DialogTitle>
             <DialogDescription>
-              Switching languages will replace the editor content with a scaffold for the new
-              language. You can save your current code before switching.
+              Switching languages will replace the editor content with a
+              scaffold for the new language. You can save your current code
+              before switching.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
@@ -1405,7 +1469,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onClick={async () => {
                 if (pendingLanguage) {
                   const currentCode = editorRef.current?.getValue() ?? code;
-                  localStorage.setItem(STORE_KEY(slug, activeLanguage), currentCode);
+                  localStorage.setItem(
+                    STORE_KEY(slug, activeLanguage),
+                    currentCode,
+                  );
                   setSaved(true);
                   await applyLanguageSwitch(pendingLanguage);
                 }
@@ -1462,75 +1529,119 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Title</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Title
+                </label>
                 <input
                   value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Statement</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Statement
+                </label>
                 <textarea
                   value={editForm.statement}
-                  onChange={(e) => setEditForm({ ...editForm, statement: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, statement: e.target.value })
+                  }
                   rows={6}
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-brand-offwhite mb-1">Difficulty (1-5)</label>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                    Difficulty (1-5)
+                  </label>
                   <input
                     type="number"
                     min={1}
                     max={5}
                     value={editForm.difficulty}
-                    onChange={(e) => setEditForm({ ...editForm, difficulty: Math.min(5, Math.max(1, Number(e.target.value))) })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        difficulty: Math.min(
+                          5,
+                          Math.max(1, Number(e.target.value)),
+                        ),
+                      })
+                    }
                     className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-brand-offwhite mb-1">XP Reward</label>
+                  <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                    XP Reward
+                  </label>
                   <input
                     type="number"
                     min={0}
                     value={editForm.xp_reward}
-                    onChange={(e) => setEditForm({ ...editForm, xp_reward: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        xp_reward: Number(e.target.value),
+                      })
+                    }
                     className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Module</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Module
+                </label>
                 <input
                   value={editForm.module}
-                  onChange={(e) => setEditForm({ ...editForm, module: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, module: e.target.value })
+                  }
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Tags (comma-separated)</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Tags (comma-separated)
+                </label>
                 <input
                   value={editForm.tags}
-                  onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, tags: e.target.value })
+                  }
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Constraints</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Constraints
+                </label>
                 <textarea
                   value={editForm.constraints}
-                  onChange={(e) => setEditForm({ ...editForm, constraints: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, constraints: e.target.value })
+                  }
                   rows={3}
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-offwhite mb-1">Learning Objective</label>
+                <label className="block text-sm font-medium text-brand-offwhite mb-1">
+                  Learning Objective
+                </label>
                 <textarea
                   value={editForm.learning_objective}
-                  onChange={(e) => setEditForm({ ...editForm, learning_objective: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      learning_objective: e.target.value,
+                    })
+                  }
                   rows={3}
                   className="w-full rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2 text-sm text-brand-offwhite focus:outline-none focus:ring-1 focus:ring-brand-muted-gold resize-y font-mono"
                 />

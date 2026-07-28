@@ -149,18 +149,18 @@ export default function CourseDetail() {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="relative rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-6 md:p-8 shadow-xl overflow-hidden">
+        <div className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-5 md:p-6 shadow-lg overflow-hidden">
           {/* Radial ambient glow */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
             <div className="flex-1 max-w-3xl">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-md shadow-inner shrink-0">
-                  <GraduationCap className="w-7 h-7 text-primary" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-md shadow-inner shrink-0">
+                  <GraduationCap className="w-6 h-6 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground truncate">
+                  <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground truncate">
                     {data.title}
                   </h1>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -170,7 +170,7 @@ export default function CourseDetail() {
               </div>
 
               {/* Metadata chips */}
-              <div className="flex flex-wrap items-center gap-2 mb-6">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn("px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border shadow-sm", diff.color)}>
                   {diff.label}
                 </span>
@@ -186,7 +186,7 @@ export default function CourseDetail() {
               </div>
 
               {/* Progress Block */}
-              <div className="bg-background/50 backdrop-blur-sm p-4 rounded-2xl border border-border/50 max-w-lg">
+              <div className="bg-background/50 backdrop-blur-sm p-3 rounded-xl border border-border/50 max-w-lg">
                 <div className="flex justify-between items-end mb-2">
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Your Progress</p>
@@ -223,7 +223,7 @@ export default function CourseDetail() {
       </motion.div>
 
       {/* ── Stats Grid ── */}
-      <div className="grid gap-3 sm:grid-cols-3 mb-8">
+      <div className="grid gap-3 sm:grid-cols-3 mb-6">
         <div className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Progress</p>
           <p className="text-2xl font-bold text-foreground">{Math.round(pct)}%</p>
@@ -257,7 +257,7 @@ export default function CourseDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {data.modules.length === 0 && (
             <div className="col-span-full text-center py-12 border-2 border-dashed border-border/40 rounded-2xl bg-card/30">
