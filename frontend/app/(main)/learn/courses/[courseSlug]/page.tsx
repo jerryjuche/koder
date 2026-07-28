@@ -277,7 +277,7 @@ export default function CourseDetail() {
             let status: "locked" | "in-progress" | "completed" | "available" = "available";
             if (mod.locked) status = "locked";
             else if (isComplete) status = "completed";
-            else if (isCurrent) status = "in-progress";
+            else if (completed > 0 || isCurrent) status = "in-progress";
 
             return (
               <motion.div key={mod.id} variants={itemVariants} className="h-full">

@@ -105,10 +105,10 @@ export default function LessonSuccessPage() {
   const exerciseCount = lessonData?.sections?.filter((s) => s.section_type === "exercises").length || cachedData?.exerciseCount || 0;
   const moduleTitle = moduleData?.module?.title || cachedData?.moduleTitle || moduleSlug;
   const moduleProgress = (() => {
-    if (moduleData?.lessons) {
+    if (moduleData?.lessons && moduleData.lessons.length > 0) {
       const total = moduleData.lessons.length;
-      const completed = moduleData.lessons.filter((l) => l.completed).length;
-      return total > 0 ? (completed / total) * 100 : 0;
+      const completed = moduleData.lessons.filter((l) => l.completed || l.slug === lessonSlug).length;
+      return (completed / total) * 100;
     }
     return cachedData?.moduleProgress ?? 0;
   })();

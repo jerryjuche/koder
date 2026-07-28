@@ -63,6 +63,25 @@ export default function CourseCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [enrolledSlugs, setEnrolledSlugs] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("koder_enrolled_courses") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleEnroll = (slug: string, title: string) => {
+    setEnrolledSlugs((prev) => {
+      const isEnrolled = prev.includes(slug);
+      const next = isEnrolled ? prev.filter((s) => s !== slug) : [...prev, slug];
+      try {
+        localStorage.setItem("koder_enrolled_courses", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const totalCourses = courses.length;
   const completedCourses = courses.filter(

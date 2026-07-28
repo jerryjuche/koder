@@ -579,8 +579,10 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
   const nextProblem = problem && user?.id && allProblems.length > 0
     ? (() => {
+        const unlockedProblems = allProblems.filter((p) => !p.locked);
+        if (unlockedProblems.length === 0) return null;
         const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
-        const shuffled = shuffleArray(allProblems, seed);
+        const shuffled = shuffleArray(unlockedProblems, seed);
         const idx = shuffled.findIndex((p) => p.slug === slug);
         return idx >= 0 && idx < shuffled.length - 1 ? shuffled[idx + 1] : null;
       })()

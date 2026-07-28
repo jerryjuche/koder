@@ -37,7 +37,7 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Stamp locked flag on problems from locked modules (admins see all unlocked)
+	// Filter out problems from locked modules for non-admin users
 	if claims.Role != "admin" {
 		lockedModules, err := h.store.ListLockedModules(r.Context())
 		if err == nil && len(lockedModules) > 0 {
@@ -45,9 +45,13 @@ func (h *ProblemHandler) ListVisibleProblems(w http.ResponseWriter, r *http.Requ
 			for _, lm := range lockedModules {
 				locked[lm.ModuleName] = true
 			}
-			for i := range problems {
-				problems[i].Locked = locked[problems[i].Module]
+			var unlocked []store.Problem
+			for _, p := range problems {
+				if !locked[p.Module] {
+					unlocked = append(unlocked, p)
+				}
 			}
+			problems = unlocked
 		}
 	}
 

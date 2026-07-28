@@ -104,11 +104,11 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.Get("/check-username", authHandler.CheckUsername)
 	})
 
-	// Public curriculum CMS — no auth required
-	r.Get("/learn/courses", cmHandler.ListPublishedCourses)
-	r.Get("/learn/courses/{courseSlug}", cmHandler.GetCourseDetail)
-	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
-	r.Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
+	// Public curriculum CMS — with optional auth to attach user progress when logged in
+	r.With(OptionalAuthMiddleware(cfg, store)).Get("/learn/courses", cmHandler.ListPublishedCourses)
+	r.With(OptionalAuthMiddleware(cfg, store)).Get("/learn/courses/{courseSlug}", cmHandler.GetCourseDetail)
+	r.With(OptionalAuthMiddleware(cfg, store)).Get("/learn/courses/{courseSlug}/modules/{moduleSlug}", cmHandler.GetModuleDetail)
+	r.With(OptionalAuthMiddleware(cfg, store)).Get("/learn/courses/{courseSlug}/modules/{moduleSlug}/lessons/{lessonSlug}", cmHandler.GetLessonDetail)
 
 	// Public problem metadata & problem details (OptionalAuth so visitors can view problem specs in lesson exercises)
 	r.Get("/problems/{slug}/meta", problemHandler.GetProblemMeta)

@@ -579,6 +579,10 @@ func (h *CMHandler) GetAllProgress(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		if entry.TotalLessons > 0 {
+			entry.ProgressPct = (float32(entry.CompletedLessons) / float32(entry.TotalLessons)) * 100.0
+		}
+
 		resp.Courses = append(resp.Courses, entry)
 	}
 
