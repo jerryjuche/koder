@@ -66,6 +66,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { LanguageLogo } from "@/components/LanguageLogo";
+import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 
 const GO_CODE = `package koder
 
@@ -1127,7 +1128,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             <Editor
               height="100%"
               language={activeLanguage}
-              theme="vs-dark"
+              theme="vs-dark-plus"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -1146,6 +1147,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
+
+                registerVSCodeDarkPlusTheme(monaco);
 
                 editor.addAction({
                   id: "koder-format",
@@ -1191,18 +1194,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                 hideCursorInOverviewRuler: false,
                 bracketPairColorization: { enabled: true },
                 matchBrackets: "always",
-                autoClosingBrackets: "never",
-                autoClosingQuotes: "never",
+                autoClosingBrackets: "always",
+                autoClosingQuotes: "always",
                 autoIndent: "full",
                 formatOnPaste: true,
                 tabSize: 4,
                 insertSpaces: true,
-                quickSuggestions: false,
-                snippetSuggestions: "none",
-                suggestOnTriggerCharacters: false,
-                acceptSuggestionOnEnter: "off",
-                suggestSelection: "recentlyUsed",
-                parameterHints: { enabled: false },
+                quickSuggestions: {
+                  other: true,
+                  comments: false,
+                  strings: false,
+                },
+                snippetSuggestions: "inline",
+                suggestOnTriggerCharacters: true,
+                acceptSuggestionOnEnter: "smart",
+                suggestSelection: "first",
                 wordWrap: "off",
                 folding: true,
                 foldingHighlight: true,
