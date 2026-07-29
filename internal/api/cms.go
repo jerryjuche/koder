@@ -474,10 +474,12 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var coursePct float32
+	var courseCompleted bool
 	if totalLessons > 0 {
-		pct := float32(completedLessons) / float32(totalLessons) * 100
-		completed := completedLessons >= totalLessons
-		if err := h.store.UpsertCourseProgress(r.Context(), userID, courseID, pct, completed); err != nil {
+		coursePct = float32(completedLessons) / float32(totalLessons) * 100
+		courseCompleted = completedLessons >= totalLessons
+		if err := h.store.UpsertCourseProgress(r.Context(), userID, courseID, coursePct, courseCompleted); err != nil {
 			slog.Error("cms: failed to update course progress", "course_id", courseID, "error", err)
 		}
 	}
@@ -496,16 +498,19 @@ func (h *CMHandler) CompleteLesson(w http.ResponseWriter, r *http.Request) {
 			"xp_awarded": xpAwarded,
 		})
 		h.broker.PublishEvent("progress.updated", map[string]interface{}{
-			"user_id":    claims.UserID,
-			"lesson_id":  lessonID.String(),
-			"xp_awarded": xpAwarded,
+			"user_id":     claims.UserID,
+			"lesson_id":   lessonID.String(),
+			"xp_awarded":  xpAwarded,
+			"progress_pct": coursePct,
 		})
 	}
 
-	// Include xp_awarded in response
+	// Include xp_awarded + course progress in response
 	response := map[string]interface{}{
-		"lesson_progress": lp,
-		"xp_awarded":      xpAwarded,
+		"lesson_progress":  lp,
+		"xp_awarded":       xpAwarded,
+		"progress_pct":     coursePct,
+		"course_completed": courseCompleted,
 	}
 	RespondSuccess(w, response)
 }

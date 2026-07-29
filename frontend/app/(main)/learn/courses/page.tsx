@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchCourses, fetchProgress } from "@/lib/api";
 import { Course } from "@/lib/types";
 import { useUser } from "@/lib/UserContext";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Card } from "@/components/ui/card";
 import { type Language } from "@/components/LanguageLogo";
+import { useWebSocket } from "@/lib/event";
 import {
   BookOpen,
   GraduationCap,
@@ -92,32 +93,48 @@ export default function CourseCatalog() {
     return pct > 0 && pct < 100;
   }).length;
 
+  const refetchProgress = useCallback(async () => {
+    const [coursesRes, progressRes] = await Promise.all([
+      fetchCourses(),
+      fetchProgress(),
+    ]);
+
+    if (coursesRes.success && coursesRes.data) {
+      setCourses(coursesRes.data);
+      setError(null);
+    } else if (!coursesRes.success) {
+      setError(coursesRes.error?.message ?? "Failed to load courses");
+    }
+
+    if (progressRes.success && progressRes.data) {
+      const map: Record<string, number> = {};
+      for (const entry of progressRes.data.courses) {
+        map[entry.course_slug] = entry.progress_pct;
+      }
+      setProgressBySlug(map);
+    }
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       setError(null);
-      const [coursesRes, progressRes] = await Promise.all([
-        fetchCourses(),
-        fetchProgress().catch(() => ({ success: false }) as const),
-      ]);
-
-      if (coursesRes.success && coursesRes.data) {
-        setCourses(coursesRes.data);
-      } else {
-        setError(coursesRes.error?.message ?? "Failed to load courses");
-      }
-
-      if (progressRes.success && progressRes.data) {
-        const map: Record<string, number> = {};
-        for (const entry of progressRes.data.courses) {
-          map[entry.course_slug] = entry.progress_pct;
-        }
-        setProgressBySlug(map);
-      }
-
+      await refetchProgress();
       setLoading(false);
     };
     load();
-  }, []);
+  }, [refetchProgress]);
+
+  useWebSocket({
+    "lesson.completed": useCallback(() => refetchProgress(), [refetchProgress]),
+    "user.xp.updated": useCallback(() => refetchProgress(), [refetchProgress]),
+    "progress.updated": useCallback(() => refetchProgress(), [refetchProgress]),
+  });
+
+  useEffect(() => {
+    const handler = () => refetchProgress();
+    window.addEventListener("user-updated", handler);
+    return () => window.removeEventListener("user-updated", handler);
+  }, [refetchProgress]);
 
   const filteredCourses = courses.filter((course) => {
     if (activeFilter === "all") return true;
@@ -160,11 +177,7 @@ export default function CourseCatalog() {
           onClick={() => {
             setLoading(true);
             setError(null);
-            fetchCourses().then((res) => {
-              if (res.success && res.data) setCourses(res.data);
-              else setError(res.error?.message ?? "Failed to load courses");
-              setLoading(false);
-            });
+            refetchProgress().then(() => setLoading(false));
           }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md"
         >

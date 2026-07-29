@@ -117,9 +117,9 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
         }
 
         if (currentProb && allProblems) {
-          const others = allProblems.filter((p) => p.id !== currentProb!.id);
+          const others = allProblems.filter((p) => p.id !== currentProb!.id && !p.locked);
           const sameModule = others.filter(
-            (p) => p.module === currentProb!.module,
+            (p) => p.module === currentProb!.module && !p.locked,
           );
           const unsolvedInModule = sameModule.find((p) => !p.solved);
           if (unsolvedInModule) {

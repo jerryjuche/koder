@@ -86,6 +86,8 @@ export default function ProblemsPage() {
   const filtered = useMemo(() => {
     let list = shuffled;
 
+    list = list.filter((p) => !p.locked);
+
     if (langFilter !== "all") {
       list = list.filter((p) => {
         if (!p.language_versions) return false;
