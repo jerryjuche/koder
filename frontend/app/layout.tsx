@@ -50,7 +50,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           theme="dark"
           position="top-right"
           gap={12}
-          offset={16}
+          offset={80}
           visibleToasts={5}
           toastOptions={{
             style: {
