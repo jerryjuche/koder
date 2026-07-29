@@ -1123,6 +1123,25 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 - Added session logs for Sessions 82–85
 - Fixed sandbox, cmd tools, and frontend component line counts to match current files
 
+### 2026-07-29 — Session 87: Locked-module problems filtered from workspace and listings
+- Backend: `internal/api/problems.go` — filters locked problems from response for non-admin users
+- Frontend workspace: `ProblemWorkspaceClient.tsx` — `nextProblem` scans past locked items
+- Frontend success page: `success/page.tsx` — next-problem logic excludes `p.locked`
+- Frontend problems listing: `problems/page.tsx` — `!p.locked` filter added
+- Defense-in-depth: home page already had `p.locked` guard (now redundant but harmless)
+
+### 2026-07-29 — Session 88: Remove Learning Progress section from dashboard
+- Removed entire "Learning Progress" section (courses grid) from `/home` — courses have dedicated `/learn/courses`
+- Cleaned up dead imports: `useWebSocket`, `fetchProgress`, `CourseProgressEntry`
+- Removed `courseProgress` state, `progRes` from Promise.all, WebSocket event handlers
+- File: 917→831 lines
+
+### 2026-07-29 — Session 89: Enable Python IntelliSense in problem workspace editor
+- Changed 7 disabled Monaco editor options to enable: auto-closing brackets/quotes, quick suggestions, snippet suggestions, trigger characters, accept-on-Enter, parameter hints, suggest selection
+- Switched theme from `"vs-dark"` to `"vs-dark-plus"` (custom theme with richer token colors)
+- Added `registerVSCodeDarkPlusTheme` import and `onMount` call
+- Now matches the Learn section editors (`MultiFileEditor`, `SectionExercise`)
+
 ---
 
 *Last indexed: 2026-07-29 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
