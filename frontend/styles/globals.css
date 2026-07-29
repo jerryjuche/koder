@@ -76,3 +76,33 @@ input[type="search"]::-webkit-search-cancel-button {
 .recharts-surface path {
     outline: none;
 }
+
+/* NVIDIA-style animated background — drift keyframes (GPU-composited) */
+@keyframes drift-slow {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(3%, 4%) scale(1.05); }
+    66% { transform: translate(2%, -3%) scale(0.95); }
+}
+
+@keyframes drift-medium {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-4%, 3%) scale(1.08); }
+}
+
+@keyframes drift-slow-reverse {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-3%, -4%) scale(0.95); }
+    66% { transform: translate(4%, 2%) scale(1.05); }
+}
+
+@utility animate-drift-slow {
+    animation: drift-slow 25s ease-in-out infinite;
+}
+
+@utility animate-drift-medium {
+    animation: drift-medium 18s ease-in-out infinite;
+}
+
+@utility animate-drift-slow-reverse {
+    animation: drift-slow-reverse 25s ease-in-out infinite;
+}
