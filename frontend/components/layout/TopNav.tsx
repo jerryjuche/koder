@@ -100,8 +100,7 @@ export default function TopNav() {
               .map((link) => {
                 const Icon = link.icon;
                 const isLearn = link.name === "Learn";
-                const isProblems = link.name === "Problems";
-                const linkDisabled = (isLearn || isProblems) && user?.role !== "admin";
+                const linkDisabled = isLearn && user?.role !== "admin";
 
                 if (linkDisabled) {
                   return (
