@@ -2425,3 +2425,104 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - ✅ `npx tsc --noEmit` — 0 errors
 - ✅ `npm run lint` — 0 errors (1 pre-existing warning in `MarkdownPreview.tsx`)
 - ✅ All pushed to `origin/update`
+
+---
+
+## Session 82 — 2026-07-27 — param_names scaffold generation
+
+**Commits:** `fcc360a`
+
+### Changes
+- **`migrations/047_add_param_names.sql`** (16 lines) — added `param_names TEXT[]` column to problems schema
+- Backend updates: `problems.go` (ListProblemWithTestCases), `admin.go` (UpdateProblem), `enricher.go` — scaffold uses real parameter names instead of `arg1`/`arg2`
+- `go vet ./internal/...` — clean
+
+---
+
+## Session 83 — 2026-07-27 — Professional OG metadata with module images
+
+**Commits:** `fef38c5`
+
+### Changes
+- `frontend/app/layout.tsx` — Open Graph / Twitter Card meta tags, og:image, theme-color, module-specific preview images
+- `frontend/app/problems/[slug]/page.tsx` — per-problem OG metadata with module-specific WebP images
+- Preview cards display module-specific images on social links
+
+---
+
+## Session 84 — 2026-07-27 — Learn UI 3D tactile redesign + quiz/prerequisite overhaul
+
+**Commits:** `e6ea3c8`, `8a09fdd`, `891d787`
+
+### Changes
+- Complete overhaul of course/module/lesson pages with 3D tactile design system
+- `learning-card.tsx` (379→258 LOC): redesigned with depth, shadows, and type-based gradients
+- `SectionQuiz.tsx` (109→195 LOC): redesigned MCQ with dynamic feedback and review mode
+- `LessonSidebar.tsx` (196→210 LOC): prerequisite locking visualization, collapsible sections
+- `LessonViewerClient.tsx` (606→630 LOC): AnimatePresence transitions, keyboard shortcuts
+- `courses/page.tsx` (285→315 LOC): LearningCard grid with difficulty pills and gradient heroes
+- Backend: curriculum.go — filter deleted problem references at DB level; middleware.go — optional auth bypass for problem details
+- Fixed 6 ESLint errors across Learn components
+
+---
+
+## Session 85 — 2026-07-27 — python-practicals seed + codebase reindex
+
+**Commits:** `71a16af`, `c374476`, `eac1efb`, `a709b3e`, `4228859`, `9b4c81d`, `0a9808e`, `72b63a8`
+
+### Changes
+- `migrations/047_seed_python_practicals.sql` + `scripts/generate-practicals-migration.mjs` — 25 problems with 5–7 test cases each
+- Rephrased 100+ problems with proper param_names across 5 Python modules
+- Scaffold generation: auto-detect stale `arg1`/`arg2` scaffolds and replace with real param_names on load
+- `ProblemWorkspaceClient.tsx` — clears sessionStorage cache before problem fetch, preserves tokens on transient errors
+- Go LOC ~21,798, frontend TSX/TS ~30,256, total tracked ~72,000
+
+---
+
+## Session 86 — 2026-07-29 — Locked-module problems filtered from workspace and listings
+
+**Commits:** `212d45a`
+
+### Changes
+- **`internal/api/problems.go`** — backend filters locked problems from response for non-admin users at the handler level
+- **`ProblemWorkspaceClient.tsx`** — `nextProblem` scans past locked items in shuffled list
+- **`success/page.tsx`** — next-problem logic excludes `p.locked` for both `others` and `sameModule` fallbacks
+- **`problems/page.tsx`** — `!p.locked` filter added at top of filter chain
+- **`home/page.tsx`** — pre-existing `p.locked` guard now defense-in-depth
+- 4 files modified, 314 insertions(+), 147 deletions(-)
+
+---
+
+## Session 87 — 2026-07-29 — Remove Learning Progress section from dashboard
+
+**Commits:** `10a570a`
+
+### Changes
+- Removed entire "Learning Progress" section (courses grid with progress bars) from `/home`
+- Courses have dedicated `/learn/courses` area — dashboard is for problems only
+- Cleaned up dead imports: `useWebSocket` (entire import), `fetchProgress`, `CourseProgressEntry`
+- Removed `courseProgress` state, `progRes` from `Promise.all`, 2 `useWebSocket` handlers
+- Removed `clearCache("/learn")` from debounce timer
+- File: 917→831 lines, 90 deletions
+
+---
+
+## Session 88 — 2026-07-29 — Enable Python IntelliSense in problem workspace editor
+
+**Commits:** `5c57050`
+
+### Changes
+- **`ProblemWorkspaceClient.tsx`** — 11 changes to Monaco editor configuration:
+  - `autoClosingBrackets`: `"never"` → `"always"`
+  - `autoClosingQuotes`: `"never"` → `"always"`
+  - `quickSuggestions`: `false` → `{ other: true, comments: false, strings: false }`
+  - `snippetSuggestions`: `"none"` → `"inline"`
+  - `suggestOnTriggerCharacters`: `false` → `true`
+  - `acceptSuggestionOnEnter`: `"off"` → `"smart"`
+  - `suggestSelection`: `"recentlyUsed"` → `"first"`
+  - `parameterHints`: `{ enabled: false }` removed (defaults to enabled)
+  - Theme: `"vs-dark"` → `"vs-dark-plus"` (custom theme with richer token colors)
+  - Added `registerVSCodeDarkPlusTheme` import and `onMount` call
+- Now matches the Learn section editors (`MultiFileEditor`, `SectionExercise`)
+- 15 insertions(+), 9 deletions(-)
+- All pushed to `origin/update`
