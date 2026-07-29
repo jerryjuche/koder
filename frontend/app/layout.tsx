@@ -3,7 +3,6 @@ import './globals.css';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
-import NvidiaBackground from '@/components/ui/NvidiaBackground';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://koder.sbs'),
@@ -43,7 +42,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
-        <NvidiaBackground />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"} />
         <DesktopOnlyOverlay />
         {children}

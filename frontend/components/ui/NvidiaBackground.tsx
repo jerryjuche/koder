@@ -1,7 +1,7 @@
 export default function NvidiaBackground() {
   return (
     <div
-      className="fixed inset-0 -z-10 overflow-hidden pointer-events-none hidden md:block"
+      className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block"
       aria-hidden="true"
     >
       {/* Orb 1 — large primary glow, top-left */}
@@ -33,9 +33,6 @@ export default function NvidiaBackground() {
             'radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--color-brand-muted-gold-dark) 12%, transparent) 0%, transparent 60%)',
         }}
       />
-
-      {/* Dark overlay — ensures text readability on all pages */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/40 to-background/85" />
     </div>
   );
 }
