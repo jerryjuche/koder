@@ -3,15 +3,28 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchLesson, fetchModule, completeLesson } from "@/lib/api";
-import { LessonWithSections, ModuleWithLessons, LessonSection } from "@/lib/types";
+import {
+  LessonWithSections,
+  ModuleWithLessons,
+  LessonSection,
+} from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Clock, Zap,
-  Loader2, BookOpen, ChevronLeft,
-  Sparkles, GraduationCap, Lock, AlertTriangle
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Zap,
+  Loader2,
+  BookOpen,
+  ChevronLeft,
+  Sparkles,
+  GraduationCap,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 import SectionRenderer from "@/components/learn/SectionRenderer";
 import SectionQuiz from "@/components/learn/SectionQuiz";
@@ -46,18 +59,27 @@ const stepLabels: Record<string, string> = {
 const sectionTypeGradients: Record<string, string> = {
   overview: "from-blue-500/10 via-blue-500/5 to-transparent border-blue-500/20",
   explanation: "from-sky-500/10 via-sky-500/5 to-transparent border-sky-500/20",
-  examples: "from-violet-500/10 via-violet-500/5 to-transparent border-violet-500/20",
-  best_practices: "from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20",
-  common_mistakes: "from-rose-500/10 via-rose-500/5 to-transparent border-rose-500/20",
-  summary: "from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20",
+  examples:
+    "from-violet-500/10 via-violet-500/5 to-transparent border-violet-500/20",
+  best_practices:
+    "from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20",
+  common_mistakes:
+    "from-rose-500/10 via-rose-500/5 to-transparent border-rose-500/20",
+  summary:
+    "from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20",
   quiz: "from-orange-500/10 via-orange-500/5 to-transparent border-orange-500/20",
-  exercises: "from-teal-500/10 via-teal-500/5 to-transparent border-teal-500/20",
-  mini_project: "from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/20",
-  assessment: "from-indigo-500/10 via-indigo-500/5 to-transparent border-indigo-500/20",
-  ai_review: "from-fuchsia-500/10 via-fuchsia-500/5 to-transparent border-fuchsia-500/20",
+  exercises:
+    "from-teal-500/10 via-teal-500/5 to-transparent border-teal-500/20",
+  mini_project:
+    "from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/20",
+  assessment:
+    "from-indigo-500/10 via-indigo-500/5 to-transparent border-indigo-500/20",
+  ai_review:
+    "from-fuchsia-500/10 via-fuchsia-500/5 to-transparent border-fuchsia-500/20",
 };
 
-const quizReviewGradient = "from-orange-500/10 via-amber-500/5 to-transparent border-orange-500/20";
+const quizReviewGradient =
+  "from-orange-500/10 via-amber-500/5 to-transparent border-orange-500/20";
 
 export default function LessonViewerClient() {
   const params = useParams();
@@ -96,11 +118,14 @@ export default function LessonViewerClient() {
 
   // Store lesson context so problem success page can link back
   useEffect(() => {
-    sessionStorage.setItem("koder_lesson_context", JSON.stringify({
-      courseSlug,
-      moduleSlug,
-      lessonSlug,
-    }));
+    sessionStorage.setItem(
+      "koder_lesson_context",
+      JSON.stringify({
+        courseSlug,
+        moduleSlug,
+        lessonSlug,
+      }),
+    );
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
@@ -137,7 +162,8 @@ export default function LessonViewerClient() {
 
   const totalSteps = steps.length;
   const currentStepData = steps[currentStep];
-  const progressPercent = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+  const progressPercent =
+    totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
 
   const goNext = useCallback(() => {
     if (currentStep < totalSteps - 1) setCurrentStep((s) => s + 1);
@@ -152,7 +178,13 @@ export default function LessonViewerClient() {
     const handler = (e: KeyboardEvent) => {
       // Don't intercept arrow keys if target is inside an input/textarea/monaco editor
       const target = e.target as HTMLElement;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable || target.closest(".monaco-editor"))) {
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable ||
+          target.closest(".monaco-editor"))
+      ) {
         return;
       }
 
@@ -171,8 +203,18 @@ export default function LessonViewerClient() {
   const fireConfetti = useCallback(() => {
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
     confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.6 } });
-    confetti({ ...defaults, particleCount: 30, origin: { x: 0.3, y: 0.5 }, colors: ["#ffd700", "#ff6b6b"] });
-    confetti({ ...defaults, particleCount: 30, origin: { x: 0.7, y: 0.5 }, colors: ["#4ecdc4", "#45b7d1"] });
+    confetti({
+      ...defaults,
+      particleCount: 30,
+      origin: { x: 0.3, y: 0.5 },
+      colors: ["#ffd700", "#ff6b6b"],
+    });
+    confetti({
+      ...defaults,
+      particleCount: 30,
+      origin: { x: 0.7, y: 0.5 },
+      colors: ["#4ecdc4", "#45b7d1"],
+    });
   }, []);
 
   const handleComplete = async () => {
@@ -183,11 +225,14 @@ export default function LessonViewerClient() {
     // Save optimistic completion to sessionStorage to solve DB race condition for prerequisites
     try {
       const completedList: string[] = JSON.parse(
-        sessionStorage.getItem("koder_completed_lessons") || "[]"
+        sessionStorage.getItem("koder_completed_lessons") || "[]",
       );
       if (!completedList.includes(lessonData.id)) {
         completedList.push(lessonData.id);
-        sessionStorage.setItem("koder_completed_lessons", JSON.stringify(completedList));
+        sessionStorage.setItem(
+          "koder_completed_lessons",
+          JSON.stringify(completedList),
+        );
       }
     } catch {}
 
@@ -197,7 +242,10 @@ export default function LessonViewerClient() {
       window.dispatchEvent(new Event("user-updated"));
 
       const total = moduleData?.lessons?.length || 0;
-      const done = (moduleData?.lessons?.filter((l) => l.completed || l.id === lessonData.id).length || 0) + 1;
+      const done =
+        (moduleData?.lessons?.filter(
+          (l) => l.completed || l.id === lessonData.id,
+        ).length || 0) + 1;
       const progress = total > 0 ? (done / total) * 100 : 0;
 
       sessionStorage.setItem(
@@ -206,8 +254,12 @@ export default function LessonViewerClient() {
           xpReward: lessonData.xp_reward,
           title: lessonData.title,
           sectionsCount: lessonData.sections.length,
-          quizCount: lessonData.sections.filter((s) => s.section_type === "quiz").length,
-          exerciseCount: lessonData.sections.filter((s) => s.section_type === "exercises").length,
+          quizCount: lessonData.sections.filter(
+            (s) => s.section_type === "quiz",
+          ).length,
+          exerciseCount: lessonData.sections.filter(
+            (s) => s.section_type === "exercises",
+          ).length,
           moduleProgress: progress,
           moduleTitle: moduleData?.module?.title || moduleSlug,
           nextLessonSlug: nextLesson?.slug || null,
@@ -233,12 +285,14 @@ export default function LessonViewerClient() {
         return {
           ...prev,
           lessons: prev.lessons.map((l) =>
-            l.id === lessonData.id ? { ...l, completed: true } : l
+            l.id === lessonData.id ? { ...l, completed: true } : l,
           ),
         };
       });
 
-      router.push(`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lessonSlug}/success`);
+      router.push(
+        `/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${lessonSlug}/success`,
+      );
     } else {
       toast.error(res.error?.message || "Failed to complete lesson");
     }
@@ -262,19 +316,26 @@ export default function LessonViewerClient() {
     wsLessonIdRef.current = lessonData?.id;
   }, [lessonData?.id]);
 
-  useWebSocket({
-    "lesson.completed": (data: any) => {
-      if (data?.lesson_id && data.lesson_id === wsLessonIdRef.current) {
-        loadRef.current();
-      }
+  useWebSocket(
+    {
+      "lesson.completed": (data: any) => {
+        if (data?.lesson_id && data.lesson_id === wsLessonIdRef.current) {
+          loadRef.current();
+        }
+      },
     },
-  }, []);
+    [],
+  );
 
   // Navigation
-  const allLessons = useMemo(() => moduleData?.lessons || [], [moduleData?.lessons]);
+  const allLessons = useMemo(
+    () => moduleData?.lessons || [],
+    [moduleData?.lessons],
+  );
   const currentIndex = allLessons.findIndex((l) => l.slug === lessonSlug);
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
-  const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
+  const nextLesson =
+    currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
   const isLastStep = currentStep === totalSteps - 1;
 
@@ -282,12 +343,19 @@ export default function LessonViewerClient() {
   const isSessionUnlocked = useMemo(() => {
     if (!lessonData) return false;
     try {
-      const list: string[] = JSON.parse(sessionStorage.getItem("koder_completed_lessons") || "[]");
+      const list: string[] = JSON.parse(
+        sessionStorage.getItem("koder_completed_lessons") || "[]",
+      );
       const deps = lessonData.dependencies || [];
       if (deps.length === 0) return true;
       return deps.every((d) => {
-        const depLesson = allLessons.find((l) => l.id === d.depends_on_lesson_id);
-        return (depLesson && depLesson.completed) || list.includes(d.depends_on_lesson_id);
+        const depLesson = allLessons.find(
+          (l) => l.id === d.depends_on_lesson_id,
+        );
+        return (
+          (depLesson && depLesson.completed) ||
+          list.includes(d.depends_on_lesson_id)
+        );
       });
     } catch {
       return false;
@@ -315,7 +383,9 @@ export default function LessonViewerClient() {
           <BookOpen className="h-8 w-8 text-muted-foreground/40" />
         </div>
         <h3 className="text-lg font-bold mb-1">Lesson not found</h3>
-        <p className="text-sm text-muted-foreground mb-6">The requested lesson could not be loaded.</p>
+        <p className="text-sm text-muted-foreground mb-6">
+          The requested lesson could not be loaded.
+        </p>
         <Link
           href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all"
@@ -354,20 +424,27 @@ export default function LessonViewerClient() {
             <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
               <Lock className="h-8 w-8 text-amber-500" />
             </div>
-            <h2 className="text-xl font-bold mb-2 text-foreground">Complete Prerequisites First</h2>
+            <h2 className="text-xl font-bold mb-2 text-foreground">
+              Complete Prerequisites First
+            </h2>
             <p className="text-sm text-muted-foreground mb-6">
-              You need to finish the prerequisite lessons before this one unlocks.
+              You need to finish the prerequisite lessons before this one
+              unlocks.
             </p>
             <div className="space-y-2 mb-6 text-left">
               {unmetDeps.map((d) => {
-                const depLesson = allLessons.find((l) => l.id === d.depends_on_lesson_id);
+                const depLesson = allLessons.find(
+                  (l) => l.id === d.depends_on_lesson_id,
+                );
                 return (
                   <div
                     key={d.depends_on_lesson_id}
                     className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/60"
                   >
                     <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span className="text-sm font-medium text-foreground truncate">{depLesson?.title || "Prerequisite lesson"}</span>
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {depLesson?.title || "Prerequisite lesson"}
+                    </span>
                     <span className="ml-auto text-[10px] font-bold uppercase text-amber-400 shrink-0 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                       Locked
                     </span>
@@ -406,7 +483,7 @@ export default function LessonViewerClient() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <header className="shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md">
-          <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
@@ -417,7 +494,10 @@ export default function LessonViewerClient() {
               </Link>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Link href={`/learn/courses/${courseSlug}`} className="hover:text-foreground transition-colors truncate">
+                  <Link
+                    href={`/learn/courses/${courseSlug}`}
+                    className="hover:text-foreground transition-colors truncate"
+                  >
                     {courseSlug.replace(/-/g, " ")}
                   </Link>
                   <span className="shrink-0">/</span>
@@ -435,7 +515,10 @@ export default function LessonViewerClient() {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <Badge variant="outline" className="text-xs font-bold gap-1 bg-amber-500/10 text-amber-400 border-amber-500/30">
+              <Badge
+                variant="outline"
+                className="text-xs font-bold gap-1 bg-amber-500/10 text-amber-400 border-amber-500/30"
+              >
                 <Zap className="h-3.5 w-3.5 fill-current" />
                 {lessonData.xp_reward} XP
               </Badge>
@@ -454,7 +537,7 @@ export default function LessonViewerClient() {
 
           {/* Progress Bar */}
           {totalSteps > 0 && (
-            <div className="px-6 pb-3">
+            <div className="px-4 pb-2.5">
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden border border-border/40">
                   <motion.div
@@ -481,7 +564,7 @@ export default function LessonViewerClient() {
                         ? "bg-amber-400 w-6 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
                         : i < currentStep
                           ? "bg-amber-400/40 w-2 hover:bg-amber-400/60"
-                          : "bg-muted-foreground/20 w-2 hover:bg-muted-foreground/40"
+                          : "bg-muted-foreground/20 w-2 hover:bg-muted-foreground/40",
                     )}
                     aria-label={`Go to step ${i + 1}: ${step.label}`}
                   />
@@ -493,9 +576,10 @@ export default function LessonViewerClient() {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-screen-2xl mx-auto px-6 md:px-10 py-8">
+          <div className="max-w-screen-2xl mx-auto px-4 md:px-6 py-5">
             <AnimatePresence mode="wait">
-              {currentStepData?.type === "quiz-review" && currentStepData.sections ? (
+              {currentStepData?.type === "quiz-review" &&
+              currentStepData.sections ? (
                 /* Quiz Review Step */
                 <motion.div
                   key="quiz-review"
@@ -503,23 +587,30 @@ export default function LessonViewerClient() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.25 }}
-                  className="space-y-6"
+                  className="space-y-4"
                 >
                   <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 md:p-8 shadow-lg">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
                         <GraduationCap className="h-5 w-5 text-amber-400" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-bold text-foreground">Knowledge Check</h2>
+                        <h2 className="text-lg font-bold text-foreground">
+                          Knowledge Check
+                        </h2>
                         <p className="text-xs text-muted-foreground">
-                          {currentStepData.sections.length} question{currentStepData.sections.length > 1 ? "s" : ""} to solidify your understanding
+                          {currentStepData.sections.length} question
+                          {currentStepData.sections.length > 1 ? "s" : ""} to
+                          solidify your understanding
                         </p>
                       </div>
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {currentStepData.sections.map((quizSection, qIdx) => (
-                        <div key={quizSection.id} className="rounded-xl border border-border/60 bg-card/60 p-6 shadow-sm">
+                        <div
+                          key={quizSection.id}
+                          className="rounded-xl border border-border/60 bg-card/60 p-6 shadow-sm"
+                        >
                           {quizSection.title && (
                             <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                               <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-xs flex items-center justify-center font-bold text-amber-400 shrink-0">
@@ -545,8 +636,10 @@ export default function LessonViewerClient() {
                 >
                   <div
                     className={cn(
-                      "rounded-2xl border bg-gradient-to-br p-6 md:p-8 shadow-xl",
-                      sectionTypeGradients[currentStepData.section.section_type] || "from-muted/10 border-border/50"
+                      "rounded-2xl border bg-gradient-to-br p-4 md:p-6 shadow-lg",
+                      sectionTypeGradients[
+                        currentStepData.section.section_type
+                      ] || "from-muted/10 border-border/50",
                     )}
                   >
                     <SectionRenderer
@@ -559,13 +652,15 @@ export default function LessonViewerClient() {
               ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-2xl border-border/40">
                   <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">No content sections available</p>
+                  <p className="text-sm text-muted-foreground">
+                    No content sections available
+                  </p>
                 </div>
               )}
             </AnimatePresence>
 
             {/* Bottom Controls */}
-            <div className="mt-8 mb-4">
+            <div className="mt-6 mb-4">
               <div className="flex items-center justify-between gap-3">
                 <Button
                   variant="outline"
@@ -594,8 +689,13 @@ export default function LessonViewerClient() {
                       </Button>
                     </Link>
                   ) : (
-                    <Link href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}>
-                      <Button variant="outline" className="gap-2 min-w-[130px] rounded-xl font-bold bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
+                    <Link
+                      href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+                    >
+                      <Button
+                        variant="outline"
+                        className="gap-2 min-w-[130px] rounded-xl font-bold bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                      >
                         <CheckCircle2 className="h-4 w-4" />
                         Module Overview
                       </Button>
@@ -615,7 +715,10 @@ export default function LessonViewerClient() {
                     Complete Lesson
                   </Button>
                 ) : (
-                  <Button onClick={goNext} className="gap-2 min-w-[110px] rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md">
+                  <Button
+                    onClick={goNext}
+                    className="gap-2 min-w-[110px] rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md"
+                  >
                     Next
                     <ArrowRight className="h-4 w-4" />
                   </Button>

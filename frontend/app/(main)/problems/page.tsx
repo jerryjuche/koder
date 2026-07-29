@@ -86,6 +86,8 @@ export default function ProblemsPage() {
   const filtered = useMemo(() => {
     let list = shuffled;
 
+    list = list.filter((p) => !p.locked);
+
     if (langFilter !== "all") {
       list = list.filter((p) => {
         if (!p.language_versions) return false;
@@ -242,20 +244,7 @@ export default function ProblemsPage() {
     );
   }
 
-  if (user?.role !== "admin") {
-    return (
-      <div>
-        <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
-          <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
-          <h3 className="text-lg font-bold text-foreground mb-2">Problems — Coming Soon</h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            This feature is in private beta and currently available to administrators only.
-            Stay tuned for the public release.
-          </p>
-        </Card>
-      </div>
-    );
-  }
+
 
   const filtersBar = (
     <div className="bg-card border border-border rounded-xl p-4 space-y-4 mt-2">

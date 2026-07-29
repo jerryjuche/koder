@@ -666,8 +666,8 @@ export async function fetchProgress(): Promise<ApiResponse<ProgressResponse>> {
   return fetchApi<ProgressResponse>("/learn/progress");
 }
 
-export async function completeLesson(lessonId: string): Promise<ApiResponse<LessonProgress>> {
-  const res = await fetchApi<LessonProgress>(`/learn/lessons/${lessonId}/complete`, {
+export async function completeLesson(lessonId: string): Promise<ApiResponse<{ lesson_progress: LessonProgress; xp_awarded: number }>> {
+  const res = await fetchApi<{ lesson_progress: LessonProgress; xp_awarded: number }>(`/learn/lessons/${lessonId}/complete`, {
     method: "POST",
   });
   if (res.success) {
