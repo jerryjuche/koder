@@ -24,7 +24,7 @@ export interface LearningCardProps {
   imageUrl?: string;
   icon?: React.ReactNode | React.ElementType;
   type?: "course" | "module" | "lesson" | "section";
-  status?: "locked" | "available" | "completed" | "in-progress";
+  status?: "locked" | "available" | "completed" | "in-progress" | "coming-soon";
   progress?: number;
   stats?: {
     likes?: number;
@@ -172,6 +172,11 @@ export function LearningCard({
               {status === "locked" && (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-border flex items-center gap-1">
                   <Lock className="w-3 h-3" /> Locked
+                </span>
+              )}
+              {status === "coming-soon" && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Coming Soon
                 </span>
               )}
               {allBadges.map((badge) => (

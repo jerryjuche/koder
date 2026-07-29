@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-07-26 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors
+> **Branch:** `update` | **Last indexed:** 2026-07-29 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors
 
 ---
 
@@ -34,21 +34,21 @@
 
 ---
 
-## 3. Repository Statistics (Verified: 2026-07-26)
+## 3. Repository Statistics (Verified: 2026-07-29)
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 59 source + 13 test | ~17,306 + ~3,135 | 8 packages, ~125 Store interface methods, ~89 API endpoints |
-| **Go Sandbox** (`sandbox/`) | 7 source + 1 test | ~1,157 + ~32 | Zero external deps, 10-layer defense-in-depth |
-| **SQL Migrations** (`migrations/`) | 48 | ~21,000 | 32 schema + 16 seed, ~25 tables |
-| **Frontend App** (`app/`) | 73 `.tsx` | ~17,177 | 7 route groups, all with loading + error boundaries |
-| **Frontend Components** (`components/`) | 60 | ~9,927 | 19 shadcn/ui + 41 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,832 | 60+ API functions, 40+ TS interfaces, 4 hooks |
-| **Frontend Styles/Config** | 15 | ~1,646 | theme.css (856 vars), typography.css (430 lines), 12 config files |
-| **Documentation** | 6 | ~5,639 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, 2 docs |
-| **Scripts** | 7 | ~930 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
-| **Config/Build** | 12 | ~700 | go.mod, Procfile, build.sh, CI, env |
-| **Total (tracked source)** | **~294** | **~71,000** | Source code + migrations + docs |
+| **Go Backend** (`cmd/` + `internal/`) | 61 source + 12 test | ~17,646 + ~3,103 | 8 packages, ~125 Store interface methods, ~89 API endpoints; includes 2 cmd tools |
+| **Go Sandbox** (`sandbox/`) | 7 source + 1 Dockerfile + 1 test | ~1,157 + ~19 + ~32 | Zero external deps, 10-layer defense-in-depth |
+| **SQL Migrations** (`migrations/`) | 49 | ~21,112 | 32 schema + 17 seed, ~25 tables |
+| **Frontend App** (`app/`) | 73 `.tsx` | ~17,426 | 7 route groups, all with loading + error boundaries |
+| **Frontend Components** (`components/`) | 61 | ~9,917 | 19 shadcn/ui + 42 custom |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,836 | 60+ API functions, 40+ TS interfaces, 4 hooks |
+| **Frontend Styles** (`styles/`) | 3 | ~1,364 | theme.css (857 vars), typography.css (431 lines) |
+| **Documentation** | 6 | ~5,695 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, 2 docs |
+| **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
+| **Config/Build** | 14 | ~596 | go.mod, go.sum, Procfile, build.sh, CI, env, gitignore, frontend configs |
+| **Total (tracked source)** | **~308** | **~81,800** | Source code + migrations + docs + config |
 
 ---
 
@@ -56,28 +56,30 @@
 
 ```
 koder/
-├── cmd/server/main.go                       # Entry point (125 lines)
+├── cmd/server/main.go                       # Entry point (104 lines)
+├── cmd/extract-problems/main.go             # CL tool — extract problems from repository
+├── cmd/generate-sql/main.go                 # CL tool — generate seed SQL from problem JSON
 ├── internal/
-│   ├── api/              (26 files, 7,743 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
-│   ├── store/            (24 files, 6,668 LOC)  # Database access layer — pgx/v5, 125+ Store methods
+│   ├── api/              (26 files, 7,811 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (24 files, 6,702 LOC)  # Database access layer — pgx/v5, 125+ Store methods
 │   ├── executor/         (7 files, 2,334 LOC)   # Code execution engine, sandbox orchestration, output parsing
-│   ├── enricher/         (2 files, 1,169 LOC)   # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── enricher/         (2 files, 1,173 LOC)   # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
 │   ├── auth/             (5 files, 684 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (2 files, 254 LOC)     # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (2 files, 717 LOC)     # GitHub YAML curriculum parser
 │   └── config/           (2 files, 702 LOC)     # Env var loader (32+ vars, fails-fast validation)
 ├── sandbox/              (8 files, 1,189 LOC)   # Remote execution service — zero external deps
 ├── frontend/
-│   ├── app/              (73 .tsx, ~17,177 LOC) # App Router pages (7 route groups)
-│   ├── components/       (60 files, ~9,835 LOC) # Shared components + shadcn/ui primitives
+│   ├── app/              (73 .tsx, ~17,426 LOC) # App Router pages (7 route groups)
+│   ├── components/       (61 files, ~9,917 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
-│   ├── lib/              (14 files, ~2,906 LOC) # API client, types, cache, event bus, markdown, pyodide
-│   └── styles/           (3 files, ~1,364 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
-├── migrations/           (48 files, ~20,000 LOC) # Full schema + seed data — 25 tables
-├── scripts/              (6 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh
+│   ├── lib/              (14 files, ~2,462 LOC) # API client, types, cache, event bus, markdown, pyodide
+│   ├── styles/           (3 files, ~1,364 LOC)  # theme.css (857 var tokens), typography.css (431 lines)
+├── migrations/           (49 files, ~21,112 LOC) # Full schema + seed data — 25 tables
+├── scripts/              (7 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh, generate-practicals-migration.mjs
 ├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md
 ├── .github/workflows/ci.yml                     # 2-job CI: backend + frontend
-└── build.sh                                     # Cross-compile ARM64 deployment script (15 lines)
+└── build.sh                                     # Cross-compile ARM64 deployment script (11 lines)
 ```
 
 ---
@@ -126,24 +128,26 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File | Lines | Package | Purpose |
 |---|---|---|---|
-| `cmd/server/main.go` | 125 | `main` | Bootstrap: LoadConfig → NewPostgresStore → NewExecutor → NewBroker → NewRouter → http.ListenAndServe → graceful shutdown (10s deadline), `-ldflags` for commit/build time |
+| `cmd/server/main.go` | 104 | `main` | Bootstrap: LoadConfig → NewPostgresStore → NewExecutor → NewBroker → NewRouter → http.ListenAndServe → graceful shutdown (10s deadline), `-ldflags` for commit/build time |
+| `cmd/extract-problems/main.go` | 114 | `main` | CLI — extract problems from GitHub repo READMEs |
+| `cmd/generate-sql/main.go` | 99 | `main` | CLI — generate seed SQL INSERTs from problem JSON |
 
-### 6.2 API Handlers (`internal/api/` — 26 files, 7,743 LOC)
+### 6.2 API Handlers (`internal/api/` — 26 files, 7,811 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `router.go` | 296 | `App` struct, `NewRouter()` (~89 routes), `Shutdown()` |
-| `middleware.go` | 511 | 11 middleware functions, `GetClaims(ctx)`, `GetRequestID(ctx)` |
+| `router.go` | 299 | `App` struct, `NewRouter()` (~89 routes), `Shutdown()` |
+| `middleware.go` | 540 | 11 middleware functions, `GetClaims(ctx)`, `GetRequestID(ctx)` |
 | `auth.go` | 605 | `AuthHandler` — Register, Login (3-field), GoogleAuth (JWKS), CompleteOnboarding, LinkGoogle, RefreshToken (rotation), Logout, CheckUsername |
-| `admin.go` | 879 | `AdminHandler` — Ingest, Enrich, EnrichAll, AIAssist (8 actions), GetAdminStats, GetAIUsage, ListAllProblems, ToggleVisibility, UpdateProblem, PublishAllDrafts, Approve/Reject contributions, SearchUsers, ToggleUserVerified, ListModuleMeta, UpsertModuleMeta, SetModulePin, ListAllModules, List/Toggle ProblemModuleLocks, DeleteProblemModule |
-| `cms.go` | 1,419 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
+| `admin.go` | 883 | `AdminHandler` — Ingest, Enrich, EnrichAll, AIAssist (8 actions), GetAdminStats, GetAIUsage, ListAllProblems, ToggleVisibility, UpdateProblem, PublishAllDrafts, Approve/Reject contributions, SearchUsers, ToggleUserVerified, ListModuleMeta, UpsertModuleMeta, SetModulePin, ListAllModules, List/Toggle ProblemModuleLocks, DeleteProblemModule |
+| `cms.go` | 1,424 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
 | `me.go` | 360 | `MeHandler` — GetMe (cached 30s), SetUsername (one-time 403), UpdateLanguage, DeleteAccount (cascade), ExportData (JSON) |
 | `change_password.go` | 266 | `ChangePasswordHandler` — SetPin, VerifyPin (5/15min rate-limit), ChangePassword |
 | `pin_reset.go` | 257 | `PINResetHandler` — ForgotPasswordPin (email+PIN → short-lived JWT), ResetPasswordPin (domain-separated HMAC-SHA256) |
 | `password_reset.go` | 255 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok), ResetPassword (SHA-256 token) |
 | `broadcasts.go` | 237 | `BroadcastsHandler` — ListActive, Dismiss (student); ListAll, Create, Deactivate, Activate, Delete (admin) |
 | `feedback.go` | 345 | `FeedbackHandler` — Submit (10MB, screenshot, Resend + in-app notification), ListMyFeedback, ListAdmin (status filter), Counts, UpdateStatus, ListProblemReports |
-| `problems.go` | 156 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED) |
+| `problems.go` | 183 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED), optional auth bypass |
 | `submissions.go` | 168 | `SubmissionHandler` — Submit (5/45s ratelimit, scoring, WS events: `user.xp.updated` + `progress.updated`) |
 | `profile.go` | 257 | `ProfileHandler` — GetProfile (stored proc, 30s cache), UpdateProfile |
 | `test.go` | 132 | `TestHandler` — Direct test case execution without scoring |
@@ -157,17 +161,17 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cache.go` | 132 | Generic TTL cache (30s): `userCache`, `profileCache`, `leaderboardCache`, `problemsCache` + `StopCaches()` |
 | `responses.go` | 95 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
 
-### 6.3 Store Layer (`internal/store/` — 24 files, 6,668 LOC)
+### 6.3 Store Layer (`internal/store/` — 24 files, 6,702 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `store.go` | 285 | `Store` interface (~125 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
-| `types.go` | 646 | ~50 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
-| `users.go` | 1,358 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade) |
-| `problems.go` | 803 | 12+ functions: ListVisibleProblems (LATERAL JOIN, `NOT EXISTS` + `EXISTS` locking), UpsertEnrichedProblem (tx), UpdateProblem (16 fields, merge semantics) |
-| `curriculum.go` | 1,137 | 30+ functions: Full CMS CRUD for courses/modules/lessons/sections/projects + dependency management + progress tracking (UpsertCourseProgress, UpsertLessonProgress with GREATER NEVER DECREASE) |
+| `types.go` | 650 | ~50 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
+| `users.go` | 1,371 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade) |
+| `problems.go` | 810 | 12+ functions: ListVisibleProblems (LATERAL JOIN, `NOT EXISTS` + `EXISTS` locking), UpsertEnrichedProblem (tx), UpdateProblem (16 fields, merge semantics) |
+| `curriculum.go` | 1,146 | 30+ functions: Full CMS CRUD for courses/modules/lessons/sections/projects + dependency management + progress tracking (UpsertCourseProgress, UpsertLessonProgress with GREATER NEVER DECREASE) |
 | `user_problems.go` | 358 | CreateUserProblem, ListPending, Approve (5-step tx with FOR UPDATE), Reject, generateDualLanguageSpec, pascalToSnake, goTypeToPython |
-| `submissions.go` | 228 | CreateSubmission (90d TTL), GetProblemWithTestCases (JOIN), GetRecentSubmissionForProblem |
+| `submissions.go` | 229 | CreateSubmission (90d TTL), GetProblemWithTestCases (JOIN), GetRecentSubmissionForProblem |
 | `progress.go` | 153 | UpsertProgress — pg_advisory_xact_lock for race prevention, stars 3/2/1 logic, XP only on first solve |
 | `admin.go` | 152 | LogActivity, GetRecentActivity (50), GetAdminStats |
 | `profile.go` | 112 | GetFullProfile (stored proc call), GetUserActivity |
@@ -193,11 +197,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `auth_test.go` | 209 | 15 tests: JWT sign/verify, bcrypt hash/compare |
 | `oauth_test.go` | 111 | 5 tests: audience/issuer validation, JWKS key round-trip |
 
-### 6.5 Enricher (`internal/enricher/` — 2 files, 1,169 LOC)
+### 6.5 Enricher (`internal/enricher/` — 2 files, 1,173 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `enricher.go` | 938 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
+| `enricher.go` | 942 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
 | `enricher_test.go` | 231 | 4 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests) |
 
 ### 6.6 Executor (`internal/executor/` — 7 files, 2,334 LOC)
@@ -247,46 +251,46 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 7. Sandbox (`sandbox/` — 8 source files, 1,189 LOC, Zero External Dependencies)
+## 7. Sandbox (`sandbox/` — 8 source files, 1,197 LOC, Zero External Dependencies)
 
 | File | Lines | Purpose |
 |---|---|---|
-| `main.go` | 388 | HTTP server on `:$PORT` — `/health`, `/version`, `/execute`; language dispatcher; `classifyOutput` (4 regex patterns); `compileErrorMessage` (3-pass) |
-| `pyrunner.go` | 265 | Python runner: 2-layer security (regex + AST via subprocess), `findPythonBin` (python3→python), `cappedBuffer` (64KB), OOM detection |
-| `runtest_go.go` | 148 | Go runner: go.mod, solution.go (forced `package koder`), `go test -v -count=1 -gcflags=-l`, `GOPROXY=off`, `GOTOOLCHAIN=local` |
-| `ratelimit.go` | 156 | Per-IP sliding window (10 req/min), 429 Retry-After, 5min cleanup goroutine |
-| `secure.go` | 111 | 14 Go dangerous patterns (cgo, os/exec, syscall, unsafe), 17 Python dangerous patterns (os, subprocess, socket, eval) |
-| `secure_unix.go` | 64 | Setpgid isolation, setrlimit (NPROC=6, NOFILE=1024, FSIZE=64MB, RLIMIT_AS=512MB), killProcessGroup (SIGKILL), reapProcess (5s) |
-| `secure_other.go` | 25 | No-op stubs for non-Unix (Windows) |
+| `main.go` | 338 | HTTP server on `:$PORT` — `/health`, `/version`, `/execute`; language dispatcher; `classifyOutput` (4 regex patterns); `compileErrorMessage` (3-pass) |
+| `pyrunner.go` | 235 | Python runner: 2-layer security (regex + AST via subprocess), `findPythonBin` (python3→python), `cappedBuffer` (64KB), OOM detection |
+| `runtest_go.go` | 129 | Go runner: go.mod, solution.go (forced `package koder`), `go test -v -count=1 -gcflags=-l`, `GOPROXY=off`, `GOTOOLCHAIN=local` |
+| `ratelimit.go` | 131 | Per-IP sliding window (10 req/min), 429 Retry-After, 5min cleanup goroutine |
+| `secure.go` | 97 | 14 Go dangerous patterns (cgo, os/exec, syscall, unsafe), 17 Python dangerous patterns (os, subprocess, socket, eval) |
+| `secure_unix.go` | 57 | Setpgid isolation, setrlimit (NPROC=6, NOFILE=1024, FSIZE=64MB, RLIMIT_AS=512MB), killProcessGroup (SIGKILL), reapProcess (5s) |
+| `secure_other.go` | 18 | No-op stubs for non-Unix (Windows) |
 | `Dockerfile` | 19 | 2-stage ARM64 build based on `golang:1.26-alpine`, includes python3 |
 
 ---
 
 ## 8. Frontend — Complete File Inventory
 
-### 8.1 App Router Pages (`frontend/app/` — 73 `.tsx` files, ~17,177 LOC)
+### 8.1 App Router Pages (`frontend/app/` — 73 `.tsx` files, ~17,426 LOC)
 
 #### Root (4 files)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `layout.tsx` | 41 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics, DesktopOnlyOverlay |
-| `page.tsx` | 85 | Client | Loading guard → fetchUser → MultiStepLoader → `/home` or `/landing` |
-| `not-found.tsx` | 70 | Client | Animated 404 with Terminal icon, Home + Go Back |
-| `global-error.tsx` | 33 | Client | 500 error boundary with reset button |
+| `layout.tsx` | 67 | Server | Dark mode, Inter+Fira Code fonts, Sonner Toaster, Vercel Analytics, DesktopOnlyOverlay, OG metadata |
+| `page.tsx` | 86 | Client | Loading guard → fetchUser → MultiStepLoader → `/home` or `/landing` |
+| `not-found.tsx` | 71 | Client | Animated 404 with Terminal icon, Home + Go Back |
+| `global-error.tsx` | 34 | Client | 500 error boundary with reset button |
 
 #### Landing & OAuth (2 files)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `landing/page.tsx` | 5 | Server | Renders `<LandingContent />` |
-| `oauth/callback/page.tsx` | 52 | Client | Extract token/error → redirect to `/home` or `/onboarding` |
+| `landing/page.tsx` | 6 | Server | Renders `<LandingContent />` |
+| `oauth/callback/page.tsx` | 53 | Client | Extract token/error → redirect to `/home` or `/onboarding` |
 
 #### Auth `(auth)/` (6 files, ~1,479 LOC)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `layout.tsx` | 18 | Server | Centered card layout |
-| `login/page.tsx` | 249 | Client | Google-first + email form, react-hook-form + zod, show/hide password |
-| `register/page.tsx` | 291 | Client | Google-first or email/password, Go/Python language choice, PIN setup |
-| `forgot-password/page.tsx` | 343 | Client | PIN-based flow: 6-digit input, email verification, security code |
+| `layout.tsx` | 19 | Server | Centered card layout |
+| `login/page.tsx` | 250 | Client | Google-first + email form, react-hook-form + zod, show/hide password |
+| `register/page.tsx` | 292 | Client | Google-first or email/password, Go/Python language choice, PIN setup |
+| `forgot-password/page.tsx` | 344 | Client | PIN-based flow: 6-digit input, email verification, security code |
 | `reset-password/page.tsx` | 228 | Client | Token-based password reset from JWT |
 | `onboarding/page.tsx` | 350 | Client | Username setup + LanguageSelector with Go/Python grid |
 
@@ -329,9 +333,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 |---|---|---|---|
 | `layout.tsx` | 16 | Server | UserProvider + FeedbackButton + PyodidePreloader |
 | `page.tsx` | 698 | Client | (BETA-gated) Search/filter: language tabs, status/difficulty/XP range, seeded random ordering per user, mobile sidebar |
-| `[slug]/page.tsx` | 11 | Server | Shell → Suspense → DynamicWorkspace |
+| `[slug]/page.tsx` | 54 | Server | Shell → Suspense → DynamicWorkspace, OG metadata per-problem |
 | `[slug]/DynamicWorkspace.tsx` | 40 | Client | next/dynamic no-SSR wrapper |
-| `[slug]/ProblemWorkspaceClient.tsx` | 1,504 | Client | Monaco Editor (Go/Python), language toggle with Save & Switch, submit/test, renderMarkdown statement, confetti, sessionStorage navigation, formatCode, hints panel, bug report, admin edit |
+| `[slug]/ProblemWorkspaceClient.tsx` | 1,567 | Client | Monaco Editor (Go/Python), language toggle with Save & Switch, submit/test, renderMarkdown statement, confetti, sessionStorage navigation, formatCode, hints panel, bug report, admin edit |
 | `[slug]/error.tsx` | 32 | Client | Error boundary |
 | `[slug]/success/page.tsx` | 427 | Client | Post-submission: confetti, CodeBlock, community likes, next problem |
 
@@ -360,20 +364,20 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `layout.tsx` | 16 | Client | Eager Pyodide load |
 | `loading.tsx` | 24 | Server | Skeleton grid |
 | `error.tsx` | 30 | Client | Error boundary |
-| `courses/page.tsx` | 285 | Client | Course catalog grid with LearningCard, gradient heroes, difficulty pills |
+| `courses/page.tsx` | 315 | Client | Course catalog grid with LearningCard, gradient heroes, difficulty pills |
 | `courses/loading.tsx` | 24 | Server | Skeleton |
 | `courses/error.tsx` | 30 | Client | Error boundary |
-| `courses/[courseSlug]/page.tsx` | 313 | Client | Course detail: hero + progress bar + module cards with status |
+| `courses/[courseSlug]/page.tsx` | 303 | Client | Course detail: hero + progress bar + module cards with status |
 | `courses/[courseSlug]/loading.tsx` | 13 | Server | Skeleton |
 | `courses/[courseSlug]/error.tsx` | 30 | Client | Error boundary |
-| `.../modules/[moduleSlug]/page.tsx` | 328 | Client | Module detail: gradient header + stats + lesson cards with XP badges |
+| `.../modules/[moduleSlug]/page.tsx` | 332 | Client | Module detail: gradient header + stats + lesson cards with XP badges |
 | `.../modules/[moduleSlug]/loading.tsx` | 13 | Server | Skeleton |
 | `.../modules/[moduleSlug]/error.tsx` | 30 | Client | Error boundary |
 | `.../lessons/[lessonSlug]/page.tsx` | 5 | Server | Shell → LessonViewerClient |
-| `.../lessons/[lessonSlug]/LessonViewerClient.tsx` | 606 | Client | Step-by-step nav (AnimatePresence), keyboard shortcuts, quiz review, progress dots, locked overlay |
+| `.../lessons/[lessonSlug]/LessonViewerClient.tsx` | 630 | Client | Step-by-step nav (AnimatePresence), keyboard shortcuts, quiz review, progress dots, locked overlay |
 | `.../lessons/[lessonSlug]/loading.tsx` | 22 | Server | Skeleton |
 | `.../lessons/[lessonSlug]/error.tsx` | 30 | Client | Error boundary |
-| `.../lessons/[lessonSlug]/success/page.tsx` | 378 | Client | Confetti, "What You Covered", next lesson nav |
+| `.../lessons/[lessonSlug]/success/page.tsx` | 368 | Client | Confetti, "What You Covered", next lesson nav |
 
 #### Legal `(legal)/` (3 files, ~332 LOC)
 | File | Lines | Type | Purpose |
@@ -382,7 +386,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149 | Server | Privacy policy |
 | `terms/page.tsx` | 159 | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 60 files, ~9,927 LOC)
+### 8.2 Shared Components (`frontend/components/` — 61 files, ~9,917 LOC)
 
 #### shadcn/ui Primitives (19 files, ~1,598 LOC)
 | File | Lines | Purpose |
@@ -403,7 +407,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `ui/progress.tsx` | 31 | Radix Progress bar |
 | `ui/input-otp.tsx` | 87 | input-otp wrapper, fake caret animation |
 | `ui/multi-step-loader.tsx` | 142 | Full-screen animated loader, checkmark icons |
-| `ui/learning-card.tsx` | 379 | Back plate, type-based gradients, status badges, hover stats |
+| `ui/learning-card.tsx` | 258 | 3D tactile design, type-based gradients, status badges, hover stats |
 | `ui/rating-badge.tsx` | 57 | Filled/half/empty stars, sizes, review count |
 | `ui/activity-gauge.tsx` | 98 | Recharts radial gauge, color arcs |
 
@@ -447,14 +451,14 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | File | Lines | Purpose |
 |---|---|---|
 | `learn/SectionRenderer.tsx` | 253 | Routes 11 section types → sub-renderers, color badges, icons |
-| `learn/SectionQuiz.tsx` | 109 | MCQ from JSONB metadata, selection/feedback/retry |
+| `learn/SectionQuiz.tsx` | 195 | MCQ from JSONB metadata, selection/feedback/retry |
 | `learn/SectionExercise.tsx` | 542 | Monaco + PyodideConsole 60/40 split, multi-file, Ctrl+Enter, backend test |
-| `learn/LessonSidebar.tsx` | 196 | Progress bar, section nav, prerequisite checklist with locked state |
+| `learn/LessonSidebar.tsx` | 210 | Progress bar, section nav, prerequisite checklist with locked state |
 
 #### Dashboard Components (1 file)
 | File | Lines | Purpose |
 |---|---|---|
-| `dashboard/ModuleCards.tsx` | 440 | Module grid, WebP images, progress bars, locked padlock overlay, pinned sort |
+| `dashboard/ModuleCards.tsx` | 454 | Module grid, WebP images, progress bars, locked padlock overlay, pinned sort |
 
 #### Profile Components (1 file)
 | File | Lines | Purpose |
@@ -465,7 +469,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | File | Lines | Purpose |
 |---|---|---|
 | `admin/curriculum/AdminCards.tsx` | 473 | 4 card variants (Course/Module/Lesson/Project), CodePen shadow, 16:9, visibility/lock toggles |
-| `admin/curriculum/MarkdownPreview.tsx` | 146 | Live GFM preview with custom callout blocks |
+| `admin/curriculum/MarkdownPreview.tsx` | 147 | Live GFM preview with custom callout blocks |
 | `admin/curriculum/ProblemBank.tsx` | 106 | Searchable problem selector |
 | `admin/curriculum/MultiFileConfigPanel.tsx` | 288 | Visual multi-file config for exercises |
 | `admin/AIAssistantPanel.tsx` | 845 | AI chat with 8 action types, streaming markdown responses |
@@ -501,12 +505,12 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 14 files, ~2,458 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 14 files, ~2,462 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `api.ts` | 897 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
-| `types.ts` | 614 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
+| `types.ts` | 618 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
 | `utils.ts` | 69 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
 | `cache.ts` | 40 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
 | `event.ts` | 135 | `subscribe(type, callback)`, `useWebSocket(handlers, deps)`, 9 event types, auto-reconnect (1s-30s exp backoff) |
@@ -524,8 +528,8 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File | Lines | Purpose |
 |---|---|---|
-| `theme.css` | 856 | 856 CSS variables: brand purple palette (950-50), 16 semantic text colors, 7 border colors, 26 bg colors, 15 component tokens, 7 shadow levels, dark mode inversion |
-| `typography.css` | 430 | Prose typography: CSS variables mapped to design tokens, h1-h4 sizing, inline code pill, blockquote, responsive md:prose-lg |
+| `theme.css` | 857 | 857 CSS variables: brand purple palette (950-50), 16 semantic text colors, 7 border colors, 26 bg colors, 15 component tokens, 7 shadow levels, dark mode inversion |
+| `typography.css` | 431 | Prose typography: CSS variables mapped to design tokens, h1-h4 sizing, inline code pill, blockquote, responsive md:prose-lg |
 | `globals.css` | 78 | Tailwind 4 entry, @tailwindcss/typography, custom variants, scrollbar-hide, caret-blink animation |
 
 ### 8.6 Frontend Configuration (12 files)
@@ -547,9 +551,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 9. Database Migrations (`migrations/` — 48 files, ~20,000 LOC)
+## 9. Database Migrations (`migrations/` — 49 files, ~21,112 LOC)
 
-### 9.1 Schema Migrations (32 files)
+### 9.1 Schema Migrations (33 files)
 
 | # | File | Lines | Description |
 |---|---|---|---|
@@ -585,26 +589,27 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 030 | `038_curriculum_cms.sql` | 169 | 8 CMS tables + 11-value ENUM + 14 indexes |
 | 031 | `044_add_module_locked.sql` | 5 | locked BOOLEAN on modules (curriculum gating) |
 | 032 | `045_add_module_locks.sql` | 5 | module_locks table (problem category locking) |
+| 033 | `047_add_param_names.sql` | 17 | param_names TEXT[] on problems for descriptive parameter names in scaffold generation |
 
-### 9.2 Seed Data Migrations (15 files)
+### 9.2 Seed Data Migrations (16 files)
 
 | # | File | Lines | Problems | Module(s) |
 |---|---|---|---|---|
-| 033 | `019_seed_problems1.sql` | 2,380 | 45 | math-recursion, arrays-strings, data-structures |
-| 034 | `019_seed_problems2.sql` | 2,360 | 45 | bit-manipulation, sorting-searching, pointers |
-| 035 | `019_seed_problems3.sql` | 1,576 | 30 | error-handling, interfaces-generics |
-| 036 | `019_seed_problems4.sql` | 3,162 | 60 | hashmaps-sets, linked-lists, trees-graphs, dynamic-programming |
-| 037 | `031_python_intermediate_seed.sql` | 751 | 10 | python-intermediate |
-| 038 | `032_python_variables_math_seed.sql` | 174 | 1 | python-variables-math |
-| 039 | `034_python_arrays_strings_seed.sql` | 627 | 7 | python-arrays-strings |
-| 040 | `037_seed_go_fundamentals.sql` | 513 | 5 | go-fundamentals |
-| 041 | `039_seed_curriculum.sql` | 589 | N/A | 5 courses, 20+ modules, 60+ lessons |
-| 042 | `040_complete_curriculum_content.sql` | 1,745 | N/A | Full sections, quizzes, exercises for all lessons |
-| 043 | `041_seed_python_mastery.sql` | 1,992 | N/A | Python Mastery course (4 modules, 14 lessons) |
-| 044 | `042_seed_python_mastery_games.sql` | 1,347 | N/A | Games course (2 modules, 6 lessons, 1 project) |
-| 045 | `043_seed_python_mastery_practice.sql` | 1,434 | 30 | python-practice (difficulty 1-5, Python-only) |
-| 046 | `046_module_meta.sql` | 37 | N/A | module_meta seed for 26 modules (display_name, is_pinned) |
-| 047 | `047_seed_python_practicals.sql` | 1095 | 25 | python-practicals seed: full INSERTs with 5–7 test cases each, module_meta for python-practice + python-practicals |
+| 034 | `019_seed_problems1.sql` | 2,380 | 45 | math-recursion, arrays-strings, data-structures |
+| 035 | `019_seed_problems2.sql` | 2,360 | 45 | bit-manipulation, sorting-searching, pointers |
+| 036 | `019_seed_problems3.sql` | 1,576 | 30 | error-handling, interfaces-generics |
+| 037 | `019_seed_problems4.sql` | 3,162 | 60 | hashmaps-sets, linked-lists, trees-graphs, dynamic-programming |
+| 038 | `031_python_intermediate_seed.sql` | 751 | 10 | python-intermediate |
+| 039 | `032_python_variables_math_seed.sql` | 174 | 1 | python-variables-math |
+| 040 | `034_python_arrays_strings_seed.sql` | 627 | 7 | python-arrays-strings |
+| 041 | `037_seed_go_fundamentals.sql` | 513 | 5 | go-fundamentals |
+| 042 | `039_seed_curriculum.sql` | 589 | N/A | 5 courses, 20+ modules, 60+ lessons |
+| 043 | `040_complete_curriculum_content.sql` | 1,745 | N/A | Full sections, quizzes, exercises for all lessons |
+| 044 | `041_seed_python_mastery.sql` | 1,992 | N/A | Python Mastery course (4 modules, 14 lessons) |
+| 045 | `042_seed_python_mastery_games.sql` | 1,347 | N/A | Games course (2 modules, 6 lessons, 1 project) |
+| 046 | `043_seed_python_mastery_practice.sql` | 1,434 | 30 | python-practice (difficulty 1-5, Python-only) |
+| 047 | `046_module_meta.sql` | 37 | N/A | module_meta seed for 26 modules (display_name, is_pinned) |
+| 048 | `047_seed_python_practicals.sql` | 1,095 | 25 | python-practicals seed: full INSERTs with 5–7 test cases each, module_meta for python-practice + python-practicals |
 | — | `999_seed_python_test.sql` | 62 | 1 | py-double-it (pipeline verification) |
 | **Total seeded** | | | **~263 problems** | **15 modules** |
 
@@ -617,7 +622,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | Table | PK | Key Columns |
 |---|---|---|
 | `users` | `id UUID` | username, email, password (bcrypt), role, xp, pin_hash, google_id, verified, username_set, color_index, primary_language |
-| `problems` | `id UUID` | slug UNIQUE, module, title, statement, func_name, hints, difficulty, xp_reward, visible, source_hash, constraints, learning_objective, language_versions JSONB |
+| `problems` | `id UUID` | slug UNIQUE, module, title, statement, func_name, hints, difficulty, xp_reward, visible, source_hash, constraints, learning_objective, language_versions JSONB, param_names TEXT[] |
 | `test_cases` | `id UUID` | problem_id FK, input JSONB, expected, is_hidden, ordinal, UNIQUE(problem_id, ordinal) |
 | `submissions` | `id UUID` | user_id FK, problem_id FK, code, status, passed_count, total_count, output_logs (90d TTL) |
 | `progress` | `(user_id, problem_id)` | solved, stars (3/2/1), attempts, best_runtime, xp_awarded |
@@ -896,7 +901,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `errors_test.go` (102 LOC) | 7 |
 | `internal/store` | `types_test.go` (47 LOC) | 2 |
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
-| `sandbox` | `security_message_test.go` (32 LOC) | 3 |
+| `sandbox` | `security_message_test.go` (28 LOC) | 3 |
 | **Total** | **13 files (~3,135 LOC)** | **126+ tests** |
 
 ---
@@ -928,22 +933,22 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 66 (59 backend + 7 sandbox) |
-| **Go LOC** | ~21,630 (17,306 backend source + 3,135 test + 1,157 sandbox source + 32 sandbox test) |
+| **Go source files** | 68 (61 backend + 7 sandbox) |
+| **Go LOC** | ~21,817 (17,646 backend source + 3,103 test + 1,176 sandbox source + 32 sandbox test + 19 Dockerfile) |
 | **Go test files** | 13 (~3,135 LOC, 126+ tests) |
-| **Frontend TSX/TS files** | ~151 (~24,800 LOC) |
-| **Total tracked source LOC** | ~71,000 |
+| **Frontend TSX/TS files** | ~155 (~30,303 LOC) |
+| **Total tracked source LOC** | ~81,800 |
 | **API endpoints** | ~89 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
-| **Seed problems** | ~238 (180 Go, 58 Python) |
+| **Seed problems** | ~263 (180 Go, 58 Python, 25 Python-practicals) |
 | **Middleware chain depth** | 11 (including rate limiters) |
 | **WebSocket event types** | 9 |
 | **Curriculum lessons** | ~200+ across 6 courses |
 | **Curriculum section types** | 11 (ENUM) |
 | **AI assist actions** | 8 |
 | **shadcn/ui primitives** | 19 |
-| **Custom components** | 41 |
+| **Custom components** | 42 |
 | **External Go deps** | 7 |
 | **Sandbox external deps** | 0 (stdlib only) |
 | **Module WebP images** | 17 |
@@ -959,7 +964,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 4. **`sandbox/secure_unix.go`** — `resourceLimits` uses raw numeric values for `RLIMIT_NPROC` (6) and `RLIMIT_NOFILE` (7) instead of `syscall.RLIMIT_NPROC` / `syscall.RLIMIT_NOFILE`. Works on linux/arm64 but needs verification.
 5. **`sandbox/main.go`** — `forcePackageKoder` regex is duplicated in both `sandbox/runtest_go.go` and `internal/executor/sandbox.go`. Should be shared.
 6. **`@google/genai` dep** — Listed in `go.mod` (indirect) but may be unused after NVIDIA NIM migration.
-7. **Empty `docs/` subdirectories** — `docs/adr/` and `docs/diagrams/` are placeholders with no content. These are counted as 0 LOC; actual docs total is 6 files (5,639 LOC).
+7. **Empty `docs/` subdirectories** — `docs/adr/` and `docs/diagrams/` are placeholders with no content. These are counted as 0 LOC; actual docs total is 6 files (5,695 LOC).
 8. **Migration gap** — Migration numbers jump from 017 to 019 (no 018), and from 029 to 031 (no 030). Not harmful but breaks sequential readability.
 9. **`CODEBASE_INDEX.md`** — Superseded by this file (`CLAUDE.md`). Kept as a redirect pointer for existing references; will be removed in a future cleanup.
 
@@ -1077,4 +1082,47 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-07-26 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
+### 2026-07-27 — Session 81: Professional codebase reindex — verified file counts and LOC
+- Audited all 300+ source files across Go backend (59 source, 17,453 LOC), sandbox (8 source, 1,197 LOC), frontend (73 app, 61 components, 18 lib/hooks), migrations (49), docs (6), scripts (7)
+- Updated CLAUDE.md with verified counts: backend 17,453 LOC (was ~17,306), tests 3,115 LOC (was ~3,135), frontend app 17,400 LOC (was ~17,177), components 61 files 9,978 LOC (was 60, ~9,927), config 10 files (was 12), migrations 49 (was 48), docs 5,691 LOC (was 5,639)
+- Fixed sandbox count: 8 source files, 1,197 LOC (was 7, ~1,157)
+- Fixed Key Metrics: Go LOC ~21,798 (was ~21,630), frontend TSX/TS ~30,256 LOC (was ~24,800)
+- Total tracked source: ~300 files, ~72,000 LOC (was ~294, ~71,000)
+
+### 2026-07-27 — Session 82: param_names scaffold generation
+- Added `param_names TEXT[]` column to problems schema (migration `047_add_param_names.sql`, 16 lines)
+- Updated all problem SQL queries to include param_names — scaffold uses real names not arg1/arg2
+- Backend: `problems.go` (ListProblemWithTestCases), `admin.go` (UpdateProblem), `enricher.go` (param_names in generation) — 5 files total
+
+### 2026-07-27 — Session 83: Professional OG metadata with module images
+- Added Open Graph / Twitter Card meta tags to root layout, per-problem pages
+- `frontend/app/layout.tsx` — og:image, twitter:card, theme-color, module-specific preview images
+- `frontend/app/problems/[slug]/page.tsx` — per-problem OG metadata with module-specific WebP images
+
+### 2026-07-27 — Session 84: Learn UI 3D tactile redesign + quiz/prerequisite overhaul
+- Complete overhaul of course/module/lesson pages with 3D tactile design system
+- `learning-card.tsx` (379→258 LOC): redesigned with depth, shadows, and type-based gradients
+- `SectionQuiz.tsx` (109→195 LOC): redesigned MCQ with dynamic feedback and review mode
+- `LessonSidebar.tsx` (196→210 LOC): prerequisite locking visualization, collapsible sections
+- `LessonViewerClient.tsx` (606→630 LOC): AnimatePresence transitions, keyboard shortcuts
+- `courses/page.tsx` (285→315 LOC): LearningCard grid with difficulty pills and gradient heroes
+- Backend: curriculum.go — filter deleted problem references at DB level using problem_references cleanup; middleware.go — optional auth bypass for problem details
+
+### 2026-07-27 — Session 85: python-practicals seed + migration generator + fix stale scaffold
+- `migrations/047_seed_python_practicals.sql` (1,095 LOC): 25 problems with 5–7 test cases each
+- `scripts/generate-practicals-migration.mjs` (478 LOC): automated migration generator for practicals
+- Scaffold generation: auto-detect stale arg1/arg2 scaffolds and replace with real param_names on load
+- Fixed `ProblemWorkspaceClient.tsx` — clears sessionStorage cache before problem fetch, preserves tokens on transient server errors
+
+### 2026-07-29 — Session 86: Professional codebase reindex
+- Audited all 308+ source files: Go backend (61 source, 17,646 LOC), sandbox (7 source + Dockerfile, 1,176 LOC), frontend (73 app, 61 components, 18 lib/hooks, 3 styles), migrations (49, 21,112 LOC), docs (6, 5,695 LOC), scripts (7, 904 LOC), config (14, 596 LOC)
+- Updated CLAUDE.md with verified counts across all sections
+- Added `047_add_param_names.sql` to schema migrations (33 total schema, 16 seed)
+- Added `param_names TEXT[]` to `problems` schema documentation
+- Updated Key Metrics: Go LOC ~21,817, frontend TSX/TS ~30,303, total ~81,800
+- Added session logs for Sessions 82–85
+- Fixed sandbox, cmd tools, and frontend component line counts to match current files
+
+---
+
+*Last indexed: 2026-07-29 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
