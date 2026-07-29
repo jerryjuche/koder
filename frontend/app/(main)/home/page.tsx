@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useWebSocket } from "@/lib/event";
 import Image from "next/image";
 import {
   Search,
@@ -24,10 +23,10 @@ import {
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, fetchProgress, ModuleMeta } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { renderMarkdown } from "@/lib/markdown";
-import { Problem, User, CommunitySolution, CourseProgressEntry } from "@/lib/types";
+import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
   cn,
   getDifficultyLabel,
@@ -50,7 +49,6 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [lockedModules, setLockedModules] = useState<Set<string>>(new Set());
   const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
-  const [courseProgress, setCourseProgress] = useState<CourseProgressEntry[]>([]);
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,8 +88,8 @@ export default function Dashboard() {
     const loadData = () => {
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta(), fetchProgress()]).then(
-        ([probRes, userRes, bpRes, locksRes, metaRes, progRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -109,9 +107,6 @@ export default function Dashboard() {
             }
             setModuleMeta(metaMap);
           }
-          if (progRes.success && progRes.data) {
-            setCourseProgress(progRes.data.courses);
-          }
           setLoading(false);
         }
       );
@@ -127,7 +122,6 @@ export default function Dashboard() {
         clearCache("/problems" + (languageFilter !== "all" ? `?language=${languageFilter}` : ""));
         clearCache("/me");
         clearCache("/best-practices");
-        clearCache("/learn");
         loadData();
       }, 300);
     };
@@ -156,21 +150,6 @@ export default function Dashboard() {
       clearTimeout(debounceTimer);
     };
   }, [languageFilter]);
-
-  useWebSocket({
-    "lesson.completed": useCallback(() => {
-      clearCache("/learn");
-      fetchProgress().then((res) => {
-        if (res.success && res.data) setCourseProgress(res.data.courses);
-      });
-    }, []),
-    "progress.updated": useCallback(() => {
-      clearCache("/learn");
-      fetchProgress().then((res) => {
-        if (res.success && res.data) setCourseProgress(res.data.courses);
-      });
-    }, []),
-  });
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
@@ -320,71 +299,6 @@ export default function Dashboard() {
       </div>
 
       <GoogleLinkBanner />
-
-      {courseProgress.length > 0 && (
-        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-5 shadow-md">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 flex items-center justify-center">
-                <BookOpen size={18} className="text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground leading-tight">Learning Progress</h3>
-                <p className="text-[11px] text-muted-foreground">{courseProgress.filter((c) => c.progress_pct >= 100).length} of {courseProgress.length} courses completed</p>
-              </div>
-            </div>
-            <Link
-              href="/learn/courses"
-              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              View all courses
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {courseProgress.map((course) => {
-              const pct = course.progress_pct;
-              const isComplete = pct >= 100;
-              return (
-                <Link
-                  key={course.course_id}
-                  href={`/learn/courses/${course.course_slug}`}
-                  className="group block rounded-xl border border-border/40 bg-background/40 hover:bg-card/80 hover:border-primary/40 transition-all duration-200 p-3.5"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                      {course.course_slug.replace(/-/g, " ")}
-                    </span>
-                    {isComplete ? (
-                      <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <CheckCircle2 size={10} /> Done
-                      </span>
-                    ) : pct > 0 ? (
-                      <span className="shrink-0 text-[10px] font-bold text-amber-400">
-                        {Math.round(pct)}%
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
-                    <span>{course.completed_lessons}/{course.total_lessons} lessons</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden border border-border/40">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700 ease-out",
-                        isComplete
-                          ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_6px_rgba(34,197,94,0.3)]"
-                          : "bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.2)]",
-                      )}
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-border">
