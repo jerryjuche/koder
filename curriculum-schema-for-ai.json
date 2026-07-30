@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.0",
+  "description": "Curriculum seed format for Koder LMS. Feed this structure to an AI to generate full course content.",
+
+  "course": {
+    "slug": "course-slug-here",
+    "title": "Course Title Here",
+    "description": "Course description for students to see.",
+    "difficulty_level": 2,
+    "estimated_hours": 18,
+    "order_number": 13,
+    "notes": "order_number should be 13+ (existing courses go up to 12). All entities default visible=false."
+  },
+
+  "modules": [
+    {
+      "slug": "module-slug-here",
+      "title": "Module Title Here",
+      "description": "Module description.",
+      "order_number": 1,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "lesson-slug-here",
+          "title": "Lesson Title Here",
+          "description": "Lesson description for students.",
+          "difficulty": 1,
+          "estimated_minutes": 15,
+          "xp_reward": 40,
+          "order_number": 1,
+          "problem_references": [],
+          "note": "Empty problem_references array => frontend renders code playground (Pyodide for Python, standalone for Go). Add problem slugs from the problems table if you want students to solve existing problems.",
+
+          "dependencies": [],
+
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What is This Lesson About?",
+              "content": "Markdown content explaining the learning objectives. Supports ```code blocks```, <div class=\"tip\">, <div class=\"warning\">, <div class=\"info\">, <div class=\"example\"> callout divs."
+            },
+            {
+              "section_type": "explanation",
+              "title": "Core Concepts",
+              "content": "Detailed markdown explanation with code examples in ```language blocks."
+            },
+            {
+              "section_type": "examples",
+              "title": "Examples",
+              "content": "Multiple code examples with explanations between them."
+            },
+            {
+              "section_type": "best_practices",
+              "title": "Best Practices",
+              "content": "Bullet-point list of tips and conventions. Optional section - omit if not needed."
+            },
+            {
+              "section_type": "common_mistakes",
+              "title": "Common Mistakes",
+              "content": "Description of pitfalls with wrong vs right examples. Optional section - omit if not needed."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice Exercises",
+              "content": "Exercise instructions. If problem_references is empty, frontend shows inline Monaco editor (Pyodide for Python, standalone for Go). If populated, frontend shows LearningCard links to those problems."
+            },
+            {
+              "section_type": "quiz",
+              "title": "Knowledge Check",
+              "content": "",
+              "metadata": {
+                "question": "What does this code output?\n\nprint(\"Hello World\")",
+                "options": [
+                  "Hello World",
+                  "Error",
+                  "hello world",
+                  "Nothing"
+                ],
+                "correct_index": 0,
+                "explanation": "print() displays the exact string passed to it. Hello World is the correct output."
+              },
+              "note": "Quiz sections must have empty content string ''. All data goes in metadata JSONB. correct_index is 0-based."
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- Bullet point 1\n- Bullet point 2\n- Bullet point 3\n- Bullet point 4\n- Bullet point 5"
+            },
+            {
+              "section_type": "assessment",
+              "title": "Assessment",
+              "content": "Formal assessment instructions. Same rendering as exercises section but with assessment-themed badge. Optional - use instead of exercises if this is an assessment lesson."
+            },
+            {
+              "section_type": "mini_project",
+              "title": "Mini Project",
+              "content": "Project instructions, requirements, and stretch goals. Renders same as exercises but with project badge. Optional - use for capstone/culminating lessons."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "projects": [
+    {
+      "lesson_slug": "lesson-slug-this-project-belongs-to",
+      "module_slug": "module-slug-this-project-belongs-to",
+      "slug": "project-slug-here",
+      "title": "Project Title Here",
+      "description": "Short project description.",
+      "requirements": "1. Numbered requirement one\n2. Numbered requirement two\n3. Numbered requirement three\n4. Numbered requirement four\n5. Numbered requirement five",
+      "starter_code": "def main():\n    # TODO: implement\n    pass\n\nif __name__ == \"__main__\":\n    main()",
+      "difficulty": 3,
+      "xp_reward": 150,
+      "hints": [
+        "Hint one to guide the student",
+        "Hint two for a common pitfall",
+        "Hint three for the tricky part"
+      ],
+      "order_number": 1
+    }
+  ],
+
+  "quizzes_via_update": {
+    "description": "Quiz sections are inserted with empty content, then metadata is updated via a separate UPDATE statement. The AI should generate quiz sections with empty content and provide the metadata JSONB separately.",
+    "quiz_update_sql_pattern": "UPDATE lesson_sections SET metadata = '{\"question\": \"...\", \"options\": [...], \"correct_index\": N, \"explanation\": \"...\"}'::jsonb WHERE section_type = 'quiz' AND title = 'Quiz Title Here' AND lesson_id = (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = 'course-slug' AND m.slug = 'module-slug' AND l.slug = 'lesson-slug');"
+  },
+
+  "multi_file_exercise_metadata": {
+    "description": "Used in exercise sections when no problem_references exist and you want a multi-file tabbed editor instead of single-file. Store in section.metadata as JSONB with key 'multiFile'.",
+    "note": "Multi-file exercises are Python-only (executed via Pyodide in-browser). Go exercises are single-file standalone editor only.",
+    "example": {
+      "multiFile": {
+        "files": [
+          {"path": "main.py", "content": "# Entry point\nfrom utils import helper\n\ndef main():\n    result = helper()\n    print(f\"Result: {result}\")\n\nif __name__ == \"__main__\":\n    main()\n"},
+          {"path": "utils.py", "content": "def helper():\n    return \"Hello from utils!\"\n"}
+        ],
+        "entryPoint": "main.py"
+      }
+    }
+  },
+
+  "section_types_reference": {
+    "overview": {
+      "description": "Learning objectives, what you'll learn. Renders markdown content.",
+      "content_expected": "Markdown text introducing the lesson. Supports <div class=\"info\">, <div class=\"tip\">, <div class=\"warning\">, <div class=\"example\"> callout divs for rich formatting."
+    },
+    "explanation": {
+      "description": "Core concepts, detailed teaching. Renders markdown content.",
+      "content_expected": "In-depth markdown explanation with ```code blocks``` for code examples."
+    },
+    "examples": {
+      "description": "Code examples with explanations. Renders markdown content.",
+      "content_expected": "Multiple ```code blocks``` with explanatory text between them."
+    },
+    "best_practices": {
+      "description": "Tips and conventions. Renders markdown content. Optional section.",
+      "content_expected": "Bullet-point list of best practices, conventions, and recommendations."
+    },
+    "common_mistakes": {
+      "description": "Pitfalls to avoid. Renders markdown content. Optional section.",
+      "content_expected": "Description of common mistakes with examples of wrong vs right approach."
+    },
+    "exercises": {
+      "description": "Practice problems. Uses lesson-level problem_references OR inline code playground.",
+      "content_expected": "Exercise instructions in markdown. If problem_references is empty, frontend shows inline Monaco editor with Pyodide (Python) or standalone (Go). If problem_references has slugs, frontend shows LearningCard links to those problems."
+    },
+    "assessment": {
+      "description": "Formal assessment. Same rendering as exercises section but with assessment-themed badge.",
+      "content_expected": "Same format as exercises. Use instead of exercises for formal assessment lessons."
+    },
+    "mini_project": {
+      "description": "Optional capstone within a lesson. Same rendering as exercises but with project badge.",
+      "content_expected": "Project description, numbered requirements, stretch goals, and any guidance."
+    },
+    "quiz": {
+      "description": "MCQ knowledge check. Content field is empty; data goes in metadata JSONB.",
+      "content_expected": "Empty string ''. Quiz data is stored in metadata JSONB with format: {question, options[], correct_index (0-based), explanation}.",
+      "note": "Quizzes are frontend-grouped into one 'Quiz Review' step at the end of the lesson flow regardless of their order_number."
+    },
+    "summary": {
+      "description": "Key takeaways at lesson end. Renders markdown content.",
+      "content_expected": "3-5 bullet points summarizing what was learned in the lesson."
+    },
+    "ai_review": {
+      "description": "AI-generated review section. Renders markdown content.",
+      "content_expected": "Markdown with AI-generated analysis or review."
+    }
+  },
+
+  "rules": {
+    "all_default_visible_false": {
+      "description": "Every entity (course, module, lesson, section, project) defaults to visible=false. Admins publish via toggle. Students only see visible=true items. Invisible items return 404 to students."
+    },
+    "unique_slugs": {
+      "description": "Course slug is globally unique. Module slug is unique per course. Lesson slug is unique per module. Project slug is unique per lesson."
+    },
+    "canonical_section_order": [
+      "overview",
+      "explanation",
+      "examples",
+      "best_practices (optional)",
+      "common_mistakes (optional)",
+      "exercises or assessment or mini_project",
+      "quiz",
+      "summary"
+    ],
+    "quiz_ordering_note": "Quizzes are frontend-grouped into one Quiz Review step at the end regardless of their order_number. Non-quiz sections maintain their order_number ordering.",
+    "xp_first_completion_only": "XP is awarded only on first lesson completion. Re-completing a lesson grants 0 XP. Default lesson XP is 50. Default project XP is 100.",
+    "progress_never_decreases": "Course progress percentage and XP awarded never decrease (GREATER NEVER DECREASE pattern using GREATEST() SQL). completed_at timestamps are preserved on re-completion.",
+    "course_progress_formula": "completed_visible_lessons / total_visible_lessons * 100",
+    "dependency_dag": "Lessons can depend on prerequisite lessons within the same module. No self-dependencies allowed. Dependencies are lesson slugs within the same module. Backend returns 403 PREREQ_NOT_MET if any prereq is incomplete.",
+    "dollar_quoting": "Multi-line content with embedded single quotes should use dollar-quoting ($py$...$py$) in the SQL. Short single-line content can use standard single quotes with escaping.",
+    "problem_references_exist": "The problems table has ~263 existing problems across 15 modules. Common ones: error-message-for-code, is-valid-email, py-avg-calculator, py-trim-ends, plus many math/string/array problems."
+  },
+
+  "seed_migration_preface": [
+    "-- ============================================================================",
+    "-- Koder :: [Course Name] Seed Data",
+    "-- Auto-generated curriculum content",
+    "-- ============================================================================",
+    "-- Requires: migrations 001-038 (core schema + CMS tables)",
+    "-- ============================================================================",
+    "",
+    "BEGIN;"
+  ],
+
+  "seed_migration_postface": [
+    "COMMIT;"
+  ],
+
+  "sql_generation_guide": {
+    "course_insert": "INSERT INTO courses (slug, title, description, difficulty_level, estimated_hours, order_number, visible) VALUES ('{slug}', '{title}', '{description}', {difficulty}, {hours}, {order}, false) ON CONFLICT (slug) DO NOTHING;",
+    "module_insert": "INSERT INTO modules (course_id, slug, title, description, order_number, visible) SELECT c.id, '{slug}', '{title}', '{description}', {order}, false FROM courses c WHERE c.slug = '{course_slug}' ON CONFLICT (course_id, slug) DO NOTHING;",
+    "lesson_insert": "INSERT INTO lessons (module_id, slug, title, description, difficulty, estimated_minutes, xp_reward, order_number, visible, problem_references) SELECT m.id, '{slug}', '{title}', '{description}', {difficulty}, {minutes}, {xp}, {order}, false, ARRAY[{refs}]::TEXT[] FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' ON CONFLICT (module_id, slug) DO NOTHING;",
+    "section_insert": "INSERT INTO lesson_sections (lesson_id, section_type, title, content, order_number) SELECT l.id, '{type}', '{title}', $py${content}$py$, {order} FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{lesson_slug}';",
+    "quiz_metadata_update": "UPDATE lesson_sections SET metadata = '{jsonb}'::jsonb WHERE section_type = 'quiz' AND title = '{quiz_title}' AND lesson_id = (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{lesson_slug}');",
+    "dependency_insert": "INSERT INTO lesson_dependencies (lesson_id, depends_on_lesson_id) SELECT (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{dependent_slug}'), (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{prereq_slug}') ON CONFLICT DO NOTHING;",
+    "project_insert": "INSERT INTO projects (lesson_id, slug, title, description, requirements, starter_code, difficulty, xp_reward, hints, order_number, visible) SELECT l.id, '{slug}', '{title}', '{description}', $py${requirements}$py$, $py${starter_code}$py$, {difficulty}, {xp}, ARRAY[{hints}]::TEXT[], {order}, false FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{lesson_slug}' ON CONFLICT (lesson_id, slug) DO NOTHING;",
+    "multi_file_metadata_update": "UPDATE lesson_sections SET metadata = '{\"multiFile\": {files}}}}'::jsonb WHERE section_type = 'exercises' AND title = '{section_title}' AND lesson_id = (SELECT l.id FROM lessons l JOIN modules m ON l.module_id = m.id JOIN courses c ON m.course_id = c.id WHERE c.slug = '{course_slug}' AND m.slug = '{module_slug}' AND l.slug = '{lesson_slug}');"
+  }
+}

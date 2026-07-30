@@ -1,0 +1,1450 @@
+{
+  "schema_version": "1.0",
+  "description": "AI Fluency: Foundations for AI Engineering â€” A comprehensive 5-module course aligned with Anthropic's 4D Framework, designed for engineers with 3 months of Go experience.",
+
+  "course": {
+    "slug": "ai-fluency",
+    "title": "AI Fluency: Foundations for AI Engineering",
+    "description": "Master the foundational knowledge, skills, and judgment required to work effectively, ethically, and strategically with AI systems. This course bridges your Go engineering background into the world of AI, covering everything from neural network intuition to production-grade responsible deployment.",
+    "difficulty_level": 2,
+    "estimated_hours": 22,
+    "order_number": 13,
+    "notes": "All entities default to visible=false. Admins publish manually. Go analogies are used throughout to leverage prior learning."
+  },
+
+  "modules": [
+    {
+      "slug": "ai-landscape",
+      "title": "The AI Landscape & Human-AI Collaboration",
+      "description": "Define AI fluency, understand the history and ecosystem of AI, and master the strategic decision-making framework for human-AI interaction.",
+      "order_number": 1,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "defining-ai-fluency",
+          "title": "Defining AI Fluency & The 4Ds",
+          "description": "Learn what it truly means to be fluent in AIâ€”beyond just using chatbotsâ€”and internalize the 4D framework that underpins all effective AI collaboration.",
+          "difficulty": 1,
+          "estimated_minutes": 20,
+          "xp_reward": 40,
+          "order_number": 1,
+          "problem_references": [],
+          "dependencies": [],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define **AI Fluency** and distinguish it from AI literacy\n- Identify the **four core competencies (4Ds)**: Delegation, Description, Discernment, and Diligence\n- Understand why fluency is a strategic imperative for AI engineers\n- Map the 4Ds to real-world software engineering scenarios"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Core Concept: AI Fluency",
+              "content": "<div class=\"info\">â„¹ï¸ **Definition:** AI Fluency is the ability to work with AI systems in ways that are effective, efficient, ethical, and safe. It combines practical skills, knowledge, insights, and values that help you adapt to evolving AI technologies.</div>\n\nFluency is distinct from **literacy**. Literacy means you can read and writeâ€”you can craft a prompt. Fluency means you know *when* to prompt, *how* to design the interaction strategically, and *how* to evaluate the results critically.\n\nThink of it like Go programming:\n- **Literacy** is knowing the syntax (`func`, `chan`, `interface{}`).\n- **Fluency** is knowing when to use channels vs. mutexes, how to structure packages for maintainability, and how to profile and debug production systems.\n\n## The 4Ds Explained\n\n| Competency | Core Question | Go Engineer Analogy |\n|------------|---------------|---------------------|\n| **Delegation** | What should the AI do vs. what should I do? | Deciding which services to spin off into microservices vs. keeping in the monolith |\n| **Description** | How do I clearly instruct the AI? | Writing a clean, well-documented API specification |\n| **Discernment** | How do I critically evaluate AI output? | Reviewing a PR for bugs, performance, and edge cases |\n| **Diligence** | How do I use AI responsibly and accountably? | Implementing rigorous testing, observability, and compliance in your pipeline |\n\n<div class=\"tip\">ðŸ’¡ **Pro Tip:** Fluency is not a checkboxâ€”it's a practice. The best AI engineers treat the 4Ds as a recurring mental checklist for every interaction.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Examples: The 4Ds in Action",
+              "content": "## Example 1: AI-Assisted Code Review\n\nImagine you want AI to review a Go PR for concurrency issues.\n\n- **Delegation:** You decide the AI should analyze the locking strategy, but *you* decide if the business logic is correct.\n- **Description:** You craft a prompt: *\"Review this Go code for data races and potential deadlocks. Assume the code runs in a high-throughput environment.\"*\n- **Discernment:** You evaluate the AI's suggestionsâ€”are they actually valid race conditions, or is the AI hallucinating?\n- **Diligence:** You document that AI-assisted review was used, and you manually test the changes before merging.\n\n## Example 2: AI for Documentation Generation\n\n- **Delegation:** You assign the AI to draft documentation for a new package.\n- **Description:** You specify: *\"Generate a README with installation, usage examples, and API reference for this package.\"*\n- **Discernment:** You check the examples for correctnessâ€”do they actually compile?\n- **Diligence:** You update the AI's base prompt with your company's documentation style guide to maintain consistency."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Identify the 4Ds",
+              "content": "Read the following scenario and identify which of the 4Ds (or combination) is being applied.\n\n**Scenario:** Sarah, an AI engineer, asks a model to generate test cases for a Go HTTP handler. She reviews the test cases, modifies two that would fail due to a nuance in the router, and adds a note in the commit message that the tests were AI-generated.\n\n**Your Task:**\nWrite a short Python script that outputs a dictionary mapping each D to a specific action Sarah took. We'll provide a scaffold.\n\n```python\n# TODO: Fill in the actions for each of the 4Ds\n# You can use the cheat sheet provided in the course material!\n\ndef identify_4ds():\n    actions = {\n        \"Delegation\": \"\",      # What did she ask the AI to do?\n        \"Description\": \"\",     # How did she structure the request? (inferred)\n        \"Discernment\": \"\",     # What did she evaluate and correct?\n        \"Diligence\": \"\"       # What did she do to stay responsible?\n    }\n    return actions\n\nif __name__ == \"__main__\":\n    result = identify_4ds()\n    for d, action in result.items():\n        print(f\"{d}: {action}\")\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Which of the following best describes AI Fluency?",
+                "options": [
+                  "Knowing how to write effective prompts for ChatGPT",
+                  "The ability to work with AI systems effectively, efficiently, ethically, and safely",
+                  "Understanding how transformers work under the hood",
+                  "Being able to train a neural network from scratch"
+                ],
+                "correct_index": 1,
+                "explanation": "AI Fluency encompasses effective, efficient, ethical, and safe collaboration with AI. While prompt writing (A) is part of it, fluency is broader, covering delegation, discernment, and diligence as well. Understanding transformers (C) is technical knowledge, and training networks (D) is a specialized skillâ€”neither defines full fluency."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **AI Fluency** is a strategic skill, not just a technical one.\n- The **4Ds** (Delegation, Description, Discernment, Diligence) are the pillars of fluency.\n- Fluency allows you to adapt to new AI models and tools as they emerge.\n- As a Go engineer, you already practice many of these competenciesâ€”AI fluency is about applying them to a new medium."
+            }
+          ]
+        },
+        {
+          "slug": "history-of-ai",
+          "title": "A Brief History of Artificial Intelligence",
+          "description": "Trace the evolution of AI from the Dartmouth workshop in 1956 to the generative AI revolution, and understand why the 2020s are a turning point.",
+          "difficulty": 1,
+          "estimated_minutes": 18,
+          "xp_reward": 40,
+          "order_number": 2,
+          "problem_references": [],
+          "dependencies": ["defining-ai-fluency"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Trace the key milestones in AI history from 1956 to today\n- Understand the concept of \"AI Winters\" and why they occurred\n- Recognize the breakthroughs that led to the Generative AI boom\n- Place today's LLMs in their proper historical context"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Four Eras of AI",
+              "content": "AI history can be divided into four distinct eras:\n\n## Era 1: The Dawn (1956â€“1974)\n\nThe field was founded at the **Dartmouth Workshop** in 1956, where John McCarthy coined the term \"Artificial Intelligence.\" Early optimism was highâ€”researchers believed a fully intelligent machine would be built within a decade. Pioneers focused on symbolic reasoning, theorem proving, and early game-playing programs (like checkers).\n\n<div class=\"info\">â„¹ï¸ **Fun Fact:** The first AI program, the Logic Theorist, was able to prove 38 of the first 52 theorems in Principia Mathematica.</div>\n\n## Era 2: The Winters (1974â€“1990)\n\nEarly promises went unfulfilled. Governments cut funding, and the field experienced the first \"AI Winter.\" Progress stalled due to hardware limitations and the realization that symbolic AI couldn't handle real-world complexity. A second winter occurred in the late 1980s when expert systems failed to deliver on their hype.\n\n## Era 3: The Revival (1990â€“2012)\n\nStatistical methods and machine learning emerged. The 1997 victory of IBM's Deep Blue over Kasparov in chess reignited interest, but it was **specialized intelligence**â€”narrow AI. Other highlights: autonomous vehicles in DARPA challenges, and the rise of the internet providing massive datasets.\n\n## Era 4: The Deep Learning Revolution (2012â€“Today)\n\nIn 2012, AlexNet demonstrated that deep neural networks on GPUs could dramatically outperform traditional methods in image recognition. This sparked the modern AI boom.\n\n<div class=\"warning\">âš ï¸ **Key Insight:** The Transformers architecture (2017) was the missing piece for languageâ€”it allowed parallel processing of sequences, enabling the scale we see today. By 2022, ChatGPT brought this to the public, marking the beginning of the Generative AI era.</div>\n\n<div class=\"example\">ðŸ“ **Engineering Parallel:** The shift from symbolic AI to deep learning is like the shift from monolithic Go apps to microservicesâ€”it unlocked a massive leap in capabilities by distributing computation (parameter weights) across billions of units.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Milestones Every AI Engineer Should Know",
+              "content": "| Year | Milestone | Significance |\n|------|-----------|--------------|\n| 1956 | Dartmouth Workshop | AI founded as a formal discipline |\n| 1969 | Shakey the Robot | First AI system that could reason about its actions |\n| 1997 | Deep Blue beats Kasparov | AI exceeds human capability in a constrained domain (chess) |\n| 2012 | AlexNet wins ImageNet | Deep learning proved superior; GPU compute becomes central |\n| 2017 | \"Attention Is All You Need\" | The Transformer architecture is published; the foundation of all modern LLMs |\n| 2022 | ChatGPT launch | Generative AI reaches consumer scale; mainstream awareness explodes |\n| 2023â€“2025 | Multimodal & Agentic AI | AI systems can see, hear, and act independently |"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Timeline Sort",
+              "content": "Write a Python function that takes a list of year-event strings and returns them sorted chronologically. This reinforces the timeline mentally.\n\n```python\ndef sort_ai_milestones(milestones):\n    \"\"\"\n    Given a list of strings in the format 'Year: Event', \n    return a new list sorted by year ascending.\n    \"\"\"\n    # Your code here\n    return sorted(milestones, key=lambda x: int(x.split(':')[0]))\n\n# Example test:\ntest_milestones = [\n    \"2022: ChatGPT Launch\",\n    \"1956: Dartmouth Workshop\",\n    \"2017: Transformer Architecture\",\n    \"1997: Deep Blue beats Kasparov\"\n]\nprint(sort_ai_milestones(test_milestones))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What was the major contribution of the 2017 paper 'Attention Is All You Need'?",
+                "options": [
+                  "It introduced the Transformer architecture for processing sequences in parallel",
+                  "It proved that neural networks could never surpass human performance",
+                  "It invented the first AI winter prevention strategy",
+                  "It introduced the concept of reinforcement learning from human feedback"
+                ],
+                "correct_index": 0,
+                "explanation": "The Transformer architecture, introduced in 'Attention Is All You Need', enabled parallel processing of sequences via self-attention, making it scalable and foundational for all modern LLMs like GPT, Claude, and Gemini."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- AI has had multiple waves and wintersâ€”success is never linear.\n- The Transformer architecture (2017) is the critical breakthrough enabling today's LLMs.\n- Generative AI is a new paradigm shift, but it builds on decades of research.\n- Understanding history helps you separate hype from real technical progress."
+            }
+          ]
+        },
+        {
+          "slug": "human-ai-interaction-modes",
+          "title": "Human-AI Interaction Modes",
+          "description": "Master the three strategic modes of human-AI collaboration: Automation, Augmentation, and Agency.",
+          "difficulty": 2,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 3,
+          "problem_references": [],
+          "dependencies": ["defining-ai-fluency"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Distinguish between **Automation**, **Augmentation**, and **Agency**\n- Map each mode to the appropriate engineering context\n- Recognize when to shift between modes in a production workflow\n- Apply the modes to real-world engineering tasks"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Three Modes of Collaboration",
+              "content": "<div class=\"info\">â„¹ï¸ **Core Framework:** How you collaborate with AI is a strategic choice. Anthropic defines three distinct modes, each suited to different tasks.</div>\n\n## 1. Automation\n\n**Definition:** AI performs specific tasks based on specific human instructions. The human defines what needs to be done, and the AI executes it.\n\n**Go Engineer Analogy:** This is like writing a shell script that runs a set of commands. You fully define the sequence, and the machine executes it deterministically.\n\n- **When to use:** Repetitive, well-defined, low-stakes tasks (e.g., formatting code, generating boilerplate, parsing logs).\n- **Risk:** Over-automation can obscure edge casesâ€”always review the output.\n\n## 2. Augmentation\n\n**Definition:** Humans and AI collaborate as thinking partners to complete tasks together. Involves iterative back-and-forth where both contribute to the outcome.\n\n**Go Engineer Analogy:** This is pair programming with an extremely knowledgeable junior engineer who can talk at lightning speed. You guide, they draft; you critique, they revise.\n\n- **When to use:** Complex problem-solving, architecture design, debugging, writing documentation.\n- **Risk:** Over-reliance can degrade your own critical thinkingâ€”maintain a balanced dialogue.\n\n## 3. Agency\n\n**Definition:** Humans configure AI to work independently on their behalf, including interacting with other humans or AI. The human establishes the AI's knowledge and behavior patterns rather than specifying exact actions.\n\n**Go Engineer Analogy:** This is like deploying a microservice with a specific configuration (environment variables, feature flags) that runs independently and handles requests without your direct supervision.\n\n- **When to use:** Multi-step workflows, monitoring and alerting, automated customer support, agentic pipelines.\n- **Risk:** Loss of control. You must implement guardrails, logging, and fallback mechanisms.\n\n<div class=\"tip\">ðŸ’¡ **Pro Tip:** Don't default to one mode. A mature AI workflow often chains them: Agency monitors the system, Augmentation helps you design the fix, and Automation executes the patch.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Examples Across the Spectrum",
+              "content": "## Example 1: Bug Fixing Workflow\n\n- **Automation:** AI runs `go vet` and `go test` automatically to surface failures.\n- **Augmentation:** You discuss the root cause with the AI, exploring possible fixes together.\n- **Agency:** You configure an AI agent that watches the error log and automatically proposes PRs for known patterns (e.g., nil pointer dereferences).\n\n## Example 2: Documentation Pipeline\n\n- **Automation:** AI extracts all exported functions and generates stub documentation.\n- **Augmentation:** You and the AI co-write the narrative introduction.\n- **Agency:** An AI agent monitors the main branch and auto-updates the documentation site.\n\n<div class=\"warning\">âš ï¸ **Safety Note:** Agency is the most powerful but also the most dangerous mode. Always start with Automation, then move to Augmentation, and only graduate to Agency with strict evaluation and rollback plans.</div>"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Mode Classification",
+              "content": "Given the scenarios below, write a Python function that classifies the primary interaction mode.\n\n```python\ndef classify_mode(scenario_description):\n    \"\"\"\n    Return 'Automation', 'Augmentation', or 'Agency'.\n    \"\"\"\n    # Your logic here\n    # Hint: Look for keywords like 'independently', 'drafts', 'suggests', 'runs automatically'\n    pass\n\n# Test cases:\nprint(classify_mode(\"The AI generates a weekly report and emails it to the team without human intervention.\"))\nprint(classify_mode(\"The AI and engineer jointly design a new API contract, iterating on the design.\"))\nprint(classify_mode(\"The AI reformats all source files to match the company style guide.\"))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "An AI engineer configures a system that monitors production metrics and independently creates GitHub issues with severity labels when anomalies are detected. What interaction mode is this?",
+                "options": [
+                  "Automation",
+                  "Augmentation",
+                  "Agency",
+                  "Discernment"
+                ],
+                "correct_index": 2,
+                "explanation": "This is Agency because the AI is configured to work independently (creating issues) on behalf of the engineer, without specifying exact actions for each anomaly. It has autonomy within defined parameters."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Automation** = Execute specific instructions (like a script).\n- **Augmentation** = Collaborative thinking partner (like pair programming).\n- **Agency** = Independent operation with configured behavior (like a microservice).\n- Moving from Automation to Agency increases leverage but requires more rigorous oversight."
+            }
+          ]
+        },
+        {
+          "slug": "ai-ecosystem",
+          "title": "The AI Ecosystem: ML, DL, NLP, CV, and GenAI",
+          "description": "Map the AI landscape and understand how different subfields relate to each other.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 4,
+          "problem_references": [],
+          "dependencies": ["history-of-ai"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define and differentiate: ML, DL, NLP, CV, and GenAI\n- Visualize how these fields overlap\n- Understand where your Go engineering skills fit into the AI stack\n- Identify use cases for each subfield"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The AI Family Tree",
+              "content": "Think of the AI ecosystem as a layered set of circles, similar to Go's package hierarchy:\n\n## 1. Machine Learning (ML) â€” The Parent Package\n\n**Definition:** Systems that learn from data rather than being explicitly programmed.\n\n**Subcategories:**\n- **Supervised Learning:** Labeled data (e.g., spam detection).\n- **Unsupervised Learning:** Unlabeled data (e.g., customer segmentation).\n- **Reinforcement Learning:** Learning via rewards/penalties (e.g., game-playing AI).\n\n## 2. Deep Learning (DL) â€” A Specialized Package of ML\n\n**Definition:** A subset of ML using neural networks with multiple layers (â‰¥ 3).\n\n**Why it matters:** DL excels at raw data (images, audio, text) without manual feature engineering. It's the engine behind modern AI.\n\n## 3. Natural Language Processing (NLP) â€” An Interface\n\n**Definition:** AI for understanding, interpreting, and generating human language.\n\n**Tasks:** Translation, sentiment analysis, summarization, question-answering.\n\n## 4. Computer Vision (CV) â€” Another Interface\n\n**Definition:** AI for interpreting visual information (images, video).\n\n**Tasks:** Object detection, facial recognition, autonomous driving.\n\n## 5. Generative AI (GenAI) â€” The Hot New Feature\n\n**Definition:** AI that creates new content (text, images, code, audio) rather than just analyzing or classifying.\n\n**Distinction:** Traditional ML *discriminates* (is this a cat or a dog?). GenAI *generates* (draw a cat). LLMs (like Claude) are a type of GenAI focused on text.\n\n<div class=\"info\">â„¹ï¸ **Relationship Map:** GenAI is a subset of Deep Learning, which is a subset of ML. NLP and CV are application domains that can use DL or GenAI techniques.</div>\n\n<div class=\"example\">ðŸ“ **Go Analogy:** Think of `ai/` as the root package. Inside you have `ml/` (core functionality), `dl/` (optimized sub-package), `nlp/` and `cv/` (specific interfaces), and `genai/` (a new feature flag that builds on all of them).</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Ecosystem in Action",
+              "content": "| Field | Real-World Application | AI Technique Used |\n|-------|------------------------|-------------------|\n| ML | Fraud detection in banking | Supervised classification (Random Forest) |\n| DL | Autonomous vehicle perception | Convolutional Neural Networks (CNNs) |\n| NLP | Customer support chatbots | Recurrent Neural Networks (RNNs) / Transformers |\n| CV | Medical imaging diagnostics | Deep CNNs |\n| GenAI | Code generation (Copilot) | Transformer-based LLMs |\n\n<div class=\"tip\">ðŸ’¡ **Insight for Go Engineers:** Your backend services often sit *above* these AI layers. You call the ML model via REST/gRPC, handle the orchestration, and manage the data pipelines. Your fluency means you understand *what* the AI is doing underneath the hood.</div>"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Ecosystem Mapping",
+              "content": "Write a Python function that takes a project description and maps it to the correct AI subfield.\n\n```python\ndef map_to_ai_field(description):\n    \"\"\"\n    Return one of: 'ML', 'DL', 'NLP', 'CV', 'GenAI'\n    \"\"\"\n    # Example logic structure:\n    # if 'generates' or 'creates' in description -> GenAI\n    # if 'images' or 'video' in description -> CV\n    # if 'text' or 'language' in description -> NLP\n    # Add your own robust mapping!\n    pass\n\n# Test case: should map to GenAI\nprint(map_to_ai_field(\"A system that writes personalized poetry based on user mood.\"))\n\n# Test case: should map to CV\nprint(map_to_ai_field(\"A system that detects faulty parts on an assembly line from camera feeds.\"))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Which of the following statements about Generative AI is TRUE?",
+                "options": [
+                  "Generative AI can only generate text, not code or images",
+                  "Generative AI is a subset of Deep Learning that creates new content",
+                  "Generative AI is entirely separate from Machine Learning",
+                  "Generative AI does not require training data"
+                ],
+                "correct_index": 1,
+                "explanation": "Generative AI is a subset of Deep Learning (which is a subset of ML) focused on creating new content (text, images, audio, code). It relies heavily on training data and is not separate from ML."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **ML** is the broadest category; **DL** is a specialized set of techniques.\n- **NLP** and **CV** are applications that can use ML, DL, or GenAI.\n- **GenAI** is the current frontier, capable of creation, not just analysis.\n- You will primarily interact with GenAI (LLMs) and NLP as an AI engineer."
+            }
+          ]
+        },
+        {
+          "slug": "ai-real-world-impact",
+          "title": "AI in the Real World: Industry Case Studies",
+          "description": "Explore how AI is transforming healthcare, finance, creative industries, and software engineering.",
+          "difficulty": 2,
+          "estimated_minutes": 25,
+          "xp_reward": 50,
+          "order_number": 5,
+          "problem_references": [],
+          "dependencies": ["ai-ecosystem"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Analyze real-world AI deployments across multiple industries\n- Identify the specific AI techniques used in each case\n- Understand the business and societal impact of AI\n- Draw parallels between these cases and your own engineering work"
+            },
+            {
+              "section_type": "explanation",
+              "title": "AI Across Sectors",
+              "content": "## Healthcare: Diagnosis and Drug Discovery\n\n- **AI Technique:** Deep Learning (CNNs for medical imaging), NLP for clinical notes, GenAI for molecule generation.\n- **Example:** AI systems detect breast cancer in mammograms with accuracy rivaling human radiologists.\n- **Fluency Takeaway:** Discernment is criticalâ€”false positives cause anxiety; false negatives cost lives. Engineers must implement rigorous validation and human-in-the-loop.\n\n## Finance: Fraud Detection and Trading\n\n- **AI Technique:** Supervised ML (anomaly detection), Reinforcement Learning (high-frequency trading).\n- **Example:** Mastercard uses AI to detect fraudulent transactions in milliseconds.\n- **Fluency Takeaway:** Diligence is paramountâ€”compliance with regulations (GDPR, PCI-DSS) and bias avoidance (fair lending) must be baked in.\n\n## Creative Industries: Content Generation\n\n- **AI Technique:** Generative AI (LLMs, Diffusion Models).\n- **Example:** Studios use AI for storyboarding, script generation, and even animating backgrounds.\n- **Fluency Takeaway:** Description is keyâ€”the quality of the prompt directly determines the quality of the creative output.\n\n## Software Engineering: AI-Powered Development\n\n- **AI Technique:** LLMs for code generation, bug detection, documentation.\n- **Example:** GitHub Copilot boosts developer productivity by 30-40%.\n- **Fluency Takeaway:** Delegation is centralâ€”knowing *which* coding tasks to offload (boilerplate) vs. which to handle yourself (complex architecture).\n\n<div class=\"warning\">âš ï¸ **Common Pitfall:** Many teams treat AI as a magic box. Fluency requires breaking it down into its components and treating it as an engineering subsystemâ€”with latency, cost, and reliability SLAs.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Case Study: AI in Financial Fraud Detection",
+              "content": "**The Problem:** Fraudsters are adaptive. Rule-based systems (hardcoded if-conditions) cannot keep up with novel patterns.\n\n**The AI Solution:** A gradient-boosted decision tree model trained on historical transaction data. It detects anomalies in real-time.\n\n**The Engineering Integration (where you come in!):**\n1. A Go microservice receives transaction events via Kafka.\n2. It calls the Python ML model (served via TensorFlow Serving / Ray Serve) over gRPC.\n3. The Go service handles the response, logs the reasoning, and triggers alerts.\n\n<div class=\"tip\">ðŸ’¡ **Your Go Advantage:** You already know how to build the reliable, high-throughput infrastructure that serves AI models. Fluency means you can now have intelligent conversations with the data scientists about feature engineering and model drift.</div>"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Real-World Case Analysis",
+              "content": "Write a Python function that evaluates the risks of an AI deployment scenario.\n\n```python\ndef evaluate_ai_risks(industry, ai_technique, stakes):\n    \"\"\"\n    Return a dict with risk scores for Bias, Hallucination, and Security (1-5).\n    Also suggest one mitigation strategy.\n    \"\"\"\n    # Your implementation\n    pass\n\n# Example:\n# evaluate_ai_risks(\"Healthcare\", \"GenAI for summarization\", \"High\")\n# Might output: {\"bias\": 4, \"hallucination\": 5, \"security\": 3, \"mitigation\": \"Always have a physician review summaries\"}\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary reason AI is used in software engineering (e.g., Copilot) rather than just traditional IDEs?",
+                "options": [
+                  "AI can predict future coding trends",
+                  "AI can generate boilerplate and suggest completions, reducing context switching",
+                  "AI is faster than the Go compiler",
+                  "AI replaces the need for code reviews"
+                ],
+                "correct_index": 1,
+                "explanation": "AI in software engineering primarily augments developers by generating boilerplate, suggesting completions, and automating repetitive tasks. It does not replace code reviews or the Go compiler, and it cannot predict the future."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- AI is transforming every major industry, but the risks vary by domain.\n- Healthcare prioritizes **Discernment**, Finance prioritizes **Diligence**, Creative prioritizes **Description**.\n- As an AI engineer, you bridge the gap between model performance and production reliability.\n- Your Go skills are the perfect complement to Python-based AI models."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "technical-core",
+      "title": "The Technical Core: How AI Actually Works",
+      "description": "Demystify the mathematics and architecture behind AIâ€”data pipelines, neural networks, transformers, and model lifecycle.",
+      "order_number": 2,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "data-the-fuel-of-ai",
+          "title": "Data: The Fuel of AI",
+          "description": "Understand the types of data, data pipelines, and why 'garbage in, garbage out' is the golden rule of AI.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 1,
+          "problem_references": [],
+          "dependencies": ["ai-real-world-impact"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Distinguish between structured, unstructured, and semi-structured data\n- Understand the difference between training, validation, and test datasets\n- Recognize the importance of data quality, labeling, and bias\n- See how data pipelines feed into model training"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Data Journey",
+              "content": "AI models are essentially statistical machines. Their performance is bound by the **data** they see.\n\n## Types of Data\n- **Structured:** Tabular, relational (e.g., SQL databases). Your Go ORMs work with this.\n- **Unstructured:** Text, images, audio, video. This is the main playground for LLMs and CV.\n- **Semi-structured:** JSON, XML, logsâ€”common in Go microservices.\n\n## The Three Splits\n| Split | Purpose | Go Analogy |\n|-------|---------|------------|\n| **Training** | The model learns patterns from this data (70-80%) | Writing the initial code |\n| **Validation** | Used to tune hyperparameters and prevent overfitting (10-15%) | Running internal linters and tests |\n| **Test** | Final evaluation; never seen during training (10-15%) | Production canary deployment |\n\n<div class=\"warning\">âš ï¸ **Critical Discernment:** If your test data leaks into training, you get a \"false sense of success\"â€”like passing tests because you memorized the answers. Always enforce strict separation.</div>\n\n<div class=\"example\">ðŸ“ **Real-World:** ImageNet, the dataset that drove the 2012 deep learning breakthrough, contains 14 million labeled images. Your average Go service might handle millions of API requests, but those are transactionsâ€”AI needs *labeled* data to learn.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Data Pipeline in Go",
+              "content": "While AI models are trained in Python, the data pipeline often runs in Go for performance.\n\n```go\n// A typical Go data pipeline stage\ntype DataProcessor interface {\n    Process(ctx context.Context, data []byte) (*TrainingSample, error)\n}\n\ntype Cleaner struct {\n    // Removes PII, normalizes text\n}\n\nfunc (c *Cleaner) Process(ctx context.Context, data []byte) (*TrainingSample, error) {\n    // 1. Decode JSON\n    // 2. Sanitize fields\n    // 3. Validate schema\n    // 4. Return TrainingSample for Python model\n}\n```\n\nThis is a crucial bridge: Go handles the scale, Python handles the model training."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Data Quality Check",
+              "content": "Write a Python function that simulates a basic training/test split and identifies data leakage.\n\n```python\nimport random\n\ndef detect_data_leakage(training_ids, test_ids):\n    \"\"\"\n    Return True if there is an overlap between training and test sets.\n    \"\"\"\n    return set(training_ids) & set(test_ids)  # Non-empty = leakage!\n\n# Simulate a dataset with 100 samples, 80 training, 20 test\ndata_ids = list(range(100))\nrandom.seed(42)\ntraining_ids = random.sample(data_ids, 80)\ntest_ids = [x for x in data_ids if x not in training_ids]\n\nprint(detect_data_leakage(training_ids, test_ids))  # Should output empty set\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary purpose of a validation dataset in machine learning?",
+                "options": [
+                  "To finalize the model's accuracy score for marketing",
+                  "To tune hyperparameters and prevent overfitting during training",
+                  "To train the model on the most complex examples",
+                  "To replace the need for a test set"
+                ],
+                "correct_index": 1,
+                "explanation": "The validation dataset is used during training to tune hyperparameters and monitor for overfitting. The test set is used only once at the end for final evaluation."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- Data quality determines model qualityâ€”clean, labeled data is non-negotiable.\n- Strictly separate Training, Validation, and Test sets to avoid leakage.\n- Go excels at building the data pipelines that feed Python AI models.\n- \"Garbage in, garbage out\" remains the #1 rule of AI."
+            }
+          ]
+        },
+        {
+          "slug": "machine-learning-basics",
+          "title": "Machine Learning & Neural Network Intuition",
+          "description": "Learn the fundamental paradigm shifts of MLâ€”from rule-based code to learned patternsâ€”and build intuition for neural networks.",
+          "difficulty": 2,
+          "estimated_minutes": 25,
+          "xp_reward": 50,
+          "order_number": 2,
+          "problem_references": [],
+          "dependencies": ["data-the-fuel-of-ai"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Explain the core difference between traditional programming and machine learning\n- Understand supervised, unsupervised, and reinforcement learning\n- Grasp the intuition behind neural networks (layers, weights, activations)\n- Connect these concepts to your Go programming knowledge"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Paradigm Shift",
+              "content": "Traditional programming:\n\n`Rules + Data â†’ Answer`\n\nYou write `if/else` logic, loops, and functions. The rules are explicit.\n\nMachine Learning:\n\n`Data + Answers â†’ Rules`\n\nThe model discovers the rules from the data. It learns the mapping from input to output.\n\n## Types of Learning\n| Type | Input | Output | Example |\n|------|-------|--------|---------|\n| **Supervised** | Labeled data (X, y) | Predict y for new X | Spam detection |\n| **Unsupervised** | Unlabeled data (X) | Find hidden structure | Customer segmentation |\n| **Reinforcement** | Agent + Environment | Sequence of actions | Game-playing AI |\n\n## Neural Network Intuition\nA neural network is a series of matrix multiplications and non-linear activations.\n\n- **Layer:** A set of neurons. Each neuron computes a weighted sum + bias, then applies an activation function.\n- **Weights:** The \"knowledge\" of the network. These are analogous to the coefficients in a Go math library.\n- **Activation:** Adds non-linearity (e.g., ReLU: `max(0, x)`). Without it, the whole network is just a linear regression.\n\n<div class=\"tip\">ðŸ’¡ **Go Engineer's Bridge:** Think of a neural network layer like a pure Go function: `func Layer(input []float64, weights [][]float64, bias []float64) []float64`. It takes an input vector, multiplies it by a weight matrix, adds bias, and applies an activation. No side effects.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "A Single Neuron in Code",
+              "content": "```python\nimport math\n\nclass Neuron:\n    def __init__(self, weights, bias):\n        self.weights = weights\n        self.bias = bias\n    \n    def sigmoid(self, x):\n        return 1 / (1 + math.exp(-x))\n    \n    def forward(self, inputs):\n        # Weighted sum + bias\n        total = sum(w * i for w, i in zip(self.weights, inputs)) + self.bias\n        return self.sigmoid(total)  # Activation\n\n# A neuron with 3 inputs\nneuron = Neuron([0.5, -0.3, 0.8], 0.1)\noutput = neuron.forward([1.0, 2.0, 3.0])\nprint(f\"Neuron output: {output:.4f}\")\n```\n\nThis is the building block of all deep learning. Modern LLMs have billions of these neurons arranged in layers."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Build a Simple Perceptron",
+              "content": "Complete the `Perceptron` class to implement an AND gate.\n\n```python\nclass Perceptron:\n    def __init__(self, learning_rate=0.1, epochs=10):\n        self.weights = [0.0, 0.0]\n        self.bias = 0.0\n        self.lr = learning_rate\n        self.epochs = epochs\n    \n    def activation(self, x):\n        # Step function: return 1 if x >= 0 else 0\n        return 1 if x >= 0 else 0\n    \n    def predict(self, inputs):\n        # Calculate weighted sum + bias, then apply activation\n        pass  # TODO: implement\n    \n    def train(self, X, y):\n        for _ in range(self.epochs):\n            for inputs, target in zip(X, y):\n                prediction = self.predict(inputs)\n                error = target - prediction\n                # Update weights and bias using the error\n                # TODO: implement weight update\n        return self\n\n# Training data for AND gate\nX = [[0, 0], [0, 1], [1, 0], [1, 1]]\ny = [0, 0, 0, 1]\n\np = Perceptron()\np.train(X, y)\nprint(p.predict([1, 1]))  # Should be 1\nprint(p.predict([0, 1]))  # Should be 0\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary role of an activation function in a neural network?",
+                "options": [
+                  "To compress the input data to save memory",
+                  "To introduce non-linearity, allowing the network to learn complex patterns",
+                  "To ensure all weights are positive",
+                  "To speed up the training process by reducing matrix size"
+                ],
+                "correct_index": 1,
+                "explanation": "Activation functions introduce non-linearity into the network. Without them, stacking layers would just be linear transformations, which cannot represent complex functions."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- ML shifts the burden from writing explicit rules to learning rules from data.\n- Supervised/Unsupervised/Reinforcement are the three main paradigms.\n- Neural networks are just function approximatorsâ€”lots of linear algebra with non-linearities.\n- Your Go logic skills translate well to understanding matrix operations and data flow."
+            }
+          ]
+        },
+        {
+          "slug": "llm-architecture-deep-dive",
+          "title": "LLM Architecture: Transformers, Parameters & Scaling",
+          "description": "Demystify the Transformer architecture, learn what parameters mean, and understand why scaling laws matter.",
+          "difficulty": 3,
+          "estimated_minutes": 25,
+          "xp_reward": 55,
+          "order_number": 3,
+          "problem_references": [],
+          "dependencies": ["machine-learning-basics"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Understand the Transformer architecture and its key innovation (Attention)\n- Define model **parameters** and why they matter (and don't matter)\n- Explain **scaling laws** and emergent capabilities\n- Know what a **context window** and **knowledge cutoff** are"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Transformer Revolution",
+              "content": "Before Transformers, RNNs (Recurrent Neural Networks) processed text sequentially. This was slow and lost context over long passages.\n\n**The Breakthrough: Attention**\nThe Transformer architecture (2017) uses a mechanism called **Self-Attention** that looks at all words in the sequence simultaneously and assigns \"importance scores\" to relationships between them.\n\n```python\n# Simplified Attention (Intuition)\ndef attention(query, keys, values):\n    # query: what we are looking for\n    # keys: what we are comparing against\n    # values: what we return if keys match query\n    scores = dot_product(query, keys) / sqrt(dimension)\n    weights = softmax(scores)\n    output = weighted_sum(weights, values)\n    return output\n```\n\n## Key Technical Terms\n| Term | Definition | Go Analogy |\n|------|------------|------------|\n| **Parameters** | The numerical weights inside the model | The configuration variables in your `config.yaml` |\n| **Context Window** | Max tokens the model can process in one go | The max size of your `http.Request` body |\n| **Knowledge Cutoff** | The date when training stopped | Using a database snapshot from a specific date |\n| **Scaling Laws** | The observed improvement in capability as you scale parameters, data, and compute | Moore's Law for AI |\n\n<div class=\"warning\">âš ï¸ **Critical Discernment:** Bigger is not always better. A 7B parameter model fine-tuned on specialized data can outperform a 70B parameter generalist on specific tasks. Fluency means knowing the trade-offs.</div>\n\n<div class=\"info\">â„¹ï¸ **Emergent Capabilities:** As models scale, they suddenly gain abilities they weren't explicitly trained for (e.g., code generation, reasoning). This is a fascinating and still somewhat mysterious property of scaling laws.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Parameters in Python (Simulation)",
+              "content": "Let's simulate why 'emergence' occurs mathematically. We'll just write a quick script to visualize scaling.\n\n```python\n# Simulating scaling effects (conceptual)\nimport math\n\ndef estimate_capability(parameter_count, data_volume):\n    \"\"\"A very rough emulation of scaling laws.\"\"\"\n    log_params = math.log10(parameter_count)\n    log_data = math.log10(data_volume)\n    # Simple linear combination\n    score = (log_params * 0.7) + (log_data * 0.3)\n    return min(100, max(0, score * 10))\n\n# Test different scales\nprint(\"1M params, 1GB data:\", estimate_capability(1_000_000, 1))\nprint(\"1B params, 1TB data:\", estimate_capability(1_000_000_000, 1000))\nprint(\"1T params, 10TB data:\", estimate_capability(1_000_000_000_000, 10000))\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Context Window Calculator",
+              "content": "Write a function that calculates how many tokens a given text will consume (estimation).\n\n```python\ndef estimate_tokens(text):\n    \"\"\"\n    Rough estimate: 1 token â‰ˆ 4 characters in English.\n    Return the token count.\n    \"\"\"\n    # TODO: implement\n    pass\n\ndef can_fit_in_context(text, max_tokens=128000):\n    \"\"\"\n    Return True if the text fits in the context window.\n    \"\"\"\n    return estimate_tokens(text) <= max_tokens\n\n# Test with a long string\nlong_text = \"The quick brown fox jumps over the lazy dog. \" * 1000\nprint(can_fit_in_context(long_text, 128000))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What does the 'knowledge cutoff' of an AI model refer to?",
+                "options": [
+                  "The maximum number of API calls allowed per day",
+                  "The date after which the model has no knowledge of world events, as it was trained only on data up to that point",
+                  "The maximum context window length in tokens",
+                  "The threshold at which the model starts hallucinating"
+                ],
+                "correct_index": 1,
+                "explanation": "The knowledge cutoff is the date when the model's training data was collected. It does not know anything about events that occurred after that date. This is important for discerning its limitations."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Transformers** use self-attention to process text in parallel.\n- **Parameters** are the configurable weights; scaling laws govern performance.\n- **Context window** limits the immediate memory of the model.\n- **Knowledge cutoff** defines the temporal boundary of the model's knowledge."
+            }
+          ]
+        },
+        {
+          "slug": "ai-lifecycle",
+          "title": "The AI Lifecycle: Pre-training, Fine-tuning & Inference",
+          "description": "Understand the two main phases of an AI model's lifeâ€”training and deploymentâ€”and the crucial steps in between.",
+          "difficulty": 3,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 4,
+          "problem_references": [],
+          "dependencies": ["llm-architecture-deep-dive"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Distinguish between **pre-training**, **fine-tuning**, and **inference**\n- Understand why RLHF (Reinforcement Learning from Human Feedback) is used\n- Know the cost and time implications of each stage\n- Appreciate the engineering pipeline that supports this lifecycle"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Three Stages",
+              "content": "## 1. Pre-training (The Foundation)\n- **What:** Training a massive model on billions of tokens (e.g., entire internet, books).\n- **Goal:** Learn language, grammar, facts, reasoning.\n- **Who does it:** Big tech (OpenAI, Anthropic, Google) due to immense cost ($100M+).\n- **Output:** A \"base\" modelâ€”smart but not necessarily helpful or safe.\n\n## 2. Fine-tuning (The Specialization)\n- **Supervised Fine-Tuning (SFT):** Training on high-quality Q&A pairs to make the model follow instructions.\n- **RLHF (Reinforcement Learning from Human Feedback):** Humans rank model responses; the model learns to optimize for \"helpfulness\" and \"harmlessness.\"\n- **Who does it:** Organizations and even individuals with modest resources (GPUs).\n- **Output:** A helpful, safe, instruction-following assistant.\n\n## 3. Inference (The Serving)\n- **What:** Using the trained model to generate responses to new user inputs.\n- **Where:** Production systems. This is where you (Go engineer) come in.\n- **Cost:** Cheap per request but expensive at scale. You manage latency, throughput, and cost.\n\n<div class=\"tip\">ðŸ’¡ **Go Engineer's Bridge:** Pre-training is like writing the Go standard library. Fine-tuning is like building your specific application on top of it. Inference is running your application in production.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Cost Comparison",
+              "content": "| Stage | Cost Scale | Time Scale | Who handles it? |\n|-------|------------|------------|-----------------|\n| Pre-training | $10M - $100M | Months | Research orgs |\n| Fine-tuning | $1K - $10K | Days | ML Engineers |\n| Inference | $0.001 - $0.1 per request | Milliseconds | **You** (Backend/Infra) |\n\n<div class=\"warning\">âš ï¸ **Key Insight:** Your job as an AI engineer often focuses on optimizing inferenceâ€”caching results, batching requests, and choosing the right model size for the task.</div>"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Lifecycle Matching",
+              "content": "Write a Python function that maps a given task to the correct stage.\n\n```python\ndef map_to_stage(task_description):\n    \"\"\"\n    Return 'pretraining', 'finetuning', or 'inference'.\n    \"\"\"\n    # TODO: Implement logic based on keywords\n    pass\n\n# Test cases:\nprint(map_to_stage(\"Updating model weights based on user feedback ranking\"))  # -> finetuning\nprint(map_to_stage(\"Deploying the model to handle 10,000 RPS\"))  # -> inference\nprint(map_to_stage(\"Training on the entire CommonCrawl dataset\"))  # -> pretraining\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Reinforcement Learning from Human Feedback (RLHF) is primarily applied during which stage of the AI lifecycle?",
+                "options": [
+                  "Pre-training",
+                  "Fine-tuning",
+                  "Inference",
+                  "Data collection"
+                ],
+                "correct_index": 1,
+                "explanation": "RLHF is used during the fine-tuning stage to align the model's behavior (helpfulness/harmlessness) with human preferences. It occurs after pre-training but before the model is deployed for inference."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Pre-training** builds the foundation (costly, done by major labs).\n- **Fine-tuning** makes the model useful for specific tasks (accessible).\n- **Inference** is the production phaseâ€”where software engineers excel.\n- You will likely interact most with fine-tuning and inference."
+            }
+          ]
+        },
+        {
+          "slug": "ai-behavior-controls",
+          "title": "AI Behavior Controls: Temperature, Top-P & System Prompts",
+          "description": "Learn how to control the creativity, randomness, and style of AI outputs using inference-time parameters.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 5,
+          "problem_references": [],
+          "dependencies": ["ai-lifecycle"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Control randomness using **Temperature**\n- Manage word diversity using **Top-P**\n- Structure the model's overall posture using **System Prompts**\n- Apply these controls to real-world use cases"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Knobs and Levers",
+              "content": "## Temperature (0.0 to 2.0)\nControls randomness. Lower = more deterministic and focused.\n- **0.0:** Always picks the highest probability token. Outputs are consistent (good for factual Q&A).\n- **1.0:** Default. Balanced.\n- **1.5+:** High randomness. Outputs are creative, surprising, but can become incoherent.\n\n**Analogy:** Think of a glass of water.\n- Low temperature (0.0) = ice crystals: stable, structured, predictable.\n- High temperature (1.5) = boiling water: bubbling, chaotic, surprising.\n\n## Top-P (Nucleus Sampling)\nCuts off the vocabulary distribution to the top `P` percentage of probability mass.\n- **1.0:** All tokens considered.\n- **0.9:** Only the top 90% of the most probable tokens are considered.\n- **0.5:** Very focused, restricts creativity.\n\n## System Prompts\nSets the overarching context, tone, and rules for the entire conversation.\n\n*Example:*\n```\nYou are a senior Go engineer reviewing a PR. Be concise, focus on concurrency issues, and suggest specific code changes. Do not mention Python.\n```\n\n<div class=\"tip\">ðŸ’¡ **Pro Tip:** For production APIs (e.g., your Go backend calling an LLM), use low Temperature (0.0-0.2) for predictable, repeatable results. Use higher Temperature for creative tasks like marketing copy.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Temperature Simulation in Python",
+              "content": "We can simulate the effect of temperature on token selection by modifying a probability distribution.\n\n```python\nimport math\nimport random\n\ndef softmax_with_temperature(logits, temperature):\n    \"\"\"\n    Convert logits to probabilities, scaled by temperature.\n    Higher temperature = more uniform probabilities (more randomness).\n    \"\"\"\n    if temperature == 0:\n        # Greedy: select the highest logit\n        return [1.0 if i == max(range(len(logits)), key=lambda i: logits[i]) else 0.0 for i in range(len(logits))]\n    \n    # Scale logits by 1/temperature\n    scaled_logits = [logit / temperature for logit in logits]\n    max_logit = max(scaled_logits)\n    exp_logits = [math.exp(logit - max_logit) for logit in scaled_logits]\n    sum_exp = sum(exp_logits)\n    return [e / sum_exp for e in exp_logits]\n\n# Example: 3 possible next words with different scores\nlogits = [2.0, 1.0, 0.5]\nprint(\"Temperature 0.5:\", softmax_with_temperature(logits, 0.5))\nprint(\"Temperature 1.0:\", softmax_with_temperature(logits, 1.0))\nprint(\"Temperature 2.0:\", softmax_with_temperature(logits, 2.0))\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Build a Temperature Controller",
+              "content": "Write a function that takes a user intent and recommends the best Temperature and Top-P settings.\n\n```python\ndef recommend_settings(intent):\n    \"\"\"\n    Return a tuple (temperature, top_p) based on intent.\n    Examples:\n    - \"math\": (0.0, 1.0)\n    - \"creative writing\": (1.0, 0.95)\n    - \"code generation\": (0.2, 0.9)\n    - \"brainstorming\": (1.2, 0.9)\n    \"\"\"\n    # TODO: implement mapping\n    pass\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "If you are building a customer support bot that needs to provide consistent, factual answers about shipping times, what Temperature should you set?",
+                "options": [
+                  "1.5",
+                  "1.0",
+                  "0.2",
+                  "2.0"
+                ],
+                "correct_index": 2,
+                "explanation": "A low temperature (0.2) reduces randomness, making the model more deterministic and focused on the highest probability tokens. This ensures consistent, factual responsesâ€”critical for customer support where precision matters."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Temperature** controls randomness (0.0 = deterministic, 1.5+ = chaotic).\n- **Top-P** controls vocabulary diversity (focuses on the most likely tokens).\n- **System Prompts** set the global behavior and tone.\n- As an engineer, you'll tune these for latency, cost, and quality."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "prompt-craft",
+      "title": "The Craft of Description: Prompt Engineering",
+      "description": "Master the three pillars of Descriptionâ€”Product, Process, and Performanceâ€”to become a world-class AI communicator.",
+      "order_number": 3,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "product-description",
+          "title": "Product Description: Defining the Output",
+          "description": "Learn to specify exactly what you want in terms of format, length, audience, and style.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 1,
+          "problem_references": [],
+          "dependencies": ["ai-behavior-controls"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define the **Product** dimension of Description\n- Craft prompts that specify format, structure, and length\n- Use audience-awareness to tailor outputs\n- Write prompts that produce exactly the artifact you need"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Art of Defining the Outcome",
+              "content": "<div class=\"info\">â„¹ï¸ **Product Description** is about defining *what* you want in terms of outputs, format, audience, and style.</div>\n\n## The 4 Dimensions of Product Description\n1. **Format:** JSON, Markdown, CSV, plain text, or `go` source code.\n2. **Structure:** Headings, bullet points, numbered steps, or paragraphs.\n3. **Length:** Word count, token count, or number of items.\n4. **Audience & Style:** Beginner vs. expert, technical vs. executive, formal vs. casual.\n\n**Go Engineer Example:**\n```\nGenerate a README.md for a Go package named 'retry'.\nFormat: Markdown.\nStructure: Title, Description, Installation (go get), Usage (code example), API Reference, and Contributing.\nAudience: Go developers with intermediate experience.\nStyle: Clear, concise, conversational.\n```\n\n<div class=\"warning\">âš ï¸ **Common Mistake:** Vague product descriptions lead to vague AI outputs. If you don't know exactly what you want, the AI will guessâ€”and you'll likely be disappointed.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Before vs. After Product Description",
+              "content": "## Before (Vague)\n> \"Write a function to parse CSV in Go.\"\n\n**Result:** The AI might produce a 5-line snippet, or a 50-line library. You don't know.\n\n## After (Excellent Product Description)\n> \"Write a Go function named `ParseCSV` that reads a CSV file from a file path.\n> - Input: `filename string`\n> - Output: `[][]string` (rows and columns)\n> - Should handle quoted fields with commas.\n> - Add a `ParseCSVWithConfig` function that accepts a custom delimiter.\n> - Output a commented code block with the `import` statements.\n> - Format: Full Go source code in a single code block.\n> - Audience: Intermediate Go developers.\n> - Style: Clean, idiomatic Go with proper error handling (`return error`).\"\n\n**Result:** You get exactly the package you need, in the exact style, with no back-and-forth."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Write a Product Description",
+              "content": "Write a Python function that generates a Product Description prompt for a given user goal.\n\n```python\ndef generate_product_prompt(goal, output_format, audience, style):\n    \"\"\"\n    Assemble a full prompt string that clearly defines the Product.\n    \"\"\"\n    prompt = f\"\"\"\n    Goal: {goal}\n    Output Format: {output_format}\n    Audience: {audience}\n    Style: {style}\n    \n    Please produce the output exactly as described.\n    \"\"\"\n    return prompt\n\n# Example\nprint(generate_product_prompt(\n    goal=\"Generate test cases for a Go API endpoint\",\n    output_format=\"Table in Markdown with columns: Test Case, Input, Expected, Pass/Fail\",\n    audience=\"QA engineers\",\n    style=\"Detailed and exhaustive\"\n))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Which of the following is an example of Product Description?",
+                "options": [
+                  "\"Think step-by-step before answering.\"",
+                  "\"Output a JSON object with keys 'name' and 'age'.\"",
+                  "\"Be concise and professional in tone.\"",
+                  "\"Use chain-of-thought reasoning.\""
+                ],
+                "correct_index": 1,
+                "explanation": "Specifying output format (JSON object) is Product Description. 'Think step-by-step' is Process Description. 'Be concise' is Performance Description."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Product Description** defines the *what*: format, structure, length, audience, and style.\n- The more specific you are, the less guesswork the AI has to do.\n- A well-defined product description reduces iteration time significantly."
+            }
+          ]
+        },
+        {
+          "slug": "process-description",
+          "title": "Process Description: Defining the Method",
+          "description": "Learn to guide the AI's reasoning process using Chain-of-Thought and Think-first approaches.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 2,
+          "problem_references": [],
+          "dependencies": ["product-description"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define the **Process** dimension of Description\n- Use **Chain-of-Thought (CoT)** prompting to improve reasoning\n- Implement the **Think-First** approach for complex tasks\n- Recognize when process guidance is necessary"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Guiding the AI's Internal Workflow",
+              "content": "<div class=\"info\">â„¹ï¸ **Process Description** is about defining *how* the AI approaches your request, such as providing step-by-step instructions for the AI to follow.</div>\n\n## Chain-of-Thought (CoT) Prompting\nEncouraging the model to break down a problem into intermediate steps before giving the final answer.\n\n**Without CoT:**\n> \"What is the result of 137 * 53?\"\n> **Answer:** 7261 (Might be correct, but you can't audit the reasoning).\n\n**With CoT:**\n> \"What is 137 * 53? Show your calculation steps.\"\n> **Answer:**\n> 1. 137 * 50 = 6850\n> 2. 137 * 3 = 411\n> 3. 6850 + 411 = 7261\n> **Final Answer:** 7261\n\n## The Think-First Approach\nA specific flavor of CoT where you ask the model to structure its reasoning explicitly.\n\n**Prompt:**\n\"Think first. Identify the key variables, determine the approach, consider edge cases, and then write the final solution.\"\n\n<div class=\"tip\">ðŸ’¡ **When to use:** Process Description is critical for debugging, architecture design, complex math, and any task where the *path* matters as much as the *destination*.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Process Description in Code Generation",
+              "content": "## Example: API Design\n\n**Prompt (Process-Focused):**\n\"Design a REST API for a todo list.\n\nStep 1: List the resources and their relationships.\nStep 2: Define the CRUD operations for each resource.\nStep 3: Specify the request/response schemas (JSON).\nStep 4: Provide a Go Gin implementation skeleton.\nThink through each step before writing the final code.\"\n\n**Why it works:** The AI now acts like a junior developer under your guidanceâ€”it doesn't jump straight to code; it reasons out the design first, leading to higher quality output."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Process Description Writer",
+              "content": "Write a Python function that converts a complex task into a process-guided prompt.\n\n```python\ndef process_guide(task, steps):\n    \"\"\"\n    Generate a prompt that forces the AI to follow specific reasoning steps.\n    steps: list of strings describing each reasoning step.\n    \"\"\"\n    guide = f\"Task: {task}\\n\"\n    guide += \"Follow these steps in order:\\n\"\n    for i, step in enumerate(steps, 1):\n        guide += f\"Step {i}: {step}\\n\"\n    guide += \"Show your reasoning for each step before providing the final answer.\"\n    return guide\n\n# Test\ntask = \"Refactor a Go codebase to use context.Context for timeouts\"\nsteps = [\n    \"Identify all external calls (DB, HTTP, gRPC)\",\n    \"Propagate context from main handlers\",\n    \"Replace select with ctx.Done()\",\n    \"Add fallback logic for cancellation\"\n]\nprint(process_guide(task, steps))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Chain-of-Thought prompting is primarily used to:",
+                "options": [
+                  "Shorten the AI's response time",
+                  "Force the AI to generate longer responses",
+                  "Encourage the AI to break down complex problems into reasoning steps for better accuracy",
+                  "Restrict the AI to only using factual data"
+                ],
+                "correct_index": 2,
+                "explanation": "Chain-of-Thought encourages explicit reasoning steps, which improves accuracy on multi-step problems by making the logic transparent and reducing shortcut errors."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Process Description** guides *how* the AI thinks.\n- **Chain-of-Thought** improves accuracy on complex tasks.\n- **Think-First** adds structure to the reasoning process.\n- Use this when the reasoning is as important as the answer."
+            }
+          ]
+        },
+        {
+          "slug": "performance-description",
+          "title": "Performance Description: Defining the Behavior",
+          "description": "Control the AI's tone, engagement style, and interaction dynamics to suit your working preferences.",
+          "difficulty": 2,
+          "estimated_minutes": 18,
+          "xp_reward": 40,
+          "order_number": 3,
+          "problem_references": [],
+          "dependencies": ["process-description"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define the **Performance** dimension of Description\n- Control the AI's tone (concise vs. detailed, challenging vs. supportive)\n- Set interaction rules for optimal collaboration\n- Design system prompts that embody performance preferences"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Setting the Collaboration Vibe",
+              "content": "<div class=\"info\">â„¹ï¸ **Performance Description** is about defining the AI's behavior during your collaboration, such as whether it should be concise or detailed, challenging or supportive.</div>\n\n## Performance Dimensions\n\n| Dimension | Low / Moderate | High / Expert |\n|-----------|----------------|---------------|\n| **Detail Level** | Concise, bullet points | Verbose, exhaustive explanation |\n| **Tone** | Supportive, encouraging | Critical, challenging (Devil's advocate) |\n| **Formality** | Casual, friendly | Formal, authoritative |\n| **Interactivity** | Single answer, no follow-up | Ask clarifying questions before answering |\n\n**Go Engineer Example:**\n> \"Adopt a supportive but critical tone. Point out inefficiencies in my code, but suggest improvements constructively. Keep explanations to 2-3 paragraphs max. Ask me clarifying questions if the requirement is ambiguous.\"\n\n<div class=\"tip\">ðŸ’¡ **Pro Tip:** The best AI engineers iterate on performance settings. If the AI is too chatty, ask for brevity. If it's too blunt, ask for empathy.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Performance Description in Action",
+              "content": "## Scenario: Code Review\n\n**Without Performance Description:**\nAI just lists issues: \"Line 10 has a nil pointer dereference.\"\n\n**With Performance Description:**\n\"You are a senior Go engineer with 10 years of experience. Review this code as if you are mentoring a junior developer. Be direct but encouraging. Prioritize your feedback: start with critical issues (concurrency, errors), then performance, then readability. Limit your feedback to 5 key points. Suggest exact code changes.\"\n\n**Result:** You get a prioritized, actionable, and respectful review."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Craft a Performance Prompt",
+              "content": "Write a Python function that takes a user preference and outputs a system prompt.\n\n```python\ndef system_prompt_for_performance(tone, detail_level, style):\n    \"\"\"\n    Generate a system prompt that sets the AI's behavior.\n    tone: 'critical', 'supportive', 'neutral'\n    detail_level: 'concise', 'balanced', 'exhaustive'\n    style: 'formal', 'casual', 'friendly'\n    \"\"\"\n    # TODO: construct the prompt\n    pass\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Which of the following prompt instructions is an example of Performance Description?",
+                "options": [
+                  "\"Use JSON format for the output.\"",
+                  "\"Provide a step-by-step solution.\"",
+                  "\"Be concise and adopt a supportive tone.\"",
+                  "\"Include a code example.\""
+                ],
+                "correct_index": 2,
+                "explanation": "Adopting a specific tone and brevity is Performance Description (defining how the AI behaves). Format is Product, steps are Process."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Performance Description** controls the AI's interpersonal behavior.\n- You can set tone, detail, formality, and interactivity.\n- Good performance settings make collaboration smoother and more productive."
+            }
+          ]
+        },
+        {
+          "slug": "advanced-prompting",
+          "title": "Advanced Prompting: Few-shot, Role-Play & Constraints",
+          "description": "Combine multiple advanced techniques to tackle the hardest AI interaction problems.",
+          "difficulty": 3,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 4,
+          "problem_references": [],
+          "dependencies": ["performance-description"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Few-shot learning** to teach the AI with examples\n- Use **Role/Persona Definition** to unlock expert-level responses\n- Set **Output Constraints** to enforce exact formats\n- Combine all techniques for complex tasks"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Swiss Army Knife of Prompting",
+              "content": "## Few-shot Learning (N-shot)\nProviding 1-5 examples of the desired input-output pairs.\n\n**Example (2-shot):**\n```\nTranslate English to French:\nEnglish: \"Hello, how are you?\"\nFrench: \"Bonjour, comment allez-vous?\"\n\nEnglish: \"I am fine, thank you.\"\nFrench: \"Je vais bien, merci.\"\n\nEnglish: \"Where is the library?\"\nFrench: [answer]\n```\n\n## Role / Persona Definition\nGive the AI a character, expertise, or personality.\n\n**Example:**\n> \"Act as a senior security engineer. Identify vulnerabilities in this Go code. Explain each vulnerability as if you're teaching a junior developer.\"\n\n## Output Constraints\nExact specifications on length, structure, and forbidden elements.\n\n**Example:**\n> \"Generate a list of 3 bullet points. Each bullet must start with an action verb. Maximum 15 words per bullet. Do not mention pricing.\"\n\n<div class=\"warning\">âš ï¸ **Combining them:** For mission-critical prompts, combine all three. Role defines the expertise, Few-shot provides the style/format examples, Constraints enforce the delivery.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Putting It All Together",
+              "content": "## Task: Generate a Go function to calculate checksums.\n\n**Advanced Prompt:**\n> **Role:** You are a seasoned Go architect specializing in performance optimization.\n>\n> **Few-shot:** Here are two examples of how to write efficient Go functions:\n> Example 1: `func Sum(a, b int) int { return a + b }` (simple, no allocations).\n> Example 2: `func Concat(s []string) string { var b strings.Builder; for _, v := range s { b.WriteString(v) }; return b.String() }` (efficient builder pattern).\n>\n> **Task:** Write a function `Checksum(data []byte) string` that returns a SHA-256 checksum as a hex string.\n> **Constraint:** The function must handle `nil` slices safely. Must use the `crypto/sha256` package. Maximum 10 lines of code. Include a comment explaining the performance characteristics."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Multi-Technique Prompt",
+              "content": "Write a Python function that assembles a complex prompt using Role, Few-shot, and Constraints.\n\n```python\ndef assemble_advanced_prompt(role, examples, task, constraints):\n    prompt = f\"Role: {role}\\n\\n\"\n    if examples:\n        prompt += \"Examples:\\n\" + \"\\n\".join(examples) + \"\\n\\n\"\n    prompt += f\"Task: {task}\\n\\nConstraints: {constraints}\"\n    return prompt\n\n# Test:\nrole = \"Go performance expert\"\nexamples = [\n    \"Input: 1+1 -> Output: 2 (no allocations)\",\n    \"Input: concat strings -> Output: use strings.Builder\"\n]\ntask = \"Write a function to parse a large JSON file\"\nconstraints = \"Max 20 lines. Use 'json.Decoder' to avoid reading entire file into memory.\"\nprint(assemble_advanced_prompt(role, examples, task, constraints))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary benefit of Few-shot learning?",
+                "options": [
+                  "It reduces the model's token usage significantly",
+                  "It teaches the model the desired output pattern and format through examples",
+                  "It forces the model to be more creative",
+                  "It disables the model's safety filters"
+                ],
+                "correct_index": 1,
+                "explanation": "Few-shot learning provides examples that demonstrate the expected input-output relationship, which helps the model understand the specific format, style, or logic you want, often outperforming lengthy text instructions."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Few-shot** examples are the most efficient way to teach format and style.\n- **Role/Persona** unlocks specialized knowledge and tone.\n- **Constraints** enforce guardrails on the output.\n- Advanced prompting is a multiplierâ€”use all three for best results."
+            }
+          ]
+        },
+        {
+          "slug": "structured-outputs",
+          "title": "Structured Outputs: JSON, Function Calling & Tool Use",
+          "description": "Bridge the gap between AI and your Go backend by extracting structured, machine-readable data.",
+          "difficulty": 3,
+          "estimated_minutes": 25,
+          "xp_reward": 55,
+          "order_number": 5,
+          "problem_references": [],
+          "dependencies": ["advanced-prompting"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Generate **structured JSON** outputs from AI\n- Understand **Function Calling** (Tools) for deterministic actions\n- Build a pipeline that integrates AI outputs into Go services\n- Avoid common parsing pitfalls"
+            },
+            {
+              "section_type": "explanation",
+              "title": "From Natural Language to Production Data",
+              "content": "AI models natively speak text, but your backend speaks JSON, Protobuf, and Go structs. Structured outputs bridge this gap.\n\n## Technique 1: JSON Mode\nMany APIs (including Claude) support a JSON mode where the model is forced to output valid JSON.\n\n**Prompt:**\n> \"Extract the following information from the text and output it as JSON with keys: 'name', 'age', 'city'.\"\n\n**Result:**\n```json\n{\"name\": \"Alice\", \"age\": 30, \"city\": \"New York\"}\n```\n\n## Technique 2: Function Calling (Tool Use)\nInstead of generating text, the model returns a JSON object representing a function call.\n\n**Example (Go compatible):**\n```json\n{\n  \"name\": \"get_weather\",\n  \"arguments\": {\n    \"location\": \"San Francisco\",\n    \"unit\": \"celsius\"\n  }\n}\n```\n\nYour Go service receives this, executes the function, and returns the result to the AI.\n\n<div class=\"tip\">ðŸ’¡ **Go Engineer's Bridge:** This is where your backend shines. You parse the `arguments`, call your existing Go functions (e.g., `GetWeather(loc string)`), and format the response back to the AI. You are effectively extending the AI's capabilities with your Go codebase.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "End-to-End Pipeline",
+              "content": "1. **User Query:** *\"What's the weather in Austin?\"*\n2. **AI (with Tools):** Identifies the need and outputs `{\"name\": \"get_weather\", \"arguments\": {\"location\": \"Austin\"}}`.\n3. **Your Go Service:** Parses this, calls `weatherApi.Fetch(\"Austin\")`.\n4. **Your Go Service:** Sends the weather data back to the AI.\n5. **AI:** Formats the data into natural language: *\"It's currently 28Â°C and sunny in Austin.\"*\n\n```go\n// Go Struct for parsing AI tool call\ntype ToolCall struct {\n    Name      string          `json:\"name\"`\n    Arguments json.RawMessage `json:\"arguments\"`\n}\n\nfunc handleToolCall(call ToolCall) (interface{}, error) {\n    switch call.Name {\n    case \"get_weather\":\n        var args struct{ Location string }\n        json.Unmarshal(call.Arguments, &args)\n        return GetWeather(args.Location)\n    default:\n        return nil, errors.New(\"unknown tool\")\n    }\n}\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: JSON Extractor",
+              "content": "Write a Python function that extracts a specific set of fields from a given text and returns a JSON string.\n\n```python\nimport json\n\ndef extract_to_json(text, fields_to_extract):\n    \"\"\"\n    Simulate an AI extraction. For this exercise, you'll write a simple parser\n    or use string manipulation to mimic the extraction, but in reality the AI does this.\n    We'll just structure it conceptually.\n    \"\"\"\n    # In a real app, you'd call the Claude API here with a prompt.\n    # Here, we just accept a prompt string.\n    prompt = f\"Extract the following fields from this text: {', '.join(fields_to_extract)}. Output JSON only. Text: {text}\"\n    # Simulate the JSON output (in a real app this is the AI response)\n    extracted = {field: f\"extracted_{field}\" for field in fields_to_extract}\n    return json.dumps(extracted)\n\nprint(extract_to_json(\"Alice is 30 and lives in NYC.\", [\"name\", \"age\", \"city\"]))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary advantage of using Function Calling (Tools) over asking the AI to generate text containing JSON?",
+                "options": [
+                  "It makes the AI's response shorter",
+                  "It provides a deterministic, machine-readable contract that your backend can reliably parse and execute",
+                  "It allows the AI to bypass safety filters",
+                  "It uses less compute than text generation"
+                ],
+                "correct_index": 1,
+                "explanation": "Function Calling provides a structured, deterministic contract (like a well-defined gRPC API). It guarantees the shape of the arguments, making it much safer and more reliable for production integration than hoping the AI correctly formats a JSON string inside text."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **JSON Mode** forces structured data extraction.\n- **Function Calling** extends AI capabilities to your Go services.\n- Structured outputs are essential for production-grade AI integration.\n- Your Go backend is the perfect executor of these AI-generated tool calls."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "responsible-ai",
+      "title": "Responsible AI: Discernment & Diligence",
+      "description": "Critically evaluate AI outputs and take ownership of AI-assisted work through the lenses of Product, Process, and Performance Discernment, and Creation, Transparency, and Deployment Diligence.",
+      "order_number": 4,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "product-discernment",
+          "title": "Product Discernment: Evaluating the Output",
+          "description": "Assess the accuracy, coherence, and relevance of what AI produces.",
+          "difficulty": 3,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 1,
+          "problem_references": [],
+          "dependencies": ["structured-outputs"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Product Discernment** to evaluate AI outputs\n- Detect **hallucinations** and factual errors\n- Assess relevance and coherence of responses\n- Build a mental checklist for reviewing AI work"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Art of Critical Evaluation",
+              "content": "<div class=\"info\">â„¹ï¸ **Product Discernment** is evaluating the quality of what AI produces (accuracy, appropriateness, coherence, relevance).</div>\n\n## The Product Discernment Checklist\n1. **Accuracy:** Are the facts correct? (e.g., Is the Go syntax correct? Are the historical dates right?)\n2. **Coherence:** Does it logically flow? Does it contradict itself?\n3. **Relevance:** Does it directly address the question/context?\n4. **Completeness:** Is anything critical missing?\n\n## Hallucination Detection\nHallucinations occur when AI confidently states something plausible but false.\n\n**Why they happen:** The AI is a next-token predictor. It doesn't have a \"fact-checker.\" It just predicts the most statistically likely sequence of words, which sometimes results in fictional citations, wrong dates, or incorrect code.\n\n<div class=\"warning\">âš ï¸ **Critical Skill:** Never trust code that you haven't run. Never trust facts that you haven't verified. Product Discernment is your shield against downstream disasters.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Spotting the Hallucination",
+              "content": "**Prompt:** \"What is the API for reading a file in Go?\"\n\n**AI Output (Hallucinated):**\n> \"Use the `os.ReadFile` function from the `io` package: `result := io.ReadFile(\"file.txt\")`. It returns a `string` directly.\"\n\n**Your Product Discernment:**\n1. **Accuracy Check:** `os.ReadFile` is in the `os` package, not `io`.\n2. **Coherence Check:** It returns `([]byte, error)`, not a `string`.\n3. **Correct Answer:** `data, err := os.ReadFile(\"file.txt\")`.\n\n**Action:** Reject the output and re-prompt with the correction.\n\n## Real-World: Legal Case\nIn a notable case, an AI invented legal citations that didn't exist. The lawyer who used it faced sanctions. Product Discernment would have caught this by verifying the citations against a database."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Hallucination Detector",
+              "content": "Write a Python function that simulates evaluating an AI response for factual consistency based on a knowledge base.\n\n```python\ndef detect_hallucination(ai_response, known_facts):\n    \"\"\"\n    known_facts: dict of key -> correct value.\n    Simulates checking the response against ground truth.\n    \"\"\"\n    errors = []\n    for key, correct_val in known_facts.items():\n        if key in ai_response and str(correct_val) not in str(ai_response[key]):\n            errors.append(f\"Mismatch on {key}: expected '{correct_val}', got '{ai_response.get(key)}'\")\n    return errors\n\nknown = {\"go_io_package\": \"os\", \"go_readfile_return\": \"[]byte, error\"}\nresponse = {\"go_io_package\": \"io\", \"go_readfile_return\": \"string\"}\nprint(detect_hallucination(response, known))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Why do LLMs sometimes hallucinate factual information?",
+                "options": [
+                  "They are programmed to lie to test users",
+                  "They are trained to generate plausible text based on statistical patterns, not to verify facts against a definitive knowledge base",
+                  "They have limited memory and forget the correct answer",
+                  "They are intentionally designed to be creative at the expense of accuracy"
+                ],
+                "correct_index": 1,
+                "explanation": "LLMs are next-token predictors trained on massive text data. They excel at generating text that *looks* correct (plausible), but they don't have an internal fact-checking mechanism or a lookup table of absolute truths. This makes hallucination an inherent risk."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Product Discernment** is critical for fact-checking and coherence.\n- **Hallucinations** are a realityâ€”treat AI outputs as draft suggestions.\n- Always verify code, citations, and data against authoritative sources."
+            }
+          ]
+        },
+        {
+          "slug": "process-discernment",
+          "title": "Process Discernment: Evaluating the Reasoning",
+          "description": "Examine the AI's logic, identify flawed reasoning steps, and prevent bad decisions.",
+          "difficulty": 3,
+          "estimated_minutes": 20,
+          "xp_reward": 50,
+          "order_number": 2,
+          "problem_references": [],
+          "dependencies": ["product-discernment"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Process Discernment** to trace AI reasoning\n- Spot logical fallacies and invalid assumptions\n- Understand why the process matters as much as the product\n- Use chain-of-thought visibility to audit decisions"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Looking Under the Hood",
+              "content": "<div class=\"info\">â„¹ï¸ **Process Discernment** involves evaluating how the AI arrived at its output, looking for logical errors, lapses in attention, or inappropriate reasoning steps.</div>\n\n## Why Process Matters\nA correct answer from flawed reasoning is a ticking time bomb. If the logic is broken, the AI might fail catastrophically when the context changes slightly.\n\n## Common Reasoning Errors\n1. **Jumping to Conclusions:** Skipping necessary intermediate steps.\n2. **Confirmation Bias:** Ignoring contradictory evidence.\n3. **False Equivalence:** Treating unrelated things as comparable.\n4. **Over-Generalization:** Applying a narrow rule to a broad context.\n\n<div class=\"tip\">ðŸ’¡ **How to Audit:** Force the AI to show its work. \"Explain your thought process step-by-step.\" This makes Process Discernment possible.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Auditing the Process",
+              "content": "**Scenario:** An AI recommends using a simple mutex for a high-throughput Go service.\n\n**AI Reasoning:** \"Mutexes are simple to implement and prevent data races.\"\n\n**Your Process Discernment:**\n1. **Logical Flow:** The conclusion is technically correct but incomplete.\n2. **Missing Step:** Did the AI consider performance? Did it evaluate `sync.RWMutex` vs `atomic`?\n3. **Assumptions:** The AI assumed low contention.\n4. **Verdict:** The reasoning is flawed because it ignored the scale. The AI should have asked about QPS first."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Process Audit",
+              "content": "Write a Python function that analyzes the step-by-step reasoning of an AI and flags errors.\n\n```python\ndef audit_reasoning(steps):\n    \"\"\"\n    steps: list of strings representing the AI's reasoning steps.\n    Return a list of flagged issues.\n    \"\"\"\n    issues = []\n    # Simple heuristic: check if step 1 is missing, or if steps jump\n    # TODO: Implement more sophisticated logic (e.g., keyword matching for 'maybe', 'always')\n    if len(steps) < 3:\n        issues.append(\"Reasoning is too shallow; missing intermediate steps.\")\n    # Check for over-generalization\n    if any(\"always\" in s for s in steps):\n        issues.append(\"Found 'always' - potential over-generalization.\")\n    return issues\n\ntest_steps = [\n    \"Mutex prevents races.\",\n    \"We should use a mutex.\"\n]\nprint(audit_reasoning(test_steps))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary goal of Process Discernment?",
+                "options": [
+                  "To ensure the final output is grammatically correct",
+                  "To evaluate the validity of the AI's reasoning steps and identify logical gaps",
+                  "To shorten the AI's response time",
+                  "To replace the need for human decision-making"
+                ],
+                "correct_index": 1,
+                "explanation": "Process Discernment focuses on the *how*â€”the chain of reasoning. It ensures the logical path is sound, which is crucial for high-stakes tasks where flawed logic could lead to costly mistakes even if the immediate answer seems right."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Process Discernment** audits the logic, not just the answer.\n- Watch for jumps, assumptions, and over-generalizations.\n- Asking the AI to 'show its work' enables this audit."
+            }
+          ]
+        },
+        {
+          "slug": "performance-discernment",
+          "title": "Performance Discernment: Evaluating the Interaction",
+          "description": "Assess the AI's communication style, effectiveness, and appropriateness for the context.",
+          "difficulty": 2,
+          "estimated_minutes": 18,
+          "xp_reward": 40,
+          "order_number": 3,
+          "problem_references": [],
+          "dependencies": ["process-discernment"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Performance Discernment** to evaluate interaction dynamics\n- Assess whether the AI's tone and style fit the audience\n- Recognize overconfidence or under-confidence in AI responses\n- Adjust interaction strategies based on performance evaluation"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Human Side of AI Evaluation",
+              "content": "<div class=\"info\">â„¹ï¸ **Performance Discernment** focuses on how the AI behaves during your interaction, considering whether its communication style is effective for your needs.</div>\n\n## Key Evaluation Dimensions\n1. **Confidence Calibration:** Is the AI overconfident about uncertain topics? Does it hedge appropriately?\n2. **Tone Matching:** Does the tone align with your audience (e.g., executive vs. junior dev)?\n3. **Clarity:** Is the AI understandable, or is it hiding behind jargon?\n4. **Interactivity:** Does it ask the right clarifying questions?\n\n<div class=\"warning\">âš ï¸ **Overconfidence Risk:** An AI that says \"Absolutely certain\" for a probabilistic prediction is a warning sign. Fluency means recognizing that AI doesn't have 'belief'â€”it has statistical likelihood.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Performance Evaluation in Practice",
+              "content": "**Scenario:** You ask an AI to explain goroutines to a business executive.\n\n**AI Output:** \"Goroutines are lightweight threads managed by the Go runtime. They multiplex onto OS threads and communicate via channels, enabling concurrent execution without heavy overhead.\"\n\n**Your Performance Discernment:**\n1. **Tone:** Too technical for an executive.\n2. **Clarity:** Jargon-heavy (multiplex, OS threads).\n3. **Adjustment:** Re-prompt: \"Explain goroutines to a non-technical CEO. Focus on business value (efficiency, scalability) using analogies.\"\n4. **Result:** \"Goroutines let your application handle many tasks simultaneously, like a restaurant kitchen handling many orders at once without burning food.\""
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Performance Evaluator",
+              "content": "Write a Python function that scores an AI response based on clarity, tone, and conciseness.\n\n```python\ndef evaluate_performance(response):\n    \"\"\"\n    Return a dict with scores for: clarity, tone, conciseness (1-5).\n    Provide brief reasoning.\n    \"\"\"\n    # Simple heuristics (e.g., count jargon, count words)\n    scores = {\"clarity\": 3, \"tone\": 3, \"conciseness\": 3}\n    # TODO: implement more robust logic\n    return scores\n\nresponse = \"Goroutines are lightweight threads managed by the Go runtime...\"\nprint(evaluate_performance(response))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "You ask an AI for a summary of a complex technical issue to present to your non-technical CEO. The AI returns a response full of jargon and mathematical formulas. Which aspect of Discernment needs to be applied?",
+                "options": [
+                  "Product Discernment",
+                  "Process Discernment",
+                  "Performance Discernment",
+                  "Deployment Diligence"
+                ],
+                "correct_index": 2,
+                "explanation": "Evaluating the tone, clarity, and appropriateness of the communication style for the audience falls under Performance Discernment."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Performance Discernment** evaluates the quality of the interaction.\n- Key metrics: Confidence calibration, tone, clarity, interactivity.\n- A fluent engineer adjusts the AI's performance dynamically."
+            }
+          ]
+        },
+        {
+          "slug": "creation-transparency-diligence",
+          "title": "Creation & Transparency Diligence",
+          "description": "Make responsible choices about which AI systems to use, how to use them, and when to disclose AI involvement.",
+          "difficulty": 3,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 4,
+          "problem_references": [],
+          "dependencies": ["performance-discernment"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Creation Diligence** to select appropriate AI systems\n- Apply **Transparency Diligence** to disclose AI usage appropriately\n- Navigate the regulatory landscape (EU AI Act, GDPR)\n- Build a personal ethics framework for AI"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Choosing and Disclosing",
+              "content": "<div class=\"info\">â„¹ï¸ **Creation Diligence:** Being thoughtful about which AI systems you use and how you interact with them.</div>\n\n## Creation Diligence Checklist\n1. **Capability:** Does this model fit the task (cost, performance, latency)?\n2. **Safety:** Is the model aligned? Does it have content filters?\n3. **Data Privacy:** Does the provider train on user data? (e.g., API terms of service)\n4. **Bias:** Has the model been evaluated for fairness in your domain?\n\n<div class=\"info\">â„¹ï¸ **Transparency Diligence:** Being honest about AI's role in your work with everyone who needs to know.</div>\n\n## Transparency Diligence Checklist\n1. **User Facing:** Do users know they are talking to an AI (chatbots, support)?\n2. **Internal Use:** Are colleagues aware when AI generated code/documentation?\n3. **Regulatory Compliance:** Are you compliant with disclosure requirements (e.g., EU AI Act transparency provisions)?\n\n<div class=\"tip\">ðŸ’¡ **Best Practice:** When in doubt, disclose. A simple comment in a PRâ€”\"This test harness was generated with AI assistance\"â€”builds trust and sets expectations.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Diligence in Action",
+              "content": "## Scenario: Building an HR Tech Tool\nYou are building a system that screens resumes.\n\n**Creation Diligence:**\n- You evaluate three LLMs for bias against certain demographics.\n- You choose a model that shows the lowest bias scores.\n- You avoid using a model that stores inputs for training (privacy).\n\n**Transparency Diligence:**\n- You add a disclosure: \"This tool uses AI to assist in resume screening. Final decisions are made by human recruiters.\"\n- You audit the system weekly and log all AI-assisted decisions.\n\n## The EU AI Act Impact\nThe EU AI Act categorizes AI systems by risk level. Resume screening is **High Risk**, requiring strict transparency, human oversight, and documentation. Diligence is not optionalâ€”it's legally required."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Diligence Framework",
+              "content": "Write a Python function that evaluates an AI use case and suggests diligence measures.\n\n```python\ndef diligence_recommendations(use_case, data_type, jurisdiction):\n    \"\"\"\n    Return a dict with recommended diligence steps.\n    \"\"\"\n    recs = {\"creation\": [], \"transparency\": []}\n    # TODO: implement logic based on parameters\n    # e.g., if 'healthcare' -> require human review\n    # if 'EU' -> require GDPR compliance\n    return recs\n\nprint(diligence_recommendations(\"Resume screening\", \"Personal data\", \"EU\"))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "A developer uses an AI to draft code commits. The developer does not mention this in the PR description. Which diligence principle is being violated?",
+                "options": [
+                  "Creation Diligence",
+                  "Transparency Diligence",
+                  "Deployment Diligence",
+                  "Process Discernment"
+                ],
+                "correct_index": 1,
+                "explanation": "Transparency Diligence requires being honest about AI's role in your work. Not disclosing AI-generated code in the PR violates this principle, as reviewers are unaware of the AI's involvement."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Creation Diligence** = Choosing the right tool for the job (safely).\n- **Transparency Diligence** = Being honest about AI involvement.\n- Regulatory landscape is evolvingâ€”stay informed (EU AI Act, GDPR)."
+            }
+          ]
+        },
+        {
+          "slug": "deployment-diligence",
+          "title": "Deployment Diligence: Verification & Accountability",
+          "description": "Take ownership of AI outputs in productionâ€”test, verify, monitor, and establish human-in-the-loop safeguards.",
+          "difficulty": 3,
+          "estimated_minutes": 24,
+          "xp_reward": 55,
+          "order_number": 5,
+          "problem_references": [],
+          "dependencies": ["creation-transparency-diligence"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Apply **Deployment Diligence** to production AI systems\n- Design verification and rollback strategies\n- Implement human-in-the-loop safeguards\n- Understand bias monitoring and ongoing evaluation"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Taking Responsibility",
+              "content": "<div class=\"info\">â„¹ï¸ **Deployment Diligence:** Taking responsibility for verifying and vouching for the outputs you use or share.</div>\n\n## The Deployment Diligence Pipeline\n1. **Offline Testing:** Evaluate the model on a hold-out test set. Measure accuracy, bias, and latency.\n2. **Canary Deployment:** Roll out to 1% of users, monitor for errors and complaints.\n3. **Human-in-the-Loop (HITL):** For high-stakes decisions, require human approval before execution.\n4. **Continuous Monitoring:** Track metrics (accuracy drift, hallucination rate, user feedback).\n5. **Rollback Plan:** Have a button to switch off AI and fallback to deterministic rules.\n\n<div class=\"warning\">âš ï¸ **Engineering Reality:** You are legally and professionally accountable for the AI outputs you serve. 'The AI made me do it' is not a valid defense.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Deployment Diligence Checklist",
+              "content": "## Scenario: Deploying a Customer Support AI\n\n1. **Testing:** Evaluate 1000 sample queries. Compare against human agents. Achieve >90% satisfaction.\n2. **Canary:** Release to 5% of users for 1 week.\n3. **HITL:** If confidence score < 0.8, route to human agent.\n4. **Monitoring:** Track (a) unresolved issues, (b) escalation rate, (c) sentiment analysis.\n5. **Rollback:** If escalation rate spikes >15%, fallback to rule-based system.\n\n```go\n// Go pseudo-code for deployment guardrails\nfunc handleAIResponse(response AIResponse, confidence float64) (string, bool) {\n    if confidence < 0.75 {\n        return escalateToHuman(response), false\n    }\n    if containsSensitiveTopic(response) {\n        return requestHumanReview(response), false\n    }\n    return formatFinalResponse(response), true\n}\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Deployment Plan",
+              "content": "Write a Python function that generates a deployment diligence checklist for a given AI use case.\n\n```python\ndef deployment_checklist(use_case, risk_level):\n    \"\"\"\n    Return a structured checklist of tasks to complete before deployment.\n    risk_level: 'low', 'medium', 'high'\n    \"\"\"\n    checklist = {\n        \"testing\": [],\n        \"monitoring\": [],\n        \"rollback\": [],\n        \"human_oversight\": []\n    }\n    # TODO: populate based on risk level\n    return checklist\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the primary purpose of a Canary Deployment in the context of AI systems?",
+                "options": [
+                  "To train the AI model on new data incrementally",
+                  "To reduce infrastructure costs by limiting usage",
+                  "To test the AI system on a small subset of real users before full rollout, allowing safe monitoring and early detection of issues",
+                  "To bypass the need for human oversight"
+                ],
+                "correct_index": 2,
+                "explanation": "Canary deployment gradually exposes the AI system to live traffic. It minimizes blast radiusâ€”if the AI starts hallucinating badly, only a small group is affected, and you can quickly rollback."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Deployment Diligence** is your final quality gate.\n- Always test, monitor, and have a rollback plan.\n- Human-in-the-loop is mandatory for high-risk applications.\n- You are the accountable engineerâ€”own the AI's outputs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "engineering-workflow",
+      "title": "AI Engineering in Production",
+      "description": "Apply all four 4Ds to real software engineering: automation, RAG, evaluation, agents, and the future of the field.",
+      "order_number": 5,
+      "language": "python",
+      "lessons": [
+        {
+          "slug": "ai-automation-dev-tools",
+          "title": "Automation in Development: Copilot & Beyond",
+          "description": "Use AI to automate coding tasks while maintaining quality through discernment.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 1,
+          "problem_references": ["error-message-for-code"],
+          "dependencies": ["deployment-diligence"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Use AI-powered dev tools (Copilot, CodeWhisperer) effectively\n- Distinguish between automation and augmentation in coding\n- Apply Product Discernment to AI-generated code\n- Optimize the human-AI pair programming loop"
+            },
+            {
+              "section_type": "explanation",
+              "title": "AI in Your IDE",
+              "content": "Tools like GitHub Copilot are AI models fine-tuned on billions of lines of code. They excel at pattern completion.\n\n**What they automate:**\n- Boilerplate (structs, getters, setters)\n- Unit test stubs\n- Documentation comments\n- Repetitive transformations\n\n**What they don't automate (yet):**\n- System architecture\n- Security reviews\n- Performance tuning\n\n<div class=\"tip\">ðŸ’¡ **Go Engineer's Bridge:** Copilot often suggests Go code that compilesâ€”but it may miss idiomatic patterns (e.g., using `sync.Once` vs a `mutex`). Your discernment is the filter.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Automation in Action",
+              "content": "**Task:** Generate a function to validate email formats in Go.\n\n**AI Suggestion:**\n```go\nfunc ValidateEmail(email string) bool {\n    return strings.Contains(email, \"@\") && strings.Contains(email, \".\")\n}\n```\n\n**Your Discernment:**\n- **Product:** It's technically a function, but it's weak. It would validate \"@.\" as true.\n- **Action:** You delegate the routine task (write a simple check) but augment the solution with a proper regex from `net/mail` package.\n\n**Resulting Go Code:**\n```go\nimport \"net/mail\"\n\nfunc ValidateEmail(email string) bool {\n    _, err := mail.ParseAddress(email)\n    return err == nil\n}\n```\n\n**Problem Reference:** This lesson uses `error-message-for-code` to practice running Go solutions."
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Copilot Code Review",
+              "content": "Write a Python script that simulates a code review of an AI-generated function.\n\n```python\ndef review_ai_code(code_snippet, requirements):\n    \"\"\"\n    Return a dict with issues found and severity.\n    \"\"\"\n    # TODO: implement checks for security, performance, style\n    pass\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the best practice for using AI coding assistants like Copilot?",
+                "options": [
+                  "Accept all suggestions blindly to maximize speed",
+                  "Use the suggestions as a starting point, but always review, test, and understand the code before committing",
+                  "Only use it for languages you don't know",
+                  "Avoid it entirely because it reduces learning"
+                ],
+                "correct_index": 1,
+                "explanation": "AI coding tools are powerful assistants, not replacements. Always review, test, and understand the code. This applies Product Discernment and Deployment Diligence."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- AI coding tools excel at automation and boilerplate.\n- They cannot replace system design or deep debugging.\n- Always review generated codeâ€”it's your responsibility."
+            }
+          ]
+        },
+        {
+          "slug": "rag-in-production",
+          "title": "RAG in Production",
+          "description": "Implement Retrieval-Augmented Generation to connect AI to private data and reduce hallucinations.",
+          "difficulty": 3,
+          "estimated_minutes": 25,
+          "xp_reward": 55,
+          "order_number": 2,
+          "problem_references": [],
+          "dependencies": ["ai-automation-dev-tools"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define **Retrieval-Augmented Generation (RAG)**\n- Understand the pipeline: Chunking â†’ Embedding â†’ Retrieval â†’ Generation\n- Implement a basic RAG system in Python\n- Connect RAG to your Go backend"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The RAG Pipeline",
+              "content": "RAG solves the static knowledge problem. It retrieves relevant documents from a knowledge base and injects them into the context.\n\n## Step-by-Step\n1. **Chunking:** Split documents (PDFs, markdown) into smaller pieces.\n2. **Embedding:** Convert chunks into vector embeddings (numerical representations).\n3. **Indexing:** Store vectors in a vector database (e.g., Pinecone, pgvector).\n4. **Retrieval:** On a user query, convert it to a vector, find the top-K similar chunks.\n5. **Generation:** Inject the chunks into the system prompt and ask the LLM to answer based on them.\n\n<div class=\"tip\">ðŸ’¡ **Go Engineer's Role:** Your Go service can handle chunking, orchestrate the retrieval (calling a vector DB), and parse the results before passing them to the LLM.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "RAG in Action: Customer Support",
+              "content": "## Problem\nA SaaS company wants an AI chatbot that answers questions about their specific API documentation (which wasn't in the model's training data).\n\n## RAG Solution\n1. Chunk all API docs into 512-token pieces.\n2. Embed them and store in a vector DB.\n3. User asks: \"How do I authenticate?\"\n4. System retrieves the specific \"Authentication\" section from the docs.\n5. System prompt: \"Based on this documentation snippet, answer the user's question.\"\n6. Result: Accurate, verified answer from the docs.\n\n```python\n# Conceptual Python for RAG\ndef rag_retrieve(query, vector_db, top_k=3):\n    query_embedding = embed(query)\n    results = vector_db.search(query_embedding, top_k=top_k)\n    return [r['text'] for r in results]\n\ndef rag_generate(query, context_chunks):\n    prompt = f\"Context: {context_chunks}\\nQuestion: {query}\\nAnswer: \"\n    return generate_llm_response(prompt)\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Basic RAG Simulator",
+              "content": "Write a Python class that simulates a RAG pipeline using a small in-memory vector store.\n\n```python\nimport numpy as np\n\nclass SimpleRAG:\n    def __init__(self):\n        self.documents = []\n        self.embeddings = []\n    \n    def add_document(self, text):\n        # Simulate embedding using length/n-grams for simplicity\n        emb = np.array([ord(c) for c in text[:10]] + [0]*10)[:10]\n        self.documents.append(text)\n        self.embeddings.append(emb)\n    \n    def retrieve(self, query, top_k=1):\n        # Simple cosine similarity on fake embeddings\n        query_emb = np.array([ord(c) for c in query[:10]] + [0]*10)[:10]\n        # TODO: compute similarity and return top_k\n        pass\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "Why does RAG reduce hallucinations?",
+                "options": [
+                  "It disables the AI's creative generation abilities",
+                  "It grounds the AI's response in specific, provided context documents rather than relying purely on its parametric memory",
+                  "It reduces the model's temperature to zero",
+                  "It preemptively deletes the model's knowledge cutoff"
+                ],
+                "correct_index": 1,
+                "explanation": "RAG provides authoritative context from a knowledge base. The model is forced to base its answer on this provided context, which dramatically reduces the chance of fabricating facts outside its training data."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **RAG** connects AI to private, up-to-date knowledge.\n- Pipeline: Chunk â†’ Embed â†’ Retrieve â†’ Generate.\n- It is the standard architecture for enterprise AI applications."
+            }
+          ]
+        },
+        {
+          "slug": "testing-evaluation",
+          "title": "Testing & Evaluation Frameworks",
+          "description": "Build automated testing pipelines to evaluate AI outputs at scale.",
+          "difficulty": 3,
+          "estimated_minutes": 22,
+          "xp_reward": 50,
+          "order_number": 3,
+          "problem_references": ["two-sum"],
+          "dependencies": ["rag-in-production"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Build evaluation datasets for AI testing\n- Implement automated scoring metrics (ROUGE, BLEU, exact-match)\n- Use A/B testing for model comparison\n- Integrate evaluations into your CI/CD pipeline"
+            },
+            {
+              "section_type": "explanation",
+              "title": "Testing the Unpredictable",
+              "content": "Unlike deterministic Go code, AI output is probabilistic. Testing requires a different approach.\n\n## Types of Evaluation\n1. **Exact Match:** Does the output exactly match the expected string? (Good for code generation).\n2. **ROUGE/BLEU:** Overlap of n-grams between generated and reference texts. (Good for summarization).\n3. **LLM-as-a-Judge:** Use a strong model to grade the output (e.g., Claude grading a smaller model).\n4. **Human Evaluation:** Manual quality review (gold standard).\n\n## Evaluation Pipeline\n1. **Test Set:** Curate a dataset of 500+ examples (input, expected_output).\n2. **Run:** Pass all inputs to the AI model.\n3. **Score:** Compare outputs to expected using metrics.\n4. **Threshold:** If score < 85%, block deployment.\n\n<div class=\"tip\">ðŸ’¡ **Go Integration:** Your Go CI/CD pipeline can call a Python evaluation script, parse the results, and fail the build if scores are below threshold.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Evaluation in Practice (Problem Reference)",
+              "content": "This lesson references the existing problem **`two-sum`**. Students will solve this Go problem, but the lesson extends it by teaching them to write an *evaluator* for a hypothetical AI that generates two-sum solutions.\n\n```python\n# Example evaluator\ndef evaluate_ai_solution(ai_output, test_cases):\n    \"\"\"Check if the AI-generated code passes all test cases.\"\"\"\n    # In reality, we'd run the code. Here we simulate.\n    pass\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Build an Evaluator",
+              "content": "Write a Python function that calculates the exact-match accuracy of AI-generated answers.\n\n```python\ndef exact_match_accuracy(predictions, ground_truth):\n    \"\"\"\n    Calculate the percentage of exact matches.\n    \"\"\"\n    correct = sum(1 for p, g in zip(predictions, ground_truth) if p.strip() == g.strip())\n    return correct / len(predictions) * 100\n\npreds = [\"Hello\", \"World\", \"foo\"]\ntruth = [\"Hello\", \"World\", \"bar\"]\nprint(f\"Accuracy: {exact_match_accuracy(preds, truth)}%\") # 66.6%\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the purpose of using an LLM-as-a-Judge for evaluation?",
+                "options": [
+                  "To replace human evaluators entirely without any oversight",
+                  "To provide a scalable, cost-effective way to assess subjective qualities like helpfulness and reasoning quality",
+                  "To make the evaluation process slower and more expensive",
+                  "To eliminate the need for a test dataset"
+                ],
+                "correct_index": 1,
+                "explanation": "LLM-as-a-Judge uses a capable model (like Claude) to evaluate responses on nuanced criteria (helpfulness, reasoning). It's scalable and aligns well with human preferences, though it still benefits from human oversight for calibration."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- AI testing requires dedicated evaluation datasets.\n- Metrics range from exact match to LLM-as-a-Judge.\n- Integrate evaluation into CI/CD to catch regressions."
+            }
+          ]
+        },
+        {
+          "slug": "agency-and-agents",
+          "title": "Agency: Multi-Agent Systems & Autonomy",
+          "description": "Configure AI agents to work independently, interact with tools, and solve complex multi-step problems.",
+          "difficulty": 4,
+          "estimated_minutes": 25,
+          "xp_reward": 60,
+          "order_number": 4,
+          "problem_references": [],
+          "dependencies": ["testing-evaluation"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Define AI **Agency** and multi-agent systems\n- Understand the architecture of agentic workflows\n- Design a tool-calling agent in Python\n- Implement guardrails for autonomous AI"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Next Frontier: Agentic AI",
+              "content": "<div class=\"info\">â„¹ï¸ **Agency:** When humans configure AI to work independently on their behalf, including interacting with other humans or AI.</div>\n\n## Agent Architecture\n1. **Planning:** Agent breaks down a complex goal into sub-tasks.\n2. **Tool Use:** Agent calls external APIs (weather, calendar, code execution).\n3. **Reflection:** Agent evaluates its own outputs and retries if needed.\n4. **Coordination:** Multiple agents collaborate (e.g., one researches, one writes, one reviews).\n\n## Popular Frameworks\n- LangChain / LangGraph\n- AutoGen (Microsoft)\n- CrewAI\n\n<div class=\"warning\">âš ï¸ **Engineering Reality:** Agency is powerful but complex. Implement strict timeouts, token budgets, and allowlists for tool calls to prevent runaway loops or costly mistakes.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Agency in Code: A Simple Agent",
+              "content": "```python\n# Conceptual agent loop\nclass SimpleAgent:\n    def __init__(self, tools, max_steps=5):\n        self.tools = tools\n        self.max_steps = max_steps\n    \n    def run(self, goal):\n        context = [{\"role\": \"system\", \"content\": \"You are an agent. Use tools to achieve your goal.\"}]\n        context.append({\"role\": \"user\", \"content\": goal})\n        \n        for step in range(self.max_steps):\n            response = call_llm(context)\n            # If the LLM calls a tool, execute it and add result to context\n            if \"tool_call\" in response:\n                tool_name = response[\"tool_call\"][\"name\"]\n                tool_args = response[\"tool_call\"][\"arguments\"]\n                result = self.tools[tool_name](**tool_args)\n                context.append({\"role\": \"tool\", \"content\": result})\n            else:\n                # Final answer\n                return response\n        return \"Max steps exceeded\"\n```"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Design an Agent",
+              "content": "Write a Python class for an agent that can perform a web search and analyze the results (simulated).\n\n```python\nclass ResearchAgent:\n    def __init__(self):\n        # TODO: define tools\n        pass\n    \n    def search(self, query):\n        # Simulate web search\n        return f\"Results for {query}: [simulated result]\"\n    \n    def analyze(self, content):\n        # Simulate analysis using an LLM\n        pass\n    \n    def run(self, research_question):\n        # TODO: chain search + analyze\n        pass\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is a critical risk when deploying AI agents with tool-calling capabilities?",
+                "options": [
+                  "The agent might refuse to call any tools",
+                  "The agent could execute harmful actions (e.g., deleting data, sending emails) if not properly sandboxed and guardrailed",
+                  "The agent will always be too slow to be useful",
+                  "The agent will automatically improve itself beyond human control"
+                ],
+                "correct_index": 1,
+                "explanation": "The primary risk of tool-calling agents is unintended execution. Without strict allowlists, validation, and human approval for destructive actions, an agent could inadvertently cause real-world damage."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- **Agency** enables autonomous, multi-step problem solving.\n- Agents use tools to interact with the real world.\n- Safety and guardrails are non-negotiable in production."
+            }
+          ]
+        },
+        {
+          "slug": "road-ahead",
+          "title": "The Road Ahead: AGI, Regulation & Your Career",
+          "description": "Prepare for the future landscape of AI engineeringâ€”AGI timelines, open-source trends, regulatory shifts, and how to thrive.",
+          "difficulty": 2,
+          "estimated_minutes": 20,
+          "xp_reward": 45,
+          "order_number": 5,
+          "problem_references": [],
+          "dependencies": ["agency-and-agents"],
+          "sections": [
+            {
+              "section_type": "overview",
+              "title": "What You'll Learn",
+              "content": "By the end of this lesson, you will:\n\n- Understand the discourse around AGI timelines\n- Navigate the open-source vs. closed-source debate\n- Anticipate regulatory changes (EU AI Act, US Executive Orders)\n- Chart your career path as an AI Engineer"
+            },
+            {
+              "section_type": "explanation",
+              "title": "The Future is Unwritten (But We Can Prepare)",
+              "content": "## AGI Timelines\n- **Optimists (OpenAI, DeepMind):** AGI by 2029-2035.\n- **Skeptics (Gary Marcus, Yan LeCun):** Decades away; current systems lack true understanding.\n- **Practical Reality:** Even if AGI is distant, narrow AI will continue to transform industries.\n\n## Open-Source vs. Closed-Source\n- **Closed:** OpenAI, Anthropic, Google. Best models, but controlled.\n- **Open:** Llama, Mistral, DeepSeek. Democratizing AI, but may lag behind SOTA.\n- **Your Strategy:** Learn both paradigms. Build with APIs, but also run models locally.\n\n## Regulatory Landscape\n- **EU AI Act:** Risk-based regulation. Fines up to â‚¬35M.\n- **US:** Executive Orders on safety, voluntary commitments.\n- **UK:** Pro-innovation approach.\n\n<div class=\"tip\">ðŸ’¡ **Career Advice:** The market for AI engineers is exploding. Your Go backend expertise combined with AI fluency makes you uniquely valuable. Focus on *infrastructure*â€”how to serve, scale, and secure AI. That's where the real demand is.</div>"
+            },
+            {
+              "section_type": "examples",
+              "title": "Your Career Roadmap",
+              "content": "## Path 1: Backend AI Engineer\n- Build Go services that orchestrate AI calls.\n- Implement caching, rate limiting, and fallback.\n- Monitor latency and costs.\n\n## Path 2: ML Platform Engineer\n- Build internal tools for data scientists.\n- Manage model registries, feature stores.\n- Optimize training infrastructure.\n\n## Path 3: Applied AI Researcher\n- Fine-tune open-source models for specific domains.\n- Implement cutting-edge research (RAG, agents).\n- Collaborate with data scientists.\n\n<div class=\"info\">â„¹ï¸ **Fluency is your differentiator:** Many engineers can code. Fewer can strategically deploy AI with discernment and diligence. You now have both.</div>"
+            },
+            {
+              "section_type": "exercises",
+              "title": "Practice: Future-Proofing Plan",
+              "content": "Write a Python function that generates a personalized study plan for an AI Engineer based on their current skills.\n\n```python\ndef career_roadmap(current_skills, desired_role):\n    \"\"\"\n    Return a list of recommended learning resources and skills.\n    \"\"\"\n    # TODO: implement mapping\n    pass\n\nprint(career_roadmap([\"Go\", \"Python\"], \"AI Infrastructure\"))\n```"
+            },
+            {
+              "section_type": "quiz",
+              "title": "Check Your Understanding",
+              "content": "",
+              "metadata": {
+                "question": "What is the best approach for a software engineer aiming to enter the AI field today?",
+                "options": [
+                  "Quit software engineering to become a data scientist exclusively",
+                  "Wait for AGI to solve everything before learning anything",
+                  "Build on existing backend skills, master AI fluency, and focus on the infrastructure and productionization of AI systems",
+                  "Ignore AI entirely and focus solely on legacy systems"
+                ],
+                "correct_index": 2,
+                "explanation": "The demand is for engineers who can *productionize* AI. Your existing software engineering skills (scalability, reliability, security) are the perfect complement to AI models."
+              }
+            },
+            {
+              "section_type": "summary",
+              "title": "Key Takeaways",
+              "content": "- AGI is uncertain, but AI transformation is certain.\n- Stay fluent with both open and closed models.\n- Regulations are comingâ€”prepare for compliance.\n- Your unique value is at the intersection of AI and production engineering."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "projects": [
+    {
+      "lesson_slug": "rag-in-production",
+      "module_slug": "engineering-workflow",
+      "slug": "mini-rag-system",
+      "title": "Mini RAG System: Build a Document QA Bot",
+      "description": "Build a complete RAG pipeline that answers questions about a provided set of text documents.",
+      "requirements": "1. Implement chunking: split text into overlapping chunks of 200 words.\n2. Implement embedding: use a simple TF-IDF vectorizer (or a mock embedding for simulation).\n3. Implement retrieval: find the top-3 chunks for a query using cosine similarity.\n4. Implement generation: format the retrieved chunks into a prompt and call a mock LLM (or print the prompt).\n5. Write a command-line interface that loads documents and answers user questions.\n6. Add a 'confidence' score based on retrieval distance.",
+      "starter_code": "import numpy as np\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n\nclass MiniRAG:\n    def __init__(self):\n        self.vectorizer = TfidfVectorizer()\n        self.chunks = []\n        self.vectors = None\n\n    def chunk_document(self, text, chunk_size=200):\n        # TODO: split text into overlapping chunks\n        pass\n\n    def add_documents(self, texts):\n        # TODO: chunk and vectorize all documents\n        pass\n\n    def retrieve(self, query, top_k=3):\n        # TODO: compute similarity and return top_k chunks\n        pass\n\n    def answer(self, query):\n        chunks = self.retrieve(query)\n        # TODO: format prompt and call LLM (simulate with print)\n        pass\n\nif __name__ == \"__main__\":\n    rag = MiniRAG()\n    docs = [\"The capital of France is Paris.\", \"Berlin is the capital of Germany.\"]\n    rag.add_documents(docs)\n    print(rag.answer(\"What is the capital of France?\"))",
+      "difficulty": 4,
+      "xp_reward": 200,
+      "hints": [
+        "For chunking, split on newlines first, then paragraphs, then sentences.",
+        "Use cosine similarity from sklearn.metrics.pairwise.",
+        "In your generation step, use a simple template: 'Context: {chunks}\\nQuestion: {query}\\nAnswer:'",
+        "If you want to test with a real LLM, use the Claude API (but we simulate here)."
+      ],
+      "order_number": 1
+    },
+    {
+      "lesson_slug": "deployment-diligence",
+      "module_slug": "responsible-ai",
+      "slug": "bias-detector",
+      "title": "AI Bias Detector Tool",
+      "description": "Build a Python tool that evaluates a dataset for potential bias using statistical methods.",
+      "requirements": "1. Load a CSV dataset with a sensitive attribute (e.g., gender, race) and a target variable.\n2. Calculate demographic parity: (selection rate per group).\n3. Calculate equal opportunity: true positive rate per group.\n4. Generate a report highlighting statistically significant disparities.\n5. Suggest mitigations (re-weighting, re-sampling).",
+      "starter_code": "import pandas as pd\nimport numpy as np\nfrom scipy import stats\n\nclass BiasDetector:\n    def __init__(self, df, sensitive_col, target_col, label_col='predicted'):\n        self.df = df\n        self.sensitive_col = sensitive_col\n        self.target_col = target_col\n        self.label_col = label_col\n\n    def demographic_parity(self):\n        # TODO: Calculate selection rate per group\n        pass\n\n    def equal_opportunity(self):\n        # TODO: Calculate true positive rate per group\n        pass\n\n    def run_report(self):\n        # TODO: Print a formatted report with statistics\n        pass\n\n# Example usage:\n# df = pd.read_csv('your_data.csv')\n# detector = BiasDetector(df, 'gender', 'hired', 'ai_decision')\n# detector.run_report()",
+      "difficulty": 4,
+      "xp_reward": 200,
+      "hints": [
+        "Use `groupby` in Pandas to aggregate metrics per group.",
+        "For true positive rate: `TP / (TP + FN)`.",
+        "Use Cohen's h or chi-squared tests to measure significance of differences."
+      ],
+      "order_number": 2
+    }
+  ]
+}
