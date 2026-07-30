@@ -122,7 +122,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Issue access token + refresh token with onboarding flag
 	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, true, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+		slog.Error("auth: register token failed", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 		return
 	}
 	RespondCreated(w, resp)
@@ -161,7 +162,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+		slog.Error("auth: login token failed", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 		return
 	}
 	RespondSuccess(w, resp)
@@ -212,7 +214,8 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+			slog.Error("google_auth: token failed for existing user", "error", err)
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 			return
 		}
 		RespondSuccess(w, resp)
@@ -241,7 +244,8 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := h.issueTokens(r.Context(), userID, existingUser.StudentID, existingUser.Username, existingUser.Role, !existingUser.UsernameSet, true, w, r)
 		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+			slog.Error("google_auth: token failed for email-linked user", "error", err)
+			RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 			return
 		}
 		RespondSuccess(w, resp)
@@ -268,7 +272,8 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, !user.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+		slog.Error("google_auth: token failed for new user", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 		return
 	}
 	RespondCreated(w, resp)
@@ -349,7 +354,8 @@ func (h *AuthHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request)
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
 	resp, err := h.issueTokens(r.Context(), userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, !updatedUser.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+		slog.Error("auth: onboarding token failed", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 		return
 	}
 	RespondSuccess(w, resp)
@@ -429,7 +435,8 @@ func (h *AuthHandler) LinkGoogle(w http.ResponseWriter, r *http.Request) {
 	userID, _ := uuidStringFromPGType(updatedUser.ID)
 	resp, err := h.issueTokens(r.Context(), userID, updatedUser.StudentID, updatedUser.Username, updatedUser.Role, !updatedUser.UsernameSet, true, w, r)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", nil)
+		slog.Error("auth: link-google token failed", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Unable to generate tokens", map[string]string{"error": err.Error()})
 		return
 	}
 	RespondSuccess(w, resp)
@@ -561,7 +568,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.issueTokens(r.Context(), userID, user.StudentID, user.Username, user.Role, false, true, w, r)
 	if err != nil {
 		slog.Error("auth: failed to issue new tokens on refresh", "error", err)
-		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Failed to issue new tokens", nil)
+		RespondError(w, http.StatusInternalServerError, "TOKEN_FAILED", "Failed to issue new tokens", map[string]string{"error": err.Error()})
 		return
 	}
 
