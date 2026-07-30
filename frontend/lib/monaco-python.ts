@@ -65,24 +65,26 @@ const BUILTINS: CompletionItemConfig[] = [
   { label: "any", detail: "any(iterable)", documentation: "Return True if any element of the iterable is true.", insertText: "any($0)", insertTextRules: Snippet },
   { label: "ascii", detail: "ascii(object)", documentation: "Return a string containing a printable representation of an object.", insertText: "ascii($0)", insertTextRules: Snippet },
   { label: "bin", detail: "bin(x)", documentation: "Convert an integer to a binary string prefixed with '0b'.", insertText: "bin($0)", insertTextRules: Snippet },
-  { label: "bool", detail: "bool(x)", documentation: "Convert a value to a Boolean.", insertText: "bool($0)", insertTextRules: Snippet },
+  { label: "bool", kind: Kind.Class, detail: "bool(x)", documentation: "Convert a value to a Boolean.", insertText: "bool($0)", insertTextRules: Snippet },
   { label: "breakpoint", detail: "breakpoint()", documentation: "Drop into the debugger at the call site.", insertText: "breakpoint($0)", insertTextRules: Snippet },
   { label: "callable", detail: "callable(object)", documentation: "Return True if the object argument appears callable.", insertText: "callable($0)", insertTextRules: Snippet },
   { label: "chr", detail: "chr(i)", documentation: "Return the string representing a character whose Unicode code point is the integer i.", insertText: "chr($0)", insertTextRules: Snippet },
   { label: "classmethod", detail: "classmethod(function)", documentation: "Transform a method into a class method.", insertText: "classmethod($0)", insertTextRules: Snippet },
   { label: "compile", detail: "compile(source, filename, mode)", documentation: "Compile the source into a code or AST object.", insertText: "compile($0)", insertTextRules: Snippet },
-  { label: "complex", detail: "complex(real, imag)", documentation: "Create a complex number.", insertText: "complex($0)", insertTextRules: Snippet },
+  { label: "bytearray", kind: Kind.Class, detail: "bytearray()", documentation: "Return a new array of bytes.", insertText: "bytearray($0)", insertTextRules: Snippet },
+  { label: "bytes", kind: Kind.Class, detail: "bytes()", documentation: "Return a new bytes object.", insertText: "bytes($0)", insertTextRules: Snippet },
+  { label: "complex", kind: Kind.Class, detail: "complex(real, imag)", documentation: "Create a complex number.", insertText: "complex($0)", insertTextRules: Snippet },
   { label: "delattr", detail: "delattr(obj, name)", documentation: "Delete an attribute from an object.", insertText: "delattr($0)", insertTextRules: Snippet },
-  { label: "dict", detail: "dict(**kwargs)", documentation: "Create a dictionary.", insertText: "dict($0)", insertTextRules: Snippet },
+  { label: "dict", kind: Kind.Class, detail: "dict(**kwargs)", documentation: "Create a dictionary.", insertText: "dict($0)", insertTextRules: Snippet },
   { label: "dir", detail: "dir(object)", documentation: "Return the list of names in the current local scope or of an object.", insertText: "dir($0)", insertTextRules: Snippet },
   { label: "divmod", detail: "divmod(a, b)", documentation: "Return the tuple (a//b, a%b).", insertText: "divmod($0)", insertTextRules: Snippet },
   { label: "enumerate", detail: "enumerate(iterable, start=0)", documentation: "Return an enumerate object yielding (index, value) pairs.", insertText: "enumerate($0)", insertTextRules: Snippet },
   { label: "eval", detail: "eval(expression)", documentation: "Evaluate the given Python expression.", insertText: "eval($0)", insertTextRules: Snippet },
   { label: "exec", detail: "exec(code)", documentation: "Execute the given Python code.", insertText: "exec($0)", insertTextRules: Snippet },
   { label: "filter", detail: "filter(function, iterable)", documentation: "Construct an iterator from elements for which function returns true.", insertText: "filter($0)", insertTextRules: Snippet },
-  { label: "float", detail: "float(x)", documentation: "Convert a string or number to a floating point number.", insertText: "float($0)", insertTextRules: Snippet },
+  { label: "float", kind: Kind.Class, detail: "float(x)", documentation: "Convert a string or number to a floating point number.", insertText: "float($0)", insertTextRules: Snippet },
   { label: "format", detail: "format(value, format_spec)", documentation: "Transform a value using a format specifier.", insertText: "format($0)", insertTextRules: Snippet },
-  { label: "frozenset", detail: "frozenset(iterable)", documentation: "Create an immutable set.", insertText: "frozenset($0)", insertTextRules: Snippet },
+  { label: "frozenset", kind: Kind.Class, detail: "frozenset(iterable)", documentation: "Create an immutable set.", insertText: "frozenset($0)", insertTextRules: Snippet },
   { label: "getattr", detail: "getattr(object, name, default)", documentation: "Get a named attribute from an object.", insertText: "getattr($0)", insertTextRules: Snippet },
   { label: "globals", detail: "globals()", documentation: "Return the global symbol table as a dictionary.", insertText: "globals($0)", insertTextRules: Snippet },
   { label: "hasattr", detail: "hasattr(object, name)", documentation: "Return True if the object has the named attribute.", insertText: "hasattr($0)", insertTextRules: Snippet },
@@ -91,61 +93,42 @@ const BUILTINS: CompletionItemConfig[] = [
   { label: "hex", detail: "hex(x)", documentation: "Convert an integer to a hexadecimal string prefixed with '0x'.", insertText: "hex($0)", insertTextRules: Snippet },
   { label: "id", detail: "id(object)", documentation: "Return the identity (memory address) of an object.", insertText: "id($0)", insertTextRules: Snippet },
   { label: "input", detail: "input(prompt='')", documentation: "Read a string from standard input.", insertText: "input($0)", insertTextRules: Snippet },
-  { label: "int", detail: "int(x, base=10)", documentation: "Convert a string or number to an integer.", insertText: "int($0)", insertTextRules: Snippet },
+  { label: "int", kind: Kind.Class, detail: "int(x, base=10)", documentation: "Convert a string or number to an integer.", insertText: "int($0)", insertTextRules: Snippet },
   { label: "isinstance", detail: "isinstance(object, classinfo)", documentation: "Return True if the object is an instance of the class.", insertText: "isinstance($0)", insertTextRules: Snippet },
   { label: "issubclass", detail: "issubclass(class, classinfo)", documentation: "Return True if class is a subclass of classinfo.", insertText: "issubclass($0)", insertTextRules: Snippet },
   { label: "iter", detail: "iter(object, sentinel)", documentation: "Return an iterator object.", insertText: "iter($0)", insertTextRules: Snippet },
   { label: "len", detail: "len(s)", documentation: "Return the length (the number of items) of an object.", insertText: "len($0)", insertTextRules: Snippet },
-  { label: "list", detail: "list(iterable)", documentation: "Create a list.", insertText: "list($0)", insertTextRules: Snippet },
+  { label: "list", kind: Kind.Class, detail: "list(iterable)", documentation: "Create a list.", insertText: "list($0)", insertTextRules: Snippet },
   { label: "locals", detail: "locals()", documentation: "Return the local symbol table as a dictionary.", insertText: "locals($0)", insertTextRules: Snippet },
   { label: "map", detail: "map(function, iterable)", documentation: "Apply function to every item of iterable, returning an iterator.", insertText: "map($0)", insertTextRules: Snippet },
   { label: "max", detail: "max(iterable)", documentation: "Return the largest item in an iterable.", insertText: "max($0)", insertTextRules: Snippet },
-  { label: "memoryview", detail: "memoryview(object)", documentation: "Return a memory view object.", insertText: "memoryview($0)", insertTextRules: Snippet },
+  { label: "memoryview", kind: Kind.Class, detail: "memoryview(object)", documentation: "Return a memory view object.", insertText: "memoryview($0)", insertTextRules: Snippet },
   { label: "min", detail: "min(iterable)", documentation: "Return the smallest item in an iterable.", insertText: "min($0)", insertTextRules: Snippet },
   { label: "next", detail: "next(iterator, default)", documentation: "Return the next item from an iterator.", insertText: "next($0)", insertTextRules: Snippet },
-  { label: "object", detail: "object()", documentation: "Return a new featureless base object.", insertText: "object($0)", insertTextRules: Snippet },
+  { label: "object", kind: Kind.Class, detail: "object()", documentation: "Return a new featureless base object.", insertText: "object($0)", insertTextRules: Snippet },
   { label: "oct", detail: "oct(x)", documentation: "Convert an integer to an octal string prefixed with '0o'.", insertText: "oct($0)", insertTextRules: Snippet },
   { label: "open", detail: "open(file, mode='r', ...)", documentation: "Open file and return a corresponding file object.", insertText: "open($0)", insertTextRules: Snippet },
   { label: "ord", detail: "ord(c)", documentation: "Return the Unicode code point for a single character string.", insertText: "ord($0)", insertTextRules: Snippet },
   { label: "pow", detail: "pow(base, exp, mod=None)", documentation: "Return base to the power exp.", insertText: "pow($0)", insertTextRules: Snippet },
   { label: "print", detail: "print(*objects, sep=' ', end='\\n', ...)", documentation: "Print objects to the text stream file.", insertText: "print($0)", insertTextRules: Snippet },
   { label: "property", detail: "property(fget, fset, fdel, doc)", documentation: "Return a property attribute.", insertText: "property($0)", insertTextRules: Snippet },
-  { label: "range", detail: "range(stop) / range(start, stop, step)", documentation: "Return an immutable sequence of numbers.", insertText: "range($0)", insertTextRules: Snippet },
+  { label: "range", kind: Kind.Class, detail: "range(stop) / range(start, stop, step)", documentation: "Return an immutable sequence of numbers.", insertText: "range($0)", insertTextRules: Snippet },
   { label: "repr", detail: "repr(object)", documentation: "Return a string containing a printable representation.", insertText: "repr($0)", insertTextRules: Snippet },
   { label: "reversed", detail: "reversed(seq)", documentation: "Return a reverse iterator.", insertText: "reversed($0)", insertTextRules: Snippet },
   { label: "round", detail: "round(number, ndigits=None)", documentation: "Round a number to a given precision.", insertText: "round($0)", insertTextRules: Snippet },
-  { label: "set", detail: "set(iterable)", documentation: "Create a set.", insertText: "set($0)", insertTextRules: Snippet },
+  { label: "set", kind: Kind.Class, detail: "set(iterable)", documentation: "Create a set.", insertText: "set($0)", insertTextRules: Snippet },
   { label: "setattr", detail: "setattr(obj, name, value)", documentation: "Set a named attribute on an object.", insertText: "setattr($0)", insertTextRules: Snippet },
-  { label: "slice", detail: "slice(stop) / slice(start, stop, step)", documentation: "Create a slice object.", insertText: "slice($0)", insertTextRules: Snippet },
+  { label: "slice", kind: Kind.Class, detail: "slice(stop) / slice(start, stop, step)", documentation: "Create a slice object.", insertText: "slice($0)", insertTextRules: Snippet },
   { label: "sorted", detail: "sorted(iterable, key=None, reverse=False)", documentation: "Return a new sorted list from the iterable.", insertText: "sorted($0)", insertTextRules: Snippet },
   { label: "staticmethod", detail: "staticmethod(function)", documentation: "Transform a method into a static method.", insertText: "staticmethod($0)", insertTextRules: Snippet },
-  { label: "str", detail: "str(object='')", documentation: "Convert a value to a string.", insertText: "str($0)", insertTextRules: Snippet },
+  { label: "str", kind: Kind.Class, detail: "str(object='')", documentation: "Convert a value to a string.", insertText: "str($0)", insertTextRules: Snippet },
   { label: "sum", detail: "sum(iterable, start=0)", documentation: "Return the sum of a sequence of numbers.", insertText: "sum($0)", insertTextRules: Snippet },
   { label: "super", detail: "super(type, object_or_type)", documentation: "Return a proxy object for calling the parent class.", insertText: "super($0)", insertTextRules: Snippet },
-  { label: "tuple", detail: "tuple(iterable)", documentation: "Create a tuple.", insertText: "tuple($0)", insertTextRules: Snippet },
-  { label: "type", detail: "type(object)", documentation: "Return the type of an object.", insertText: "type($0)", insertTextRules: Snippet },
+  { label: "tuple", kind: Kind.Class, detail: "tuple(iterable)", documentation: "Create a tuple.", insertText: "tuple($0)", insertTextRules: Snippet },
+  { label: "type", kind: Kind.Class, detail: "type(object)", documentation: "Return the type of an object.", insertText: "type($0)", insertTextRules: Snippet },
   { label: "vars", detail: "vars(object)", documentation: "Return the __dict__ attribute of an object.", insertText: "vars($0)", insertTextRules: Snippet },
   { label: "zip", detail: "zip(*iterables)", documentation: "Iterate over several iterables in parallel, yielding tuples.", insertText: "zip($0)", insertTextRules: Snippet },
   { label: "__import__", detail: "__import__(name, ...)", documentation: "Import a module (import hook).", insertText: "__import__($0)", insertTextRules: Snippet },
-];
-
-const BUILTIN_TYPES: CompletionItemConfig[] = [
-  { label: "bool",      kind: Kind.Class, insertText: "bool" },
-  { label: "bytearray", kind: Kind.Class, insertText: "bytearray" },
-  { label: "bytes",     kind: Kind.Class, insertText: "bytes" },
-  { label: "complex",   kind: Kind.Class, insertText: "complex" },
-  { label: "dict",      kind: Kind.Class, insertText: "dict" },
-  { label: "float",     kind: Kind.Class, insertText: "float" },
-  { label: "frozenset", kind: Kind.Class, insertText: "frozenset" },
-  { label: "int",       kind: Kind.Class, insertText: "int" },
-  { label: "list",      kind: Kind.Class, insertText: "list" },
-  { label: "object",    kind: Kind.Class, insertText: "object" },
-  { label: "range",     kind: Kind.Class, insertText: "range" },
-  { label: "set",       kind: Kind.Class, insertText: "set" },
-  { label: "slice",     kind: Kind.Class, insertText: "slice" },
-  { label: "str",       kind: Kind.Class, insertText: "str" },
-  { label: "tuple",     kind: Kind.Class, insertText: "tuple" },
-  { label: "type",      kind: Kind.Class, insertText: "type" },
 ];
 
 const STD_MODULES: CompletionItemConfig[] = [
@@ -209,7 +192,6 @@ const IDENTIFIERS: CompletionItemConfig[] = [
 const ALL_COMPLETIONS: CompletionItemConfig[] = [
   ...KEYWORDS,
   ...BUILTINS,
-  ...BUILTIN_TYPES,
   ...STD_MODULES,
   ...IDENTIFIERS,
 ];
@@ -426,16 +408,13 @@ const SIGNATURES: Record<string, SignatureInfo> = {
 
 const HOVER_DOCS: Record<string, string> = {};
 
+const kindName = (kind: number): string => {
+  const entry = Object.entries(Kind).find(([, v]) => v === kind);
+  return entry ? entry[0].toLowerCase() : "symbol";
+};
+
 for (const item of ALL_COMPLETIONS) {
-  const kindLabels: Record<number, string> = {
-    [Kind.Keyword]: "keyword",
-    [Kind.Function]: "function",
-    [Kind.Class]: "class",
-    [Kind.Module]: "module",
-    [Kind.Variable]: "variable",
-    [Kind.Constant]: "constant",
-  };
-  const kindLabel = kindLabels[item.kind ?? Kind.Function] || "symbol";
+  const kindLabel = kindName(item.kind ?? Kind.Function);
   const detail = item.detail ? `**${item.detail}**  ` : "";
   const doc = item.documentation ? `\n\n${item.documentation}` : "";
   HOVER_DOCS[item.label] = `*Python built-in ${kindLabel}*  \n${detail}${doc}`;
@@ -478,19 +457,28 @@ export function registerPythonLanguageFeatures(monaco: any) {
         endLineNumber: position.lineNumber,
         endColumn: position.column,
       });
-      const lastParen = textUntil.lastIndexOf("(");
-      if (lastParen === -1) return null;
-      const textBeforeParen = textUntil.substring(0, lastParen).trim();
-      const match = textBeforeParen.match(/([a-zA-Z_]\w*)\s*$/);
+      let depth = 0;
+      let parenIndex = -1;
+      for (let i = textUntil.length - 1; i >= 0; i--) {
+        const ch = textUntil[i];
+        if (ch === ")") depth++;
+        else if (ch === "(") {
+          if (depth === 0) { parenIndex = i; break; }
+          depth--;
+        }
+      }
+      if (parenIndex === -1) return null;
+      const beforeParen = textUntil.substring(0, parenIndex).trim();
+      const match = beforeParen.match(/([a-zA-Z_]\w*)\s*$/);
       if (!match) return null;
       const funcName = match[1];
       const sig = SIGNATURES[funcName];
       if (!sig) return null;
-      const argsPart = textUntil.substring(lastParen + 1);
-      let depth = 0;
+      const argsPart = textUntil.substring(parenIndex + 1);
+      depth = 0;
       let activeParam = 0;
       for (const ch of argsPart) {
-        if ((ch === ",") && depth === 0) activeParam++;
+        if (ch === "," && depth === 0) activeParam++;
         else if ("([{".includes(ch)) depth++;
         else if (")]}".includes(ch)) depth--;
       }
