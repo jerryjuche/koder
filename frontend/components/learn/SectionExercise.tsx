@@ -22,6 +22,8 @@ import {
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
+import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
+import { MONACO_EDITOR_OPTIONS } from "@/lib/monaco-options";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
@@ -377,47 +379,12 @@ export default function SectionExercise({
           loading={<div className="h-full bg-[#1e1e1e]" />}
           onMount={(_editor, monaco) => {
             editorRef.current = _editor;
-            if (monaco) registerVSCodeDarkPlusTheme(monaco);
+            if (monaco) {
+              registerVSCodeDarkPlusTheme(monaco);
+              registerPythonLanguageFeatures(monaco);
+            }
           }}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            fontWeight: "500",
-            fontFamily: "var(--font-mono), monospace",
-            padding: { top: 16, bottom: 16 },
-            renderLineHighlight: "all",
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: "on",
-            smoothScrolling: true,
-            scrollbar: {
-              verticalScrollbarSize: 8,
-              horizontalScrollbarSize: 8,
-              alwaysConsumeMouseWheel: false,
-            },
-            overviewRulerLanes: 3,
-            hideCursorInOverviewRuler: false,
-            bracketPairColorization: { enabled: true },
-            matchBrackets: "always",
-            autoClosingBrackets: "always",
-            autoClosingQuotes: "always",
-            autoIndent: "full",
-            formatOnPaste: true,
-            tabSize: 4,
-            insertSpaces: true,
-            quickSuggestions: {
-              other: true,
-              comments: false,
-              strings: false,
-            },
-            snippetSuggestions: "inline",
-            suggestOnTriggerCharacters: true,
-            acceptSuggestionOnEnter: "smart",
-            suggestSelection: "first",
-            wordWrap: "off",
-            folding: true,
-            foldingHighlight: true,
-            foldingStrategy: "indentation",
-          }}
+          options={MONACO_EDITOR_OPTIONS}
         />
       </div>
     </div>

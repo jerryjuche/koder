@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-07-29 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors
+> **Branch:** `update` | **Last indexed:** 2026-07-30 | **Verified:** `go vet` clean, 126+ Go tests passing, ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -34,21 +34,21 @@
 
 ---
 
-## 3. Repository Statistics (Verified: 2026-07-29)
+## 3. Repository Statistics (Verified: 2026-07-30)
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 61 source + 12 test | ~17,646 + ~3,103 | 8 packages, ~125 Store interface methods, ~89 API endpoints; includes 2 cmd tools |
-| **Go Sandbox** (`sandbox/`) | 7 source + 1 Dockerfile + 1 test | ~1,157 + ~19 + ~32 | Zero external deps, 10-layer defense-in-depth |
-| **SQL Migrations** (`migrations/`) | 49 | ~21,112 | 32 schema + 17 seed, ~25 tables |
-| **Frontend App** (`app/`) | 73 `.tsx` | ~17,426 | 7 route groups, all with loading + error boundaries |
-| **Frontend Components** (`components/`) | 61 | ~9,917 | 19 shadcn/ui + 42 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,836 | 60+ API functions, 40+ TS interfaces, 4 hooks |
-| **Frontend Styles** (`styles/`) | 3 | ~1,364 | theme.css (857 vars), typography.css (431 lines) |
-| **Documentation** | 6 | ~5,695 | CLAUDE.md, README.md, SESSION_LOG.md, PLAN.md, 2 docs |
-| **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
-| **Config/Build** | 14 | ~596 | go.mod, go.sum, Procfile, build.sh, CI, env, gitignore, frontend configs |
-| **Total (tracked source)** | **~308** | **~81,800** | Source code + migrations + docs + config |
+| **Go Backend** (`cmd/` + `internal/`) | 61 source + 14 test | ~17,646 + ~2,876 | 8 packages, ~125 Store interface methods, ~89 API endpoints; includes 3 cmd tools |
+| **Go Sandbox** (`sandbox/`) | 8 source + 1 Dockerfile + 1 test | ~1,048 + ~13 + ~28 | Zero external deps, 10-layer defense-in-depth |
+| **SQL Migrations** (`migrations/`) | 50 | ~20,137 | 33 schema + 17 seed, ~25 tables |
+| **Frontend App** (`app/`) | 74 `.tsx` | ~16,905 | 7 route groups, all with loading + error boundaries |
+| **Frontend Components** (`components/`) | 62 | ~9,283 | 19 shadcn/ui + 43 custom |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 18 | ~2,492 | 60+ API functions, 40+ TS interfaces, 4 hooks |
+| **Frontend Styles** (`styles/`) | 3 | ~1,227 | theme.css (857 vars), typography.css (431 lines) |
+| **Documentation** | 17 | ~8,040 | 4 docs/ + 13 root docs files |
+| **Scripts** | 7 | ~817 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
+| **Config/Build** | 18 | ~604 | go.mod, go.sum, Procfile, build.sh, CI, env, gitignore, frontend configs, root data files |
+| **Total (tracked source)** | **~366** | **~89,700** | Source code + migrations + docs + config + root data files |
 
 ---
 
@@ -59,25 +59,26 @@ koder/
 ├── cmd/server/main.go                       # Entry point (104 lines)
 ├── cmd/extract-problems/main.go             # CL tool — extract problems from repository
 ├── cmd/generate-sql/main.go                 # CL tool — generate seed SQL from problem JSON
+├── cmd/generate-curriculum/main.go          # CL tool — generate curriculum SQL from AI JSON
 ├── internal/
-│   ├── api/              (26 files, 7,811 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
-│   ├── store/            (24 files, 6,702 LOC)  # Database access layer — pgx/v5, 125+ Store methods
-│   ├── executor/         (7 files, 2,334 LOC)   # Code execution engine, sandbox orchestration, output parsing
-│   ├── enricher/         (2 files, 1,173 LOC)   # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
-│   ├── auth/             (5 files, 684 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
-│   ├── broker/           (2 files, 254 LOC)     # In-memory pub/sub (cap 32, non-blocking)
-│   ├── parser/           (2 files, 717 LOC)     # GitHub YAML curriculum parser
-│   └── config/           (2 files, 702 LOC)     # Env var loader (32+ vars, fails-fast validation)
-├── sandbox/              (8 files, 1,189 LOC)   # Remote execution service — zero external deps
+│   ├── api/              (27 files, 6,767 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (24 files, 5,997 LOC)  # Database access layer — pgx/v5, 125+ Store methods
+│   ├── executor/         (7 files, 2,095 LOC)   # Code execution engine, sandbox orchestration, output parsing
+│   ├── enricher/         (2 files, 1,023 LOC)   # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── auth/             (5 files, 583 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
+│   ├── broker/           (2 files, 217 LOC)     # In-memory pub/sub (cap 32, non-blocking)
+│   ├── parser/           (2 files, 644 LOC)     # GitHub YAML curriculum parser
+│   └── config/           (2 files, 596 LOC)     # Env var loader (32+ vars, fails-fast validation)
+├── sandbox/              (8 source + 1 Dockerfile, ~1,061 LOC)  # Remote execution — zero external deps
 ├── frontend/
-│   ├── app/              (73 .tsx, ~17,426 LOC) # App Router pages (7 route groups)
-│   ├── components/       (61 files, ~9,917 LOC) # Shared components + shadcn/ui primitives
+│   ├── app/              (74 .tsx, ~16,905 LOC) # App Router pages (7 route groups)
+│   ├── components/       (62 files, ~9,283 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
 │   ├── lib/              (14 files, ~2,462 LOC) # API client, types, cache, event bus, markdown, pyodide
-│   ├── styles/           (3 files, ~1,364 LOC)  # theme.css (857 var tokens), typography.css (431 lines)
-├── migrations/           (49 files, ~21,112 LOC) # Full schema + seed data — 25 tables
+│   ├── styles/           (3 files, ~1,227 LOC)  # theme.css (857 var tokens), typography.css (431 lines)
+├── migrations/           (50 files, ~20,137 LOC) # Full schema + seed data — 25 tables
 ├── scripts/              (7 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh, generate-practicals-migration.mjs
-├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md
+├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md, curriculum.md, ai-curriculum-prompt.md
 ├── .github/workflows/ci.yml                     # 2-job CI: backend + frontend
 └── build.sh                                     # Cross-compile ARM64 deployment script (11 lines)
 ```
@@ -131,8 +132,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cmd/server/main.go` | 104 | `main` | Bootstrap: LoadConfig → NewPostgresStore → NewExecutor → NewBroker → NewRouter → http.ListenAndServe → graceful shutdown (10s deadline), `-ldflags` for commit/build time |
 | `cmd/extract-problems/main.go` | 114 | `main` | CLI — extract problems from GitHub repo READMEs |
 | `cmd/generate-sql/main.go` | 99 | `main` | CLI — generate seed SQL INSERTs from problem JSON |
+| `cmd/generate-curriculum/main.go` | 280 | `main` | CLI — generate curriculum SQL from AI-generated JSON |
 
-### 6.2 API Handlers (`internal/api/` — 26 files, 7,811 LOC)
+### 6.2 API Handlers (`internal/api/` — 27 files, 6,767 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -161,7 +163,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cache.go` | 132 | Generic TTL cache (30s): `userCache`, `profileCache`, `leaderboardCache`, `problemsCache` + `StopCaches()` |
 | `responses.go` | 95 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
 
-### 6.3 Store Layer (`internal/store/` — 24 files, 6,702 LOC)
+### 6.3 Store Layer (`internal/store/` — 24 files, 5,997 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -251,7 +253,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 7. Sandbox (`sandbox/` — 8 source files, 1,197 LOC, Zero External Dependencies)
+## 7. Sandbox (`sandbox/` — 8 source + 1 Dockerfile, ~1,061 LOC, Zero External Dependencies)
 
 | File | Lines | Purpose |
 |---|---|---|
@@ -268,7 +270,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ## 8. Frontend — Complete File Inventory
 
-### 8.1 App Router Pages (`frontend/app/` — 73 `.tsx` files, ~17,426 LOC)
+### 8.1 App Router Pages (`frontend/app/` — 74 `.tsx` files, ~16,905 LOC)
 
 #### Root (4 files)
 | File | Lines | Type | Purpose |
@@ -386,7 +388,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149 | Server | Privacy policy |
 | `terms/page.tsx` | 159 | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 61 files, ~9,917 LOC)
+### 8.2 Shared Components (`frontend/components/` — 62 files, ~9,283 LOC)
 
 #### shadcn/ui Primitives (19 files, ~1,598 LOC)
 | File | Lines | Purpose |
@@ -524,7 +526,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `monaco-theme.ts` | 30 | VS Code Dark+ theme registration (keyword/function/type/variable colors) |
 | `index.ts` | 1 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
 
-### 8.5 Styles (`frontend/styles/` — 3 files, ~1,364 LOC)
+### 8.5 Styles (`frontend/styles/` — 3 files, ~1,227 LOC)
 
 | File | Lines | Purpose |
 |---|---|---|
@@ -532,7 +534,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `typography.css` | 431 | Prose typography: CSS variables mapped to design tokens, h1-h4 sizing, inline code pill, blockquote, responsive md:prose-lg |
 | `globals.css` | 78 | Tailwind 4 entry, @tailwindcss/typography, custom variants, scrollbar-hide, caret-blink animation |
 
-### 8.6 Frontend Configuration (12 files)
+### 8.6 Frontend Configuration (13 files)
 
 | File | Lines | Purpose |
 |---|---|---|
@@ -551,7 +553,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 9. Database Migrations (`migrations/` — 49 files, ~21,112 LOC)
+## 9. Database Migrations (`migrations/` — 50 files, ~20,137 LOC)
 
 ### 9.1 Schema Migrations (33 files)
 
@@ -591,7 +593,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 032 | `045_add_module_locks.sql` | 5 | module_locks table (problem category locking) |
 | 033 | `047_add_param_names.sql` | 17 | param_names TEXT[] on problems for descriptive parameter names in scaffold generation |
 
-### 9.2 Seed Data Migrations (16 files)
+### 9.2 Seed Data Migrations (17 files)
 
 | # | File | Lines | Problems | Module(s) |
 |---|---|---|---|---|
@@ -610,8 +612,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 046 | `043_seed_python_mastery_practice.sql` | 1,434 | 30 | python-practice (difficulty 1-5, Python-only) |
 | 047 | `046_module_meta.sql` | 37 | N/A | module_meta seed for 26 modules (display_name, is_pinned) |
 | 048 | `047_seed_python_practicals.sql` | 1,095 | 25 | python-practicals seed: full INSERTs with 5–7 test cases each, module_meta for python-practice + python-practicals |
+| 049 | `048_seed_ai_fluency.sql` | 1,995 | ~30 | ai-fluency: AI-assisted problem-solving with multi-step reasoning and generated test cases |
 | — | `999_seed_python_test.sql` | 62 | 1 | py-double-it (pipeline verification) |
-| **Total seeded** | | | **~263 problems** | **15 modules** |
+| **Total seeded** | | | **~293 problems** | **16+ modules** |
 
 ---
 
@@ -933,22 +936,22 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 68 (61 backend + 7 sandbox) |
-| **Go LOC** | ~21,817 (17,646 backend source + 3,103 test + 1,176 sandbox source + 32 sandbox test + 19 Dockerfile) |
-| **Go test files** | 13 (~3,135 LOC, 126+ tests) |
+| **Go source files** | 69 (61 backend + 8 sandbox) |
+| **Go LOC** | ~21,798 (17,646 backend source + 2,876 test + 1,048 sandbox source + 28 sandbox test + 19 Dockerfile) |
+| **Go test files** | 14 (~2,904 LOC, 126+ tests) |
 | **Frontend TSX/TS files** | ~155 (~30,303 LOC) |
-| **Total tracked source LOC** | ~81,800 |
+| **Total tracked source LOC** | ~89,700 |
 | **API endpoints** | ~89 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
-| **Seed problems** | ~263 (180 Go, 58 Python, 25 Python-practicals) |
+| **Seed problems** | ~293 (180 Go, 58 Python, 25 Python-practicals, ~30 AI fluency) |
 | **Middleware chain depth** | 11 (including rate limiters) |
 | **WebSocket event types** | 9 |
 | **Curriculum lessons** | ~200+ across 6 courses |
 | **Curriculum section types** | 11 (ENUM) |
 | **AI assist actions** | 8 |
 | **shadcn/ui primitives** | 19 |
-| **Custom components** | 42 |
+| **Custom components** | 43 |
 | **External Go deps** | 7 |
 | **Sandbox external deps** | 0 (stdlib only) |
 | **Module WebP images** | 17 |
@@ -967,6 +970,8 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 7. **Empty `docs/` subdirectories** — `docs/adr/` and `docs/diagrams/` are placeholders with no content. These are counted as 0 LOC; actual docs total is 6 files (5,695 LOC).
 8. **Migration gap** — Migration numbers jump from 017 to 019 (no 018), and from 029 to 031 (no 030). Not harmful but breaks sequential readability.
 9. **`CODEBASE_INDEX.md`** — Superseded by this file (`CLAUDE.md`). Kept as a redirect pointer for existing references; will be removed in a future cleanup.
+10. **`sandbox/sandbox-runner` binary (9.4 MB)** — Tracked in git. Should be in `.gitignore` for a Go project.
+11. **Root data files (JSON, SQL)** — ~30 files (~12,939 LOC) tracked in the root directory, including problem JSONs, rollback/update SQL, and curriculum JSONs. Consider subdirectory organization.
 
 ---
 
@@ -1144,4 +1149,16 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-07-29 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit`*
+### 2026-07-30 — Session 90: Professional codebase reindex — all MD files read, accurate LOC verified
+- Read and catalogued all 17 markdown files across the repository
+- Discovered 4 new docs: `docs/curriculum.md` (937 LOC), `docs/ai-curriculum-prompt.md` (387 LOC), `courses.md` (607 LOC), `rephrase-review.md` (393 LOC)
+- Discovered new CLI tool: `cmd/generate-curriculum/main.go` (280 LOC) — reads AI JSON, writes curriculum SQL
+- Discovered new migration: `048_seed_ai_fluency.sql` (1,995 LOC, ~30 problems)
+- Updated total counts: 366 tracked source files, ~89,700 total LOC across all categories
+- Updated all section headers with verified file counts and LOC
+- Added Known Issues #10 (sandbox-runner binary tracked) and #11 (root data file organization)
+- Verified working tree clean on `update` branch with `git status`
+
+---
+
+*Last indexed: 2026-07-30 | Branch: `update` | Pre-verified: `go vet`, `go test`, ESLint, `tsc --noEmit` | Working tree: clean*

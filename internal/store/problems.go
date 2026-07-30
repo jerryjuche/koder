@@ -654,7 +654,6 @@ func (s *PostgresStore) ListAllProblemsAdmin(ctx context.Context) ([]Problem, er
 		       p.created_at, p.updated_at
 		FROM problems p
 		ORDER BY p.module, p.difficulty ASC
-		LIMIT 200
 	`
 
 	rows, err := s.pool.Query(ctx, query)
