@@ -1,3 +1,5 @@
+import { buildCompletionSuggestions } from "@/lib/monaco-intellisense";
+
 let registered = false;
 
 const Kind = {
@@ -426,26 +428,8 @@ export function registerPythonLanguageFeatures(monaco: any) {
 
   monaco.languages.registerCompletionItemProvider("python", {
     triggerCharacters: [".", "(", ","],
-    provideCompletionItems: (model: any, position: any) => {
-      const wordUntil = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: wordUntil.startColumn,
-        endColumn: wordUntil.endColumn,
-      };
-      return {
-        suggestions: ALL_COMPLETIONS.map((item) => ({
-          label: item.label,
-          kind: item.kind ?? Kind.Function,
-          detail: item.detail,
-          documentation: item.documentation,
-          insertText: item.insertText,
-          insertTextRules: item.insertTextRules,
-          range,
-        })),
-      };
-    },
+    provideCompletionItems: (model: any, position: any) =>
+      buildCompletionSuggestions(monaco, model, position, "python", ALL_COMPLETIONS),
   });
 
   monaco.languages.registerSignatureHelpProvider("python", {

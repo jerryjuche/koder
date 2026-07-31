@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import "@/lib/monaco-setup";
-import Editor, { loader } from "@monaco-editor/react";
-import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
-import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
-import { MONACO_EDITOR_OPTIONS } from "@/lib/monaco-options";
+import { CodeEditor } from "@/components/CodeEditor";
 import { executeMultiFile, type MultiFileSpec } from "@/lib/pyodide";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
@@ -59,10 +55,6 @@ export default function MultiFileEditor({ files, entryPoint }: MultiFileEditorPr
     execute: pyodideExecute,
     clearConsole,
   } = usePyodide();
-
-  useEffect(() => {
-    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
-  }, []);
 
   const activeCode = codeByPath[activePath] || "";
   const isEntryPoint = activePath === entryPoint;
@@ -192,21 +184,21 @@ export default function MultiFileEditor({ files, entryPoint }: MultiFileEditorPr
 
       {/* Monaco Editor */}
       <div className="flex-1 min-h-0">
-        <Editor
-          height="100%"
-          language={activePath.endsWith(".py") ? "python" : activePath.endsWith(".go") ? "go" : "plaintext"}
-          value={activeCode}
-          onChange={handleCodeChange}
-          theme="vs-dark-plus"
-          loading={<div className="h-full bg-[#1E1E1E]" />}
-          onMount={(_editor, monaco) => {
-            editorRef.current = _editor;
-            if (monaco) {
-              registerVSCodeDarkPlusTheme(monaco);
-              registerPythonLanguageFeatures(monaco);
-            }
+        <CodeEditor
+          key={activePath}
+          getInitialValue={() => codeByPath[activePath] || ""}
+          onChange={(v) => handleCodeChange(v)}
+          onMount={(editor) => {
+            editorRef.current = editor;
           }}
-          options={MONACO_EDITOR_OPTIONS}
+          language={
+            activePath.endsWith(".py")
+              ? "python"
+              : activePath.endsWith(".go")
+                ? "go"
+                : "plaintext"
+          }
+          loading={<div className="h-full bg-[#1E1E1E]" />}
         />
       </div>
     </div>

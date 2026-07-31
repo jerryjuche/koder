@@ -1,4 +1,9 @@
+let registered = false;
+
 export function registerVSCodeDarkPlusTheme(monaco: any) {
+  if (registered) return;
+  registered = true;
+
   monaco.editor.defineTheme("vs-dark-plus", {
     base: "vs-dark",
     inherit: true,
@@ -19,12 +24,37 @@ export function registerVSCodeDarkPlusTheme(monaco: any) {
       { token: "identifier", foreground: "9CDCFE" },
     ],
     colors: {
-      "editor.background": "#1E1E1E",
-      "editor.foreground": "#D4D4D4",
-      "editorLineNumber.foreground": "#858585",
-      "editor.selectionBackground": "#264F78",
+      "editor.background": "#1E1E2A",
+      "editor.foreground": "#D1D1D8",
+      "editorLineNumber.foreground": "#555568",
+      "editorLineNumber.activeForeground": "#D4AF37",
+      "editorCursor.foreground": "#D4AF37",
+      "editor.selectionBackground": "#3A3A4A",
+      "editor.inactiveSelectionBackground": "#2E2E3E",
+      "editor.lineHighlightBackground": "#242430",
+      "editorIndentGuide.background1": "#2A2A3A",
+      "editorIndentGuide.activeBackground1": "#3A3A50",
+      "editorBracketHighlight.foreground1": "#D4AF37",
+      "editorBracketHighlight.foreground2": "#7B8CBB",
+      "editorBracketHighlight.foreground3": "#22C55E",
+      "editorBracketPairGuide.activeBackground1": "#D4AF37",
+      "editorWidget.background": "#242430",
+      "editorWidget.border": "#33334A",
+      "editorSuggestWidget.background": "#1E1E2A",
+      "editorSuggestWidget.border": "#33334A",
+      "editorSuggestWidget.foreground": "#D1D1D8",
+      "editorSuggestWidget.selectedBackground": "#3A3A4A",
+      "editorSuggestWidget.highlightForeground": "#D4AF37",
+      "editorHoverWidget.background": "#1E1E2A",
+      "editorHoverWidget.border": "#33334A",
+      "editorGutter.background": "#1E1E2A",
+      "editorOverviewRuler.border": "#00000000",
+      "scrollbarSlider.background": "#33334A55",
+      "scrollbarSlider.hoverBackground": "#44445F88",
+      "scrollbarSlider.activeBackground": "#D4AF3755",
+      "input.background": "#242430",
+      "input.border": "#33334A",
+      "input.foreground": "#D1D1D8",
     },
   });
-
-  monaco.editor.setTheme("vs-dark-plus");
 }

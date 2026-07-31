@@ -1,13 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Editor, { loader } from "@monaco-editor/react";
-
-// This eliminates network dependency — faster load, works offline after first visit
-loader.config({ paths: { vs: "/vs" } });
-
 import {
   ChevronLeft,
   Play,
@@ -66,9 +61,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { LanguageLogo } from "@/components/LanguageLogo";
-import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
-import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
-import { MONACO_EDITOR_OPTIONS } from "@/lib/monaco-options";
+import { CodeEditor } from "@/components/CodeEditor";
 
 const GO_CODE = `package koder
 
@@ -222,6 +215,11 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     }
     return GO_CODE;
   });
+  // Bumping this key remounts the uncontrolled editor with the latest seed
+  // value. The editor never receives React-driven value writes while typing,
+  // which prevents the stale-value race that corrupted content.
+  const [resetKey, setResetKey] = useState(0);
+  const getInitialValue = useCallback(() => code, [code]);
   const [panelMode, setPanelMode] = useState<"tests" | "hints">("tests");
   const [hintsOpen, setHintsOpen] = useState<boolean[]>(Array(10).fill(false));
   const [submitting, setSubmitting] = useState(false);
@@ -253,6 +251,39 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+
+  const handleEditorChange = useCallback((value: string) => {
+    setCode(value);
+    setSaved(false);
+  }, []);
+  const handleEditorMount = useCallback((editor: any, monaco: any) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    editor.addAction({
+      id: "koder-format",
+      label: "Format Code",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+      contextMenuGroupId: "navigation",
+      contextMenuOrder: 1.5,
+      run: (ed: any) => handleFormatRef.current(),
+    });
+    editor.addAction({
+      id: "koder-test",
+      label: "Run Tests",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+      contextMenuGroupId: "navigation",
+      contextMenuOrder: 1.6,
+      run: () => handleTestRef.current(),
+    });
+    editor.addAction({
+      id: "koder-submit",
+      label: "Submit Solution",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter],
+      contextMenuGroupId: "navigation",
+      contextMenuOrder: 1.7,
+      run: () => handleSubmitRef.current(),
+    });
+  }, []);
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
 
   const returnTo =
@@ -292,12 +323,14 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               stored.trimEnd() === oldScaffold.trimEnd())
           ) {
             setCode(scaffold);
+            setResetKey((k) => k + 1);
             localStorage.setItem(STORE_KEY(slug, lang), scaffold);
           } else {
             setCode(stored);
           }
         } else {
           setCode(scaffold);
+          setResetKey((k) => k + 1);
         }
         setScaffoldAtToggle(scaffold);
         setSaved(true);
@@ -351,6 +384,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const handleReset = () => {
     let fresh = generateScaffold(problem, activeLanguage);
     setCode(fresh);
+    setResetKey((k) => k + 1);
     setSaved(true);
     setResults(null);
     setErrorMsg(null);
@@ -367,6 +401,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     // Restore saved code for the target language if available
     const saved = localStorage.getItem(STORE_KEY(slug, newLang));
     setCode(saved || scaffold);
+    setResetKey((k) => k + 1);
     setScaffoldAtToggle(scaffold);
     localStorage.setItem("koder_language", newLang);
     try {
@@ -1127,10 +1162,12 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
           {/* Editor Instance */}
           <div className="flex-1 overflow-hidden relative">
-            <Editor
-              height="100%"
+            <CodeEditor
+              key={`${activeLanguage}-${resetKey}`}
+              getInitialValue={getInitialValue}
+              onChange={handleEditorChange}
+              onMount={handleEditorMount}
               language={activeLanguage}
-              theme="vs-dark-plus"
               loading={
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
@@ -1141,44 +1178,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                   </div>
                 </div>
               }
-              value={code}
-              onChange={(v) => {
-                setCode(v || "");
-                setSaved(false);
-              }}
-              onMount={(editor, monaco) => {
-                editorRef.current = editor;
-                monacoRef.current = monaco;
-
-                registerVSCodeDarkPlusTheme(monaco);
-                registerPythonLanguageFeatures(monaco);
-
-                editor.addAction({
-                  id: "koder-format",
-                  label: "Format Code",
-                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-                  run: () => handleFormatRef.current(),
-                });
-
-                editor.addAction({
-                  id: "koder-test",
-                  label: "Run Tests",
-                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-                  run: () => handleTestRef.current(),
-                });
-
-                editor.addAction({
-                  id: "koder-submit",
-                  label: "Submit Solution",
-                  keybindings: [
-                    monaco.KeyMod.CtrlCmd |
-                      monaco.KeyMod.Shift |
-                      monaco.KeyCode.Enter,
-                  ],
-                  run: () => handleSubmitRef.current(),
-                });
-              }}
-              options={MONACO_EDITOR_OPTIONS}
             />
           </div>
 
