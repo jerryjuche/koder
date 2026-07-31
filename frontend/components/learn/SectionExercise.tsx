@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import "@/lib/monaco-setup";
-import Editor, { loader } from "@monaco-editor/react";
+import { CodeEditor } from "@/components/CodeEditor";
 import { testCode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
-import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
-import { MONACO_EDITOR_OPTIONS } from "@/lib/monaco-options";
 import { usePyodide } from "@/hooks/usePyodide";
 import PyodideConsole from "@/components/PyodideConsole";
 import ResizableSplitPane from "@/components/ResizableSplitPane";
@@ -82,10 +78,6 @@ export default function SectionExercise({
 
   const editorRef = useRef<any>(null);
   const pyodideRunRef = useRef<() => Promise<void>>(async () => {});
-
-  useEffect(() => {
-    loader.init().then(registerVSCodeDarkPlusTheme).catch(() => {});
-  }, []);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loadingProblems, setLoadingProblems] = useState(false);
 
@@ -107,11 +99,15 @@ export default function SectionExercise({
   const hasProblems = problemReferences.length > 0;
   const totalExercises = hasProblems ? problemReferences.length : 1;
 
-  const currentCode = codes[exerciseIndex] ?? (miniProject
-    ? "# Write your mini project code here\n\n"
-    : hasProblems
-      ? defaultExerciseCodes[Math.min(exerciseIndex, defaultExerciseCodes.length - 1)]
-      : freeformDefaultCodes[Math.min(exerciseIndex, freeformDefaultCodes.length - 1)]);
+  const getCodeFor = (idx: number) =>
+    codes[idx] ??
+    (miniProject
+      ? "# Write your mini project code here\n\n"
+      : hasProblems
+        ? defaultExerciseCodes[Math.min(idx, defaultExerciseCodes.length - 1)]
+        : freeformDefaultCodes[Math.min(idx, freeformDefaultCodes.length - 1)]);
+
+  const currentCode = getCodeFor(exerciseIndex);
 
   const currentResult = results[exerciseIndex] ?? null;
 
@@ -370,21 +366,17 @@ export default function SectionExercise({
       </div>
 
       <div className="flex-1 min-h-0 bg-[#1e1e1e]">
-        <Editor
-          height="100%"
-          language={isPython ? "python" : "go"}
-          value={currentCode}
-          onChange={(value) => setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))}
-          theme="vs-dark-plus"
-          loading={<div className="h-full bg-[#1e1e1e]" />}
-          onMount={(_editor, monaco) => {
-            editorRef.current = _editor;
-            if (monaco) {
-              registerVSCodeDarkPlusTheme(monaco);
-              registerPythonLanguageFeatures(monaco);
-            }
+        <CodeEditor
+          key={exerciseIndex}
+          getInitialValue={() => getCodeFor(exerciseIndex)}
+          onChange={(value) =>
+            setCodes((prev) => ({ ...prev, [exerciseIndex]: value || "" }))
+          }
+          onMount={(editor) => {
+            editorRef.current = editor;
           }}
-          options={MONACO_EDITOR_OPTIONS}
+          language={isPython ? "python" : "go"}
+          loading={<div className="h-full bg-[#1e1e1e]" />}
         />
       </div>
     </div>
