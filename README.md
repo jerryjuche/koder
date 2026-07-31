@@ -35,7 +35,7 @@
 | Constraint | Implication |
 |---|---|---|
 | $0/month operating budget | Every infrastructure choice must target a free tier |
-| ARM64 host (Oracle Ampere A1) | All Docker images and binaries must be ARM64-compatible |
+| Backend host (Render Free) | All Docker images and binaries must be linux/amd64-compatible |
 | 500MB Supabase storage | No bloated JSONB, no redundant columns |
 | NVIDIA NIM API quota (DeepSeek V4 Flash) | Ingest + Enrich must be idempotent with SHA256 change detection |
 | 3 retries with exponential backoff | 429/503 retry handling with 2s/4s/8s backoff |
@@ -54,7 +54,7 @@
 
 ### ADR-001: Monolithic Go Backend over Microservices
 **Decision:** Single binary, single process, single host.  
-**Rationale:** The VM has 4 ARM cores and 24GB RAM on the free tier, but network egress, container orchestration overhead, and service discovery would consume too many resources and add failure surfaces for a 20–30 student cohort.
+**Rationale:** A single instance on Render Free handles the full cohort without container orchestration overhead or service discovery complexity — a 20–30 student cohort fits comfortably on one process.
 
 ### ADR-002: Raw pgx/v5 over GORM or sqlx
 **Decision:** Write all SQL by hand using `jackc/pgx/v5` connection pools.  
@@ -62,7 +62,7 @@
 
 ### ADR-003: Docker Subprocess over gVisor / WASM sandbox
 **Decision:** `os/exec` + `docker run` for sandboxed execution.  
-**Rationale:** gVisor requires kernel configuration the Oracle free tier does not support. WASM for Go is immature. Docker with `--network=none --memory=64m` provides sufficient isolation without custom kernel modules.
+**Rationale:** gVisor requires kernel configuration that free-tier hosts do not support. WASM for Go is immature. Docker with `--network=none --memory=64m` provides sufficient isolation without custom kernel modules.
 
 ### ADR-004: System Prompt JSON over Structured Outputs  
 **Decision:** Use system prompt enforcement of JSON output; NVIDIA NIM's DeepSeek V4 Flash does not reliably support `response_format: json_object` (returns schema instead of data).  
@@ -73,9 +73,9 @@
 **Rationale:** Test generation requires type-safe conditional logic (primitive `==` vs `reflect.DeepEqual` for slices). String concatenation produces unmaintainable, injection-prone code generation. Templates are auditable and testable independently.
 
 ### ADR-006: Remote HTTP Sandbox over Docker-in-Docker
-**Decision:** Standalone Go HTTP service on Railway as default execution path, local Docker fallback.  
-**Rationale:** Running `docker run` inside the Oracle OCI VM creates a Docker-in-Docker pattern with cold-start issues (~2s per submission). A dedicated sandbox service on Railway eliminates Docker nesting, reduces cold start to ~800ms, and provides consistent resource isolation regardless of the backend host. Falls back transparently when `SANDBOX_URL` is empty.
+**Decision:** Standalone Go HTTP service on Fly.io as default execution path, local Docker fallback.  
 
+**Rationale:** Running `docker run` on the backend host (Render) creates a Docker-in-Docker pattern with cold-start issues (~2s per submission). A dedicated sandbox service on Fly.io eliminates Docker nesting, reduces cold start to ~800ms, and provides consistent resource isolation regardless of the backend host. Falls back transparently when `SANDBOX_URL` is empty.
 ---
 
 ## 3. Infrastructure Map
@@ -91,7 +91,7 @@
 └─────────────────────────┬───────────────────────────────────────┘
                           │ HTTPS REST API + WebSocket
 ┌─────────────────────────▼───────────────────────────────────────┐
-│            Go Monolith — Render / Oracle (ARM64)                │
+│            Go Monolith — Render (amd64)                    │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  chi Router → Middleware → Handler → Store (pgx/v5)      │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐   │   │
@@ -100,11 +100,11 @@
 │  │  └──────────┘  └────┬─────┘  └──────────┬───────────┘   │   │
 │  └─────────────────────┼───────────────────┼────────────────┘   │
 │                        │ NVIDIA NIM API     │ HTTP              │
-│                        │ (DeepSeek V4)      │ (Railway)         │
+│                        │ (DeepSeek V4)      │ (Fly.io)          │
 └────────────────────────┼───────────────────┼────────────────────┘
                          │                   │
 ┌────────────────────────▼───────────────────▼────────────────────┐
-│  NVIDIA NIM Cloud API            Railway Sandbox Service        │
+│  NVIDIA NIM Cloud API            Fly.io Sandbox Machine         │
 │  ai.api.nvidia.com              Go + Python execution          │
 │  /v1/chat/completions           setrlimit, AST validation      │
 └─────────────────────────────────────────────────────────────────┘
@@ -176,7 +176,7 @@ koder/
 │   │   ├── executor.go              # Semaphore, formatGoLiteral, formatPythonLiteral
 │   │   ├── templates.go             # Go text/template + pythonTestTemplate
 │   │   ├── sandbox.go               # Temp dir setup, file writes
-│   │   ├── sandbox_client.go        # HTTP client for remote Railway sandbox
+│   │   ├── sandbox_client.go        # HTTP client for remote Fly.io sandbox
 │   │   ├── parser.go                # GOT/WANT regex parsing
 │   │   └── types.go                 # ExecutionRequest/Result, TestResult
 │   │
@@ -208,7 +208,7 @@ koder/
 │       ├── cache.go                 # In-memory profile/leaderboard/user caches
 │       └── ws.go                    # WebSocket upgrade (gorilla/websocket)
 │
-├── sandbox/                         # Standalone execution sandbox (Railway, zero external deps)
+├── sandbox/                         # Standalone execution sandbox (Fly.io, zero external deps)
 │   ├── main.go                      # HTTP server: /health, /version, /execute (language routing)
 │   ├── ratelimit.go                 # Per-IP sliding window (10 req/min)
 │   ├── secure.go                    # Pre-exec malicious code validation (Go + Python)
@@ -217,7 +217,7 @@ koder/
 │   ├── pyrunner.go                  # Python test runner (AST validation, run_tests.py)
 │   ├── runtest_go.go                # Go test runner (go.mod, solution.go, main_test.go)
 │   ├── security_message_test.go     # Sandbox security message tests
-│   ├── Dockerfile                   # Two-stage ARM64 build (includes python3)
+│   ├── Dockerfile                   # Two-stage build (includes python3)
 │   └── go.mod                       # Zero external deps
 │
 ├── migrations/                      # 37 ordered, idempotent SQL migrations
@@ -544,7 +544,7 @@ Is SANDBOX_URL set?
   ├── YES → POST /execute with {code, test_code, timeout_sec, language}
   │         2-retry exponential backoff
   └── NO  → exec.CommandContext with language-specific Docker image:
-             golang:1.23-alpine or python:3.12-slim
+             golang:1.26-alpine or python:3.12-slim
       │                                         │
       ▼                                         ▼
 Parse result:                              Parse SandboxResponse JSON:
@@ -644,7 +644,7 @@ When using the local Docker path, the host must warm the cache:
 mkdir -p /tmp/go-build-cache
 docker run --rm \
   -v /tmp/go-build-cache:/root/.cache/go-build \
-  golang:1.23-alpine \
+  golang:1.26-alpine \
   go build std
 ```
 
@@ -950,11 +950,11 @@ NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
 # Execution
 EXECUTOR_MAX_CONCURRENCY=6
 EXECUTOR_TIMEOUT_SECONDS=30
-DOCKER_IMAGE=golang:1.23-alpine
+DOCKER_IMAGE=golang:1.26-alpine
 PYTHON_DOCKER_IMAGE=python:3.12-slim
 SANDBOX_BASE_DIR=/tmp/koder-sandbox
 BUILD_CACHE_DIR=/tmp/koder-cache
-GO_VERSION=1.23
+GO_VERSION=1.26
 PYTHON_VERSION=3.12
 
 # Server
@@ -968,8 +968,8 @@ ENVIRONMENT=development  # "development" | "production"
 ALLOWED_ORIGINS=http://localhost:3000
 
 # Sandbox (optional — empty = use local Docker)
-# Railway-deployed sandbox endpoint for production
-SANDBOX_URL=https://koder-sandbox.up.railway.app
+# Fly.io-deployed sandbox endpoint for production
+SANDBOX_URL=https://koder-sandbox.fly.dev
 PYTHON_SANDBOX_URL=                 # Separate URL for Python sandbox (optional)
 
 # Admin account (created on first startup)
@@ -993,11 +993,11 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ## 12. Production & Preview Deployments
 
 ### Domains by Branch
-| Branch | Frontend | Backend API | Sandbox/Railway |
+| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Fly.io) |
 |---|---|---|---|
-| **main** | `https://koder.sbs` | `https://api.koder.sbs` | — |
-| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-py.onrender.com` |
-| **update** | `https://update.koder.sbs` | *share staging backend* | *share staging sandbox* |
+| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.fly.dev` |
+| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.fly.dev` |
+| **update** | `https://update.koder.sbs` | *shares staging* | *shares staging* |
 
 ### Required Backend Environment (Production)
 ```bash
@@ -1091,11 +1091,11 @@ GitHub Actions workflow:
 
 | Bottleneck | Target | Mitigation |
 |---|---|---|---|---|
-| Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std`; sandbox path avoids Docker entirely with persistent Railway container |
-| Sandbox execution latency | <1s | Railway ARM64 container with pre-cached Go stdlib; HTTP request overhead ~100ms |
+| Docker cold start | <250ms | `/tmp/go-build-cache` mounted volume pre-warmed with `go build std`; sandbox path avoids Docker entirely with persistent Fly.io machine |
+| Sandbox execution latency | <1s | Fly.io machine with pre-cached Go stdlib; HTTP request overhead ~100ms |
 | Gemini API rate limit | 2 req/min | Sequential enrichment with 30s sleep between calls; idempotent re-runs |
 | Supabase 500MB cap | Never exceed | No binary storage; raw_readme + statement are the largest text fields |
-| Oracle VM RAM | Never OOM | Semaphore cap=6; `--memory=256m` per container; Go server typically <50MB RSS |
+| Render container RAM | Never OOM | Semaphore cap=6; `--memory=256m` per container; Go server typically <50MB RSS |
 | Vercel cold start | <200ms | Minimize `"use client"` components; no heavy server-side data fetching on initial load |
 | DB query latency (profile page) | <100ms | Collapsed 7 queries into single `get_full_profile()` PL/pgSQL function + in-memory lru cache (30s TTL) |
 | Rate limiting (submissions) | 5 per 45s per user | Per-user sliding window rate limiter; admins exempt |
@@ -1119,7 +1119,7 @@ This section exists specifically so GitHub Copilot and AI assistants have struct
 - The semaphore is `chan struct{}`, capacity 6 (configurable via `EXECUTOR_MAX_CONCURRENCY`). Acquire = send, release = receive via defer.
 - Execution branches on `cfg.SandboxURL`:
   - If set: POST `solution.go` + `main_test.go` to `SandboxURL/execute` via `sandboxClient` (2-retry exponential backoff)
-  - If empty: `exec.CommandContext` with `docker run --network=none --memory=64m golang:1.23-alpine`
+  - If empty: `exec.CommandContext` with `docker run --network=none --memory=64m golang:1.26-alpine`
 - All `exec.CommandContext` calls must use a context from `context.WithTimeout(ctx, 30*time.Second)`
 - The working directory is always `/tmp/koder/<uuid>` where `<uuid>` comes from `uuid.NewString()`
 - Three files are always written: `solution.go`, `main_test.go`, `go.mod` — never more, never less

@@ -140,7 +140,7 @@ func extractIP(r *http.Request) string {
 		}
 	}
 
-	// X-Real-IP: single client IP (set by nginx, Railway, etc.)
+	// X-Real-IP: single client IP (set by nginx, Fly.io, etc.)
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		if net.ParseIP(xri) != nil {
 			return xri

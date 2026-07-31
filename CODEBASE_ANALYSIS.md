@@ -20,11 +20,11 @@ The system's design is best understood through the lens of its constraints:
 
 | Constraint | Architectural Decision & Impact |
 |---|---|
-| **$0/month Budget** | Forced the use of Oracle Ampere A1 (ARM64) for the backend, Supabase free tier for the DB, and Railway/Vercel for execution and frontend. All components must be lightweight. |
+| **$0/month Budget** | Forced the use of Render Free for the backend, Supabase free tier for the DB, and Fly.io/Vercel for execution and frontend. All components must be lightweight. |
 | **500MB DB Limit** | Prohibits large JSONB blobs. Problem statements and metadata must be normalized. No binary storage in the database. |
 | **50 AI Calls/Day** | Gemini API is used for test case generation. To avoid hitting the limit, the system uses SHA256 hashing to detect unchanged problem definitions, skipping redundant API calls. A Groq fallback (Llama 3.3 70B) is implemented to bypass the strict Gemini limit entirely if needed. |
 | **2 AI Calls/Minute** | The `enricher` component enforces a hard `time.Sleep(30 * time.Second)` between Gemini API requests. |
-| **Limited Compute (ARM64)** | Concurrent student code executions are strictly throttled by a Go channel semaphore (`EXECUTOR_MAX_CONCURRENCY`, defaulting to 6) to prevent OOM errors and CPU starvation. |
+| **Limited Compute (free-tier)** | Concurrent student code executions are strictly throttled by a Go channel semaphore (`EXECUTOR_MAX_CONCURRENCY`, defaulting to 6) to prevent OOM errors and CPU starvation. |
 
 ## 3. Defense-in-Depth Security Model
 
@@ -33,7 +33,7 @@ Executing untrusted student code requires robust security. Koder implements a mu
 1.  **Static Analysis (Layer 1):** A regex blocklist (`secure.go`) scans incoming code for explicitly dangerous patterns (e.g., `os/exec`, `unsafe` in Go; `subprocess`, `eval` in Python).
 2.  **AST Validation (Layer 2 - Python):** Because regex can be bypassed in dynamic languages, Python submissions undergo Abstract Syntax Tree (AST) parsing (`pyrunner.go`) to walk the tree and block malicious imports or attribute calls.
 3.  **Kernel-Level Limits (Layer 3):** The sandbox uses Unix `setrlimit` (`secure_unix.go`) to cap file descriptors, process counts, and critically, virtual memory (`RLIMIT_AS` set to 512MB for Python).
-4.  **Container Isolation (Layer 4):** Execution happens within isolated Docker containers (or a remote Railway sandbox) with no network access (`--network=none`), minimal memory (`--memory=64m`), and restricted capabilities.
+4.  **Container Isolation (Layer 4):** Execution happens within isolated Docker containers (or a remote Fly.io sandbox) with no network access (`--network=none`), minimal memory (`--memory=64m`), and restricted capabilities.
 
 ## 4. The Three Core Pipelines
 

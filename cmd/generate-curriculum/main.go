@@ -62,7 +62,7 @@ type projectInput struct {
 }
 
 type input struct {
-	Course   courseInput   `json:"course"`
+	Course   courseInput    `json:"course"`
 	Modules  []moduleInput  `json:"modules"`
 	Projects []projectInput `json:"projects"`
 }
@@ -70,6 +70,7 @@ type input struct {
 func main() {
 	inFile := flag.String("in", "curriculum.json", "input JSON file with AI-generated curriculum content")
 	outFile := flag.String("out", "seed.sql", "output SQL migration file")
+	update := flag.Bool("update", false, "emit UPDATE statements for existing rows (course/module/lesson by slug; delete+re-insert sections/projects/dependencies) instead of INSERT ... ON CONFLICT")
 	flag.Parse()
 
 	data, err := os.ReadFile(*inFile)
@@ -97,21 +98,43 @@ func main() {
 
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	fmt.Fprintf(&sql, "-- ============================================================================\n")
-	fmt.Fprintf(&sql, "-- Koder :: %s Seed Data\n", escapeSQL(in.Course.Title))
+	if *update {
+		fmt.Fprintf(&sql, "-- Koder :: %s Content Refresh\n", escapeSQL(in.Course.Title))
+	} else {
+		fmt.Fprintf(&sql, "-- Koder :: %s Seed Data\n", escapeSQL(in.Course.Title))
+	}
 	fmt.Fprintf(&sql, "-- Generated: %s\n", ts)
 	fmt.Fprintf(&sql, "-- ============================================================================\n")
-	fmt.Fprintf(&sql, "-- Run this in your Supabase SQL editor after migrations 001-038.\n")
+	if *update {
+		fmt.Fprintf(&sql, "-- Idempotent refresh for an already-seeded course. Course, modules, and lessons are\n")
+		fmt.Fprintf(&sql, "-- updated in place by slug (IDs preserved, so user progress survives). Sections,\n")
+		fmt.Fprintf(&sql, "-- projects, and lesson dependencies are deleted and re-inserted for exact parity\n")
+		fmt.Fprintf(&sql, "-- with the source JSON.\n")
+	} else {
+		fmt.Fprintf(&sql, "-- Run this in your Supabase SQL editor after migrations 001-038.\n")
+	}
 	fmt.Fprintf(&sql, "-- ============================================================================\n\n")
 	fmt.Fprintf(&sql, "BEGIN;\n\n")
 
-	writeCourse(&sql, in.Course)
-	writeModules(&sql, in.Course.Slug, in.Modules)
-	writeLessons(&sql, in.Course.Slug, in.Modules)
-	writeSections(&sql, in.Course.Slug, in.Modules)
-	writeDependencies(&sql, in.Course.Slug, in.Modules)
-
-	if len(in.Projects) > 0 {
-		writeProjects(&sql, in.Course.Slug, in.Projects)
+	if *update {
+		writeCourseUpdate(&sql, in.Course)
+		writeModulesUpdate(&sql, in.Course.Slug, in.Modules)
+		writeLessonsUpdate(&sql, in.Course.Slug, in.Modules)
+		clearChildRows(&sql, in.Course.Slug)
+		writeSections(&sql, in.Course.Slug, in.Modules)
+		writeDependencies(&sql, in.Course.Slug, in.Modules)
+		if len(in.Projects) > 0 {
+			writeProjects(&sql, in.Course.Slug, in.Projects)
+		}
+	} else {
+		writeCourse(&sql, in.Course)
+		writeModules(&sql, in.Course.Slug, in.Modules)
+		writeLessons(&sql, in.Course.Slug, in.Modules)
+		writeSections(&sql, in.Course.Slug, in.Modules)
+		writeDependencies(&sql, in.Course.Slug, in.Modules)
+		if len(in.Projects) > 0 {
+			writeProjects(&sql, in.Course.Slug, in.Projects)
+		}
 	}
 
 	fmt.Fprintf(&sql, "\nCOMMIT;\n")
@@ -121,7 +144,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Curriculum seed generated → %s\n", *outFile)
+	fmt.Printf("✓ Curriculum %s generated → %s\n", map[bool]string{true: "refresh", false: "seed"}[*update], *outFile)
 	fmt.Printf("  Course: %s (%s)\n", in.Course.Title, in.Course.Slug)
 	fmt.Printf("  Modules: %d\n", len(in.Modules))
 	totalLessons := 0
@@ -130,7 +153,11 @@ func main() {
 	}
 	fmt.Printf("  Lessons: %d\n", totalLessons)
 	fmt.Printf("  Projects: %d\n", len(in.Projects))
-	fmt.Println("⚠  Review seed.sql before running against your database")
+	if *update {
+		fmt.Println("✓ Refresh semantics: course/modules/lessons updated by slug; child rows re-inserted")
+	} else {
+		fmt.Println("⚠  Review seed.sql before running against your database")
+	}
 }
 
 func writeCourse(sql *strings.Builder, c courseInput) {
@@ -179,6 +206,59 @@ func writeLessons(sql *strings.Builder, courseSlug string, modules []moduleInput
 		}
 	}
 	fmt.Fprintf(sql, "\nON CONFLICT (module_id, slug) DO NOTHING;\n\n")
+}
+
+// writeCourseUpdate updates an existing course in place by slug. The row id is
+// preserved so course_progress records stay valid.
+func writeCourseUpdate(sql *strings.Builder, c courseInput) {
+	fmt.Fprintf(sql, "-- ── 1. COURSE (UPDATE) ──────────────────────────────────────────────\n\n")
+
+	fmt.Fprintf(sql, "UPDATE courses\nSET title = '%s',\n    description = '%s',\n    difficulty_level = %d,\n    estimated_hours = %d,\n    order_number = %d\nWHERE slug = '%s';\n\n",
+		escapeSQL(c.Title), escapeSQL(c.Description),
+		c.DifficultyLevel, c.EstimatedHours, c.OrderNumber,
+		escapeSQL(c.Slug))
+}
+
+// writeModulesUpdate updates existing modules in place by (course_id, slug).
+// Row ids are preserved so lesson ids (and progress) stay valid.
+func writeModulesUpdate(sql *strings.Builder, courseSlug string, modules []moduleInput) {
+	fmt.Fprintf(sql, "-- ── 2. MODULES (UPDATE) ─────────────────────────────────────────────\n\n")
+
+	for _, m := range modules {
+		fmt.Fprintf(sql, "UPDATE modules\nSET title = '%s',\n    description = '%s',\n    order_number = %d\nWHERE course_id = (SELECT c.id FROM courses c WHERE c.slug = '%s')\n  AND slug = '%s';\n\n",
+			escapeSQL(m.Title), escapeSQL(m.Description), m.OrderNumber,
+			escapeSQL(courseSlug), escapeSQL(m.Slug))
+	}
+}
+
+// writeLessonsUpdate updates existing lessons in place by (module_id, slug).
+// Row ids are preserved so lesson_progress records stay valid.
+func writeLessonsUpdate(sql *strings.Builder, courseSlug string, modules []moduleInput) {
+	fmt.Fprintf(sql, "-- ── 3. LESSONS (UPDATE) ─────────────────────────────────────────────\n\n")
+
+	for _, m := range modules {
+		for _, l := range m.Lessons {
+			refs := formatRefs(l.ProblemReferences)
+			fmt.Fprintf(sql, "UPDATE lessons\nSET title = '%s',\n    description = '%s',\n    difficulty = %d,\n    estimated_minutes = %d,\n    xp_reward = %d,\n    problem_references = %s\nWHERE module_id = (SELECT m.id FROM modules m JOIN courses c ON m.course_id = c.id WHERE c.slug = '%s' AND m.slug = '%s')\n  AND slug = '%s';\n\n",
+				escapeSQL(l.Title), escapeSQL(l.Description),
+				l.Difficulty, l.EstimatedMinutes, l.XPReward,
+				refs, escapeSQL(courseSlug), escapeSQL(m.Slug), escapeSQL(l.Slug))
+		}
+	}
+}
+
+// clearChildRows deletes sections, projects, and lesson dependencies belonging
+// to the course so they can be re-inserted with exact parity to the JSON. Only
+// child rows are removed — parent course/module/lesson rows and user progress
+// are untouched.
+func clearChildRows(sql *strings.Builder, courseSlug string) {
+	fmt.Fprintf(sql, "-- ── 4. CLEAR CHILD ROWS (re-insert for parity) ───────────────────────\n\n")
+
+	fmt.Fprintf(sql, "DELETE FROM lesson_dependencies\nWHERE lesson_id IN (\n  SELECT l.id FROM lessons l\n  JOIN modules m ON l.module_id = m.id\n  JOIN courses c ON m.course_id = c.id\n  WHERE c.slug = '%s');\n\n", escapeSQL(courseSlug))
+
+	fmt.Fprintf(sql, "DELETE FROM lesson_sections\nWHERE lesson_id IN (\n  SELECT l.id FROM lessons l\n  JOIN modules m ON l.module_id = m.id\n  JOIN courses c ON m.course_id = c.id\n  WHERE c.slug = '%s');\n\n", escapeSQL(courseSlug))
+
+	fmt.Fprintf(sql, "DELETE FROM projects\nWHERE lesson_id IN (\n  SELECT l.id FROM lessons l\n  JOIN modules m ON l.module_id = m.id\n  JOIN courses c ON m.course_id = c.id\n  WHERE c.slug = '%s');\n\n", escapeSQL(courseSlug))
 }
 
 func writeSections(sql *strings.Builder, courseSlug string, modules []moduleInput) {

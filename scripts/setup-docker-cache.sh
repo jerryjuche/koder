@@ -4,5 +4,5 @@
 mkdir -p /tmp/go-build-cache
 docker run --rm \
   -v /tmp/go-build-cache:/root/.cache/go-build \
-  golang:1.23-alpine \
+  golang:1.26-alpine \
   go build std

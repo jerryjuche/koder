@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 COPY go.mod ./
@@ -7,7 +7,7 @@ COPY *.go ./
 ARG GIT_COMMIT=dev
 RUN CGO_ENABLED=0 go build -ldflags="-X main.gitCommit=${GIT_COMMIT}" -o sandbox-runner .
 
-FROM golang:1.23-alpine
+FROM golang:1.26-alpine
 
 RUN apk add --no-cache python3
 
