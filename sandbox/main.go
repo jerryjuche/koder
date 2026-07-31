@@ -27,7 +27,7 @@ type ExecuteRequest struct {
 	TestCode   string `json:"test_code"`   // Generated test runner content
 	TimeoutSec int    `json:"timeout_sec"` // Per-execution timeout (default 30)
 	GoModule   string `json:"go_module"`   // Module name for go.mod (default "sandbox")
-	GoVersion  string `json:"go_version"`  // Go version directive (default "1.23")
+	GoVersion  string `json:"go_version"`  // Go version directive (default "1.26")
 }
 
 // ExecuteResponse is returned to the backend after execution.
@@ -49,7 +49,7 @@ const (
 	defaultTimeoutSec = 30
 	maxTimeoutSec     = 60
 	defaultGoModule   = "sandbox"
-	defaultGoVersion  = "1.23"
+	defaultGoVersion  = "1.26"
 )
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")

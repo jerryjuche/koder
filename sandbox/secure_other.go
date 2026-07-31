@@ -8,7 +8,7 @@ import (
 
 // setProcessAttributes is a no-op on platforms that do not support
 // syscall.Rlimit or Setpgid (e.g. Windows, Plan 9). When the sandbox
-// is deployed on Railway (Linux), the unix implementation applies.
+// is deployed on Fly.io (Linux), the unix implementation applies.
 func setProcessAttributes(_ *exec.Cmd, _ int) {}
 
 // setPythonRlimits is a no-op on non-Unix platforms.
