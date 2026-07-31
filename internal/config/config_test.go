@@ -111,8 +111,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.ExecutorTimeoutSeconds != 30 {
 		t.Errorf("expected default timeout 30, got %d", cfg.ExecutorTimeoutSeconds)
 	}
-	if cfg.DockerImage != "golang:1.23-alpine" {
-		t.Errorf("expected default DockerImage golang:1.23-alpine, got %s", cfg.DockerImage)
+	if cfg.DockerImage != "golang:1.26-alpine" {
+		t.Errorf("expected default DockerImage golang:1.26-alpine, got %s", cfg.DockerImage)
 	}
 	if cfg.PythonDockerImage != "python:3.12-slim" {
 		t.Errorf("expected default PythonDockerImage python:3.12-slim, got %s", cfg.PythonDockerImage)
@@ -120,8 +120,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.PythonExecutorTimeout != 60 {
 		t.Errorf("expected default PythonExecutorTimeout 60, got %d", cfg.PythonExecutorTimeout)
 	}
-	if cfg.GoVersion != "1.23" {
-		t.Errorf("expected default GoVersion 1.23, got %s", cfg.GoVersion)
+	if cfg.GoVersion != "1.26" {
+		t.Errorf("expected default GoVersion 1.26, got %s", cfg.GoVersion)
 	}
 	if cfg.SandboxBaseDir != "/tmp/koder" {
 		t.Errorf("expected default SandboxBaseDir /tmp/koder, got %s", cfg.SandboxBaseDir)

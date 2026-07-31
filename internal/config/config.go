@@ -36,7 +36,7 @@ type Config struct {
 	SandboxBaseDir         string
 	BuildCacheDir          string
 	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
-	GoVersion              string // Go version directive for generated go.mod (default "1.23")
+	GoVersion              string // Go version directive for generated go.mod (default "1.26")
 
 	// Python execution
 	PythonDockerImage     string // default: "python:3.12-slim"
@@ -213,7 +213,7 @@ func Load() (*Config, error) {
 
 	cfg.DockerImage = os.Getenv("DOCKER_IMAGE")
 	if cfg.DockerImage == "" {
-		cfg.DockerImage = "golang:1.23-alpine"
+		cfg.DockerImage = "golang:1.26-alpine"
 	}
 
 	cfg.SandboxBaseDir = os.Getenv("SANDBOX_BASE_DIR")
@@ -231,7 +231,7 @@ func Load() (*Config, error) {
 
 	cfg.GoVersion = os.Getenv("GO_VERSION")
 	if cfg.GoVersion == "" {
-		cfg.GoVersion = "1.23"
+		cfg.GoVersion = "1.26"
 	}
 
 	// Python execution
