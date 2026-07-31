@@ -1,0 +1,52 @@
+# =============================================================================
+# container-app.yaml — Declarative manifest for the Koder sandbox on Azure
+#                      Container Apps (consumption plan, scale-to-zero).
+#
+# Usage:
+#   az containerapp create \
+#       --resource-group koder-sandbox \
+#       --environment sandbox-env \
+#       --yaml container-app.yaml
+#
+# Equivalent to sandbox/azure/deploy.sh. Prefer the script for routine
+# updates; use this YAML for repeatable, versioned deployments.
+#
+# Image is public (ghcr.io/jerryjuche/koder-sandbox) so no registry
+# credentials are required.
+# =============================================================================
+location: westeurope
+
+properties:
+  # Single active revision keeps deployments deterministic and simple.
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      traffic:
+        - latestRevision: true
+          weight: 100
+
+  template:
+    containers:
+      - image: ghcr.io/jerryjuche/koder-sandbox:latest
+        name: koder-sandbox
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          # One backend IP fans out many submissions, so lift the sandbox's
+          # per-IP limit from its 10/min default to 60/min.
+          - name: SANDBOX_RATE_LIMIT_PER_MIN
+            value: "60"
+
+    scale:
+      # minReplicas 0 = true scale-to-zero: no compute charges while idle.
+      minReplicas: 0
+      maxReplicas: 4
+      rules:
+        - name: http
+          http:
+            metadata:
+              # Scale out one replica per 50 concurrent requests.
+              concurrentRequests: "50"

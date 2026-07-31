@@ -44,3 +44,6 @@ CODEBASE_ANALYSIS.md
 
 # Windows reserved device name
 nul
+
+# Kilo Code plugin runtime (local tool)
+.kilo/
