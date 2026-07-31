@@ -11,11 +11,11 @@ app = "koder-sandbox"
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
+  auto_start_machines = false
+  min_machines_running = 1
 
   [[http_service.checks]]
-    interval = "15s"
+    interval = "20s"
     timeout = "5s"
     path = "/health"
     method = "GET"
