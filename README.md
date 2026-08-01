@@ -73,10 +73,9 @@
 **Rationale:** Test generation requires type-safe conditional logic (primitive `==` vs `reflect.DeepEqual` for slices). String concatenation produces unmaintainable, injection-prone code generation. Templates are auditable and testable independently.
 
 ### ADR-006: Remote HTTP Sandbox over Docker-in-Docker
-**Decision:** Standalone Go HTTP service on Fly.io as default execution path, local Docker fallback.  
+**Decision:** Standalone Go HTTP service as default execution path, local Docker fallback. Deployed on **Azure Container Apps** (consumption plan, public **GHCR** image) to keep the platform at a strict $0 budget; **Fly.io** (preserved in `sandbox/fly.toml`) is the live fallback until cutover.
 
-**Rationale:** Running `docker run` on the backend host (Render) creates a Docker-in-Docker pattern with cold-start issues (~2s per submission). A dedicated sandbox service on Fly.io eliminates Docker nesting, reduces cold start to ~800ms, and provides consistent resource isolation regardless of the backend host. Falls back transparently when `SANDBOX_URL` is empty.
----
+**Rationale:** Running `docker run` on the backend host (Render) creates a Docker-in-Docker pattern with cold-start issues (~2s per submission). A dedicated sandbox service eliminates Docker nesting and provides consistent resource isolation regardless of the backend host. ACA consumption billing with scale-to-zero costs nothing at idle (Fly.io billed per running machine); the migration is transparent because the service falls back to local Docker when `SANDBOX_URL` is empty. See [`docs/azure-sandbox-deploy.md`](docs/azure-sandbox-deploy.md).
 
 ## 3. Infrastructure Map
 
@@ -100,11 +99,11 @@
 │  │  └──────────┘  └────┬─────┘  └──────────┬───────────┘   │   │
 │  └─────────────────────┼───────────────────┼────────────────┘   │
 │                        │ NVIDIA NIM API     │ HTTP              │
-│                        │ (DeepSeek V4)      │ (Fly.io)          │
+│                        │ (DeepSeek V4)      │ (ACA)          │
 └────────────────────────┼───────────────────┼────────────────────┘
                          │                   │
 ┌────────────────────────▼───────────────────▼────────────────────┐
-│  NVIDIA NIM Cloud API            Fly.io Sandbox Machine         │
+│  NVIDIA NIM Cloud API            ACA Sandbox (GHCR)         │
 │  ai.api.nvidia.com              Go + Python execution          │
 │  /v1/chat/completions           setrlimit, AST validation      │
 └─────────────────────────────────────────────────────────────────┘
@@ -116,6 +115,10 @@
 │  refresh_tokens / curriculum CMS (courses→modules→lessons)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+> **Sandbox deployment:** see [`docs/azure-sandbox-deploy.md`](docs/azure-sandbox-deploy.md)
+> for the Azure Container Apps + GHCR runbook (deploy, verify, operate, rollback).
+> Fly.io remains the live fallback until cutover.
 
 ---
 
@@ -968,8 +971,8 @@ ENVIRONMENT=development  # "development" | "production"
 ALLOWED_ORIGINS=http://localhost:3000
 
 # Sandbox (optional — empty = use local Docker)
-# Fly.io-deployed sandbox endpoint for production
-SANDBOX_URL=https://koder-sandbox.fly.dev
+# Azure Container Apps sandbox endpoint for production
+SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 PYTHON_SANDBOX_URL=                 # Separate URL for Python sandbox (optional)
 
 # Admin account (created on first startup)
@@ -993,11 +996,16 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ## 12. Production & Preview Deployments
 
 ### Domains by Branch
-| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Fly.io) |
+| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Azure Container Apps) |
 |---|---|---|---|
-| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.fly.dev` |
-| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.fly.dev` |
+| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
+| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
 | **update** | `https://update.koder.sbs` | *shares staging* | *shares staging* |
+
+> Sandbox runs on Azure Container Apps (consumption plan, public GHCR image,
+> scale-to-zero). See [`docs/azure-sandbox-deploy.md`](docs/azure-sandbox-deploy.md)
+> for the deploy/verify/rollback runbook. Rollback: `cd sandbox && fly deploy`
+> (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
 
 ### Required Backend Environment (Production)
 ```bash

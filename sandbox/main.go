@@ -352,8 +352,19 @@ func main() {
 		port = "8080"
 	}
 
-	// Per-IP rate limiter: 10 requests per minute, purge stale entries every 5 minutes
-	rl := NewRateLimiter(10, 1*time.Minute, 5*time.Minute)
+	// Per-IP rate limiter: 10 requests per minute by default, purge stale
+	// entries every 5 minutes. SANDBOX_RATE_LIMIT_PER_MIN overrides the limit
+	// (e.g. 60 behind a single backend IP on Azure Container Apps).
+	ratePerMin := 10
+	if v := os.Getenv("SANDBOX_RATE_LIMIT_PER_MIN"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			ratePerMin = n
+		} else {
+			log.Printf("sandbox: ignoring invalid SANDBOX_RATE_LIMIT_PER_MIN=%q, using %d", v, ratePerMin)
+		}
+	}
+
+	rl := NewRateLimiter(ratePerMin, 1*time.Minute, 5*time.Minute)
 	defer rl.Stop()
 
 	mux := http.NewServeMux()
