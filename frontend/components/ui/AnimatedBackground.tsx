@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 
 const ShapeGrid = dynamic(() => import('@/components/ui/ShapeGrid'), { ssr: false });
@@ -14,21 +14,33 @@ interface AnimatedBackgroundProps {
   shape?: 'square' | 'hexagon' | 'circle' | 'triangle';
 }
 
+// Subscribe to prefers-reduced-motion without triggering setState-in-effect lint.
+const motionQuery =
+  typeof window !== 'undefined'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+
+function subscribeMotion(cb: () => void) {
+  motionQuery?.addEventListener('change', cb);
+  return () => motionQuery?.removeEventListener('change', cb);
+}
+function getMotionSnapshot() {
+  return motionQuery?.matches ?? false;
+}
+function getMotionServerSnapshot() {
+  return false;
+}
+
 export default function AnimatedBackground({
   fadeEnd = '55%',
   opacity = 0.45,
   shape = 'hexagon',
 }: AnimatedBackgroundProps) {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPrefersReducedMotion(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    getMotionSnapshot,
+    getMotionServerSnapshot,
+  );
 
   if (prefersReducedMotion) return null;
 
@@ -49,11 +61,11 @@ export default function AnimatedBackground({
         hoverTrailAmount={3}
       />
 
-      {/* Top-to-bottom gradient: visible at top, fades to solid charcoal base at fadeEnd */}
+      {/* Top-to-bottom gradient: visible at top, softly fades toward bottom */}
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(to bottom, transparent 0%, rgba(20, 20, 20, 0.15) 25%, rgba(20, 20, 20, 0.6) 40%, #141414 ${fadeEnd})`,
+          background: `linear-gradient(to bottom, transparent 0%, rgba(20, 20, 20, 0.08) 30%, rgba(20, 20, 20, 0.35) 50%, rgba(20, 20, 20, 0.75) ${fadeEnd})`,
         }}
       />
     </div>

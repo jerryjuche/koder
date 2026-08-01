@@ -451,12 +451,12 @@ export function registerPythonLanguageFeatures(monaco: any) {
       { open: "'", close: "'" },
     ],
     indentationRules: {
-      increaseIndentPattern: /^.*:\s*$/,
+      increaseIndentPattern: /^.*:\s*(?:#.*)?$/,
       decreaseIndentPattern: /^\s*(elif|else|except|finally)\b.*$/,
     },
     onEnterRules: [
       {
-        beforeText: /:\s*$/,
+        beforeText: /:\s*(?:#.*)?$/,
         action: { indentAction: monaco.languages.IndentAction.Indent },
       },
     ],

@@ -153,9 +153,25 @@ export default function LessonViewerClient() {
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    let active = true;
+    Promise.all([
+      fetchLesson(courseSlug, moduleSlug, lessonSlug),
+      fetchModule(courseSlug, moduleSlug),
+    ]).then(([lessonRes, moduleRes]) => {
+      if (!active) return;
+      if (lessonRes.success && lessonRes.data) {
+        setLessonData(lessonRes.data);
+        setCompleted(lessonRes.data.progress?.completed ?? false);
+      }
+      if (moduleRes.success && moduleRes.data) {
+        setModuleData(moduleRes.data);
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [courseSlug, moduleSlug, lessonSlug]);
 
   // Group steps from sections; quiz sections grouped into one interactive review step
   const steps = useMemo<Step[]>(() => {
