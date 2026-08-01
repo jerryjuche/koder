@@ -11,7 +11,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <UserProvider>
       <div className="relative min-h-screen flex flex-col bg-background text-foreground">
         {/* Subtle animated hexagon grid — ambient background texture */}
-        <AnimatedBackground fadeEnd="50%" opacity={0.35} />
+        <AnimatedBackground fadeEnd="75%" opacity={0.75} />
         <TopNav />
         <main className="relative z-10 flex-1 w-full px-4 sm:px-6 lg:px-8 pt-6">
           <BroadcastBanner />
