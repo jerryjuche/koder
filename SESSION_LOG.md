@@ -2644,3 +2644,24 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Kept intentionally dark: code/console surfaces (workspace code preview `#0F1115`/`#0A0C0F`/`#050608`, PyodideConsole `#0D0D14`, admin previews `#0d1117`/`#161b22`, success tint `#1A2521`)
 - Verified: grep sweep clean, ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
 - Pushed to `origin/update`
+
+---
+
+## Session 98 — 2026-08-01 — Phase 1 complete: real TextMate tokenization (Dark+ fidelity)
+
+### Changes
+- **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code, not an approximation
+- `frontend/lib/monaco-textmate.ts` (new, 67 LOC): `Registry({ onigLib, loadGrammar })` → `setTheme(rawTheme, null)` → `monaco.languages.setColorMap(registry.getColorMap())` → `setTokensProvider("python"|"go", { getInitialState, tokenizeEncoded })`. `tokenizeEncoded` passthrough routes through Monaco's `EncodedTokenizationSupportAdapter` (verified in AMD source), so vscode-textmate color ids render against the registry color map directly — no scope→color translation, no Monarch fallback
+- `frontend/scripts/build-monaco-assets.mjs`: now emits 4 tracked artifacts — (1) `lib/dark-plus-theme.generated.json` (Monaco theme), (2) `lib/dark-plus-textmate.generated.json` (raw `IRawTheme` with a **prepended scope-less default rule** `#D4D4D4`/`#1E1E1E` so uncolored tokens inherit Dark+'s editor.foreground instead of vscode-textmate's `#000000` fallback), (3) `lib/grammars/python.tmLanguage.json` (MagicPython), (4) `lib/grammars/go.tmLanguage.json` (VSCode Go). Generated artifacts live under `lib/` (tracked); vendored sources under `scripts/vendor/` remain gitignored build inputs
+- `frontend/lib/monaco-theme.ts`: `registerVSCodeDarkPlusTheme` now consumes the 169-rule/28-color generated Dark+ theme via JSON import, keeping the neutral charcoal widget surfaces from Sessions 95–97 as overrides (`CHARCOAL_SURFACES`)
+- `frontend/scripts/copy-monaco.mjs`: copies `node_modules/vscode-oniguruma/release/onig.wasm` → `public/vs/onig.wasm` unconditionally (even when `public/vs` already exists)
+- `frontend/lib/monaco-setup.ts`: `initMonacoEditor` calls `initTextMateTokenization(monaco)` (fire-and-forget; Monaco re-tokenizes open models on provider registration)
+- `frontend/types/vscode-textmate.d.ts` + `vscode-oniguruma.d.ts` (new): ambient re-exports — both packages ship `.d.ts` but no `types` field in package.json, so TS can't resolve them natively
+- **Runtime-safety detail:** both CJS packages have `__esModule: true` with no `.default` export, so default imports would resolve to `undefined`; namespace imports (`import * as tm`) are the correct form
+
+### Verification
+- Node end-to-end probe (committed artifacts → Registry → tokenizeLine2 → `(meta >>> 15) & 0x1ff` → colorMap): `from typing import List` → `from`/`import` #C586C0, `List` plain #D4D4D4 (matches real MagicPython); `def is_palindrome(s: str) -> bool` → #569CD6/#DCDCAA/#4EC9B0; Go `const factor = 2.5` → #4FC1FF (canonical `variable.other.constant`), `fmt.Println("hi")` → #9CDCFE/#DCDCAA/#CE9178; `"1"`/`2.5` → #B5CEA8 — all exact Dark+ values
+- Default-rule fix confirmed: colorMap[1] = #D4D4D4 (was #000000), colorMap[2] = #1E1E1E
+- Monaco AMD build verified: `setColorMap`, `setTokensProvider`, `tokenizeEncoded`, `getInitialState` all present in `editor.api` chunk; `setTokensProvider` throws for unknown language (both registered via existing completion/hover providers)
+- `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors, `next build` success (TextMate + oniguruma + grammar JSONs confirmed bundled in client chunks)
+- Working tree: 5 modified + 8 untracked (generated artifacts + new source files), all under tracked `lib/`/`types/` paths

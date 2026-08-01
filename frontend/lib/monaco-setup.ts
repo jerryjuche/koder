@@ -5,6 +5,7 @@ import { loader } from "@monaco-editor/react";
 import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
 import { registerGoCompletionProvider } from "@/lib/monaco-intellisense";
+import { initTextMateTokenization } from "@/lib/monaco-textmate";
 
 // Serve Monaco's AMD build + workers from /public/vs (copied by scripts/copy-monaco.mjs).
 // Single config point — do not call loader.config anywhere else.
@@ -19,6 +20,10 @@ export function initMonacoEditor(monaco: any): any {
   registerVSCodeDarkPlusTheme(monaco);
   registerPythonLanguageFeatures(monaco);
   registerGoCompletionProvider(monaco);
+
+  // Real TextMate tokenization for Go + Python (fire-and-forget: Monaco
+  // re-tokenizes open models when the provider registers).
+  initTextMateTokenization(monaco);
 
   // The editor measures glyph widths from the loaded font. If a web font is
   // applied after Monaco boots, line metrics go stale and lines can wrap or

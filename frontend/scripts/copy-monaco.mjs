@@ -14,3 +14,10 @@ if (existsSync(dest)) {
   cpSync(src, dest, { recursive: true });
   console.log('[copy-monaco] Copied monaco-editor workers to public/vs');
 }
+
+// TextMate tokenization needs oniguruma's WASM at runtime. Copy it
+// unconditionally so upgrades land even when public/vs already exists.
+const onigSrc = resolve(root, 'node_modules', 'vscode-oniguruma', 'release', 'onig.wasm');
+const onigDest = resolve(dest, 'onig.wasm');
+cpSync(onigSrc, onigDest);
+console.log('[copy-monaco] Copied onig.wasm to public/vs/onig.wasm');

@@ -43,8 +43,7 @@
 | **SQL Migrations** (`migrations/`) | 51 | ~27,470 | 33 schema + 17 seed/content + 1 content-refresh, 25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,718 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
 | **Frontend Components** (`components/`) | 63 | ~10,039 | 20 shadcn/ui + 43 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 20 | ~3,386 | 60+ API functions, 40+ TS interfaces, 4 hooks |
-| **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 22 | ~3,902 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
 | **Documentation** | 17 | ~9,143 | 4 docs/ + 13 root docs files |
 | **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
 | **Config/Build** | 14 | ~699 | go.mod, go.sum, Procfile, build.sh, CI, env, env example, frontend configs |
@@ -75,7 +74,7 @@ koder/
 │   ├── app/              (73 .tsx, ~17,718 LOC) # App Router pages (7 route groups)
 │   ├── components/       (63 files, ~10,039 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
-│   ├── lib/              (16 files, ~3,012 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco
+│   ├── lib/              (18 files, ~3,528 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
 │   ├── styles/           (3 files, ~1,382 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
 │   └── public/           (28 assets)            # module WebP images (18), icons, logo, OG image
 ├── migrations/           (51 files, ~27,470 LOC) # Full schema + seed data — 25 tables
@@ -514,26 +513,28 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 16 files, ~3,012 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 18 files, ~3,528 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `api.ts` | 897 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
-| `types.ts` | 618 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
-| `monaco-python.ts` | 511 | Monaco Python IntelliSense language configuration |
-| `pyodide.ts` | 233 | `eagerLoadPyodide()`, `executePython(code, timeout?)` (10s), `executeMultiFile(spec)`, CDN v0.27.4 |
-| `event.ts` | 135 | `subscribe(type, callback)`, `useWebSocket(handlers, deps)`, 9 event types, auto-reconnect |
-| `UserContext.tsx` | 102 | `UserProvider`, `useUser()`, `refreshUser()`, `setPrimaryLanguage()`, WebSocket XP auto-refresh |
-| `useNotifications.ts` | 97 | `useNotifications()`, 15s/60s polling, markAsRead (optimistic), markAllAsRead |
-| `toast.tsx` | 90 | Sonner toast wrapper: success/error/info/warning, Lucide icons, progress bar |
-| `achievements.ts` | 85 | `getAchievements(profile)`, 6 badges (First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist) |
-| `utils.ts` | 69 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
-| `markdown.ts` | 62 | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency |
-| `monaco-options.ts` | 40 | Monaco editor default options |
-| `cache.ts` | 36 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
-| `monaco-theme.ts` | 30 | VS Code Dark+ theme registration (keyword/function/type/variable colors) |
-| `monaco-setup.ts` | 3 | Monaco CDN worker paths config (`loader.config`) |
-| `index.ts` | 1 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
+| `api.ts` | 898 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
+| `types.ts` | 619 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
+| `monaco-python.ts` | 496 | Monaco Python IntelliSense language configuration |
+| `pyodide.ts` | 234 | `eagerLoadPyodide()`, `executePython(code, timeout?)` (10s), `executeMultiFile(spec)`, CDN v0.27.4 |
+| `event.ts` | 136 | `subscribe(type, callback)`, `useWebSocket(handlers, deps)`, 9 event types, auto-reconnect |
+| `UserContext.tsx` | 103 | `UserProvider`, `useUser()`, `refreshUser()`, `setPrimaryLanguage()`, WebSocket XP auto-refresh |
+| `useNotifications.ts` | 98 | `useNotifications()`, 15s/60s polling, markAsRead (optimistic), markAllAsRead |
+| `toast.tsx` | 91 | Sonner toast wrapper: success/error/info/warning, Lucide icons, progress bar |
+| `achievements.ts` | 86 | `getAchievements(profile)`, 6 badges (First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist) |
+| `utils.ts` | 70 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
+| `markdown.ts` | 63 | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency |
+| `monaco-options.ts` | 63 | Monaco editor default options |
+| `monaco-setup.ts` | 64 | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring) |
+| `monaco-textmate.ts` | 68 | Real TextMate tokenization: Registry + oniguruma WASM, encoded-tokens providers for Go/Python |
+| `monaco-theme.ts` | 57 | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces) |
+| `monaco-intellisense.ts` | 339 | Go static completion + hover providers |
+| `cache.ts` | 41 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
+| `index.ts` | 2 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
 
 ### 8.5 Styles (`frontend/styles/` + `app/globals.css` — 4 files, ~1,598 LOC)
 
@@ -1031,6 +1032,16 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-01 — Session 98: Phase 1 complete — real TextMate tokenization (Dark+ fidelity)
+- **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code
+- `frontend/lib/monaco-textmate.ts` (new, 67 LOC): `Registry({ onigLib, loadGrammar })` → `setTheme(rawTheme, null)` → `monaco.languages.setColorMap(registry.getColorMap())` → `setTokensProvider("python"|"go", { getInitialState, tokenizeEncoded })`; routes through Monaco's `EncodedTokenizationSupportAdapter` (verified in AMD source) so vscode-textmate color ids render directly against the registry color map
+- `frontend/scripts/build-monaco-assets.mjs`: emits 4 tracked artifacts — `lib/dark-plus-theme.generated.json` (Monaco theme), `lib/dark-plus-textmate.generated.json` (raw `IRawTheme` with prepended scope-less default rule `#D4D4D4`/`#1E1E1E` so uncolored tokens inherit Dark+ editor.foreground instead of vscode-textmate's `#000000` fallback), `lib/grammars/python.tmLanguage.json` (MagicPython), `lib/grammars/go.tmLanguage.json`; vendored sources under `scripts/vendor/` stay gitignored build inputs
+- `frontend/lib/monaco-theme.ts`: consumes 169-rule/28-color generated Dark+ theme, keeps charcoal widget surfaces (Sessions 95–97) as `CHARCOAL_SURFACES` overrides
+- `frontend/scripts/copy-monaco.mjs`: copies onig.wasm → `public/vs/onig.wasm` unconditionally
+- `frontend/types/vscode-textmate.d.ts` + `vscode-oniguruma.d.ts` (new): ambient re-exports (packages ship `.d.ts` but no `types` field)
+- **Runtime-safety:** both CJS packages have `__esModule: true` with no `.default` — namespace imports (`import * as tm`) required, default imports would resolve to `undefined`
+- Verified: Node e2e probe (Registry → tokenizeLine2 → `(meta >>> 15) & 0x1ff` → colorMap) produces exact Dark+ colors for all token classes incl. `#4FC1FF` Go consts and plain-source `List` in imports (matches real MagicPython); colorMap[1] = #D4D4D4 after default-rule fix; Monaco AMD `setColorMap`/`setTokensProvider`/`tokenizeEncoded` present; ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
 
 ### 2026-08-01 — Session 97: Neutralize residual blue-tinted chrome + Monaco tints
 - Follow-up to Session 96: neutralized the remaining cool blue-gray grays that clashed with the neutral `#141414` charcoal
