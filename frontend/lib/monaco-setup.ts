@@ -6,6 +6,7 @@ import { registerVSCodeDarkPlusTheme } from "@/lib/monaco-theme";
 import { registerPythonLanguageFeatures } from "@/lib/monaco-python";
 import { registerGoCompletionProvider } from "@/lib/monaco-intellisense";
 import { initTextMateTokenization } from "@/lib/monaco-textmate";
+import { registerFormattingProvider } from "@/lib/monaco-format";
 
 // Serve Monaco's AMD build + workers from /public/vs (copied by scripts/copy-monaco.mjs).
 // Single config point — do not call loader.config anywhere else.
@@ -20,6 +21,7 @@ export function initMonacoEditor(monaco: any): any {
   registerVSCodeDarkPlusTheme(monaco);
   registerPythonLanguageFeatures(monaco);
   registerGoCompletionProvider(monaco);
+  registerFormattingProvider(monaco);
 
   // Real TextMate tokenization for Go + Python (fire-and-forget: Monaco
   // re-tokenizes open models when the provider registers).

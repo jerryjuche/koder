@@ -38,12 +38,12 @@
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 62 source + 13 test | ~18,073 + ~3,138 | 8 packages, 152 Store interface methods, 118 API endpoints; includes 4 cmd tools |
-| **Go Sandbox** (`sandbox/`) | 7 source + 1 test + Dockerfile + fly.toml | ~1,157 + ~32 + ~55 | Zero external deps, 4-layer defense-in-depth |
+| **Go Backend** (`cmd/` + `internal/`) | 64 source + 15 test | ~18,200 + ~3,330 | 8 packages, 152 Store interface methods, 118 API endpoints; includes 4 cmd tools |
+| **Go Sandbox** (`sandbox/`) | 8 source + 2 test + Dockerfile + fly.toml | ~1,253 + ~149 + ~58 | Zero external deps, 4-layer defense-in-depth, pinned black formatter |
 | **SQL Migrations** (`migrations/`) | 51 | ~27,470 | 33 schema + 17 seed/content + 1 content-refresh, 25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,718 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
 | **Frontend Components** (`components/`) | 63 | ~10,039 | 20 shadcn/ui + 43 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 22 | ~3,902 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~3,942 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
 | **Documentation** | 17 | ~9,143 | 4 docs/ + 13 root docs files |
 | **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
 | **Config/Build** | 14 | ~699 | go.mod, go.sum, Procfile, build.sh, CI, env, env example, frontend configs |
@@ -135,7 +135,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cmd/generate-sql/main.go` | 116 | `main` | CLI — generate seed SQL INSERTs from problem JSON |
 | `cmd/generate-curriculum/main.go` | 398 | `main` | CLI — generate curriculum SQL from AI-generated JSON (CREATE + UPDATE modes) |
 
-### 6.2 API Handlers (`internal/api/` — 24 files, 7,009 LOC)
+### 6.2 API Handlers (`internal/api/` — 25 files, 7,082 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -154,6 +154,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `submissions.go` | 168 | `SubmissionHandler` — Submit (5/45s ratelimit, scoring, WS events: `user.xp.updated` + `progress.updated`) |
 | `profile.go` | 257 | `ProfileHandler` — GetProfile (stored proc, 30s cache), UpdateProfile |
 | `test.go` | 132 | `TestHandler` — Direct test case execution without scoring |
+| `format.go` | 73 | `FormatHandler` — POST /api/format (gofmt in-process / black via sandbox; 422 syntax, 502 sandbox-down) |
 | `activity.go` | 54 | `ActivityHandler` — GetActivity (contribution heatmap by year) |
 | `notifications.go` | 115 | `NotificationsHandler` — GetUnread (50), GetRecent (20), MarkRead, MarkAllRead |
 | `community.go` | 139 | `CommunityHandler` — GetCommunitySolutions, GetBestPractices, LikeSubmission, UnlikeSubmission |
@@ -207,17 +208,19 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `enricher.go` | 942 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
 | `enricher_test.go` | 231 | 4 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests) |
 
-### 6.6 Executor (`internal/executor/` — 6 source + 1 test file, 1,805 + 533 LOC)
+### 6.6 Executor (`internal/executor/` — 7 source + 2 test files, 1,858 + 674 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `executor.go` | 1,314 | `Executor` (semaphore=6), `Execute` (scoring), `ExecuteVisibleOnly` (test-only), `formatGoLiteral` (recursive), `formatPythonLiteral` (null→None), `goToSnakeCase`, `EnhancePythonError`, `parseCompilerError` (3-pass) |
+| `format.go` | 53 | `FormatCode` (go/format.Source in-process / black via sandbox), `FormatSyntaxError` |
 | `parser.go` | 111 | `ParseTestOutput` — 5 regex patterns, state machine for GOT/WANT multi-line parsing |
 | `templates.go` | 104 | `mainTestTemplate` (Go: `==` / `reflect.DeepEqual`), `pythonTestTemplate` (Python: `json.loads`) |
 | `sandbox.go` | 72 | `PrepareSandbox` (temp dir, go.mod, solution.go, main_test.go, forcePackageKoder regex) |
 | `sandbox_client.go` | 170 | `SandboxRequest/Response`, HTTP client (3 retries, exp backoff 2ⁿ×500ms, request timeout = `timeout_sec + requestTimeoutExtra`), `FormatFriendlySandboxError` |
 | `types.go` | 34 | `ExecutionRequest`, `ExecutionResult`, `TestResult` |
 | `executor_test.go` | 533 | 16 tests: literal formatting, template rendering, output parsing (all-pass, mixed, multi-line, errors), Python pipeline |
+| `format_test.go` | 141 | 7 tests: gofmt valid/syntax/empty, sandbox formatting (fake server), black error mapping, stub-signature regression |
 
 ### 6.7 Broker (`internal/broker/` — 1 source + 1 test file, 68 + 186 LOC)
 
@@ -254,11 +257,12 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 7. Sandbox (`sandbox/` — 7 source + 1 test + Dockerfile + fly.toml, ~1,244 LOC, Zero External Dependencies)
+## 7. Sandbox (`sandbox/` — 8 source + 2 test + Dockerfile + fly.toml, ~1,457 LOC, Zero External Dependencies)
 
 | File | Lines | Purpose |
 |---|---|---|
-| `main.go` | 388 | HTTP server on `:$PORT` — `/health`, `/version`, `/execute`; language dispatcher; `classifyOutput` (4 regex patterns); `compileErrorMessage` (3-pass) |
+| `main.go` | 388 | HTTP server on `:$PORT` — `/health`, `/version`, `/execute`, `/format`; language dispatcher; `classifyOutput` (4 regex patterns); `compileErrorMessage` (3-pass) |
+| `format.go` | 96 | `POST /format` — Python formatting via pinned black (`black -q -`, 30s timeout) → `{formatted, error}` |
 | `pyrunner.go` | 265 | Python runner: 2-layer security (regex + AST via subprocess), `findPythonBin` (python3→python), `cappedBuffer` (64KB), OOM detection |
 | `ratelimit.go` | 156 | Per-IP sliding window (10 req/min), 429 Retry-After, 5min cleanup goroutine |
 | `runtest_go.go` | 148 | Go runner: go.mod, solution.go (forced `package koder`), `go test -v -count=1 -gcflags=-l`, `GOPROXY=off`, `GOTOOLCHAIN=local` |
@@ -266,7 +270,8 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `secure_unix.go` | 64 | Setpgid isolation, setrlimit (NPROC=6, NOFILE=1024, FSIZE=64MB, RLIMIT_AS=512MB), killProcessGroup (SIGKILL), reapProcess (5s) |
 | `secure_other.go` | 25 | No-op stubs for non-Unix (Windows) |
 | `security_message_test.go` | 32 | 3 tests: dangerous-pattern detection message quality |
-| `Dockerfile` | 30 | 2-stage build based on `golang:1.26-alpine`, includes python3, bakes Go build cache via `/warmup` (cold first-compile ~23s → ~2s) |
+| `format_test.go` | 117 | 5 tests: black formatting (valid/syntax/empty/unsupported-language/quote-normalization), black-gated |
+| `Dockerfile` | 33 | 2-stage build based on `golang:1.26-alpine`, includes python3 + pinned `black==25.1.0`, bakes Go build cache via `/warmup` (cold first-compile ~23s → ~2s) |
 | `fly.toml` | 25 | Legacy Fly.io config (fallback; Azure deployment lives in `sandbox/azure/`) |
 
 ---
@@ -513,11 +518,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 18 files, ~3,528 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 19 files, ~3,568 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `api.ts` | 898 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
+| `api.ts` | 907 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
 | `types.ts` | 619 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
 | `monaco-python.ts` | 496 | Monaco Python IntelliSense language configuration |
 | `pyodide.ts` | 234 | `eagerLoadPyodide()`, `executePython(code, timeout?)` (10s), `executeMultiFile(spec)`, CDN v0.27.4 |
@@ -529,10 +534,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `utils.ts` | 70 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
 | `markdown.ts` | 63 | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency |
 | `monaco-options.ts` | 63 | Monaco editor default options |
-| `monaco-setup.ts` | 64 | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring) |
+| `monaco-setup.ts` | 65 | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring) |
 | `monaco-textmate.ts` | 68 | Real TextMate tokenization: Registry + oniguruma WASM, encoded-tokens providers for Go/Python |
+| `monaco-format.ts` | 40 | Real formatting: `registerDocumentFormattingEditProvider` (go/python) → `editor.action.formatDocument` via POST /api/format |
 | `monaco-theme.ts` | 57 | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces) |
-| `monaco-intellisense.ts` | 339 | Go static completion + hover providers |
+| `monaco-intellisense.ts` | 348 | Go static completion + hover providers (25 keywords + predeclared builtins + stdlib modules) |
 | `cache.ts` | 41 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
 | `index.ts` | 2 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
 
@@ -870,12 +876,13 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | PATCH | `/admin/broadcasts/{id}/activate` | Activate | `broadcasts.go` |
 | DELETE | `/admin/broadcasts/{id}` | Delete | `broadcasts.go` |
 
-### 12.9 WebSocket & Utility (2 endpoints)
+### 12.9 WebSocket & Utility (3 endpoints)
 
 | Method | Path | Handler | File |
 |---|---|---|---|
 | GET | `/ws` | WebSocket (gorilla + broker) | `ws.go` |
 | GET | `/health` | inline | `router.go` |
+| POST | `/api/format` | Format (auth; gofmt in-process / black via sandbox) | `format.go` |
 
 ---
 
@@ -991,6 +998,8 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 13. **`.next/trace` tracked** — Build artifact committed to git under `.next/`. Should be in `.gitignore`.
 14. **`docs/adr/` and `docs/diagrams/`** — Empty placeholder directories with zero content.
 15. **`react-markdown`, `remark-gfm`, `rehype-raw`, `rehype-sanitize`, `remark-breaks`** — Listed in `package.json` runtime deps but superseded by self-contained `renderMarkdown()` in `lib/markdown.ts`. Should be removed.
+16. **Pyright Python autocomplete deferred** — `monaco-pyright-lsp` (webpack-bundled pyright WASM worker, pyodide-based) is the prescribed upgrade for type-aware Python completions/diagnostics, but was deliberately skipped in Session 99. Risks to resolve before adopting: ~10–20MB WASM worker download on first Python editor mount, possible Next.js webpack/dual-monaco (AMD vs ESM) conflicts, and a worst case where pyright requires `crossOriginIsolated` (COOP/COEP headers on Vercel) that could break Google Identity / Pyodide CDN loading. Current Python completions remain the static 157-entry list in `lib/monaco-python.ts`.
+17. **`session-log.md` line count** — `SESSION_LOG.md` has grown to ~2,700+ lines (canonical log, kept whole; the git table at the top is chronological and updated per session).
 
 ---
 
@@ -1032,6 +1041,15 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-01 — Session 99: Real formatting (gofmt + pinned black) via POST /api/format
+- **Sandbox `POST /format`** (`sandbox/format.go`, 96 LOC): pipes Python source through pinned `black==25.1.0` (`black -q -`, 30s timeout) → `{formatted, error}`; empty → empty; route added next to `/execute`; Dockerfile installs black via `py3-pip` so output is byte-stable across image rebuilds
+- **`executor.FormatCode`** (`internal/executor/format.go`, 53 LOC): Go formatted **in-process** with `go/format.Source()` (gofmt canonicalizer, no new dep); Python → sandbox `/format` via new `sandboxClient.format()` (same 3-attempt exp-backoff as execute, tolerates ACA cold starts); parse failures typed as `*FormatSyntaxError`
+- **`POST /api/format`** (`internal/api/format.go`, 73 LOC): auth-required, `code ≤ 50KB`; syntax error → 422, sandbox unreachable → 502 friendly, success → `{formatted}`; registered in authenticated group (256KB body limit, no tight per-user rate limiter)
+- **Frontend** `lib/monaco-format.ts` (40 LOC): `registerDocumentFormattingEditProvider` for Go/Python → `editor.action.formatDocument` (Shift+Alt+F); `lib/api.ts` `formatCode()`; workspace Ctrl+S button calls `/api/format` (async) with local `indentCode` fallback only on NETWORK_ERROR — syntax errors toast and never rewrite the buffer
+- **Go completions:** added `complex`, `imag`, `real`, `print`, `println` to `GO_STATIC_COMPLETIONS` (+ gopls-over-WASM upgrade note)
+- **Tests:** sandbox 5 (black-gated), executor 7 (incl. stub-signature regression guard), api 6 (via scriptable `Formatter` interface); full `go test ./internal/...` green; lint/tsc 0 errors
+- **Deployment:** Python formatting needs republished sandbox image (black + `/format`) + ACA redeploy; until then workspace degrades to local indenter (Go works immediately — in-process)
 
 ### 2026-08-01 — Session 98: Phase 1 complete — real TextMate tokenization (Dark+ fidelity)
 - **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code

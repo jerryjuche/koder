@@ -357,6 +357,16 @@ export async function testCode(
   });
 }
 
+export async function formatCode(
+  code: string,
+  language: "go" | "python",
+): Promise<ApiResponse<{ formatted: string }>> {
+  return fetchApi<{ formatted: string }>("/api/format", {
+    method: "POST",
+    body: JSON.stringify({ language, code }),
+  });
+}
+
 export async function fetchRecentNotifications(): Promise<ApiResponse<NotificationItem[]>> {
   return fetchApi<NotificationItem[]>("/notifications/recent");
 }
