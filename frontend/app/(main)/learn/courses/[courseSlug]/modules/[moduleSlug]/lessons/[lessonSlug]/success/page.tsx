@@ -24,7 +24,6 @@ import {
   Layers,
   Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { fetchLesson, fetchModule } from "@/lib/api";
 import type { LessonWithSections, ModuleWithLessons } from "@/lib/types";
 
@@ -124,8 +123,7 @@ export default function LessonSuccessPage() {
     cachedData?.quizCount ||
     0;
   const exerciseCount =
-    lessonData?.sections?.filter((s) => s.section_type === "exercises")
-      .length ||
+    lessonData?.sections?.filter((s) => s.section_type === "exercises").length ||
     cachedData?.exerciseCount ||
     0;
   const moduleTitle =
@@ -134,7 +132,7 @@ export default function LessonSuccessPage() {
     if (moduleData?.lessons && moduleData.lessons.length > 0) {
       const total = moduleData.lessons.length;
       const completed = moduleData.lessons.filter(
-        (l) => l.completed || l.slug === lessonSlug,
+        (l) => l.completed || l.slug === lessonSlug
       ).length;
       return (completed / total) * 100;
     }
@@ -165,7 +163,6 @@ export default function LessonSuccessPage() {
   })();
 
   const sections = lessonData?.sections || [];
-  const statCount = 1 + (quizCount > 0 ? 1 : 0) + (exerciseCount > 0 ? 1 : 0);
 
   useEffect(() => {
     const load = async () => {
@@ -201,26 +198,26 @@ export default function LessonSuccessPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
       {/* Hero Celebration Banner */}
-      <div className="relative max-w-screen-xl mx-auto px-4 md:px-6 pt-8">
-        <div className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-card/60 p-6 md:p-8 shadow-lg overflow-hidden text-center">
+      <div className="relative max-w-screen-xl mx-auto px-4 md:px-6 pt-6">
+        <div className="relative rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card/90 to-card/60 p-6 md:p-8 shadow-xl overflow-hidden text-center">
           {/* Top ambient glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col items-center justify-center max-w-2xl mx-auto">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-3 shadow-md shadow-emerald-500/10">
-              <CheckCircle2 className="w-9 h-9 text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/10">
+              <Trophy className="w-9 h-9 text-emerald-400" />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-2">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight mb-2">
               Lesson Completed!
             </h1>
 
-            <p className="text-base text-muted-foreground font-medium mb-4">
+            <p className="text-sm md:text-base text-muted-foreground font-semibold mb-4">
               &quot;{title}&quot;
             </p>
 
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold text-sm mb-5 shadow-sm">
-              <Trophy className="w-4 h-4 fill-current" />+{xpReward} XP Earned!
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-extrabold text-sm mb-6 shadow-sm">
+              <Zap className="w-4 h-4 fill-current" />+{xpReward} XP Awarded!
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md">
@@ -254,11 +251,12 @@ export default function LessonSuccessPage() {
         </div>
       </div>
 
+      {/* Recap & Progress Grid */}
       <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: What You Covered */}
-        <div>
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <BookOpen className="text-amber-400" size={20} />
+        <div className="space-y-4">
+          <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
+            <BookOpen className="text-amber-400" size={18} />
             What You Covered
           </h2>
 
@@ -270,7 +268,7 @@ export default function LessonSuccessPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {sections.map((sec, i) => {
                 const Icon = SECTION_TYPE_ICONS[sec.section_type] || FileText;
                 const label =
@@ -284,10 +282,10 @@ export default function LessonSuccessPage() {
                       <Icon size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-foreground truncate">
+                      <p className="font-bold text-xs md:text-sm text-foreground truncate">
                         {sec.title || label}
                       </p>
-                      <p className="text-xs text-muted-foreground font-medium">
+                      <p className="text-[11px] text-muted-foreground font-medium">
                         {label}
                       </p>
                     </div>
@@ -302,34 +300,34 @@ export default function LessonSuccessPage() {
           )}
 
           {/* Stats Badges */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
               <BookOpen className="mx-auto h-4 w-4 text-amber-400 mb-1" />
-              <p className="text-xl font-extrabold text-foreground">
+              <p className="text-lg font-extrabold text-foreground">
                 {sectionsCount}
               </p>
-              <p className="text-[11px] text-muted-foreground font-medium">
+              <p className="text-[10px] text-muted-foreground font-semibold">
                 Sections
               </p>
             </div>
             {quizCount > 0 && (
-              <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+              <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
                 <BrainCircuit className="mx-auto h-4 w-4 text-orange-400 mb-1" />
-                <p className="text-xl font-extrabold text-foreground">
+                <p className="text-lg font-extrabold text-foreground">
                   {quizCount}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">
+                <p className="text-[10px] text-muted-foreground font-semibold">
                   Quizzes
                 </p>
               </div>
             )}
             {exerciseCount > 0 && (
-              <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
+              <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
                 <FlaskConical className="mx-auto h-4 w-4 text-teal-400 mb-1" />
-                <p className="text-xl font-extrabold text-foreground">
+                <p className="text-lg font-extrabold text-foreground">
                   {exerciseCount}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">
+                <p className="text-[10px] text-muted-foreground font-semibold">
                   Exercises
                 </p>
               </div>
@@ -338,15 +336,15 @@ export default function LessonSuccessPage() {
         </div>
 
         {/* Right Column: Module Progress & Next Lesson */}
-        <div className="space-y-6">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Layers className="text-amber-400" size={20} />
+        <div className="space-y-4">
+          <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
+            <Layers className="text-amber-400" size={18} />
             Module Progress
           </h2>
 
           <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
             <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-2">
+              <div className="flex items-center justify-between text-xs font-extrabold mb-2">
                 <span className="truncate text-foreground">{moduleTitle}</span>
                 <span className="text-amber-400">
                   {Math.round(moduleProgress)}%
@@ -362,22 +360,22 @@ export default function LessonSuccessPage() {
 
             {/* Next Lesson Box */}
             {nextLesson ? (
-              <div className="pt-2 border-t border-border/40">
+              <div className="pt-3 border-t border-border/40">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                   Up Next
                 </span>
                 <Link
                   href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                  className="flex items-center gap-3 bg-background border border-border/60 rounded-xl p-4 hover:border-amber-500/40 transition-all group"
+                  className="flex items-center gap-3 bg-background border border-border/60 rounded-xl p-3.5 hover:border-amber-500/40 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <BookOpen size={18} />
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <BookOpen size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm text-foreground truncate group-hover:text-amber-400 transition-colors">
+                    <h4 className="font-bold text-xs md:text-sm text-foreground truncate group-hover:text-amber-400 transition-colors">
                       {nextLesson.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 font-medium">
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5 font-medium">
                       {nextLesson.estimated_minutes && (
                         <span className="flex items-center gap-1">
                           <Clock size={11} /> {nextLesson.estimated_minutes}m
@@ -398,31 +396,31 @@ export default function LessonSuccessPage() {
               </div>
             ) : (
               <div className="pt-2 border-t border-border/40 text-center py-4">
-                <Trophy className="mx-auto mb-2 text-amber-400" size={28} />
-                <h4 className="font-bold text-sm text-foreground">
+                <Trophy className="mx-auto mb-2 text-amber-400" size={24} />
+                <h4 className="font-bold text-xs md:text-sm text-foreground">
                   Module Complete!
                 </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  You&apos;ve mastered all lessons in this module.
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  You&apos;ve completed all lessons in this module.
                 </p>
               </div>
             )}
           </div>
 
           {/* XP Reward Summary Box */}
-          <div className="bg-card border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="bg-card border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card rounded-2xl p-4 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                <Zap size={20} className="fill-current" />
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <Zap size={18} className="fill-current" />
               </div>
               <div>
-                <p className="font-bold text-sm text-foreground">XP Awarded</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-bold text-xs md:text-sm text-foreground">XP Awarded</p>
+                <p className="text-[11px] text-muted-foreground">
                   Added to your global profile
                 </p>
               </div>
             </div>
-            <span className="text-2xl font-extrabold text-amber-400">
+            <span className="text-xl font-extrabold text-amber-400">
               +{xpReward} XP
             </span>
           </div>
