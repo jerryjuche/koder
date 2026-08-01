@@ -34,6 +34,7 @@ interface SectionExerciseProps {
   miniProject?: boolean;
   language?: string;
   multiFile?: MultiFileSpec;
+  metadata?: Record<string, unknown>;
 }
 
 type ResultType = "test" | "execution" | "error";

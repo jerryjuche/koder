@@ -1,7 +1,7 @@
 # Curriculum CMS — Progress Tracker
 
 **Branch:** `update`
-**Last updated:** 2026-07-21 (Problem Module Locks + Admin Panel + Locked Module UI)
+**Last updated:** 2026-08-01 (ShapeGrid Ambient Background Animation Integration)
 
 ---
 
@@ -24,6 +24,7 @@
 | 13 — Lesson Prerequisite Enforcement | 🟢 Complete | 8 | go build, tsc --noEmit |
 | 14 — Python Mastery Practice Seed | 🟢 Complete | 1 | SQL file saved |
 | 15 — Problem Module Locks | 🟢 Complete | 12 | go build, tsc --noEmit |
+| 16 — ShapeGrid Ambient Background | 🟢 Complete | 4 (2 new, 2 mod) | tsc --noEmit, next build |
 
 ---
 

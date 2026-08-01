@@ -2689,3 +2689,17 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors
 - `next build` success (formatting provider bundled; monaco-format.ts in client chunks)
 - **Deployment note:** Python formatting requires the republished sandbox image (black + `/format`); until the GHCR image is rebuilt and ACA redeployed, `/format` returns 404 and the workspace degrades to the local indenter (Go formatting works immediately — in-process)
+
+## Session 100 — 2026-08-01 — React Bits ShapeGrid background animation integration & brand UI polish
+
+### Changes
+- **ShapeGrid Component:** Integrated React Bits `<ShapeGrid />` canvas component in [`frontend/components/ui/ShapeGrid.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/ShapeGrid.tsx). Adjusted radial gradient edge stop from `#120F17` to `#141414` to match Koder's charcoal background token `--color-brand-charcoal-base`. Added `prefers-reduced-motion` check to avoid animation overhead for users with motion sensitivity settings.
+- **AnimatedBackground Overlay Wrapper:** Created [`frontend/components/ui/AnimatedBackground.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/AnimatedBackground.tsx) positioning `ShapeGrid` at `z-0` behind page contents. Uses brand gold tones (`rgba(212, 175, 55, 0.045)` border & `rgba(212, 175, 55, 0.07)` hover fill) with diagonal drift motion and a multi-stop top-to-bottom gradient overlay fading to solid `#141414`. Dynamically imported with `ssr: false` to ensure clean hydration.
+- **Landing Page Integration:** Updated [`frontend/components/LandingContent.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/LandingContent.tsx) with `<AnimatedBackground fadeEnd="55%" opacity={0.4} />` for an ambient backdrop under the Hero section.
+- **Main App Layout Integration:** Updated [`frontend/app/(main)/layout.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/app/%28main%29/layout.tsx) with `<AnimatedBackground fadeEnd="50%" opacity={0.35} />` so the authenticated dashboard benefits from the ambient texture without interfering with problem workspace elements.
+
+### Verification
+- `npx tsc --noEmit` 0 errors
+- `npx next build` exited with code 0 (20+ routes compiled cleanly)
+- Pushed commit `cb8ad4f` to `origin/update`
+
