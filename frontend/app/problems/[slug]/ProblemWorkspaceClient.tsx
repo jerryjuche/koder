@@ -42,6 +42,7 @@ import {
   submitFeedback,
   updatePrimaryLanguage,
   updateProblem,
+  formatCode,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { clearCache } from "@/lib/cache";
@@ -77,7 +78,7 @@ const PYTHON_CODE = `def solution():
 const STORE_KEY = (s: string, lang?: string) =>
   lang ? `koder_code_${s}_${lang}` : `koder_code_${s}`;
 
-function formatCode(code: string, lang: string): string {
+function indentCode(code: string, lang: string): string {
   // Shared: normalize line endings, strip trailing whitespace, collapse excessive blank lines
   let result = code.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "");
   result = result.replace(/\n{3,}/g, "\n\n").trim();
@@ -412,21 +413,41 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     window.dispatchEvent(new Event("user-updated"));
   }
 
-  function handleFormat() {
+  async function handleFormat() {
     const ed = editorRef.current;
     if (!ed) return;
     const raw = ed.getValue();
-    const formatted = formatCode(raw, activeLanguage);
-    ed.executeEdits("format", [
-      {
-        range: ed.getModel()!.getFullModelRange(),
-        text: formatted,
-        forceMoveMarkers: true,
-      },
-    ]);
-    setCode(formatted);
-    setSaved(true);
-    toast.success("Code formatted");
+    if (!raw.trim()) return;
+
+    const apply = (text: string) => {
+      ed.executeEdits("format", [
+        {
+          range: ed.getModel()!.getFullModelRange(),
+          text,
+          forceMoveMarkers: true,
+        },
+      ]);
+      setCode(text);
+      setSaved(true);
+    };
+
+    // Real formatter: gofmt for Go, pinned black (via the sandbox) for Python.
+    // Only falls back to the client-side indenter when the server is unreachable
+    // — a syntax error must never rewrite the buffer.
+    const res = await formatCode(raw, activeLanguage as "go" | "python");
+    if (res.success && res.data) {
+      apply(res.data.formatted);
+      toast.success("Code formatted");
+      return;
+    }
+
+    if (res.error?.code === "NETWORK_ERROR") {
+      apply(indentCode(raw, activeLanguage));
+      toast.success("Code formatted");
+      return;
+    }
+
+    toast.error(`Couldn't format: ${res.error?.message ?? "unknown error"}`);
   }
 
   async function handleSubmit() {

@@ -258,6 +258,11 @@ export function registerGoCompletionProvider(monaco: Monaco): void {
 
 let goProviderRegistered = false;
 
+// Static Go completions: the full 25-keyword set plus predeclared builtins
+// (append/cap/close/complex/copy/delete/imag/len/make/new/panic/print/println/
+// real/recover/min/max/clear) and common stdlib modules. This is a curated
+// static list — the future upgrade path is gopls over WASM via
+// monaco-languageclient, which would add type-aware completions/hover/diagnostics.
 export const GO_STATIC_COMPLETIONS: StaticCompletion[] = [
   { label: "package", kind: CompletionKind.Keyword, insertText: "package " },
   { label: "import", kind: CompletionKind.Keyword, insertText: "import " },
@@ -298,6 +303,11 @@ export const GO_STATIC_COMPLETIONS: StaticCompletion[] = [
   { label: "min", detail: "min(x, ...)", documentation: "Return the smallest of the arguments.", insertText: "min($0)", insertTextRules: CompletionKind.Snippet },
   { label: "max", detail: "max(x, ...)", documentation: "Return the largest of the arguments.", insertText: "max($0)", insertTextRules: CompletionKind.Snippet },
   { label: "clear", detail: "clear(m)", documentation: "Delete all entries from a map or zero a slice.", insertText: "clear($0)", insertTextRules: CompletionKind.Snippet },
+  { label: "complex", detail: "complex(r, i)", documentation: "Construct a complex number from real and imaginary parts.", insertText: "complex($0)", insertTextRules: CompletionKind.Snippet },
+  { label: "imag", detail: "imag(c)", documentation: "Return the imaginary part of a complex number.", insertText: "imag($0)", insertTextRules: CompletionKind.Snippet },
+  { label: "real", detail: "real(c)", documentation: "Return the real part of a complex number.", insertText: "real($0)", insertTextRules: CompletionKind.Snippet },
+  { label: "print", detail: "print(v, ...)", documentation: "Write the operands to standard error with spaces and a newline (predeclared).", insertText: "print($0)", insertTextRules: CompletionKind.Snippet },
+  { label: "println", detail: "println(v, ...)", documentation: "Write the operands to standard error with spaces and a newline (predeclared).", insertText: "println($0)", insertTextRules: CompletionKind.Snippet },
   { label: "int", kind: CompletionKind.Class, insertText: "int" },
   { label: "int64", kind: CompletionKind.Class, insertText: "int64" },
   { label: "float64", kind: CompletionKind.Class, insertText: "float64" },

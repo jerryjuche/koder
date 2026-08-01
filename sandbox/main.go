@@ -371,6 +371,7 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/version", versionHandler)
 	mux.HandleFunc("/execute", executeHandler)
+	mux.HandleFunc("/format", formatHandler)
 	// Rate limiter middleware
 	rateLimited := rl.Middleware(mux)
 

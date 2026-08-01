@@ -2644,3 +2644,48 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Kept intentionally dark: code/console surfaces (workspace code preview `#0F1115`/`#0A0C0F`/`#050608`, PyodideConsole `#0D0D14`, admin previews `#0d1117`/`#161b22`, success tint `#1A2521`)
 - Verified: grep sweep clean, ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
 - Pushed to `origin/update`
+
+---
+
+## Session 98 — 2026-08-01 — Phase 1 complete: real TextMate tokenization (Dark+ fidelity)
+
+### Changes
+- **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code, not an approximation
+- `frontend/lib/monaco-textmate.ts` (new, 67 LOC): `Registry({ onigLib, loadGrammar })` → `setTheme(rawTheme, null)` → `monaco.languages.setColorMap(registry.getColorMap())` → `setTokensProvider("python"|"go", { getInitialState, tokenizeEncoded })`. `tokenizeEncoded` passthrough routes through Monaco's `EncodedTokenizationSupportAdapter` (verified in AMD source), so vscode-textmate color ids render against the registry color map directly — no scope→color translation, no Monarch fallback
+- `frontend/scripts/build-monaco-assets.mjs`: now emits 4 tracked artifacts — (1) `lib/dark-plus-theme.generated.json` (Monaco theme), (2) `lib/dark-plus-textmate.generated.json` (raw `IRawTheme` with a **prepended scope-less default rule** `#D4D4D4`/`#1E1E1E` so uncolored tokens inherit Dark+'s editor.foreground instead of vscode-textmate's `#000000` fallback), (3) `lib/grammars/python.tmLanguage.json` (MagicPython), (4) `lib/grammars/go.tmLanguage.json` (VSCode Go). Generated artifacts live under `lib/` (tracked); vendored sources under `scripts/vendor/` remain gitignored build inputs
+- `frontend/lib/monaco-theme.ts`: `registerVSCodeDarkPlusTheme` now consumes the 169-rule/28-color generated Dark+ theme via JSON import, keeping the neutral charcoal widget surfaces from Sessions 95–97 as overrides (`CHARCOAL_SURFACES`)
+- `frontend/scripts/copy-monaco.mjs`: copies `node_modules/vscode-oniguruma/release/onig.wasm` → `public/vs/onig.wasm` unconditionally (even when `public/vs` already exists)
+- `frontend/lib/monaco-setup.ts`: `initMonacoEditor` calls `initTextMateTokenization(monaco)` (fire-and-forget; Monaco re-tokenizes open models on provider registration)
+- `frontend/types/vscode-textmate.d.ts` + `vscode-oniguruma.d.ts` (new): ambient re-exports — both packages ship `.d.ts` but no `types` field in package.json, so TS can't resolve them natively
+- **Runtime-safety detail:** both CJS packages have `__esModule: true` with no `.default` export, so default imports would resolve to `undefined`; namespace imports (`import * as tm`) are the correct form
+
+### Verification
+- Node end-to-end probe (committed artifacts → Registry → tokenizeLine2 → `(meta >>> 15) & 0x1ff` → colorMap): `from typing import List` → `from`/`import` #C586C0, `List` plain #D4D4D4 (matches real MagicPython); `def is_palindrome(s: str) -> bool` → #569CD6/#DCDCAA/#4EC9B0; Go `const factor = 2.5` → #4FC1FF (canonical `variable.other.constant`), `fmt.Println("hi")` → #9CDCFE/#DCDCAA/#CE9178; `"1"`/`2.5` → #B5CEA8 — all exact Dark+ values
+- Default-rule fix confirmed: colorMap[1] = #D4D4D4 (was #000000), colorMap[2] = #1E1E1E
+- Monaco AMD build verified: `setColorMap`, `setTokensProvider`, `tokenizeEncoded`, `getInitialState` all present in `editor.api` chunk; `setTokensProvider` throws for unknown language (both registered via existing completion/hover providers)
+- `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors, `next build` success (TextMate + oniguruma + grammar JSONs confirmed bundled in client chunks)
+- Working tree: 5 modified + 8 untracked (generated artifacts + new source files), all under tracked `lib/`/`types/` paths
+
+## Session 99 — 2026-08-01 — Real formatting (gofmt + pinned black) via POST /api/format
+
+### Changes
+- **Sandbox:** `POST /format` endpoint (`sandbox/format.go`) — pipes Python source through `black -q -` (stdin→stdout) with a 30s timeout, returns `{formatted, error}`; empty input → empty output. Registered under the rate-limited path next to `/execute` (`sandbox/main.go`). Dockerfile now installs **pinned `black==25.1.0`** via `py3-pip` so formatting output is byte-stable across image rebuilds (image previously had only `python3`)
+- **Backend:** `executor.FormatCode(ctx, language, code)` (`internal/executor/format.go`) — Go formatted **in-process** via `go/format.Source()` (gofmt's canonicalizer, no new dep); Python routed to the sandbox `/format` via a new `sandboxClient.format()` with the same 3-attempt exp-backoff retry as execute (tolerates ACA scale-to-zero cold starts). Parse failures surface as a typed `*FormatSyntaxError` (client error, not infrastructure)
+- **Backend:** `POST /api/format` (`internal/api/format.go`) — auth required (mirrors `/test`), language ∈ {go,python}, `code ≤ 50KB`; maps syntax errors → **422**, sandbox unreachable → **502** with friendly message, success → `{formatted}`. Registered in the authenticated router group with a 256KB body limit (no tight per-user rate limiter — formatting must survive save cycles; the sandbox keeps its own per-IP limit)
+- **Backend:** refactored `sandbox_client.go` — `doRequest` now shares a raw `postRaw(ctx, url, body)` helper with the new format path (identical HTTP/retry semantics, zero behavior change to execute)
+- **Frontend:** `lib/monaco-format.ts` (new) — `registerDocumentFormattingEditProvider` for Go + Python driving Monaco's built-in `editor.action.formatDocument` (Shift+Alt+F); single full-model-range TextEdit, silent `[]` on failure. Wired once in `initMonacoEditor` so workspace + learn editors both get it
+- **Frontend:** `lib/api.ts` — `formatCode(code, language)` endpoint function
+- **Frontend:** `ProblemWorkspaceClient.tsx` — Ctrl+S "Format Code" button now calls `/api/format` (async); on `NETWORK_ERROR` only, falls back to the local indenter (renamed `formatCode` → `indentCode`); syntax errors toast the message and never rewrite the buffer
+- **Frontend:** `GO_STATIC_COMPLETIONS` — added the 5 missing predeclared builtins per spec: `complex`, `imag`, `real`, `print`, `println` (with signatures/docs) + comment noting gopls-over-WASM via monaco-languageclient as the future upgrade path
+- **Deferred:** pyright-based Python autocomplete (monaco-pyright-lsp) deliberately **not** implemented this session — see CLAUDE.md Known Issues #16. The existing 157-entry static Python completions remain
+
+### Tests
+- Sandbox `format_test.go` (5): valid formatting (`def add(a,b):` → `def add(a, b):\n    return a + b\n`), syntax error → error message, empty → empty, unsupported language → 400, quote normalization (`'hello'` → `"hello"`) — black-gated via `exec.LookPath` (skips locally, runs in the Docker image)
+- Executor `format_test.go` (7): Go valid/syntax-error/empty, unsupported language, Python via fake sandbox server (request language/code + response parsing), black error → `*FormatSyntaxError`, and **stub-signature regression guard** — formatting a generated scaffold must preserve the `func` signature line
+- API `format_test.go` (6): 401 unauthenticated, success payload shape, unsupported language, 50KB cap, 422 syntax error, 502 infrastructure failure (via a scriptable `Formatter` interface)
+
+### Verification
+- `go vet` clean (backend + sandbox); full `go test ./internal/...` green (8/8 suites incl. new format tests); sandbox tests green (black tests skip on dev box, run in image)
+- `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors
+- `next build` success (formatting provider bundled; monaco-format.ts in client chunks)
+- **Deployment note:** Python formatting requires the republished sandbox image (black + `/format`); until the GHCR image is rebuilt and ACA redeployed, `/format` returns 404 and the workspace degrades to the local indenter (Go formatting works immediately — in-process)

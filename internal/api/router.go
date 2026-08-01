@@ -178,6 +178,9 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/submit", submissionHandler.Submit)
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/test", testHandler.Test)
 
+		formatHandler := NewFormatHandler(exec)
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/api/format", formatHandler.Format)
+
 		// Curriculum CMS — student endpoints (auth required)
 		r.Get("/learn/progress", cmHandler.GetAllProgress)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/learn/lessons/{lessonId}/complete", cmHandler.CompleteLesson)
