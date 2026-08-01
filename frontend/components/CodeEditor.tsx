@@ -44,6 +44,10 @@ function CodeEditorInner({
     onChangeRef.current?.(value ?? "");
   }, []);
 
+  const handleBeforeMount = useCallback((monaco: any) => {
+    initMonacoEditor(monaco);
+  }, []);
+
   const handleMount: OnMount = useCallback((editor, monaco) => {
     initMonacoEditor(monaco);
     monaco.editor.setTheme("vs-dark-plus");
@@ -56,6 +60,7 @@ function CodeEditorInner({
       language={language}
       defaultValue={initialValue}
       onChange={handleChange}
+      beforeMount={handleBeforeMount}
       theme="vs-dark-plus"
       loading={
         loading ?? (

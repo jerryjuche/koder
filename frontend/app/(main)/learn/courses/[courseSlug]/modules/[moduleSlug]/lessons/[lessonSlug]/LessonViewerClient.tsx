@@ -434,7 +434,7 @@ export default function LessonViewerClient() {
   return (
     <TooltipProvider delayDuration={150}>
       {/* Edge-to-Edge Full Bleed Workspace Layout (Fixes 4-Corner Margins) */}
-      <div key={lessonSlug} className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 h-[calc(100vh-3.5rem)] flex bg-transparent overflow-hidden relative z-10">
+      <div key={lessonSlug} className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 h-[calc(100vh-4rem)] flex bg-transparent overflow-hidden relative z-10">
         {/* Left Sidebar */}
         <LessonSidebar
           courseSlug={courseSlug}
@@ -552,7 +552,7 @@ export default function LessonViewerClient() {
           )}
 
           {/* Scrollable Content Viewport */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 pb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 pb-28">
             <div className="max-w-4xl mx-auto">
               <AnimatePresence mode="wait">
                 {currentStepData?.type === "quiz-review" && currentStepData.sections ? (

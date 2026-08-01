@@ -32,8 +32,8 @@ function getMotionServerSnapshot() {
 }
 
 export default function AnimatedBackground({
-  fadeEnd = '55%',
-  opacity = 0.45,
+  fadeEnd = '60%',
+  opacity = 0.65,
   shape = 'hexagon',
 }: AnimatedBackgroundProps) {
   const prefersReducedMotion = useSyncExternalStore(
@@ -53,12 +53,12 @@ export default function AnimatedBackground({
       {/* Animated canvas grid — brand gold borders, subtle hover glow */}
       <ShapeGrid
         shape={shape}
-        borderColor="rgba(212, 175, 55, 0.045)"
-        hoverFillColor="rgba(212, 175, 55, 0.07)"
-        speed={0.22}
+        borderColor="rgba(212, 175, 55, 0.22)"
+        hoverFillColor="rgba(212, 175, 55, 0.35)"
+        speed={0.25}
         direction="diagonal"
         squareSize={44}
-        hoverTrailAmount={3}
+        hoverTrailAmount={4}
       />
 
       {/* Top-to-bottom gradient: visible at top, softly fades toward bottom */}
