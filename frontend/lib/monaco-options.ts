@@ -5,10 +5,10 @@ const MONO_STACK =
 
 export const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
   minimap: { enabled: false },
-  fontSize: 14,
-  fontWeight: "500",
+  fontSize: 16,
+  fontWeight: "600",
   fontFamily: MONO_STACK,
-  lineHeight: 21,
+  lineHeight: 24,
   padding: { top: 16, bottom: 16 },
   renderLineHighlight: "all",
   cursorBlinking: "smooth",
