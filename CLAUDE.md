@@ -1032,6 +1032,15 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ## 20. Session Log (Recent)
 
+### 2026-08-01 — Session 96: Neutral charcoal theme retune (#141414)
+- Retuned the entire charcoal palette to neutral gray, removing the blue-violet cast of `#1A1A24`: base `#141414`, panel `#191919`, card `#1E1E1E`, sidebar `#111113` (hover/border rgba unchanged)
+- `frontend/app/globals.css` — 17 lines: `@theme` `--color-brand-charcoal-{base,card,panel}` + `:root`/`.dark` shadcn vars (`--background`, `--card`, `--popover`, `--primary-foreground`, `--secondary`, `--accent`, `--sidebar`)
+- `frontend/lib/monaco-theme.ts` — 7 editor surface colors aligned to panel/card (`editor.background`/`SuggestWidget`/`HoverWidget`/`Gutter`, `lineHighlight`/`Widget`/`input`)
+- Swapped 16 hard-coded palette literals for `brand-charcoal-*` tokens across 11 component files (profile, achievements, activity feed, contribution graph, avatar, CodeEditor, DesktopOnlyOverlay)
+- `frontend/styles/theme.css` — mapped dark `--color-bg-*` off Tailwind `neutral-*` → `brand-charcoal-*` tokens (file orphaned/never imported; future-proofing only)
+- Intentionally left unchanged: near-black code/console surfaces (`#0D0D0D`, `#0F1115`, `#0A0C0F`, `#050608`, `#0D0D14`)
+- Verified: ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
+
 ### 2026-08-01 — Session 95: Docs + session-log sync for Azure sandbox go-live
 - Synced the canonical `SESSION_LOG.md` logbook — appended Sessions 90–94 (CLAUDE.md numbering) that post-dated its last entry (Session 88) with an alignment note for the 85–88 consolidation
 - Updated `CLAUDE.md` inventory for the cold-start commit `6b576dd`: sandbox total ~1,233 → ~1,244 LOC (`Dockerfile` 19 → 30, baked Go cache), `config.go` 350 → 366 (33 fields), `config_test.go` 352 → 355, `sandbox_client.go` 166 → 170, executor 1,801 → 1,805, Go LOC ~22,444 → ~22,478

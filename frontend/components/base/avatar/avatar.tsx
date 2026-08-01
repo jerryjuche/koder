@@ -85,7 +85,7 @@ export function Avatar({
       {verified && (
         <span
           className={cn(
-            "absolute rounded-full bg-[#D4AF37] ring-[#1E1E2A] flex items-center justify-center",
+            "absolute rounded-full bg-[#D4AF37] ring-brand-charcoal-panel flex items-center justify-center",
             badge.ring,
           )}
           style={{

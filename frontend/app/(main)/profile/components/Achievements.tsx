@@ -35,7 +35,7 @@ export default function Achievements({ profile }: AchievementsProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        <Card className="p-6 bg-[#242430]/60 backdrop-blur-sm border border-white/6">
+        <Card className="p-6 bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
@@ -69,8 +69,8 @@ export default function Achievements({ profile }: AchievementsProps) {
                       className={cn(
                         "hover:-translate-y-0.5 transition-all duration-300 cursor-pointer",
                         achievement.unlocked
-                          ? "bg-[#242430]/80 border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-white/5"
-                          : "bg-[#242430]/40 border-white/5 opacity-50 grayscale hover:opacity-70"
+                          ? "bg-brand-charcoal-card/80 border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-white/5"
+                          : "bg-brand-charcoal-card/40 border-white/5 opacity-50 grayscale hover:opacity-70"
                       )}
                     >
                       <div className="p-4 flex items-center gap-4">
@@ -121,7 +121,7 @@ export default function Achievements({ profile }: AchievementsProps) {
         open={selected !== null}
         onOpenChange={(open) => !open && setSelected(null)}
       >
-        <DialogContent className="max-w-sm bg-[#1A1A24]/95 backdrop-blur-xl border border-white/8">
+        <DialogContent className="max-w-sm bg-brand-charcoal-base/95 backdrop-blur-xl border border-white/8">
           <DialogHeader>
             <div className="text-center mb-2 mt-2">
               <div

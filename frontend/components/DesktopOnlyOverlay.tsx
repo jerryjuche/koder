@@ -36,7 +36,7 @@ export default function DesktopOnlyOverlay() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overscroll-none bg-[#0D0D14] p-8">
-      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#2A2A3A] bg-[#1A1A24]">
+      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#2A2A3A] bg-brand-charcoal-base">
         <Monitor size={40} className="text-[#D4AF37]" />
       </div>
 

@@ -38,7 +38,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
       >
-        <div className="p-5 rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6">
+        <div className="p-5 rounded-xl bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <Trophy size={16} className="text-[#7B8CBB]" />
@@ -90,7 +90,7 @@ export default function ActivityFeed({ profile, activity, contributionCount }: A
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        <div className="p-5 rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6">
+        <div className="p-5 rounded-xl bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center gap-2 mb-5">
             <Zap size={16} className="text-amber-400" />
             <h3 className="font-semibold text-white text-sm">Recent Activity</h3>

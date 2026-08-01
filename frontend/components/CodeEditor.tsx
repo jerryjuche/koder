@@ -59,7 +59,7 @@ function CodeEditorInner({
       theme="vs-dark-plus"
       loading={
         loading ?? (
-          <div className="h-full w-full flex items-center justify-center bg-[#1E1E2A]">
+          <div className="h-full w-full flex items-center justify-center bg-brand-charcoal-panel">
             <div className="w-6 h-6 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
           </div>
         )
