@@ -81,6 +81,7 @@ export default function LessonSidebar({
     try {
       const raw = sessionStorage.getItem("koder_completed_lessons");
       if (raw) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSessionCompleted(JSON.parse(raw));
       }
     } catch {}

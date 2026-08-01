@@ -153,6 +153,7 @@ export default function LessonViewerClient() {
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

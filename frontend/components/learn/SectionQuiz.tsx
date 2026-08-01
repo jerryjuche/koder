@@ -46,11 +46,11 @@ export default function SectionQuiz({
   const totalQuestions = quizList.length;
   const currentQuiz = quizList[currentIdx];
 
-  const handleSelect = (idx: number) => {
+  const handleSelect = useCallback((idx: number) => {
     if (!submitted && !isQuizFinished) {
       setSelected(idx);
     }
-  };
+  }, [submitted, isQuizFinished]);
 
   const handleNextQuestion = useCallback(() => {
     if (currentIdx < totalQuestions - 1) {
@@ -114,7 +114,7 @@ export default function SectionQuiz({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [submitted, selected, isQuizFinished, handleSubmit, handleNextQuestion]);
+  }, [submitted, selected, isQuizFinished, handleSelect, handleSubmit, handleNextQuestion]);
 
   if (totalQuestions === 0 || !currentQuiz || !currentQuiz.question || !currentQuiz.options) {
     return (
