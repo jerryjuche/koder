@@ -38,6 +38,12 @@ type Config struct {
 	SandboxURL             string // Optional — if set, use HTTP sandbox instead of Docker
 	GoVersion              string // Go version directive for generated go.mod (default "1.26")
 
+	// SandboxRequestTimeoutExtra is the number of seconds the HTTP client waits
+	// beyond the execution timeout for a remote sandbox response. It tolerates
+	// scale-to-zero cold starts (Azure Container Apps) without extending the
+	// student code run limit. Default: 90.
+	SandboxRequestTimeoutExtra int
+
 	// Python execution
 	PythonDockerImage     string // default: "python:3.12-slim"
 	PythonExecutorTimeout int    // default: 60
@@ -228,6 +234,16 @@ func Load() (*Config, error) {
 
 	cfg.SandboxURL = os.Getenv("SANDBOX_URL")
 	// Empty SANDBOX_URL means use local Docker (default behavior)
+
+	sandboxTimeoutExtraStr := os.Getenv("SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS")
+	if sandboxTimeoutExtraStr == "" {
+		sandboxTimeoutExtraStr = "90"
+	}
+	sandboxTimeoutExtra, err := strconv.Atoi(sandboxTimeoutExtraStr)
+	if err != nil || sandboxTimeoutExtra < 0 {
+		return nil, fmt.Errorf("SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS must be a non-negative integer: %q", sandboxTimeoutExtraStr)
+	}
+	cfg.SandboxRequestTimeoutExtra = sandboxTimeoutExtra
 
 	cfg.GoVersion = os.Getenv("GO_VERSION")
 	if cfg.GoVersion == "" {

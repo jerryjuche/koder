@@ -995,16 +995,22 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ## 19. Production Deployments
 
-| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Fly.io, live) |
+| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Azure Container Apps, live) |
 |---|---|---|---|
-| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.fly.dev` |
-| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.fly.dev` |
+| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
+| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
 | **update** | `https://update.koder.sbs` | shares staging | shares staging |
 
-> **Planned Azure migration:** the sandbox moves to Azure Container Apps with a
-> public GHCR image (`ghcr.io/jerryjuche/koder-sandbox`) for a strict $0 budget.
-> Deploy scripts and manifest: `sandbox/azure/`; full guide: `docs/azure-sandbox-deploy.md`.
-> Target URL: `https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io`.
+> **Azure Container Apps is live (2026-07-31):** sandbox deployed on ACA
+> consumption plan — resource group `koder-sandbox`, environment `sandbox-env`,
+> app `koder-sandbox` (0.5 vCPU/1.0Gi, scale min 0 / max 4, HTTPS → port 8080,
+> `SANDBOX_RATE_LIMIT_PER_MIN=60`), pulling the public GHCR image
+> `ghcr.io/jerryjuche/koder-sandbox`. Set
+> `SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io`
+> on Render for each branch (`PYTHON_SANDBOX_URL` stays empty — single var
+> covers both languages). Deploy scripts/manifest: `sandbox/azure/`; runbook:
+> `docs/azure-sandbox-deploy.md`. Rollback: `cd sandbox && fly deploy`
+> (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
 
 ### Required Backend Environment
 ```bash
@@ -1022,6 +1028,24 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-01 — Session 94: Sandbox cold-start reliability at $0 (scale-to-zero retained)
+- Root-caused a real production bug: the first Go submission after ~5 min idle **failed** (backend client timeout `30s + 10 = 40s` < ACA cold start ~30–60s + first `go test` compile ~23s = 53–83s)
+- Decoupled the sandbox HTTP client timeout from the execution timeout — new `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default **90**) covers scale-to-zero cold starts while `timeout_sec` (30s Go / 60s Python) still hard-caps student code runs (`sandbox_client.go`, `executor.go` ×3 call sites, `config.go`)
+- Raised `http.Server` read/write/idle timeouts 60s → 180s so `WriteTimeout` cannot kill a cold-start request (`cmd/server/main.go`)
+- Baked the Go build cache into the sandbox image using the runner's exact `-gcflags=-l`/env flags → cold-container first compile drops ~23s → ~2s (`sandbox/Dockerfile`); validated locally: warmup compile clean, a separate module reuses the cache in ~1s
+- Added a default-assertion test for `SandboxRequestTimeoutExtra` (`config_test.go`)
+- Verified: `go vet` clean (backend + sandbox), 8/8 backend suites + sandbox suite passing, `go build ./cmd/server` + sandbox OK
+- **Cold-path expectation at $0:** first submission after idle ≈35s and succeeds; every subsequent submission <2s
+
+### 2026-07-31 — Session 93: Azure Container Apps sandbox go-live
+- Merged `3123b73` (Azure migration) to `staging` via PR #170 (`2a906bf`); CI + sandbox-publish workflow passed
+- `sandbox-publish.yml` builds/pushes `ghcr.io/jerryjuche/koder-sandbox:latest` + `:sha-2a906bfb934f` (public) — **image only, no Azure resources**
+- Deployed via `sandbox/azure/deploy.sh --yes` in Azure Cloud Shell: RG `koder-sandbox`, env `sandbox-env`, app `koder-sandbox` (0.5 vCPU/1.0Gi, min 0/max 4, HTTPS→8080, rate limit 60/min)
+- **Actual FQDN:** `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` (ACA assigns a random environment suffix — the docs' predicted `sandbox-env.westeurope` URL is NOT used)
+- Verified from repo root: `/health` ok, `/version` = commit `2a906bf`, `/execute` Python passed (71ms), Go passed (717ms warm / ~23s first compile on 0.5 vCPU)
+- Updated `CLAUDE.md` §19 + `docs/azure-sandbox-deploy.md` + `README.md` with the live URL (Fly.io preserved as rollback)
+- **Next:** set `SANDBOX_URL` on Render (staging + main) and test a real Go + Python submission end-to-end
 
 ### 2026-07-31 — Session 92: Professional codebase reindex — full verified audit
 - Full automated audit: `go vet` (12/12 root packages + sandbox = 13 clean), `go test` (10/10 suites, 136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors, sandbox `go build` + `go test` clean

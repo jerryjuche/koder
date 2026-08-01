@@ -111,6 +111,9 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.ExecutorTimeoutSeconds != 30 {
 		t.Errorf("expected default timeout 30, got %d", cfg.ExecutorTimeoutSeconds)
 	}
+	if cfg.SandboxRequestTimeoutExtra != 90 {
+		t.Errorf("expected default SandboxRequestTimeoutExtra 90, got %d", cfg.SandboxRequestTimeoutExtra)
+	}
 	if cfg.DockerImage != "golang:1.26-alpine" {
 		t.Errorf("expected default DockerImage golang:1.26-alpine, got %s", cfg.DockerImage)
 	}

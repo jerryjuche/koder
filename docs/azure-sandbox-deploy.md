@@ -4,7 +4,7 @@
 > **Image:** `ghcr.io/jerryjuche/koder-sandbox` (public)
 > **Host:** Azure Container Apps — consumption plan, `westeurope`
 > **Budget:** $0/month
-> **Status:** Target architecture (live sandbox: Fly.io fallback until migration cutover)
+> **Status:** **LIVE (2026-07-31)** — Fly.io retained as rollback only
 > **Last updated:** 2026-07-31
 
 ---
@@ -62,7 +62,7 @@ and falls back to local Docker when it is empty — the API contract is unchange
 Student code
       │  POST /execute {language, code, test_code, timeout_sec, ...}
       ▼
-Backend (Render) ──SANDBOX_URL──► koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io
+Backend (Render) ──SANDBOX_URL──► koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
       │                              (Azure Container Apps — consumption plan)
       │                              ├── HTTPS ingress → target port 8080
       │                              ├── 0.5 vCPU / 1.0Gi per replica
@@ -214,15 +214,21 @@ reviewable deployments.
 ### Resulting URL
 
 ```
-https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io
+https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 ```
+
+> **Note:** Azure appends a random suffix to the environment's default domain
+> (`ashysmoke-c753df92` above), so the exact hostname can differ between
+> environments even with the same `--name`. **Always use the FQDN that
+> `deploy.sh` prints** (and copy it into `SANDBOX_URL` on Render) rather than
+> predicting one.
 
 ---
 
 ## 7. Step 3 — Verify
 
 ```bash
-BASE=https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io
+BASE=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 ```
 
 ### 7.1 Liveness + version
@@ -268,9 +274,14 @@ az containerapp replica list --name koder-sandbox \
     --resource-group koder-sandbox --query "[].name"
 ```
 
-The next `/execute` triggers a cold start (~30–60s). The backend's client
-timeouts (40s Go / 70s Python) tolerate this, but the first submission after an
-idle period will feel slow — expected behavior at the $0 default.
+The next `/execute` triggers a cold start (~30–60s). The backend tolerates
+this: the HTTP client waits the execution timeout **plus
+`SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90)** for a cold replica to
+come up, while the sandbox still hard-caps the student's code run at
+`timeout_sec`. The image pre-bakes the Go build cache (see `sandbox/Dockerfile`)
+so a cold container skips the ~20s stdlib recompile. The first submission after
+an idle period will still feel slow (~30–40s), but it **succeeds**; every
+subsequent submission is fast. Expected behavior at the $0 default.
 
 ---
 
@@ -279,7 +290,7 @@ idle period will feel slow — expected behavior at the $0 default.
 On Render (staging + production):
 
 ```bash
-SANDBOX_URL=https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io
+SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 PYTHON_SANDBOX_URL=                    # leave empty
 ```
 
@@ -377,10 +388,10 @@ docker login ghcr.io -u <username> && docker push ghcr.io/jerryjuche/koder-sandb
 ./sandbox/azure/deploy.sh
 
 # Verify
-curl -fsS https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io/health
+curl -fsS https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io/health
 
 # Backend env (Render)
-SANDBOX_URL=https://koder-sandbox.sandbox-env.westeurope.azurecontainerapps.io
+SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 
 # Rollback
 cd sandbox && fly deploy            # restore Fly.io path
