@@ -89,9 +89,9 @@ func main() {
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Handler,
-		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  180 * time.Second,
+		WriteTimeout: 180 * time.Second,
+		IdleTimeout:  180 * time.Second,
 	}
 
 	// Start server in a goroutine

@@ -190,7 +190,7 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 		if err != nil {
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
-		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
+		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds, e.cfg.SandboxRequestTimeoutExtra)
 		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
@@ -671,7 +671,7 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read main_test.go: %w", err)
 		}
-		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds)
+		client := newSandboxClient(e.cfg.SandboxURL, e.cfg.ExecutorTimeoutSeconds, e.cfg.SandboxRequestTimeoutExtra)
 		resp, err := client.execute(ctx, req.Language, string(codeBytes), string(testBytes), e.cfg.GoVersion)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)
@@ -1102,7 +1102,7 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 		if err != nil {
 			return nil, fmt.Errorf("failed to read run_tests.py: %w", err)
 		}
-		client := newSandboxClient(sandboxURL, e.cfg.PythonExecutorTimeout)
+		client := newSandboxClient(sandboxURL, e.cfg.PythonExecutorTimeout, e.cfg.SandboxRequestTimeoutExtra)
 		resp, err := client.execute(ctx, "python", string(codeBytes), string(testBytes), "")
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %w", err)

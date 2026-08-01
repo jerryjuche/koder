@@ -971,8 +971,8 @@ ENVIRONMENT=development  # "development" | "production"
 ALLOWED_ORIGINS=http://localhost:3000
 
 # Sandbox (optional — empty = use local Docker)
-# Fly.io-deployed sandbox endpoint for production
-SANDBOX_URL=https://koder-sandbox.fly.dev
+# Azure Container Apps sandbox endpoint for production
+SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io
 PYTHON_SANDBOX_URL=                 # Separate URL for Python sandbox (optional)
 
 # Admin account (created on first startup)
@@ -996,11 +996,16 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # Same value as GOOGLE_CLIENT_ID
 ## 12. Production & Preview Deployments
 
 ### Domains by Branch
-| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Fly.io) |
+| Branch | Frontend (Vercel) | Backend API (Render) | Sandbox (Azure Container Apps) |
 |---|---|---|---|
-| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.fly.dev` |
-| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.fly.dev` |
+| **main** | `https://koder.sbs` | `https://api.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
+| **staging** | `https://staging.koder.sbs` | `https://stagingapi.koder.sbs` | `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` |
 | **update** | `https://update.koder.sbs` | *shares staging* | *shares staging* |
+
+> Sandbox runs on Azure Container Apps (consumption plan, public GHCR image,
+> scale-to-zero). See [`docs/azure-sandbox-deploy.md`](docs/azure-sandbox-deploy.md)
+> for the deploy/verify/rollback runbook. Rollback: `cd sandbox && fly deploy`
+> (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
 
 ### Required Backend Environment (Production)
 ```bash

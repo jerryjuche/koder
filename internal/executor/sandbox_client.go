@@ -40,11 +40,15 @@ type sandboxClient struct {
 	timeoutSec int
 }
 
-// newSandboxClient creates a client with a per-request timeout.
-func newSandboxClient(baseURL string, timeoutSec int) *sandboxClient {
+// newSandboxClient creates a client whose HTTP request timeout tolerates
+// scale-to-zero cold starts on top of the execution timeout. The execution
+// timeout (timeoutSec) is still sent to the sandbox as timeout_sec so student
+// code runs stay hard-capped; the HTTP client only waits requestTimeoutExtraSec
+// longer for the request to reach a cold replica (Azure Container Apps).
+func newSandboxClient(baseURL string, timeoutSec, requestTimeoutExtraSec int) *sandboxClient {
 	return &sandboxClient{
 		httpClient: &http.Client{
-			Timeout: time.Duration(timeoutSec+10) * time.Second,
+			Timeout: time.Duration(timeoutSec+requestTimeoutExtraSec) * time.Second,
 		},
 		baseURL:    baseURL,
 		timeoutSec: timeoutSec,
