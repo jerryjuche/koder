@@ -1062,9 +1062,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         )}
 
         {/* Middle: Editor & Results */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#0F1115]">
+        <div className="flex-1 flex flex-col min-w-0 bg-[#121212]">
           {/* Editor Header */}
-          <div className="h-10 flex items-center justify-between px-4 bg-[#0F1115] border-b border-brand-charcoal-border">
+          <div className="h-10 flex items-center justify-between px-4 bg-[#121212] border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
               {availableLanguages.length > 1 ? (
                 <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">

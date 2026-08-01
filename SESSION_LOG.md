@@ -2632,3 +2632,15 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `frontend/styles/theme.css` — mapped dark `--color-bg-*` off Tailwind `neutral-*` → `brand-charcoal-*` tokens (file orphaned/never imported; future-proofing only)
 - Intentionally left unchanged: near-black code/console surfaces (`#0D0D0D`, `#0F1115`, `#0A0C0F`, `#050608`, `#0D0D14`)
 - Verified: ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
+
+---
+
+## Session 97 — 2026-08-01 — Neutralize residual blue-tinted chrome + Monaco tints
+
+### Changes
+- Follow-up to Session 96: neutralized the remaining cool blue-gray grays that clashed with the neutral `#141414` charcoal
+- `frontend/lib/monaco-theme.ts` — 12 supporting tints → neutral: selection `#3A3A4A→#3D3D3D`, inactive selection `#2E2E3E→#2E2E2E`, indent guides `#2A2A3A→#2A2A2A` + `#3A3A50→#3A3A3A`, widget borders `#33334A→#333333` ×4, line numbers `#555568→#565656`, scrollbar `#33334A55→#33333355` + `#44445F88→#44444488`
+- Chrome surfaces: google-button (`#1C1C28→#1C1C1C`, `#2A2A3A→#2A2A2A`, `#252535→#252525`), hover-card (`#1C1C28→#1C1C1C`), DesktopOnlyOverlay (`#0D0D14→#0D0D0D`, `#2A2A3A→#2A2A2A` ×3), error boundaries ×2 (`#0A0A0F→#0A0A0A`), workspace editor toolbar (`#0F1115→#121212` ×2)
+- Kept intentionally dark: code/console surfaces (workspace code preview `#0F1115`/`#0A0C0F`/`#050608`, PyodideConsole `#0D0D14`, admin previews `#0d1117`/`#161b22`, success tint `#1A2521`)
+- Verified: grep sweep clean, ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
+- Pushed to `origin/update`

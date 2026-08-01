@@ -74,7 +74,7 @@ export function GoogleButton({
 
   if (loading) {
     return (
-      <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#2A2A3A] bg-[#1C1C28] px-4 py-3">
+      <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#2A2A2A] bg-[#1C1C1C] px-4 py-3">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-offwhite-muted/30 border-t-brand-offwhite-muted" />
         <span className="text-[15px] font-medium text-brand-offwhite-muted">
           Signing in with Google...
@@ -86,7 +86,7 @@ export function GoogleButton({
   return (
     <div className="group relative w-full">
       {/* Custom styled button (visible layer) */}
-      <div className="pointer-events-none flex w-full items-center justify-center gap-3 rounded-xl border border-[#2A2A3A] bg-[#1C1C28] px-4 py-3 transition-all duration-200 group-hover:border-brand-muted-gold/30 group-hover:bg-[#252535]">
+      <div className="pointer-events-none flex w-full items-center justify-center gap-3 rounded-xl border border-[#2A2A2A] bg-[#1C1C1C] px-4 py-3 transition-all duration-200 group-hover:border-brand-muted-gold/30 group-hover:bg-[#252525]">
         <GoogleIcon />
         <span className="text-[15px] font-medium text-brand-offwhite transition-colors group-hover:text-white">
           Continue with Google

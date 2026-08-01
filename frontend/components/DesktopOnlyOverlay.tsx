@@ -35,8 +35,8 @@ export default function DesktopOnlyOverlay() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overscroll-none bg-[#0D0D14] p-8">
-      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#2A2A3A] bg-brand-charcoal-base">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overscroll-none bg-[#0D0D0D] p-8">
+      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#2A2A2A] bg-brand-charcoal-base">
         <Monitor size={40} className="text-[#D4AF37]" />
       </div>
 
@@ -49,9 +49,9 @@ export default function DesktopOnlyOverlay() {
 
       <div className="mt-8 flex items-center gap-3 text-sm text-[#606070]">
         <Smartphone size={16} className="opacity-50" />
-        <div className="h-px w-12 bg-[#2A2A3A]" />
+        <div className="h-px w-12 bg-[#2A2A2A]" />
         <span>Minimum width: 900px</span>
-        <div className="h-px w-12 bg-[#2A2A3A]" />
+        <div className="h-px w-12 bg-[#2A2A2A]" />
         <Monitor size={16} className="opacity-50" />
       </div>
     </div>
