@@ -64,7 +64,7 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
         }}
       >
-        <Card className="p-6 bg-[#242430]/60 backdrop-blur-sm border border-white/6">
+        <Card className="p-6 bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-9 h-9 rounded-xl bg-[#7B8CBB]/10 flex items-center justify-center border border-[#7B8CBB]/20">
               <Layers size={18} className="text-[#7B8CBB]" />

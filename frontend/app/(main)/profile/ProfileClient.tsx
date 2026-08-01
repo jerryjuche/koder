@@ -28,7 +28,7 @@ function ProfileSkeleton() {
     <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header skeleton */}
-        <div className="rounded-2xl bg-[#242430]/40 backdrop-blur-sm border border-white/6 p-8">
+        <div className="rounded-2xl bg-brand-charcoal-card/40 backdrop-blur-sm border border-white/6 p-8">
           <div className="flex gap-6 items-start">
             <SkeletonBlock className="w-24 h-24 rounded-full" />
             <div className="flex-1 space-y-3">

@@ -12,7 +12,7 @@ export default function ProblemError({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0A0A0F]">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0A0A0A]">
       <Card className="p-8 max-w-md w-full text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
           <AlertTriangle size={32} className="text-destructive" />
