@@ -2526,3 +2526,83 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Now matches the Learn section editors (`MultiFileEditor`, `SectionExercise`)
 - 15 insertions(+), 9 deletions(-)
 - All pushed to `origin/update`
+
+---
+
+> **Note:** This logbook's Sessions 85–88 were consolidated differently from CLAUDE.md
+> (CLAUDE splits them as 85, 87, 88, 89 with an extra reindex at 86). Entries below follow
+> CLAUDE.md's numbering (90–94) for continuity with the canonical index.
+
+## Session 90 — 2026-07-30 — Professional codebase reindex — all MD files read, accurate LOC verified
+
+### Changes
+- Read and catalogued all 17 markdown files across the repository
+- Discovered 4 new docs: `docs/curriculum.md` (937 LOC), `docs/ai-curriculum-prompt.md` (387 LOC), `courses.md` (607 LOC), `rephrase-review.md` (393 LOC)
+- Discovered new CLI tool: `cmd/generate-curriculum/main.go` (280 LOC) — reads AI JSON, writes curriculum SQL
+- Discovered new migration: `048_seed_ai_fluency.sql` (1,995 LOC, ~30 problems)
+- Updated total counts: 366 tracked source files, ~89,700 total LOC across all categories
+- Updated all section headers with verified file counts and LOC
+- Added Known Issues #10 (sandbox-runner binary tracked) and #11 (root data file organization)
+- Verified working tree clean on `update` branch
+
+---
+
+## Session 91 — 2026-07-31 — Professional codebase reindex — all Go/frontend files verified
+
+### Changes
+- Full automated audit: `go vet` (10/10 packages clean), `go test` (9/9 suites passing), `tsc --noEmit` (0 errors), ESLint (0 errors)
+- Verified Go backend: 62 source + 14 test files, ~18,518 LOC (15,784 source + 2,734 test)
+- Verified Go sandbox: 7 source + 1 test + 1 Dockerfile, ~1,052 LOC, zero external deps
+- Verified frontend: 159 files, ~30,238 LOC (73 app pages, 63 components, 20 lib/hooks, 3 styles)
+- Verified migrations: 50 files (~20,431 LOC) — 32 schema + 18 seed
+- Verified docs: 17 files (~8,377 LOC), scripts: 7 files (~817 LOC), config: 14 files (~581 LOC)
+- Updated root data file count: ~29 files (~10,315 LOC) tracked at root
+- Total tracked: ~376 files, ~90,300 LOC
+- Fixed API route count: 118 (was ~89), Store interface methods: 152 (was ~125)
+- Added Known Issues #12–15 (`.bak` file, `.exe` binaries, empty `docs/` dirs, unused markdown deps)
+
+---
+
+## Session 92 — 2026-07-31 — Professional codebase reindex — full verified audit
+
+### Changes
+- Full automated audit: `go vet` (12/12 root packages + sandbox = 13 clean), `go test` (10/10 suites, 136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors, sandbox `go build` + `go test` clean
+- Verified Go backend: 62 source + 13 test files, 21,211 LOC (18,073 source + 3,138 test) — api 7,009, store 6,398, executor 1,801, enricher 942, auth 364, config 350, parser 371, broker 68 + 4 cmd tools 770
+- Verified Go sandbox: 7 source + 1 test + Dockerfile + fly.toml, 1,233 LOC, zero external deps
+- Verified frontend: 160 source files, 32,741 LOC (73 app pages 17,718 + 1 CSS 216, 63 components 10,039, 4 hooks 374, 16 lib 3,012, 4 styles 1,598)
+- Verified migrations: 51 files (27,470 LOC) — 33 schema + 17 seed/content + 1 content-refresh (`049_refresh_ai_fluency.sql`, 3,223 LOC, new)
+- Verified docs: 17 files (9,143 LOC), scripts: 7 files (904 LOC), config/build: 14 files (699 LOC)
+- Root data: 28 files (12,678 LOC); total tracked source: ~362 files, ~106,000 LOC
+- Added migration `049_refresh_ai_fluency.sql` to index; corrected seeded-problem total to 259 (INSERT INTO problems)
+- Fixed per-file LOC across all inventory tables; added new components, `.eslintrc.json`, `scripts/copy-monaco.mjs`, `fly.toml`
+- Known Issues: removed `server.exe`/`main.exe` tracking, added `.next/trace` tracked
+
+---
+
+## Session 93 — 2026-07-31 — Azure Container Apps sandbox go-live
+
+**Commits:** `3123b73`, `2a906bf` (PR #170)
+
+### Changes
+- Merged `3123b73` (Azure migration) to `staging` via PR #170 (`2a906bf`); CI + sandbox-publish workflow passed
+- `sandbox-publish.yml` builds/pushes `ghcr.io/jerryjuche/koder-sandbox:latest` + `:sha-2a906bfb934f` (public) — image only, no Azure resources
+- Deployed via `sandbox/azure/deploy.sh --yes` in Azure Cloud Shell: RG `koder-sandbox`, env `sandbox-env`, app `koder-sandbox` (0.5 vCPU/1.0Gi, min 0/max 4, HTTPS→8080, rate limit 60/min)
+- Actual FQDN: `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` (ACA assigns a random environment suffix)
+- Verified live: `/health` ok, `/version` = commit `2a906bf`, Python `/execute` passed (71ms), Go passed (717ms warm / ~23s first compile)
+- Updated `CLAUDE.md` §19 + `docs/azure-sandbox-deploy.md` + `README.md` with the live URL (Fly.io preserved as rollback)
+
+---
+
+## Session 94 — 2026-08-01 — Sandbox cold-start reliability at $0 (scale-to-zero retained)
+
+**Commits:** `6b576dd`
+
+### Changes
+- Root-caused a real production bug: the first Go submission after ~5 min idle **failed** (backend client timeout `30s + 10 = 40s` < ACA cold start ~30–60s + first `go test` compile ~23s = 53–83s)
+- Decoupled the sandbox HTTP client timeout from the execution timeout — new `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) covers scale-to-zero cold starts while `timeout_sec` (30s Go / 60s Python) still hard-caps student code runs (`sandbox_client.go`, `executor.go` ×3 call sites, `config.go`)
+- Raised `http.Server` read/write/idle timeouts 60s → 180s so `WriteTimeout` cannot kill a cold-start request (`cmd/server/main.go`)
+- Baked the Go build cache into the sandbox image using the runner's exact `-gcflags=-l`/env flags → cold-container first compile drops ~23s → ~2s (`sandbox/Dockerfile`); validated locally
+- Added a default-assertion test for `SandboxRequestTimeoutExtra` (`config_test.go`)
+- Verified: `go vet` clean (backend + sandbox), 8/8 backend suites + sandbox suite passing, `go build ./cmd/server` + sandbox OK
+- Cold-path expectation at $0: first submission after idle ≈35s and succeeds; every subsequent submission <2s
+- All pushed to `origin/update`

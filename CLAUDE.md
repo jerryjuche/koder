@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-07-31 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 10/10 Go test suites passing (136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean (untracked: `.kilo/`)
+> **Branch:** `update` | **Last indexed:** 2026-08-01 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 10/10 Go test suites passing (136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean (untracked: `.kilo/`)
 
 ---
 
@@ -39,7 +39,7 @@
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
 | **Go Backend** (`cmd/` + `internal/`) | 62 source + 13 test | ~18,073 + ~3,138 | 8 packages, 152 Store interface methods, 118 API endpoints; includes 4 cmd tools |
-| **Go Sandbox** (`sandbox/`) | 7 source + 1 test + Dockerfile + fly.toml | ~1,157 + ~32 + ~44 | Zero external deps, 4-layer defense-in-depth |
+| **Go Sandbox** (`sandbox/`) | 7 source + 1 test + Dockerfile + fly.toml | ~1,157 + ~32 + ~55 | Zero external deps, 4-layer defense-in-depth |
 | **SQL Migrations** (`migrations/`) | 51 | ~27,470 | 33 schema + 17 seed/content + 1 content-refresh, 25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,718 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
 | **Frontend Components** (`components/`) | 63 | ~10,039 | 20 shadcn/ui + 43 custom |
@@ -64,13 +64,13 @@ koder/
 ├── internal/
 │   ├── api/              (24 files, 7,009 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
 │   ├── store/            (21 files, 6,398 LOC)  # Database access layer — pgx/v5, 152 Store methods
-│   ├── executor/         (6 files, 1,801 LOC)   # Code execution engine, sandbox orchestration, output parsing
+│   ├── executor/         (6 files, 1,805 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (1 file, 942 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
-│   └── config/           (1 file, 350 LOC)      # Env var loader (32+ vars, fails-fast validation)
-├── sandbox/              (7 source + 1 test + Dockerfile + fly.toml, ~1,233 LOC)  # Remote execution — zero external deps
+│   └── config/           (1 file, 366 LOC)      # Env var loader (33 vars, fails-fast validation)
+├── sandbox/              (7 source + 1 test + Dockerfile + fly.toml, ~1,244 LOC)  # Remote execution — zero external deps
 ├── frontend/
 │   ├── app/              (73 .tsx, ~17,718 LOC) # App Router pages (7 route groups)
 │   ├── components/       (63 files, ~10,039 LOC) # Shared components + shadcn/ui primitives
@@ -208,7 +208,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `enricher.go` | 942 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
 | `enricher_test.go` | 231 | 4 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests) |
 
-### 6.6 Executor (`internal/executor/` — 6 source + 1 test file, 1,801 + 533 LOC)
+### 6.6 Executor (`internal/executor/` — 6 source + 1 test file, 1,805 + 533 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -216,7 +216,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `parser.go` | 111 | `ParseTestOutput` — 5 regex patterns, state machine for GOT/WANT multi-line parsing |
 | `templates.go` | 104 | `mainTestTemplate` (Go: `==` / `reflect.DeepEqual`), `pythonTestTemplate` (Python: `json.loads`) |
 | `sandbox.go` | 72 | `PrepareSandbox` (temp dir, go.mod, solution.go, main_test.go, forcePackageKoder regex) |
-| `sandbox_client.go` | 166 | `SandboxRequest/Response`, HTTP client (3 retries, exp backoff 2ⁿ×500ms), `FormatFriendlySandboxError` |
+| `sandbox_client.go` | 170 | `SandboxRequest/Response`, HTTP client (3 retries, exp backoff 2ⁿ×500ms, request timeout = `timeout_sec + requestTimeoutExtra`), `FormatFriendlySandboxError` |
 | `types.go` | 34 | `ExecutionRequest`, `ExecutionResult`, `TestResult` |
 | `executor_test.go` | 533 | 16 tests: literal formatting, template rendering, output parsing (all-pass, mixed, multi-line, errors), Python pipeline |
 
@@ -234,12 +234,12 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `parser.go` | 371 | `Parser` struct, `RawProblem`, `IngestGitHubRepo` (clone + sparse checkout, SHA-256 idempotency), `ParseProblem`, `normalizeSlug`, `normalizeModule`, `cleanRepoURL` |
 | `parser_test.go` | 346 | 13 tests: isReadmeFile, detectProblemType, normalizeSlug, computeSourceHash, URL parsing (HTTPS+SSH) |
 
-### 6.9 Config (`internal/config/` — 1 source + 1 test file, 350 + 352 LOC)
+### 6.9 Config (`internal/config/` — 1 source + 1 test file, 366 + 355 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `config.go` | 350 | `Config` struct (32 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535) |
-| `config_test.go` | 352 | 24 tests: missing vars, invalid port, environment validation |
+| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) |
+| `config_test.go` | 355 | 24 tests: missing vars, invalid port, environment validation |
 
 ### 6.10 Dependencies (`go.mod`)
 
@@ -255,7 +255,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 7. Sandbox (`sandbox/` — 7 source + 1 test + Dockerfile + fly.toml, ~1,233 LOC, Zero External Dependencies)
+## 7. Sandbox (`sandbox/` — 7 source + 1 test + Dockerfile + fly.toml, ~1,244 LOC, Zero External Dependencies)
 
 | File | Lines | Purpose |
 |---|---|---|
@@ -267,7 +267,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `secure_unix.go` | 64 | Setpgid isolation, setrlimit (NPROC=6, NOFILE=1024, FSIZE=64MB, RLIMIT_AS=512MB), killProcessGroup (SIGKILL), reapProcess (5s) |
 | `secure_other.go` | 25 | No-op stubs for non-Unix (Windows) |
 | `security_message_test.go` | 32 | 3 tests: dangerous-pattern detection message quality |
-| `Dockerfile` | 19 | 2-stage build based on `golang:1.26-alpine`, includes python3 |
+| `Dockerfile` | 30 | 2-stage build based on `golang:1.26-alpine`, includes python3, bakes Go build cache via `/warmup` (cold first-compile ~23s → ~2s) |
 | `fly.toml` | 25 | Legacy Fly.io config (fallback; Azure deployment lives in `sandbox/azure/`) |
 
 ---
@@ -911,7 +911,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
-| `internal/config` | `config_test.go` (352 LOC) | 24 |
+| `internal/config` | `config_test.go` (355 LOC) | 24 |
 | `internal/enricher` | `enricher_test.go` (231 LOC) | 4 |
 | `internal/executor` | `executor_test.go` (533 LOC) | 16 |
 | `internal/parser` | `parser_test.go` (346 LOC) | 13 |
@@ -951,7 +951,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | Metric | Value |
 |---|---|
 | **Go source files** | 69 (62 backend + 7 sandbox) |
-| **Go LOC** | ~22,444 (18,073 backend source + 3,138 backend test + 1,157 sandbox source + 32 sandbox test + 44 Dockerfile/fly.toml) |
+| **Go LOC** | ~22,478 (18,093 backend source + 3,141 backend test + 1,157 sandbox source + 32 sandbox test + 55 Dockerfile/fly.toml) |
 | **Go test files** | 14 (~3,170 LOC, 136 tests) |
 | **Frontend TSX/TS files** | 156 (~31,143 LOC) |
 | **Total tracked source LOC** | ~106,000 |
@@ -1011,6 +1011,9 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 > covers both languages). Deploy scripts/manifest: `sandbox/azure/`; runbook:
 > `docs/azure-sandbox-deploy.md`. Rollback: `cd sandbox && fly deploy`
 > (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
+> Cold starts (scale-to-zero) are absorbed by `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS`
+> (default 90) on the backend client; the image's baked Go build cache makes the
+> first compile ~2s. Expect ~35s for the first submission after ~5 min idle, <2s after.
 
 ### Required Backend Environment
 ```bash
@@ -1028,6 +1031,13 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-01 — Session 95: Docs + session-log sync for Azure sandbox go-live
+- Synced the canonical `SESSION_LOG.md` logbook — appended Sessions 90–94 (CLAUDE.md numbering) that post-dated its last entry (Session 88) with an alignment note for the 85–88 consolidation
+- Updated `CLAUDE.md` inventory for the cold-start commit `6b576dd`: sandbox total ~1,233 → ~1,244 LOC (`Dockerfile` 19 → 30, baked Go cache), `config.go` 350 → 366 (33 fields), `config_test.go` 352 → 355, `sandbox_client.go` 166 → 170, executor 1,801 → 1,805, Go LOC ~22,444 → ~22,478
+- Added `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) + cold-start timing note to §19; bumped "Last indexed" to 2026-08-01
+- Verified: `go vet` clean (backend + sandbox), 8/8 backend suites + sandbox suite passing, `go build ./cmd/server` + sandbox OK
+- Pushed to `origin/update`
 
 ### 2026-08-01 — Session 94: Sandbox cold-start reliability at $0 (scale-to-zero retained)
 - Root-caused a real production bug: the first Go submission after ~5 min idle **failed** (backend client timeout `30s + 10 = 40s` < ACA cold start ~30–60s + first `go test` compile ~23s = 53–83s)
