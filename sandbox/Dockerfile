@@ -12,8 +12,12 @@ FROM golang:1.26-alpine
 # Python runtime for student submissions + black (pinned so /format output is
 # byte-stable across image rebuilds). Alpine's pip resolves black's wheel deps
 # (~20MB); the pinned version must stay in sync with the backend's expectation.
+# Alpine 3.22+ (Python 3.14 / pip 26) enforces PEP 668: the system Python is
+# externally managed, so pip refuses to install unless --break-system-packages
+# is passed. Safe here (disposable, pinned base image); black's cp39-abi3 wheel
+# installs cleanly on 3.14 with no compiler.
 RUN apk add --no-cache python3 py3-pip \
-    && pip3 install --no-cache-dir black==25.1.0
+    && pip3 install --no-cache-dir --break-system-packages black==25.1.0
 
 WORKDIR /app
 COPY --from=builder /build/sandbox-runner /usr/local/bin/
