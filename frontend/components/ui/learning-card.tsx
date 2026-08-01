@@ -122,6 +122,14 @@ export function LearningCard({
             "group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] group-hover:border-primary/50",
         )}
       >
+        {/* Background Image Layer if provided */}
+        {imageUrl && (
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-25 mix-blend-luminosity z-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-35"
+            style={{ backgroundImage: `url(${imageUrl})` }}
+          />
+        )}
+
         {/* Top Decorative Gradient Stripe */}
         <div
           className={cn(
