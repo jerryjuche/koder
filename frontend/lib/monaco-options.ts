@@ -33,7 +33,7 @@ export const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions 
   autoClosingQuotes: "always",
   autoIndent: "full",
   formatOnPaste: false,
-  formatOnType: false,
+  formatOnType: true,
   tabSize: 4,
   insertSpaces: true,
   quickSuggestions: {

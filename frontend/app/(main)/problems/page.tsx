@@ -577,10 +577,10 @@ export default function ProblemsPage() {
                     src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
                     alt=""
                     fill
-                    className="object-cover"
+                    className="object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-80"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/55 via-background/65 to-background/90" />
                 </div>
 
                 <div

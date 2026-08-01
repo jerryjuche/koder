@@ -222,7 +222,9 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
         Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
       );
       gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, '#141414');
+      gradient.addColorStop(0.6, 'rgba(20, 20, 20, 0)');
+      gradient.addColorStop(0.85, 'rgba(20, 20, 20, 0.4)');
+      gradient.addColorStop(1, 'rgba(20, 20, 20, 0.85)');
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);

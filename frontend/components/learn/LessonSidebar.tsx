@@ -75,17 +75,15 @@ export default function LessonSidebar({
     }
   };
 
-  const [sessionCompleted, setSessionCompleted] = useState<string[]>([]);
-
-  useEffect(() => {
+  const [sessionCompleted, setSessionCompleted] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const raw = sessionStorage.getItem("koder_completed_lessons");
-      if (raw) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSessionCompleted(JSON.parse(raw));
-      }
-    } catch {}
-  }, []);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const completedCount = lessons.filter(
     (l) => l.completed || sessionCompleted.includes(l.id)
