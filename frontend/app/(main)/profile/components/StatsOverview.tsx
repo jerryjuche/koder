@@ -21,7 +21,7 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
   };
 
   return (
-    <div className="rounded-xl bg-[#242430]/60 backdrop-blur-sm border border-white/6 overflow-hidden">
+    <div className="rounded-xl bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6 overflow-hidden">
       <div className="flex items-stretch divide-x divide-white/10">
         <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
           <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Rank</span>

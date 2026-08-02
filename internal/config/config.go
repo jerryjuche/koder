@@ -41,7 +41,7 @@ type Config struct {
 	// SandboxRequestTimeoutExtra is the number of seconds the HTTP client waits
 	// beyond the execution timeout for a remote sandbox response. It tolerates
 	// scale-to-zero cold starts (Azure Container Apps) without extending the
-	// student code run limit. Default: 90.
+	// student code run limit. Default: 20.
 	SandboxRequestTimeoutExtra int
 
 	// Python execution
@@ -237,7 +237,7 @@ func Load() (*Config, error) {
 
 	sandboxTimeoutExtraStr := os.Getenv("SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS")
 	if sandboxTimeoutExtraStr == "" {
-		sandboxTimeoutExtraStr = "90"
+		sandboxTimeoutExtraStr = "20"
 	}
 	sandboxTimeoutExtra, err := strconv.Atoi(sandboxTimeoutExtraStr)
 	if err != nil || sandboxTimeoutExtra < 0 {

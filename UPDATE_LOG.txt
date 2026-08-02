@@ -283,3 +283,12 @@ Post-redesign audit fixes:
 3. Fixed resolveModuleGradient bug (first loop matched outer iteration's val instead of matched key).
 4. Fixed lesson_count undefined guard in firstIncomplete detection.
 5. Added !isComplete guard to isCurrent for consistency across pages.
+
+Date: 2026-08-01
+
+React Bits ShapeGrid background animation integration & brand UI polish:
+1. Created frontend/components/ui/ShapeGrid.tsx canvas component from React Bits source, with gradient edge color tuned to Koder's charcoal base (#141414) and prefers-reduced-motion accessibility support.
+2. Created frontend/components/ui/AnimatedBackground.tsx overlay wrapper using brand gold palette (rgba(212, 175, 55, ...)) and multi-stop gradient overlay for clean top-half visibility and bottom-half fade to solid charcoal.
+3. Integrated AnimatedBackground into LandingContent.tsx (opacity 0.4) and (main)/layout.tsx (opacity 0.35).
+4. Verified TypeScript type-check (0 errors) and Next.js production build (code 0).
+5. Pushed commit cb8ad4f to origin/update.

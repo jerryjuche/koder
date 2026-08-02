@@ -33,6 +33,12 @@ type SandboxResponse struct {
 	Error       string `json:"error,omitempty"`
 }
 
+// FormatSandboxResponse is returned by the sandbox /format endpoint.
+type FormatSandboxResponse struct {
+	Formatted string `json:"formatted"`
+	Error     string `json:"error,omitempty"`
+}
+
 // sandboxClient handles HTTP communication with the remote sandbox.
 type sandboxClient struct {
 	httpClient *http.Client
@@ -127,11 +133,83 @@ func FormatFriendlySandboxError(err error) string {
 }
 
 func (c *sandboxClient) doRequest(ctx context.Context, url string, body []byte) (*SandboxResponse, error) {
+	status, respBody, err := c.postRaw(ctx, url, body)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("sandbox: unexpected status %d: %s", status, string(respBody))
+	}
+
+	var sandboxResp SandboxResponse
+	if err := json.Unmarshal(respBody, &sandboxResp); err != nil {
+		return nil, fmt.Errorf("sandbox: failed to parse response: %w", err)
+	}
+
+	return &sandboxResp, nil
+}
+
+// format sends source code to the remote sandbox /format endpoint (pinned black)
+// and returns the formatted result. Non-2xx statuses and transport errors are
+// retried with the same exponential backoff as execute, so formatting tolerates
+// a scale-to-zero cold start on the sandbox.
+func (c *sandboxClient) format(ctx context.Context, code string) (*FormatSandboxResponse, error) {
+	reqBody := struct {
+		Language string `json:"language"`
+		Code     string `json:"code"`
+	}{
+		Language: "python",
+		Code:     code,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("sandbox: failed to marshal format request: %w", err)
+	}
+
+	url := c.baseURL + "/format"
+	maxRetries := 2
+
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			backoff := time.Duration(math.Pow(2, float64(attempt))) * 500 * time.Millisecond
+			slog.Info("sandbox: retrying format", "attempt", attempt, "backoff_ms", backoff.Milliseconds())
+			select {
+			case <-time.After(backoff):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+
+		status, respBody, err := c.postRaw(ctx, url, body)
+		if err != nil {
+			lastErr = err
+			slog.Warn("sandbox: format request failed", "attempt", attempt, "error", err)
+			continue
+		}
+		if status != http.StatusOK {
+			lastErr = fmt.Errorf("sandbox: unexpected status %d: %s", status, string(respBody))
+			slog.Warn("sandbox: format request failed", "attempt", attempt, "error", lastErr)
+			continue
+		}
+
+		var formatResp FormatSandboxResponse
+		if err := json.Unmarshal(respBody, &formatResp); err != nil {
+			return nil, fmt.Errorf("sandbox: failed to parse format response: %w", err)
+		}
+		return &formatResp, nil
+	}
+
+	return nil, fmt.Errorf("sandbox: all %d format attempts failed: %w", maxRetries+1, lastErr)
+}
+
+func (c *sandboxClient) postRaw(ctx context.Context, url string, body []byte) (int, []byte, error) {
 	start := time.Now()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("sandbox: failed to create request: %w", err)
+		return 0, nil, fmt.Errorf("sandbox: failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -142,13 +220,13 @@ func (c *sandboxClient) doRequest(ctx context.Context, url string, body []byte) 
 			"duration_ms", duration.Milliseconds(),
 			"error", err,
 		)
-		return nil, fmt.Errorf("sandbox: HTTP request failed: %w", err)
+		return 0, nil, fmt.Errorf("sandbox: HTTP request failed: %w", err)
 	}
 	defer httpResp.Body.Close()
 
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("sandbox: failed to read response body: %w", err)
+		return 0, nil, fmt.Errorf("sandbox: failed to read response body: %w", err)
 	}
 
 	slog.Info("sandbox: call completed",
@@ -157,14 +235,5 @@ func (c *sandboxClient) doRequest(ctx context.Context, url string, body []byte) 
 		"body_size", len(respBody),
 	)
 
-	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("sandbox: unexpected status %d: %s", httpResp.StatusCode, string(respBody))
-	}
-
-	var sandboxResp SandboxResponse
-	if err := json.Unmarshal(respBody, &sandboxResp); err != nil {
-		return nil, fmt.Errorf("sandbox: failed to parse response: %w", err)
-	}
-
-	return &sandboxResp, nil
+	return httpResp.StatusCode, respBody, nil
 }

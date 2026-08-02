@@ -2526,3 +2526,180 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Now matches the Learn section editors (`MultiFileEditor`, `SectionExercise`)
 - 15 insertions(+), 9 deletions(-)
 - All pushed to `origin/update`
+
+---
+
+> **Note:** This logbook's Sessions 85–88 were consolidated differently from CLAUDE.md
+> (CLAUDE splits them as 85, 87, 88, 89 with an extra reindex at 86). Entries below follow
+> CLAUDE.md's numbering (90–94) for continuity with the canonical index.
+
+## Session 90 — 2026-07-30 — Professional codebase reindex — all MD files read, accurate LOC verified
+
+### Changes
+- Read and catalogued all 17 markdown files across the repository
+- Discovered 4 new docs: `docs/curriculum.md` (937 LOC), `docs/ai-curriculum-prompt.md` (387 LOC), `courses.md` (607 LOC), `rephrase-review.md` (393 LOC)
+- Discovered new CLI tool: `cmd/generate-curriculum/main.go` (280 LOC) — reads AI JSON, writes curriculum SQL
+- Discovered new migration: `048_seed_ai_fluency.sql` (1,995 LOC, ~30 problems)
+- Updated total counts: 366 tracked source files, ~89,700 total LOC across all categories
+- Updated all section headers with verified file counts and LOC
+- Added Known Issues #10 (sandbox-runner binary tracked) and #11 (root data file organization)
+- Verified working tree clean on `update` branch
+
+---
+
+## Session 91 — 2026-07-31 — Professional codebase reindex — all Go/frontend files verified
+
+### Changes
+- Full automated audit: `go vet` (10/10 packages clean), `go test` (9/9 suites passing), `tsc --noEmit` (0 errors), ESLint (0 errors)
+- Verified Go backend: 62 source + 14 test files, ~18,518 LOC (15,784 source + 2,734 test)
+- Verified Go sandbox: 7 source + 1 test + 1 Dockerfile, ~1,052 LOC, zero external deps
+- Verified frontend: 159 files, ~30,238 LOC (73 app pages, 63 components, 20 lib/hooks, 3 styles)
+- Verified migrations: 50 files (~20,431 LOC) — 32 schema + 18 seed
+- Verified docs: 17 files (~8,377 LOC), scripts: 7 files (~817 LOC), config: 14 files (~581 LOC)
+- Updated root data file count: ~29 files (~10,315 LOC) tracked at root
+- Total tracked: ~376 files, ~90,300 LOC
+- Fixed API route count: 118 (was ~89), Store interface methods: 152 (was ~125)
+- Added Known Issues #12–15 (`.bak` file, `.exe` binaries, empty `docs/` dirs, unused markdown deps)
+
+---
+
+## Session 92 — 2026-07-31 — Professional codebase reindex — full verified audit
+
+### Changes
+- Full automated audit: `go vet` (12/12 root packages + sandbox = 13 clean), `go test` (10/10 suites, 136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors, sandbox `go build` + `go test` clean
+- Verified Go backend: 62 source + 13 test files, 21,211 LOC (18,073 source + 3,138 test) — api 7,009, store 6,398, executor 1,801, enricher 942, auth 364, config 350, parser 371, broker 68 + 4 cmd tools 770
+- Verified Go sandbox: 7 source + 1 test + Dockerfile + fly.toml, 1,233 LOC, zero external deps
+- Verified frontend: 160 source files, 32,741 LOC (73 app pages 17,718 + 1 CSS 216, 63 components 10,039, 4 hooks 374, 16 lib 3,012, 4 styles 1,598)
+- Verified migrations: 51 files (27,470 LOC) — 33 schema + 17 seed/content + 1 content-refresh (`049_refresh_ai_fluency.sql`, 3,223 LOC, new)
+- Verified docs: 17 files (9,143 LOC), scripts: 7 files (904 LOC), config/build: 14 files (699 LOC)
+- Root data: 28 files (12,678 LOC); total tracked source: ~362 files, ~106,000 LOC
+- Added migration `049_refresh_ai_fluency.sql` to index; corrected seeded-problem total to 259 (INSERT INTO problems)
+- Fixed per-file LOC across all inventory tables; added new components, `.eslintrc.json`, `scripts/copy-monaco.mjs`, `fly.toml`
+- Known Issues: removed `server.exe`/`main.exe` tracking, added `.next/trace` tracked
+
+---
+
+## Session 93 — 2026-07-31 — Azure Container Apps sandbox go-live
+
+**Commits:** `3123b73`, `2a906bf` (PR #170)
+
+### Changes
+- Merged `3123b73` (Azure migration) to `staging` via PR #170 (`2a906bf`); CI + sandbox-publish workflow passed
+- `sandbox-publish.yml` builds/pushes `ghcr.io/jerryjuche/koder-sandbox:latest` + `:sha-2a906bfb934f` (public) — image only, no Azure resources
+- Deployed via `sandbox/azure/deploy.sh --yes` in Azure Cloud Shell: RG `koder-sandbox`, env `sandbox-env`, app `koder-sandbox` (0.5 vCPU/1.0Gi, min 0/max 4, HTTPS→8080, rate limit 60/min)
+- Actual FQDN: `https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io` (ACA assigns a random environment suffix)
+- Verified live: `/health` ok, `/version` = commit `2a906bf`, Python `/execute` passed (71ms), Go passed (717ms warm / ~23s first compile)
+- Updated `CLAUDE.md` §19 + `docs/azure-sandbox-deploy.md` + `README.md` with the live URL (Fly.io preserved as rollback)
+
+---
+
+## Session 94 — 2026-08-01 — Sandbox cold-start reliability at $0 (scale-to-zero retained)
+
+**Commits:** `6b576dd`
+
+### Changes
+- Root-caused a real production bug: the first Go submission after ~5 min idle **failed** (backend client timeout `30s + 10 = 40s` < ACA cold start ~30–60s + first `go test` compile ~23s = 53–83s)
+- Decoupled the sandbox HTTP client timeout from the execution timeout — new `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) covers scale-to-zero cold starts while `timeout_sec` (30s Go / 60s Python) still hard-caps student code runs (`sandbox_client.go`, `executor.go` ×3 call sites, `config.go`)
+- Raised `http.Server` read/write/idle timeouts 60s → 180s so `WriteTimeout` cannot kill a cold-start request (`cmd/server/main.go`)
+- Baked the Go build cache into the sandbox image using the runner's exact `-gcflags=-l`/env flags → cold-container first compile drops ~23s → ~2s (`sandbox/Dockerfile`); validated locally
+- Added a default-assertion test for `SandboxRequestTimeoutExtra` (`config_test.go`)
+- Verified: `go vet` clean (backend + sandbox), 8/8 backend suites + sandbox suite passing, `go build ./cmd/server` + sandbox OK
+- Cold-path expectation at $0: first submission after idle ≈35s and succeeds; every subsequent submission <2s
+- All pushed to `origin/update`
+
+---
+
+## Session 95 — 2026-08-01 — Docs + session-log sync for Azure sandbox go-live
+
+**Commits:** `6e42212`
+
+### Changes
+- Synced the canonical `SESSION_LOG.md` logbook — appended Sessions 90–94 (CLAUDE.md numbering) that post-dated its last entry (Session 88) with an alignment note for the 85–88 consolidation
+- Updated `CLAUDE.md` inventory for the cold-start commit `6b576dd`: sandbox total ~1,233 → ~1,244 LOC (`Dockerfile` 19 → 30, baked Go cache), `config.go` 350 → 366 (33 fields), `config_test.go` 352 → 355, `sandbox_client.go` 166 → 170, executor 1,801 → 1,805, Go LOC ~22,444 → ~22,478
+- Added `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) + cold-start timing note to §19; bumped "Last indexed" to 2026-08-01
+- Verified: `go vet` clean (backend + sandbox), 8/8 backend suites + sandbox suite passing, `go build ./cmd/server` + sandbox OK
+- Pushed to `origin/update`
+
+---
+
+## Session 96 — 2026-08-01 — Neutral charcoal theme retune (#141414)
+
+### Changes
+- Retuned the entire charcoal palette to neutral gray, removing the blue-violet cast of `#1A1A24`: base `#141414`, panel `#191919`, card `#1E1E1E`, sidebar `#111113` (hover/border rgba unchanged)
+- `frontend/app/globals.css` — 17 lines: `@theme` `--color-brand-charcoal-{base,card,panel}` + `:root`/`.dark` shadcn vars (`--background`, `--card`, `--popover`, `--primary-foreground`, `--secondary`, `--accent`, `--sidebar`)
+- `frontend/lib/monaco-theme.ts` — 7 editor surface colors aligned to panel/card (`editor.background`/`SuggestWidget`/`HoverWidget`/`Gutter`, `lineHighlight`/`Widget`/`input`)
+- Swapped 16 hard-coded palette literals for `brand-charcoal-*` tokens across 11 component files (profile, achievements, activity feed, contribution graph, avatar, CodeEditor, DesktopOnlyOverlay)
+- `frontend/styles/theme.css` — mapped dark `--color-bg-*` off Tailwind `neutral-*` → `brand-charcoal-*` tokens (file orphaned/never imported; future-proofing only)
+- Intentionally left unchanged: near-black code/console surfaces (`#0D0D0D`, `#0F1115`, `#0A0C0F`, `#050608`, `#0D0D14`)
+- Verified: ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
+
+---
+
+## Session 97 — 2026-08-01 — Neutralize residual blue-tinted chrome + Monaco tints
+
+### Changes
+- Follow-up to Session 96: neutralized the remaining cool blue-gray grays that clashed with the neutral `#141414` charcoal
+- `frontend/lib/monaco-theme.ts` — 12 supporting tints → neutral: selection `#3A3A4A→#3D3D3D`, inactive selection `#2E2E3E→#2E2E2E`, indent guides `#2A2A3A→#2A2A2A` + `#3A3A50→#3A3A3A`, widget borders `#33334A→#333333` ×4, line numbers `#555568→#565656`, scrollbar `#33334A55→#33333355` + `#44445F88→#44444488`
+- Chrome surfaces: google-button (`#1C1C28→#1C1C1C`, `#2A2A3A→#2A2A2A`, `#252535→#252525`), hover-card (`#1C1C28→#1C1C1C`), DesktopOnlyOverlay (`#0D0D14→#0D0D0D`, `#2A2A3A→#2A2A2A` ×3), error boundaries ×2 (`#0A0A0F→#0A0A0A`), workspace editor toolbar (`#0F1115→#121212` ×2)
+- Kept intentionally dark: code/console surfaces (workspace code preview `#0F1115`/`#0A0C0F`/`#050608`, PyodideConsole `#0D0D14`, admin previews `#0d1117`/`#161b22`, success tint `#1A2521`)
+- Verified: grep sweep clean, ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success
+- Pushed to `origin/update`
+
+---
+
+## Session 98 — 2026-08-01 — Phase 1 complete: real TextMate tokenization (Dark+ fidelity)
+
+### Changes
+- **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code, not an approximation
+- `frontend/lib/monaco-textmate.ts` (new, 67 LOC): `Registry({ onigLib, loadGrammar })` → `setTheme(rawTheme, null)` → `monaco.languages.setColorMap(registry.getColorMap())` → `setTokensProvider("python"|"go", { getInitialState, tokenizeEncoded })`. `tokenizeEncoded` passthrough routes through Monaco's `EncodedTokenizationSupportAdapter` (verified in AMD source), so vscode-textmate color ids render against the registry color map directly — no scope→color translation, no Monarch fallback
+- `frontend/scripts/build-monaco-assets.mjs`: now emits 4 tracked artifacts — (1) `lib/dark-plus-theme.generated.json` (Monaco theme), (2) `lib/dark-plus-textmate.generated.json` (raw `IRawTheme` with a **prepended scope-less default rule** `#D4D4D4`/`#1E1E1E` so uncolored tokens inherit Dark+'s editor.foreground instead of vscode-textmate's `#000000` fallback), (3) `lib/grammars/python.tmLanguage.json` (MagicPython), (4) `lib/grammars/go.tmLanguage.json` (VSCode Go). Generated artifacts live under `lib/` (tracked); vendored sources under `scripts/vendor/` remain gitignored build inputs
+- `frontend/lib/monaco-theme.ts`: `registerVSCodeDarkPlusTheme` now consumes the 169-rule/28-color generated Dark+ theme via JSON import, keeping the neutral charcoal widget surfaces from Sessions 95–97 as overrides (`CHARCOAL_SURFACES`)
+- `frontend/scripts/copy-monaco.mjs`: copies `node_modules/vscode-oniguruma/release/onig.wasm` → `public/vs/onig.wasm` unconditionally (even when `public/vs` already exists)
+- `frontend/lib/monaco-setup.ts`: `initMonacoEditor` calls `initTextMateTokenization(monaco)` (fire-and-forget; Monaco re-tokenizes open models on provider registration)
+- `frontend/types/vscode-textmate.d.ts` + `vscode-oniguruma.d.ts` (new): ambient re-exports — both packages ship `.d.ts` but no `types` field in package.json, so TS can't resolve them natively
+- **Runtime-safety detail:** both CJS packages have `__esModule: true` with no `.default` export, so default imports would resolve to `undefined`; namespace imports (`import * as tm`) are the correct form
+
+### Verification
+- Node end-to-end probe (committed artifacts → Registry → tokenizeLine2 → `(meta >>> 15) & 0x1ff` → colorMap): `from typing import List` → `from`/`import` #C586C0, `List` plain #D4D4D4 (matches real MagicPython); `def is_palindrome(s: str) -> bool` → #569CD6/#DCDCAA/#4EC9B0; Go `const factor = 2.5` → #4FC1FF (canonical `variable.other.constant`), `fmt.Println("hi")` → #9CDCFE/#DCDCAA/#CE9178; `"1"`/`2.5` → #B5CEA8 — all exact Dark+ values
+- Default-rule fix confirmed: colorMap[1] = #D4D4D4 (was #000000), colorMap[2] = #1E1E1E
+- Monaco AMD build verified: `setColorMap`, `setTokensProvider`, `tokenizeEncoded`, `getInitialState` all present in `editor.api` chunk; `setTokensProvider` throws for unknown language (both registered via existing completion/hover providers)
+- `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors, `next build` success (TextMate + oniguruma + grammar JSONs confirmed bundled in client chunks)
+- Working tree: 5 modified + 8 untracked (generated artifacts + new source files), all under tracked `lib/`/`types/` paths
+
+## Session 99 — 2026-08-01 — Real formatting (gofmt + pinned black) via POST /api/format
+
+### Changes
+- **Sandbox:** `POST /format` endpoint (`sandbox/format.go`) — pipes Python source through `black -q -` (stdin→stdout) with a 30s timeout, returns `{formatted, error}`; empty input → empty output. Registered under the rate-limited path next to `/execute` (`sandbox/main.go`). Dockerfile now installs **pinned `black==25.1.0`** via `py3-pip` so formatting output is byte-stable across image rebuilds (image previously had only `python3`)
+- **Backend:** `executor.FormatCode(ctx, language, code)` (`internal/executor/format.go`) — Go formatted **in-process** via `go/format.Source()` (gofmt's canonicalizer, no new dep); Python routed to the sandbox `/format` via a new `sandboxClient.format()` with the same 3-attempt exp-backoff retry as execute (tolerates ACA scale-to-zero cold starts). Parse failures surface as a typed `*FormatSyntaxError` (client error, not infrastructure)
+- **Backend:** `POST /api/format` (`internal/api/format.go`) — auth required (mirrors `/test`), language ∈ {go,python}, `code ≤ 50KB`; maps syntax errors → **422**, sandbox unreachable → **502** with friendly message, success → `{formatted}`. Registered in the authenticated router group with a 256KB body limit (no tight per-user rate limiter — formatting must survive save cycles; the sandbox keeps its own per-IP limit)
+- **Backend:** refactored `sandbox_client.go` — `doRequest` now shares a raw `postRaw(ctx, url, body)` helper with the new format path (identical HTTP/retry semantics, zero behavior change to execute)
+- **Frontend:** `lib/monaco-format.ts` (new) — `registerDocumentFormattingEditProvider` for Go + Python driving Monaco's built-in `editor.action.formatDocument` (Shift+Alt+F); single full-model-range TextEdit, silent `[]` on failure. Wired once in `initMonacoEditor` so workspace + learn editors both get it
+- **Frontend:** `lib/api.ts` — `formatCode(code, language)` endpoint function
+- **Frontend:** `ProblemWorkspaceClient.tsx` — Ctrl+S "Format Code" button now calls `/api/format` (async); on `NETWORK_ERROR` only, falls back to the local indenter (renamed `formatCode` → `indentCode`); syntax errors toast the message and never rewrite the buffer
+- **Frontend:** `GO_STATIC_COMPLETIONS` — added the 5 missing predeclared builtins per spec: `complex`, `imag`, `real`, `print`, `println` (with signatures/docs) + comment noting gopls-over-WASM via monaco-languageclient as the future upgrade path
+- **Deferred:** pyright-based Python autocomplete (monaco-pyright-lsp) deliberately **not** implemented this session — see CLAUDE.md Known Issues #16. The existing 157-entry static Python completions remain
+
+### Tests
+- Sandbox `format_test.go` (5): valid formatting (`def add(a,b):` → `def add(a, b):\n    return a + b\n`), syntax error → error message, empty → empty, unsupported language → 400, quote normalization (`'hello'` → `"hello"`) — black-gated via `exec.LookPath` (skips locally, runs in the Docker image)
+- Executor `format_test.go` (7): Go valid/syntax-error/empty, unsupported language, Python via fake sandbox server (request language/code + response parsing), black error → `*FormatSyntaxError`, and **stub-signature regression guard** — formatting a generated scaffold must preserve the `func` signature line
+- API `format_test.go` (6): 401 unauthenticated, success payload shape, unsupported language, 50KB cap, 422 syntax error, 502 infrastructure failure (via a scriptable `Formatter` interface)
+
+### Verification
+- `go vet` clean (backend + sandbox); full `go test ./internal/...` green (8/8 suites incl. new format tests); sandbox tests green (black tests skip on dev box, run in image)
+- `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors
+- `next build` success (formatting provider bundled; monaco-format.ts in client chunks)
+- **Deployment note:** Python formatting requires the republished sandbox image (black + `/format`); until the GHCR image is rebuilt and ACA redeployed, `/format` returns 404 and the workspace degrades to the local indenter (Go formatting works immediately — in-process)
+
+## Session 100 — 2026-08-01 — React Bits ShapeGrid background animation integration & brand UI polish
+
+### Changes
+- **ShapeGrid Component:** Integrated React Bits `<ShapeGrid />` canvas component in [`frontend/components/ui/ShapeGrid.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/ShapeGrid.tsx). Adjusted radial gradient edge stop from `#120F17` to `#141414` to match Koder's charcoal background token `--color-brand-charcoal-base`. Added `prefers-reduced-motion` check to avoid animation overhead for users with motion sensitivity settings.
+- **AnimatedBackground Overlay Wrapper:** Created [`frontend/components/ui/AnimatedBackground.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/AnimatedBackground.tsx) positioning `ShapeGrid` at `z-0` behind page contents. Uses brand gold tones (`rgba(212, 175, 55, 0.045)` border & `rgba(212, 175, 55, 0.07)` hover fill) with diagonal drift motion and a multi-stop top-to-bottom gradient overlay fading to solid `#141414`. Dynamically imported with `ssr: false` to ensure clean hydration.
+- **Landing Page Integration:** Updated [`frontend/components/LandingContent.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/LandingContent.tsx) with `<AnimatedBackground fadeEnd="55%" opacity={0.4} />` for an ambient backdrop under the Hero section.
+- **Main App Layout Integration:** Updated [`frontend/app/(main)/layout.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/app/%28main%29/layout.tsx) with `<AnimatedBackground fadeEnd="50%" opacity={0.35} />` so the authenticated dashboard benefits from the ambient texture without interfering with problem workspace elements.
+
+### Verification
+- `npx tsc --noEmit` 0 errors
+- `npx next build` exited with code 0 (20+ routes compiled cleanly)
+- Pushed commit `cb8ad4f` to `origin/update`
+

@@ -231,7 +231,7 @@ export default function Dashboard() {
   const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
-    <div className="space-y-8 py-6 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto space-y-8 pb-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
       {/* Header Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
@@ -549,15 +549,15 @@ export default function Dashboard() {
                             )}
                           >
                           {/* Background image with gradient fade */}
-                          <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
                             <Image
                               src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
                               alt=""
                               fill
-                              className="object-cover"
+                              className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-300 scale-105 group-hover:scale-100"
                               unoptimized
                             />
-                            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#141414]/95" />
                           </div>
 
                           {/* Solved accent line */}

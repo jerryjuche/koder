@@ -7,9 +7,9 @@
 @theme {
   --color-brand-muted-gold: #D4AF37;
   --color-brand-muted-gold-dark: #C5A059;
-  --color-brand-charcoal-base: #1A1A24;
-  --color-brand-charcoal-card: #242430;
-  --color-brand-charcoal-panel: #1E1E2A;
+  --color-brand-charcoal-base: #141414;
+  --color-brand-charcoal-card: #1E1E1E;
+  --color-brand-charcoal-panel: #191919;
   --color-brand-charcoal-hover: rgba(255, 255, 255, 0.05);
   --color-brand-charcoal-border: rgba(255, 255, 255, 0.07);
   --color-brand-offwhite: #D1D1D8;
@@ -147,19 +147,19 @@
 }
 
 :root {
-  --background: #1A1A24;
+  --background: #141414;
   --foreground: #D1D1D8;
-  --card: #242430;
+  --card: #1E1E1E;
   --card-foreground: #D1D1D8;
-  --popover: #242430;
+  --popover: #1E1E1E;
   --popover-foreground: #D1D1D8;
   --primary: #D4AF37;
-  --primary-foreground: #1A1A24;
-  --secondary: #1E1E2A;
+  --primary-foreground: #141414;
+  --secondary: #191919;
   --secondary-foreground: #D1D1D8;
   --muted: rgba(255, 255, 255, 0.04);
   --muted-foreground: #88889A;
-  --accent: #1E1E2A;
+  --accent: #191919;
   --accent-foreground: #D1D1D8;
   --destructive: #ef4444;
   --border: rgba(255, 255, 255, 0.07);
@@ -171,7 +171,7 @@
   --chart-4: #ef4444;
   --chart-5: #C5A059;
   --radius: 0.45rem;
-  --sidebar: #161618;
+  --sidebar: #111113;
   --sidebar-foreground: #E0E0E0;
   --sidebar-primary: #D4AF37;
   --sidebar-primary-foreground: #0C0C0D;
@@ -182,19 +182,19 @@
 }
 
 .dark {
-  --background: #1A1A24;
+  --background: #141414;
   --foreground: #D1D1D8;
-  --card: #242430;
+  --card: #1E1E1E;
   --card-foreground: #D1D1D8;
-  --popover: #242430;
+  --popover: #1E1E1E;
   --popover-foreground: #D1D1D8;
   --primary: #D4AF37;
-  --primary-foreground: #1A1A24;
-  --secondary: #1E1E2A;
+  --primary-foreground: #141414;
+  --secondary: #191919;
   --secondary-foreground: #D1D1D8;
   --muted: rgba(255, 255, 255, 0.04);
   --muted-foreground: #88889A;
-  --accent: #1E1E2A;
+  --accent: #191919;
   --accent-foreground: #D1D1D8;
   --destructive: #ef4444;
   --border: rgba(255, 255, 255, 0.07);
@@ -206,7 +206,7 @@
   --chart-4: #ef4444;
   --chart-5: #C5A059;
   --radius: 0.45rem;
-  --sidebar: #161618;
+  --sidebar: #111113;
   --sidebar-foreground: #E0E0E0;
   --sidebar-primary: #D4AF37;
   --sidebar-primary-foreground: #0C0C0D;

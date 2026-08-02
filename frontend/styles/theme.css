@@ -705,8 +705,8 @@
         --color-fg-brand-secondary_alt: var(--color-neutral-600);
         --color-fg-brand-secondary_hover: var(--color-neutral-500);
 
-        --color-bg-primary: var(--color-neutral-950);
-        --color-bg-tertiary: var(--color-neutral-800);
+        --color-bg-primary: var(--color-brand-charcoal-base);
+        --color-bg-tertiary: var(--color-brand-charcoal-card);
         --color-bg-brand-primary: var(--color-brand-500);
         --color-bg-error-secondary: var(--color-red-600);
         --color-bg-warning-primary: var(--color-yellow-950);
@@ -718,18 +718,18 @@
         --color-bg-error-solid: var(--color-red-600);
         --color-bg-warning-solid: var(--color-yellow-600);
         --color-bg-success-solid: var(--color-green-600);
-        --color-bg-secondary_hover: var(--color-neutral-800);
-        --color-bg-primary_hover: var(--color-neutral-900);
-        --color-bg-active: var(--color-neutral-800);
+        --color-bg-secondary_hover: var(--color-brand-charcoal-card);
+        --color-bg-primary_hover: var(--color-brand-charcoal-panel);
+        --color-bg-active: var(--color-brand-charcoal-card);
         --color-bg-brand-solid_hover: var(--color-brand-500);
         --color-bg-error-primary: var(--color-red-950);
         --color-bg-brand-secondary: var(--color-brand-600);
-        --color-bg-secondary: var(--color-neutral-900);
-        --color-bg-quaternary: var(--color-neutral-700);
+        --color-bg-secondary: var(--color-brand-charcoal-panel);
+        --color-bg-quaternary: var(--color-brand-charcoal-panel);
         --color-bg-primary_alt: var(--color-bg-secondary);
         --color-bg-brand-primary_alt: var(--color-bg-secondary);
         --color-bg-secondary_alt: var(--color-bg-primary);
-        --color-bg-overlay: var(--color-neutral-800);
+        --color-bg-overlay: var(--color-brand-charcoal-card);
         --color-bg-brand-section: var(--color-bg-secondary);
         --color-bg-brand-section_subtle: var(--color-bg-primary);
         --color-bg-primary-solid: var(--color-bg-secondary);

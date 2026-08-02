@@ -426,6 +426,42 @@ export function registerPythonLanguageFeatures(monaco: any) {
   if (registered) return;
   registered = true;
 
+  monaco.languages.setLanguageConfiguration("python", {
+    comments: {
+      lineComment: "#",
+      blockComment: ['"""', '"""'],
+    },
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" },
+      { open: '"', close: '"', notIn: ["string"] },
+      { open: "'", close: "'", notIn: ["string", "comment"] },
+    ],
+    surroundingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" },
+      { open: '"', close: '"' },
+      { open: "'", close: "'" },
+    ],
+    indentationRules: {
+      increaseIndentPattern: /^.*:\s*(?:#.*)?$/,
+      decreaseIndentPattern: /^\s*(elif|else|except|finally)\b.*$/,
+    },
+    onEnterRules: [
+      {
+        beforeText: /:\s*(?:#.*)?$/,
+        action: { indentAction: monaco.languages.IndentAction.Indent },
+      },
+    ],
+  });
+
   monaco.languages.registerCompletionItemProvider("python", {
     triggerCharacters: [".", "(", ","],
     provideCompletionItems: (model: any, position: any) =>

@@ -30,7 +30,7 @@ function MiniStat({ value, label, icon: Icon, accent }: {
   accent?: "warm" | "cool";
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1E1E2A]/60 backdrop-blur-sm border border-white/6">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-charcoal-panel/60 backdrop-blur-sm border border-white/6">
       <Icon size={13} className={`shrink-0 ${accent === "cool" ? "text-[#7B8CBB]/70" : "text-amber-400/70"}`} />
       <span className="text-sm font-bold text-white tabular-nums">{value}</span>
       <span className="text-[10px] text-white/45 uppercase tracking-wider hidden sm:inline">{label}</span>
@@ -77,7 +77,7 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#7B8CBB]/8 rounded-full blur-3xl" />
       <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl" />
 
-      <div className="relative backdrop-blur-xl bg-[#1E1E2A]/80 border border-white/8 rounded-2xl shadow-2xl">
+      <div className="relative backdrop-blur-xl bg-brand-charcoal-panel/80 border border-white/8 rounded-2xl shadow-2xl">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#7B8CBB]/40 via-amber-400 to-[#7B8CBB]/40" />
 
         <div className="p-6 sm:p-8">

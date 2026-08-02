@@ -371,6 +371,7 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/version", versionHandler)
 	mux.HandleFunc("/execute", executeHandler)
+	mux.HandleFunc("/format", formatHandler)
 	// Rate limiter middleware
 	rateLimited := rl.Middleware(mux)
 
@@ -388,7 +389,7 @@ func main() {
 		Addr:         ":" + port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: time.Duration(maxTimeoutSec+10) * time.Second,
+		WriteTimeout: time.Duration(maxTimeoutSec+60) * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 

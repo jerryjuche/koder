@@ -32,7 +32,7 @@ function getActivityLevel(count: number, maxCount: number): number {
 }
 
 const levelColors = [
-  "fill-[#1E1E2A]",
+  "fill-brand-charcoal-panel",
   "fill-amber-500/15",
   "fill-amber-500/30",
   "fill-amber-500/55",
@@ -105,7 +105,7 @@ export default function ContributionGraphSection({ activity }: ContributionGraph
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  className="bg-[#1A1A24]/95 border border-white/8 text-white/80 backdrop-blur-md text-xs space-y-0.5"
+                  className="bg-brand-charcoal-base/95 border border-white/8 text-white/80 backdrop-blur-md text-xs space-y-0.5"
                 >
                   <p className="font-semibold text-white text-sm">{act.date}</p>
                   {dayActivity && dayActivity.submissions > 0 ? (

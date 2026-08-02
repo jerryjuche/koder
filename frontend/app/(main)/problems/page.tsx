@@ -233,7 +233,7 @@ export default function ProblemsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="h-8 w-48 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -572,15 +572,15 @@ export default function ProblemsPage() {
                   "bg-card",
                 )}
               >
-                <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
                   <Image
                     src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
                     alt=""
                     fill
-                    className="object-cover"
+                    className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-300 scale-105 group-hover:scale-100"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#141414]/95" />
                 </div>
 
                 <div
