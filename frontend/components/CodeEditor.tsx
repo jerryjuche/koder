@@ -48,30 +48,39 @@ function CodeEditorInner({
     initMonacoEditor(monaco);
   }, []);
 
-  const handleMount: OnMount = useCallback((editor, monaco) => {
-    initMonacoEditor(monaco);
-    monaco.editor.setTheme("vs-dark-plus");
+  // Monaco's Enter handler only applies language indentation rules (which give
+  // the auto-indent after a colon) when the current line is cheaply tokenizable.
+  // With the custom TextMate tokenizers that state is reliably stale while
+  // typing, so Enter would otherwise just carry the line's leading whitespace.
+  // onKeyDown fires during the DOM target phase, before Monaco's keybinding
+  // dispatch, so force-tokenizing here lets auto-indent run on every Enter.
+  const ensureEnterAutoIndent = useCallback(
+    (editor: any, monaco: any) =>
+      editor.onKeyDown((e: any) => {
+        if (e.keyCode !== monaco.KeyCode.Enter) return;
+        const model = editor.getModel();
+        const position = editor.getPosition();
+        if (!model || !position) return;
+        const tokenization = model.tokenization as
+          | { isCheapToTokenize?: (n: number) => boolean; forceTokenization?: (n: number) => void }
+          | undefined;
+        const line = position.lineNumber;
+        if (!tokenization?.isCheapToTokenize?.(line)) {
+          tokenization?.forceTokenization?.(line);
+        }
+      }),
+    []
+  );
 
-    // Monaco's Enter handling skips language indentation rules whenever the
-    // current line isn't cheaply tokenizable (end state still pending from
-    // background tokenization). With the custom TextMate tokenizers that is
-    // almost always true after typing, so Enter would only copy the current
-    // line's leading whitespace and `if x:` + Enter would not indent. Advance
-    // the tokenization state store synchronously (onKeyDown fires before the
-    // keybinding dispatches lineBreakInsert) so auto-indent always runs.
-    editor.onKeyDown((e) => {
-      if (e.keyCode !== monaco.KeyCode.Enter) return;
-      const model = editor.getModel();
-      const position = editor.getPosition();
-      if (!model || !position) return;
-      const tokenization = (model as any).tokenization;
-      if (!tokenization?.isCheapToTokenize?.(position.lineNumber)) {
-        tokenization?.forceTokenization?.(position.lineNumber);
-      }
-    });
-
-    onMountRef.current?.(editor, monaco);
-  }, []);
+  const handleMount: OnMount = useCallback(
+    (editor, monaco) => {
+      initMonacoEditor(monaco);
+      monaco.editor.setTheme("vs-dark-plus");
+      ensureEnterAutoIndent(editor, monaco);
+      onMountRef.current?.(editor, monaco);
+    },
+    [ensureEnterAutoIndent]
+  );
 
   return (
     <Editor
