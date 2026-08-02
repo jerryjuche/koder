@@ -69,8 +69,87 @@ func TestFormatPythonRejectsSyntaxError(t *testing.T) {
 	if resp.Error == "" {
 		t.Fatal("expected a parse error message, got empty error")
 	}
-	if !strings.Contains(resp.Error, "Cannot parse") && !strings.Contains(resp.Error, "error:") {
-		t.Fatalf("expected black parse error, got %q", resp.Error)
+	if !strings.Contains(strings.ToLower(resp.Error), "syntax error") {
+		t.Fatalf("expected a friendly syntax-error message, got %q", resp.Error)
+	}
+	if strings.Contains(resp.Error, "cannot format -:") {
+		t.Fatalf("expected raw black prefix to be stripped, got %q", resp.Error)
+	}
+}
+
+func TestFormatPythonExtraIndentationGetsFriendlyMessage(t *testing.T) {
+	requireBlack(t)
+
+	// The user's code was properly multi-line; a single extra indent on the
+	// third line is an IndentationError. The message must point at the real
+	// line 3, not black's normalized "7:0" position.
+	code := "def median_of_two_sorted_arrays(arg1, arg2):\n" +
+		"    tot = arg1 + arg2\n" +
+		"        medLen = len(tot) / 2\n" +
+		"    avg = tot[medLen]\n" +
+		"    return int(avg)\n"
+	rec := postFormat(t, code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 with error field, got %d", rec.Code)
+	}
+
+	var resp FormatResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if resp.Error == "" {
+		t.Fatal("expected an indentation error message, got empty error")
+	}
+	if !strings.Contains(strings.ToLower(resp.Error), "indentation") {
+		t.Fatalf("expected indentation error message, got %q", resp.Error)
+	}
+	if !strings.Contains(resp.Error, "line 3") {
+		t.Fatalf("expected the true source line, got %q", resp.Error)
+	}
+	if !strings.Contains(resp.Error, "Tip:") {
+		t.Fatalf("expected an actionable tip, got %q", resp.Error)
+	}
+	if strings.Contains(resp.Error, "cannot format -:") {
+		t.Fatalf("expected raw black prefix to be stripped, got %q", resp.Error)
+	}
+}
+
+func TestFriendlyPythonSyntaxMessage(t *testing.T) {
+	msg := friendlyPythonSyntaxMessage(pythonSyntaxProbe{
+		Type: "IndentationError", Line: 3, Column: 9, Msg: "unexpected indent",
+	})
+	for _, want := range []string{"line 3", "column 9", "indentation", "tip:"} {
+		if !strings.Contains(strings.ToLower(msg), want) {
+			t.Fatalf("expected %q in message, got %q", want, msg)
+		}
+	}
+
+	msg = friendlyPythonSyntaxMessage(pythonSyntaxProbe{
+		Type: "SyntaxError", Line: 1, Column: 44, Msg: "invalid syntax",
+	})
+	for _, want := range []string{"line 1", "column 44", "syntax error", "tip:"} {
+		if !strings.Contains(strings.ToLower(msg), want) {
+			t.Fatalf("expected %q in message, got %q", want, msg)
+		}
+	}
+
+	// Interpreter could not pin a location — fall back gracefully.
+	msg = friendlyPythonSyntaxMessage(pythonSyntaxProbe{Type: "SyntaxError", Msg: "invalid syntax"})
+	if !strings.Contains(msg, "this line") {
+		t.Fatalf("expected fallback location, got %q", msg)
+	}
+}
+
+func TestFormatSyntaxIssueStripsBlackPrefix(t *testing.T) {
+	msg := formatSyntaxIssue(
+		"def broken(:\n  pass\n",
+		"error: cannot format -: Cannot parse: 7:0: avg = tot[medLen]",
+	)
+	if !strings.Contains(msg, "Python syntax error") {
+		t.Fatalf("expected a Python syntax error message, got %q", msg)
+	}
+	if strings.Contains(msg, "cannot format -:") {
+		t.Fatalf("expected raw black prefix to be stripped, got %q", msg)
 	}
 }
 
