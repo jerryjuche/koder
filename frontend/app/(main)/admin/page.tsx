@@ -248,7 +248,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pt-4 pb-12">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite mb-2">Admin Dashboard</h1>
