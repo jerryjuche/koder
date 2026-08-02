@@ -426,7 +426,7 @@ export function registerPythonLanguageFeatures(monaco: any) {
   if (registered) return;
   registered = true;
 
-  monaco.languages.setLanguageConfiguration("python", {
+  const pythonConfig = {
     comments: {
       lineComment: "#",
       blockComment: ['"""', '"""'],
@@ -460,6 +460,20 @@ export function registerPythonLanguageFeatures(monaco: any) {
         action: { indentAction: monaco.languages.IndentAction.Indent },
       },
     ],
+  };
+
+  const applyPythonConfig = () =>
+    monaco.languages.setLanguageConfiguration("python", pythonConfig);
+  applyPythonConfig();
+
+  // The built-in basic-languages contribution re-applies its own (simpler)
+  // python configuration when the language is first encountered, overwriting
+  // the richer config above (dedent on elif/else, etc.). Re-apply ours after
+  // that contribution has had a chance to load and run.
+  monaco.languages.onLanguage("python", () => {
+    const reapply = () => monaco.languages.setLanguageConfiguration("python", pythonConfig);
+    setTimeout(reapply, 0);
+    setTimeout(reapply, 300);
   });
 
   monaco.languages.registerCompletionItemProvider("python", {
