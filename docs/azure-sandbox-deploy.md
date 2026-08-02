@@ -3,9 +3,9 @@
 > **Service:** Koder code-execution sandbox (`sandbox/`)
 > **Image:** `ghcr.io/jerryjuche/koder-sandbox` (public)
 > **Host:** Azure Container Apps — consumption plan, `westeurope`
-> **Budget:** $0/month
+> **Budget:** ~$18–22/mo (always-warm, 1 replica; revert to $0 via scale-to-zero)
 > **Status:** **LIVE (2026-07-31)** — Fly.io retained as rollback only
-> **Last updated:** 2026-07-31
+> **Last updated:** 2026-08-02
 
 ---
 
@@ -43,16 +43,18 @@ and falls back to local Docker when it is empty — the API contract is unchange
 
 ### Why Azure Container Apps?
 
-| Consideration | Fly.io (current) | Azure Container Apps (target) |
+### Why Azure Container Apps?
+
+| Consideration | Fly.io (rollback only) | Azure Container Apps (active) |
 |---|---|---|
-| Cost at idle | Paying per active machine | **$0** — consumption billing, scale-to-zero |
-| Cold start | ~800ms | ~30–60s (acceptable for a grader) |
+| Cost at idle | Paying per active machine | ~$18–30/mo — always-warm, 1 replica (consumption billing) |
+| Cold start | ~800ms | **~0ms** — `minReplicas: 1` keeps a replica warm |
 | Registry | N/A (direct deploy) | Pulls a public **GHCR** image — no registry fee |
 | Runtime | `golang:1.26-alpine` + python3 | Same container, unchanged `Dockerfile` |
 
-> **Why not ACR?** Azure Container Registry has no free tier — the cheapest SKU
+> **Why ACR?** Azure Container Registry has no free tier — the cheapest SKU
 > (Basic) is ~$5/mo. A **public GHCR image** is pullable by ACA anonymously, so
-> the entire deployment stays at **$0**.
+> no registry fee is charged on top of the always-warm compute cost.
 
 ---
 
@@ -66,7 +68,7 @@ Backend (Render) ──SANDBOX_URL──► koder-sandbox.ashysmoke-c753df92.wes
       │                              (Azure Container Apps — consumption plan)
       │                              ├── HTTPS ingress → target port 8080
       │                              ├── 0.5 vCPU / 1.0Gi per replica
-      │                              ├── scale: min 0 / max 4 (HTTP rule @ 50 req)
+      │                              ├── scale: min 1 / max 4 (HTTP rule @ 50 req)
       │                              ├── /health, /version, /execute
       │                              └── Go test / Python3 runners (unchanged)
       └─ falls back to local Docker when SANDBOX_URL is empty
@@ -91,17 +93,26 @@ manual `docker push`) makes it live.
 |---|---|---|
 | Container image | `ghcr.io/jerryjuche/koder-sandbox` (public) | Free |
 | Image build + push | GitHub Actions (public repo minutes) | Free |
-| Execution runtime | ACA consumption — vCPU/GiB-seconds only while running | ~$0 for light usage |
+| Execution runtime | ACA consumption — 1 always-warm replica (`0.5 vCPU / 1.0Gi`) | **~$18–22/mo**, per-second billing |
 | ACA environment | Consumption-only environment | No base charge |
 | Storage / logs | ACA Log Analytics within free allowances | $0 at this scale |
 
-**Billing behavior:** consumption billing charges per-replica **only while a
-replica is running**. With `minReplicas: 0`, an idle sandbox runs **zero**
-replicas and accrues **no compute cost**. Replicas spin up on the first request
-and drain after idleness.
+**Billing behavior:** consumption billing accrues per-replica **only while a
+replica is running**. `minReplicas: 1` keeps one replica warm at all times so a
+submission never waits on a cold start (~30s); in exchange the warm replica
+accrues a small, steady compute charge during active hours. `maxReplicas: 4`
+bounds any burst of scale-out beyond that warm baseline.
 
-**Cost guardrails in the deploy:** `maxReplicas 4` bounds scale-out, and
-`0.5 vCPU / 1.0Gi` is the smallest practical profile for `go test` + python3.
+**Estimated monthly:** ~0.5 vCPU + 1 GiB, billed ~24/7 ≈ **$18–22/mo**
+(appetite-dependent; verify actual consumption in Azure Cost Management).
+
+**Reverting to $0 scale-to-zero:** set `MIN_REPLICAS=0` in `deploy.sh` and
+`minReplicas: 0` in `container-app.yaml`, then re-run `deploy.sh`. Idle cost
+drops to $0, but the first run after an idle period pays a ~30s cold start.
+
+**Cost guardrails in the deploy:** `minReplicas 1` / `maxReplicas 4` bounds the
+footprint, and `0.5 vCPU / 1.0Gi` is the smallest practical profile for
+`go test` + python3.
 
 ---
 
@@ -190,7 +201,7 @@ the app **in place** (new image, scale, env) rather than recreating it.
 | Image | `ghcr.io/jerryjuche/koder-sandbox:latest` | Public — anonymous pull |
 | Ingress | external, HTTPS → target port `8080` | Matches `Dockerfile` `EXPOSE 8080` |
 | Compute | `0.5` vCPU / `1.0Gi` | Smallest practical profile; sandbox `RLIMIT_AS` is 512MB |
-| Scale | `min 0` / `max 4` | Scale-to-zero + bounded scale-out |
+| Scale | `min 1` / `max 4` | Always-warm baseline (no cold-start waits) + bounded scale-out |
 | HTTP rule | concurrency `50` | One replica per 50 concurrent requests |
 | Env var | `SANDBOX_RATE_LIMIT_PER_MIN=60` | One backend IP fans out many submissions (default is 10) |
 
@@ -208,7 +219,7 @@ az containerapp create --resource-group koder-sandbox \
 ```
 
 `container-app.yaml` encodes the same settings (single active revision, external
-ingress, 0.5 vCPU/1.0Gi, min 0/max 4, HTTP rule, env var) for repeatable,
+ingress, 0.5 vCPU/1.0Gi, min 1/max 4, HTTP rule, env var) for repeatable,
 reviewable deployments.
 
 ### Resulting URL
@@ -265,23 +276,22 @@ curl -fsS -X POST "$BASE/execute" -H 'Content-Type: application/json' --data @/t
 rate_limit_exceeded` on the last one (limit: 60/min via
 `SANDBOX_RATE_LIMIT_PER_MIN`; the default is 10).
 
-### 7.4 Scale-to-zero
+### 7.4 Always-warm baseline
 
-After ~5 minutes idle, replicas drain to zero:
+`minReplicas: 1` keeps a replica running so the first submission never waits on
+a cold start — the first and every-subsequent request are equally fast. Confirm
+the baseline is active:
 
 ```bash
-az containerapp replica list --name koder-sandbox \
-    --resource-group koder-sandbox --query "[].name"
+az containerapp show -n koder-sandbox --resource-group koder-sandbox \
+    --query "properties.template.scale.minReplicas"
 ```
 
-The next `/execute` triggers a cold start (~30–60s). The backend tolerates
-this: the HTTP client waits the execution timeout **plus
-`SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90)** for a cold replica to
-come up, while the sandbox still hard-caps the student's code run at
-`timeout_sec`. The image pre-bakes the Go build cache (see `sandbox/Dockerfile`)
-so a cold container skips the ~20s stdlib recompile. The first submission after
-an idle period will still feel slow (~30–40s), but it **succeeds**; every
-subsequent submission is fast. Expected behavior at the $0 default.
+Expect `1`. Deploys still replace the revision in place; ACA keeps the rollout
+available so a brief new-revision boot is invisible. The image pre-bakes the Go
+build cache (see `sandbox/Dockerfile`), so even the rare first compile on a
+fresh revision is fast, and `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20)
+covers that brief churn plus the student's `timeout_sec` hard cap.
 
 ---
 
@@ -339,9 +349,9 @@ Then clear `SANDBOX_URL`/`PYTHON_SANDBOX_URL` on Render (or point them back at
 
 ### Monitor cost
 
-Azure Cost Management (Portal → Cost analysis) is free to view; confirm spend
-stays at $0 and check the replica metric (`az containerapp show`) if usage
-surprises you.
+Azure Cost Management (Portal → Cost analysis) is free to view; monitor the
+monthly always-warm cost (expect ~$18–22/mo at the 1-replica baseline) and
+check the replica metric (`az containerapp show`) if usage surprises you.
 
 ---
 

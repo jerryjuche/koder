@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Trophy,
   ArrowRight,
-  LayoutDashboard,
   BookOpen,
   FileText,
   Puzzle,
@@ -21,7 +20,6 @@ import {
   FileCode,
   Sparkles,
   Clock,
-  Layers,
   Zap,
 } from "lucide-react";
 import { fetchLesson, fetchModule } from "@/lib/api";
@@ -69,31 +67,25 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
 
 function burstConfetti() {
   try {
-    const duration = 3000;
-    const end = Date.now() + duration;
-
-    const frame = () => {
-      confetti({
-        particleCount: 6,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ["#10b981", "#f59e0b", "#3b82f6"],
-      });
-      confetti({
-        particleCount: 6,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: ["#10b981", "#f59e0b", "#3b82f6"],
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    };
-    frame();
-  } catch {}
+    confetti({
+      particleCount: 60,
+      angle: 60,
+      spread: 90,
+      origin: { x: 0, y: 0.6 },
+      colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+      startVelocity: 45,
+    });
+    confetti({
+      particleCount: 60,
+      angle: 120,
+      spread: 90,
+      origin: { x: 1, y: 0.6 },
+      colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
+      startVelocity: 45,
+    });
+  } catch (e) {
+    console.error("Confetti failed", e);
+  }
 }
 
 export default function LessonSuccessPage() {
@@ -183,89 +175,77 @@ export default function LessonSuccessPage() {
     if (loading) return;
     const t = setTimeout(() => {
       burstConfetti();
-    }, 150);
+      const interval = setInterval(burstConfetti, 150);
+      setTimeout(() => clearInterval(interval), 3500);
+    }, 200);
     return () => clearTimeout(t);
   }, [loading]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Hero Celebration Banner */}
-      <div className="relative max-w-screen-xl mx-auto px-4 md:px-6 pt-6">
-        <div className="relative rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card/90 to-card/60 p-6 md:p-8 shadow-xl overflow-hidden text-center">
-          {/* Top ambient glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-brand-charcoal-base text-brand-offwhite pb-20">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-b from-brand-success/10 to-transparent border-b border-brand-charcoal-border pt-20 pb-12 text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-success/20 text-brand-success mb-6 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+          <CheckCircle2 size={40} />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+          Lesson Completed!
+        </h1>
+        <div className="flex items-center justify-center gap-2 text-brand-offwhite-muted mb-8">
+          <span>{title}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border"></span>
+          <span className="flex items-center gap-1 text-brand-muted-gold">
+            <Trophy size={14} /> +{xpReward} XP
+          </span>
+        </div>
 
-          <div className="relative z-10 flex flex-col items-center justify-center max-w-2xl mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/10">
-              <Trophy className="w-9 h-9 text-emerald-400" />
-            </div>
-
-            <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight mb-2">
-              Lesson Completed!
-            </h1>
-
-            <p className="text-sm md:text-base text-muted-foreground font-semibold mb-4">
-              &quot;{title}&quot;
-            </p>
-
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-extrabold text-sm mb-6 shadow-sm">
-              <Zap className="w-4 h-4 fill-current" />+{xpReward} XP Awarded!
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md">
-              <Link
-                href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-card hover:bg-accent text-xs font-bold text-foreground transition-all"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Back to Module
-              </Link>
-
-              {nextLesson ? (
-                <Link
-                  href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-amber-500/20 transition-all"
-                >
-                  Next: {nextLesson.title}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              ) : (
-                <Link
-                  href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-emerald-500/20 transition-all"
-                >
-                  Module Complete!
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              )}
-            </div>
-          </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
+          <Link
+            href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-charcoal-card border border-brand-charcoal-border hover:bg-brand-charcoal-hover transition-colors font-bold text-sm"
+          >
+            <BookOpen size={18} />
+            Back to Module
+          </Link>
+          {nextLesson ? (
+            <Link
+              href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+            >
+              Next: {nextLesson.title}
+              <ArrowRight size={18} />
+            </Link>
+          ) : (
+            <Link
+              href={`/learn/courses/${courseSlug}/modules/${moduleSlug}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base transition-colors font-bold text-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+            >
+              Module Complete!
+              <ArrowRight size={18} />
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Recap & Progress Grid */}
-      <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column: What You Covered */}
-        <div className="space-y-4">
-          <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-            <BookOpen className="text-amber-400" size={18} />
+      <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left: What You Covered */}
+        <div>
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             What You Covered
           </h2>
 
           {sections.length === 0 ? (
-            <div className="bg-card border border-border/60 rounded-2xl p-6 text-center text-muted-foreground">
-              <BookOpen className="mx-auto mb-2 opacity-30" size={28} />
-              <p className="text-xs font-medium">
-                {sectionsCount} sections completed
-              </p>
+            <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-8 text-center text-brand-offwhite-muted">
+              <BookOpen className="mx-auto mb-3 opacity-20" size={32} />
+              <p>{sectionsCount} sections completed</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -276,22 +256,22 @@ export default function LessonSuccessPage() {
                 return (
                   <div
                     key={sec.id || i}
-                    className="flex items-center gap-3 bg-card border border-border/60 rounded-xl p-3.5 hover:border-amber-500/30 transition-colors"
+                    className="flex items-center gap-3 bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl p-3.5 hover:border-brand-success/40 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-brand-success/10 border border-brand-success/20 text-brand-success flex items-center justify-center shrink-0">
                       <Icon size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-xs md:text-sm text-foreground truncate">
+                      <p className="font-bold text-sm text-brand-offwhite truncate">
                         {sec.title || label}
                       </p>
-                      <p className="text-[11px] text-muted-foreground font-medium">
+                      <p className="text-xs text-brand-offwhite-muted font-medium">
                         {label}
                       </p>
                     </div>
                     <CheckCircle2
                       size={16}
-                      className="text-emerald-400 shrink-0"
+                      className="text-brand-success shrink-0"
                     />
                   </div>
                 );
@@ -300,34 +280,34 @@ export default function LessonSuccessPage() {
           )}
 
           {/* Stats Badges */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
-              <BookOpen className="mx-auto h-4 w-4 text-amber-400 mb-1" />
-              <p className="text-lg font-extrabold text-foreground">
+          <div className="grid grid-cols-3 gap-3 pt-6">
+            <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl p-3.5 text-center">
+              <BookOpen className="mx-auto h-4 w-4 text-brand-muted-gold mb-1" />
+              <p className="text-lg font-extrabold text-brand-offwhite">
                 {sectionsCount}
               </p>
-              <p className="text-[10px] text-muted-foreground font-semibold">
+              <p className="text-[10px] text-brand-offwhite-muted font-semibold">
                 Sections
               </p>
             </div>
             {quizCount > 0 && (
-              <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
+              <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl p-3.5 text-center">
                 <BrainCircuit className="mx-auto h-4 w-4 text-orange-400 mb-1" />
-                <p className="text-lg font-extrabold text-foreground">
+                <p className="text-lg font-extrabold text-brand-offwhite">
                   {quizCount}
                 </p>
-                <p className="text-[10px] text-muted-foreground font-semibold">
+                <p className="text-[10px] text-brand-offwhite-muted font-semibold">
                   Quizzes
                 </p>
               </div>
             )}
             {exerciseCount > 0 && (
-              <div className="bg-card border border-border/60 rounded-xl p-3.5 text-center">
+              <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-xl p-3.5 text-center">
                 <FlaskConical className="mx-auto h-4 w-4 text-teal-400 mb-1" />
-                <p className="text-lg font-extrabold text-foreground">
+                <p className="text-lg font-extrabold text-brand-offwhite">
                   {exerciseCount}
                 </p>
-                <p className="text-[10px] text-muted-foreground font-semibold">
+                <p className="text-[10px] text-brand-offwhite-muted font-semibold">
                   Exercises
                 </p>
               </div>
@@ -335,94 +315,94 @@ export default function LessonSuccessPage() {
           </div>
         </div>
 
-        {/* Right Column: Module Progress & Next Lesson */}
-        <div className="space-y-4">
-          <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-            <Layers className="text-amber-400" size={18} />
+        {/* Right: Module Progress & Next Lesson */}
+        <div>
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             Module Progress
           </h2>
 
-          <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
-            <div>
-              <div className="flex items-center justify-between text-xs font-extrabold mb-2">
-                <span className="truncate text-foreground">{moduleTitle}</span>
-                <span className="text-amber-400">
-                  {Math.round(moduleProgress)}%
-                </span>
-              </div>
-              <div className="h-2 w-full bg-muted/60 rounded-full overflow-hidden border border-border/40">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-700 ease-out"
-                  style={{ width: `${Math.round(moduleProgress)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Next Lesson Box */}
-            {nextLesson ? (
-              <div className="pt-3 border-t border-border/40">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                  Up Next
-                </span>
-                <Link
-                  href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
-                  className="flex items-center gap-3 bg-background border border-border/60 rounded-xl p-3.5 hover:border-amber-500/40 transition-all group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <BookOpen size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-xs md:text-sm text-foreground truncate group-hover:text-amber-400 transition-colors">
-                      {nextLesson.title}
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5 font-medium">
-                      {nextLesson.estimated_minutes && (
-                        <span className="flex items-center gap-1">
-                          <Clock size={11} /> {nextLesson.estimated_minutes}m
-                        </span>
-                      )}
-                      {nextLesson.xp_reward && (
-                        <span className="flex items-center gap-1 text-amber-400 font-bold">
-                          <Zap size={11} /> +{nextLesson.xp_reward} XP
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <ArrowRight
-                    size={16}
-                    className="text-muted-foreground group-hover:text-amber-400 transition-colors shrink-0"
-                  />
-                </Link>
-              </div>
-            ) : (
-              <div className="pt-2 border-t border-border/40 text-center py-4">
-                <Trophy className="mx-auto mb-2 text-amber-400" size={24} />
-                <h4 className="font-bold text-xs md:text-sm text-foreground">
-                  Module Complete!
-                </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  You&apos;ve completed all lessons in this module.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* XP Reward Summary Box */}
-          <div className="bg-card border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card rounded-2xl p-4 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                <Zap size={18} className="fill-current" />
-              </div>
+          <div className="space-y-4">
+            <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl p-5 space-y-4">
               <div>
-                <p className="font-bold text-xs md:text-sm text-foreground">XP Awarded</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Added to your global profile
-                </p>
+                <div className="flex items-center justify-between text-xs font-extrabold mb-2">
+                  <span className="truncate text-brand-offwhite">{moduleTitle}</span>
+                  <span className="text-brand-muted-gold">
+                    {Math.round(moduleProgress)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-brand-charcoal-hover rounded-full overflow-hidden border border-brand-charcoal-border/40">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-brand-success to-green-400 transition-all duration-700 ease-out"
+                    style={{ width: `${Math.round(moduleProgress)}%` }}
+                  />
+                </div>
               </div>
+
+              {nextLesson ? (
+                <div className="pt-3 border-t border-brand-charcoal-border/40">
+                  <span className="text-[10px] font-bold text-brand-offwhite-muted uppercase tracking-wider block mb-2">
+                    Up Next
+                  </span>
+                  <Link
+                    href={`/learn/courses/${courseSlug}/modules/${moduleSlug}/lessons/${nextLesson.slug}`}
+                    className="flex items-center gap-3 bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-3.5 hover:border-brand-muted-gold/40 transition-all group"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-brand-muted-gold/10 border border-brand-muted-gold/20 text-brand-muted-gold flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <BookOpen size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm text-brand-offwhite truncate group-hover:text-brand-muted-gold transition-colors">
+                        {nextLesson.title}
+                      </h4>
+                      <p className="text-[11px] text-brand-offwhite-muted flex items-center gap-2 mt-0.5 font-medium">
+                        {nextLesson.estimated_minutes && (
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} /> {nextLesson.estimated_minutes}m
+                          </span>
+                        )}
+                        {nextLesson.xp_reward && (
+                          <span className="flex items-center gap-1 text-brand-muted-gold font-bold">
+                            <Zap size={11} /> +{nextLesson.xp_reward} XP
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <ArrowRight
+                      size={16}
+                      className="text-brand-offwhite-muted group-hover:text-brand-muted-gold transition-colors shrink-0"
+                    />
+                  </Link>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-brand-charcoal-border/40 text-center py-4">
+                  <Trophy className="mx-auto mb-2 text-brand-muted-gold" size={24} />
+                  <h4 className="font-bold text-sm text-brand-offwhite">
+                    Module Complete!
+                  </h4>
+                  <p className="text-[11px] text-brand-offwhite-muted mt-0.5">
+                    You&apos;ve completed all lessons in this module.
+                  </p>
+                </div>
+              )}
             </div>
-            <span className="text-xl font-extrabold text-amber-400">
-              +{xpReward} XP
-            </span>
+
+            {/* XP Reward Summary Box */}
+            <div className="bg-brand-charcoal-card border border-brand-muted-gold/20 bg-gradient-to-r from-brand-muted-gold/10 via-brand-charcoal-card to-brand-charcoal-card rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-muted-gold/20 text-brand-muted-gold flex items-center justify-center">
+                  <Zap size={18} className="fill-current" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-brand-offwhite">XP Awarded</p>
+                  <p className="text-[11px] text-brand-offwhite-muted">
+                    Added to your global profile
+                  </p>
+                </div>
+              </div>
+              <span className="text-xl font-extrabold text-brand-muted-gold">
+                +{xpReward} XP
+              </span>
+            </div>
           </div>
         </div>
       </div>

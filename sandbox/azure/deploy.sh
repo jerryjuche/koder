@@ -3,7 +3,7 @@
 # deploy.sh — Deploy the Koder code sandbox to Azure Container Apps
 #
 #   Image:   ghcr.io/jerryjuche/koder-sandbox (public — no credentials needed)
-#   Cost:    $0 — ACA consumption billing, scale-to-zero at 0 replicas
+#   Cost:    Always-warm — keeps 1 replica running (~$18-22/mo at 0.5 vCPU/1.0Gi)
 #   Docs:    docs/azure-sandbox-deploy.md
 #
 # Usage:
@@ -26,8 +26,8 @@ APP_NAME="koder-sandbox"                  # Container app name (URL subdomain)
 IMAGE="ghcr.io/jerryjuche/koder-sandbox:latest"
 TARGET_PORT=8080                          # Sandbox HTTP port (matches Dockerfile EXPOSE)
 
-MIN_REPLICAS=0                            # 0 = scale-to-zero (cold start ~30-60s)
-MAX_REPLICAS=4                            # Bounded to stay in the free allowance
+MIN_REPLICAS=1                            # 1 = always warm (no cold start; small monthly cost)
+MAX_REPLICAS=4                            # Bounded scale-out beyond the warm baseline
 CPU="0.5"                                 # vCPU per replica (consumption: 0.25-4.0)
 MEMORY="1.0Gi"                            # RAM per replica (sandbox RLIMIT_AS 512MB)
 HTTP_CONCURRENCY=50                       # Requests per replica before scaling out

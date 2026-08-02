@@ -240,7 +240,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) |
+| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
 | `config_test.go` | 355 | 24 tests: missing vars, invalid port, environment validation |
 
 ### 6.10 Dependencies (`go.mod`)
@@ -1013,7 +1013,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 > **Azure Container Apps is live (2026-07-31):** sandbox deployed on ACA
 > consumption plan — resource group `koder-sandbox`, environment `sandbox-env`,
-> app `koder-sandbox` (0.5 vCPU/1.0Gi, scale min 0 / max 4, HTTPS → port 8080,
+> app `koder-sandbox` (0.5 vCPU/1.0Gi, scale min 1 / max 4, HTTPS → port 8080,
 > `SANDBOX_RATE_LIMIT_PER_MIN=60`), pulling the public GHCR image
 > `ghcr.io/jerryjuche/koder-sandbox`. Set
 > `SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io`
@@ -1021,9 +1021,10 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 > covers both languages). Deploy scripts/manifest: `sandbox/azure/`; runbook:
 > `docs/azure-sandbox-deploy.md`. Rollback: `cd sandbox && fly deploy`
 > (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
-> Cold starts (scale-to-zero) are absorbed by `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS`
-> (default 90) on the backend client; the image's baked Go build cache makes the
-> first compile ~2s. Expect ~35s for the first submission after ~5 min idle, <2s after.
+> Always-warm via `minReplicas: 1` (~$18–22/mo) means the first submission is
+> fast with no cold start; `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20)
+> only absorbs brief revision churn. Revert to scale-to-zero ($0 + cold start)
+> by setting `MIN_REPLICAS=0`.
 
 ### Required Backend Environment
 ```bash
@@ -1041,6 +1042,14 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-02 — Session 100: Layout margin cleanup + standardized success pages
+- **Removed global `<main>` padding** (`layout.tsx`): `<main>` is now `relative z-10 flex-1 w-full` — no `px/pt`. Each page owns its own container (home + problems were the only pages relying on it)
+- **Dashboard (`home/page.tsx`)** + **problems listing**: now `max-w-7xl mx-auto pb-8 px-4 sm:px-6 lg:px-8`, flush under the sticky TopNav (pt-0) so content edges align with the nav's `max-w-7xl` container — kills the double top gap (was `main pt-6` + page `py-6` = 48px) and the redundant side margins
+- **Settings**: root `py-8` → `pt-0 pb-8` to match the flush standard (keeps `max-w-6xl` + px)
+- **Lesson success page** (`learn/.../lessons/[lessonSlug]/success/page.tsx`, 431→~460 LOC): full restructure to be structurally identical to the problem success page — brand-charcoal surfaces, full-width `from-brand-success/10` gradient hero with `w-20 h-20` green `CheckCircle2` badge, `text-4xl md:text-5xl` title, gold Trophy XP chip, charcoal + gold CTA row, `max-w-6xl mx-auto px-6 py-12 grid lg:grid-cols-2 gap-8`; only the write-up differs (What You Covered + Sections/Quizzes/Exercises badges / Module Progress + XP summary). Confetti + loading state copied from the problem page (2-burst 150ms × 3.5s, `#D4AF37/#22C55E/#FFFFFF`)
+- **Not touched:** `app/problems/[slug]/success` (canonical template); no course/module success pages exist (module completion shows via the lesson page's "Module Complete!" state)
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed `e2b79db` to `origin/update`
 
 ### 2026-08-01 — Session 99: Real formatting (gofmt + pinned black) via POST /api/format
 - **Sandbox `POST /format`** (`sandbox/format.go`, 96 LOC): pipes Python source through pinned `black==25.1.0` (`black -q -`, 30s timeout) → `{formatted, error}`; empty → empty; route added next to `/execute`; Dockerfile installs black via `py3-pip` so output is byte-stable across image rebuilds
