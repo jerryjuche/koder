@@ -2716,3 +2716,18 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `npx tsc --noEmit` 0 errors, `npm run lint` 0 errors
 - `go test ./internal/...` (8 suites) + sandbox vet/build/test green
 - Pushed `d8ac1fe`, `e2b79db`, `2f808bb` to `origin/update`
+## Session 102 — 2026-08-02 — Detailed Python format errors
+
+### Changes
+- **`sandbox/format.go`** — failed Python formats now return a professional, actionable message instead of black's raw `error: cannot format -: Cannot parse: 7:0: ...`. Black reports positions against its own *normalized* copy of the source, so the line/column was misleading (e.g. `7:0` for a one-line file)
+- Re-parses the **raw** source with `ast.parse` (python3 subprocess, reusing `findPythonBin()`/`runCommandWithLimitedOutput()` — same pattern as `validatePythonAST`) to surface the true `line N, column M` + error class, with per-class tips:
+  - `IndentationError`/`TabError` → "Check your indentation. Python requires consistent spaces (usually 4)..."
+  - `SyntaxError` → "Check for missing colons, unclosed brackets, or statements merged onto one line."
+  - Fallback: black's message with the `error: cannot format -:` prefix stripped (when Python is unavailable, or ast parses but black still rejects)
+- **`sandbox/format_test.go`** — existing `TestFormatPythonRejectsSyntaxError` updated to the new wording; added `TestFormatPythonExtraIndentationGetsFriendlyMessage` (the exact "extra indent to test formatting" case → asserts `line 3` + `indentation` + `Tip:`), `TestFriendlyPythonSyntaxMessage` (pure unit test, non-gated), and `TestFormatSyntaxIssueStripsBlackPrefix` (non-gated fallback)
+- Frontend untouched — the workspace toast and Monaco Shift+Alt+F silent-degrade already surface the backend message
+
+### Verification
+- `go vet` clean (sandbox); full sandbox suite + all 8 backend suites green; `go build ./sandbox` OK
+- **Deployment note:** lives in the sandbox binary → rebuild GHCR `:latest` (CI push to `main`/`staging` for `sandbox/**`) then `./sandbox/azure/deploy.sh --yes`; backend + frontend need no changes
+- Committed `friendly-python-format-errors` to `origin/update`

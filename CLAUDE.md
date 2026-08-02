@@ -1051,6 +1051,12 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 - **Not touched:** `app/problems/[slug]/success` (canonical template); no course/module success pages exist (module completion shows via the lesson page's "Module Complete!" state)
 - **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed `e2b79db` + `2f808bb` to `origin/update`
 
+### 2026-08-02 — Session 100b: Detailed Python format errors
+- **`sandbox/format.go`** — failed Python formats now return a professional, actionable message instead of black's raw `error: cannot format -: Cannot parse: 7:0: ...` (black reports positions against its *normalized* source, so line/col were misleading, e.g. `7:0` for a 1-line file)
+- Re-parses the **raw** source with `ast.parse` (python3 subprocess, reusing `findPythonBin()`/`runCommandWithLimitedOutput()`) to report the true `line N, column M` + error class; per-class tips: `IndentationError`/`TabError` → consistent-spaces tip, `SyntaxError` → missing-colons/brackets/merged-statements tip; falls back to black's message with the `error: cannot format -:` prefix stripped when Python is unavailable (or ast passes but black still rejects)
+- **`sandbox/format_test.go`** — updated the syntax test to the new wording; added the exact "extra indent to test formatting" scenario (asserts `line 3` + `indentation` + `Tip:`), a pure unit test for `friendlyPythonSyntaxMessage`, and a non-gated fallback-strip test
+- **Deployment:** change lives in the sandbox binary → rebuild GHCR `:latest` (CI push to main/staging for `sandbox/**`) + `./sandbox/azure/deploy.sh --yes`; frontend untouched (toast + Monaco silent-degrade already surface the backend message)
+
 ### 2026-08-01 — Session 99: Real formatting (gofmt + pinned black) via POST /api/format
 - **Sandbox `POST /format`** (`sandbox/format.go`, 96 LOC): pipes Python source through pinned `black==25.1.0` (`black -q -`, 30s timeout) → `{formatted, error}`; empty → empty; route added next to `/execute`; Dockerfile installs black via `py3-pip` so output is byte-stable across image rebuilds
 - **`executor.FormatCode`** (`internal/executor/format.go`, 53 LOC): Go formatted **in-process** with `go/format.Source()` (gofmt canonicalizer, no new dep); Python → sandbox `/format` via new `sandboxClient.format()` (same 3-attempt exp-backoff as execute, tolerates ACA cold starts); parse failures typed as `*FormatSyntaxError`
