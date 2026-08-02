@@ -13,7 +13,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {/* Subtle animated hexagon grid — ambient background texture */}
         <AnimatedBackground fadeEnd="75%" opacity={0.75} />
         <TopNav />
-        <main className="relative z-10 flex-1 w-full px-4 sm:px-6 lg:px-8 pt-6">
+        <main className="relative z-10 flex-1 w-full">
           <BroadcastBanner />
           {children}
         </main>
