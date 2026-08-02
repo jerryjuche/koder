@@ -1043,6 +1043,14 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ## 20. Session Log (Recent)
 
+### 2026-08-02 — Session 100: Layout margin cleanup + standardized success pages
+- **Removed global `<main>` padding** (`layout.tsx`): `<main>` is now `relative z-10 flex-1 w-full` — no `px/pt`. Each page owns its own container (home + problems were the only pages relying on it)
+- **Dashboard (`home/page.tsx`)** + **problems listing**: now `max-w-7xl mx-auto pb-8 px-4 sm:px-6 lg:px-8`, flush under the sticky TopNav (pt-0) so content edges align with the nav's `max-w-7xl` container — kills the double top gap (was `main pt-6` + page `py-6` = 48px) and the redundant side margins
+- **Settings**: root `py-8` → `pt-0 pb-8` to match the flush standard (keeps `max-w-6xl` + px)
+- **Lesson success page** (`learn/.../lessons/[lessonSlug]/success/page.tsx`, 431→~460 LOC): full restructure to be structurally identical to the problem success page — brand-charcoal surfaces, full-width `from-brand-success/10` gradient hero with `w-20 h-20` green `CheckCircle2` badge, `text-4xl md:text-5xl` title, gold Trophy XP chip, charcoal + gold CTA row, `max-w-6xl mx-auto px-6 py-12 grid lg:grid-cols-2 gap-8`; only the write-up differs (What You Covered + Sections/Quizzes/Exercises badges / Module Progress + XP summary). Confetti + loading state copied from the problem page (2-burst 150ms × 3.5s, `#D4AF37/#22C55E/#FFFFFF`)
+- **Not touched:** `app/problems/[slug]/success` (canonical template); no course/module success pages exist (module completion shows via the lesson page's "Module Complete!" state)
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed `e2b79db` to `origin/update`
+
 ### 2026-08-01 — Session 99: Real formatting (gofmt + pinned black) via POST /api/format
 - **Sandbox `POST /format`** (`sandbox/format.go`, 96 LOC): pipes Python source through pinned `black==25.1.0` (`black -q -`, 30s timeout) → `{formatted, error}`; empty → empty; route added next to `/execute`; Dockerfile installs black via `py3-pip` so output is byte-stable across image rebuilds
 - **`executor.FormatCode`** (`internal/executor/format.go`, 53 LOC): Go formatted **in-process** with `go/format.Source()` (gofmt canonicalizer, no new dep); Python → sandbox `/format` via new `sandboxClient.format()` (same 3-attempt exp-backoff as execute, tolerates ACA cold starts); parse failures typed as `*FormatSyntaxError`
