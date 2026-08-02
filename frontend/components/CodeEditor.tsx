@@ -51,6 +51,25 @@ function CodeEditorInner({
   const handleMount: OnMount = useCallback((editor, monaco) => {
     initMonacoEditor(monaco);
     monaco.editor.setTheme("vs-dark-plus");
+
+    // Monaco's Enter handling skips language indentation rules whenever the
+    // current line isn't cheaply tokenizable (end state still pending from
+    // background tokenization). With the custom TextMate tokenizers that is
+    // almost always true after typing, so Enter would only copy the current
+    // line's leading whitespace and `if x:` + Enter would not indent. Advance
+    // the tokenization state store synchronously (onKeyDown fires before the
+    // keybinding dispatches lineBreakInsert) so auto-indent always runs.
+    editor.onKeyDown((e) => {
+      if (e.keyCode !== monaco.KeyCode.Enter) return;
+      const model = editor.getModel();
+      const position = editor.getPosition();
+      if (!model || !position) return;
+      const tokenization = (model as any).tokenization;
+      if (!tokenization?.isCheapToTokenize?.(position.lineNumber)) {
+        tokenization?.forceTokenization?.(position.lineNumber);
+      }
+    });
+
     onMountRef.current?.(editor, monaco);
   }, []);
 
