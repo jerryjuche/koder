@@ -240,7 +240,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) |
+| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
 | `config_test.go` | 355 | 24 tests: missing vars, invalid port, environment validation |
 
 ### 6.10 Dependencies (`go.mod`)
@@ -1013,7 +1013,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 > **Azure Container Apps is live (2026-07-31):** sandbox deployed on ACA
 > consumption plan — resource group `koder-sandbox`, environment `sandbox-env`,
-> app `koder-sandbox` (0.5 vCPU/1.0Gi, scale min 0 / max 4, HTTPS → port 8080,
+> app `koder-sandbox` (0.5 vCPU/1.0Gi, scale min 1 / max 4, HTTPS → port 8080,
 > `SANDBOX_RATE_LIMIT_PER_MIN=60`), pulling the public GHCR image
 > `ghcr.io/jerryjuche/koder-sandbox`. Set
 > `SANDBOX_URL=https://koder-sandbox.ashysmoke-c753df92.westeurope.azurecontainerapps.io`
@@ -1021,9 +1021,10 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 > covers both languages). Deploy scripts/manifest: `sandbox/azure/`; runbook:
 > `docs/azure-sandbox-deploy.md`. Rollback: `cd sandbox && fly deploy`
 > (Fly.io `https://koder-sandbox.fly.dev` preserved) + clear `SANDBOX_URL`.
-> Cold starts (scale-to-zero) are absorbed by `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS`
-> (default 90) on the backend client; the image's baked Go build cache makes the
-> first compile ~2s. Expect ~35s for the first submission after ~5 min idle, <2s after.
+> Always-warm via `minReplicas: 1` (~$18–22/mo) means the first submission is
+> fast with no cold start; `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20)
+> only absorbs brief revision churn. Revert to scale-to-zero ($0 + cold start)
+> by setting `MIN_REPLICAS=0`.
 
 ### Required Backend Environment
 ```bash

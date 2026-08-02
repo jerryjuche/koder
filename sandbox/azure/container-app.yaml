@@ -41,8 +41,10 @@ properties:
             value: "60"
 
     scale:
-      # minReplicas 0 = true scale-to-zero: no compute charges while idle.
-      minReplicas: 0
+      # minReplicas 1 = always warm: one replica is kept running so the first
+      # submission after idle is not paid a ~30s cold start. Costs roughly
+      # $18-22/mo at 0.5 vCPU/1.0Gi. Set minReplicas 0 to revert to scale-to-zero.
+      minReplicas: 1
       maxReplicas: 4
       rules:
         - name: http

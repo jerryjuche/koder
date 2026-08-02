@@ -389,7 +389,7 @@ func main() {
 		Addr:         ":" + port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: time.Duration(maxTimeoutSec+10) * time.Second,
+		WriteTimeout: time.Duration(maxTimeoutSec+60) * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 
