@@ -50,24 +50,53 @@ function CodeEditorInner({
 
   // Monaco's Enter handler only applies language indentation rules (which give
   // the auto-indent after a colon) when the current line is cheaply tokenizable.
-  // With the custom TextMate tokenizers that state is reliably stale while
-  // typing, so Enter would otherwise just carry the line's leading whitespace.
-  // onKeyDown fires during the DOM target phase, before Monaco's keybinding
-  // dispatch, so force-tokenizing here lets auto-indent run on every Enter.
-  const ensureEnterAutoIndent = useCallback(
+  // With custom TextMate tokenizers that state is reliably stale while typing,
+  // forceTokenization() is async and can't help synchronously. Instead, we
+  // manually detect lines ending with ":" and insert the indented newline
+  // ourselves, bypassing the stale-tokenization check entirely.
+  const handleEnterIndent = useCallback(
     (editor: any, monaco: any) =>
       editor.onKeyDown((e: any) => {
         if (e.keyCode !== monaco.KeyCode.Enter) return;
         const model = editor.getModel();
         const position = editor.getPosition();
         if (!model || !position) return;
-        const tokenization = model.tokenization as
-          | { isCheapToTokenize?: (n: number) => boolean; forceTokenization?: (n: number) => void }
-          | undefined;
+
         const line = position.lineNumber;
-        if (!tokenization?.isCheapToTokenize?.(line)) {
-          tokenization?.forceTokenization?.(line);
-        }
+        const lineContent = model.getLineContent(line);
+        const trimmed = lineContent.trimEnd();
+
+        // Only intervene for Python lines ending with ':'
+        if (!trimmed.endsWith(":")) return;
+
+        // Extract leading whitespace from the current line
+        const leadingWs = lineContent.match(/^(\s*)/)?.[1] ?? "";
+        const tabSize = editor.getOption(monaco.editor.EditorOption.tabSize) ?? 4;
+        const insertSpaces = editor.getOption(monaco.editor.EditorOption.insertSpaces) ?? true;
+        const indentUnit = insertSpaces ? " ".repeat(tabSize) : "\t";
+
+        // Prevent Monaco's default Enter handling
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Insert: newline + current indent + one extra indent level
+        const insertText = "\n" + leadingWs + indentUnit;
+        editor.executeEdits("auto-indent", [
+          {
+            range: {
+              startLineNumber: line,
+              startColumn: lineContent.length + 1,
+              endLineNumber: line,
+              endColumn: lineContent.length + 1,
+            },
+            text: insertText,
+          },
+        ]);
+
+        // Move cursor to the new indented position
+        const newLine = line + 1;
+        const newColumn = leadingWs.length + indentUnit.length + 1;
+        editor.setPosition({ lineNumber: newLine, column: newColumn });
       }),
     []
   );
@@ -76,10 +105,10 @@ function CodeEditorInner({
     (editor, monaco) => {
       initMonacoEditor(monaco);
       monaco.editor.setTheme("vs-dark-plus");
-      ensureEnterAutoIndent(editor, monaco);
+      handleEnterIndent(editor, monaco);
       onMountRef.current?.(editor, monaco);
     },
-    [ensureEnterAutoIndent]
+    [handleEnterIndent]
   );
 
   return (
