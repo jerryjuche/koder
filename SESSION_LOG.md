@@ -2703,3 +2703,16 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `npx next build` exited with code 0 (20+ routes compiled cleanly)
 - Pushed commit `cb8ad4f` to `origin/update`
 
+## Session 101 — 2026-08-02 — Layout margin cleanup + standardized success pages + always-warm sandbox
+
+### Changes
+- **Removed global `<main>` padding** (`frontend/app/(main)/layout.tsx`): `<main>` is now `relative z-10 flex-1 w-full` — no `px/pt`. Each page owns its own container; home + problems were the only pages relying on the global padding
+- **Dashboard + problems listing:** now `max-w-7xl mx-auto pt-4 pb-8 px-4 sm:px-6 lg:px-8` — content edges align with the TopNav's `max-w-7xl` container; kills the double top gap (was `main pt-6` + page `py-6` = 48px) and the redundant side margins; `pt-4` leaves a small breathing room under the sticky nav
+- **Settings + Admin:** `settings` root `py-8` → `pt-4 pb-8`; `admin` root `pb-12` → `pt-4 pb-12` — consistent top margin
+- **Lesson success page** (`learn/courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/success/page.tsx`): full restructure to be structurally identical to the problem success page — brand-charcoal surfaces, full-width `from-brand-success/10` gradient hero with `w-20 h-20` green `CheckCircle2` badge, `text-4xl md:text-5xl` title, gold Trophy XP chip, charcoal + gold CTA row, `max-w-6xl mx-auto px-6 py-12 grid lg:grid-cols-2 gap-8`; only the write-up differs (What You Covered + Sections/Quizzes/Exercises badges / Module Progress + XP summary); confetti + loading state copied from the problem page (2-burst 150ms × 3.5s, `#D4AF37/#22C55E/#FFFFFF`)
+- **Sandbox always-warm (earlier in the day):** ACA `deploy.sh`/`container-app.yaml` `MIN_REPLICAS=1` (~$18-22/mo, no cold-start waits); `sandbox/main.go` `WriteTimeout = maxTimeoutSec+60` (was +10) so 60s Python runs aren't killed server-side; `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` default 90 → 20; docs + CLAUDE.md cost model rewritten for always-warm
+
+### Verification
+- `npx tsc --noEmit` 0 errors, `npm run lint` 0 errors
+- `go test ./internal/...` (8 suites) + sandbox vet/build/test green
+- Pushed `d8ac1fe`, `e2b79db`, `2f808bb` to `origin/update`

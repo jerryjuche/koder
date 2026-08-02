@@ -261,7 +261,7 @@ function SettingsPageContent() {
   }
 
   return (
-    <div className="bg-brand-charcoal-base min-h-screen pt-0 pb-8 px-4 sm:px-6 lg:px-8">
+    <div className="bg-brand-charcoal-base min-h-screen pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon size={32} className="text-brand-muted-gold" />
