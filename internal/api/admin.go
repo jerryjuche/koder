@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/enricher"
@@ -661,6 +662,63 @@ func (h *AdminHandler) ToggleUserVerified(w http.ResponseWriter, r *http.Request
 	InvalidateUserCache(userID.String())
 
 	RespondSuccess(w, map[string]bool{"verified": verified})
+}
+
+// adminResetPasswordRequest is the payload for the admin password reset endpoint.
+type adminResetPasswordRequest struct {
+	Password string `json:"password"`
+}
+
+// ResetUserPassword handles POST /admin/users/{id}/reset-password.
+// Admins can reset a user's password so accounts without a PIN or reachable
+// email can still be recovered.
+func (h *AdminHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	userID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid user ID", nil)
+		return
+	}
+
+	var req adminResetPasswordRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if len(req.Password) < 8 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Password must be at least 8 characters", nil)
+		return
+	}
+	if len(req.Password) > 128 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Password must be at most 128 characters", nil)
+		return
+	}
+
+	passwordHash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		slog.Error("admin: failed to hash password", "error", err, "user_id", userID)
+		RespondError(w, http.StatusInternalServerError, "HASH_FAILED", "Unable to process password", nil)
+		return
+	}
+
+	if err := h.store.UpdateUserPassword(r.Context(), userID, passwordHash); err != nil {
+		slog.Error("admin: failed to reset user password", "error", err, "user_id", userID)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to reset password", nil)
+		return
+	}
+
+	h.store.LogActivity(r.Context(), "warning",
+		fmt.Sprintf("Admin reset password for user %s", userID.String()),
+		"text-brand-warning", "KeyRound",
+	)
+
+	// Invalidate caches so any in-flight session data is refreshed
+	InvalidateUserCache(userID.String())
+
+	slog.Info("admin: password reset", "admin_user_id", GetClaims(r.Context()).UserID, "target_user_id", userID.String())
+	RespondSuccess(w, map[string]string{"message": "Password has been reset"})
 }
 
 // ListProblemModuleLocks handles GET /admin/module-locks

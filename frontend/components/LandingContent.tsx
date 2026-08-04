@@ -11,7 +11,6 @@ import Features from "@/components/landing/Features";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Testimonials from "@/components/landing/Testimonials";
 import Footer from "@/components/landing/Footer";
-import AnimatedBackground from "@/components/ui/AnimatedBackground";
 
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,9 +34,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-brand-charcoal-base text-brand-offwhite">
-      {/* Subtle animated hexagon grid — visible at top, fades to solid bg */}
-      <AnimatedBackground fadeEnd="55%" opacity={0.4} />
+    <div className="min-h-screen overflow-hidden bg-brand-charcoal-base text-brand-offwhite">
       {/* ─── NAVBAR ─── */}
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-brand-charcoal-border/60 bg-brand-charcoal-base/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">

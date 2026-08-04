@@ -507,6 +507,43 @@ WANT: "fish"
 			wantGot:  map[int]string{1: "fish"},
 			wantWant: map[int]string{1: `"fish"`},
 		},
+		{
+			name: "parent FAIL summary does not bleed into last failing case",
+			output: `=== RUN TestSolution
+--- FAIL: TestSolution/case_1
+=== FAIL: Case 1
+GOT: 0
+WANT: 1
+--- FAIL: TestSolution
+`,
+			wantPass: map[int]bool{1: false},
+			wantGot:  map[int]string{1: "0"},
+			wantWant: map[int]string{1: "1"},
+		},
+		{
+			name: "parent FAIL summary with timing does not bleed (Go format)",
+			output: `=== RUN   TestSolution
+=== RUN   TestSolution/case_1
+    main_test.go:12: === FAIL: Case 1
+    GOT: 0
+    WANT: 1
+--- FAIL: TestSolution/case_1 (0.00s)
+--- FAIL: TestSolution (0.01s)
+`,
+			wantPass: map[int]bool{1: false},
+			wantGot:  map[int]string{1: "0"},
+			wantWant: map[int]string{1: "1"},
+		},
+		{
+			name: "parent PASS summary does not create ghost case",
+			output: `=== RUN TestSolution
+--- PASS: TestSolution/case_1
+--- PASS: TestSolution
+`,
+			wantPass: map[int]bool{1: true},
+			wantGot:  map[int]string{},
+			wantWant: map[int]string{},
+		},
 	}
 
 	for _, tc := range tests {

@@ -479,10 +479,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           name: `Case ${tr.ordinal ?? idx + 1}`,
           passed: tr.passed,
           executionTimeMs: executionResult.runtime_ms || 0,
-          output:
-            tr.is_hidden && !tr.passed ? "(hidden test case)" : tr.got || "",
-          expectedOutput:
-            tr.is_hidden && !tr.passed ? "(hidden)" : tr.expected || "",
+          output: tr.got || "",
+          expectedOutput: tr.expected || "",
         }));
         setResults(mappedResults);
 
@@ -555,10 +553,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           name: `Case ${tr.ordinal ?? idx + 1}`,
           passed: tr.passed,
           executionTimeMs: executionResult.runtime_ms || 0,
-          output:
-            tr.is_hidden && !tr.passed ? "(hidden test case)" : tr.got || "",
-          expectedOutput:
-            tr.is_hidden && !tr.passed ? "(hidden)" : tr.expected || "",
+          output: tr.got || "",
+          expectedOutput: tr.expected || "",
         }));
         setResults(mappedResults);
 

@@ -32,6 +32,12 @@ var gotRegex = regexp.MustCompile(`(?:\s|^)GOT:\s+(.*)$`)
 // wantRegex matches lines containing "WANT:" (possibly prefixed by tabs/file:line)
 var wantRegex = regexp.MustCompile(`(?:\s|^)WANT:\s+(.*)$`)
 
+// parentSummaryRegex matches the top-level TestSolution pass/fail summary line,
+// e.g. "--- PASS: TestSolution" (Python) or "--- FAIL: TestSolution (0.00s)" (Go).
+// It deliberately excludes per-case lines like "--- FAIL: TestSolution/case_N",
+// which are handled by passRegex/failRegex and must reset state via the subtests.
+var parentSummaryRegex = regexp.MustCompile(`^--- (?:PASS|FAIL):\s+TestSolution(?:\s|$)`)
+
 // ParseTestOutput parses the output of `go test -v` for a single solution
 // and returns the pass/fail status per test case ordinal, along with
 // parsed GOT/WANT values.
@@ -69,6 +75,21 @@ func ParseTestOutput(output string) parsedOutput {
 			ord, _ := strconv.Atoi(matches[1])
 			res.passedMap[ord] = false
 			currentState = ""
+		case parentSummaryRegex.MatchString(trimmed):
+			// Top-level summary line — finalize any open buffers for the current
+			// case and reset state so the summary text cannot bleed into a case's
+			// GOT/WANT values (e.g. "...WANT: 1\n--- FAIL: TestSolution").
+			if currentOrdinal != -1 {
+				if len(gotBuffer) > 0 {
+					res.gotMap[currentOrdinal] = strings.Join(gotBuffer, "\n")
+				}
+				if len(wantBuffer) > 0 {
+					res.wantMap[currentOrdinal] = strings.Join(wantBuffer, "\n")
+				}
+			}
+			currentState = ""
+			gotBuffer = nil
+			wantBuffer = nil
 		case caseFailRegex.MatchString(trimmed):
 			matches := caseFailRegex.FindStringSubmatch(trimmed)
 			ord, _ := strconv.Atoi(matches[1])

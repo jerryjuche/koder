@@ -222,13 +222,22 @@ export async function resetPassword(
   });
 }
 
-export async function forgotPasswordPin(
+export async function forgotPassword(
   email: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function forgotPasswordPin(
+  login: string,
   pin: string,
 ): Promise<ApiResponse<{ token: string }>> {
   return fetchApi<{ token: string }>("/auth/forgot-password-pin", {
     method: "POST",
-    body: JSON.stringify({ email, pin }),
+    body: JSON.stringify({ login, pin }),
   });
 }
 
@@ -650,6 +659,16 @@ export async function searchUsers(q: string): Promise<ApiResponse<UserSearchResu
 export async function toggleUserVerified(id: string): Promise<ApiResponse<{ verified: boolean }>> {
   return fetchApi<{ verified: boolean }>(`/admin/users/${id}/verified`, {
     method: "PATCH",
+  });
+}
+
+export async function adminResetPassword(
+  id: string,
+  password: string,
+): Promise<ApiResponse<{ message: string }>> {
+  return fetchApi<{ message: string }>(`/admin/users/${id}/reset-password`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
   });
 }
 

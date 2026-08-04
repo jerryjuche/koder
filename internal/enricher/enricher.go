@@ -122,9 +122,9 @@ PRODUCTION RULES — follow these exactly for every exercise:
 7. **difficulty**: 1 (easy, basic syntax) to 5 (expert, advanced algorithms)
 8. **xp_reward**: 10/25/50/100/200 for difficulty 1/2/3/4/5
 9. **tags**: Array of 2-5 relevant tags from: arrays, strings, conditions, loops, recursion, pointers, structs, interfaces, maps, slices, sorting, math, modulo, ascii, bitwise, concurrency, errors, generics, files, parsing, branching, searching, runes
-10. **test_cases**: At least 5 test cases:
-    - 2-3 basic visible cases (is_hidden: false) covering main functionality
-    - 2-3 edge case/hidden cases (is_hidden: true) covering error conditions, boundaries, special inputs
+10. **test_cases**: At least 8 test cases:
+    - The first 3 are VISIBLE (is_hidden: false) — clear, representative examples students can preview and test against immediately
+    - The remaining 5+ are edge cases (is_hidden: true) — error conditions, boundaries, special inputs; these are revealed to students only after a full submission
     - input_json: JSON string of arguments as array, e.g. "[4]" or "[4, \"hello\"]"
     - expected: Go string literal. Wrap strings in escaped quotes: "\"fish\"". For non-string types: raw value like "42" or "true"
     - ordinal: sequential starting at 1
@@ -139,7 +139,7 @@ Use only Go standard library. If the exercise refers to z01.PrintRune, rewrite i
 
 	userPrompt := fmt.Sprintf(`Generate a complete, professional exercise from this README. Follow the schema and production rules exactly.
 
-Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, at least 5 test_cases, and language_versions.
+Every field is required: title, statement, func_name, return_type, param_types, hints, difficulty, xp_reward, tags, at least 8 test_cases, and language_versions.
 The language_versions field must include both a "go" entry (matching func_name/return_type/param_types) and a "python" entry (snake_case name, Python types).
 
 The statement must be a full markdown document with instructions, function signature, usage example, and expected output. Do not abbreviate.
@@ -458,8 +458,8 @@ Return ONLY valid JSON with:
 
 Given a programming problem, generate 8 comprehensive test cases. Follow these rules:
 
-1. 5 visible test cases (is_hidden: false) — cover normal functionality
-2. 3 hidden test cases (is_hidden: true) — edge cases, boundary conditions, error inputs
+1. 3 visible test cases (is_hidden: false) — clear, representative examples students can preview and test against immediately
+2. 5 hidden test cases (is_hidden: true) — edge cases, boundary conditions, error inputs; revealed to students only after a full submission
 3. Test cases should progress from basic to more complex
 4. Cover: typical inputs, edge cases (empty, zero, negative), boundary values, error conditions
 5. ordinal must be 1-based sequential
@@ -550,13 +550,13 @@ func buildAIUserPrompt(action AIAssistAction, ctxJSON string, req *AIAssistReque
 		fmt.Fprintf(&b, "Improve the hints for this problem:\n\n%s\n\nReturn exactly 3 improved hints and an explanation.", ctxJSON)
 
 	case ActionGenerateTestCases:
-		fmt.Fprintf(&b, "Generate 8 test cases for this problem:\n\n%s\n\nReturn 5 visible + 3 hidden test cases covering normal and edge cases.", ctxJSON)
+		fmt.Fprintf(&b, "Generate 8 test cases for this problem:\n\n%s\n\nReturn 3 visible + 5 hidden test cases. The 3 visible ones are examples students preview during testing; the 5 hidden ones are edge cases revealed after a full submission.", ctxJSON)
 
 	case ActionRegenerateTestCases:
-		fmt.Fprintf(&b, "Regenerate ALL test cases for this problem:\n\n%s\n\nThe current test cases are being replaced. Return 8 new test cases (5 visible, 3 hidden).", ctxJSON)
+		fmt.Fprintf(&b, "Regenerate ALL test cases for this problem:\n\n%s\n\nThe current test cases are being replaced. Return 8 new test cases (3 visible, 5 hidden).", ctxJSON)
 
 	case ActionAddEdgeCases:
-		fmt.Fprintf(&b, "Add 3 additional edge case test cases to the following problem:\n\n%s\n\nReturn 3 test cases (all hidden) covering edge cases not already covered. Use ordinals 9, 10, 11.", ctxJSON)
+		fmt.Fprintf(&b, "Add 3 additional edge case test cases to the following problem:\n\n%s\n\nReturn 3 hidden test cases covering edge cases not already covered. Use ordinals 9, 10, 11.", ctxJSON)
 
 	case ActionAdjustDifficulty:
 		target := 3
