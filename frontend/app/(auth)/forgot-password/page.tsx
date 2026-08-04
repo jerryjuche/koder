@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Ban, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Eye, EyeOff } from 'lucide-react';
 import { PinInput } from '@/components/base/input/pin-input';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { motion, AnimatePresence } from 'framer-motion';
-import { forgotPasswordPin, resetPasswordPin } from '@/lib/api';
+import { forgotPassword, forgotPasswordPin, resetPasswordPin } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LabelInputContainer } from '@/components/auth/label-input-container';
@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
   const [tab, setTab] = useState<Tab>('pin');
 
   // PIN reset state
-  const [pinEmail, setPinEmail] = useState('');
+  const [pinLogin, setPinLogin] = useState('');
   const [pin, setPin] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
   const [pinVerified, setPinVerified] = useState(false);
@@ -28,8 +28,17 @@ export default function ForgotPasswordPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Email reset state
+  const [email, setEmail] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
   const handlePinVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pinLogin.trim()) {
+      setErrorMsg('Enter your username or email');
+      return;
+    }
     if (!/^\d{6}$/.test(pin)) {
       setErrorMsg('PIN must be exactly 6 digits');
       return;
@@ -37,17 +46,39 @@ export default function ForgotPasswordPage() {
     setPinLoading(true);
     setErrorMsg('');
     try {
-      const res = await forgotPasswordPin(pinEmail, pin);
+      const res = await forgotPasswordPin(pinLogin.trim(), pin);
       if (res.success && res.data) {
         setPinToken(res.data.token);
         setPinVerified(true);
       } else {
-        setErrorMsg(res.error?.message || 'Invalid email or PIN');
+        setErrorMsg(res.error?.message || 'Invalid username/email or PIN');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Unable to connect. Please try again.');
     } finally {
       setPinLoading(false);
+    }
+  };
+
+  const handleEmailReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setErrorMsg('Enter your email address');
+      return;
+    }
+    setEmailLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await forgotPassword(email.trim());
+      if (res.success) {
+        setEmailSent(true);
+      } else {
+        setErrorMsg(res.error?.message || 'Unable to send reset email');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to connect. Please try again.');
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -70,7 +101,7 @@ export default function ForgotPasswordPage() {
         setPinToken('');
         setNewPassword('');
         setConfirmNewPassword('');
-        setPinEmail('');
+        setPinLogin('');
         setPin('');
         setSent(true);
       } else {
@@ -124,6 +155,15 @@ export default function ForgotPasswordPage() {
               Back to sign in
             </Link>
           </>
+        ) : emailSent ? (
+          <>
+            <Mail className="w-12 h-12 text-brand-muted-gold mb-4" />
+            <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Check your inbox</h1>
+            <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
+              If an account exists for <span className="text-brand-offwhite font-semibold">{email}</span>, we&apos;ve sent
+              a password reset link. Follow the instructions in the email to set a new password.
+            </p>
+          </>
         ) : pinVerified ? (
           <>
             <Shield className="w-12 h-12 text-brand-muted-gold mb-4" />
@@ -146,13 +186,13 @@ export default function ForgotPasswordPage() {
               </button>
             </div>
             <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-              No worries. Recover your account using your recovery PIN.
+              Recover your account with your recovery PIN or a reset link sent by email.
             </p>
           </>
         )}
       </div>
 
-      {!sent && !pinVerified && (
+      {!sent && !emailSent && !pinVerified && (
         <>
           <div className="flex bg-brand-charcoal-base rounded-xl p-1 mb-6">
             <button
@@ -169,13 +209,12 @@ export default function ForgotPasswordPage() {
             </button>
             <button
               type="button"
-              disabled
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all cursor-not-allowed ${
+              onClick={() => { setTab('email'); setErrorMsg(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 tab === 'email'
-                  ? 'bg-brand-muted-gold/50 text-brand-charcoal-base'
-                  : 'text-brand-offwhite-muted/40'
+                  ? 'bg-brand-muted-gold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20'
+                  : 'text-brand-offwhite-muted hover:text-brand-offwhite'
               }`}
-              title="Email reset is currently unavailable"
             >
               <Mail size={14} />
               Email Reset
@@ -183,16 +222,53 @@ export default function ForgotPasswordPage() {
           </div>
 
           {tab === 'email' && (
-            <div className="bg-brand-charcoal-base/50 border border-brand-charcoal-border rounded-xl p-5 text-center space-y-3">
-              <div className="mx-auto w-10 h-10 rounded-full bg-brand-charcoal-hover flex items-center justify-center">
-                <Ban size={18} className="text-brand-offwhite-muted/50" />
-              </div>
-              <p className="text-sm text-brand-offwhite-muted font-medium">Email reset unavailable</p>
-              <p className="text-xs text-brand-offwhite-muted/60 leading-relaxed">
-                Email-based password reset is temporarily disabled. Please use your 6-digit recovery PIN instead.
-                If you haven&apos;t set up a PIN, contact support for assistance.
-              </p>
-            </div>
+            <motion.form
+              key="email-form"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleEmailReset}
+              noValidate
+              className="space-y-5"
+            >
+              {errorMsg && (
+                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
+                  {errorMsg}
+                </div>
+              )}
+
+              <LabelInputContainer>
+                <Label htmlFor="reset-email" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
+                  Email address
+                </Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
+                  placeholder="you@example.com"
+                />
+              </LabelInputContainer>
+
+              <button
+                type="submit"
+                disabled={emailLoading}
+                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
+              >
+                {emailLoading ? (
+                  <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Mail size={16} />
+                    Send reset link
+                  </>
+                )}
+                <BottomGradient />
+              </button>
+            </motion.form>
           )}
 
           <AnimatePresence mode="wait">
@@ -214,17 +290,17 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <LabelInputContainer>
-                  <Label htmlFor="pin-email" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-                    Email address
+                  <Label htmlFor="pin-login" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
+                    Username or email
                   </Label>
                   <Input
-                    id="pin-email"
-                    type="email"
-                    value={pinEmail}
-                    onChange={(e) => setPinEmail(e.target.value)}
-                    autoComplete="email"
+                    id="pin-login"
+                    type="text"
+                    value={pinLogin}
+                    onChange={(e) => setPinLogin(e.target.value)}
+                    autoComplete="username"
                     className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                    placeholder="you@example.com"
+                    placeholder="username or you@example.com"
                   />
                 </LabelInputContainer>
 

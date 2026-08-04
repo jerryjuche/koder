@@ -3,7 +3,6 @@
 import {
   CheckCircle2,
   XCircle,
-  Lock,
   Terminal,
   Copy,
   Lightbulb,
@@ -571,66 +570,47 @@ export default function TestResultPanel({
                 <div className="px-3.5 pb-3.5 space-y-3">
                   <div className="h-px bg-brand-error/15" />
 
-                  {res.output === "(hidden test case)" ? (
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border">
-                      <Lock
-                        size={16}
-                        className="text-brand-muted-gold mt-0.5 shrink-0"
-                      />
+                  <div className="space-y-3">
+                    {res.output !== undefined && res.output !== "" && (
                       <div>
-                        <div className="text-xs font-bold text-brand-muted-gold mb-0.5">
-                          Hidden Test Case
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Bug size={12} className="text-brand-error/70" />
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-brand-error/70">
+                            Your Output
+                          </span>
                         </div>
-                        <p className="text-xs text-brand-offwhite-muted leading-relaxed">
-                          This test case is intentionally hidden. Review your
-                          logic and ensure your solution handles all edge cases
-                          correctly.
-                        </p>
+                        <div className="bg-[#1A1A1A] rounded-lg border border-brand-error/15 p-3 font-mono text-xs text-brand-error leading-relaxed whitespace-pre-wrap break-all">
+                          {res.output}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {res.output !== undefined && res.output !== "" && (
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <Bug size={12} className="text-brand-error/70" />
-                            <span className="text-[10px] uppercase tracking-wider font-bold text-brand-error/70">
-                              Your Output
-                            </span>
-                          </div>
-                          <div className="bg-[#1A1A1A] rounded-lg border border-brand-error/15 p-3 font-mono text-xs text-brand-error leading-relaxed whitespace-pre-wrap break-all">
-                            {res.output}
-                          </div>
+                    )}
+
+                    {res.expectedOutput && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <CheckCircle2
+                            size={12}
+                            className="text-brand-success/70"
+                          />
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-brand-success/70">
+                            Expected
+                          </span>
+                        </div>
+                        <div className="bg-[#1A1A1A] rounded-lg border border-brand-success/15 p-3 font-mono text-xs text-brand-success leading-relaxed whitespace-pre-wrap break-all">
+                          {res.expectedOutput}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Diff View */}
+                    {res.output &&
+                      res.expectedOutput &&
+                      res.output !== res.expectedOutput && (
+                        <div className="pt-1">
+                          {renderGotWantDiff(res.output, res.expectedOutput)}
                         </div>
                       )}
-
-                      {res.expectedOutput && (
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <CheckCircle2
-                              size={12}
-                              className="text-brand-success/70"
-                            />
-                            <span className="text-[10px] uppercase tracking-wider font-bold text-brand-success/70">
-                              Expected
-                            </span>
-                          </div>
-                          <div className="bg-[#1A1A1A] rounded-lg border border-brand-success/15 p-3 font-mono text-xs text-brand-success leading-relaxed whitespace-pre-wrap break-all">
-                            {res.expectedOutput}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Diff View */}
-                      {res.output &&
-                        res.expectedOutput &&
-                        res.output !== res.expectedOutput && (
-                          <div className="pt-1">
-                            {renderGotWantDiff(res.output, res.expectedOutput)}
-                          </div>
-                        )}
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
 

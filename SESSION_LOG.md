@@ -2731,3 +2731,17 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `go vet` clean (sandbox); full sandbox suite + all 8 backend suites green; `go build ./sandbox` OK
 - **Deployment note:** lives in the sandbox binary → rebuild GHCR `:latest` (CI push to `main`/`staging` for `sandbox/**`) then `./sandbox/azure/deploy.sh --yes`; backend + frontend need no changes
 - Committed `friendly-python-format-errors` to `origin/update`
+
+## Session 103 — 2026-08-04 — Hidden-test transparency + password recovery overhaul
+
+### Changes
+- **Hidden-test masking removed** (`internal/executor/executor.go`, `frontend/components/TestResultPanel.tsx`, `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx`): after a full submission every test case now reports its real `output`/`expectedOutput` (incl. hidden edge cases) — the `(hidden test case)` placeholder block and the `(hidden)` sentinel values are gone. `ExecuteVisibleOnly` now caps the test endpoint at the first 3 visible cases for a quick preview. Enricher prompts updated to `3 visible + 5 hidden` (8 total) so AI-generated suites align with the transparent reveal model.
+- **Parser: `--- FAIL: TestSolution` parent-summary leak fixed** (`internal/executor/parser.go`): the trailing top-level summary line (Python `--- FAIL: TestSolution`, Go `--- FAIL: TestSolution (0.00s)`) matched no case and fell through to the `want` append branch, corrupting the last failing case's expected value with `"1\n--- FAIL: TestSolution"`. New `parentSummaryRegex` + switch case flushes open GOT/WANT buffers and resets state, so the last failing case keeps a clean single-line expected value (fixes the forced multi-line diff). 4 regression cases added in `executor_test.go`.
+- **PIN reset now accepts username/email/student_id** (`internal/api/pin_reset.go`): `forgotPasswordPinRequest` uses `login` instead of `email`; lookup via `GetUserByLogin`; rate limiter keyed by login (renamed `emailRateLimiter` → `identifierRateLimiter`); short-lived JWT carries `user_id` claim (was email) so accounts without an email can recover. `ResetPasswordPin` resolves the user by ID. `maskLogin()` added for log redaction. `GetUserByLogin` (`internal/store/users.go`) now SELECTs/Scans `pin_hash` (was missing → PIN verify would have failed).
+- **Email reset enabled end-to-end** (`frontend/lib/api.ts`, `frontend/app/(auth)/forgot-password/page.tsx`): the disabled "Email Reset" tab now posts to the existing `/auth/forgot-password` endpoint (`forgotPassword(email)` added to the API client) with a "Check your inbox" success state; PIN tab relabeled "Username or email". Backend `/auth/forgot-password` already complete (SHA-256 token, 1h expiry, Resend, anti-enumeration).
+- **Admin password reset** (`internal/api/admin.go`, `internal/api/router.go`, `frontend/lib/api.ts`, `frontend/app/(main)/admin/UserVerificationPanel.tsx`): new `POST /admin/users/{id}/reset-password` (8–128 char password, bcrypt, `LogActivity`, cache invalidation) registered in the AdminOnly group; admin UI gains a key icon per search result that opens a reset dialog mirroring the verified-toggle pattern.
+
+### Verification
+- `go vet ./internal/... ./cmd/...` clean; `go build ./cmd/server` OK; all 8 backend suites green (incl. 4 new parser regressions)
+- `npx tsc --noEmit` 0 errors; ESLint 0 errors on changed frontend files
+- Single combined commit pushed to `origin/update`

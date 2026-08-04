@@ -216,6 +216,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.Get("/admin/problem-reports", feedbackHandler.ListProblemReports)
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
+			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/users/{id}/reset-password", adminHandler.ResetUserPassword)
 
 			// Problem module locks
 			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)

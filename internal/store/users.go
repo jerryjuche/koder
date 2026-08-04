@@ -384,7 +384,8 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language,
+		       pin_hash
 		FROM users
 		WHERE username = $1 OR email = $1 OR student_id = $1
 		LIMIT 1
@@ -407,6 +408,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 		&user.CreatedAt,
 		&user.UsernameSet,
 		&user.PrimaryLanguage,
+		&user.PINHash,
 	)
 
 	if err != nil {

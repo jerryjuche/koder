@@ -1,12 +1,23 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { Search, ShieldCheck, ShieldOff, User, Mail, Loader2, X } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, User, Mail, Loader2, X, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { searchUsers, toggleUserVerified } from "@/lib/api";
+import { adminResetPassword, searchUsers, toggleUserVerified } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { UserSearchResult } from "@/lib/types";
 import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   compact?: boolean;
@@ -19,6 +30,10 @@ export default function UserVerificationPanel({ compact }: Props) {
   const [searched, setSearched] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const [resetUser, setResetUser] = useState<UserSearchResult | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const doSearch = useCallback(async (q: string) => {
     const trimmed = q.trim();
@@ -70,6 +85,24 @@ export default function UserVerificationPanel({ compact }: Props) {
     }
     setToggling(null);
   }, []);
+
+  const handleReset = useCallback(async () => {
+    if (!resetUser) return;
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    setResetting(true);
+    const res = await adminResetPassword(resetUser.id, newPassword);
+    if (res.success) {
+      toast.success(`Password reset for ${resetUser.name}`);
+      setResetUser(null);
+      setNewPassword("");
+    } else {
+      toast.error(res.error?.message || "Failed to reset password");
+    }
+    setResetting(false);
+  }, [resetUser, newPassword]);
 
   return (
     <div
@@ -164,31 +197,43 @@ export default function UserVerificationPanel({ compact }: Props) {
                   </div>
                 </div>
 
-                {/* Toggle button */}
-                <button
-                  onClick={() => handleToggle(user)}
-                  disabled={toggling === user.id}
-                  className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0",
-                    user.verified
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                      : "bg-brand-charcoal-hover/40 text-brand-offwhite-muted border border-brand-charcoal-border hover:border-brand-offwhite-muted/30 hover:text-brand-offwhite",
-                    toggling === user.id && "opacity-50 pointer-events-none",
-                  )}
-                >
-                  {toggling === user.id ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : user.verified ? (
-                    <ShieldCheck size={13} />
-                  ) : (
-                    <ShieldOff size={13} />
-                  )}
-                  {toggling === user.id
-                    ? "..."
-                    : user.verified
-                      ? "Verified"
-                      : "Unverified"}
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setResetUser(user);
+                      setNewPassword("");
+                    }}
+                    title="Reset password"
+                    className="relative flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold transition-all shrink-0 bg-brand-charcoal-hover/40 text-brand-offwhite-muted border border-brand-charcoal-border hover:border-amber-500/30 hover:text-amber-400"
+                  >
+                    <KeyRound size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleToggle(user)}
+                    disabled={toggling === user.id}
+                    className={cn(
+                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0",
+                      user.verified
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                        : "bg-brand-charcoal-hover/40 text-brand-offwhite-muted border border-brand-charcoal-border hover:border-brand-offwhite-muted/30 hover:text-brand-offwhite",
+                      toggling === user.id && "opacity-50 pointer-events-none",
+                    )}
+                  >
+                    {toggling === user.id ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : user.verified ? (
+                      <ShieldCheck size={13} />
+                    ) : (
+                      <ShieldOff size={13} />
+                    )}
+                    {toggling === user.id
+                      ? "..."
+                      : user.verified
+                        ? "Verified"
+                        : "Unverified"}
+                  </button>
+                </div>
               </div>
             ))
           ) : searched ? (
@@ -206,6 +251,55 @@ export default function UserVerificationPanel({ compact }: Props) {
           )}
         </div>
       </div>
+
+      {/* Reset password dialog */}
+      <Dialog open={!!resetUser} onOpenChange={(open) => { if (!open) setResetUser(null); }}>
+        <DialogContent className="sm:max-w-md bg-brand-charcoal-card border-brand-charcoal-border">
+          <DialogHeader>
+            <DialogTitle className="text-brand-offwhite flex items-center gap-2">
+              <KeyRound size={16} className="text-amber-400" />
+              Reset password
+            </DialogTitle>
+            <DialogDescription className="text-brand-offwhite-muted">
+              Set a new password for <span className="text-brand-offwhite font-semibold">{resetUser?.name}</span>
+              {resetUser?.username ? ` (@${resetUser.username})` : ""}. The user will need to sign in with this new password.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label htmlFor="admin-new-password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
+              New password
+            </Label>
+            <Input
+              id="admin-new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-amber-500/50 focus-visible:ring-0"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => { setResetUser(null); setNewPassword(""); }}
+              className="border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-hover"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReset}
+              disabled={resetting}
+              className="bg-amber-500 hover:bg-amber-600 text-brand-charcoal-base font-semibold"
+            >
+              {resetting ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+              {resetting ? "Resetting..." : "Reset password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
