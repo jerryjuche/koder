@@ -1033,6 +1033,13 @@ FRONTEND_URL=https://koder.sbs
 ALLOWED_ORIGINS=https://koder.sbs,https://staging.koder.sbs,https://update.koder.sbs,http://localhost:3000
 ```
 
+### Email Reset (optional — enables the "Email Reset" tab on the forgot-password page)
+```bash
+RESEND_API_KEY=<resend-api-key>
+EMAIL_FROM=Koder <noreply@koder.sbs>
+```
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while PIN-by-login and admin reset remain fully functional.
+
 ### Required Frontend Environment
 ```bash
 NEXT_PUBLIC_API_URL=https://api.koder.sbs    # or https://stagingapi.koder.sbs
@@ -1042,6 +1049,14 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-04 — Session 103: Hidden-test transparency + password recovery overhaul
+- **Hidden-test masking removed** (`executor.go`, `TestResultPanel.tsx`, `ProblemWorkspaceClient.tsx`): all test cases now report real output/expected after submission (incl. hidden edge cases); `ExecuteVisibleOnly` caps the test endpoint at the first 3 visible cases; enricher prompts → `3 visible + 5 hidden` (8 total)
+- **Parser fix** (`parser.go`): trailing `--- FAIL: TestSolution` parent-summary line was absorbed into the last failing case's `wantMap` (Python template output), corrupting Expected → forced multi-line diff; new `parentSummaryRegex` flushes open GOT/WANT buffers + resets state; 4 regression cases
+- **PIN reset by login** (`pin_reset.go` + `store/users.go`): accepts username/email/student_id via `GetUserByLogin`; JWT carries `user_id` claim (was email); rate limiter keyed by login; `GetUserByLogin` now SELECTs `pin_hash`
+- **Email reset enabled** (`forgot-password/page.tsx` + `lib/api.ts`): previously-disabled tab now posts to `/auth/forgot-password` with "Check your inbox" state; PIN tab relabeled "Username or email"
+- **Admin reset** (`admin.go`, `router.go`, `UserVerificationPanel.tsx`): `POST /admin/users/{id}/reset-password` + per-user reset dialog
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 8/8 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors; one combined commit pushed to `origin/update`
 
 ### 2026-08-02 — Session 100: Layout margin cleanup + standardized success pages
 - **Removed global `<main>` padding** (`layout.tsx`): `<main>` is now `relative z-10 flex-1 w-full` — no `px/pt`. Each page owns its own container (home + problems were the only pages relying on it)

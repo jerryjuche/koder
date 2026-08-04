@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,24 +28,26 @@ func pinResetKey(secret string) []byte {
 }
 
 type PINResetHandler struct {
-	store      store.Store
-	cfg        *config.Config
-	pinLimiter *emailRateLimiter
+	store store.Store
+	cfg   *config.Config
+	rl    *identifierRateLimiter
 }
 
-type emailRateLimiter struct {
+// identifierRateLimiter is a per-key sliding-window limiter keyed by login
+// identifiers (username, email, or student_id) to prevent PIN brute-forcing.
+type identifierRateLimiter struct {
 	mu       sync.Mutex
-	attempts map[string]*emailRateEntry
+	attempts map[string]*identifierRateEntry
 }
 
-type emailRateEntry struct {
+type identifierRateEntry struct {
 	count       int
 	windowStart time.Time
 }
 
-func newEmailRateLimiter() *emailRateLimiter {
-	rl := &emailRateLimiter{
-		attempts: make(map[string]*emailRateEntry),
+func newIdentifierRateLimiter() *identifierRateLimiter {
+	rl := &identifierRateLimiter{
+		attempts: make(map[string]*identifierRateEntry),
 	}
 	go func() {
 		ticker := time.NewTicker(30 * time.Minute)
@@ -63,15 +66,15 @@ func newEmailRateLimiter() *emailRateLimiter {
 	return rl
 }
 
-func (rl *emailRateLimiter) allow(email string) (bool, time.Duration) {
+func (rl *identifierRateLimiter) allow(identifier string) (bool, time.Duration) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	now := time.Now()
-	entry, exists := rl.attempts[email]
+	entry, exists := rl.attempts[identifier]
 
 	if !exists || now.Sub(entry.windowStart) >= 15*time.Minute {
-		rl.attempts[email] = &emailRateEntry{
+		rl.attempts[identifier] = &identifierRateEntry{
 			count:       1,
 			windowStart: now,
 		}
@@ -89,7 +92,7 @@ func (rl *emailRateLimiter) allow(email string) (bool, time.Duration) {
 }
 
 type forgotPasswordPinRequest struct {
-	Email string `json:"email"`
+	Login string `json:"login"`
 	Pin   string `json:"pin"`
 }
 
@@ -99,16 +102,17 @@ type resetPasswordPinRequest struct {
 }
 
 // pinResetClaims are short-lived JWT claims for PIN-based password reset.
+// The subject is the user ID so recovery works for accounts without an email.
 type pinResetClaims struct {
-	Email string `json:"email"`
+	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
 func NewPINResetHandler(store store.Store, cfg *config.Config) *PINResetHandler {
 	return &PINResetHandler{
-		store:      store,
-		cfg:        cfg,
-		pinLimiter: newEmailRateLimiter(),
+		store: store,
+		cfg:   cfg,
+		rl:    newIdentifierRateLimiter(),
 	}
 }
 
@@ -123,45 +127,53 @@ func (h *PINResetHandler) ForgotPasswordPin(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if req.Email == "" || req.Pin == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Email and PIN are required", nil)
+	if req.Login == "" || req.Pin == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username/email and PIN are required", nil)
 		return
 	}
 
-	// Rate limit: 5 attempts per 15 minutes per email
-	allowed, retryAfter := h.pinLimiter.allow(req.Email)
+	// Rate limit: 5 attempts per 15 minutes per login identifier
+	allowed, retryAfter := h.rl.allow(req.Login)
 	if !allowed {
 		w.Header().Set("Retry-After", fmt.Sprintf("%.0f", retryAfter.Seconds()))
 		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
 		return
 	}
 
-	// Look up user by email
-	user, err := h.store.GetUserByEmail(r.Context(), req.Email)
+	// Look up user by username, email, or student_id so accounts without an
+	// email can still recover their password using their PIN.
+	user, err := h.store.GetUserByLogin(r.Context(), req.Login)
 	if err != nil {
-		slog.Info("pin_reset: email not found", "email", maskEmail(req.Email))
-		// Don't reveal whether email exists
-		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid email or PIN", nil)
+		slog.Info("pin_reset: account not found", "login", maskLogin(req.Login))
+		// Don't reveal whether the account exists
+		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid username/email or PIN", nil)
 		return
 	}
 
 	if user.PINHash == nil || *user.PINHash == "" {
-		slog.Info("pin_reset: no PIN set", "email", maskEmail(req.Email))
-		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid email or PIN", nil)
+		slog.Info("pin_reset: no PIN set", "user_id", user.ID)
+		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid username/email or PIN", nil)
 		return
 	}
 
 	// Verify the PIN
 	if !auth.ComparePassword(*user.PINHash, req.Pin) {
-		slog.Info("pin_reset: invalid PIN attempt", "email", maskEmail(req.Email))
-		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid email or PIN", nil)
+		slog.Info("pin_reset: invalid PIN attempt", "user_id", user.ID)
+		RespondError(w, http.StatusUnauthorized, "INVALID_PIN", "Invalid username/email or PIN", nil)
+		return
+	}
+
+	userIDString, err := uuidStringFromPGType(user.ID)
+	if err != nil {
+		slog.Error("pin_reset: invalid user ID", "error", err)
+		RespondError(w, http.StatusInternalServerError, "USER_ID_INVALID", "Unable to encode user ID", nil)
 		return
 	}
 
 	// Issue short-lived JWT (5 minutes)
 	now := time.Now()
 	claims := &pinResetClaims{
-		Email: req.Email,
+		UserID: userIDString,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        uuid.New().String(),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -178,7 +190,7 @@ func (h *PINResetHandler) ForgotPasswordPin(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	slog.Info("pin_reset: PIN verified, token issued", "email", maskEmail(req.Email))
+	slog.Info("pin_reset: PIN verified, token issued", "user_id", userIDString)
 	RespondSuccess(w, map[string]string{"token": tokenString})
 }
 
@@ -229,10 +241,21 @@ func (h *PINResetHandler) ResetPasswordPin(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Find user by email from claims
-	user, err := h.store.GetUserByEmail(r.Context(), claims.Email)
+	if claims.UserID == "" {
+		RespondError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired reset token", nil)
+		return
+	}
+
+	// Find user by ID from claims
+	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		slog.Error("pin_reset: user not found for email", "email", maskEmail(claims.Email))
+		slog.Error("pin_reset: malformed user ID in claims", "error", err)
+		RespondError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired reset token", nil)
+		return
+	}
+	user, err := h.store.GetUserByID(r.Context(), userID)
+	if err != nil {
+		slog.Error("pin_reset: user not found for ID", "user_id", claims.UserID)
 		RespondError(w, http.StatusInternalServerError, "USER_NOT_FOUND", "Unable to reset password", nil)
 		return
 	}
@@ -252,6 +275,22 @@ func (h *PINResetHandler) ResetPasswordPin(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	slog.Info("pin_reset: password updated", "email", maskEmail(claims.Email))
+	slog.Info("pin_reset: password updated", "user_id", claims.UserID)
 	RespondSuccess(w, map[string]string{"message": "Password has been reset successfully"})
+}
+
+// maskLogin redacts a login identifier for logging: email-like values keep
+// their domain portion while usernames are shortened to their first two chars.
+func maskLogin(login string) string {
+	if login == "" {
+		return ""
+	}
+	at := strings.LastIndex(login, "@")
+	if at > 0 && at < len(login)-1 {
+		return login[:1] + "***" + login[at:]
+	}
+	if len(login) <= 2 {
+		return login[:1] + "*"
+	}
+	return login[:2] + "***"
 }

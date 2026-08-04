@@ -1014,6 +1014,13 @@ FRONTEND_URL=https://koder.sbs                # must match the deploying branch'
 ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sbs,https://update.koder.sbs,http://localhost:3000
 ```
 
+### Email Reset (optional — enables the "Email Reset" tab on the forgot-password page)
+```bash
+RESEND_API_KEY=<resend-api-key>
+EMAIL_FROM=Koder <noreply@koder.sbs>
+```
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while PIN-by-login and admin reset remain fully functional.
+
 ### Required Frontend Environment (per branch)
 | Branch | `NEXT_PUBLIC_API_URL` |
 |---|---|

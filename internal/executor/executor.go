@@ -352,12 +352,6 @@ func (e *Executor) Execute(ctx context.Context, req ExecutionRequest) (*Executio
 			want = tc.Expected
 		}
 
-		// Hide test case details from students if hidden and didn't pass
-		if tc.IsHidden && !passed {
-			got = "(hidden test case)"
-			want = "(hidden)"
-		}
-
 		results = append(results, TestResult{
 			TestCaseID: uuid.UUID(tc.ID.Bytes),
 			Ordinal:    tc.Ordinal,
@@ -565,11 +559,14 @@ func (e *Executor) ExecuteVisibleOnly(ctx context.Context, req ExecutionRequest)
 	// 3. Resolve language-specific function metadata from LanguageVersions
 	resolveProblemLanguageMeta(problem, req.Language)
 
-	// Filter to only visible test cases
+	// Filter to the first 3 visible test cases (quick preview of examples)
 	var testCases []store.TestCase
 	for _, tc := range allTestCases {
 		if !tc.IsHidden {
 			testCases = append(testCases, tc)
+		}
+		if len(testCases) >= 3 {
+			break
 		}
 	}
 
@@ -1261,11 +1258,6 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 			want = parsedWant
 		} else {
 			want = tc.Expected
-		}
-
-		if tc.IsHidden && !passed {
-			got = "(hidden test case)"
-			want = "(hidden)"
 		}
 
 		results = append(results, TestResult{
