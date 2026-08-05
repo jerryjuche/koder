@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (165 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -65,6 +65,7 @@ koder/
 │   ├── store/            (21 files, 6,400 LOC)  # Database access layer — pgx/v5, 152 Store methods
 │   ├── executor/         (7 files, 1,940 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (1 file, 942 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── email/            (1 file + 1 test, ~240 LOC) # Transactional email templates (html/template, email-safe tables)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
@@ -146,7 +147,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cms.go` | 1,428 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
 | `me.go` | 360 | `MeHandler` — GetMe (cached 30s), SetUsername (one-time 403), UpdateLanguage, DeleteAccount (cascade), ExportData (JSON) |
 | `change_password.go` | 148 | `ChangePasswordHandler` — ChangePassword (current-password verify, 5/15min rate-limit) |
-| `password_reset.go` | 409 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready) |
+| `password_reset.go` | 414 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready), professional HTML via `internal/email` |
 | `broadcasts.go` | 237 | `BroadcastsHandler` — ListActive, Dismiss (student); ListAll, Create, Deactivate, Activate, Delete (admin) |
 | `feedback.go` | 345 | `FeedbackHandler` — Submit (10MB, screenshot, Resend + in-app notification), ListMyFeedback, ListAdmin (status filter), Counts, UpdateStatus, ListProblemReports |
 | `problems.go` | 202 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED), optional auth bypass |
@@ -914,7 +915,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (15 backend + 2 sandbox test files, ~3,685 LOC, 165 backend + 11 sandbox tests)
+## 15. Testing Strategy (16 backend + 2 sandbox test files, ~3,782 LOC, 168 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -928,6 +929,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
 | `internal/config` | `config_test.go` (355 LOC) | 24 |
+| `internal/email` | `email_test.go` (97 LOC) | 3 |
 | `internal/enricher` | `enricher_test.go` (231 LOC) | 4 |
 | `internal/executor` | `executor_test.go` (570 LOC) | 16 |
 | `internal/executor` | `format_test.go` (141 LOC) | 7 |
@@ -937,7 +939,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
 | `sandbox` | `format_test.go` (196 LOC) | 8 (6 black-gated) |
-| **Total** | **19 files** | **176 tests (165 backend + 11 sandbox)** |
+| **Total** | **20 files** | **179 tests (168 backend + 11 sandbox)** |
 
 ---
 
@@ -1060,6 +1062,15 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 109: Professional password-reset email template (brand-matched, reusable, injection-safe)
+- **Motivation:** the reset email was a bare `<h2>` + `<a>` built with `fmt.Sprintf` — no email-safe layout, no brand, and it interpolated the user-supplied recipient name unescaped (HTML-injection vector). Rebuilt as a professional template matching Koder's charcoal + purple + gold brand.
+- **New `internal/email` package** (`email.go`, 248 LOC): reusable document shell — `html/template`, 600px table column on `#141414`, email-client-safe inline CSS (no `<style>` blocks), `color-scheme: dark`, auto-escaping of every dynamic value. `layoutBase` define is the shared shell with a `{{template "content" .}}` slot; future emails (verification, welcome, enrollment, certificates) reuse it by swapping the content definition. Constants mirror `frontend/app/globals.css`: charcoal `#141414`/`#1E1E1E`, border `#2B2B2B`, off-white `#D1D1D8`, muted `#88889A`, purple gradient `#53389E→#7F56D9→#9E77ED`, gold CTA `#D4AF37` on `#141414` text (matches the reset-password page + landing CTAs). No emoji anywhere — the hero lock is an inline SVG (Lucide-style padlock) encoded as a `data:` URI spliced into the template at parse time (Go's CSS `url()` sanitizer would rewrite a data URI to `#ZgotmplZ` if passed as data).
+- **`internal/api/password_reset.go`** (409→414 LOC): `sendEmailOnce` now renders via `emailtmpl.RenderPasswordResetString` (import aliased `emailtmpl` — the `email` param shadows the package). `LogoURL` = `FRONTEND_URL + /logo.png` (2000×2000 PNG, rendered at 44px in the header band); `SupportEmail` extracted from `EMAIL_FROM` via new `emailAddressFromFrom` helper (strips the `Name <addr>` wrapper for a clean `mailto:`); `Tagline` = the landing hero's "Koder turns every problem into an instant feedback loop."
+- **Structure (mirrors the shared reference template):** gradient header band with logo + wordmark → hero with purple lock badge, headline, personalized greeting → gold CTA (18×34px padding = 44px+ touch target) → "expires in 1 hour" note → divider → "Didn't request this?" security reassurance → "Button not working?" backup-URL box (word-break, purple link) → footer with brand, tagline, `mailto:` support, `© year`.
+- **Security fix:** recipient `FirstName`, `ResetURL`, `Tagline`, `SupportEmail` all pass through `html/template` auto-escaping — a `<script>` in a display name or a malicious token query string can no longer reach the email HTML.
+- **Tests** (`email_test.go`, 97 LOC, 3 tests): brand/structure assertions (dark shell, gold CTA, logo, backup URL, support `mailto`, tagline, `©`), XSS-escape regression (script tags + raw `&` must be escaped), and defaults applied (empty `PlatformName`→Koder, empty `ExpiresIn`→"1 hour", zero `Year`→current year). Also asserts zero emoji glyphs in the output.
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 9/9 backend suites green (168 tests = 165 + 3 new), test count + doc tables updated.
 
 ### 2026-08-05 — Session 108: Frequent-logout fix — refresh rotation race + auth limiter decoupling
 - **Reported issue:** user "logged out frequently"; a 300s "domain TTL" was suspected but DNS TTL cannot affect sessions — full codebase scan of the auth chain (JWT issue/refresh/logout, middleware, `fetchApi`/`tryRefreshToken`, `UserContext`, polling) found the real causes
@@ -1382,4 +1393,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (165 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
