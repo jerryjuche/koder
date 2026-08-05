@@ -38,17 +38,17 @@
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 63 source + 15 test | ~17,954 + ~3,457 | 8 packages, 151 Store interface methods, 116 API endpoints; includes 4 cmd tools |
+| **Go Backend** (`cmd/` + `internal/`) | 66 source + 19 test | ~18,863 + ~4,041 | 8 packages, 158 Store interface methods, 118 API endpoints; includes 4 cmd tools |
 | **Go Sandbox** (`sandbox/`) | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter |
-| **SQL Migrations** (`migrations/`) | 53 | ~27,484 | 35 schema + 17 seed/content + 1 content-refresh, 25 tables |
-| **Frontend App** (`app/`) | 73 `.tsx` | ~17,410 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
-| **Frontend Components** (`components/`) | 65 | ~10,887 | 22 shadcn/ui + 43 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~3,778 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
-| **Documentation** | 18 | ~9,922 | 5 docs/ + 13 root docs files |
+| **SQL Migrations** (`migrations/`) | 54 | ~27,525 | 38 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables |
+| **Frontend App** (`app/`) | 74 `.tsx` | ~17,682 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
+| **Frontend Components** (`components/`) | 64 | ~10,715 | 22 shadcn/ui + 43 custom |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~4,057 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
+| **Documentation** | 21 | ~10,300 | 6 docs/ + 15 root/docs markdown files |
 | **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
 | **Config/Build** | 16 | ~699 | go.mod, go.sum, Procfile, build.sh, CI, env, env example, frontend configs, sandbox/azure |
 | **Root Data (JSON, SQL)** | 26 | ~11,823 | Problem JSONs, rollback/update SQL, curriculum JSON |
-| **Total (tracked source)** | **~368** | **~117,500** | Source code + migrations + docs + config + scripts + root data files |
+| **Total (tracked source)** | **~370** | **~118,600** | Source code + migrations + docs + config + scripts + root data files |
 
 ---
 
@@ -61,24 +61,24 @@ koder/
 ├── cmd/generate-sql/main.go                 # CL tool — generate seed SQL from problem JSON
 ├── cmd/generate-curriculum/main.go          # CL tool — generate curriculum SQL from AI JSON
 ├── internal/
-│   ├── api/              (25 files, 7,183 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
-│   ├── store/            (21 files, 6,400 LOC)  # Database access layer — pgx/v5, 152 Store methods
+│   ├── api/              (25 files, 7,184 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (22 files, 6,602 LOC)  # Database access layer — pgx/v5, 158 Store methods
 │   ├── executor/         (7 files, 1,940 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (1 file, 942 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
-│   ├── email/            (1 file + 1 test, ~240 LOC) # Transactional email templates (html/template, email-safe tables)
+│   ├── email/            (1 file + 1 test, 345 LOC) # Transactional email templates (html/template, email-safe tables)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
-│   └── config/           (1 file, 366 LOC)      # Env var loader (33 vars, fails-fast validation)
+│   └── config/           (1 file, 374 LOC)      # Env var loader (33 vars, fails-fast validation)
 ├── sandbox/              (8 source + 2 test + Dockerfile + fly.toml, ~1,610 LOC)  # Remote execution — zero external deps
 ├── frontend/
-│   ├── app/              (73 .tsx, ~17,410 LOC) # App Router pages (7 route groups)
+│   ├── app/              (74 .tsx, ~17,682 LOC) # App Router pages (7 route groups)
 │   ├── components/       (64 files, ~10,715 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
-│   ├── lib/              (19 files, ~3,404 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
+│   ├── lib/              (19 files, ~3,683 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
 │   ├── styles/           (3 files, ~1,382 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
 │   └── public/           (28 assets)            # module WebP images (18), icons, logo, OG image
-├── migrations/           (52 files, ~27,478 LOC) # Full schema + seed data — 25 tables
+├── migrations/           (54 files, ~27,525 LOC) # Full schema + seed data — 25 tables
 ├── scripts/              (7 files)              # reset_data.sql, transform-seeds.mjs, setup-docker-cache.sh, generate-practicals-migration.mjs
 ├── docs/                                        # curriculum-schema-for-ai.md, learn-ui-redesign-prompt.md, curriculum.md, ai-curriculum-prompt.md
 ├── .github/workflows/ci.yml                     # 2-job CI: backend + frontend
@@ -136,11 +136,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cmd/generate-sql/main.go` | 116 | `main` | CLI — generate seed SQL INSERTs from problem JSON |
 | `cmd/generate-curriculum/main.go` | 398 | `main` | CLI — generate curriculum SQL from AI-generated JSON (CREATE + UPDATE modes) |
 
-### 6.2 API Handlers (`internal/api/` — 24 files, 6,764 LOC)
+### 6.2 API Handlers (`internal/api/` — 25 files, 7,184 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `router.go` | 298 | `App` struct, `NewRouter()` (~116 routes), `Shutdown()` |
+| `router.go` | 311 | `App` struct, `NewRouter()` (~116 routes), `Shutdown()` |
 | `middleware.go` | 540 | 11 middleware functions, `GetClaims(ctx)`, `GetRequestID(ctx)` |
 | `auth.go` | 612 | `AuthHandler` — Register, Login (3-field), GoogleAuth (JWKS), CompleteOnboarding, LinkGoogle, RefreshToken (rotation), Logout, CheckUsername |
 | `admin.go` | 941 | `AdminHandler` — Ingest, Enrich, EnrichAll, AIAssist (8 actions), GetAdminStats, GetAIUsage, ListAllProblems, ToggleVisibility, UpdateProblem, PublishAllDrafts, Approve/Reject contributions, SearchUsers, ToggleUserVerified, ResetUserPassword, ListModuleMeta, UpsertModuleMeta, SetModulePin, ListAllModules, List/Toggle ProblemModuleLocks, DeleteProblemModule |
@@ -166,11 +166,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `responses.go` | 95 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
 | `webhooks.go` | 218 | `WebhooksHandler` — POST /api/webhooks/resend (Svix HMAC verification, delivery-event → email_logs status, svix-id dedupe) |
 
-### 6.3 Store Layer (`internal/store/` — 22 files, 6,555 LOC)
+### 6.3 Store Layer (`internal/store/` — 22 files, 6,602 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `store.go` | 293 | `Store` interface (~159 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
+| `store.go` | 293 | `Store` interface (158 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
 | `types.go` | 676 | ~52 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, EmailLog, EmailLogEvent, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
 | `users.go` | 1,373 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade) |
 | `problems.go` | 809 | 12+ functions: ListVisibleProblems (LATERAL JOIN, `NOT EXISTS` + `EXISTS` locking), UpsertEnrichedProblem (tx), UpdateProblem (16 fields, merge semantics) |
@@ -238,11 +238,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `parser.go` | 371 | `Parser` struct, `RawProblem`, `IngestGitHubRepo` (clone + sparse checkout, SHA-256 idempotency), `ParseProblem`, `normalizeSlug`, `normalizeModule`, `cleanRepoURL` |
 | `parser_test.go` | 346 | 13 tests: isReadmeFile, detectProblemType, normalizeSlug, computeSourceHash, URL parsing (HTTPS+SSH) |
 
-### 6.9 Config (`internal/config/` — 1 source + 1 test file, 366 + 355 LOC)
+### 6.9 Config (`internal/config/` — 1 source + 1 test file, 374 + 382 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `config.go` | 366 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
+| `config.go` | 374 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
 | `config_test.go` | 355 | 24 tests: missing vars, invalid port, environment validation |
 
 ### 6.10 Dependencies (`go.mod`)
@@ -280,7 +280,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ## 8. Frontend — Complete File Inventory
 
-### 8.1 App Router Pages (`frontend/app/` — 73 `.tsx` files + 1 CSS, ~17,410 LOC)
+### 8.1 App Router Pages (`frontend/app/` — 74 `.tsx` files + 1 CSS, ~17,682 LOC)
 
 #### Root (4 files)
 | File | Lines | Type | Purpose |
@@ -522,7 +522,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 19 files, ~3,404 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 19 files, ~3,683 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -576,9 +576,9 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ---
 
-## 9. Database Migrations (`migrations/` — 52 files, ~27,478 LOC)
+## 9. Database Migrations (`migrations/` — 54 files, ~27,525 LOC)
 
-### 9.1 Schema Migrations (34 files)
+### 9.1 Schema Migrations (36 files)
 
 | # | File | Lines | Description |
 |---|---|---|---|
@@ -619,7 +619,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 035 | `051_email_logs.sql` | 38 | email_logs lifecycle table + email_webhook_events (svix-id dedupe), indexes |
 | 036 | `052_refresh_tokens_revoked_at.sql` | 6 | revoked_at TIMESTAMPTZ on refresh_tokens — rotation-grace reuse detection (benign concurrent-refresh race vs replay) |
 
-### 9.2 Seed Data Migrations (17 files)
+### 9.2 Seed Data Migrations (18 files)
 
 | # | File | Lines | Problems | Module(s) |
 |---|---|---|---|---|
@@ -915,7 +915,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (16 backend + 2 sandbox test files, ~3,824 LOC, 169 backend + 11 sandbox tests)
+## 15. Testing Strategy (19 backend + 2 sandbox test files, ~4,269 LOC, 169 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -929,7 +929,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
-| `internal/config` | `config_test.go` (355 LOC) | 24 |
+| `internal/config` | `config_test.go` (382 LOC) | 26 |
 | `internal/email` | `email_test.go` (97 LOC) | 3 |
 | `internal/enricher` | `enricher_test.go` (231 LOC) | 4 |
 | `internal/executor` | `executor_test.go` (570 LOC) | 16 |
@@ -971,11 +971,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 68 (61 backend + 7 sandbox) |
-| **Go LOC** | ~24,088 (18,404 backend source + 3,457 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
-| **Go test files** | 17 (~3,685 LOC, 157 tests) |
-| **Frontend TSX/TS files** | 159 (~31,903 LOC) |
-| **Total tracked source LOC** | ~116,450 |
+| **Go source files** | 74 (66 backend + 8 sandbox) |
+| **Go LOC** | ~24,577 (18,863 backend source + 4,041 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
+| **Go test files** | 21 (~4,269 LOC, 180 tests = 169 backend + 11 sandbox) |
+| **Frontend TSX/TS files** | 163 (~32,458 LOC) |
+| **Total tracked source LOC** | ~118,600 |
 | **API endpoints** | ~118 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
@@ -998,7 +998,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 1. **`.github/copilot-instructions.md`** — References Gemini genai SDK (removed), httpOnly cookies (JWT in localStorage), semaphore cap=2 (now 6), timeout 5s (now 30s), Docker memory 64m (now 256m). Needs full rewrite.
 2. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
-3. **Session log duplication** — `.opencode/session-log.md` (44 lines) is stale; canonical log is `SESSION_LOG.md` (2,528 lines).
+3. **Session log duplication** — `.opencode/session-log.md` (44 lines) is stale; canonical log is `SESSION_LOG.md` (2,905 lines).
 4. **`sandbox/secure_unix.go`** — `resourceLimits` uses raw numeric values for `RLIMIT_NPROC` (6) instead of `syscall.RLIMIT_NPROC`. Works on linux/amd64 but brittle.
 5. **`forcePackageKoder` regex duplication** — `packageRegexp` pattern duplicated in both `sandbox/runtest_go.go` (`\w+`) and `internal/executor/sandbox.go` (`[a-zA-Z0-9_]+`). Functionally identical but diverges.
 6. **`@google/genai` dep** — Listed in `go.mod` (indirect) but may be unused after NVIDIA NIM migration.
@@ -1012,7 +1012,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 14. **`docs/adr/` and `docs/diagrams/`** — Empty placeholder directories with zero content.
 15. **`react-markdown`, `remark-gfm`, `rehype-raw`, `rehype-sanitize`, `remark-breaks`** — Listed in `package.json` runtime deps but superseded by self-contained `renderMarkdown()` in `lib/markdown.ts`. Should be removed.
 16. **Pyright Python autocomplete deferred** — `monaco-pyright-lsp` (webpack-bundled pyright WASM worker, pyodide-based) is the prescribed upgrade for type-aware Python completions/diagnostics, but was deliberately skipped in Session 99. Risks to resolve before adopting: ~10–20MB WASM worker download on first Python editor mount, possible Next.js webpack/dual-monaco (AMD vs ESM) conflicts, and a worst case where pyright requires `crossOriginIsolated` (COOP/COEP headers on Vercel) that could break Google Identity / Pyodide CDN loading. Current Python completions remain the static 157-entry list in `lib/monaco-python.ts`.
-17. **`session-log.md` line count** — `SESSION_LOG.md` has grown to ~2,700+ lines (canonical log, kept whole; the git table at the top is chronological and updated per session).
+17. **`session-log.md` line count** — `SESSION_LOG.md` has grown to ~2,900+ lines (canonical log, kept whole; the git table at the top is chronological and updated per session).
 
 ---
 
@@ -1063,6 +1063,12 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 109c: Production incident — main deployed Session 108 regression; fix pending merge to main
+- **Reported via Render logs:** production `main` panics at startup with `panic: chi: all middlewares must be defined before routes on a mux` (router.go:105) — deployed commit `82ca6b7` (`Merge pull request #199 from jerryjuche/staging`) still contains Session 108's broken `/auth/refresh` registration
+- **Branch state:** `main` = `82ca6b7` (broken, has `7cad9ec` but NOT the fix); `staging` = `01c65ae` (fixed, `2239d9c` merged via PR #200); `update` = `2239d9c` (fixed). `git diff origin/main origin/staging` = exactly the fix (router.go +14/−6, router_test.go +46, CLAUDE.md)
+- **Resolution path:** merge `staging` → `main` (PR flow, matches #199) or push `2239d9c` to `main` directly; user opted to merge manually — fix remains on `update`/`staging` until then
+- **Post-merge checklist:** Render auto-deploys `main` → panic gone; run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; verify `/health` + startup logs clean
 
 ### 2026-08-05 — Session 109b: Chi router panic fix — `/auth/refresh` middleware-ordering regression
 - **Reported bug:** backend crashes at startup with `panic: chi: all middlewares must be defined before routes on a mux`

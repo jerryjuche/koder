@@ -292,3 +292,54 @@ React Bits ShapeGrid background animation integration & brand UI polish:
 3. Integrated AnimatedBackground into LandingContent.tsx (opacity 0.4) and (main)/layout.tsx (opacity 0.35).
 4. Verified TypeScript type-check (0 errors) and Next.js production build (code 0).
 5. Pushed commit cb8ad4f to origin/update.
+
+Date: 2026-08-05
+
+Email delivery diagnostics (Session 106):
+1. New internal/store/email_logs.go — email lifecycle tracking (created/sent/delivered/bounced/complained/failed), 7 new Store methods.
+2. New internal/api/webhooks.go — POST /api/webhooks/resend (public, Svix HMAC verification, svix-id dedupe), maps Resend events to email_logs statuses.
+3. password_reset.go now creates an email_logs row, reads the Resend response body, retries once on transient failures.
+4. New migration 051_email_logs.sql; Admin UI EmailLogsPanel.tsx; GET /admin/email-logs; optional RESEND_WEBHOOK_SECRET config.
+5. 13 new webhook tests + 2 config tests; go vet clean; 8/8 backend suites green (161 tests).
+
+Date: 2026-08-05
+
+Webhook jsonb payload encoding hotfix (Session 107):
+1. Production incident: SimpleProtocol encodes []byte params as bytea → webhook body couldn't parse into JSONB.
+2. Fixed MarkWebhookEventProcessed payload []byte → string across store/interface/handler/test (4 sites) + defensive $4::jsonb cast.
+3. Regression guard: fake store captures markedPayload, asserts verbatim forwarding.
+4. go vet clean; 8/8 suites green; all 6 webhook tests pass.
+
+Date: 2026-08-05
+
+Frequent-logout fix (Session 108):
+1. Root causes: token-rotation race (multi-tab refresh revoked all sessions), /auth/refresh behind per-IP limiter, cookie MaxAge outliving token, logout not clearing localStorage.
+2. Rotation-grace reuse detection (30s) → REFRESH_TOKEN_ROTATED without cascading revocation; migration 052_refresh_tokens_revoked_at.sql.
+3. Frontend retry-once on REFRESH_TOKEN_ROTATED; /auth/refresh decoupled from IP limiter; cookie MaxAge = AccessTokenExpiry(); logout clears tokens.
+4. Default ACCESS_TOKEN_EXPIRY_MINUTES 15 → 60.
+5. 4 new auth tests; go vet clean; 8/8 suites green (165 tests); tsc/ESLint clean.
+
+Date: 2026-08-05
+
+Professional password-reset email template (Session 109):
+1. New internal/email package (email.go, 248 LOC) — reusable html/template shell (layoutBase + content slot), brand-matched charcoal/purple/gold, inline SVG padlock as data URI, zero emojis.
+2. password_reset.go renders via emailtmpl.RenderPasswordResetString with logo, support mailto, tagline.
+3. Injection-safe: all user-supplied values pass through html/template auto-escaping.
+4. 3 email tests (brand/structure, XSS-escape, defaults); go vet clean; 9/9 suites green (168 tests).
+
+Date: 2026-08-05
+
+Chi router panic fix (Session 109b):
+1. Production bug: chi panics at startup because /auth/refresh was registered inside the /auth group before r.Use(authRateLimiter.Middleware).
+2. Fixed by moving /auth/refresh to the parent mux (r.With(...).Post), outside the /auth group — keeps limiter bypass + satisfies chi ordering.
+3. New router_test.go (TestNewRouter_DoesNotPanic) constructs the full router — fails on pre-fix code, passes post-fix.
+4. go vet clean; 9/9 backend suites green (169 tests).
+5. Pushed 2239d9c to origin/update; merged to staging via PR #200.
+
+Date: 2026-08-05
+
+Production incident — chi panic on main (Session 109c):
+1. Render logs showed production main still crashing with the chi middleware-ordering panic — deployed commit 82ca6b7 (merge of PR #199) carried Session 108's broken /auth/refresh registration into main.
+2. Branch state: main = 82ca6b7 (broken), staging = 01c65ae (fixed via PR #200), update = 2239d9c (fixed). git diff origin/main origin/staging = exactly the router fix + regression test.
+3. Resolution: merge staging → main (PR flow) or push 2239d9c to main directly; user opted to merge manually.
+4. Post-merge checklist: Render auto-deploys main → panic gone; run migrations/052_refresh_tokens_revoked_at.sql on Supabase; verify /health + startup logs clean.

@@ -103,6 +103,80 @@
 | 95 | `6c3941c` | revert: remove PixelSnow (Three.js snowflake background) — restore original layout |
 | 96 | `0b81240` | Polish problem cards: larger titles, rendered markdown, professional spacing |
 | 97 | `4564d69` | Fix card description: strip inline styles from rendered markdown so card Tailwind classes apply |
+| 98 | `006fe14` | docs: add sessions 77-78 (PixelSnow revert, card polish) to session logs + reindex |
+| 99 | `f4ce518` | feat: leaderboard tiebreaker by latest submission + unify codebase index |
+| 100 | `38b4984` | feat: add param_names to problems schema and SQL generation tool |
+| 101 | `d8b1a6f` | fix: include param_names in all problem SQL queries so scaffold uses real names not arg1/arg2 |
+| 102 | `72b63a8` | fix: clear sessionStorage cache before problem fetch, preserve tokens on transient server errors |
+| 103 | `0a9808e` | fix: auto-detect stale arg1 scaffold and replace with real param names on next load |
+| 104 | `49100ba` | feat: add Next arrow after module name in workspace, disable Go on onboarding |
+| 105 | `9b4c81d` | feat: add Home icon button in workspace header |
+| 106 | `2c4425f` | feat: rephrase 30 python-challenges problems with param_names |
+| 107 | `4228859` | feat: rephrase 20 python-fundamentals problems with param_names |
+| 108 | `a709b3e` | feat: rephrase 30 python-intermediate problems with param_names |
+| 109 | `eac1efb` | feat: rephrase 30 python-practice problems with param_names |
+| 110 | `c374476` | feat: rephrase 25 python-practicals problems with param_names |
+| 111 | `71a16af` | feat: seed python-practicals + fix module visibility |
+| 112 | `fef38c5` | feat: professional OG metadata with module images for link previews |
+| 113 | `fcc360a` | fix(api): include param_names in problem response and admin update |
+| 114 | `e6ea3c8` | feat(learn): overhaul Learn UI with 3D tactile design system, fix prerequisite locking bug, and polish quizzes |
+| 115 | `8a09fdd` | fix(curriculum): filter deleted problem references at DB level and enable optional auth on problem details |
+| 116 | `891d787` | fix(lint): resolve ESLint rules and unescaped entities across Learn components |
+| 117 | `cb7b504` | fix(platform): update progress tracking, module status, problem filtering, and course enrollment |
+| 118 | `8ee975c` | Fix locked-module next problem flow and compact learning UI |
+| 119 | `212d45a` | feat: filter locked-module problems from workspace and listings + codebase reindex |
+| 120 | `10a570a` | refactor: remove Learning Progress section from dashboard — courses have dedicated /learn area |
+| 121 | `5c57050` | feat: enable Python IntelliSense and auto-closing in problem workspace editor |
+| 122 | `6c9ae00` | docs: update session logs through Session 89 — IntelliSense, dashboard cleanup, locked-module filtering |
+| 123 | `f5af60c` | feat: open /problems to all users — remove beta gate from nav |
+| 124 | `10aed9f` | fix(layout): add pt-6 to main content area and bump Toaster offset to 80px |
+| 125 | `7027aca` | Add NVIDIA-style animated background with brand-tone gradient orbs |
+| 126 | `75c6fc3` | Fix animated background: correct CSS file + use actual brand colors |
+| 127 | `0050ce2` | Fix animated background layering: absolute within (main) layout, above bg-background |
+| 128 | `083350d` | Revert animated background experiment |
+| 129 | `fdc1fc6` | Add courses.md — full curriculum CMS reference for AI seeding |
+| 130 | `6a13140` | Add slog.Error + response details to TOKEN_FAILED callers for debugging |
+| 131 | `f3b573a` | new course implementation guidelines and structure, ai fluency migration seed, and tool to generate sql from json |
+| 132 | `97972b4` | feat: reorganize admin dashboard layout — catalog above accordion, wrap panels in cards, fix sidebar height |
+| 133 | `aba5837` | fix: use namespace import for @radix-ui/react-accordion types |
+| 134 | `aa5510e` | feat: comprehensive Python IntelliSense with builtins, keywords, stdlib + shared editor options |
+| 135 | `a5aad43` | monaco-python: add Kind.Class to built-in types, dynamic kindName lookup, depth-tracking signature help |
+| 136 | `18303cf` | feat: migrate sandbox to Fly.io, move backend to Render, standardize on Go 1.26 |
+| 137 | `d5a7dc2` | feat: refresh AI Fluency curriculum content + add UPDATE-mode generator |
+| 138 | `3123b73` | feat: migrate sandbox to Azure Container Apps + GHCR — deploy scripts, docs, configurable rate limit |
+| 139 | `4e94cbc` | feat: extract shared CodeEditor component + Monaco Python IntelliSense |
+| 140 | `b56adbe` | fix(sandbox): keep one Fly.io machine warm for health checks |
+| 141 | `6b576dd` | feat(sandbox): harden Azure Container Apps cold starts + go-live docs |
+| 142 | `6e42212` | docs: sync SESSION_LOG 90-94 + CLAUDE.md inventory for sandbox cold-start |
+| 143 | `65a38be` | style(frontend): retune charcoal theme to neutral #141414 scale |
+| 144 | `52a1e05` | style(frontend): neutralize residual blue-tinted chrome + monaco tints |
+| 145 | `5558dec` | feat(frontend): real TextMate tokenization with exact Dark+ fidelity |
+| 146 | `61befdf` | feat: real formatting via POST /api/format (gofmt + pinned black) |
+| 147 | `a318821` | fix(sandbox): pip PEP 668 externally-managed-environment build failure |
+| 148 | `cb8ad4f` | feat(ui): integrate ShapeGrid background animation with brand styling |
+| 149 | `1d16977` | docs: update SESSION_LOG.md, UPDATE_LOG.txt, and progress.md for session 100 |
+| 150 | `a54984c` | style(editor): increase Monaco font size to 16px and weight to 600 |
+| 151 | `07ccc73` | feat(learn): redesign lesson workspace, collapsible sidebar, multi-step quiz flow, and victory success page |
+| 152 | `80c92fe` | fix(lint): resolve ESLint set-state-in-effect and hook dependency warnings |
+| 153 | `d59e0d1` | fix: transparent backgrounds for animated grid, scrollable sections, card bg images, Python auto-indent after colons |
+| 154 | `8400ca2` | fix(frontend): restore animated background grid, problem card images, monaco colon auto-indent, and resolve eslint set-state-in-effect |
+| 155 | `a5b514a` | fix(frontend): boost animated background grid visibility, fix lesson scroll clipping & bottom dock padding, update card image overlays, and hook monaco beforeMount for colon auto-indent |
+| 156 | `ec4128f` | fix(frontend): force Monaco tokenization on Enter so language auto-indent always runs |
+| 157 | `d89528a` | fix(frontend): auto-indent on Enter for TextMate-tokenized languages |
+| 158 | `59e4f57` | fix: manual Enter handler for Python colon auto-indentation |
+| 159 | `d8ac1fe` | Sandbox: always-warm ACA replica + tighten sandbox client timeout |
+| 160 | `e2b79db` | Layout: remove global main padding + standardize success page |
+| 161 | `2f808bb` | docs: session 100 log entry |
+| 162 | `00d5067` | UI: small top margin on dashboard, settings, admin |
+| 163 | `ebf3fd2` | sandbox: detailed, professional Python format error messages |
+| 164 | `9a29850` | UI: remove animated hexagon background from landing, fix dead ShapeGrid hover |
+| 165 | `745f1d7` | password-recovery overhaul + parser summary-line fix |
+| 166 | `e32c50d` | fix: PIN removal, forgot-password resend, GIS COOP fix + Google auth diagnostics |
+| 167 | `a2bd1f6` | feat: email delivery diagnostics — Resend webhook + email_logs tracking (Session 106) |
+| 168 | `258a487` | fix: webhook jsonb payload encoding — pass raw body as string not []byte (SimpleProtocol bytea bug) |
+| 169 | `7cad9ec` | fix: frequent-logout — rotation-grace reuse detection + decouple /auth/refresh from IP limiter |
+| 170 | `360a318` | feat: professional password-reset email template — brand-matched, reusable, injection-safe |
+| 171 | `2239d9c` | fix: chi router panic — register /auth/refresh on parent mux before limiter |
 
 ---
 
@@ -2766,3 +2840,74 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `go vet ./internal/...` clean; `go build ./cmd/server ./internal/...` OK; all 8 backend suites green
 - `npx tsc --noEmit` 0 errors; ESLint 0 errors
 - Working tree: source + docs only; production DB requires running `050_drop_pin_hash.sql`
+
+## Session 106 — 2026-08-05 — Email delivery diagnostics (Resend webhook + email_logs)
+
+### Changes
+- **Root cause hunt:** "6 reset flows → 1 email delivered" traced to a blind spot — the backend treated a Resend `200` as success but never read the response body, and had no way to learn the true outcome (delivered/bounced/failed) after the email left Resend
+- **`internal/store/email_logs.go`** (new, 188 LOC): email lifecycle tracking — `CreateEmailLog`, `UpdateEmailLogStatus`, `UpdateEmailLogAttempts`, `UpdateEmailLogByProviderID` (SQL status precedence: bounced/complained/failed terminal > delivered > delivery_delayed > sent > created), `GetEmailLogByProviderID`, `MarkWebhookEventProcessed` (svix-id dedupe), `ListEmailLogs` (status/email filters); 7 new methods on the `Store` interface
+- **`internal/api/webhooks.go`** (new, 218 LOC): `POST /api/webhooks/resend` — public route registered outside all auth groups; Svix signature verification (HMAC-SHA256 over `{id}.{timestamp}.{body}` with base64-decoded `whsec_` secret, ±5 min timestamp tolerance, constant-time compare) with zero new dependencies; maps `email.delivered/bounced/complained/delivery_delayed/failed` to `email_logs` statuses by provider email id; dedupes on `svix-id` (at-least-once delivery); bounces surface their reason; always returns 200 to acknowledge
+- **`internal/api/password_reset.go`** (255→409 LOC): `ForgotPassword` now creates an `email_logs` row (reset_id UUID) before the async send; `sendResetEmail` reads the Resend response body (extracts provider `id`, parses error messages), retries once on transient failures (5xx/429/network), tracks attempts, writes `sent`/`failed` statuses, and has a panic-recovery wrapper; new admin handler `ListEmailLogs`
+- **`migrations/051_email_logs.sql`** (new, 38 LOC): `email_logs` (statuses created/sent/delivered/delivery_delayed/bounced/complained/failed, provider_email_id, attempts, error, delivered_at) + `email_webhook_events` (svix_id UNIQUE dedupe, FK to email_logs)
+- **Admin UI:** `EmailLogsPanel.tsx` (new, 200 LOC) — status-badged delivery table with email/status filters, attempts, provider id, error detail, created/delivered timestamps; wired as an "Email Logs" accordion section in the admin dashboard
+- **Routes:** `GET /admin/email-logs` (?limit,?offset,?status,?email) in the AdminOnly group; `POST /api/webhooks/resend` public (1MB body limit)
+- **Config:** optional `RESEND_WEBHOOK_SECRET` (config.go + .env.example + CLAUDE.md §19) — unset webhook endpoint returns 503
+- **Tests:** 13 new webhook tests (signature valid/wrong-secret/tampered/stale/missing-headers/undecodable-secret, 503 when unconfigured, invalid signature, delivered processing, duplicate ack, unknown event, missing email log) + 2 config tests
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green (161 tests), `tsc --noEmit` 0 errors, ESLint 0 errors
+- **Deployment:** run `migrations/051_email_logs.sql` on Supabase; set `RESEND_WEBHOOK_SECRET` on Render; create the webhook in the Resend dashboard pointing at `https://api.koder.sbs/api/webhooks/resend` and subscribe to the email delivery events
+
+## Session 107 — 2026-08-05 — Production hotfix — webhook jsonb payload encoding (SimpleProtocol bytea bug)
+
+### Changes
+- **Production incident:** live Resend webhooks (signatures now passing) failed at `MarkWebhookEventProcessed` with `invalid input syntax for type json (SQLSTATE 22P02)`, causing 500s → infinite Resend retries on the same `svix_id`
+- **Root cause:** the pool runs in `QueryExecModeSimpleProtocol` (`store.go:259`); pgx encodes `[]byte` params as **bytea** (`\x` hex text), so the raw webhook body was inserted into the `payload JSONB` column as `\x7b...`, which Postgres cannot parse as JSON. Unit tests missed it because they use a `fakeEmailLogStore`, never a real Postgres
+- **Fix:** `MarkWebhookEventProcessed` payload param `[]byte` → `string` (text literal + Postgres `text → jsonb` assignment cast) across all 4 sites — `internal/store/email_logs.go` (impl + `$4::jsonb` defensive cast), `internal/store/store.go` (interface), `internal/api/webhooks.go` (call site passes `string(rawBody)`), `internal/api/webhooks_test.go` (fake signature)
+- **Regression guard:** fake store now captures `markedPayload`; `TestWebhookProcessesDeliveredEvent` asserts the raw JSON body is forwarded verbatim to the store
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green, all 6 webhook tests pass
+- **Effect after deploy:** Resend auto-retries the queued events; the dedupe (svix_id) records them once and flips matching `email_logs` rows to `delivered` — no migration or Resend change required
+
+## Session 108 — 2026-08-05 — Frequent-logout fix — refresh rotation race + auth limiter decoupling
+
+### Changes
+- **Reported issue:** user "logged out frequently"; a 300s "domain TTL" was suspected but DNS TTL cannot affect sessions — full codebase scan of the auth chain (JWT issue/refresh/logout, middleware, `fetchApi`/`tryRefreshToken`, `UserContext`, polling) found the real causes
+- **Root cause 1 — token-rotation race killed all sessions:** on expiry (access token default 15 min), every active tab/background poll (`useNotifications` 7s when visible, BroadcastBanner 30s, WS reconnects) independently hit `/auth/refresh`. Rotation revokes the old refresh token; a second request presenting the just-revoked token was treated as theft → `RevokeAllUserRefreshTokens` (`auth.go:537`) nuked every session → 401 `REFRESH_TOKEN_REVOKED` → frontend cleared tokens → `UserContext` → `router.replace("/")`. The `isRefreshing` queue only guards one tab's JS realm; localStorage is shared across tabs
+- **Root cause 2 — `/auth/refresh` sat behind the per-IP 10 req/min limiter** (`router.go:97`): refresh bursts (multi-tab, short TTL) → 429 → refresh fails → `fetchUser` fails → landing-page bounce
+- **Root cause 3 (latent) — HttpOnly `koder_token` cookie outlived its token:** `SetAuthCookie` MaxAge = `JWTExpiry()` (24h) but stored the 15-min access token → any cookie-fallback request could 401
+- **Root cause 4 — `logout()` never cleared localStorage** → next visit to `/` retried `/me` with revoked tokens → landing flash
+- **Fix 1 — rotation-grace reuse detection** (`auth.go`): new `refreshRotationGrace` (30s); fresh reuse (< 30s `revoked_at`) → `REFRESH_TOKEN_ROTATED` WITHOUT cascading revocation; stale reuse → genuine replay → revoke-all. Migration `052_refresh_tokens_revoked_at.sql` + `RevokedAt` on `RefreshToken` type/`GetRefreshToken`; revoke queries now stamp `revoked_at`
+- **Fix 2 — frontend retry-once** (`api.ts`): `attemptRefresh()` returns `{success, rotated}`; on `REFRESH_TOKEN_ROTATED` it waits 400ms (winner persists the next token to shared localStorage) then retries once with the updated token before giving up; tokens are only cleared on hard failure
+- **Fix 3 — `/auth/refresh` moved OUT of the shared IP limiter** (`router.go:98-107`): registered before `r.Use(authRateLimiter.Middleware)` so the renewal path can't be collateral-429'd
+- **Fix 4 — cookie MaxAge = `AccessTokenExpiry()`** (`responses.go:66`): cookie can no longer outlive its token
+- **Fix 5 — `logout()` clears `koder_token`/`refresh_token`** in a `finally` block (`api.ts`)
+- **Fix 6 — default `ACCESS_TOKEN_EXPIRY_MINUTES` 15 → 60** (`config.go:148`, config test, `.env.example`, README) to cut refresh collisions ~4× (existing Render env override unchanged)
+- **Tests:** new `internal/api/auth_test.go` — 4 tests (fresh reuse benign → no revoke-all; stale reuse → revoke-all; revoked-without-timestamp → safe default revoke-all; lookup error → 500)
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green (165 tests), `tsc --noEmit` 0 errors, ESLint 0 errors
+- **Deployment:** run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; deploy backend + frontend
+
+## Session 109 — 2026-08-05 — Professional password-reset email template (brand-matched, reusable, injection-safe)
+
+### Changes
+- **Motivation:** the reset email was a bare `<h2>` + `<a>` built with `fmt.Sprintf` — no email-safe layout, no brand, and it interpolated the user-supplied recipient name unescaped (HTML-injection vector). Rebuilt as a professional template matching Koder's charcoal + purple + gold brand.
+- **New `internal/email` package** (`email.go`, 248 LOC): reusable document shell — `html/template`, 600px table column on `#141414`, email-client-safe inline CSS (no `<style>` blocks), `color-scheme: dark`, auto-escaping of every dynamic value. `layoutBase` define is the shared shell with a `{{template "content" .}}` slot; future emails (verification, welcome, enrollment, certificates) reuse it by swapping the content definition. Constants mirror `frontend/app/globals.css`: charcoal `#141414`/`#1E1E1E`, border `#2B2B2B`, off-white `#D1D1D8`, muted `#88889A`, purple gradient `#53389E→#7F56D9→#9E77ED`, gold CTA `#D4AF37` on `#141414` text (matches the reset-password page + landing CTAs). No emoji anywhere — the hero lock is an inline SVG (Lucide-style padlock) encoded as a `data:` URI spliced into the template at parse time (Go's CSS `url()` sanitizer would rewrite a data URI to `#ZgotmplZ` if passed as data).
+- **`internal/api/password_reset.go`** (409→414 LOC): `sendEmailOnce` now renders via `emailtmpl.RenderPasswordResetString` (import aliased `emailtmpl` — the `email` param shadows the package). `LogoURL` = `FRONTEND_URL + /logo.png` (2000×2000 PNG, rendered at 44px in the header band); `SupportEmail` extracted from `EMAIL_FROM` via new `emailAddressFromFrom` helper (strips the `Name <addr>` wrapper for a clean `mailto:`); `Tagline` = the landing hero's "Koder turns every problem into an instant feedback loop."
+- **Structure (mirrors the shared reference template):** gradient header band with logo + wordmark → hero with purple lock badge, headline, personalized greeting → gold CTA (18×34px padding = 44px+ touch target) → "expires in 1 hour" note → divider → "Didn't request this?" security reassurance → "Button not working?" backup-URL box (word-break, purple link) → footer with brand, tagline, `mailto:` support, `© year`.
+- **Security fix:** recipient `FirstName`, `ResetURL`, `Tagline`, `SupportEmail` all pass through `html/template` auto-escaping — a `<script>` in a display name or a malicious token query string can no longer reach the email HTML.
+- **Tests** (`email_test.go`, 97 LOC, 3 tests): brand/structure assertions (dark shell, gold CTA, logo, backup URL, support `mailto`, tagline, `©`), XSS-escape regression (script tags + raw `&` must be escaped), and defaults applied (empty `PlatformName`→Koder, empty `ExpiresIn`→"1 hour", zero `Year`→current year). Also asserts zero emoji glyphs in the output.
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 9/9 backend suites green (168 tests = 165 + 3 new), test count + doc tables updated.
+
+## Session 109b — 2026-08-05 — Chi router panic fix — `/auth/refresh` middleware-ordering regression
+
+### Changes
+- **Reported bug:** backend crashes at startup with `panic: chi: all middlewares must be defined before routes on a mux`
+- **Root cause:** Session 108 moved `/auth/refresh` out of the per-IP rate-limiter by registering it inside the `/auth` `r.Route` block *before* `r.Use(authRateLimiter.Middleware)`. chi requires all `Use()` middleware to precede any route on the same mux — a route registered first panics at construction. The existing test suite never constructed the full router (`NewRouter`), so the regression passed CI.
+- **Fix** (`router.go:96-112`): `/auth/refresh` is now registered on the **parent mux** (`r.With(BodySizeLimitMiddleware(256KB)).Post("/auth/refresh", ...)`), entirely outside the `/auth` group. It still bypasses the IP limiter (the goal of Session 108) while keeping `r.Use()` before all routes inside the group — satisfying chi's ordering rule.
+- **Regression test** (`router_test.go`, new, 42 LOC): `TestNewRouter_DoesNotPanic` constructs the full router via `NewRouter` with a `nilStore` (embeds `store.Store` — construction-time methods only, none invoked) and minimal config, then asserts a non-nil `App`. Verified the test **fails on the pre-fix code** (panic) and passes post-fix.
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green (169 tests = 168 + 1 new), test table + header badge updated.
+
+## Session 109c — 2026-08-05 — Production incident — main deployed Session 108 regression; fix pending merge to main
+
+### Changes
+- **Reported via Render logs:** production `main` panics at startup with `panic: chi: all middlewares must be defined before routes on a mux` (router.go:105) — deployed commit `82ca6b7` (`Merge pull request #199 from jerryjuche/staging`) still contains Session 108's broken `/auth/refresh` registration
+- **Branch state:** `main` = `82ca6b7` (broken, has `7cad9ec` but NOT the fix); `staging` = `01c65ae` (fixed, `2239d9c` merged via PR #200); `update` = `2239d9c` (fixed). `git diff origin/main origin/staging` = exactly the fix (router.go +14/−6, router_test.go +46, CLAUDE.md)
+- **Resolution path:** merge `staging` → `main` (PR flow, matches #199) or push `2239d9c` to `main` directly; user opted to merge manually — fix remains on `update`/`staging` until then
+- **Post-merge checklist:** Render auto-deploys `main` → panic gone; run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; verify `/health` + startup logs clean
