@@ -167,6 +167,15 @@ type Store interface {
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	CleanupExpiredPasswordResetTokens(ctx context.Context) error
 
+	// Email delivery tracking (password reset + admin reset lifecycle)
+	CreateEmailLog(ctx context.Context, resetID *uuid.UUID, email, flow string) (*EmailLog, error)
+	UpdateEmailLogStatus(ctx context.Context, logID uuid.UUID, status string, providerEmailID, errorMessage *string) error
+	UpdateEmailLogAttempts(ctx context.Context, logID uuid.UUID, attempts int) error
+	UpdateEmailLogByProviderID(ctx context.Context, providerEmailID, status string, errorMessage *string) error
+	GetEmailLogByProviderID(ctx context.Context, providerEmailID string) (*EmailLog, error)
+	MarkWebhookEventProcessed(ctx context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload []byte) (bool, error)
+	ListEmailLogs(ctx context.Context, limit, offset int, status, emailFilter string) ([]EmailLog, error)
+
 	// ── Curriculum CMS ──
 
 	// Course operations

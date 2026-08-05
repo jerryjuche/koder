@@ -41,6 +41,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
 	changePasswordHandler := NewChangePasswordHandler(store, cfg)
+	webhooksHandler := NewWebhooksHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec, b)
@@ -87,6 +88,10 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			"go":     cfg.GoVersion,
 		})
 	})
+
+	// Public provider webhooks (Resend delivery events). Authenticated by
+	// signature verification inside the handler, not by auth middleware.
+	r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/api/webhooks/resend", webhooksHandler.HandleResend)
 
 	// Auth endpoints: IP-based rate limiting (10 req/min)
 	authRateLimiter := NewIPRateLimiter(10, 1*time.Minute)
@@ -212,6 +217,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/users/{id}/reset-password", adminHandler.ResetUserPassword)
+			r.Get("/admin/email-logs", passwordResetHandler.ListEmailLogs)
 
 			// Problem module locks
 			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)

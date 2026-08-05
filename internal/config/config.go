@@ -68,6 +68,11 @@ type Config struct {
 	ResendAPIKey string
 	EmailFrom    string // sender address for transactional emails
 
+	// ResendWebhookSecret verifies incoming Resend webhook requests
+	// (svix-style HMAC over svix-id/svix-timestamp/payload). Optional — when
+	// unset the webhook endpoint responds 503 and delivery events are ignored.
+	ResendWebhookSecret string
+
 	// Frontend URL for reset links
 	FrontendURL string
 
@@ -322,6 +327,9 @@ func Load() (*Config, error) {
 	if cfg.EmailFrom == "" {
 		cfg.EmailFrom = "Koder <noreply@koder.sbs>"
 	}
+
+	// Signing secret for Resend webhook signature verification (optional)
+	cfg.ResendWebhookSecret = os.Getenv("RESEND_WEBHOOK_SECRET")
 
 	// Frontend URL (used for password reset links, CORS, etc.)
 	// In production, this MUST be explicitly set to your frontend domain.

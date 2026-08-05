@@ -2,16 +2,21 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
@@ -84,8 +89,19 @@ func (h *PasswordResetHandler) ForgotPassword(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Record the email lifecycle so delivery can be traced end-to-end
+	resetID := uuid.New()
+	emailLog, err := h.store.CreateEmailLog(r.Context(), &resetID, req.Email, "forgot_password")
+	if err != nil {
+		slog.Error("password_reset: failed to create email log", "error", err, "email", maskEmail(req.Email))
+	}
+
 	// Send email with reset link (async)
-	go h.sendResetEmail(req.Email, rawToken, user.Name)
+	logID := uuid.Nil
+	if emailLog != nil {
+		logID = emailLog.ID.Bytes
+	}
+	go h.sendResetEmail(req.Email, rawToken, user.Name, logID)
 
 	slog.Info("password_reset: token created", "email", maskEmail(req.Email))
 	respondSuccess()
@@ -171,17 +187,113 @@ func (h *PasswordResetHandler) ResetPassword(w http.ResponseWriter, r *http.Requ
 	RespondSuccess(w, map[string]string{"message": "Password has been reset successfully"})
 }
 
-// sendResetEmail sends the password reset email via Resend API.
-func (h *PasswordResetHandler) sendResetEmail(email, rawToken, name string) {
+// ListEmailLogs returns the email delivery log for admin diagnostics.
+// GET /admin/email-logs?limit=&offset=&status=&email=
+func (h *PasswordResetHandler) ListEmailLogs(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	status := r.URL.Query().Get("status")
+	email := r.URL.Query().Get("email")
+
+	logs, err := h.store.ListEmailLogs(r.Context(), limit, offset, status, email)
+	if err != nil {
+		slog.Error("email_logs: failed to list", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list email logs", nil)
+		return
+	}
+	if logs == nil {
+		logs = []store.EmailLog{}
+	}
+	RespondSuccess(w, logs)
+}
+
+// resendEmailResponse is the subset of the Resend POST /emails response we need.
+type resendEmailResponse struct {
+	ID string `json:"id"`
+}
+
+// resendErrorResponse is the error body returned by Resend on non-2xx.
+type resendErrorResponse struct {
+	Message string `json:"message"`
+	Name    string `json:"name"`
+}
+
+// emailSendError carries both the message and whether a retry is worthwhile
+// (network failures and 5xx are retryable; 4xx validation errors are not).
+type emailSendError struct {
+	message   string
+	retryable bool
+}
+
+func (e *emailSendError) Error() string { return e.message }
+
+// sendResetEmail sends the password reset email via Resend API with one retry
+// on transient failures. It runs in a goroutine and must never panic.
+func (h *PasswordResetHandler) sendResetEmail(email, rawToken, name string, logID uuid.UUID) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			slog.Error("password_reset: panic in sendResetEmail", "error", rec, "email", maskEmail(email))
+			if logID != uuid.Nil {
+				msg := fmt.Sprintf("panic in send goroutine: %v", rec)
+				h.markEmailFailed(logID, &msg)
+			}
+		}
+	}()
+
 	if h.cfg.ResendAPIKey == "" {
-		slog.Warn("password_reset: no RESEND_API_KEY configured, skipping email")
+		slog.Warn("password_reset: no RESEND_API_KEY configured, skipping email", "email", maskEmail(email))
+		msg := "RESEND_API_KEY not configured"
+		if logID != uuid.Nil {
+			h.markEmailFailed(logID, &msg)
+		}
 		return
 	}
 	if h.cfg.FrontendURL == "" {
-		slog.Warn("password_reset: no FRONTEND_URL configured, skipping email")
+		slog.Warn("password_reset: no FRONTEND_URL configured, skipping email", "email", maskEmail(email))
+		msg := "FRONTEND_URL not configured"
+		if logID != uuid.Nil {
+			h.markEmailFailed(logID, &msg)
+		}
 		return
 	}
 
+	var lastErr error
+	for attempt := 1; attempt <= 2; attempt++ {
+		if logID != uuid.Nil {
+			h.store.UpdateEmailLogAttempts(h.emailLogContext(), logID, attempt)
+		}
+
+		providerID, err := h.sendEmailOnce(email, rawToken, name)
+		if err == nil {
+			if logID != uuid.Nil {
+				h.markEmailSent(logID, providerID)
+			}
+			slog.Info("password_reset: email sent", "email", maskEmail(email), "provider_email_id", providerID)
+			return
+		}
+		lastErr = err
+		slog.Error("password_reset: email attempt failed",
+			"attempt", attempt, "email", maskEmail(email), "error", err)
+
+		// Only retry transient failures (network error / 5xx)
+		var sendErr *emailSendError
+		if attempt == 1 && errors.As(err, &sendErr) && sendErr.retryable {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
+
+	if logID != uuid.Nil && lastErr != nil {
+		msg := lastErr.Error()
+		h.markEmailFailed(logID, &msg)
+	}
+	slog.Error("password_reset: email failed to send", "email", maskEmail(email), "error", lastErr)
+}
+
+// sendEmailOnce performs a single POST to the Resend API and returns the
+// provider email id on success.
+func (h *PasswordResetHandler) sendEmailOnce(email, rawToken, name string) (string, error) {
 	resetLink := fmt.Sprintf("%s/reset-password?token=%s", strings.TrimRight(h.cfg.FrontendURL, "/"), rawToken)
 
 	subject := "Koder — Reset Your Password"
@@ -215,14 +327,12 @@ If you didn't request this, you can safely ignore this email.
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		slog.Error("password_reset: failed to marshal email", "error", err)
-		return
+		return "", &emailSendError{message: fmt.Sprintf("failed to marshal email: %v", err)}
 	}
 
 	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewReader(body))
 	if err != nil {
-		slog.Error("password_reset: failed to create email request", "error", err)
-		return
+		return "", &emailSendError{message: fmt.Sprintf("failed to create email request: %v", err)}
 	}
 	req.Header.Set("Authorization", "Bearer "+h.cfg.ResendAPIKey)
 	req.Header.Set("Content-Type", "application/json")
@@ -230,16 +340,60 @@ If you didn't request this, you can safely ignore this email.
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Error("password_reset: failed to send email", "error", err)
-		return
+		// Network-level failure — always retryable
+		return "", &emailSendError{message: fmt.Sprintf("failed to send email: %v", err), retryable: true}
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		slog.Error("password_reset: email API error", "status", resp.StatusCode)
-	} else {
-		slog.Info("password_reset: email sent", "email", maskEmail(email))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if err != nil {
+		return "", &emailSendError{message: fmt.Sprintf("failed to read email response: %v", err), retryable: true}
 	}
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		var ok resendEmailResponse
+		if err := json.Unmarshal(respBody, &ok); err != nil {
+			slog.Warn("password_reset: email sent but response unparseable", "status", resp.StatusCode, "body", string(respBody))
+			return "", nil
+		}
+		return ok.ID, nil
+	}
+
+	// Non-2xx — parse the error body for a useful message
+	var errBody resendErrorResponse
+	msg := fmt.Sprintf("Resend API error (status %d)", resp.StatusCode)
+	if err := json.Unmarshal(respBody, &errBody); err == nil && errBody.Message != "" {
+		msg = fmt.Sprintf("Resend API error: %s", errBody.Message)
+	}
+
+	// 4xx errors (invalid recipient, domain not verified, auth) will not
+	// succeed on retry; 5xx and HTTP 429 are transient.
+	retryable := resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests
+	return "", &emailSendError{message: msg, retryable: retryable}
+}
+
+// markEmailSent records a successful send on the email log.
+func (h *PasswordResetHandler) markEmailSent(logID uuid.UUID, providerID string) {
+	var provider *string
+	if providerID != "" {
+		provider = &providerID
+	}
+	if err := h.store.UpdateEmailLogStatus(h.emailLogContext(), logID, "sent", provider, nil); err != nil {
+		slog.Error("password_reset: failed to mark email log sent", "error", err, "log_id", logID)
+	}
+}
+
+// markEmailFailed records a failed send on the email log.
+func (h *PasswordResetHandler) markEmailFailed(logID uuid.UUID, message *string) {
+	if err := h.store.UpdateEmailLogStatus(h.emailLogContext(), logID, "failed", nil, message); err != nil {
+		slog.Error("password_reset: failed to mark email log failed", "error", err, "log_id", logID)
+	}
+}
+
+// emailLogContext returns a context for background email-log writes that
+// outlive the request context (send goroutine).
+func (h *PasswordResetHandler) emailLogContext() context.Context {
+	return context.Background()
 }
 
 func maskEmail(email string) string {

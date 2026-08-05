@@ -768,8 +768,10 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/admin/feedback/counts` | Admin | Feedback counts by status |
 | PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 | GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
+| GET | `/admin/email-logs` | Admin | Email delivery lifecycle (?status,?email,?limit,?offset) |
 | GET | `/health` | None | Service health (db ping, env info) |
 | GET | `/version` | None | Build commit + time + Go version |
+| POST | `/api/webhooks/resend` | None | Resend delivery webhook (Svix HMAC verified, email_logs tracking) |
 
 ### Curriculum — Student Learn
 
@@ -1012,8 +1014,9 @@ ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sb
 ```bash
 RESEND_API_KEY=<resend-api-key>
 EMAIL_FROM=Koder <noreply@koder.sbs>
+RESEND_WEBHOOK_SECRET=<whsec_...>   # Optional: delivery tracking via POST /api/webhooks/resend
 ```
-Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional.
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional. With `RESEND_WEBHOOK_SECRET` set, every reset email is traced in the `email_logs` table (Admin → Email Logs) from `created → sent → delivered`, with bounced/complained/failed outcomes reported by the Resend webhook.
 
 ### Required Frontend Environment (per branch)
 | Branch | `NEXT_PUBLIC_API_URL` |

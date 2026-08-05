@@ -113,6 +113,29 @@ export type ActivityLog = {
   created_at: string;
 };
 
+export type EmailLogStatus =
+  | "created"
+  | "sent"
+  | "delivered"
+  | "delivery_delayed"
+  | "bounced"
+  | "complained"
+  | "failed";
+
+export type EmailLog = {
+  id: string;
+  reset_id?: string;
+  email: string;
+  flow: string;
+  status: EmailLogStatus;
+  provider_email_id?: string;
+  attempts: number;
+  error?: string;
+  delivered_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Submission = {
   id: string;
   problem_id: string;

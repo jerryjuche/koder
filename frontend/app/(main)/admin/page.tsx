@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2, Pin, PinOff, ShieldCheck, X, FolderKanban, Megaphone, BugPlay, Users } from 'lucide-react';
+import { FileText, Activity, AlertCircle, Github, Wand2, Search, Pencil, CheckCircle2, GitCommit, LucideIcon, Send, Code, MessageSquare, BrainCircuit, BookOpen, Lock, LockOpen, ChevronDown, Trash2, Pin, PinOff, ShieldCheck, X, FolderKanban, Megaphone, BugPlay, Users, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ingestGitHubRepo, enrichAllProblems, fetchAdminStats, fetchAdminActivity, fetchAllProblemsAdmin, fetchUser, toggleProblemVisibility, publishAllDrafts, updateProblem, fetchAIUsageStats, fetchAllModules, toggleProblemModuleLock, deleteProblemModule, fetchAllCourses, fetchModules, toggleModuleLock, upsertModuleMeta, setModulePin } from '@/lib/api';
@@ -16,6 +16,7 @@ import BroadcastPanel from './BroadcastPanel';
 import ProblemEditPanel from './ProblemEditPanel';
 import ProblemReports from './ProblemReports';
 import UserVerificationPanel from './UserVerificationPanel';
+import EmailLogsPanel from './EmailLogsPanel';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -782,6 +783,26 @@ export default function AdminDashboard() {
             </AccordionContent>
           </AccordionItem>
         )}
+
+        {/* Email Logs (delivery diagnostics) */}
+        <AccordionItem value="email-logs" className="border border-brand-charcoal-border rounded-xl bg-brand-charcoal-card overflow-hidden">
+          <AccordionTrigger className="px-5 py-4 hover:bg-brand-charcoal-hover/30 transition-colors duration-200 [&[data-state=open]>svg]:!rotate-180">
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">
+                  <Mail size={16} className="text-sky-400" />
+                </div>
+                <div className="text-left min-w-0">
+                  <h3 className="text-sm font-bold text-brand-offwhite">Email Logs</h3>
+                  <p className="text-[11px] text-brand-offwhite-muted/60">Password reset delivery tracking (created → sent → delivered)</p>
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-5 pb-5 pt-4">
+            <EmailLogsPanel />
+          </AccordionContent>
+        </AccordionItem>
 
       </Accordion>
 
