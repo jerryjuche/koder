@@ -1,64 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Mail, KeyRound, CheckCircle, Shield, Eye, EyeOff } from 'lucide-react';
-import { PinInput } from '@/components/base/input/pin-input';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { motion, AnimatePresence } from 'framer-motion';
-import { forgotPassword, forgotPasswordPin, resetPasswordPin } from '@/lib/api';
+import { ArrowLeft, Mail, RotateCw, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { forgotPassword } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LabelInputContainer } from '@/components/auth/label-input-container';
 import { BottomGradient } from '@/components/auth/bottom-gradient';
 
-type Tab = 'email' | 'pin';
-
 export default function ForgotPasswordPage() {
-  const [tab, setTab] = useState<Tab>('pin');
-
-  // PIN reset state
-  const [pinLogin, setPinLogin] = useState('');
-  const [pin, setPin] = useState('');
-  const [pinLoading, setPinLoading] = useState(false);
-  const [pinVerified, setPinVerified] = useState(false);
-  const [pinToken, setPinToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  // Email reset state
   const [email, setEmail] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handlePinVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pinLogin.trim()) {
-      setErrorMsg('Enter your username or email');
-      return;
-    }
-    if (!/^\d{6}$/.test(pin)) {
-      setErrorMsg('PIN must be exactly 6 digits');
-      return;
-    }
-    setPinLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await forgotPasswordPin(pinLogin.trim(), pin);
-      if (res.success && res.data) {
-        setPinToken(res.data.token);
-        setPinVerified(true);
-      } else {
-        setErrorMsg(res.error?.message || 'Invalid username/email or PIN');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to connect. Please try again.');
-    } finally {
-      setPinLoading(false);
-    }
-  };
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendFeedback, setResendFeedback] = useState<'' | 'sent' | 'error'>('');
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleEmailReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,40 +49,24 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handlePinReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 8) {
-      setErrorMsg('Password must be at least 8 characters');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setErrorMsg('Passwords do not match');
-      return;
-    }
-    setPinLoading(true);
-    setErrorMsg('');
+  const handleResend = async () => {
+    if (resending || resendCooldown > 0) return;
+    setResending(true);
+    setResendFeedback('');
     try {
-      const res = await resetPasswordPin(pinToken, newPassword);
+      const res = await forgotPassword(email.trim());
       if (res.success) {
-        setPinVerified(false);
-        setPinToken('');
-        setNewPassword('');
-        setConfirmNewPassword('');
-        setPinLogin('');
-        setPin('');
-        setSent(true);
+        setResendFeedback('sent');
+        setResendCooldown(60);
       } else {
-        setErrorMsg(res.error?.message || 'Failed to reset password');
+        setResendFeedback('error');
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to connect. Please try again.');
+    } catch {
+      setResendFeedback('error');
     } finally {
-      setPinLoading(false);
+      setResending(false);
     }
   };
-
-  const [sent, setSent] = useState(false);
-  const [showPin, setShowPin] = useState(false);
 
   return (
     <motion.div
@@ -140,22 +91,7 @@ export default function ForgotPasswordPage() {
           />
         </motion.div>
 
-        {sent ? (
-          <>
-            <CheckCircle className="w-12 h-12 text-green-400 mb-4" />
-            <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Password reset</h1>
-            <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-              Your password has been reset successfully. You can now sign in with your new password.
-            </p>
-            <Link
-              href="/login"
-              className="mt-6 inline-flex items-center gap-2 text-sm text-brand-muted-gold/70 hover:text-brand-muted-gold transition-colors font-medium"
-            >
-              <ArrowLeft size={14} />
-              Back to sign in
-            </Link>
-          </>
-        ) : emailSent ? (
+        {emailSent ? (
           <>
             <Mail className="w-12 h-12 text-brand-muted-gold mb-4" />
             <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Check your inbox</h1>
@@ -163,190 +99,49 @@ export default function ForgotPasswordPage() {
               If an account exists for <span className="text-brand-offwhite font-semibold">{email}</span>, we&apos;ve sent
               a password reset link. Follow the instructions in the email to set a new password.
             </p>
-          </>
-        ) : pinVerified ? (
-          <>
-            <Shield className="w-12 h-12 text-brand-muted-gold mb-4" />
-            <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Set new password</h1>
-            <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-              PIN verified. Choose a new password for your account.
-            </p>
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending || resendCooldown > 0}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-brand-offwhite-muted hover:text-brand-muted-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RotateCw size={14} className={resending ? 'animate-spin' : ''} />
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend email'}
+              </button>
+              {resendFeedback === 'sent' && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-green-400">
+                  <CheckCircle2 size={13} />
+                  Another reset link sent to {email}
+                </span>
+              )}
+              {resendFeedback === 'error' && (
+                <span className="text-xs text-brand-error">
+                  Couldn&apos;t resend. Try again in a moment.
+                </span>
+              )}
+            </div>
           </>
         ) : (
           <>
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-brand-offwhite">Forgot password?</h1>
-              <button
-                type="button"
-                onClick={() => setShowPin((p) => !p)}
-                className="p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
-                aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
-              >
-                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+            <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Forgot password?</h1>
             <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
-              Recover your account with your recovery PIN or a reset link sent by email.
+              Enter your email address and we&apos;ll send you a link to reset your password.
             </p>
           </>
         )}
       </div>
 
-      {!sent && !emailSent && !pinVerified && (
-        <>
-          <div className="flex bg-brand-charcoal-base rounded-xl p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => { setTab('pin'); setErrorMsg(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                tab === 'pin'
-                  ? 'bg-brand-muted-gold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20'
-                  : 'text-brand-offwhite-muted hover:text-brand-offwhite'
-              }`}
-            >
-              <KeyRound size={14} />
-              Recovery PIN
-            </button>
-            <button
-              type="button"
-              onClick={() => { setTab('email'); setErrorMsg(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                tab === 'email'
-                  ? 'bg-brand-muted-gold text-brand-charcoal-base shadow-lg shadow-brand-muted-gold/20'
-                  : 'text-brand-offwhite-muted hover:text-brand-offwhite'
-              }`}
-            >
-              <Mail size={14} />
-              Email Reset
-            </button>
-          </div>
-
-          {tab === 'email' && (
-            <motion.form
-              key="email-form"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              onSubmit={handleEmailReset}
-              noValidate
-              className="space-y-5"
-            >
-              {errorMsg && (
-                <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                  {errorMsg}
-                </div>
-              )}
-
-              <LabelInputContainer>
-                <Label htmlFor="reset-email" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-                  Email address
-                </Label>
-                <Input
-                  id="reset-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                  placeholder="you@example.com"
-                />
-              </LabelInputContainer>
-
-              <button
-                type="submit"
-                disabled={emailLoading}
-                className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
-              >
-                {emailLoading ? (
-                  <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Mail size={16} />
-                    Send reset link
-                  </>
-                )}
-                <BottomGradient />
-              </button>
-            </motion.form>
-          )}
-
-          <AnimatePresence mode="wait">
-            {tab === 'pin' && (
-              <motion.form
-                key="pin-form"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handlePinVerify}
-                noValidate
-                className="space-y-5"
-              >
-                {errorMsg && (
-                  <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                    {errorMsg}
-                  </div>
-                )}
-
-                <LabelInputContainer>
-                  <Label htmlFor="pin-login" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-                    Username or email
-                  </Label>
-                  <Input
-                    id="pin-login"
-                    type="text"
-                    value={pinLogin}
-                    onChange={(e) => setPinLogin(e.target.value)}
-                    autoComplete="username"
-                    className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-                    placeholder="username or you@example.com"
-                  />
-                </LabelInputContainer>
-
-                <PinInput size="md" mask={!showPin}>
-                  <PinInput.Label>6-digit recovery PIN</PinInput.Label>
-                  <PinInput.Group
-                    maxLength={6}
-                    pattern={REGEXP_ONLY_DIGITS}
-                    value={pin}
-                    onChange={(v) => { setPin(v); if (errorMsg) setErrorMsg(''); }}
-                    autoFocus
-                    hasError={!!errorMsg}
-                  >
-                    <PinInput.Slot index={0} />
-                    <PinInput.Slot index={1} />
-                    <PinInput.Slot index={2} />
-                    <PinInput.Separator />
-                    <PinInput.Slot index={3} />
-                    <PinInput.Slot index={4} />
-                    <PinInput.Slot index={5} />
-                  </PinInput.Group>
-                </PinInput>
-
-                <button
-                  type="submit"
-                  disabled={pinLoading}
-                  className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
-                >
-                  {pinLoading ? (
-                    <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <KeyRound size={16} />
-                      Verify PIN
-                    </>
-                  )}
-                  <BottomGradient />
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-        </>
-      )}
-
-      {pinVerified && !sent && (
-        <form onSubmit={handlePinReset} noValidate className="space-y-5">
+      {!emailSent && (
+        <motion.form
+          key="email-form"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2 }}
+          onSubmit={handleEmailReset}
+          noValidate
+          className="space-y-5"
+        >
           {errorMsg && (
             <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
               {errorMsg}
@@ -354,54 +149,39 @@ export default function ForgotPasswordPage() {
           )}
 
           <LabelInputContainer>
-            <Label htmlFor="new-password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-              New password
+            <Label htmlFor="reset-email" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
+              Email address
             </Label>
             <Input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="new-password"
+              id="reset-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-              placeholder="At least 8 characters"
-            />
-          </LabelInputContainer>
-
-          <LabelInputContainer>
-            <Label htmlFor="confirm-new-password" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
-              Confirm new password
-            </Label>
-            <Input
-              id="confirm-new-password"
-              type="password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              autoComplete="new-password"
-              className="bg-brand-charcoal-base border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus-visible:border-brand-muted-gold focus-visible:ring-0 h-12 rounded-xl px-4"
-              placeholder="Re-enter your password"
+              placeholder="you@example.com"
             />
           </LabelInputContainer>
 
           <button
             type="submit"
-            disabled={pinLoading}
+            disabled={emailLoading}
             className="group/btn relative w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-12 rounded-xl font-bold transition-all shadow-lg shadow-brand-muted-gold/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
           >
-            {pinLoading ? (
+            {emailLoading ? (
               <div className="w-5 h-5 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
             ) : (
               <>
-                <CheckCircle size={16} />
-                Reset password
+                <Mail size={16} />
+                Send reset link
               </>
             )}
             <BottomGradient />
           </button>
-        </form>
+        </motion.form>
       )}
 
-      {!sent && (
+      {!emailSent && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

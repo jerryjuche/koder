@@ -231,26 +231,6 @@ export async function forgotPassword(
   });
 }
 
-export async function forgotPasswordPin(
-  login: string,
-  pin: string,
-): Promise<ApiResponse<{ token: string }>> {
-  return fetchApi<{ token: string }>("/auth/forgot-password-pin", {
-    method: "POST",
-    body: JSON.stringify({ login, pin }),
-  });
-}
-
-export async function resetPasswordPin(
-  token: string,
-  password: string,
-): Promise<ApiResponse<{ message: string }>> {
-  return fetchApi<{ message: string }>("/auth/reset-password-pin", {
-    method: "POST",
-    body: JSON.stringify({ token, password }),
-  });
-}
-
 export async function completeOnboarding(
   username: string,
 ): Promise<ApiResponse<AuthResponse>> {
@@ -627,24 +607,13 @@ export async function deleteBroadcast(id: string): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/broadcasts/${id}`, { method: "DELETE" });
 }
 
-export async function changePassword(pin: string, newPassword: string): Promise<ApiResponse<any>> {
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>("/auth/change-password", {
     method: "POST",
-    body: JSON.stringify({ pin, new_password: newPassword }),
-  });
-}
-
-export async function verifyPin(pin: string): Promise<ApiResponse<{ valid: boolean }>> {
-  return fetchApi<{ valid: boolean }>("/auth/verify-pin", {
-    method: "POST",
-    body: JSON.stringify({ pin }),
-  });
-}
-
-export async function setPin(pin: string, confirmPin: string): Promise<ApiResponse<any>> {
-  return fetchApi<any>("/auth/set-pin", {
-    method: "POST",
-    body: JSON.stringify({ pin, confirm_pin: confirmPin }),
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
 }
 
