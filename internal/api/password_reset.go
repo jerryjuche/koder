@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/config"
+	emailtmpl "github.com/jerryjuche/koder/internal/email"
 	"github.com/jerryjuche/koder/internal/store"
 )
 
@@ -227,6 +228,16 @@ type emailSendError struct {
 
 func (e *emailSendError) Error() string { return e.message }
 
+// emailAddressFromFrom strips the display name from a Resend "Name <addr>"
+// from-address so the bare address can be used in a mailto: footer link.
+func emailAddressFromFrom(from string) string {
+	start := strings.LastIndex(from, "<")
+	if start >= 0 && strings.HasSuffix(from, ">") {
+		return from[start+1 : len(from)-1]
+	}
+	return from
+}
+
 // sendResetEmail sends the password reset email via Resend API with one retry
 // on transient failures. It runs in a goroutine and must never panic.
 func (h *PasswordResetHandler) sendResetEmail(email, rawToken, name string, logID uuid.UUID) {
@@ -308,14 +319,18 @@ If you didn't request this, you can safely ignore this email.
 
 — The Koder Team`, name, resetLink)
 
-	htmlBody := fmt.Sprintf(`<h2>Reset Your Koder Password</h2>
-<p>Hi %s,</p>
-<p>We received a request to reset your password for your Koder account.</p>
-<p><a href="%s" style="display:inline-block;padding:12px 24px;background-color:#f59e0b;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;">Reset Password</a></p>
-<p style="margin-top:24px;">Or copy this link into your browser:</p>
-<p style="word-break:break-all;color:#666;">%s</p>
-<p style="margin-top:24px;color:#999;font-size:14px;">This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.</p>
-<p style="color:#999;font-size:14px;">— The Koder Team</p>`, name, resetLink, resetLink)
+	htmlBody, err := emailtmpl.RenderPasswordResetString(emailtmpl.PasswordResetData{
+		PlatformName: "Koder",
+		FirstName:    name,
+		ResetURL:     resetLink,
+		LogoURL:      strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png",
+		SupportEmail: emailAddressFromFrom(h.cfg.EmailFrom),
+		Tagline:      "Koder turns every problem into an instant feedback loop.",
+		ExpiresIn:    "1 hour",
+	})
+	if err != nil {
+		return "", &emailSendError{message: fmt.Sprintf("failed to render email template: %v", err)}
+	}
 
 	payload := map[string]interface{}{
 		"from":    h.cfg.EmailFrom,
