@@ -175,6 +175,9 @@ koder/
 │   │                                #   Dual-language: Go + Python in language_versions
 │   │                                #   Fallback Python generation (toSnakeCase, toPythonType)
 │   │
+│   ├── email/email.go               # Reusable transactional email templates (html/template,
+│   │                                #   email-safe tables, brand-matched, injection-safe)
+│   │
 │   ├── executor/                    # PIPELINE 3: Execute (Go + Python)
 │   │   ├── executor.go              # Semaphore, formatGoLiteral, formatPythonLiteral
 │   │   ├── templates.go             # Go text/template + pythonTestTemplate
@@ -192,7 +195,7 @@ koder/
 │       ├── auth.go                  # Register, login, Google, logout, refresh, onboarding
 │       ├── me.go                    # GET /me, set username/language, delete account, export
 │       ├── change_password.go       # Current-password verification + password change
-│       ├── password_reset.go        # Email-based password reset (Resend)
+│       ├── password_reset.go        # Email-based password reset (Resend, professional template)
 │       ├── problems.go              # GET /problems, GET /problems/:slug (language_versions-aware)
 │       ├── submissions.go           # POST /submit (rate-limited, scored)
 │       ├── test.go                  # POST /test (no-scoring execution)
@@ -669,7 +672,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | POST | `/auth/change-password` | Student | Verify current password + set new password (authenticated) |
 | POST | `/auth/forgot-password` | None | Email-based reset link (Resend API) |
 | POST | `/auth/reset-password` | None | Complete email-based reset with token |
-| POST | `/auth/refresh` | Student | Rotate refresh token; reuse detection revokes all sessions |
+| POST | `/auth/refresh` | Student | Rotate refresh token; fresh reuse (concurrent tabs) → benign `REFRESH_TOKEN_ROTATED`, stale reuse → revoke all |
 | POST | `/auth/logout` | Student | Revoke JWT + all refresh tokens |
 | GET | `/auth/check-username?username=xxx` | None | Username availability check (public) |
 
@@ -939,7 +942,7 @@ JWT_SECRET=<min-32-char-random-string>
 GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
 
 # Token expiry
-ACCESS_TOKEN_EXPIRY_MINUTES=15
+ACCESS_TOKEN_EXPIRY_MINUTES=60
 REFRESH_TOKEN_EXPIRY_DAYS=7
 
 # NVIDIA NIM (required for enrichment)

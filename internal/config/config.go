@@ -145,7 +145,7 @@ func Load() (*Config, error) {
 
 	accessTokenMinutesStr := os.Getenv("ACCESS_TOKEN_EXPIRY_MINUTES")
 	if accessTokenMinutesStr == "" {
-		accessTokenMinutesStr = "15"
+		accessTokenMinutesStr = "60"
 	}
 	accessTokenMinutes, err := strconv.Atoi(accessTokenMinutesStr)
 	if err != nil {

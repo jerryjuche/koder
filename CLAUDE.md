@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (146 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -40,7 +40,7 @@
 |---|---|---|---|
 | **Go Backend** (`cmd/` + `internal/`) | 63 source + 15 test | ~17,954 + ~3,457 | 8 packages, 151 Store interface methods, 116 API endpoints; includes 4 cmd tools |
 | **Go Sandbox** (`sandbox/`) | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter |
-| **SQL Migrations** (`migrations/`) | 52 | ~27,478 | 34 schema + 17 seed/content + 1 content-refresh, 25 tables |
+| **SQL Migrations** (`migrations/`) | 53 | ~27,484 | 35 schema + 17 seed/content + 1 content-refresh, 25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,410 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
 | **Frontend Components** (`components/`) | 65 | ~10,887 | 22 shadcn/ui + 43 custom |
 | **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~3,778 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
@@ -65,6 +65,7 @@ koder/
 │   ├── store/            (21 files, 6,400 LOC)  # Database access layer — pgx/v5, 152 Store methods
 │   ├── executor/         (7 files, 1,940 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (1 file, 942 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── email/            (1 file + 1 test, ~240 LOC) # Transactional email templates (html/template, email-safe tables)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
@@ -146,7 +147,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cms.go` | 1,428 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
 | `me.go` | 360 | `MeHandler` — GetMe (cached 30s), SetUsername (one-time 403), UpdateLanguage, DeleteAccount (cascade), ExportData (JSON) |
 | `change_password.go` | 148 | `ChangePasswordHandler` — ChangePassword (current-password verify, 5/15min rate-limit) |
-| `password_reset.go` | 409 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready) |
+| `password_reset.go` | 414 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready), professional HTML via `internal/email` |
 | `broadcasts.go` | 237 | `BroadcastsHandler` — ListActive, Dismiss (student); ListAll, Create, Deactivate, Activate, Delete (admin) |
 | `feedback.go` | 345 | `FeedbackHandler` — Submit (10MB, screenshot, Resend + in-app notification), ListMyFeedback, ListAdmin (status filter), Counts, UpdateStatus, ListProblemReports |
 | `problems.go` | 202 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED), optional auth bypass |
@@ -616,6 +617,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 033 | `047_add_param_names.sql` | 17 | param_names TEXT[] on problems for descriptive parameter names in scaffold generation |
 | 034 | `050_drop_pin_hash.sql` | 7 | Drops pin_hash — 6-digit PIN system removed; email + current-password recovery only |
 | 035 | `051_email_logs.sql` | 38 | email_logs lifecycle table + email_webhook_events (svix-id dedupe), indexes |
+| 036 | `052_refresh_tokens_revoked_at.sql` | 6 | revoked_at TIMESTAMPTZ on refresh_tokens — rotation-grace reuse detection (benign concurrent-refresh race vs replay) |
 
 ### 9.2 Seed Data Migrations (17 files)
 
@@ -913,7 +915,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (15 backend + 2 sandbox test files, ~3,685 LOC, 146 backend + 11 sandbox tests)
+## 15. Testing Strategy (16 backend + 2 sandbox test files, ~3,782 LOC, 168 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -921,10 +923,13 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/api` | `problems_test.go` (35 LOC) | 1 |
 | `internal/api` | `responses_test.go` (214 LOC) | 9 |
 | `internal/api` | `format_test.go` (138 LOC) | 6 |
+| `internal/api` | `webhooks_test.go` (290 LOC) | 13 |
+| `internal/api` | `auth_test.go` (119 LOC) | 4 |
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
 | `internal/config` | `config_test.go` (355 LOC) | 24 |
+| `internal/email` | `email_test.go` (97 LOC) | 3 |
 | `internal/enricher` | `enricher_test.go` (231 LOC) | 4 |
 | `internal/executor` | `executor_test.go` (570 LOC) | 16 |
 | `internal/executor` | `format_test.go` (141 LOC) | 7 |
@@ -934,7 +939,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
 | `sandbox` | `format_test.go` (196 LOC) | 8 (6 black-gated) |
-| **Total** | **17 files (~3,685 LOC)** | **157 tests** |
+| **Total** | **20 files** | **179 tests (168 backend + 11 sandbox)** |
 
 ---
 
@@ -1057,6 +1062,39 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 109: Professional password-reset email template (brand-matched, reusable, injection-safe)
+- **Motivation:** the reset email was a bare `<h2>` + `<a>` built with `fmt.Sprintf` — no email-safe layout, no brand, and it interpolated the user-supplied recipient name unescaped (HTML-injection vector). Rebuilt as a professional template matching Koder's charcoal + purple + gold brand.
+- **New `internal/email` package** (`email.go`, 248 LOC): reusable document shell — `html/template`, 600px table column on `#141414`, email-client-safe inline CSS (no `<style>` blocks), `color-scheme: dark`, auto-escaping of every dynamic value. `layoutBase` define is the shared shell with a `{{template "content" .}}` slot; future emails (verification, welcome, enrollment, certificates) reuse it by swapping the content definition. Constants mirror `frontend/app/globals.css`: charcoal `#141414`/`#1E1E1E`, border `#2B2B2B`, off-white `#D1D1D8`, muted `#88889A`, purple gradient `#53389E→#7F56D9→#9E77ED`, gold CTA `#D4AF37` on `#141414` text (matches the reset-password page + landing CTAs). No emoji anywhere — the hero lock is an inline SVG (Lucide-style padlock) encoded as a `data:` URI spliced into the template at parse time (Go's CSS `url()` sanitizer would rewrite a data URI to `#ZgotmplZ` if passed as data).
+- **`internal/api/password_reset.go`** (409→414 LOC): `sendEmailOnce` now renders via `emailtmpl.RenderPasswordResetString` (import aliased `emailtmpl` — the `email` param shadows the package). `LogoURL` = `FRONTEND_URL + /logo.png` (2000×2000 PNG, rendered at 44px in the header band); `SupportEmail` extracted from `EMAIL_FROM` via new `emailAddressFromFrom` helper (strips the `Name <addr>` wrapper for a clean `mailto:`); `Tagline` = the landing hero's "Koder turns every problem into an instant feedback loop."
+- **Structure (mirrors the shared reference template):** gradient header band with logo + wordmark → hero with purple lock badge, headline, personalized greeting → gold CTA (18×34px padding = 44px+ touch target) → "expires in 1 hour" note → divider → "Didn't request this?" security reassurance → "Button not working?" backup-URL box (word-break, purple link) → footer with brand, tagline, `mailto:` support, `© year`.
+- **Security fix:** recipient `FirstName`, `ResetURL`, `Tagline`, `SupportEmail` all pass through `html/template` auto-escaping — a `<script>` in a display name or a malicious token query string can no longer reach the email HTML.
+- **Tests** (`email_test.go`, 97 LOC, 3 tests): brand/structure assertions (dark shell, gold CTA, logo, backup URL, support `mailto`, tagline, `©`), XSS-escape regression (script tags + raw `&` must be escaped), and defaults applied (empty `PlatformName`→Koder, empty `ExpiresIn`→"1 hour", zero `Year`→current year). Also asserts zero emoji glyphs in the output.
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 9/9 backend suites green (168 tests = 165 + 3 new), test count + doc tables updated.
+
+### 2026-08-05 — Session 108: Frequent-logout fix — refresh rotation race + auth limiter decoupling
+- **Reported issue:** user "logged out frequently"; a 300s "domain TTL" was suspected but DNS TTL cannot affect sessions — full codebase scan of the auth chain (JWT issue/refresh/logout, middleware, `fetchApi`/`tryRefreshToken`, `UserContext`, polling) found the real causes
+- **Root cause 1 — token-rotation race killed all sessions:** on expiry (access token default 15 min), every active tab/background poll (`useNotifications` 7s when visible, BroadcastBanner 30s, WS reconnects) independently hit `/auth/refresh`. Rotation revokes the old refresh token; a second request presenting the just-revoked token was treated as theft → `RevokeAllUserRefreshTokens` (`auth.go:537`) nuked every session → 401 `REFRESH_TOKEN_REVOKED` → frontend cleared tokens → `UserContext` → `router.replace("/")`. The `isRefreshing` queue only guards one tab's JS realm; localStorage is shared across tabs
+- **Root cause 2 — `/auth/refresh` sat behind the per-IP 10 req/min limiter** (`router.go:97`): refresh bursts (multi-tab, short TTL) → 429 → refresh fails → `fetchUser` fails → landing-page bounce
+- **Root cause 3 (latent) — HttpOnly `koder_token` cookie outlived its token:** `SetAuthCookie` MaxAge = `JWTExpiry()` (24h) but stored the 15-min access token → any cookie-fallback request could 401
+- **Root cause 4 — `logout()` never cleared localStorage** → next visit to `/` retried `/me` with revoked tokens → landing flash
+- **Fix 1 — rotation-grace reuse detection** (`auth.go`): new `refreshRotationGrace` (30s); fresh reuse (< 30s `revoked_at`) → `REFRESH_TOKEN_ROTATED` WITHOUT cascading revocation; stale reuse → genuine replay → revoke-all. Migration `052_refresh_tokens_revoked_at.sql` + `RevokedAt` on `RefreshToken` type/`GetRefreshToken`; revoke queries now stamp `revoked_at`
+- **Fix 2 — frontend retry-once** (`api.ts`): `attemptRefresh()` returns `{success, rotated}`; on `REFRESH_TOKEN_ROTATED` it waits 400ms (winner persists the next token to shared localStorage) then retries once with the updated token before giving up; tokens are only cleared on hard failure
+- **Fix 3 — `/auth/refresh` moved OUT of the shared IP limiter** (`router.go:98-107`): registered before `r.Use(authRateLimiter.Middleware)` so the renewal path can't be collateral-429'd
+- **Fix 4 — cookie MaxAge = `AccessTokenExpiry()`** (`responses.go:66`): cookie can no longer outlive its token
+- **Fix 5 — `logout()` clears `koder_token`/`refresh_token`** in a `finally` block (`api.ts`)
+- **Fix 6 — default `ACCESS_TOKEN_EXPIRY_MINUTES` 15 → 60** (`config.go:148`, config test, `.env.example`, README) to cut refresh collisions ~4× (existing Render env override unchanged)
+- **Tests:** new `internal/api/auth_test.go` — 4 tests (fresh reuse benign → no revoke-all; stale reuse → revoke-all; revoked-without-timestamp → safe default revoke-all; lookup error → 500)
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green (165 tests), `tsc --noEmit` 0 errors, ESLint 0 errors
+- **Deployment:** run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; deploy backend + frontend
+
+### 2026-08-05 — Session 107: Production hotfix — webhook jsonb payload encoding (SimpleProtocol bytea bug)
+- **Production incident:** live Resend webhooks (signatures now passing) failed at `MarkWebhookEventProcessed` with `invalid input syntax for type json (SQLSTATE 22P02)`, causing 500s → infinite Resend retries on the same `svix_id`
+- **Root cause:** the pool runs in `QueryExecModeSimpleProtocol` (`store.go:259`); pgx encodes `[]byte` params as **bytea** (`\x` hex text), so the raw webhook body was inserted into the `payload JSONB` column as `\x7b...`, which Postgres cannot parse as JSON. Unit tests missed it because they use a `fakeEmailLogStore`, never a real Postgres
+- **Fix:** `MarkWebhookEventProcessed` payload param `[]byte` → `string` (text literal + Postgres `text → jsonb` assignment cast) across all 4 sites — `internal/store/email_logs.go` (impl + `$4::jsonb` defensive cast), `internal/store/store.go` (interface), `internal/api/webhooks.go` (call site passes `string(rawBody)`), `internal/api/webhooks_test.go` (fake signature)
+- **Regression guard:** fake store now captures `markedPayload`; `TestWebhookProcessesDeliveredEvent` asserts the raw JSON body is forwarded verbatim to the store
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green, all 6 webhook tests pass
+- **Effect after deploy:** Resend auto-retries the queued events; the dedupe (svix_id) records them once and flips matching `email_logs` rows to `delivered` — no migration or Resend change required
 
 ### 2026-08-05 — Session 106: Email delivery diagnostics (Resend webhook + email_logs)
 - **Root cause hunt:** "6 reset flows → 1 email delivered" traced to a blind spot — the backend treated a Resend `200` as success but never read the response body, and had no way to learn the true outcome (delivered/bounced/failed) after the email left Resend
@@ -1355,4 +1393,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (161 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*

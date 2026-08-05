@@ -173,7 +173,7 @@ type Store interface {
 	UpdateEmailLogAttempts(ctx context.Context, logID uuid.UUID, attempts int) error
 	UpdateEmailLogByProviderID(ctx context.Context, providerEmailID, status string, errorMessage *string) error
 	GetEmailLogByProviderID(ctx context.Context, providerEmailID string) (*EmailLog, error)
-	MarkWebhookEventProcessed(ctx context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload []byte) (bool, error)
+	MarkWebhookEventProcessed(ctx context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload string) (bool, error)
 	ListEmailLogs(ctx context.Context, limit, offset int, status, emailFilter string) ([]EmailLog, error)
 
 	// ── Curriculum CMS ──
