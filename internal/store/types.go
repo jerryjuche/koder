@@ -25,7 +25,6 @@ type User struct {
 	GoogleID       *string     `db:"google_id" json:"-"`
 	GoogleEmail    *string     `db:"google_email" json:"-"`
 	GoogleAvatarURL *string   `db:"google_avatar_url" json:"google_avatar_url,omitempty"`
-	PINHash        *string     `db:"pin_hash" json:"-"`
 	UsernameSet    bool        `db:"username_set" json:"username_set"`
 	PrimaryLanguage string      `db:"primary_language" json:"primary_language"`
 	CreatedAt      time.Time   `db:"created_at" json:"created_at"`
@@ -86,7 +85,6 @@ type NewUser struct {
 	Name             string
 	Email            *string
 	Password         string // plaintext, will be hashed (empty for Google-only users)
-	PINHash          string // bcrypt hash of 6-digit PIN (empty for Google-only users)
 	Role             string // "student" | "admin"
 	UsernameSet      bool
 	PrimaryLanguage  string  // default "go"

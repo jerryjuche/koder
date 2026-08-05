@@ -670,8 +670,7 @@ type adminResetPasswordRequest struct {
 }
 
 // ResetUserPassword handles POST /admin/users/{id}/reset-password.
-// Admins can reset a user's password so accounts without a PIN or reachable
-// email can still be recovered.
+// Admins can force a password reset for accounts that lost access to their email.
 func (h *AdminHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	userID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {

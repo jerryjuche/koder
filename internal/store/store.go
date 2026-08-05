@@ -165,7 +165,6 @@ type Store interface {
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (string, time.Time, bool, error)
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
-	UpdateUserPINHash(ctx context.Context, userID uuid.UUID, pinHash string) error
 	CleanupExpiredPasswordResetTokens(ctx context.Context) error
 
 	// ── Curriculum CMS ──

@@ -260,7 +260,7 @@ func (h *AuthHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.Error("google_auth: failed to create user from Google", "error", err)
-		RespondError(w, http.StatusInternalServerError, "USER_CREATION_FAILED", "Unable to create account from Google profile", nil)
+		RespondError(w, http.StatusInternalServerError, "USER_CREATION_FAILED", "Unable to create account from Google profile", err.Error())
 		return
 	}
 

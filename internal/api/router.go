@@ -40,7 +40,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
-	pinResetHandler := NewPINResetHandler(store, cfg)
 	changePasswordHandler := NewChangePasswordHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
@@ -99,8 +98,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password-pin", pinResetHandler.ForgotPasswordPin)
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password-pin", pinResetHandler.ResetPasswordPin)
 		r.Get("/check-username", authHandler.CheckUsername)
 	})
 
@@ -144,8 +141,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/change-password", changePasswordHandler.ChangePassword)
-		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/verify-pin", changePasswordHandler.VerifyPin)
-		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/set-pin", changePasswordHandler.SetPin)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
