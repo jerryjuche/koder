@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"regexp"
 	"sync"
 	"time"
 
@@ -14,18 +13,21 @@ import (
 	"github.com/jerryjuche/koder/internal/store"
 )
 
-type pinRateLimiter struct {
+// passwordAttemptLimiter is a per-user sliding window limiter for
+// change-password verification attempts, preventing brute force against
+// the current password. 5 attempts per 15 minutes.
+type passwordAttemptLimiter struct {
 	mu       sync.Mutex
 	attempts map[string]int
 	lastSeen map[string]time.Time
 }
 
-var globalPinLimiter = &pinRateLimiter{
+var globalPasswordLimiter = &passwordAttemptLimiter{
 	attempts: make(map[string]int),
 	lastSeen: make(map[string]time.Time),
 }
 
-func (rl *pinRateLimiter) Allow(userID string) bool {
+func (rl *passwordAttemptLimiter) Allow(userID string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -59,138 +61,12 @@ func NewChangePasswordHandler(store store.Store, cfg *config.Config) *ChangePass
 }
 
 type changePasswordRequest struct {
-	Pin         string `json:"pin"`
-	NewPassword string `json:"new_password"`
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
 }
 
-type verifyPinRequest struct {
-	Pin string `json:"pin"`
-}
-
-type setPinRequest struct {
-	Pin        string `json:"pin"`
-	ConfirmPin string `json:"confirm_pin"`
-}
-
-// SetPin creates or updates a 6-digit recovery PIN for the authenticated user.
-// POST /auth/set-pin
-func (h *ChangePasswordHandler) SetPin(w http.ResponseWriter, r *http.Request) {
-	claims := GetClaims(r.Context())
-	if claims == nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
-		return
-	}
-
-	var req setPinRequest
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
-		return
-	}
-
-	if req.Pin == "" || req.ConfirmPin == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Both PIN and confirmation are required", nil)
-		return
-	}
-
-	if matched, _ := regexp.MatchString(`^\d{6}$`, req.Pin); !matched {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN must be exactly 6 digits", nil)
-		return
-	}
-
-	if req.Pin != req.ConfirmPin {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PINs do not match", nil)
-		return
-	}
-
-	userUUID, err := uuid.Parse(claims.UserID)
-	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_USER", "Invalid user ID", nil)
-		return
-	}
-
-	// Check if PIN already exists (requires verify first)
-	existing, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
-		return
-	}
-	if existing.PINHash != nil && *existing.PINHash != "" {
-		RespondError(w, http.StatusConflict, "PIN_ALREADY_SET", "A PIN is already set on this account. Use verify-pin to authenticate.", nil)
-		return
-	}
-
-	pinHash, err := auth.HashPassword(req.Pin)
-	if err != nil {
-		slog.Error("set_pin: failed to hash PIN", "error", err)
-		RespondError(w, http.StatusInternalServerError, "HASH_FAILED", "Unable to process PIN", nil)
-		return
-	}
-
-	if err := h.store.UpdateUserPINHash(r.Context(), userUUID, pinHash); err != nil {
-		slog.Error("set_pin: failed to update PIN hash", "error", err)
-		RespondError(w, http.StatusInternalServerError, "UPDATE_FAILED", "Unable to set PIN", nil)
-		return
-	}
-
-	slog.Info("set_pin: PIN set successfully", "user_id", claims.UserID)
-	RespondSuccess(w, map[string]string{"message": "Recovery PIN set successfully"})
-}
-
-// VerifyPin validates the user's 6-digit recovery PIN without changing the password.
-// POST /auth/verify-pin
-func (h *ChangePasswordHandler) VerifyPin(w http.ResponseWriter, r *http.Request) {
-	claims := GetClaims(r.Context())
-	if claims == nil {
-		RespondError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "Authentication required", nil)
-		return
-	}
-
-	var req verifyPinRequest
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&req); err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
-		return
-	}
-
-	if matched, _ := regexp.MatchString(`^\d{6}$`, req.Pin); !matched {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN must be exactly 6 digits", nil)
-		return
-	}
-
-	userUUID, err := uuid.Parse(claims.UserID)
-	if err != nil {
-		RespondError(w, http.StatusBadRequest, "INVALID_USER", "Invalid user ID", nil)
-		return
-	}
-
-	user, err := h.store.GetUserByID(r.Context(), userUUID)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
-		return
-	}
-
-	if !globalPinLimiter.Allow(claims.UserID) {
-		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
-		return
-	}
-
-	if user.PINHash == nil || *user.PINHash == "" {
-		RespondError(w, http.StatusBadRequest, "PIN_NOT_SET", "No PIN is set on this account", nil)
-		return
-	}
-
-	if !auth.ComparePassword(*user.PINHash, req.Pin) {
-		slog.Warn("verify_pin: incorrect PIN", "user_id", claims.UserID)
-		RespondError(w, http.StatusUnauthorized, "PIN_MISMATCH", "Incorrect PIN", nil)
-		return
-	}
-
-	RespondSuccess(w, map[string]bool{"valid": true})
-}
-
+// ChangePassword verifies the user's current password and updates it to a new one.
+// POST /auth/change-password
 func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	claims := GetClaims(r.Context())
 	if claims == nil {
@@ -206,12 +82,8 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if req.Pin == "" {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN is required", nil)
-		return
-	}
-	if matched, _ := regexp.MatchString(`^\d{6}$`, req.Pin); !matched {
-		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "PIN must be exactly 6 digits", nil)
+	if req.CurrentPassword == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Current password is required", nil)
 		return
 	}
 	if req.NewPassword == "" {
@@ -220,6 +92,14 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 	}
 	if len(req.NewPassword) < 8 {
 		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password must be at least 8 characters", nil)
+		return
+	}
+	if len(req.NewPassword) > 128 {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password must be at most 128 characters", nil)
+		return
+	}
+	if req.CurrentPassword == req.NewPassword {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "New password must be different from the current password", nil)
 		return
 	}
 
@@ -235,19 +115,20 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if !globalPinLimiter.Allow(claims.UserID) {
-		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many PIN attempts. Please wait 15 minutes.", nil)
+	// Google-only accounts have no password set; email reset is the only recovery path.
+	if user.Password == "" {
+		RespondError(w, http.StatusConflict, "NO_PASSWORD_SET", "No password is set on this account. Use password reset via email instead.", nil)
 		return
 	}
 
-	if user.PINHash == nil || *user.PINHash == "" {
-		RespondError(w, http.StatusBadRequest, "PIN_NOT_SET", "No PIN is set on this account. Please register a PIN first.", nil)
+	if !globalPasswordLimiter.Allow(claims.UserID) {
+		RespondError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many attempts. Please wait 15 minutes.", nil)
 		return
 	}
 
-	if !auth.ComparePassword(*user.PINHash, req.Pin) {
-		slog.Warn("change_password: incorrect PIN", "user_id", claims.UserID)
-		RespondError(w, http.StatusUnauthorized, "PIN_MISMATCH", "Incorrect PIN", nil)
+	if !auth.ComparePassword(user.Password, req.CurrentPassword) {
+		slog.Warn("change_password: incorrect current password", "user_id", claims.UserID)
+		RespondError(w, http.StatusUnauthorized, "INCORRECT_PASSWORD", "Current password is incorrect", nil)
 		return
 	}
 
@@ -262,5 +143,6 @@ func (h *ChangePasswordHandler) ChangePassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	slog.Info("change_password: password changed", "user_id", claims.UserID)
 	RespondSuccess(w, map[string]string{"message": "Password changed successfully"})
 }

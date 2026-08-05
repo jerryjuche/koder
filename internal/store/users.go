@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,13 +49,12 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		primaryLanguage = "go"
 	}
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, primary_language, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, NOW())
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, username_set, primary_language, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, NOW())
 		RETURNING id, created_at
 	`
 
-	pinHash := user.PINHash
-	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), pinHash, user.Role, colorIndex, user.UsernameSet, primaryLanguage).
+	err = s.pool.QueryRow(ctx, query, user.StudentID, user.Username, user.Name, email, string(hashedPassword), user.Role, colorIndex, user.UsernameSet, primaryLanguage).
 		Scan(&userID, &createdAt)
 	if err != nil {
 		if msg, ok := IsUniqueViolation(err); ok {
@@ -69,7 +69,6 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		Username:        user.Username,
 		Name:            user.Name,
 		Password:        string(hashedPassword),
-		PINHash:         &pinHash,
 		Role:            user.Role,
 		ColorIndex:      colorIndex,
 		XP:             0,
@@ -79,7 +78,7 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 	}, nil
 }
 
-// CreateUserFromGoogle creates a new user from Google OAuth info (no password, no PIN).
+// CreateUserFromGoogle creates a new user from Google OAuth info (no password set).
 func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUserInfo) (*User, error) {
 	if info == nil {
 		return nil, fmt.Errorf("google user info cannot be nil")
@@ -97,8 +96,8 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 	var createdAt pgtype.Timestamp
 
 	query := `
-		INSERT INTO users (student_id, username, name, email, password, pin_hash, role, color_index, xp, username_set, primary_language, google_id, google_email, google_avatar_url, created_at)
-		VALUES ($1, $2, $3, $4, '', '', 'student', $5, 0, false, 'go', $6, $7, $8, NOW())
+		INSERT INTO users (student_id, username, name, email, password, role, color_index, xp, username_set, primary_language, google_id, google_email, google_avatar_url, created_at)
+		VALUES ($1, $2, $3, $4, '', 'student', $5, 0, false, 'go', $6, $7, $8, NOW())
 		RETURNING id, created_at
 	`
 
@@ -203,7 +202,7 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
 		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE id = $1
@@ -217,7 +216,6 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, e
 		&user.Bio,
 		&user.Email,
 		&user.Password,
-		&user.PINHash,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
@@ -338,13 +336,13 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 	user := &User{}
 
 	query := `
-		SELECT id, student_id, username, name, bio, email, password, pin_hash, role, color_index, xp,
+		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
 		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
-		WHERE email = $1
+		WHERE LOWER(email) = LOWER($1)
 	`
 
-	err := s.pool.QueryRow(ctx, query, email).Scan(
+	err := s.pool.QueryRow(ctx, query, strings.TrimSpace(email)).Scan(
 		&user.ID,
 		&user.StudentID,
 		&user.Username,
@@ -352,7 +350,6 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 		&user.Bio,
 		&user.Email,
 		&user.Password,
-		&user.PINHash,
 		&user.Role,
 		&user.ColorIndex,
 		&user.XP,
@@ -384,8 +381,7 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 
 	query := `
 		SELECT id, student_id, username, name, bio, email, password, role, color_index, xp,
-		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language,
-		       pin_hash
+		       google_id, google_email, google_avatar_url, created_at, username_set, primary_language
 		FROM users
 		WHERE username = $1 OR email = $1 OR student_id = $1
 		LIMIT 1
@@ -408,7 +404,6 @@ func (s *PostgresStore) GetUserByLogin(ctx context.Context, login string) (*User
 		&user.CreatedAt,
 		&user.UsernameSet,
 		&user.PrimaryLanguage,
-		&user.PINHash,
 	)
 
 	if err != nil {
@@ -913,28 +908,6 @@ func (s *PostgresStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, pa
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
-	}
-	if cmdTag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
-	}
-	return nil
-}
-
-// UpdateUserPINHash updates the bcrypt-hashed PIN for a user.
-func (s *PostgresStore) UpdateUserPINHash(ctx context.Context, id uuid.UUID, pinHash string) error {
-	if id == uuid.Nil {
-		return fmt.Errorf("id cannot be nil")
-	}
-	if pinHash == "" {
-		return fmt.Errorf("pin hash cannot be empty")
-	}
-
-	cmdTag, err := s.pool.Exec(ctx,
-		`UPDATE users SET pin_hash = $1 WHERE id = $2`,
-		pinHash, id,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to update pin hash: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
 		return fmt.Errorf("user not found")

@@ -191,8 +191,7 @@ koder/
 │       ├── responses.go / _test.go  # Standardized JSON response helpers
 │       ├── auth.go                  # Register, login, Google, logout, refresh, onboarding
 │       ├── me.go                    # GET /me, set username/language, delete account, export
-│       ├── change_password.go       # PIN verification and password change
-│       ├── pin_reset.go             # PIN-based password recovery
+│       ├── change_password.go       # Current-password verification + password change
 │       ├── password_reset.go        # Email-based password reset (Resend)
 │       ├── problems.go              # GET /problems, GET /problems/:slug (language_versions-aware)
 │       ├── submissions.go           # POST /submit (rate-limited, scored)
@@ -326,7 +325,6 @@ CREATE TABLE users (
     role         TEXT NOT NULL DEFAULT 'student', -- 'student' | 'admin'
     color_index  INT NOT NULL DEFAULT 0,           -- Avatar color slot 0-7
     xp           INT NOT NULL DEFAULT 0,
-    pin_hash     TEXT,                    -- bcrypt of 6-digit recovery PIN
     username_set BOOLEAN NOT NULL DEFAULT false,
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
@@ -663,18 +661,14 @@ All endpoints return `application/json`. All protected endpoints require `Author
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | None | Create account (name + email + password + 6-digit PIN); JWT + refresh_token |
+| POST | `/auth/register` | None | Create account (name + email + password); JWT + refresh_token |
 | POST | `/auth/login` | None | Returns JWT + refresh_token (accepts username/email/student_id) |
 | POST | `/auth/google` | None | Google Sign-In with ID token; auto-creates account if new |
 | POST | `/auth/complete-onboarding` | Student | Set username + student_id after any auth method |
 | POST | `/auth/link-google` | Student | Link Google account to existing authenticated user |
-| POST | `/auth/change-password` | Student | Verify PIN + set new password (authenticated) |
-| POST | `/auth/verify-pin` | Student | Verify current PIN |
-| POST | `/auth/set-pin` | Student | Set initial PIN |
+| POST | `/auth/change-password` | Student | Verify current password + set new password (authenticated) |
 | POST | `/auth/forgot-password` | None | Email-based reset link (Resend API) |
 | POST | `/auth/reset-password` | None | Complete email-based reset with token |
-| POST | `/auth/forgot-password-pin` | None | PIN-based: email + 6-digit PIN → short-lived JWT (5 min, rate limited) |
-| POST | `/auth/reset-password-pin` | None | PIN-based: JWT + new password → update |
 | POST | `/auth/refresh` | Student | Rotate refresh token; reuse detection revokes all sessions |
 | POST | `/auth/logout` | Student | Revoke JWT + all refresh tokens |
 | GET | `/auth/check-username?username=xxx` | None | Username availability check (public) |
@@ -774,8 +768,10 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/admin/feedback/counts` | Admin | Feedback counts by status |
 | PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 | GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
+| GET | `/admin/email-logs` | Admin | Email delivery lifecycle (?status,?email,?limit,?offset) |
 | GET | `/health` | None | Service health (db ping, env info) |
 | GET | `/version` | None | Build commit + time + Go version |
+| POST | `/api/webhooks/resend` | None | Resend delivery webhook (Svix HMAC verified, email_logs tracking) |
 
 ### Curriculum — Student Learn
 
@@ -1018,8 +1014,9 @@ ALLOWED_ORIGINS=https://koder.sbs,https://www.koder.sbs,https://staging.koder.sb
 ```bash
 RESEND_API_KEY=<resend-api-key>
 EMAIL_FROM=Koder <noreply@koder.sbs>
+RESEND_WEBHOOK_SECRET=<whsec_...>   # Optional: delivery tracking via POST /api/webhooks/resend
 ```
-Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while PIN-by-login and admin reset remain fully functional.
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional. With `RESEND_WEBHOOK_SECRET` set, every reset email is traced in the `email_logs` table (Admin → Email Logs) from `created → sent → delivered`, with bounced/complained/failed outcomes reported by the Resend webhook.
 
 ### Required Frontend Environment (per branch)
 | Branch | `NEXT_PUBLIC_API_URL` |

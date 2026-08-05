@@ -239,6 +239,33 @@ func TestLoadConfig_EmailFromCustom(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_ResendWebhookSecretDefault(t *testing.T) {
+	requiredEnvVars(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.ResendWebhookSecret != "" {
+		t.Errorf("expected empty webhook secret by default, got %s", cfg.ResendWebhookSecret)
+	}
+}
+
+func TestLoadConfig_ResendWebhookSecretCustom(t *testing.T) {
+	requiredEnvVars(t)
+	t.Setenv("RESEND_WEBHOOK_SECRET", "whsec_testsecret")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.ResendWebhookSecret != "whsec_testsecret" {
+		t.Errorf("expected custom webhook secret, got %s", cfg.ResendWebhookSecret)
+	}
+}
+
 func TestExecutorTimeout(t *testing.T) {
 	cfg := &Config{ExecutorTimeoutSeconds: 30}
 	d := cfg.ExecutorTimeout()

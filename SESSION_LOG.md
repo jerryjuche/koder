@@ -2745,3 +2745,24 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `go vet ./internal/... ./cmd/...` clean; `go build ./cmd/server` OK; all 8 backend suites green (incl. 4 new parser regressions)
 - `npx tsc --noEmit` 0 errors; ESLint 0 errors on changed frontend files
 - Single combined commit pushed to `origin/update`
+
+## Session 105 — 2026-08-05 — 6-digit PIN removal → email-only recovery + password eye-toggles
+
+### Changes
+- **PIN system fully removed** — password recovery is now email-only; changing a password while signed in verifies the **current password** instead of the 6-digit recovery PIN:
+  - **`internal/api/change_password.go`** (266→148 LOC): `SetPin`/`VerifyPin`/`pinRateLimiter`/`globalPinLimiter` deleted; `ChangePassword` now accepts `{current_password, new_password}`, verifies via bcrypt against `users.password`, keeps a 5-attempt/15-min brute-force limiter (renamed `globalPasswordLimiter`), returns 409 `NO_PASSWORD_SET` for Google-only accounts, validates 8–128 chars + "must differ from current", uses `INCORRECT_PASSWORD` (401) on mismatch
+  - **`internal/api/pin_reset.go` deleted** (296 LOC) — the whole login/PIN → JWT recovery path, `identifierRateLimiter`, `pinResetKey` domain-separation, and `maskLogin` are gone
+  - **`internal/api/router.go`** (303→298): `/auth/set-pin`, `/auth/verify-pin`, `/auth/forgot-password-pin`, `/auth/reset-password-pin` routes + handler wiring removed; `/auth/change-password` retained in the authenticated group
+  - **Store:** `UpdateUserPINHash` removed from the `Store` interface (`store.go` 285→284) and impl (`users.go` 1,373→1,345); `pin_hash` dropped from the `CreateUser`/`CreateUserFromGoogle` INSERTs and the `GetUserByID`/`GetUserByEmail`/`GetUserByLogin` SELECT/Scan lists (placeholders renumbered); `PINHash` fields removed from `User` and `NewUser` (`types.go` 650→648)
+  - **Migration `migrations/050_drop_pin_hash.sql`** (new, 7 LOC): `ALTER TABLE users DROP COLUMN IF EXISTS pin_hash;` — production Supabase must run this manually (the `022_add_pin_hash.sql` column is obsolete)
+- **Frontend:**
+  - **`frontend/lib/api.ts`** (926→895): `forgotPasswordPin`/`resetPasswordPin`/`verifyPin`/`setPin` deleted; `changePassword(currentPassword, newPassword)` now posts `{current_password, new_password}`
+  - **`frontend/app/(auth)/forgot-password/page.tsx`** (419→148): now email-only — the two-tab (Email/PIN, default PIN) UI, `PinInput` step, PIN state/handlers all removed; single email form → "Check your inbox" success state
+  - **`frontend/app/(main)/settings/page.tsx`** (1,104→969): Security tab change-password dialog is now a single current/new/confirm form with per-field **eye toggles** (new `PasswordField` component, self-contained show/hide) + a "Forgot your current password? Reset via email" link to `/forgot-password`; the 3-step PIN flow (`pin` → `set-pin` → `password` → `done`), `PinInput`, `REGEXP_ONLY_DIGITS`, and `cpPinSubmitRef` are gone
+  - **`frontend/components/base/input/pin-input.tsx` deleted** (172 LOC) — `input-otp` dependency retained because the shadcn `ui/input-otp.tsx` wrapper still imports it
+- **Docs:** README.md (auth API table, users schema snippet, backend file tree) + CLAUDE.md (§6.2 handler table, §12 API/§12.1 auth route tables, §10 users row, §9.1 migration table + `022` flagged `[OBSOLETE]`, §19 RESEND note) purged of PIN references; §17 metrics updated (backend 63 src, frontend 159 TS/TSX, migrations 52, ~116,450 total tracked LOC)
+
+### Verification
+- `go vet ./internal/...` clean; `go build ./cmd/server ./internal/...` OK; all 8 backend suites green
+- `npx tsc --noEmit` 0 errors; ESLint 0 errors
+- Working tree: source + docs only; production DB requires running `050_drop_pin_hash.sql`

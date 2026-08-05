@@ -40,8 +40,8 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 
 	authHandler := NewAuthHandler(store, cfg)
 	passwordResetHandler := NewPasswordResetHandler(store, cfg)
-	pinResetHandler := NewPINResetHandler(store, cfg)
 	changePasswordHandler := NewChangePasswordHandler(store, cfg)
+	webhooksHandler := NewWebhooksHandler(store, cfg)
 
 	problemHandler := NewProblemHandler(store)
 	submissionHandler := NewSubmissionHandler(store, exec, b)
@@ -89,6 +89,10 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		})
 	})
 
+	// Public provider webhooks (Resend delivery events). Authenticated by
+	// signature verification inside the handler, not by auth middleware.
+	r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/api/webhooks/resend", webhooksHandler.HandleResend)
+
 	// Auth endpoints: IP-based rate limiting (10 req/min)
 	authRateLimiter := NewIPRateLimiter(10, 1*time.Minute)
 	r.Route("/auth", func(r chi.Router) {
@@ -99,8 +103,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password-pin", pinResetHandler.ForgotPasswordPin)
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password-pin", pinResetHandler.ResetPasswordPin)
 		r.Get("/check-username", authHandler.CheckUsername)
 	})
 
@@ -144,8 +146,6 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/complete-onboarding", authHandler.CompleteOnboarding)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/link-google", authHandler.LinkGoogle)
 		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/change-password", changePasswordHandler.ChangePassword)
-		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/verify-pin", changePasswordHandler.VerifyPin)
-		r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/auth/set-pin", changePasswordHandler.SetPin)
 
 		notificationsHandler := NewNotificationsHandler(store)
 		r.Get("/notifications", notificationsHandler.GetUnreadNotifications)
@@ -217,6 +217,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.Get("/admin/users/search", adminHandler.SearchUsers)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 			r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/admin/users/{id}/reset-password", adminHandler.ResetUserPassword)
+			r.Get("/admin/email-logs", passwordResetHandler.ListEmailLogs)
 
 			// Problem module locks
 			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)

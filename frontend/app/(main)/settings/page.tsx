@@ -1,6 +1,7 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -14,17 +15,64 @@ import { cn } from "@/lib/utils";
 import {
   fetchUser, fetchUserProfile, updateUserProfile, linkGoogle,
   deleteAccount, fetchRecentNotifications, fetchApi, logout,
-  changePassword, updateUsername, verifyPin, setPin,
+  changePassword, updateUsername,
 } from "@/lib/api";
 import { User, UserProfile, NotificationItem } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Avatar } from "@/components/base/avatar/avatar";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PinInput } from "@/components/base/input/pin-input";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 type Tab = "profile" | "appearance" | "notifications" | "security";
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoFocus,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  autoComplete?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          className="w-full bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:border-brand-muted-gold focus:outline-none h-11 rounded-xl px-4 pr-11 text-sm transition-colors"
+          placeholder={placeholder}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
+          aria-label={visible ? "Hide password" : "Show password"}
+          tabIndex={-1}
+        >
+          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function SettingsPageContent() {
   const searchParams = useSearchParams();
@@ -68,17 +116,13 @@ function SettingsPageContent() {
 
   // Change password
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const [cpPin, setCpPin] = useState('');
-  const [cpStep, setCpStep] = useState<'pin' | 'set-pin' | 'password' | 'done'>('pin');
+  const [cpStep, setCpStep] = useState<"password" | "done">("password");
+  const [cpCurrentPassword, setCpCurrentPassword] = useState('');
   const [cpNewPassword, setCpNewPassword] = useState('');
   const [cpConfirmPassword, setCpConfirmPassword] = useState('');
-  const [cpNewPin, setCpNewPin] = useState('');
-  const [cpConfirmNewPin, setCpConfirmNewPin] = useState('');
   const [cpLoading, setCpLoading] = useState(false);
   const [cpError, setCpError] = useState('');
 
-  const [cpShowPin, setCpShowPin] = useState(false);
-  const cpPinSubmitRef = useRef<HTMLButtonElement>(null);
   const { prompt } = useGoogleOneTap(
     useCallback(async (response: { credential: string }) => {
       setLinkingGoogle(true);
@@ -652,10 +696,10 @@ function SettingsPageContent() {
                   </div>
                   <div className="px-5 py-4 flex items-center justify-between">
                     <p className="text-sm text-brand-offwhite-muted">
-                      Use your 6-digit recovery PIN to change your password.
+                      Verify with your current password to set a new one.
                     </p>
                     <button
-                      onClick={() => { setChangePasswordOpen(true); setCpStep('pin'); setCpPin(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpNewPin(''); setCpConfirmNewPin(''); setCpError(''); }}
+                      onClick={() => { setChangePasswordOpen(true); setCpStep('password'); setCpCurrentPassword(''); setCpNewPassword(''); setCpConfirmPassword(''); setCpError(''); }}
                       className="bg-brand-charcoal-hover border border-brand-charcoal-border hover:bg-brand-charcoal-panel hover:border-brand-muted-gold/50 text-brand-offwhite px-4 py-2 rounded-lg font-bold text-sm transition-all shrink-0"
                     >
                       Change Password
@@ -668,208 +712,24 @@ function SettingsPageContent() {
                     <DialogHeader>
                       <DialogTitle className="text-brand-offwhite text-lg flex items-center gap-2">
                         <Shield size={18} className="text-brand-muted-gold" />
-                        {cpStep === 'pin' ? 'Verify your PIN' : cpStep === 'set-pin' ? 'Set up recovery PIN' : cpStep === 'password' ? 'Set new password' : 'Password changed'}
-                        {(cpStep === 'pin' || cpStep === 'set-pin') && (
-                          <button
-                            type="button"
-                            onClick={() => setCpShowPin((p) => !p)}
-                            className="ml-auto p-1.5 rounded-lg text-brand-offwhite-muted hover:text-brand-offwhite hover:bg-brand-charcoal-border transition-colors"
-                            aria-label={cpShowPin ? 'Hide PIN' : 'Show PIN'}
-                          >
-                            {cpShowPin ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        )}
+                        {cpStep === 'password' ? 'Change password' : 'Password changed'}
                       </DialogTitle>
                       <DialogDescription className="text-brand-offwhite-muted text-sm">
-                        {cpStep === 'pin'
-                          ? 'Enter your 6-digit recovery PIN to proceed.'
-                          : cpStep === 'set-pin'
-                          ? 'Create a 6-digit PIN for account recovery and password changes.'
-                          : cpStep === 'password'
-                          ? 'Choose a new password for your account.'
+                        {cpStep === 'password'
+                          ? 'Verify your identity with your current password, then choose a new one.'
                           : 'Your password has been updated.'}
                       </DialogDescription>
                     </DialogHeader>
 
-                    {cpStep === 'pin' && (
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!/^\d{6}$/.test(cpPin)) {
-                          setCpError('PIN must be exactly 6 digits');
-                          return;
-                        }
-                        setCpLoading(true);
-                        setCpError('');
-                        try {
-                          const res = await verifyPin(cpPin);
-                          if (res.success) {
-                            setCpStep('password');
-                          } else if (res.error?.code === 'PIN_MISMATCH') {
-                            setCpError('Incorrect PIN. Please try again.');
-                          } else if (res.error?.code === 'PIN_NOT_SET') {
-                            setCpStep('set-pin');
-                            setCpError('');
-                          } else {
-                            setCpError(res.error?.message || 'PIN verification failed');
-                          }
-                        } catch {
-                          setCpError('Unable to connect. Please try again.');
-                        } finally {
-                          setCpLoading(false);
-                        }
-                      }} className="space-y-5">
-                        {cpError && (
-                          <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                            {cpError}
-                          </div>
-                        )}
-                        <div className="flex justify-center py-4">
-                          <PinInput size="lg" mask={!cpShowPin}>
-                            <PinInput.Group
-                              maxLength={6}
-                              pattern={REGEXP_ONLY_DIGITS}
-                              value={cpPin}
-                              onChange={(v) => { setCpPin(v); if (cpError) setCpError(''); }}
-                              onComplete={(v) => {
-                                setCpPin(v);
-                                cpPinSubmitRef.current?.click();
-                              }}
-                              autoFocus
-                              hasError={cpError.includes('Incorrect PIN')}
-                            >
-                              <PinInput.Slot index={0} />
-                              <PinInput.Slot index={1} />
-                              <PinInput.Slot index={2} />
-                              <PinInput.Separator />
-                              <PinInput.Slot index={3} />
-                              <PinInput.Slot index={4} />
-                              <PinInput.Slot index={5} />
-                            </PinInput.Group>
-                          </PinInput>
-                        </div>
-                        <button
-                          ref={cpPinSubmitRef}
-                          type="submit"
-                          disabled={cpPin.length !== 6 || cpLoading}
-                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {cpLoading ? (
-                            <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-                          ) : (
-                            'Continue'
-                          )}
-                        </button>
-                      </form>
-                    )}
-
-                    {cpStep === 'set-pin' && (
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!/^\d{6}$/.test(cpNewPin)) {
-                          setCpError('PIN must be exactly 6 digits');
-                          return;
-                        }
-                        if (cpNewPin !== cpConfirmNewPin) {
-                          setCpError('PINs do not match');
-                          return;
-                        }
-                        setCpLoading(true);
-                        setCpError('');
-                        try {
-                          const res = await setPin(cpNewPin, cpConfirmNewPin);
-                          if (res.success) {
-                            setCpPin(cpNewPin);
-                            setCpStep('password');
-                          } else {
-                            setCpError(res.error?.message || 'Failed to set PIN');
-                          }
-                        } catch {
-                          setCpError('Unable to connect. Please try again.');
-                        } finally {
-                          setCpLoading(false);
-                        }
-                      }} className="space-y-4">
-                        {cpError && (
-                          <div role="alert" className="bg-brand-error/10 border border-brand-error/20 text-brand-error px-4 py-3 rounded-xl text-sm">
-                            {cpError}
-                          </div>
-                        )}
-                        <div className="bg-brand-muted-gold/5 border border-brand-muted-gold/20 rounded-xl px-4 py-3">
-                          <p className="text-xs text-brand-offwhite-muted">
-                            No recovery PIN is set on your account. Create a 6-digit PIN to enable password changes and account recovery.
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-                            New recovery PIN
-                          </label>
-                          <PinInput size="lg" mask={!cpShowPin}>
-                            <PinInput.Group
-                              maxLength={6}
-                              pattern={REGEXP_ONLY_DIGITS}
-                              value={cpNewPin}
-                              onChange={(v) => { setCpNewPin(v); setCpError(''); }}
-                              autoFocus
-                              hasError={!!cpError}
-                            >
-                              <PinInput.Slot index={0} />
-                              <PinInput.Slot index={1} />
-                              <PinInput.Slot index={2} />
-                              <PinInput.Separator />
-                              <PinInput.Slot index={3} />
-                              <PinInput.Slot index={4} />
-                              <PinInput.Slot index={5} />
-                            </PinInput.Group>
-                          </PinInput>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-                            Confirm recovery PIN
-                          </label>
-                          <PinInput size="lg" mask={!cpShowPin}>
-                            <PinInput.Group
-                              maxLength={6}
-                              pattern={REGEXP_ONLY_DIGITS}
-                              value={cpConfirmNewPin}
-                              onChange={(v) => { setCpConfirmNewPin(v); setCpError(''); }}
-                              hasError={!!cpError}
-                            >
-                              <PinInput.Slot index={0} />
-                              <PinInput.Slot index={1} />
-                              <PinInput.Slot index={2} />
-                              <PinInput.Separator />
-                              <PinInput.Slot index={3} />
-                              <PinInput.Slot index={4} />
-                              <PinInput.Slot index={5} />
-                            </PinInput.Group>
-                          </PinInput>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={cpNewPin.length !== 6 || cpConfirmNewPin.length !== 6 || cpLoading}
-                          className="w-full bg-brand-muted-gold hover:bg-brand-muted-gold-dark text-brand-charcoal-base h-11 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {cpLoading ? (
-                            <div className="w-4 h-4 border-2 border-brand-charcoal-base/30 border-t-brand-charcoal-base rounded-full animate-spin" />
-                          ) : (
-                            'Set PIN & continue'
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setCpStep('pin'); setCpError(''); }}
-                          className="w-full text-sm text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
-                        >
-                          Go back
-                        </button>
-                      </form>
-                    )}
-
                     {cpStep === 'password' && (
                       <form onSubmit={async (e) => {
                         e.preventDefault();
-                        if (cpNewPassword.length < 6) {
-                          setCpError('Password must be at least 6 characters');
+                        if (!cpCurrentPassword) {
+                          setCpError('Enter your current password');
+                          return;
+                        }
+                        if (cpNewPassword.length < 8) {
+                          setCpError('New password must be at least 8 characters');
                           return;
                         }
                         if (cpNewPassword !== cpConfirmPassword) {
@@ -879,7 +739,7 @@ function SettingsPageContent() {
                         setCpLoading(true);
                         setCpError('');
                         try {
-                          const res = await changePassword(cpPin, cpNewPassword);
+                          const res = await changePassword(cpCurrentPassword, cpNewPassword);
                           if (res.success) {
                             setCpStep('done');
                           } else {
@@ -896,31 +756,31 @@ function SettingsPageContent() {
                             {cpError}
                           </div>
                         )}
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-                            New password
-                          </label>
-                          <input
-                            type="password"
-                            value={cpNewPassword}
-                            onChange={(e) => setCpNewPassword(e.target.value)}
-                            className="w-full bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:border-brand-muted-gold focus:outline-none h-11 rounded-xl px-4 text-sm transition-colors"
-                            placeholder="At least 6 characters"
-                            autoFocus
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted mb-2">
-                            Confirm new password
-                          </label>
-                          <input
-                            type="password"
-                            value={cpConfirmPassword}
-                            onChange={(e) => setCpConfirmPassword(e.target.value)}
-                            className="w-full bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite placeholder:text-brand-offwhite-muted/40 focus:border-brand-muted-gold focus:outline-none h-11 rounded-xl px-4 text-sm transition-colors"
-                            placeholder="Re-enter your password"
-                          />
-                        </div>
+                        <PasswordField
+                          id="cp-current-password"
+                          label="Current password"
+                          value={cpCurrentPassword}
+                          onChange={setCpCurrentPassword}
+                          placeholder="Enter your current password"
+                          autoFocus
+                          autoComplete="current-password"
+                        />
+                        <PasswordField
+                          id="cp-new-password"
+                          label="New password"
+                          value={cpNewPassword}
+                          onChange={setCpNewPassword}
+                          placeholder="At least 8 characters"
+                          autoComplete="new-password"
+                        />
+                        <PasswordField
+                          id="cp-confirm-password"
+                          label="Confirm new password"
+                          value={cpConfirmPassword}
+                          onChange={setCpConfirmPassword}
+                          placeholder="Re-enter your password"
+                          autoComplete="new-password"
+                        />
                         <button
                           type="submit"
                           disabled={cpLoading}
@@ -932,6 +792,11 @@ function SettingsPageContent() {
                             'Change password'
                           )}
                         </button>
+                        <p className="text-center text-sm text-brand-offwhite-muted">
+                          <Link href="/forgot-password" className="inline-flex items-center gap-1.5 text-brand-offwhite font-bold hover:text-brand-muted-gold transition-colors">
+                            Forgot your current password? Reset via email
+                          </Link>
+                        </p>
                       </form>
                     )}
 
