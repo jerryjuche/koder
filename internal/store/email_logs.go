@@ -111,10 +111,16 @@ func (s *PostgresStore) GetEmailLogByProviderID(ctx context.Context, providerEma
 
 // MarkWebhookEventProcessed records a webhook event keyed by svix_id and
 // returns true if the event was new (dedupe for at-least-once delivery).
-func (s *PostgresStore) MarkWebhookEventProcessed(ctx context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload []byte) (bool, error) {
+//
+// payload is a string (not []byte): the pool runs in SimpleProtocol mode, where
+// pgx encodes []byte as bytea (\x hex) text — invalid JSON for the payload
+// column. A string is emitted as a quoted text literal, which Postgres' text →
+// jsonb assignment cast parses correctly. The explicit ::jsonb cast validates
+// the payload up front so malformed JSON fails with a clear error.
+func (s *PostgresStore) MarkWebhookEventProcessed(ctx context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload string) (bool, error) {
 	query := `
 		INSERT INTO email_webhook_events (svix_id, email_log_id, event_type, payload)
-		VALUES ($1, $2, $3, $4)
+		VALUES ($1, $2, $3, $4::jsonb)
 		ON CONFLICT (svix_id) DO NOTHING
 	`
 	ct, err := s.pool.Exec(ctx, query, svixID, emailLogID, eventType, payload)

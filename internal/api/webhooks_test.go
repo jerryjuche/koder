@@ -32,6 +32,7 @@ type fakeEmailLogStore struct {
 	markErr          error
 	updateErr        error
 	markedEventType  string
+	markedPayload    string
 	updateStatus     string
 	updateProviderID string
 	inserted         bool
@@ -41,8 +42,9 @@ func (f *fakeEmailLogStore) GetEmailLogByProviderID(_ context.Context, providerE
 	return f.emailLog, f.getErr
 }
 
-func (f *fakeEmailLogStore) MarkWebhookEventProcessed(_ context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload []byte) (bool, error) {
+func (f *fakeEmailLogStore) MarkWebhookEventProcessed(_ context.Context, svixID string, emailLogID *uuid.UUID, eventType string, payload string) (bool, error) {
 	f.markedEventType = eventType
+	f.markedPayload = payload
 	return f.inserted, f.markErr
 }
 
@@ -203,6 +205,9 @@ func TestWebhookProcessesDeliveredEvent(t *testing.T) {
 	}
 	if f.markedEventType != "email.delivered" {
 		t.Fatalf("expected delivered event recorded, got %q", f.markedEventType)
+	}
+	if f.markedPayload != string(body) {
+		t.Fatalf("expected raw JSON payload forwarded to the store, got %q", f.markedPayload)
 	}
 	if f.updateStatus != "delivered" {
 		t.Fatalf("expected status delivered, got %q", f.updateStatus)
