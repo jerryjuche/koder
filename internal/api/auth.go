@@ -18,6 +18,12 @@ import (
 
 var validUsername = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
+// refreshRotationGrace is the window (after a refresh token is rotated) during
+// which presenting the old token is considered a benign concurrent-refresh
+// race rather than a replay attack. Within this window the request is rejected
+// without cascading revocation; the client retries with the updated token.
+const refreshRotationGrace = 30 * time.Second
+
 type AuthHandler struct {
 	store  store.Store
 	config *config.Config
@@ -530,9 +536,19 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check revoked
+	// Check revoked. Token rotation invalidates the previous refresh token;
+	// concurrent refreshes (multiple tabs waking at the same expiry boundary)
+	// can present the just-rotated token. Only treat that as theft when the
+	// reuse is old — a genuinely replayed token is reused well after rotation.
+	// Fresh reuse (< rotationGrace) is the benign race: acknowledge without
+	// cascading revocation so the winning session stays alive and the client
+	// retries with the refreshed token from shared storage.
 	if stored.Revoked {
-		// Token reuse detected — revoke all tokens for this user (rotation compromise)
+		if stored.RevokedAt != nil && time.Since(*stored.RevokedAt) < refreshRotationGrace {
+			RespondError(w, http.StatusUnauthorized, "REFRESH_TOKEN_ROTATED", "Refresh token already rotated. Retry with the updated token.", nil)
+			return
+		}
+		// Stale reuse — genuine replay. Revoke all sessions for this user.
 		userUUID := uuid.UUID(stored.UserID.Bytes)
 		_ = h.store.RevokeAllUserRefreshTokens(r.Context(), userUUID)
 		RespondError(w, http.StatusUnauthorized, "REFRESH_TOKEN_REVOKED", "Refresh token has been revoked. All sessions invalidated.", nil)

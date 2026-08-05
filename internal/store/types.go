@@ -404,6 +404,7 @@ type RefreshToken struct {
 	TokenHash string      `db:"token_hash" json:"-"`
 	ExpiresAt time.Time   `db:"expires_at" json:"expires_at"`
 	Revoked   bool        `db:"revoked" json:"revoked"`
+	RevokedAt *time.Time  `db:"revoked_at" json:"revoked_at"`
 	CreatedAt time.Time   `db:"created_at" json:"created_at"`
 }
 

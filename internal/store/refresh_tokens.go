@@ -23,13 +23,13 @@ func (s *PostgresStore) CreateRefreshToken(ctx context.Context, userID uuid.UUID
 
 func (s *PostgresStore) GetRefreshToken(ctx context.Context, tokenHash string) (*RefreshToken, error) {
 	query := `
-		SELECT id, user_id, token_hash, expires_at, revoked, created_at
+		SELECT id, user_id, token_hash, expires_at, revoked, revoked_at, created_at
 		FROM refresh_tokens
 		WHERE token_hash = $1
 	`
 	var t RefreshToken
 	err := s.pool.QueryRow(ctx, query, tokenHash).Scan(
-		&t.ID, &t.UserID, &t.TokenHash, &t.ExpiresAt, &t.Revoked, &t.CreatedAt,
+		&t.ID, &t.UserID, &t.TokenHash, &t.ExpiresAt, &t.Revoked, &t.RevokedAt, &t.CreatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -41,7 +41,7 @@ func (s *PostgresStore) GetRefreshToken(ctx context.Context, tokenHash string) (
 }
 
 func (s *PostgresStore) RevokeRefreshToken(ctx context.Context, tokenID uuid.UUID) error {
-	query := `UPDATE refresh_tokens SET revoked = true WHERE id = $1`
+	query := `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = $1`
 	_, err := s.pool.Exec(ctx, query, tokenID)
 	if err != nil {
 		return fmt.Errorf("failed to revoke refresh token: %w", err)
@@ -50,7 +50,7 @@ func (s *PostgresStore) RevokeRefreshToken(ctx context.Context, tokenID uuid.UUI
 }
 
 func (s *PostgresStore) RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
-	query := `UPDATE refresh_tokens SET revoked = true WHERE user_id = $1 AND revoked = false`
+	query := `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE user_id = $1 AND revoked = false`
 	_, err := s.pool.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to revoke all user refresh tokens: %w", err)

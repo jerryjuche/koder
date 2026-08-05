@@ -138,8 +138,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.JWTExpiryHours != 24 {
 		t.Errorf("expected default JWTExpiryHours 24, got %d", cfg.JWTExpiryHours)
 	}
-	if cfg.AccessTokenMinutes != 15 {
-		t.Errorf("expected default AccessTokenMinutes 15, got %d", cfg.AccessTokenMinutes)
+	if cfg.AccessTokenMinutes != 60 {
+		t.Errorf("expected default AccessTokenMinutes 60, got %d", cfg.AccessTokenMinutes)
 	}
 	if cfg.RefreshTokenDays != 7 {
 		t.Errorf("expected default RefreshTokenDays 7, got %d", cfg.RefreshTokenDays)
