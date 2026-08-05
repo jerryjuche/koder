@@ -146,7 +146,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cms.go` | 1,428 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
 | `me.go` | 360 | `MeHandler` — GetMe (cached 30s), SetUsername (one-time 403), UpdateLanguage, DeleteAccount (cascade), ExportData (JSON) |
 | `change_password.go` | 148 | `ChangePasswordHandler` — ChangePassword (current-password verify, 5/15min rate-limit) |
-| `password_reset.go` | 255 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok), ResetPassword (SHA-256 token) |
+| `password_reset.go` | 409 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready) |
 | `broadcasts.go` | 237 | `BroadcastsHandler` — ListActive, Dismiss (student); ListAll, Create, Deactivate, Activate, Delete (admin) |
 | `feedback.go` | 345 | `FeedbackHandler` — Submit (10MB, screenshot, Resend + in-app notification), ListMyFeedback, ListAdmin (status filter), Counts, UpdateStatus, ListProblemReports |
 | `problems.go` | 202 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED), optional auth bypass |
@@ -163,13 +163,14 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `ws.go` | 75 | `WSHandler` — WebSocket upgrade (gorilla), broker subscribe/unsubscribe, write pump (30s pong) |
 | `cache.go` | 132 | Generic TTL cache (30s): `userCache`, `profileCache`, `leaderboardCache`, `problemsCache` + `StopCaches()` |
 | `responses.go` | 95 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
+| `webhooks.go` | 218 | `WebhooksHandler` — POST /api/webhooks/resend (Svix HMAC verification, delivery-event → email_logs status, svix-id dedupe) |
 
-### 6.3 Store Layer (`internal/store/` — 21 files, 6,367 LOC)
+### 6.3 Store Layer (`internal/store/` — 22 files, 6,555 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `store.go` | 285 | `Store` interface (~152 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
-| `types.go` | 650 | ~50 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
+| `store.go` | 293 | `Store` interface (~159 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
+| `types.go` | 676 | ~52 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, EmailLog, EmailLogEvent, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
 | `users.go` | 1,373 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade) |
 | `problems.go` | 809 | 12+ functions: ListVisibleProblems (LATERAL JOIN, `NOT EXISTS` + `EXISTS` locking), UpsertEnrichedProblem (tx), UpdateProblem (16 fields, merge semantics) |
 | `curriculum.go` | 1,146 | 30+ functions: Full CMS CRUD for courses/modules/lessons/sections/projects + dependency management + progress tracking (UpsertCourseProgress, UpsertLessonProgress with GREATER NEVER DECREASE) |
@@ -189,6 +190,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `errors.go` | 67 | `FriendlyError` (Code+Message), `IsUniqueViolation` (23505), constraint→message map |
 | `token_blacklist.go` | 33 | BlacklistToken, IsTokenBlacklisted, CleanupExpired |
 | `password_reset.go` | 48 | Create, Get, MarkUsed, CleanupExpired |
+| `email_logs.go` | 188 | Email delivery lifecycle: CreateEmailLog, UpdateEmailLogStatus, UpdateEmailLogAttempts, UpdateEmailLogByProviderID (status precedence), GetEmailLogByProviderID, MarkWebhookEventProcessed (svix-id dedupe), ListEmailLogs (status/email filters) |
 
 ### 6.4 Auth (`internal/auth/` — 3 source + 2 test files, 364 + 320 LOC)
 
@@ -613,6 +615,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 032 | `045_add_module_locks.sql` | 5 | module_locks table (problem category locking) |
 | 033 | `047_add_param_names.sql` | 17 | param_names TEXT[] on problems for descriptive parameter names in scaffold generation |
 | 034 | `050_drop_pin_hash.sql` | 7 | Drops pin_hash — 6-digit PIN system removed; email + current-password recovery only |
+| 035 | `051_email_logs.sql` | 38 | email_logs lifecycle table + email_webhook_events (svix-id dedupe), indexes |
 
 ### 9.2 Seed Data Migrations (17 files)
 
@@ -841,6 +844,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | GET | `/admin/users/search` | SearchUsers | `admin.go` |
 | PATCH | `/admin/users/{id}/verified` | ToggleUserVerified | `admin.go` |
 | POST | `/admin/users/{id}/reset-password` | ResetUserPassword | `admin.go` |
+| GET | `/admin/email-logs` | ListEmailLogs (?limit,?offset,?status,?email) | `password_reset.go` |
 | GET | `/admin/module-locks` | ListProblemModuleLocks | `admin.go` |
 | POST | `/admin/module-locks/{moduleName}` | ToggleProblemModuleLock | `admin.go` |
 | DELETE | `/admin/problem-modules/{moduleName}` | DeleteProblemModule | `admin.go` |
@@ -875,13 +879,14 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | PATCH | `/admin/broadcasts/{id}/activate` | Activate | `broadcasts.go` |
 | DELETE | `/admin/broadcasts/{id}` | Delete | `broadcasts.go` |
 
-### 12.9 WebSocket & Utility (3 endpoints)
+### 12.9 WebSocket & Utility (4 endpoints)
 
 | Method | Path | Handler | File |
 |---|---|---|---|
 | GET | `/ws` | WebSocket (gorilla + broker) | `ws.go` |
 | GET | `/health` | inline | `router.go` |
 | POST | `/api/format` | Format (auth; gofmt in-process / black via sandbox) | `format.go` |
+| POST | `/api/webhooks/resend` | HandleResend (Svix HMAC verified, public) | `webhooks.go` |
 
 ---
 
@@ -1039,8 +1044,9 @@ ALLOWED_ORIGINS=https://koder.sbs,https://staging.koder.sbs,https://update.koder
 ```bash
 RESEND_API_KEY=<resend-api-key>
 EMAIL_FROM=Koder <noreply@koder.sbs>
+RESEND_WEBHOOK_SECRET=<whsec_...>   # Optional: enables delivery tracking via POST /api/webhooks/resend
 ```
-Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional.
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional. With `RESEND_WEBHOOK_SECRET` set, every reset email is traced in the `email_logs` table (Admin → Email Logs) from `created → sent → delivered`, with bounced/complained/failed outcomes and reasons reported by the Resend webhook.
 
 ### Required Frontend Environment
 ```bash
@@ -1051,6 +1057,19 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 106: Email delivery diagnostics (Resend webhook + email_logs)
+- **Root cause hunt:** "6 reset flows → 1 email delivered" traced to a blind spot — the backend treated a Resend `200` as success but never read the response body, and had no way to learn the true outcome (delivered/bounced/failed) after the email left Resend
+- **`internal/store/email_logs.go`** (new, 188 LOC): email lifecycle tracking — `CreateEmailLog`, `UpdateEmailLogStatus`, `UpdateEmailLogAttempts`, `UpdateEmailLogByProviderID` (SQL status precedence: bounced/complained/failed terminal > delivered > delivery_delayed > sent > created), `GetEmailLogByProviderID`, `MarkWebhookEventProcessed` (svix-id dedupe), `ListEmailLogs` (status/email filters); 7 new methods on the `Store` interface
+- **`internal/api/webhooks.go`** (new, 218 LOC): `POST /api/webhooks/resend` — public route registered outside all auth groups; Svix signature verification (HMAC-SHA256 over `{id}.{timestamp}.{body}` with base64-decoded `whsec_` secret, ±5 min timestamp tolerance, constant-time compare) with zero new dependencies; maps `email.delivered/bounced/complained/delivery_delayed/failed` to `email_logs` statuses by provider email id; dedupes on `svix-id` (at-least-once delivery); bounces surface their reason; always returns 200 to acknowledge
+- **`internal/api/password_reset.go`** (255→409 LOC): `ForgotPassword` now creates an `email_logs` row (reset_id UUID) before the async send; `sendResetEmail` reads the Resend response body (extracts provider `id`, parses error messages), retries once on transient failures (5xx/429/network), tracks attempts, writes `sent`/`failed` statuses, and has a panic-recovery wrapper; new admin handler `ListEmailLogs`
+- **`migrations/051_email_logs.sql`** (new, 38 LOC): `email_logs` (statuses created/sent/delivered/delivery_delayed/bounced/complained/failed, provider_email_id, attempts, error, delivered_at) + `email_webhook_events` (svix_id UNIQUE dedupe, FK to email_logs)
+- **Admin UI:** `EmailLogsPanel.tsx` (new, 200 LOC) — status-badged delivery table with email/status filters, attempts, provider id, error detail, created/delivered timestamps; wired as an "Email Logs" accordion section in the admin dashboard
+- **Routes:** `GET /admin/email-logs` (?limit,?offset,?status,?email) in the AdminOnly group; `POST /api/webhooks/resend` public (1MB body limit)
+- **Config:** optional `RESEND_WEBHOOK_SECRET` (config.go + .env.example + CLAUDE.md §19) — unset webhook endpoint returns 503
+- **Tests:** 13 new webhook tests (signature valid/wrong-secret/tampered/stale/missing-headers/undecodable-secret, 503 when unconfigured, invalid signature, delivered processing, duplicate ack, unknown event, missing email log) + 2 config tests
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green (161 tests), `tsc --noEmit` 0 errors, ESLint 0 errors
+- **Deployment:** run `migrations/051_email_logs.sql` on Supabase; set `RESEND_WEBHOOK_SECRET` on Render; create the webhook in the Resend dashboard pointing at `https://api.koder.sbs/api/webhooks/resend` and subscribe to the email delivery events
 
 ### 2026-08-05 — Session 105: 6-digit PIN removal → email-only recovery + password eye-toggles
 - **PIN system fully removed** — recovery is now email-only; change-password verifies the **current password** instead of a PIN:
@@ -1336,4 +1355,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (146 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (161 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*

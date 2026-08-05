@@ -407,6 +407,34 @@ type RefreshToken struct {
 	CreatedAt time.Time   `db:"created_at" json:"created_at"`
 }
 
+// EmailLog tracks the lifecycle of a transactional email from creation through
+// delivery. Status values: created, sent, delivered, delivery_delayed, bounced,
+// complained, failed.
+type EmailLog struct {
+	ID              pgtype.UUID `db:"id" json:"id"`
+	ResetID         *pgtype.UUID `db:"reset_id" json:"reset_id,omitempty"`
+	Email           string       `db:"email" json:"email"`
+	Flow            string       `db:"flow" json:"flow"`
+	Status          string       `db:"status" json:"status"`
+	ProviderEmailID *string      `db:"provider_email_id" json:"provider_email_id,omitempty"`
+	Attempts        int          `db:"attempts" json:"attempts"`
+	Error           *string      `db:"error" json:"error,omitempty"`
+	DeliveredAt     *time.Time   `db:"delivered_at" json:"delivered_at,omitempty"`
+	CreatedAt       time.Time    `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time    `db:"updated_at" json:"updated_at"`
+}
+
+// EmailLogEvent records a single webhook event received from Resend. The
+// svix_id is the dedupe key — Resend webhooks deliver at-least-once.
+type EmailLogEvent struct {
+	ID          pgtype.UUID `db:"id" json:"id"`
+	SvixID      string      `db:"svix_id" json:"svix_id"`
+	EmailLogID  *pgtype.UUID `db:"email_log_id" json:"email_log_id,omitempty"`
+	EventType   string      `db:"event_type" json:"event_type"`
+	Payload     []byte      `db:"payload" json:"-"`
+	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
+}
+
 // UserSearchResult is a lightweight user record returned by admin user search.
 type UserSearchResult struct {
 	ID              pgtype.UUID `json:"id"`

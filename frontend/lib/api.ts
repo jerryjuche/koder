@@ -7,6 +7,7 @@ import {
   AdminStats,
   AIUsageStats,
   ActivityLog,
+  EmailLog,
   UserProfile,
   UserProblem,
   CommunitySolution,
@@ -405,6 +406,21 @@ export async function fetchAdminActivity(): Promise<
   ApiResponse<ActivityLog[]>
 > {
   return fetchApi<ActivityLog[]>("/admin/activity");
+}
+
+export async function fetchEmailLogs(params?: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  email?: string;
+}): Promise<ApiResponse<EmailLog[]>> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  if (params?.status) qs.set("status", params.status);
+  if (params?.email) qs.set("email", params.email);
+  const query = qs.toString();
+  return fetchApi<EmailLog[]>(`/admin/email-logs${query ? `?${query}` : ""}`);
 }
 
 export async function fetchAllProblemsAdmin(): Promise<ApiResponse<Problem[]>> {
