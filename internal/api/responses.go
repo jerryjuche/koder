@@ -63,7 +63,10 @@ func SetAuthCookie(w http.ResponseWriter, r *http.Request, token string, cfg *co
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
-		MaxAge:   int(cfg.JWTExpiry().Seconds()),
+		// Match the cookie's lifetime to the access token it carries so the
+		// cookie can never outlive its own validity (previously used JWTExpiry,
+		// which outlasted the token and could surface stale 401s).
+		MaxAge: int(cfg.AccessTokenExpiry().Seconds()),
 	})
 }
 

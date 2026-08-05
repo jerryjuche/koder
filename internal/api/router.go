@@ -96,11 +96,16 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	// Auth endpoints: IP-based rate limiting (10 req/min)
 	authRateLimiter := NewIPRateLimiter(10, 1*time.Minute)
 	r.Route("/auth", func(r chi.Router) {
+		// /auth/refresh is intentionally OUTSIDE the per-IP limiter: it is the
+		// token-renewal resilience path that fires whenever an access token
+		// expires (potentially from several tabs at once). Collateral 429s here
+		// surface to users as forced logouts.
+		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
+
 		r.Use(authRateLimiter.Middleware)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/register", authHandler.Register)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/login", authHandler.Login)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/google", authHandler.GoogleAuth)
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/forgot-password", passwordResetHandler.ForgotPassword)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/reset-password", passwordResetHandler.ResetPassword)
 		r.Get("/check-username", authHandler.CheckUsername)

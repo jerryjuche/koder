@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (146 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (165 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -40,7 +40,7 @@
 |---|---|---|---|
 | **Go Backend** (`cmd/` + `internal/`) | 63 source + 15 test | ~17,954 + ~3,457 | 8 packages, 151 Store interface methods, 116 API endpoints; includes 4 cmd tools |
 | **Go Sandbox** (`sandbox/`) | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter |
-| **SQL Migrations** (`migrations/`) | 52 | ~27,478 | 34 schema + 17 seed/content + 1 content-refresh, 25 tables |
+| **SQL Migrations** (`migrations/`) | 53 | ~27,484 | 35 schema + 17 seed/content + 1 content-refresh, 25 tables |
 | **Frontend App** (`app/`) | 73 `.tsx` | ~17,410 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
 | **Frontend Components** (`components/`) | 65 | ~10,887 | 22 shadcn/ui + 43 custom |
 | **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~3,778 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
@@ -616,6 +616,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | 033 | `047_add_param_names.sql` | 17 | param_names TEXT[] on problems for descriptive parameter names in scaffold generation |
 | 034 | `050_drop_pin_hash.sql` | 7 | Drops pin_hash — 6-digit PIN system removed; email + current-password recovery only |
 | 035 | `051_email_logs.sql` | 38 | email_logs lifecycle table + email_webhook_events (svix-id dedupe), indexes |
+| 036 | `052_refresh_tokens_revoked_at.sql` | 6 | revoked_at TIMESTAMPTZ on refresh_tokens — rotation-grace reuse detection (benign concurrent-refresh race vs replay) |
 
 ### 9.2 Seed Data Migrations (17 files)
 
@@ -913,7 +914,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (15 backend + 2 sandbox test files, ~3,685 LOC, 146 backend + 11 sandbox tests)
+## 15. Testing Strategy (15 backend + 2 sandbox test files, ~3,685 LOC, 165 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -921,6 +922,8 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/api` | `problems_test.go` (35 LOC) | 1 |
 | `internal/api` | `responses_test.go` (214 LOC) | 9 |
 | `internal/api` | `format_test.go` (138 LOC) | 6 |
+| `internal/api` | `webhooks_test.go` (290 LOC) | 13 |
+| `internal/api` | `auth_test.go` (119 LOC) | 4 |
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
@@ -934,7 +937,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
 | `sandbox` | `format_test.go` (196 LOC) | 8 (6 black-gated) |
-| **Total** | **17 files (~3,685 LOC)** | **157 tests** |
+| **Total** | **19 files** | **176 tests (165 backend + 11 sandbox)** |
 
 ---
 
@@ -1057,6 +1060,22 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 108: Frequent-logout fix — refresh rotation race + auth limiter decoupling
+- **Reported issue:** user "logged out frequently"; a 300s "domain TTL" was suspected but DNS TTL cannot affect sessions — full codebase scan of the auth chain (JWT issue/refresh/logout, middleware, `fetchApi`/`tryRefreshToken`, `UserContext`, polling) found the real causes
+- **Root cause 1 — token-rotation race killed all sessions:** on expiry (access token default 15 min), every active tab/background poll (`useNotifications` 7s when visible, BroadcastBanner 30s, WS reconnects) independently hit `/auth/refresh`. Rotation revokes the old refresh token; a second request presenting the just-revoked token was treated as theft → `RevokeAllUserRefreshTokens` (`auth.go:537`) nuked every session → 401 `REFRESH_TOKEN_REVOKED` → frontend cleared tokens → `UserContext` → `router.replace("/")`. The `isRefreshing` queue only guards one tab's JS realm; localStorage is shared across tabs
+- **Root cause 2 — `/auth/refresh` sat behind the per-IP 10 req/min limiter** (`router.go:97`): refresh bursts (multi-tab, short TTL) → 429 → refresh fails → `fetchUser` fails → landing-page bounce
+- **Root cause 3 (latent) — HttpOnly `koder_token` cookie outlived its token:** `SetAuthCookie` MaxAge = `JWTExpiry()` (24h) but stored the 15-min access token → any cookie-fallback request could 401
+- **Root cause 4 — `logout()` never cleared localStorage** → next visit to `/` retried `/me` with revoked tokens → landing flash
+- **Fix 1 — rotation-grace reuse detection** (`auth.go`): new `refreshRotationGrace` (30s); fresh reuse (< 30s `revoked_at`) → `REFRESH_TOKEN_ROTATED` WITHOUT cascading revocation; stale reuse → genuine replay → revoke-all. Migration `052_refresh_tokens_revoked_at.sql` + `RevokedAt` on `RefreshToken` type/`GetRefreshToken`; revoke queries now stamp `revoked_at`
+- **Fix 2 — frontend retry-once** (`api.ts`): `attemptRefresh()` returns `{success, rotated}`; on `REFRESH_TOKEN_ROTATED` it waits 400ms (winner persists the next token to shared localStorage) then retries once with the updated token before giving up; tokens are only cleared on hard failure
+- **Fix 3 — `/auth/refresh` moved OUT of the shared IP limiter** (`router.go:98-107`): registered before `r.Use(authRateLimiter.Middleware)` so the renewal path can't be collateral-429'd
+- **Fix 4 — cookie MaxAge = `AccessTokenExpiry()`** (`responses.go:66`): cookie can no longer outlive its token
+- **Fix 5 — `logout()` clears `koder_token`/`refresh_token`** in a `finally` block (`api.ts`)
+- **Fix 6 — default `ACCESS_TOKEN_EXPIRY_MINUTES` 15 → 60** (`config.go:148`, config test, `.env.example`, README) to cut refresh collisions ~4× (existing Render env override unchanged)
+- **Tests:** new `internal/api/auth_test.go` — 4 tests (fresh reuse benign → no revoke-all; stale reuse → revoke-all; revoked-without-timestamp → safe default revoke-all; lookup error → 500)
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green (165 tests), `tsc --noEmit` 0 errors, ESLint 0 errors
+- **Deployment:** run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; deploy backend + frontend
 
 ### 2026-08-05 — Session 107: Production hotfix — webhook jsonb payload encoding (SimpleProtocol bytea bug)
 - **Production incident:** live Resend webhooks (signatures now passing) failed at `MarkWebhookEventProcessed` with `invalid input syntax for type json (SQLSTATE 22P02)`, causing 500s → infinite Resend retries on the same `svix_id`
@@ -1363,4 +1382,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (161 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (165 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*

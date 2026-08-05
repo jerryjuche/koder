@@ -41,6 +41,53 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:808
 let isRefreshing = false;
 let refreshQueue: Array<{ resolve: (v: boolean) => void }> = [];
 
+// Rotation race retry: after a REFRESH_TOKEN_ROTATED response the winning tab
+// has already persisted the next token to shared localStorage. Give it a short
+// window to do so before retrying once with the updated token.
+const ROTATION_RETRY_DELAY_MS = 400;
+
+type RefreshResult = { success: boolean; rotated: boolean };
+
+async function attemptRefresh(token: string): Promise<RefreshResult> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: token }),
+    });
+
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      // non-JSON body — treat as failure below
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      // A freshly-rotated token is a benign concurrent-refresh race, not a
+      // dead session — the caller retries with the shared, updated token.
+      if (data?.error?.code === "REFRESH_TOKEN_ROTATED") {
+        return { success: false, rotated: true };
+      }
+      return { success: false, rotated: false };
+    }
+    if (!res.ok) {
+      return { success: false, rotated: false };
+    }
+
+    if (data?.data?.token) {
+      localStorage.setItem("koder_token", data.data.token);
+    }
+    if (data?.data?.refresh_token) {
+      localStorage.setItem("refresh_token", data.data.refresh_token);
+    }
+    return { success: true, rotated: false };
+  } catch {
+    return { success: false, rotated: false };
+  }
+}
+
 async function tryRefreshToken(): Promise<boolean> {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return false;
@@ -52,32 +99,26 @@ async function tryRefreshToken(): Promise<boolean> {
 
   let success = false;
   try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (res.status === 401 || res.status === 403) {
+    let result = await attemptRefresh(refreshToken);
+
+    // Benign rotation race (another tab/context rotated first): wait for the
+    // winner to persist the next token, then retry once with it.
+    if (!result.success && result.rotated) {
+      await new Promise((r) => setTimeout(r, ROTATION_RETRY_DELAY_MS));
+      const updatedToken = localStorage.getItem("refresh_token");
+      if (updatedToken && updatedToken !== refreshToken) {
+        result = await attemptRefresh(updatedToken);
+      }
+    }
+
+    success = result.success;
+
+    // Hard auth failure (revoked/expired/not-found) — the session is genuinely
+    // dead, so drop credentials so a fresh login can start cleanly.
+    if (!result.success && !result.rotated) {
       localStorage.removeItem("koder_token");
       localStorage.removeItem("refresh_token");
-      success = false;
-    } else if (!res.ok) {
-      success = false;
-    } else {
-      const data = await res.json();
-      if (data?.data) {
-        if (data.data.token) {
-          localStorage.setItem("koder_token", data.data.token);
-        }
-        if (data.data.refresh_token) {
-          localStorage.setItem("refresh_token", data.data.refresh_token);
-        }
-      }
-      success = true;
     }
-  } catch {
-    success = false;
   } finally {
     isRefreshing = false;
     refreshQueue.forEach((q) => q.resolve(success));
@@ -252,9 +293,16 @@ export async function linkGoogle(
 }
 
 export async function logout(): Promise<ApiResponse<{ message: string }>> {
-  return fetchApi<{ message: string }>("/auth/logout", {
-    method: "POST",
-  });
+  try {
+    return await fetchApi<{ message: string }>("/auth/logout", {
+      method: "POST",
+    });
+  } finally {
+    // Always drop credentials locally — even if the server call fails, the
+    // client must not keep dead tokens that would trip the next visit to "/".
+    localStorage.removeItem("koder_token");
+    localStorage.removeItem("refresh_token");
+  }
 }
 
 export async function checkUsername(
