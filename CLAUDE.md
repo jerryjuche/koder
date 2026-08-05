@@ -1058,6 +1058,14 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ## 20. Session Log (Recent)
 
+### 2026-08-05 — Session 107: Production hotfix — webhook jsonb payload encoding (SimpleProtocol bytea bug)
+- **Production incident:** live Resend webhooks (signatures now passing) failed at `MarkWebhookEventProcessed` with `invalid input syntax for type json (SQLSTATE 22P02)`, causing 500s → infinite Resend retries on the same `svix_id`
+- **Root cause:** the pool runs in `QueryExecModeSimpleProtocol` (`store.go:259`); pgx encodes `[]byte` params as **bytea** (`\x` hex text), so the raw webhook body was inserted into the `payload JSONB` column as `\x7b...`, which Postgres cannot parse as JSON. Unit tests missed it because they use a `fakeEmailLogStore`, never a real Postgres
+- **Fix:** `MarkWebhookEventProcessed` payload param `[]byte` → `string` (text literal + Postgres `text → jsonb` assignment cast) across all 4 sites — `internal/store/email_logs.go` (impl + `$4::jsonb` defensive cast), `internal/store/store.go` (interface), `internal/api/webhooks.go` (call site passes `string(rawBody)`), `internal/api/webhooks_test.go` (fake signature)
+- **Regression guard:** fake store now captures `markedPayload`; `TestWebhookProcessesDeliveredEvent` asserts the raw JSON body is forwarded verbatim to the store
+- **Verified:** `go vet` clean, `go build ./cmd/server ./internal/...` OK, 8/8 backend suites green, all 6 webhook tests pass
+- **Effect after deploy:** Resend auto-retries the queued events; the dedupe (svix_id) records them once and flips matching `email_logs` rows to `delivered` — no migration or Resend change required
+
 ### 2026-08-05 — Session 106: Email delivery diagnostics (Resend webhook + email_logs)
 - **Root cause hunt:** "6 reset flows → 1 email delivered" traced to a blind spot — the backend treated a Resend `200` as success but never read the response body, and had no way to learn the true outcome (delivered/bounced/failed) after the email left Resend
 - **`internal/store/email_logs.go`** (new, 188 LOC): email lifecycle tracking — `CreateEmailLog`, `UpdateEmailLogStatus`, `UpdateEmailLogAttempts`, `UpdateEmailLogByProviderID` (SQL status precedence: bounced/complained/failed terminal > delivered > delivery_delayed > sent > created), `GetEmailLogByProviderID`, `MarkWebhookEventProcessed` (svix-id dedupe), `ListEmailLogs` (status/email filters); 7 new methods on the `Store` interface

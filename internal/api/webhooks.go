@@ -117,7 +117,9 @@ func (h *WebhooksHandler) HandleResend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Record the raw event (dedupe on svix_id — delivery is at-least-once).
-	inserted, err := h.store.MarkWebhookEventProcessed(r.Context(), id, emailLogID, event.Type, rawBody)
+	// The payload is a string so SimpleProtocol encodes it as text, not bytea,
+	// which the jsonb column requires (see MarkWebhookEventProcessed).
+	inserted, err := h.store.MarkWebhookEventProcessed(r.Context(), id, emailLogID, event.Type, string(rawBody))
 	if err != nil {
 		slog.Error("webhook: failed to record event", "error", err, "svix_id", id)
 		http.Error(w, "internal error", http.StatusInternalServerError)
