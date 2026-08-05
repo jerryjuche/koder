@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (169 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -915,7 +915,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (16 backend + 2 sandbox test files, ~3,782 LOC, 168 backend + 11 sandbox tests)
+## 15. Testing Strategy (16 backend + 2 sandbox test files, ~3,824 LOC, 169 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -925,6 +925,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/api` | `format_test.go` (138 LOC) | 6 |
 | `internal/api` | `webhooks_test.go` (290 LOC) | 13 |
 | `internal/api` | `auth_test.go` (119 LOC) | 4 |
+| `internal/api` | `router_test.go` (42 LOC) | 1 |
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
@@ -939,7 +940,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
 | `sandbox` | `format_test.go` (196 LOC) | 8 (6 black-gated) |
-| **Total** | **20 files** | **179 tests (168 backend + 11 sandbox)** |
+| **Total** | **21 files** | **180 tests (169 backend + 11 sandbox)** |
 
 ---
 
@@ -1062,6 +1063,13 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-05 — Session 109b: Chi router panic fix — `/auth/refresh` middleware-ordering regression
+- **Reported bug:** backend crashes at startup with `panic: chi: all middlewares must be defined before routes on a mux`
+- **Root cause:** Session 108 moved `/auth/refresh` out of the per-IP rate-limiter by registering it inside the `/auth` `r.Route` block *before* `r.Use(authRateLimiter.Middleware)`. chi requires all `Use()` middleware to precede any route on the same mux — a route registered first panics at construction. The existing test suite never constructed the full router (`NewRouter`), so the regression passed CI.
+- **Fix** (`router.go:96-112`): `/auth/refresh` is now registered on the **parent mux** (`r.With(BodySizeLimitMiddleware(256KB)).Post("/auth/refresh", ...)`), entirely outside the `/auth` group. It still bypasses the IP limiter (the goal of Session 108) while keeping `r.Use()` before all routes inside the group — satisfying chi's ordering rule.
+- **Regression test** (`router_test.go`, new, 42 LOC): `TestNewRouter_DoesNotPanic` constructs the full router via `NewRouter` with a `nilStore` (embeds `store.Store` — construction-time methods only, none invoked) and minimal config, then asserts a non-nil `App`. Verified the test **fails on the pre-fix code** (panic) and passes post-fix.
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green (169 tests = 168 + 1 new), test table + header badge updated.
 
 ### 2026-08-05 — Session 109: Professional password-reset email template (brand-matched, reusable, injection-safe)
 - **Motivation:** the reset email was a bare `<h2>` + `<a>` built with `fmt.Sprintf` — no email-safe layout, no brand, and it interpolated the user-supplied recipient name unescaped (HTML-injection vector). Rebuilt as a professional template matching Koder's charcoal + purple + gold brand.
@@ -1393,4 +1401,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (168 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (169 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*

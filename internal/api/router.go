@@ -93,15 +93,17 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	// signature verification inside the handler, not by auth middleware.
 	r.With(BodySizeLimitMiddleware(1 * 1024 * 1024)).Post("/api/webhooks/resend", webhooksHandler.HandleResend)
 
+	// /auth/refresh is intentionally OUTSIDE the per-IP limiter: it is the
+	// token-renewal resilience path that fires whenever an access token expires
+	// (potentially from several tabs at once). Collateral 429s here surface to
+	// users as forced logouts. Registered on the parent mux (not inside the
+	// rate-limited /auth group) so chi's "all middlewares before routes" rule
+	// holds — a route added before r.Use() would panic.
+	r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/auth/refresh", authHandler.RefreshToken)
+
 	// Auth endpoints: IP-based rate limiting (10 req/min)
 	authRateLimiter := NewIPRateLimiter(10, 1*time.Minute)
 	r.Route("/auth", func(r chi.Router) {
-		// /auth/refresh is intentionally OUTSIDE the per-IP limiter: it is the
-		// token-renewal resilience path that fires whenever an access token
-		// expires (potentially from several tabs at once). Collateral 429s here
-		// surface to users as forced logouts.
-		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/refresh", authHandler.RefreshToken)
-
 		r.Use(authRateLimiter.Middleware)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/register", authHandler.Register)
 		r.With(BodySizeLimitMiddleware(256 * 1024)).Post("/login", authHandler.Login)
