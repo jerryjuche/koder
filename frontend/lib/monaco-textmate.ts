@@ -17,6 +17,28 @@ import textmateTheme from "@/lib/dark-plus-textmate.generated.json";
 
 let initPromise: Promise<void> | null = null;
 
+const WASM_FETCH_TIMEOUT_MS = 10_000;
+const WASM_MAX_ATTEMPTS = 4;
+
+async function fetchOnigWasm(): Promise<ArrayBuffer> {
+  const url = "/vs/onig.wasm";
+  let lastErr: Error = new Error(`onig.wasm fetch failed`);
+  for (let attempt = 0; attempt < WASM_MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(WASM_FETCH_TIMEOUT_MS) });
+      if (res.ok) return await res.arrayBuffer();
+      lastErr = new Error(`onig.wasm fetch failed: ${res.status}`);
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error("onig.wasm fetch failed");
+    }
+  }
+  throw lastErr;
+}
+
 export function initTextMateTokenization(monaco: any): void {
   if (initPromise) return;
   initPromise = setupTextMate(monaco).catch((err) => {
@@ -26,9 +48,8 @@ export function initTextMateTokenization(monaco: any): void {
 }
 
 async function setupTextMate(monaco: any): Promise<void> {
-  const wasmRes = await fetch("/vs/onig.wasm");
-  if (!wasmRes.ok) throw new Error(`onig.wasm fetch failed: ${wasmRes.status}`);
-  await onig.loadWASM(await wasmRes.arrayBuffer());
+  const wasmBuffer = await fetchOnigWasm();
+  await onig.loadWASM(wasmBuffer);
 
   const registry = new tm.Registry({
     onigLib: Promise.resolve({

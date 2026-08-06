@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion } from 'framer-motion';
 import { login, googleLogin } from '@/lib/api';
+import { consumeAuthRedirect } from '@/lib/auth-redirect';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleButton } from '@/components/auth/google-button';
@@ -37,7 +38,7 @@ export default function LoginPage() {
     try {
       const res = await googleLogin(credential);
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/home');
+        router.push(res.data.onboarding ? '/onboarding' : (consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }
@@ -63,7 +64,7 @@ export default function LoginPage() {
     try {
       const res = await login({ login: data.loginId, password: data.password });
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/home');
+        router.push(res.data.onboarding ? '/onboarding' : (consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Login failed');
       }
