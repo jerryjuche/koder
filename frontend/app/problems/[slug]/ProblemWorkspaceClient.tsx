@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/dialog";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import { CodeEditor } from "@/components/CodeEditor";
+import { blockPaste } from "@/lib/monaco-paste-guard";
 
 const GO_CODE = `package koder
 
@@ -202,6 +203,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const router = useRouter();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
+  const pasteGuardDisposerRef = useRef<(() => void) | null>(null);
   const handleTestRef = useRef<() => Promise<void>>(async () => {});
   const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
   const handleFormatRef = useRef<() => void>(() => {});
@@ -284,6 +286,21 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
       contextMenuOrder: 1.7,
       run: () => handleSubmitRef.current(),
     });
+    pasteGuardDisposerRef.current = blockPaste(editor, monaco, {
+      feedbackCooldownMs: 5000,
+      onBlocked: () =>
+        toast.warning({
+          title: "Pasting is disabled",
+          description: "Please type your solution manually.",
+        }),
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      pasteGuardDisposerRef.current?.();
+      pasteGuardDisposerRef.current = null;
+    };
   }, []);
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
 
