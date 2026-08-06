@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,14 +11,17 @@ import {
   List,
   Circle,
   CheckCircle2,
-  FlaskConical,
+  Code,
+  BarChart2,
+  Clock,
 } from "lucide-react";
 import { LanguageLogo, type Language } from "@/components/LanguageLogo";
+import { renderMarkdown } from "@/lib/markdown";
 import { fetchProblems } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { cn, shuffleArray } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardFooter } from "@/components/ui/card";
 import {
   Select,
   SelectTrigger,
@@ -547,8 +549,8 @@ export default function ProblemsPage() {
       {mobileFiltersOpen && mobileFilterDrawer}
 
       {/* Problem grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {paginated.map((problem) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {paginated.map((problem, i) => {
           const d = problem.difficulty as keyof typeof diffColor;
           const langs = problem.language_versions
             ? Object.entries(problem.language_versions)
@@ -562,80 +564,116 @@ export default function ProblemsPage() {
               href={`/problems/${problem.slug}`}
               onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
               className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+              style={{ animationFillMode: "both", animationDelay: i * 50 + "ms" }}
             >
-              <div
+              <Card
                 className={cn(
-                  "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
-                  "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/6",
+                  "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border shadow-sm hover:shadow-xl hover:shadow-primary/8",
+                  "hover:-translate-y-1.5 hover:border-primary/30",
                   "animate-in fade-in slide-in-from-bottom-2",
                   problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
-                  "bg-card",
                 )}
               >
-                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
-                  <Image
-                    src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
-                    alt=""
-                    fill
-                    className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-300 scale-105 group-hover:scale-100"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#141414]/95" />
-                </div>
+                {/* Solved accent line */}
+                <div className={cn(
+                  "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300 z-10",
+                  problem.solved ? "bg-emerald-500" : "bg-transparent",
+                )} />
 
-                <div
-                  className={cn(
-                    "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300 z-10",
-                    problem.solved ? "bg-emerald-500" : "bg-transparent",
-                  )}
-                />
-
-                <div className="flex flex-row items-start justify-between p-5 pb-3 relative z-10">
+                {/* Header */}
+                <CardHeader className="flex-row items-start justify-between p-5 pb-2 space-y-0">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
-                        diffColor[d] || diffColor[3],
-                      )}
-                    >
+                    <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
+                      #{String((safePage - 1) * ITEMS_PER_PAGE + i + 1).padStart(3, "0")}
+                    </span>
+                    <span className={cn(
+                      "text-[11px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider",
+                      diffColor[d] || diffColor[3],
+                    )}>
                       {diffLabel[d] || "Medium"}
                     </span>
                   </div>
-
-                  {langs.length > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      {langs.map((lang) => (
-                        <div
-                          key={lang}
-                          className="w-[34px] h-[34px] flex items-center justify-center rounded-lg border border-border/50 bg-background/40 backdrop-blur-sm"
-                        >
-                          <LanguageLogo language={lang} size={18} />
-                        </div>
-                      ))}
-                    </div>
+                  {problem.solved ? (
+                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/15 mt-0.5 shrink-0" />
                   )}
-                </div>
+                </CardHeader>
 
-                <div className="px-5 pb-5 flex-1 flex flex-col relative z-10">
-                  <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors leading-snug mb-2 line-clamp-2">
-                    {problem.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-3">
-                    {problem.statement?.replace(/<[^>]*>/g, "").slice(0, 120)}
-                  </p>
-
-                  <div className="mt-auto flex items-center gap-3 text-sm text-muted-foreground/80">
-                    {problem.xpReward > 0 && (
-                      <span className="font-bold text-primary">
-                        {problem.xpReward} XP
-                      </span>
-                    )}
-                    {problem.solved && (
-                      <span className="text-emerald-400 font-bold">Solved</span>
+                {/* Body */}
+                <CardContent className="px-5 pb-2 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <CardTitle className="text-base font-extrabold md:text-lg tracking-tight text-foreground group-hover:text-brand-muted-gold transition-colors leading-snug">
+                      {problem.title}
+                    </CardTitle>
+                    {langs.length > 0 && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {langs.map((lang) => (
+                          <span key={lang} className="flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-background/40">
+                            <LanguageLogo language={lang} size={20} />
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
+
+                  <div className="text-sm md:text-base text-muted-foreground/80 leading-relaxed line-clamp-2 mb-auto space-y-0 [&_p]:inline [&_p]:m-0 [&_p]:text-muted-foreground/80 [&_strong]:text-foreground/80 [&_code]:text-[13px] [&_code]:bg-white/[0.04] [&_code]:px-1 [&_code]:py-[1px] [&_code]:rounded [&_code]:font-mono [&_ul]:inline [&_ul]:m-0 [&_ol]:inline [&_ol]:m-0 [&_li]:inline [&_li]:m-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_h1]:m-0 [&_h2]:m-0 [&_h3]:m-0 [&_h1]:text-inherit [&_h2]:text-inherit [&_h3]:text-inherit">
+                    {problem.statement ? (
+                      <span dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(
+                          problem.statement.split(/\n\s*\n/)[0]
+                        ).replace(/\sstyle="[^"]*"/g, ''),
+                      }} />
+                    ) : (
+                      <span className="italic">No description</span>
+                    )}
+                  </div>
+
+                  {problem.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {problem.tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="text-xs font-medium text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/20">
+                          {tag}
+                        </span>
+                      ))}
+                      {problem.tags.length > 3 && (
+                        <span className="text-xs text-muted-foreground/60 font-semibold px-1">+{problem.tags.length - 3}</span>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+
+                {/* Footer */}
+                <CardFooter className="px-5 py-3.5 border-t border-border/20">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground/80 font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <Code size={13} className="shrink-0 text-muted-foreground/50" />
+                        {problem.total_submissions || 0}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <BarChart2 size={13} className="shrink-0 text-muted-foreground/50" />
+                        {Math.round(problem.success_rate || 0)}%
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={13} className="shrink-0 text-muted-foreground/50" />
+                        {problem.estTimeMinutes || 0}m
+                      </span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-md transition-all",
+                      problem.solved
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-primary/5 text-primary group-hover:bg-primary/10",
+                    )}>
+                      <svg width="10" height="13" viewBox="0 0 12 16" fill="currentColor" className="shrink-0">
+                        <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+                      </svg>
+                      <span className="font-bold text-xs tabular-nums">+{problem.xpReward ?? 0}</span>
+                    </div>
+                  </div>
+                </CardFooter>
+              </Card>
             </Link>
           );
         })}

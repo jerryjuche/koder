@@ -229,6 +229,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [results, setResults] = useState<TestResult[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<any>(null);
+  const [lastRunMode, setLastRunMode] = useState<"test" | "submit">("test");
   const [testsExpanded, setTestsExpanded] = useState(true);
   const [saved, setSaved] = useState(true);
   const [activeLanguage, setActiveLanguage] = useState<string>("go");
@@ -254,6 +255,25 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+
+  // Map a backend ExecutionResult into the panel's TestResult shape, joining
+  // visible test inputs from problem.examples by ordinal so the panel can show
+  // "Input: ..." on failed cases. Hidden cases keep their badge and no input.
+  const mapTestResults = useCallback(
+    (executionResult: ExecutionResult): TestResult[] =>
+      (executionResult.test_results || []).map((tr: any, idx: number) => ({
+        id: tr.test_case_id || `t${idx}`,
+        name: `Case ${tr.ordinal ?? idx + 1}`,
+        passed: tr.passed,
+        executionTimeMs: executionResult.runtime_ms || 0,
+        output: tr.got || "",
+        expectedOutput: tr.expected || "",
+        ordinal: tr.ordinal ?? idx + 1,
+        isHidden: !!tr.is_hidden,
+        input: problem?.examples?.find((e) => e.ordinal === tr.ordinal)?.input,
+      })),
+    [problem],
+  );
 
   const handleEditorChange = useCallback((value: string) => {
     setCode(value);
@@ -472,6 +492,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
+    setLastRunMode("submit");
 
     const res = await submitSolution(slug, code, activeLanguage);
 
@@ -489,17 +510,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           `Execution failed: ${executionResult.friendly_message || executionResult.status}`,
         );
       } else {
-        const mappedResults: TestResult[] = (
-          executionResult.test_results || []
-        ).map((tr: any, idx: number) => ({
-          id: tr.test_case_id || `t${idx}`,
-          name: `Case ${tr.ordinal ?? idx + 1}`,
-          passed: tr.passed,
-          executionTimeMs: executionResult.runtime_ms || 0,
-          output: tr.got || "",
-          expectedOutput: tr.expected || "",
-        }));
-        setResults(mappedResults);
+        const mappedResults = mapTestResults(executionResult);
 
         const passedAll =
           mappedResults.length > 0 && mappedResults.every((r) => r.passed);
@@ -546,6 +557,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
+    setLastRunMode("test");
 
     const res = await testCode(slug, code, activeLanguage);
 
@@ -563,17 +575,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           `Test failed: ${executionResult.friendly_message || executionResult.status}`,
         );
       } else {
-        const mappedResults: TestResult[] = (
-          executionResult.test_results || []
-        ).map((tr: any, idx: number) => ({
-          id: tr.test_case_id || `t${idx}`,
-          name: `Case ${tr.ordinal ?? idx + 1}`,
-          passed: tr.passed,
-          executionTimeMs: executionResult.runtime_ms || 0,
-          output: tr.got || "",
-          expectedOutput: tr.expected || "",
-        }));
-        setResults(mappedResults);
+        const mappedResults = mapTestResults(executionResult);
 
         const passedAll =
           mappedResults.length > 0 && mappedResults.every((r) => r.passed);
@@ -1222,6 +1224,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             errorMsg={errorMsg}
             expanded={testsExpanded}
             onToggle={() => setTestsExpanded(!testsExpanded)}
+            mode={lastRunMode}
           />
         </div>
 
