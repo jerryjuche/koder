@@ -511,6 +511,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         );
       } else {
         const mappedResults = mapTestResults(executionResult);
+        setResults(mappedResults);
 
         const passedAll =
           mappedResults.length > 0 && mappedResults.every((r) => r.passed);
@@ -576,6 +577,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         );
       } else {
         const mappedResults = mapTestResults(executionResult);
+        setResults(mappedResults);
 
         const passedAll =
           mappedResults.length > 0 && mappedResults.every((r) => r.passed);
