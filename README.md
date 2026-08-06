@@ -225,7 +225,7 @@ koder/
 │   ├── Dockerfile                   # Two-stage build (includes python3)
 │   └── go.mod                       # Zero external deps
 │
-├── migrations/                      # 37 ordered, idempotent SQL migrations
+├── migrations/                      # 54 ordered, idempotent SQL migrations
 │   ├── 001_init.sql                 # Core schema: users, problems, submissions, progress
 │   ├── 002_indexes.sql              # Performance indexes
 │   ├── 003_activity_logs.sql
@@ -924,7 +924,7 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | AI usage logging | Per-user/action tracking with success/failure rates |
 | Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
 | CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
-| Test suite | 124 tests across 8 internal packages, `go vet` clean |
+| Test suite | 169 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
 | Security hardening | CSP headers, account data export, user search/verify, admin AI rate limiting |
 
 ---
@@ -1062,15 +1062,15 @@ Add all frontend origins to Authorized JavaScript origins:
 
 ### Go — Unit Tests
 
-- `internal/store/*`: Use `pgxmock` to test all DB interactions without a live database.
+- `internal/store/*`: Pure unit tests (validation, constraint mapping, refresh-token rotation) that don't require a live database.
 - `internal/executor/templates.go`: Generate test files for known problems and assert the rendered output string exactly.
-- `internal/enricher/`: Mock the Gemini HTTP client. Test schema validation logic against malformed responses.
+- `internal/enricher/`: Mock the NVIDIA NIM HTTP client. Test schema validation logic against malformed responses.
 - `internal/auth/`: JWT round-trip tests. Bcrypt test with known hash.
 
 ### Go — Integration Tests
 
 - `internal/executor/executor.go`: Run actual Docker containers against a trivial Go function. Requires Docker on CI runner. Tagged with `//go:build integration`.
-- Full pipeline smoke test: ingest a local fixture directory (no GitHub call), enrich with a mocked Gemini response, execute a submission.
+- Full pipeline smoke test: ingest a local fixture directory (no GitHub call), enrich with a mocked NVIDIA NIM response, execute a submission.
 
 ### Frontend — Tests
 
