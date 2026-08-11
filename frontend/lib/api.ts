@@ -36,7 +36,8 @@ import {
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 let isRefreshing = false;
 let refreshQueue: Array<{ resolve: (v: boolean) => void }> = [];
@@ -160,13 +161,23 @@ export async function fetchApi<T>(
     try {
       data = await response.json();
     } catch {
-      data = { success: false, data: null, error: { code: "PARSE_ERROR", message: `Server returned ${response.status}` } };
+      data = {
+        success: false,
+        data: null,
+        error: {
+          code: "PARSE_ERROR",
+          message: `Server returned ${response.status}`,
+        },
+      };
     }
 
     if (!response.ok) {
-      const serverError = data?.error as { message?: string; details?: string } | undefined;
+      const serverError = data?.error as
+        | { message?: string; details?: string }
+        | undefined;
       if (serverError?.details) {
-        (data.error as any).message = `${serverError.message}: ${serverError.details}`;
+        (data.error as any).message =
+          `${serverError.message}: ${serverError.details}`;
       }
       return { ...data, success: false };
     }
@@ -183,7 +194,13 @@ export async function fetchApi<T>(
   try {
     const result = await doFetch();
     const authErrCode = result.error?.code;
-    if (!result.success && !isAuthEndpoint && (authErrCode === "AUTH_REQUIRED" || authErrCode === "AUTH_INVALID" || authErrCode === "TOKEN_REVOKED")) {
+    if (
+      !result.success &&
+      !isAuthEndpoint &&
+      (authErrCode === "AUTH_REQUIRED" ||
+        authErrCode === "AUTH_INVALID" ||
+        authErrCode === "TOKEN_REVOKED")
+    ) {
       const refreshed = await tryRefreshToken();
       if (refreshed) {
         return doFetch();
@@ -210,9 +227,15 @@ export async function fetchApi<T>(
 // API ENDPOINTS
 // ============================================
 
-type AuthResponse = { token: string; refresh_token?: string; onboarding?: boolean };
+type AuthResponse = {
+  token: string;
+  refresh_token?: string;
+  onboarding?: boolean;
+};
 
-function handleAuthResponse(res: ApiResponse<AuthResponse>): ApiResponse<AuthResponse> {
+function handleAuthResponse(
+  res: ApiResponse<AuthResponse>,
+): ApiResponse<AuthResponse> {
   if (res.success && res.data) {
     if (res.data.token) {
       localStorage.setItem("koder_token", res.data.token);
@@ -224,9 +247,7 @@ function handleAuthResponse(res: ApiResponse<AuthResponse>): ApiResponse<AuthRes
   return res;
 }
 
-export async function login(
-  data: any,
-): Promise<ApiResponse<AuthResponse>> {
+export async function login(data: any): Promise<ApiResponse<AuthResponse>> {
   const res = await fetchApi<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(data),
@@ -234,9 +255,7 @@ export async function login(
   return handleAuthResponse(res);
 }
 
-export async function register(
-  data: any,
-): Promise<ApiResponse<AuthResponse>> {
+export async function register(data: any): Promise<ApiResponse<AuthResponse>> {
   const res = await fetchApi<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(data),
@@ -346,7 +365,9 @@ export async function fetchUser(): Promise<ApiResponse<User>> {
   };
 }
 
-export async function updatePrimaryLanguage(language: string): Promise<ApiResponse<User>> {
+export async function updatePrimaryLanguage(
+  language: string,
+): Promise<ApiResponse<User>> {
   return fetchApi<User>("/me/language", {
     method: "PUT",
     body: JSON.stringify({ language }),
@@ -362,7 +383,9 @@ export async function updateUsername(
   });
 }
 
-export async function fetchProblems(language?: string): Promise<ApiResponse<Problem[]>> {
+export async function fetchProblems(
+  language?: string,
+): Promise<ApiResponse<Problem[]>> {
   const params = language ? `?language=${language}` : "";
   return fetchApi<Problem[]>(`/problems${params}`);
 }
@@ -405,7 +428,9 @@ export async function formatCode(
   });
 }
 
-export async function fetchRecentNotifications(): Promise<ApiResponse<NotificationItem[]>> {
+export async function fetchRecentNotifications(): Promise<
+  ApiResponse<NotificationItem[]>
+> {
   return fetchApi<NotificationItem[]>("/notifications/recent");
 }
 
@@ -415,7 +440,9 @@ export async function fetchLeaderboard(
   return fetchApi<LeaderboardEntry[]>(`/leaderboard?period=${period}`);
 }
 
-export async function fetchUserById(id: string): Promise<ApiResponse<PublicUserData>> {
+export async function fetchUserById(
+  id: string,
+): Promise<ApiResponse<PublicUserData>> {
   return fetchApi<PublicUserData>(`/users/${id}`);
 }
 
@@ -426,14 +453,18 @@ export async function ingestGitHubRepo(url: string): Promise<ApiResponse<any>> {
   });
 }
 
-export async function enrichProblem(slug: string): Promise<ApiResponse<Problem>> {
+export async function enrichProblem(
+  slug: string,
+): Promise<ApiResponse<Problem>> {
   return fetchApi<Problem>(`/admin/enrich`, {
     method: "POST",
     body: JSON.stringify({ slug }),
   });
 }
 
-export async function aiAssist(data: AIAssistRequest): Promise<ApiResponse<AIAssistResponse>> {
+export async function aiAssist(
+  data: AIAssistRequest,
+): Promise<ApiResponse<AIAssistResponse>> {
   return fetchApi<AIAssistResponse>("/admin/ai/assist", {
     method: "POST",
     body: JSON.stringify(data),
@@ -486,7 +517,10 @@ export async function updateUserName(name: string): Promise<ApiResponse<User>> {
   });
 }
 
-export async function updateUserProfile(name: string, bio: string): Promise<ApiResponse<User>> {
+export async function updateUserProfile(
+  name: string,
+  bio: string,
+): Promise<ApiResponse<User>> {
   return fetchApi<User>("/me/profile", {
     method: "PUT",
     body: JSON.stringify({ name, bio }),
@@ -495,20 +529,33 @@ export async function updateUserProfile(name: string, bio: string): Promise<ApiR
 
 // Community & Likes
 
-export async function fetchCommunitySolutions(slug: string, limit: number = 3): Promise<ApiResponse<CommunitySolution[]>> {
-  return fetchApi<CommunitySolution[]>(`/problems/${slug}/community-solutions?limit=${limit}`);
+export async function fetchCommunitySolutions(
+  slug: string,
+  limit: number = 3,
+): Promise<ApiResponse<CommunitySolution[]>> {
+  return fetchApi<CommunitySolution[]>(
+    `/problems/${slug}/community-solutions?limit=${limit}`,
+  );
 }
 
-export async function fetchBestPractices(limit: number = 20): Promise<ApiResponse<CommunitySolution[]>> {
+export async function fetchBestPractices(
+  limit: number = 20,
+): Promise<ApiResponse<CommunitySolution[]>> {
   return fetchApi<CommunitySolution[]>(`/best-practices?limit=${limit}`);
 }
 
-export async function likeSubmission(submissionId: string): Promise<ApiResponse<any>> {
+export async function likeSubmission(
+  submissionId: string,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "POST" });
 }
 
-export async function unlikeSubmission(submissionId: string): Promise<ApiResponse<any>> {
-  return fetchApi<any>(`/submissions/${submissionId}/like`, { method: "DELETE" });
+export async function unlikeSubmission(
+  submissionId: string,
+): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/submissions/${submissionId}/like`, {
+    method: "DELETE",
+  });
 }
 
 // Community Contributions
@@ -519,12 +566,16 @@ export async function submitContribution(data: any): Promise<ApiResponse<any>> {
   });
 }
 
-export async function fetchUserActivity(year?: number): Promise<ApiResponse<ActivityEntry[]>> {
+export async function fetchUserActivity(
+  year?: number,
+): Promise<ApiResponse<ActivityEntry[]>> {
   const params = year ? `?year=${year}` : "";
   return fetchApi<ActivityEntry[]>(`/me/activity${params}`);
 }
 
-export async function fetchMyContributions(): Promise<ApiResponse<UserProblem[]>> {
+export async function fetchMyContributions(): Promise<
+  ApiResponse<UserProblem[]>
+> {
   return fetchApi<UserProblem[]>("/me/contributions");
 }
 
@@ -532,50 +583,69 @@ export async function fetchPendingContributions(): Promise<ApiResponse<any>> {
   return fetchApi<any>("/admin/user-problems/pending");
 }
 
-export async function approveContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+export async function approveContribution(
+  id: string,
+  notes: string,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/user-problems/${id}/approve`, {
     method: "PATCH",
     body: JSON.stringify({ admin_notes: notes }),
   });
 }
 
-export async function rejectContribution(id: string, notes: string): Promise<ApiResponse<any>> {
+export async function rejectContribution(
+  id: string,
+  notes: string,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/user-problems/${id}/reject`, {
     method: "PATCH",
     body: JSON.stringify({ admin_notes: notes }),
   });
 }
 
-export async function toggleProblemVisibility(id: string, visible: boolean): Promise<ApiResponse<any>> {
+export async function toggleProblemVisibility(
+  id: string,
+  visible: boolean,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/problems/${id}/visibility`, {
     method: "PATCH",
     body: JSON.stringify({ visible }),
   });
 }
 
-export async function publishAllDrafts(): Promise<ApiResponse<{ published: number }>> {
+export async function publishAllDrafts(): Promise<
+  ApiResponse<{ published: number }>
+> {
   return fetchApi<{ published: number }>("/admin/problems/publish-all", {
     method: "POST",
   });
 }
 
-export async function updateProblem(id: string, data: UpdateProblemPayload): Promise<ApiResponse<Problem>> {
+export async function updateProblem(
+  id: string,
+  data: UpdateProblemPayload,
+): Promise<ApiResponse<Problem>> {
   return fetchApi<Problem>(`/admin/problems/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function fetchProblemTestCases(id: string): Promise<ApiResponse<TestCase[]>> {
+export async function fetchProblemTestCases(
+  id: string,
+): Promise<ApiResponse<TestCase[]>> {
   return fetchApi<TestCase[]>(`/admin/problems/${id}/test-cases`);
 }
 
-export async function updateTestCase(id: string, data: {
-  input?: any;
-  expected?: string;
-  is_hidden?: boolean;
-  ordinal?: number;
-}): Promise<ApiResponse<TestCase>> {
+export async function updateTestCase(
+  id: string,
+  data: {
+    input?: any;
+    expected?: string;
+    is_hidden?: boolean;
+    ordinal?: number;
+  },
+): Promise<ApiResponse<TestCase>> {
   return fetchApi<TestCase>(`/admin/test-cases/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -605,27 +675,39 @@ export async function fetchMyFeedback(): Promise<ApiResponse<FeedbackItem[]>> {
   return fetchApi<FeedbackItem[]>("/feedback/mine");
 }
 
-export async function fetchAdminFeedback(status?: string): Promise<ApiResponse<FeedbackItem[]>> {
+export async function fetchAdminFeedback(
+  status?: string,
+): Promise<ApiResponse<FeedbackItem[]>> {
   const params = status ? `?status=${status}` : "";
   return fetchApi<FeedbackItem[]>(`/admin/feedback${params}`);
 }
 
-export async function fetchAdminFeedbackCounts(): Promise<ApiResponse<Record<string, number>>> {
+export async function fetchAdminFeedbackCounts(): Promise<
+  ApiResponse<Record<string, number>>
+> {
   return fetchApi<Record<string, number>>("/admin/feedback/counts");
 }
 
-export async function fetchProblemReports(): Promise<ApiResponse<FeedbackItem[]>> {
+export async function fetchProblemReports(): Promise<
+  ApiResponse<FeedbackItem[]>
+> {
   return fetchApi<FeedbackItem[]>("/admin/problem-reports");
 }
 
-export async function updateFeedbackStatus(id: string, status: string, adminNotes?: string): Promise<ApiResponse<any>> {
+export async function updateFeedbackStatus(
+  id: string,
+  status: string,
+  adminNotes?: string,
+): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/admin/feedback/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ status, admin_notes: adminNotes }),
   });
 }
 
-export async function deleteAccount(): Promise<ApiResponse<{ message: string }>> {
+export async function deleteAccount(): Promise<
+  ApiResponse<{ message: string }>
+> {
   return fetchApi<{ message: string }>("/me/delete-account", {
     method: "POST",
   });
@@ -633,7 +715,9 @@ export async function deleteAccount(): Promise<ApiResponse<{ message: string }>>
 
 // Broadcasts
 
-export async function fetchActiveBroadcasts(): Promise<ApiResponse<Broadcast[]>> {
+export async function fetchActiveBroadcasts(): Promise<
+  ApiResponse<Broadcast[]>
+> {
   return fetchApi<Broadcast[]>("/me/broadcasts");
 }
 
@@ -659,8 +743,30 @@ export async function createBroadcast(data: {
   });
 }
 
-export async function deactivateBroadcast(id: string): Promise<ApiResponse<any>> {
-  return fetchApi<any>(`/admin/broadcasts/${id}/deactivate`, { method: "PATCH" });
+export async function sendProblemReminder(data: {
+  problem_slug: string;
+  subject?: string;
+  message?: string;
+  cta_label?: string;
+  cta_url?: string;
+  test_email?: string;
+  send_to_all?: boolean;
+}): Promise<ApiResponse<{ attempted: number; sent: number; failed: number }>> {
+  return fetchApi<{ attempted: number; sent: number; failed: number }>(
+    "/admin/broadcast-emails",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function deactivateBroadcast(
+  id: string,
+): Promise<ApiResponse<any>> {
+  return fetchApi<any>(`/admin/broadcasts/${id}/deactivate`, {
+    method: "PATCH",
+  });
 }
 
 export async function activateBroadcast(id: string): Promise<ApiResponse<any>> {
@@ -677,7 +783,10 @@ export async function changePassword(
 ): Promise<ApiResponse<any>> {
   return fetchApi<any>("/auth/change-password", {
     method: "POST",
-    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
   });
 }
 
@@ -685,11 +794,17 @@ export async function fetchAIUsageStats(): Promise<ApiResponse<AIUsageStats>> {
   return fetchApi<AIUsageStats>("/admin/ai/usage");
 }
 
-export async function searchUsers(q: string): Promise<ApiResponse<UserSearchResult[]>> {
-  return fetchApi<UserSearchResult[]>(`/admin/users/search?q=${encodeURIComponent(q)}`);
+export async function searchUsers(
+  q: string,
+): Promise<ApiResponse<UserSearchResult[]>> {
+  return fetchApi<UserSearchResult[]>(
+    `/admin/users/search?q=${encodeURIComponent(q)}`,
+  );
 }
 
-export async function toggleUserVerified(id: string): Promise<ApiResponse<{ verified: boolean }>> {
+export async function toggleUserVerified(
+  id: string,
+): Promise<ApiResponse<{ verified: boolean }>> {
   return fetchApi<{ verified: boolean }>(`/admin/users/${id}/verified`, {
     method: "PATCH",
   });
@@ -712,24 +827,46 @@ export async function fetchCourses(): Promise<ApiResponse<Course[]>> {
   return fetchApi<Course[]>("/learn/courses");
 }
 
-export async function fetchCourse(slug: string): Promise<ApiResponse<CourseWithModules>> {
-  return fetchApi<CourseWithModules>(`/learn/courses/${encodeURIComponent(slug)}`);
+export async function fetchCourse(
+  slug: string,
+): Promise<ApiResponse<CourseWithModules>> {
+  return fetchApi<CourseWithModules>(
+    `/learn/courses/${encodeURIComponent(slug)}`,
+  );
 }
 
-export async function fetchModule(courseSlug: string, moduleSlug: string): Promise<ApiResponse<ModuleWithLessons>> {
-  return fetchApi<ModuleWithLessons>(`/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}`);
+export async function fetchModule(
+  courseSlug: string,
+  moduleSlug: string,
+): Promise<ApiResponse<ModuleWithLessons>> {
+  return fetchApi<ModuleWithLessons>(
+    `/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}`,
+  );
 }
 
-export async function fetchLesson(courseSlug: string, moduleSlug: string, lessonSlug: string): Promise<ApiResponse<LessonWithSections>> {
-  return fetchApi<LessonWithSections>(`/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}/lessons/${encodeURIComponent(lessonSlug)}`);
+export async function fetchLesson(
+  courseSlug: string,
+  moduleSlug: string,
+  lessonSlug: string,
+): Promise<ApiResponse<LessonWithSections>> {
+  return fetchApi<LessonWithSections>(
+    `/learn/courses/${encodeURIComponent(courseSlug)}/modules/${encodeURIComponent(moduleSlug)}/lessons/${encodeURIComponent(lessonSlug)}`,
+  );
 }
 
 export async function fetchProgress(): Promise<ApiResponse<ProgressResponse>> {
   return fetchApi<ProgressResponse>("/learn/progress");
 }
 
-export async function completeLesson(lessonId: string): Promise<ApiResponse<{ lesson_progress: LessonProgress; xp_awarded: number }>> {
-  const res = await fetchApi<{ lesson_progress: LessonProgress; xp_awarded: number }>(`/learn/lessons/${lessonId}/complete`, {
+export async function completeLesson(
+  lessonId: string,
+): Promise<
+  ApiResponse<{ lesson_progress: LessonProgress; xp_awarded: number }>
+> {
+  const res = await fetchApi<{
+    lesson_progress: LessonProgress;
+    xp_awarded: number;
+  }>(`/learn/lessons/${lessonId}/complete`, {
     method: "POST",
   });
   if (res.success) {
@@ -743,123 +880,174 @@ export async function fetchAllCourses(): Promise<ApiResponse<Course[]>> {
   return fetchApi<Course[]>("/admin/courses");
 }
 
-export async function createCourse(data: Partial<Course>): Promise<ApiResponse<Course>> {
+export async function createCourse(
+  data: Partial<Course>,
+): Promise<ApiResponse<Course>> {
   return fetchApi<Course>("/admin/courses", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateCourse(id: string, data: Partial<Course>): Promise<ApiResponse<Course>> {
+export async function updateCourse(
+  id: string,
+  data: Partial<Course>,
+): Promise<ApiResponse<Course>> {
   return fetchApi<Course>(`/admin/courses/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteCourse(id: string): Promise<ApiResponse<{ status: string }>> {
+export async function deleteCourse(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/courses/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function toggleCourseVisibility(id: string): Promise<ApiResponse<Course>> {
+export async function toggleCourseVisibility(
+  id: string,
+): Promise<ApiResponse<Course>> {
   return fetchApi<Course>(`/admin/courses/${id}/visibility`, {
     method: "PATCH",
   });
 }
 
-export async function fetchModules(courseId: string): Promise<ApiResponse<Module[]>> {
+export async function fetchModules(
+  courseId: string,
+): Promise<ApiResponse<Module[]>> {
   return fetchApi<Module[]>(`/admin/courses/${courseId}/modules`);
 }
 
-export async function createModule(courseId: string, data: Partial<Module>): Promise<ApiResponse<Module>> {
+export async function createModule(
+  courseId: string,
+  data: Partial<Module>,
+): Promise<ApiResponse<Module>> {
   return fetchApi<Module>(`/admin/courses/${courseId}/modules`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateModule(id: string, data: Partial<Module>): Promise<ApiResponse<Module>> {
+export async function updateModule(
+  id: string,
+  data: Partial<Module>,
+): Promise<ApiResponse<Module>> {
   return fetchApi<Module>(`/admin/modules/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteModule(id: string): Promise<ApiResponse<{ status: string }>> {
+export async function deleteModule(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/modules/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function toggleModuleVisibility(id: string): Promise<ApiResponse<Module>> {
+export async function toggleModuleVisibility(
+  id: string,
+): Promise<ApiResponse<Module>> {
   return fetchApi<Module>(`/admin/modules/${id}/visibility`, {
     method: "PATCH",
   });
 }
 
-export async function toggleModuleLock(id: string): Promise<ApiResponse<Module>> {
+export async function toggleModuleLock(
+  id: string,
+): Promise<ApiResponse<Module>> {
   return fetchApi<Module>(`/admin/modules/${id}/lock`, {
     method: "PATCH",
   });
 }
 
-export async function fetchLessons(moduleId: string): Promise<ApiResponse<Lesson[]>> {
+export async function fetchLessons(
+  moduleId: string,
+): Promise<ApiResponse<Lesson[]>> {
   return fetchApi<Lesson[]>(`/admin/modules/${moduleId}/lessons`);
 }
 
-export async function createLesson(moduleId: string, data: { lesson: Partial<Lesson>; sections?: Partial<LessonSection>[]; dependency_ids?: string[] }): Promise<ApiResponse<Lesson>> {
+export async function createLesson(
+  moduleId: string,
+  data: {
+    lesson: Partial<Lesson>;
+    sections?: Partial<LessonSection>[];
+    dependency_ids?: string[];
+  },
+): Promise<ApiResponse<Lesson>> {
   return fetchApi<Lesson>(`/admin/modules/${moduleId}/lessons`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateLesson(id: string, data: Partial<Lesson>): Promise<ApiResponse<Lesson>> {
+export async function updateLesson(
+  id: string,
+  data: Partial<Lesson>,
+): Promise<ApiResponse<Lesson>> {
   return fetchApi<Lesson>(`/admin/lessons/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteLesson(id: string): Promise<ApiResponse<{ status: string }>> {
+export async function deleteLesson(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/lessons/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function toggleLessonVisibility(id: string): Promise<ApiResponse<Lesson>> {
+export async function toggleLessonVisibility(
+  id: string,
+): Promise<ApiResponse<Lesson>> {
   return fetchApi<Lesson>(`/admin/lessons/${id}/visibility`, {
     method: "PATCH",
   });
 }
 
-export async function fetchProjects(lessonId: string): Promise<ApiResponse<Project[]>> {
+export async function fetchProjects(
+  lessonId: string,
+): Promise<ApiResponse<Project[]>> {
   return fetchApi<Project[]>(`/admin/lessons/${lessonId}/projects`);
 }
 
-export async function createProject(lessonId: string, data: Partial<Project>): Promise<ApiResponse<Project>> {
+export async function createProject(
+  lessonId: string,
+  data: Partial<Project>,
+): Promise<ApiResponse<Project>> {
   return fetchApi<Project>(`/admin/lessons/${lessonId}/projects`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateProject(id: string, data: Partial<Project>): Promise<ApiResponse<Project>> {
+export async function updateProject(
+  id: string,
+  data: Partial<Project>,
+): Promise<ApiResponse<Project>> {
   return fetchApi<Project>(`/admin/projects/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteProject(id: string): Promise<ApiResponse<{ status: string }>> {
+export async function deleteProject(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/projects/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function toggleProjectVisibility(id: string): Promise<ApiResponse<Project>> {
+export async function toggleProjectVisibility(
+  id: string,
+): Promise<ApiResponse<Project>> {
   return fetchApi<Project>(`/admin/projects/${id}/visibility`, {
     method: "PATCH",
   });
@@ -867,42 +1055,64 @@ export async function toggleProjectVisibility(id: string): Promise<ApiResponse<P
 
 // ── Section CRUD (Admin) ──
 
-export async function fetchLessonSections(lessonId: string): Promise<ApiResponse<LessonSection[]>> {
+export async function fetchLessonSections(
+  lessonId: string,
+): Promise<ApiResponse<LessonSection[]>> {
   return fetchApi<LessonSection[]>(`/admin/lessons/${lessonId}/sections`);
 }
 
-export async function createSection(lessonId: string, data: NewLessonSection): Promise<ApiResponse<LessonSection>> {
+export async function createSection(
+  lessonId: string,
+  data: NewLessonSection,
+): Promise<ApiResponse<LessonSection>> {
   return fetchApi<LessonSection>(`/admin/lessons/${lessonId}/sections`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateSection(id: string, data: Partial<LessonSection>): Promise<ApiResponse<LessonSection>> {
+export async function updateSection(
+  id: string,
+  data: Partial<LessonSection>,
+): Promise<ApiResponse<LessonSection>> {
   return fetchApi<LessonSection>(`/admin/sections/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteSection(id: string): Promise<ApiResponse<{ status: string }>> {
+export async function deleteSection(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
   return fetchApi<{ status: string }>(`/admin/sections/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function reorderSections(lessonId: string, orderedIds: string[]): Promise<ApiResponse<{ status: string }>> {
-  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/sections/reorder`, {
-    method: "PUT",
-    body: JSON.stringify({ ordered_ids: orderedIds }),
-  });
+export async function reorderSections(
+  lessonId: string,
+  orderedIds: string[],
+): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(
+    `/admin/lessons/${lessonId}/sections/reorder`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ ordered_ids: orderedIds }),
+    },
+  );
 }
 
-export async function updateLessonDependencies(lessonId: string, dependencyIds: string[]): Promise<ApiResponse<{ status: string }>> {
-  return fetchApi<{ status: string }>(`/admin/lessons/${lessonId}/dependencies`, {
-    method: "PUT",
-    body: JSON.stringify({ dependency_ids: dependencyIds }),
-  });
+export async function updateLessonDependencies(
+  lessonId: string,
+  dependencyIds: string[],
+): Promise<ApiResponse<{ status: string }>> {
+  return fetchApi<{ status: string }>(
+    `/admin/lessons/${lessonId}/dependencies`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ dependency_ids: dependencyIds }),
+    },
+  );
 }
 
 // ── Problem module locks ──
@@ -917,16 +1127,26 @@ export async function fetchModuleLocks(): Promise<ApiResponse<ModuleLock[]>> {
   return fetchApi<ModuleLock[]>("/me/module-locks");
 }
 
-export async function toggleProblemModuleLock(moduleName: string): Promise<ApiResponse<ModuleLock>> {
-  return fetchApi<ModuleLock>(`/admin/module-locks/${encodeURIComponent(moduleName)}`, {
-    method: "POST",
-  });
+export async function toggleProblemModuleLock(
+  moduleName: string,
+): Promise<ApiResponse<ModuleLock>> {
+  return fetchApi<ModuleLock>(
+    `/admin/module-locks/${encodeURIComponent(moduleName)}`,
+    {
+      method: "POST",
+    },
+  );
 }
 
-export async function deleteProblemModule(moduleName: string): Promise<ApiResponse<{ module_name: string; status: string }>> {
-  return fetchApi<{ module_name: string; status: string }>(`/admin/problem-modules/${encodeURIComponent(moduleName)}`, {
-    method: "DELETE",
-  });
+export async function deleteProblemModule(
+  moduleName: string,
+): Promise<ApiResponse<{ module_name: string; status: string }>> {
+  return fetchApi<{ module_name: string; status: string }>(
+    `/admin/problem-modules/${encodeURIComponent(moduleName)}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 // ── Module metadata (display names, pinning) ──
@@ -942,18 +1162,28 @@ export async function fetchModuleMeta(): Promise<ApiResponse<ModuleMeta[]>> {
   return fetchApi<ModuleMeta[]>("/me/module-meta");
 }
 
-export async function upsertModuleMeta(moduleName: string, displayName: string): Promise<ApiResponse<ModuleMeta>> {
-  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}`, {
-    method: "PUT",
-    body: JSON.stringify({ display_name: displayName }),
-  });
+export async function upsertModuleMeta(
+  moduleName: string,
+  displayName: string,
+): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(
+    `/admin/module-meta/${encodeURIComponent(moduleName)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ display_name: displayName }),
+    },
+  );
 }
 
-export async function setModulePin(moduleName: string, pinned: boolean): Promise<ApiResponse<ModuleMeta>> {
-  return fetchApi<ModuleMeta>(`/admin/module-meta/${encodeURIComponent(moduleName)}/pin`, {
-    method: "PATCH",
-    body: JSON.stringify({ pinned }),
-  });
+export async function setModulePin(
+  moduleName: string,
+  pinned: boolean,
+): Promise<ApiResponse<ModuleMeta>> {
+  return fetchApi<ModuleMeta>(
+    `/admin/module-meta/${encodeURIComponent(moduleName)}/pin`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ pinned }),
+    },
+  );
 }
-
-

@@ -17,6 +17,7 @@ import (
 	"github.com/jerryjuche/koder/internal/auth"
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
+	emailtmpl "github.com/jerryjuche/koder/internal/email"
 	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/parser"
 	"github.com/jerryjuche/koder/internal/store"
@@ -25,10 +26,12 @@ import (
 )
 
 type AdminHandler struct {
-	store    store.Store
-	parser   *parser.Parser
-	enricher *enricher.Enricher
-	broker   *broker.Broker
+	store      store.Store
+	parser     *parser.Parser
+	enricher   *enricher.Enricher
+	broker     *broker.Broker
+	cfg        *config.Config
+	httpClient *http.Client
 }
 
 func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker) (*AdminHandler, error) {
@@ -38,7 +41,7 @@ func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker) (*
 		return nil, err
 	}
 
-	return &AdminHandler{store: store, parser: parser, enricher: enricher, broker: b}, nil
+	return &AdminHandler{store: store, parser: parser, enricher: enricher, broker: b, cfg: cfg, httpClient: nil}, nil
 }
 
 type ingestRequest struct {
@@ -324,6 +327,142 @@ func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) 
 	RespondSuccess(w, map[string]any{"published": published})
 }
 
+// sendReminderRequest is the payload for POST /admin/broadcast-emails
+type sendReminderRequest struct {
+	ProblemSlug string `json:"problem_slug"`
+	Subject     string `json:"subject"`
+	Message     string `json:"message"`
+	CTALabel    string `json:"cta_label"`
+	CTAURL      string `json:"cta_url"`
+	TestEmail   string `json:"test_email"`
+	SendToAll   bool   `json:"send_to_all"`
+}
+
+// SendProblemReminder sends a styled problem reminder email either as a
+// single test email or to all registered users (creates email_logs).
+func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Request) {
+	var req sendReminderRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	if req.ProblemSlug == "" {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "problem_slug is required", nil)
+		return
+	}
+
+	// Load problem metadata
+	problem, err := h.store.GetProblemBySlugAny(r.Context(), req.ProblemSlug)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to load problem", nil)
+		return
+	}
+
+	// Build CTA URL
+	cta := strings.TrimSpace(req.CTAURL)
+	if cta == "" {
+		if h.cfg != nil && h.cfg.FrontendURL != "" {
+			cta = strings.TrimRight(h.cfg.FrontendURL, "/") + "/problems/" + problem.Slug
+		} else {
+			cta = "/problems/" + problem.Slug
+		}
+	}
+
+	htmlBody, err := emailtmpl.RenderProblemReminderString(emailtmpl.ProblemReminderData{
+		PlatformName:   "Koder",
+		FirstName:      "Coder",
+		ProblemTitle:   problem.Title,
+		ProblemSlug:    problem.Slug,
+		ProblemExcerpt: problem.Statement,
+		CTAURL:         cta,
+		LogoURL:        strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png",
+		SupportEmail:   emailAddressFromFrom(h.cfg.EmailFrom),
+		Tagline:        "Koder turns every problem into an instant feedback loop.",
+	})
+	if err != nil {
+		slog.Error("admin: failed to render reminder template", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TEMPLATE_ERROR", "Failed to render email template", nil)
+		return
+	}
+
+	subject := strings.TrimSpace(req.Subject)
+	if subject == "" {
+		subject = "Koder — Try this problem: " + problem.Title
+	}
+
+	// Determine recipients
+	recipients := []string{}
+	if req.TestEmail != "" {
+		recipients = append(recipients, strings.TrimSpace(req.TestEmail))
+	} else if req.SendToAll {
+		emails, err := h.store.ListAllUserEmails(r.Context())
+		if err != nil {
+			slog.Error("admin: failed to list user emails", "error", err)
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list user emails", nil)
+			return
+		}
+		recipients = append(recipients, emails...)
+	} else {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "either test_email or send_to_all=true must be provided", nil)
+		return
+	}
+
+	sent := 0
+	failed := 0
+	ctx := r.Context()
+
+	client := h.httpClient
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
+	for _, to := range recipients {
+		// Create email log
+		emailLog, _ := h.store.CreateEmailLog(ctx, nil, to, "broadcast_reminder")
+		logID := uuid.Nil
+		if emailLog != nil {
+			logID = emailLog.ID.Bytes
+		}
+
+		// Prepare text fallback
+		textBody := fmt.Sprintf("%s\n\nOpen the problem: %s\n", problem.Title, cta)
+
+		// Use shared send helper for Resend
+		providerID, statusCode, respBody, sendErr := emailtmpl.SendEmailViaResend(ctx, client, h.cfg.ResendAPIKey, h.cfg.EmailFrom, []string{to}, subject, htmlBody, textBody)
+
+		// record attempt
+		if logID != uuid.Nil {
+			h.store.UpdateEmailLogAttempts(ctx, logID, 1)
+		}
+
+		if sendErr != nil {
+			failed++
+			msg := sendErr.Error()
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "failed", nil, &msg)
+			}
+			slog.Error("admin: resend send failed", "to", to, "error", sendErr, "status", statusCode, "body", string(respBody))
+		} else {
+			// success
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "sent", &providerID, nil)
+			}
+			sent++
+		}
+
+		// Small pause to avoid hitting provider rate limits
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	RespondSuccess(w, map[string]int{"attempted": len(recipients), "sent": sent, "failed": failed})
+}
+
 // ListPendingUserProblems returns all pending community contributions.
 func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListPendingUserProblems(r.Context())
@@ -415,22 +554,22 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title             *string                  `json:"title,omitempty"`
-		Statement         *string                  `json:"statement,omitempty"`
-		Constraints       *string                  `json:"constraints,omitempty"`
-		LearningObjective *string                  `json:"learning_objective,omitempty"`
-		Module            *string                  `json:"module,omitempty"`
-		Type              *string                  `json:"type,omitempty"`
-		Language          *string                  `json:"language,omitempty"`
-		FuncName          *string                  `json:"func_name,omitempty"`
-		ReturnType        *string                  `json:"return_type,omitempty"`
-		ParamTypes        []string                 `json:"param_types,omitempty"`
-		ParamNames        []string                 `json:"param_names,omitempty"`
-		Hints             []string                 `json:"hints,omitempty"`
-		Difficulty        *int                     `json:"difficulty,omitempty"`
-		XPReward          *int                     `json:"xp_reward,omitempty"`
-		Tags              []string                 `json:"tags,omitempty"`
-		Visible           *bool                    `json:"visible,omitempty"`
+		Title             *string                        `json:"title,omitempty"`
+		Statement         *string                        `json:"statement,omitempty"`
+		Constraints       *string                        `json:"constraints,omitempty"`
+		LearningObjective *string                        `json:"learning_objective,omitempty"`
+		Module            *string                        `json:"module,omitempty"`
+		Type              *string                        `json:"type,omitempty"`
+		Language          *string                        `json:"language,omitempty"`
+		FuncName          *string                        `json:"func_name,omitempty"`
+		ReturnType        *string                        `json:"return_type,omitempty"`
+		ParamTypes        []string                       `json:"param_types,omitempty"`
+		ParamNames        []string                       `json:"param_names,omitempty"`
+		Hints             []string                       `json:"hints,omitempty"`
+		Difficulty        *int                           `json:"difficulty,omitempty"`
+		XPReward          *int                           `json:"xp_reward,omitempty"`
+		Tags              []string                       `json:"tags,omitempty"`
+		Visible           *bool                          `json:"visible,omitempty"`
 		LanguageVersions  *map[string]store.LanguageSpec `json:"language_versions,omitempty"`
 	}
 

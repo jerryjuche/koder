@@ -71,7 +71,7 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *NewUser) (*User, e
 		Password:        string(hashedPassword),
 		Role:            user.Role,
 		ColorIndex:      colorIndex,
-		XP:             0,
+		XP:              0,
 		CreatedAt:       createdAt.Time,
 		UsernameSet:     user.UsernameSet,
 		PrimaryLanguage: primaryLanguage,
@@ -122,21 +122,21 @@ func (s *PostgresStore) CreateUserFromGoogle(ctx context.Context, info *GoogleUs
 	googleAvatar := info.Picture
 
 	return &User{
-		ID:               userID,
-		StudentID:        tempUsername,
-		Username:         tempUsername,
-		Name:             info.Name,
-		Email:            &info.Email,
-		Password:         "",
-		Role:             "student",
-		ColorIndex:       colorIndex,
-		XP:               0,
-		CreatedAt:        createdAt.Time,
-		UsernameSet:      false,
-		PrimaryLanguage:  "go",
-		GoogleID:         &info.Sub,
-		GoogleEmail:      &googleEmail,
-		GoogleAvatarURL:  &googleAvatar,
+		ID:              userID,
+		StudentID:       tempUsername,
+		Username:        tempUsername,
+		Name:            info.Name,
+		Email:           &info.Email,
+		Password:        "",
+		Role:            "student",
+		ColorIndex:      colorIndex,
+		XP:              0,
+		CreatedAt:       createdAt.Time,
+		UsernameSet:     false,
+		PrimaryLanguage: "go",
+		GoogleID:        &info.Sub,
+		GoogleEmail:     &googleEmail,
+		GoogleAvatarURL: &googleAvatar,
 	}, nil
 }
 
@@ -369,6 +369,29 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 	}
 
 	return user, nil
+}
+
+// ListAllUserEmails returns a slice of all non-empty emails in the users table.
+// Deduplication is handled by DISTINCT in the query.
+func (s *PostgresStore) ListAllUserEmails(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT email FROM users WHERE email IS NOT NULL AND email <> ''`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list user emails: %w", err)
+	}
+	defer rows.Close()
+
+	emails := make([]string, 0)
+	for rows.Next() {
+		var e string
+		if err := rows.Scan(&e); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
+		}
+		emails = append(emails, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate emails: %w", err)
+	}
+	return emails, nil
 }
 
 // GetUserByLogin retrieves a user by checking username, email, or student_id.
@@ -1243,15 +1266,15 @@ func (s *PostgresStore) GetUserExportData(ctx context.Context, userID uuid.UUID)
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 	result["user"] = map[string]any{
-		"id":              uuid.UUID(user.ID.Bytes).String(),
-		"username":        user.Username,
-		"student_id":      user.StudentID,
-		"name":            user.Name,
-		"email":           user.Email,
-		"role":            user.Role,
-		"xp":              user.XP,
+		"id":               uuid.UUID(user.ID.Bytes).String(),
+		"username":         user.Username,
+		"student_id":       user.StudentID,
+		"name":             user.Name,
+		"email":            user.Email,
+		"role":             user.Role,
+		"xp":               user.XP,
 		"primary_language": user.PrimaryLanguage,
-		"created_at":      user.CreatedAt,
+		"created_at":       user.CreatedAt,
 	}
 
 	// Submissions
