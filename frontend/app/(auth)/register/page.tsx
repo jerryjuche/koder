@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { consumeAuthRedirect } from '@/lib/auth-redirect';
 import Image from 'next/image';
 import { ArrowRight, Mail, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -16,6 +17,7 @@ import { BottomGradient } from '@/components/auth/bottom-gradient';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -26,7 +28,8 @@ export default function RegisterPage() {
     try {
       const res = await googleLogin(credential);
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : '/home');
+        const redirectParam = searchParams.get('redirect_to');
+        router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }
@@ -76,7 +79,8 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push('/onboarding');
+      const redirectParam = searchParams.get('redirect_to');
+      router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
     } catch {
       setErrorMsg('Unable to connect. Please try again.');
       setLoading(false);

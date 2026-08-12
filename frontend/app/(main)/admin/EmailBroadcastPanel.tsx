@@ -68,12 +68,24 @@ export default function EmailBroadcastPanel({
 
     setSending(true);
 
+    // Determine CTA URL: prefer explicit field; otherwise use problem page
+    const frontendBase = window.location.origin;
+    const targetPath = ctaUrl.trim() || `/problems/${selectedSlug}`;
+    // Append redirect_to when it's a site-internal path (starts with /)
+    let finalCta = targetPath;
+    if (targetPath.startsWith('/')) {
+      finalCta = `${frontendBase}${targetPath}`;
+      // If path is a problem page, also include redirect_to to ensure post-login return
+      const encoded = encodeURIComponent(targetPath);
+      finalCta = `${frontendBase}/?redirect_to=${encoded}`;
+    }
+
     const payload = {
       problem_slug: selectedSlug,
       subject: effectiveSubject,
       message: message.trim(),
       cta_label: effectiveCtaLabel,
-      cta_url: ctaUrl.trim(),
+      cta_url: finalCta,
       test_email: testEmail.trim() || undefined,
       send_to_all: sendToAll,
     };

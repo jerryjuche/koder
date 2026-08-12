@@ -4,7 +4,9 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { fetchUser } from "@/lib/api";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
 import Features from "@/components/landing/Features";
@@ -14,6 +16,30 @@ import Footer from "@/components/landing/Footer";
 
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // If landing page receives ?redirect_to=... and the user is already
+  // authenticated, immediately navigate to the target path.
+  useEffect(() => {
+    const redirectTo = searchParams.get("redirect_to");
+    if (!redirectTo) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetchUser();
+        if (!mounted) return;
+        if (res.success && res.data) {
+          router.push(redirectTo);
+        }
+      } catch {
+        // ignore — unauthenticated users will see the landing page
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [searchParams, router]);
 
   const nav = (
     <>

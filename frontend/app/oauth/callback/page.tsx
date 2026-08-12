@@ -11,10 +11,11 @@ function OAuthCallbackInner() {
   useEffect(() => {
     const token = searchParams.get('token');
     const error = searchParams.get('error');
+    const redirectParam = searchParams.get('redirect_to');
 
     if (token) {
       // Scrub token from URL bar and browser history immediately
-      const dest = consumeAuthRedirect() ?? '/home';
+      const dest = redirectParam ?? consumeAuthRedirect() ?? '/home';
       window.history.replaceState({}, document.title, dest);
       router.push(dest);
     } else {
