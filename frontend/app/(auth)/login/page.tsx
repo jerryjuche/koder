@@ -38,7 +38,8 @@ export default function LoginPage() {
     try {
       const res = await googleLogin(credential);
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : (consumeAuthRedirect() ?? '/home'));
+        const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
+        router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
       }
@@ -64,7 +65,8 @@ export default function LoginPage() {
     try {
       const res = await login({ login: data.loginId, password: data.password });
       if (res.success && res.data) {
-        router.push(res.data.onboarding ? '/onboarding' : (consumeAuthRedirect() ?? '/home'));
+        const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
+        router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Login failed');
       }

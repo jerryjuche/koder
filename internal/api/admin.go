@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+    "net/url"
 	"strings"
 	"time"
 
@@ -365,13 +366,19 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Build CTA URL
+	// Build CTA URL. If no CTA provided by admin, build a frontend-root CTA
+	// that preserves the target via ?redirect_to=/problems/<slug> so clicks
+	// from email clients/new tabs correctly route users after authentication.
 	cta := strings.TrimSpace(req.CTAURL)
+	targetPath := "/problems/" + problem.Slug
 	if cta == "" {
 		if h.cfg != nil && h.cfg.FrontendURL != "" {
-			cta = strings.TrimRight(h.cfg.FrontendURL, "/") + "/problems/" + problem.Slug
+			base := strings.TrimRight(h.cfg.FrontendURL, "/")
+			// final CTA is frontend root with redirect_to pointing to the problem path
+			cta = base + "/?redirect_to=" + url.QueryEscape(targetPath)
 		} else {
-			cta = "/problems/" + problem.Slug
+			// Fallback to relative redirect if frontend URL not configured
+			cta = "/?redirect_to=" + url.QueryEscape(targetPath)
 		}
 	}
 

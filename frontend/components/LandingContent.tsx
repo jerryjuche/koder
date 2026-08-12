@@ -4,7 +4,9 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { fetchUser } from "@/lib/api";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
 import Features from "@/components/landing/Features";
@@ -14,6 +16,31 @@ import Footer from "@/components/landing/Footer";
 
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+
+  // If landing page receives ?redirect_to=... and the user is already
+  // authenticated, immediately navigate to the target path. Use the
+  // browser `location` API instead of `useSearchParams` to avoid Next.js
+  // suspense/server rendering constraints for this page.
+  useEffect(() => {
+    let mounted = true;
+    const redirectTo = typeof window !== "undefined" ? new URL(window.location.href).searchParams.get("redirect_to") : null;
+    if (!redirectTo) return;
+    (async () => {
+      try {
+        const res = await fetchUser();
+        if (!mounted) return;
+        if (res.success && res.data) {
+          router.push(redirectTo);
+        }
+      } catch {
+        // ignore — unauthenticated users will see the landing page
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   const nav = (
     <>

@@ -59,8 +59,9 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!user) return;
+    const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
     if (user.usernameSet && user.primaryLanguage) {
-      router.push(consumeAuthRedirect() ?? '/home');
+      router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
     } else if (user.usernameSet && !user.primaryLanguage) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep(2);
@@ -140,7 +141,8 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       await setPrimaryLanguage(lang);
-      router.push(consumeAuthRedirect() ?? '/home');
+      const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
+      router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
     } catch {
       setErrorMsg('Failed to set language. Please try again.');
       setIsSubmitting(false);

@@ -56,6 +56,12 @@ func TestSendProblemReminder_Handler(t *testing.T) {
 		if req.URL.Path != "/emails" {
 			t.Fatalf("unexpected Resend request path: %s", req.URL.Path)
 		}
+		// Read outgoing request body and assert it contains the redirect_to param
+		bodyBytes, _ := io.ReadAll(req.Body)
+		bodyStr := string(bodyBytes)
+		if !strings.Contains(bodyStr, "redirect_to=") {
+			t.Fatalf("expected redirect_to in resend payload, got body=%s", bodyStr)
+		}
 		return &http.Response{
 			StatusCode: 200,
 			Body:       io.NopCloser(strings.NewReader(`{"id":"abc-123"}`)),

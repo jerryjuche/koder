@@ -28,6 +28,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const redirecting = useRef(false);
 
   const redirectToLanding = useCallback(() => {
+    // Prefer an explicit query param so redirects survive new tabs/windows
+    try {
+      if (typeof window !== "undefined") {
+        const { pathname, search } = window.location;
+        const full = pathname + search;
+        const url = "/?redirect_to=" + encodeURIComponent(full);
+        // keep existing same-tab fallback
+        captureAuthRedirect();
+        router.replace(url);
+        return;
+      }
+    } catch {
+      // fall back to previous behavior
+    }
     captureAuthRedirect();
     router.replace("/");
   }, [router]);
