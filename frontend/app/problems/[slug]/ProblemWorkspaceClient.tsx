@@ -229,8 +229,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [results, setResults] = useState<TestResult[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<any>(null);
-  const [lastRunMode, setLastRunMode] = useState<"test" | "submit">("test");
-  const [testsExpanded, setTestsExpanded] = useState(true);
+  const [testsExpanded, setTestsExpanded] = useState(false);
   const [saved, setSaved] = useState(true);
   const [activeLanguage, setActiveLanguage] = useState<string>("go");
   const [cooldown, setCooldown] = useState(0);
@@ -492,7 +491,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
-    setLastRunMode("submit");
 
     const res = await submitSolution(slug, code, activeLanguage);
 
@@ -558,7 +556,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     setPanelMode("tests");
     setTestsExpanded(true);
     setErrorMsg(null);
-    setLastRunMode("test");
 
     const res = await testCode(slug, code, activeLanguage);
 
@@ -1226,7 +1223,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             errorMsg={errorMsg}
             expanded={testsExpanded}
             onToggle={() => setTestsExpanded(!testsExpanded)}
-            mode={lastRunMode}
           />
         </div>
 
