@@ -184,6 +184,7 @@
 | 176 | `8d8908a` | feat: admin problem-reminder email broadcasts — problem picker + brand-matched Resend template (Session 113) |
 | 177 | `fdbf615` | fix: sync frontend package-lock after npm ci |
 | 178 | `7d0091e` | fix: remove unused firebase-tools devDependency — clears EBADENGINE warnings, slims npm ci (Session 114) |
+| 179 | `b82d44c` | docs: full professional reindex — sessions 113-114 in all logs, verified counts |
 
 ---
 
