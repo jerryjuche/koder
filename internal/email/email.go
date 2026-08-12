@@ -18,16 +18,13 @@ import (
 
 // Brand tokens (mirrored from frontend/app/globals.css).
 const (
-	CharcoalBase     = "#141414" // page background
-	CharcoalPanel    = "#191919" // footer surface
-	CharcoalCard     = "#1E1E1E" // card surface
-	BorderColor      = "#2B2B2B" // borders, dividers
-	OffWhite         = "#D1D1D8" // primary text
-	MutedText        = "#88889A" // secondary text
-	BrandPurpleDark  = "#53389E" // gradient start
-	BrandPurple      = "#7F56D9" // gradient mid / accents
-	BrandPurpleLight = "#9E77ED" // gradient end / links
-	MutedGold        = "#D4AF37" // CTA background
+	CharcoalBase  = "#121212" // page background
+	CharcoalPanel = "#1E1E1E" // content card surface
+	CharcoalCard  = "#1A1A1A" // darker panel
+	BorderColor   = "#2A2A2A" // borders, dividers
+	OffWhite      = "#F5F5F5" // primary text
+	MutedText     = "#A3A3A3" // secondary text
+	MutedGold     = "#D4AF37" // CTA background
 )
 
 // LockIconDataURI is an inline SVG padlock (Lucide-style stroke) encoded as a
@@ -130,20 +127,20 @@ func renderMarkdownToHTML(md string) string {
 	codeRe := regexp.MustCompile("(?s)```(?:[a-zA-Z0-9_-]*\\n)?(.*?)```")
 	s = codeRe.ReplaceAllStringFunc(s, func(m string) string {
 		sub := codeRe.ReplaceAllString(m, "$1")
-		return "<pre style=\"background:#f5f7f9;padding:12px;border-radius:8px;color:#111111;overflow:auto;font-family:monospace;\"><code>" + sub + "</code></pre>"
+		return `<pre style="background:` + CharcoalCard + `;padding:14px;border-radius:12px;color:` + OffWhite + `;overflow:auto;font-family:monospace;line-height:1.5;"><code>` + sub + `</code></pre>`
 	})
 
 	// Headings
-	s = regexp.MustCompile(`(?m)^###\s*(.+)$`).ReplaceAllString(s, `<h3 style="margin:12px 0 6px;color:#000000;font-size:16px;">$1</h3>`)
-	s = regexp.MustCompile(`(?m)^##\s*(.+)$`).ReplaceAllString(s, `<h2 style="margin:14px 0 8px;color:#000000;font-size:18px;">$1</h2>`)
-	s = regexp.MustCompile(`(?m)^#\s*(.+)$`).ReplaceAllString(s, `<h1 style="margin:16px 0 10px;color:#000000;font-size:22px;">$1</h1>`)
+	s = regexp.MustCompile(`(?m)^###\s*(.+)$`).ReplaceAllString(s, `<h3 style="margin:14px 0 6px;color:`+OffWhite+`;font-size:16px;">$1</h3>`)
+	s = regexp.MustCompile(`(?m)^##\s*(.+)$`).ReplaceAllString(s, `<h2 style="margin:16px 0 8px;color:`+OffWhite+`;font-size:18px;">$1</h2>`)
+	s = regexp.MustCompile(`(?m)^#\s*(.+)$`).ReplaceAllString(s, `<h1 style="margin:18px 0 10px;color:`+OffWhite+`;font-size:22px;">$1</h1>`)
 
 	// Inline code
-	s = regexp.MustCompile("`([^`]+)`").ReplaceAllString(s, `<code style="background:#f5f5f7;padding:2px 6px;border-radius:6px;color:#111111;">$1</code>`)
+	s = regexp.MustCompile("`([^`]+)`").ReplaceAllString(s, `<code style="background:`+CharcoalPanel+`;padding:2px 6px;border-radius:6px;color:`+OffWhite+`;font-family:monospace;">$1</code>`)
 
 	// Bold then italics
-	s = regexp.MustCompile(`\*\*(.+?)\*\*`).ReplaceAllString(s, `<strong style="color:#000000;">$1</strong>`)
-	s = regexp.MustCompile(`\*(.+?)\*`).ReplaceAllString(s, `<em style="color:#333333;">$1</em>`)
+	s = regexp.MustCompile(`\*\*(.+?)\*\*`).ReplaceAllString(s, `<strong style="color:`+OffWhite+`;">$1</strong>`)
+	s = regexp.MustCompile(`\*(.+?)\*`).ReplaceAllString(s, `<em style="color:`+MutedText+`;">$1</em>`)
 
 	// Links [text](url)
 	s = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`).ReplaceAllString(s, `<a href="$2" style="color:`+MutedGold+`;text-decoration:none;">$1</a>`)
@@ -156,11 +153,11 @@ func renderMarkdownToHTML(md string) string {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "- ") {
 			if !inList {
-				out = append(out, `<ul style="margin:8px 0 8px 20px;padding:0;">`)
+				out = append(out, `<ul style="margin:10px 0 10px 20px;padding:0;">`)
 				inList = true
 			}
 			item := strings.TrimSpace(trimmed[2:])
-			out = append(out, `<li style="margin-bottom:6px;color:#222222">`+item+`</li>`)
+			out = append(out, `<li style="margin-bottom:8px;color:`+OffWhite+`;">`+item+`</li>`)
 		} else {
 			if inList {
 				out = append(out, `</ul>`)
@@ -169,7 +166,7 @@ func renderMarkdownToHTML(md string) string {
 			if trimmed == "" {
 				out = append(out, "")
 			} else {
-				out = append(out, `<p style="margin:8px 0;color:#222222">`+trimmed+`</p>`)
+				out = append(out, `<p style="margin:10px 0;color:`+MutedText+`;line-height:1.7;">`+trimmed+`</p>`)
 			}
 		}
 	}
@@ -186,7 +183,7 @@ func problemReminderBody() string {
 
 <!-- Header band -->
 <tr>
-<td style="background-color:#ffffff;padding:28px 40px;" bgcolor="#ffffff">
+<td style="background-color:` + CharcoalBase + `;padding:24px 20px;" bgcolor="` + CharcoalBase + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -197,8 +194,8 @@ func problemReminderBody() string {
 </td>
 <td style="width:12px;">&nbsp;</td>
 <td style="vertical-align:middle;">
-<div style="font-size:20px;font-weight:700;color:#000000;letter-spacing:-0.3px;">{{.PlatformName}}</div>
-<div style="margin-top:2px;color:#6b6b6b;font-size:12px;">Practice · Quick wins · Keep the streak</div>
+<div style="font-size:20px;font-weight:700;color:` + OffWhite + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
+<div style="margin-top:4px;color:` + MutedText + `;font-size:12px;">{{.Tagline}}</div>
 </td>
 </tr>
 </table>
@@ -210,12 +207,12 @@ func problemReminderBody() string {
 
 <!-- Hero -->
 <tr>
-<td style="padding:36px 48px 8px 48px;">
+<td style="padding:32px 20px 0 20px;">
 
-<h1 style="margin:0;font-size:28px;line-height:38px;color:#000000;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
+<h1 style="margin:0;font-size:28px;line-height:38px;color:` + OffWhite + `;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
 
-<p style="margin:16px 0 0;color:#222222;font-size:16px;line-height:26px;">
-Sharpen your skills with this short exercise: <strong style="color:#000000;">{{.ProblemTitle}}</strong>
+<p style="margin:18px 0 0;color:` + MutedText + `;font-size:16px;line-height:26px;">
+Sharpen your skills with this short exercise: <strong style="color:` + OffWhite + `;">{{.ProblemTitle}}</strong>
 </p>
 
 </td>
@@ -223,15 +220,15 @@ Sharpen your skills with this short exercise: <strong style="color:#000000;">{{.
 
 <!-- Problem card & CTA -->
 <tr>
-<td style="padding:18px 48px 0 48px;">
+<td style="padding:24px 20px 0 20px;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:#ffffff;border:1px solid #e6e6e6;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CharcoalCard + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
 <tr>
-<td style="color:#D1D1D8;font-size:14px;line-height:22px;">
-<div style="font-size:16px;font-weight:700;color:#000000;margin-bottom:8px;">{{.ProblemTitle}}</div>
-<div style="font-size:14px;color:#333333;margin-bottom:14px;">{{.ProblemExcerptHTML}}</div>
+<td style="padding:26px;color:` + OffWhite + `;font-size:14px;line-height:22px;">
+<div style="font-size:18px;font-weight:700;color:` + OffWhite + `;margin-bottom:10px;">{{.ProblemTitle}}</div>
+<div style="font-size:14px;color:` + MutedText + `;margin-bottom:20px;line-height:24px;">{{.ProblemExcerptHTML}}</div>
 <div>
-<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 26px;background-color:#D4AF37;color:#000000;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 2px 0 rgba(0,0,0,0.06);">Open Problem</a>
+<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 24px;background-color:` + MutedGold + `;color:#121212;font-weight:700;border-radius:12px;text-decoration:none;">Open Problem</a>
 </div>
 </td>
 </tr>
@@ -242,22 +239,22 @@ Sharpen your skills with this short exercise: <strong style="color:#000000;">{{.
 
 <!-- Fallback link -->
 <tr>
-<td style="padding:20px 48px 0 48px;">
-<div style="background-color:#fafafa;border:1px solid #e6e6e6;border-radius:12px;padding:16px;">
-<div style="font-size:13px;color:#6b6b6b;margin-bottom:8px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:13px;line-height:20px;color:#222222;"><a href="{{.CTAURL}}" style="color:#D4AF37;text-decoration:none;">{{.CTAURL}}</a></div>
+<td style="padding:20px 20px 0 20px;">
+<div style="background-color:` + CharcoalPanel + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:18px;">
+<div style="font-size:13px;color:` + MutedText + `;margin-bottom:10px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + OffWhite + `;"><a href="{{.CTAURL}}" style="color:` + MutedGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
 </div>
 </td>
 </tr>
 
 <!-- Footer -->
 <tr>
-<td style="padding:34px 48px 36px 48px;background-color:#ffffff;border-top:1px solid #e6e6e6;" bgcolor="#ffffff">
+<td style="padding:32px 20px 36px 20px;background-color:` + CharcoalCard + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + CharcoalCard + `">
 
-<div style="font-size:14px;color:#000000;font-weight:600;">{{.PlatformName}}</div>
-<div style="margin-top:10px;font-size:13px;line-height:20px;color:#6b6b6b;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:#6b6b6b;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:#D4AF37;text-decoration:none;">{{.SupportEmail}}</a></div>
-<div style="margin-top:16px;font-size:12px;line-height:18px;color:#6b6b6b;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+<div style="font-size:14px;color:` + OffWhite + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:10px;font-size:13px;line-height:20px;color:` + MutedText + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + MutedText + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + MutedGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:16px;font-size:12px;line-height:18px;color:` + MutedText + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>
@@ -286,17 +283,17 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light">
-<meta name="supported-color-schemes" content="light">
-<title>{{.PlatformName}} — Password Reset</title>
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{.PlatformName}}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000000;">
+<body style="margin:0;padding:0;background-color:` + CharcoalBase + `;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:` + OffWhite + `;">
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;padding:40px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CharcoalBase + `;padding:32px 16px;">
 <tr>
 <td align="center">
 
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #e6e6e6;border-radius:18px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:` + CharcoalBase + `;border-radius:20px;overflow:hidden;">
 
 {{template "content" .}}
 
@@ -313,7 +310,7 @@ const passwordResetBody = `{{define "content"}}
 
 <!-- Header band -->
 <tr>
-<td style="background-color:#ffffff;padding:36px 48px;" bgcolor="#ffffff">
+<td style="background-color:` + CharcoalCard + `;padding:28px 20px;" bgcolor="` + CharcoalCard + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -324,8 +321,8 @@ const passwordResetBody = `{{define "content"}}
 </td>
 <td style="width:14px;">&nbsp;</td>
 <td style="vertical-align:middle;">
-<div style="font-size:26px;font-weight:700;color:#000000;letter-spacing:-0.5px;">{{.PlatformName}}</div>
-<div style="margin-top:2px;color:#6b6b6b;font-size:13px;letter-spacing:0.3px;">Coding Practice &amp; Grading</div>
+<div style="font-size:26px;font-weight:700;color:` + OffWhite + `;letter-spacing:-0.5px;">{{.PlatformName}}</div>
+<div style="margin-top:4px;color:` + MutedText + `;font-size:13px;letter-spacing:0.3px;">{{.Tagline}}</div>
 </td>
 </tr>
 </table>
@@ -337,23 +334,23 @@ const passwordResetBody = `{{define "content"}}
 
 <!-- Hero -->
 <tr>
-<td style="padding:48px 48px 8px 48px;">
+<td style="padding:34px 20px 0 20px;">
 
-<div style="width:72px;height:72px;border-radius:50%;background-color:#ffffff;display:flex;align-items:center;justify-content:center;margin-bottom:28px;border:1px solid #e6e6e6;">
-<img src="{{.LogoURL}}" alt="{{.PlatformName}}" width="48" height="48" style="display:block;width:48px;height:48px;border:0;border-radius:10px;" />
+<div style="width:72px;height:72px;border-radius:50%;background-color:` + CharcoalPanel + `;display:block;margin-bottom:24px;border:1px solid ` + BorderColor + `;text-align:center;line-height:72px;">
+<img src="{{.LogoURL}}" alt="{{.PlatformName}}" width="48" height="48" style="display:inline-block;width:48px;height:48px;border:0;border-radius:10px;vertical-align:middle;" />
 </div>
 
-<h1 style="margin:0;font-size:32px;line-height:40px;color:#000000;font-weight:700;letter-spacing:-0.3px;">Reset your password</h1>
+<h1 style="margin:0;font-size:32px;line-height:40px;color:` + OffWhite + `;font-weight:700;letter-spacing:-0.3px;">Reset your password</h1>
 
-<p style="margin:20px 0 0;color:#222222;font-size:16px;line-height:28px;">
-Hi <strong style="color:#000000;">{{.FirstName}}</strong>,
+<p style="margin:20px 0 0;color:` + OffWhite + `;font-size:16px;line-height:28px;">
+Hi <strong style="color:` + OffWhite + `;">{{.FirstName}}</strong>,
 </p>
 
-<p style="margin:8px 0 0;color:#6b6b6b;font-size:16px;line-height:28px;">
+<p style="margin:12px 0 0;color:` + MutedText + `;font-size:16px;line-height:28px;">
 We received a request to reset the password for your {{.PlatformName}} account.
 </p>
 
-<p style="margin:8px 0 0;color:#6b6b6b;font-size:16px;line-height:28px;">
+<p style="margin:12px 0 0;color:` + MutedText + `;font-size:16px;line-height:28px;">
 If you made this request, click the button below to choose a new password.
 </p>
 
@@ -362,59 +359,47 @@ If you made this request, click the button below to choose a new password.
 
 <!-- CTA -->
 <tr>
-<td style="padding:32px 48px 0 48px;">
+<td style="padding:28px 20px 0 20px;">
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
 <tr>
-<td style="border-radius:12px;background-color:#D4AF37;">
-<a href="{{.ResetURL}}" style="display:inline-block;padding:18px 34px;font-size:16px;font-weight:600;color:#000000;text-decoration:none;border-radius:12px;letter-spacing:0.2px;">Reset Password</a>
+<td style="border-radius:14px;background-color:` + MutedGold + `;">
+<a href="{{.ResetURL}}" style="display:inline-block;padding:16px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Reset Password</a>
 </td>
 </tr>
 </table>
 
-<p style="margin-top:28px;margin-bottom:0;font-size:14px;line-height:24px;color:#6b6b6b;">
-This secure link expires in <strong style="color:#000000;">{{.ExpiresIn}}</strong>.
+<p style="margin-top:24px;margin-bottom:0;font-size:14px;line-height:24px;color:` + MutedText + `;">
+This secure link expires in <strong style="color:` + OffWhite + `;">{{.ExpiresIn}}</strong>.
 </p>
 
-</td>
-</tr>
-
-<!-- Divider -->
-<tr>
-<td style="padding:40px 48px 0 48px;">
-<hr style="border:none;border-top:1px solid #e6e6e6;margin:0;">
 </td>
 </tr>
 
 <!-- Security -->
 <tr>
-<td style="padding:36px 48px 0 48px;">
+<td style="padding:32px 20px 0 20px;">
 
-<h2 style="margin:0;font-size:20px;color:#000000;font-weight:700;">Didn't request this?</h2>
-
-<p style="margin:14px 0 0;font-size:15px;line-height:28px;color:#6b6b6b;">
-If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-</p>
-
-<p style="margin:8px 0 0;font-size:15px;line-height:28px;color:#6b6b6b;">
-If you believe someone attempted to access your account, we recommend changing your password immediately after signing in and reviewing your recent account activity.
-</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CharcoalCard + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:24px;color:` + OffWhite + `;font-size:15px;line-height:26px;">
+<h2 style="margin:0;font-size:20px;color:` + OffWhite + `;font-weight:700;">Didn't request this?</h2>
+<p style="margin:18px 0 0;color:` + MutedText + `;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+<p style="margin:14px 0 0;color:` + MutedText + `;">If you believe someone attempted to access your account, we recommend changing your password immediately after signing in and reviewing your recent account activity.</p>
+</td>
+</tr>
+</table>
 
 </td>
 </tr>
 
 <!-- Backup URL -->
 <tr>
-<td style="padding:28px 48px 0 48px;">
+<td style="padding:28px 20px 0 20px;">
 
-<div style="background-color:#fafafa;border:1px solid #e6e6e6;border-radius:12px;padding:20px;">
-
-<div style="font-size:13px;color:#6b6b6b;margin-bottom:12px;font-weight:600;">Button not working?</div>
-
-<div style="word-break:break-all;font-size:14px;line-height:24px;color:#222222;">
-<a href="{{.ResetURL}}" style="color:#D4AF37;text-decoration:none;word-break:break-all;">{{.ResetURL}}</a>
-</div>
-
+<div style="background-color:` + CharcoalPanel + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:20px;">
+<div style="font-size:13px;color:` + MutedText + `;margin-bottom:12px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + OffWhite + `;"><a href="{{.ResetURL}}" style="color:` + MutedGold + `;text-decoration:none;">{{.ResetURL}}</a></div>
 </div>
 
 </td>
@@ -422,19 +407,12 @@ If you believe someone attempted to access your account, we recommend changing y
 
 <!-- Footer -->
 <tr>
-<td style="padding:40px 48px 36px 48px;background-color:#ffffff;border-top:1px solid #e6e6e6;" bgcolor="#ffffff">
+<td style="padding:28px 20px 36px 20px;background-color:` + CharcoalCard + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + CharcoalCard + `">
 
-<div style="font-size:14px;color:#000000;font-weight:600;">{{.PlatformName}}</div>
-
-<div style="margin-top:12px;font-size:14px;line-height:24px;color:#6b6b6b;">{{.Tagline}}</div>
-
-<div style="margin-top:24px;font-size:13px;line-height:22px;color:#6b6b6b;">
-Need help? <a href="mailto:{{.SupportEmail}}" style="color:#D4AF37;text-decoration:none;">{{.SupportEmail}}</a>
-</div>
-
-<div style="margin-top:18px;font-size:12px;line-height:22px;color:#6b6b6b;">
-&copy; {{.Year}} {{.PlatformName}}. All rights reserved.
-</div>
+<div style="font-size:14px;color:` + OffWhite + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:12px;font-size:13px;line-height:22px;color:` + MutedText + `;">{{.Tagline}}</div>
+<div style="margin-top:18px;font-size:13px;line-height:22px;color:` + MutedText + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + MutedGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:18px;font-size:12px;line-height:20px;color:` + MutedText + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>

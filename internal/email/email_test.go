@@ -25,14 +25,14 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 	required := []string{
 		"<!DOCTYPE html>",
 		`<html lang="en">`,
-		`<meta name="color-scheme" content="light">`,
+		`<meta name="color-scheme" content="dark">`,
 		"Reset your password",
-		"Hi <strong style=\"color:#000000;\">Ada</strong>",
+		"Hi <strong style=\"color:#F5F5F5;\">Ada</strong>",
 		"https://koder.sbs/reset-password?token=abc123&amp;x=1",
 		"https://koder.sbs/logo.png",
 		"background-color:#D4AF37",
 		"Reset Password",
-		"expires in <strong style=\"color:#000000;\">1 hour</strong>",
+		"This secure link expires in <strong style=\"color:#F5F5F5;\">1 hour</strong>.",
 		"Didn't request this?",
 		"Button not working?",
 		"support@koder.sbs",
@@ -56,8 +56,8 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 func TestRenderPasswordReset_EscapesUserSuppliedValues(t *testing.T) {
 	data := testData()
 	data.FirstName = `<script>alert("xss")</script>`
-	data.ResetURL = `https://koder.sbs/reset-password?token="><script>alert(1)</script>`
-	data.Tagline = `Trust <b>this</b>`
+	data.ResetURL = `https://koder.sbs/reset-password?token=\"><script>alert(1)</script>&ref=foo`
+	data.Tagline = `Trust & <b>this</b>`
 
 	out, err := RenderPasswordResetString(data)
 	if err != nil {
@@ -79,6 +79,7 @@ func TestRenderPasswordReset_EscapesUserSuppliedValues(t *testing.T) {
 		`&amp;`,
 	} {
 		if !strings.Contains(out, want) {
+			t.Logf("output=%s", out)
 			t.Errorf("rendered email missing escaped output %q", want)
 		}
 	}
@@ -127,5 +128,46 @@ func TestRenderMarkdownToHTML_SanitizesAndRenders(t *testing.T) {
 	}
 	if !strings.Contains(out, "&lt;script&gt;") {
 		t.Errorf("escaped script missing: %s", out)
+	}
+}
+
+func TestRenderProblemReminderString_ContainsDarkThemeStyling(t *testing.T) {
+	data := ProblemReminderData{
+		PlatformName:   "Koder",
+		FirstName:      "Ada",
+		ProblemTitle:   "Binary Search",
+		ProblemSlug:    "binary-search",
+		ProblemExcerpt: "Solve the classic **search** problem in *log n* time.",
+		CTAURL:         "https://koder.sbs/problems/binary-search",
+		LogoURL:        "https://koder.sbs/logo.png",
+		SupportEmail:   "support@koder.sbs",
+		Tagline:        "Koder turns every problem into an instant feedback loop.",
+		Year:           2026,
+	}
+
+	out, err := RenderProblemReminderString(data)
+	if err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+
+	for _, want := range []string{
+		`<meta name="color-scheme" content="dark">`,
+		"background-color:#121212",
+		"background-color:#1A1A1A",
+		"background-color:#D4AF37",
+		"Koder",
+		"Binary Search",
+		"Open Problem",
+		"support@koder.sbs",
+		"mailto:support@koder.sbs",
+		"Koder turns every problem into an instant feedback loop.",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("rendered reminder missing %q", want)
+		}
+	}
+
+	if strings.ContainsAny(out, "😀🔒🤖🚀✨🔥") {
+		t.Errorf("rendered email contains emoji characters")
 	}
 }
