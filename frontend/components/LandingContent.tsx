@@ -4,7 +4,7 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchUser } from "@/lib/api";
 import Hero from "@/components/landing/Hero";
@@ -16,7 +16,6 @@ import Footer from "@/components/landing/Footer";
 
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const router = useRouter();
 
   const getSafeRedirectTarget = (value: string | null) => {
@@ -36,10 +35,12 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
   // suspense/server rendering constraints for this page.
   useEffect(() => {
     let mounted = true;
-    const rawRedirect = typeof window !== "undefined" ? new URL(window.location.href).searchParams.get("redirect_to") : null;
-    const safeRedirect = getSafeRedirectTarget(rawRedirect);
-    setRedirectTo(safeRedirect);
+    const safeRedirect =
+      typeof window !== "undefined"
+        ? getSafeRedirectTarget(new URL(window.location.href).searchParams.get("redirect_to"))
+        : null;
     if (!safeRedirect) return;
+
     (async () => {
       try {
         const res = await fetchUser();
@@ -51,13 +52,17 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
         // ignore — unauthenticated users will see the landing page
       }
     })();
+
     return () => {
       mounted = false;
     };
   }, [router]);
 
   const authLinkHref = (path: string) => {
-    const redirect = redirectTo ?? (typeof window !== "undefined" ? getSafeRedirectTarget(new URL(window.location.href).searchParams.get("redirect_to")) : null);
+    const redirect =
+      typeof window !== "undefined"
+        ? getSafeRedirectTarget(new URL(window.location.href).searchParams.get("redirect_to"))
+        : null;
     return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
   };
 

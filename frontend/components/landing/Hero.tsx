@@ -3,7 +3,7 @@
 import { motion, useScroll, useTransform } from 'motion/react';
 import Link from 'next/link';
 import { ArrowRight, Code2, ChevronRight } from 'lucide-react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 const wordVariants = {
@@ -24,16 +24,16 @@ export default function Hero() {
   });
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.7], [1, 0.95]);
-  const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const redirect = new URL(window.location.href).searchParams.get("redirect_to");
-    setRedirectTo(redirect);
-  }, []);
+  const getCurrentRedirectTarget = () => {
+    if (typeof window === "undefined") return null;
+    return new URL(window.location.href).searchParams.get("redirect_to");
+  };
 
-  const authLinkHref = (path: string) =>
-    redirectTo ? `${path}?redirect_to=${encodeURIComponent(redirectTo)}` : path;
+  const authLinkHref = (path: string) => {
+    const redirect = getCurrentRedirectTarget();
+    return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
+  };
 
   return (
     <motion.section
