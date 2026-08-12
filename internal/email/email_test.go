@@ -25,14 +25,14 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 	required := []string{
 		"<!DOCTYPE html>",
 		`<html lang="en">`,
-		`<meta name="color-scheme" content="dark">`,
+		`<meta name="color-scheme" content="light">`,
 		"Reset your password",
-		"Hi <strong style=\"color:#F5F5F5;\">Ada</strong>",
+		"Hi <strong style=\"color:#111827;\">Ada</strong>",
 		"https://koder.sbs/reset-password?token=abc123&amp;x=1",
 		"https://koder.sbs/logo.png",
 		"background-color:#D4AF37",
 		"Reset Password",
-		"This secure link expires in <strong style=\"color:#F5F5F5;\">1 hour</strong>.",
+		"This secure link expires in <strong style=\"color:#111827;\">1 hour</strong>.",
 		"Didn't request this?",
 		"Button not working?",
 		"support@koder.sbs",
@@ -131,7 +131,7 @@ func TestRenderMarkdownToHTML_SanitizesAndRenders(t *testing.T) {
 	}
 }
 
-func TestRenderProblemReminderString_ContainsDarkThemeStyling(t *testing.T) {
+func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 	data := ProblemReminderData{
 		PlatformName:   "Koder",
 		FirstName:      "Ada",
@@ -151,9 +151,9 @@ func TestRenderProblemReminderString_ContainsDarkThemeStyling(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		`<meta name="color-scheme" content="dark">`,
-		"background-color:#121212",
-		"background-color:#1A1A1A",
+		`<meta name="color-scheme" content="light">`,
+		"background-color:#F7F8FA",
+		"background-color:#FFFFFF",
 		"background-color:#D4AF37",
 		"Koder",
 		"Binary Search",
