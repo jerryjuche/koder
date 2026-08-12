@@ -1,6 +1,7 @@
 package email
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ func testData() PasswordResetData {
 		PlatformName: "Koder",
 		FirstName:    "Ada",
 		ResetURL:     "https://koder.sbs/reset-password?token=abc123&x=1",
-		LogoURL:      "https://koder.sbs/logo.png",
+		LogoURL:      template.URL("https://koder.sbs/logo.png"),
 		SupportEmail: "support@koder.sbs",
 		Tagline:      "Koder turns every problem into an instant feedback loop.",
 	}
@@ -94,6 +95,16 @@ func TestRenderPasswordReset_AppliesDefaults(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("default not applied, missing %q", want)
 		}
+	}
+}
+
+func TestRenderPasswordReset_InlineLogoFallback(t *testing.T) {
+	out, err := RenderPasswordResetString(PasswordResetData{FirstName: "Ada", ResetURL: "https://koder.sbs/reset-password?token=abc", LogoURL: template.URL("")})
+	if err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+	if !strings.Contains(out, "data:image/svg") {
+		t.Errorf("expected inline SVG logo fallback, got %q", out)
 	}
 }
 

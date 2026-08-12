@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -319,11 +320,16 @@ If you didn't request this, you can safely ignore this email.
 
 — The Koder Team`, name, resetLink)
 
+	var logoURL template.URL
+	if h.cfg != nil && h.cfg.FrontendURL != "" {
+		logoURL = template.URL(strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png")
+	}
+
 	htmlBody, err := emailtmpl.RenderPasswordResetString(emailtmpl.PasswordResetData{
 		PlatformName: "Koder",
 		FirstName:    name,
 		ResetURL:     resetLink,
-		LogoURL:      strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png",
+		LogoURL:      logoURL,
 		SupportEmail: emailAddressFromFrom(h.cfg.EmailFrom),
 		Tagline:      "Koder turns every problem into an instant feedback loop.",
 		ExpiresIn:    "1 hour",

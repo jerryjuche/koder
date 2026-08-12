@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
-    "net/url"
+	"net/url"
 	"strings"
 	"time"
 
@@ -382,6 +383,11 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	var logoURL template.URL
+	if h.cfg != nil && h.cfg.FrontendURL != "" {
+		logoURL = template.URL(strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png")
+	}
+
 	htmlBody, err := emailtmpl.RenderProblemReminderString(emailtmpl.ProblemReminderData{
 		PlatformName:   "Koder",
 		FirstName:      "Coder",
@@ -389,7 +395,7 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		ProblemSlug:    problem.Slug,
 		ProblemExcerpt: problem.Statement,
 		CTAURL:         cta,
-		LogoURL:        strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png",
+		LogoURL:        logoURL,
 		SupportEmail:   emailAddressFromFrom(h.cfg.EmailFrom),
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
 	})

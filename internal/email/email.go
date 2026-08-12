@@ -36,16 +36,23 @@ const LockIconDataURI = "data:image/svg+xml;charset=utf-8," +
 	"%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E" +
 	"%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E"
 
+// LogoDataURI is a minimal inline SVG logo used when an external logo URL
+// is unavailable or blocked by the email client.
+const LogoDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36' fill='none'%3E" +
+	"%3Crect width='36' height='36' rx='10' fill='%23D4AF37'/%3E" +
+	"%3Cpath d='M12 10h4l4 8-4 8h-4l4-8-4-8Z' fill='%23111727'/%3E%3C/svg%3E"
+
 // PasswordResetData is the data model for the password-reset email.
 type PasswordResetData struct {
-	PlatformName string // display name, e.g. "Koder"
-	FirstName    string // recipient's name (auto-escaped)
-	ResetURL     string // one-time reset link (auto-escaped)
-	LogoURL      string // absolute URL to the platform logo
-	SupportEmail string // mailto address
-	Tagline      string // one-line brand message (footer)
-	ExpiresIn    string // human-readable expiry, e.g. "1 hour"
-	Year         int    // copyright year
+	PlatformName string       // display name, e.g. "Koder"
+	FirstName    string       // recipient's name (auto-escaped)
+	ResetURL     string       // one-time reset link (auto-escaped)
+	LogoURL      template.URL // absolute or safe inline URL to the platform logo
+	SupportEmail string       // mailto address
+	Tagline      string       // one-line brand message (footer)
+	ExpiresIn    string       // human-readable expiry, e.g. "1 hour"
+	Year         int          // copyright year
 }
 
 // RenderPasswordReset renders the password-reset email into w.
@@ -58,6 +65,9 @@ func RenderPasswordReset(w io.Writer, data PasswordResetData) error {
 	}
 	if data.Year == 0 {
 		data.Year = time.Now().Year()
+	}
+	if strings.TrimSpace(string(data.LogoURL)) == "" {
+		data.LogoURL = template.URL(LogoDataURI)
 	}
 	return passwordResetTmpl.ExecuteTemplate(w, "layoutBase", data)
 }
@@ -82,7 +92,7 @@ type ProblemReminderData struct {
 	// ProblemExcerptHTML contains rendered, safe HTML for the excerpt
 	ProblemExcerptHTML template.HTML
 	CTAURL             string
-	LogoURL            string
+	LogoURL            template.URL
 	SupportEmail       string
 	Tagline            string
 	Year               int
@@ -95,6 +105,9 @@ func RenderProblemReminder(w io.Writer, data ProblemReminderData) error {
 	}
 	if data.Year == 0 {
 		data.Year = time.Now().Year()
+	}
+	if strings.TrimSpace(string(data.LogoURL)) == "" {
+		data.LogoURL = template.URL(LogoDataURI)
 	}
 	// Render markdown excerpt to safe HTML and attach
 	if data.ProblemExcerpt != "" {
