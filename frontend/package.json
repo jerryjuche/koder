@@ -62,7 +62,6 @@
     "@types/react-dom": "^19",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.8",
-    "firebase-tools": "^15.0.0",
     "monaco-vscode-textmate-theme-converter": "^0.1.7",
     "shadcn": "^4.12.0",
     "tailwindcss": "4.1.11",
