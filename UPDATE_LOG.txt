@@ -258,6 +258,14 @@ Google auto-registration + navigation + refresh token fix:
 1. GoogleAuth auto-create branch now uses issueTokens() instead of auth.SignToken — new Google users now get a refresh token (previously logged out after 15 min).
 2. All router.push('/') changed to /home across login, register, admin, OAuth callback (was redirect-looping to landing page, breaking browser back button).
 3. Settings page logout/delete redirect /auth/login (404) → /login.
+
+Date: 2026-08-12
+
+Password-reset email template polish:
+- Updated `internal/email/email.go` to use the light-theme brand palette, improved CTA block styling, tighter vertical spacing, and email-safe inline CSS for password reset and problem reminder templates.
+- Replaced legacy `OffWhite` list color usage with the new `TextPrimary`/`TextSecondary` palette.
+- Aligned `internal/email/email_test.go` expectations with the refreshed light-theme visuals and verified XSS-safe HTML escaping.
+- Verified `go test ./internal/email/...` passes.
 4. TopNav Problems link href from / → /problems for proper navigation stack.
 5. New /problems listing page with search, language tabs, pagination.
 6. New problems layout with TopNav + FeedbackButton for workspace.

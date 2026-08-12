@@ -2992,3 +2992,14 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ### Verification
 - ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success, `go vet ./internal/...` clean, `go build ./cmd/server` OK, `go test ./internal/...` 9/9 suites green (171 tests), sandbox vet + test green (11 tests)
 - Committed to `update` only (no staging/main merge per user decision; CI triggers on main/staging pushes so the fix is validated on the next merge)
+
+## Session 115 — 2026-08-12 — Password-reset email template light-theme polish + tests
+
+### Changes
+- Refined `internal/email/email.go` to finalize the light-theme transactional email shell for password reset and problem reminder messages: updated background/text colors to the new brand palette, tightened vertical spacing, improved CTA/button styling, and hardened the fallback URL block.
+- Removed the legacy `OffWhite` alias from inline list item rendering and aligned all email bodies to the new `TextPrimary`/`TextSecondary` palette.
+- Updated `internal/email/email_test.go` expectations to match the refined color palette and confirm safe HTML escaping for injected content.
+
+### Verification
+- `go test ./internal/email/...` passes.
+- Only the log entries were appended in this session; unrelated `go.mod`/`go.sum` changes remain separate.
