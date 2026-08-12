@@ -95,3 +95,37 @@ func TestRenderPasswordReset_AppliesDefaults(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderMarkdownToHTML_SanitizesAndRenders(t *testing.T) {
+	md := "# Title\n\nThis is **bold** and *italic* and `code`.\nVisit [link](https://example.com).\n\n- item one\n- item two\n\n<script>alert(1)</script>\n```go\nfmt.Println(\"hi\")\n```\n"
+
+	out := renderMarkdownToHTML(md)
+
+	// basic structure
+	if !strings.Contains(out, "<h1") || !strings.Contains(out, "Title") {
+		t.Errorf("heading not rendered: %s", out)
+	}
+	if !strings.Contains(out, "<strong") || !strings.Contains(out, "bold") {
+		t.Errorf("bold not rendered: %s", out)
+	}
+	if !strings.Contains(out, "<em") || !strings.Contains(out, "italic") {
+		t.Errorf("italic not rendered: %s", out)
+	}
+	if !strings.Contains(out, "<code") || !strings.Contains(out, "code") {
+		t.Errorf("inline code not rendered: %s", out)
+	}
+	if !strings.Contains(out, "<pre") || !strings.Contains(out, "fmt.Println") {
+		t.Errorf("fenced code block not rendered: %s", out)
+	}
+	if !strings.Contains(out, `<a href="https://example.com"`) {
+		t.Errorf("link not rendered: %s", out)
+	}
+
+	// Ensure script tag is escaped, not present raw
+	if strings.Contains(out, "<script>") {
+		t.Errorf("raw script tag leaked: %s", out)
+	}
+	if !strings.Contains(out, "&lt;script&gt;") {
+		t.Errorf("escaped script missing: %s", out)
+	}
+}
