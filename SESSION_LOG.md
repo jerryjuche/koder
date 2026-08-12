@@ -177,6 +177,13 @@
 | 169 | `7cad9ec` | fix: frequent-logout — rotation-grace reuse detection + decouple /auth/refresh from IP limiter |
 | 170 | `360a318` | feat: professional password-reset email template — brand-matched, reusable, injection-safe |
 | 171 | `2239d9c` | fix: chi router panic — register /auth/refresh on parent mux before limiter |
+| 172 | `946fbb3` | docs: full professional reindex — sessions 106-109c in all logs, verified counts, production incident note |
+| 173 | `f15dd00` | feat: strictly disable pasting in problem workspace editor — layered paste guard with throttled toast |
+| 174 | `95d391f` | feat: professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening |
+| 175 | `b99b305` | fix: restore setResults in submit/test handlers — output panel never received mapped results after mapTestResults refactor |
+| 176 | `8d8908a` | feat: admin problem-reminder email broadcasts — problem picker + brand-matched Resend template (Session 113) |
+| 177 | `fdbf615` | fix: sync frontend package-lock after npm ci |
+| 178 | `7d0091e` | fix: remove unused firebase-tools devDependency — clears EBADENGINE warnings, slims npm ci (Session 114) |
 
 ---
 
@@ -2911,3 +2918,76 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Branch state:** `main` = `82ca6b7` (broken, has `7cad9ec` but NOT the fix); `staging` = `01c65ae` (fixed, `2239d9c` merged via PR #200); `update` = `2239d9c` (fixed). `git diff origin/main origin/staging` = exactly the fix (router.go +14/−6, router_test.go +46, CLAUDE.md)
 - **Resolution path:** merge `staging` → `main` (PR flow, matches #199) or push `2239d9c` to `main` directly; user opted to merge manually — fix remains on `update`/`staging` until then
 - **Post-merge checklist:** Render auto-deploys `main` → panic gone; run `migrations/052_refresh_tokens_revoked_at.sql` on Supabase; verify `/health` + startup logs clean
+
+---
+
+## Session 110 — 2026-08-06 — Strictly disable pasting in the problem workspace editor
+
+### Changes
+- **New `frontend/lib/monaco-paste-guard.ts`** (154 LOC): `blockPaste(editor, monaco, { onBlocked, feedbackCooldownMs = 5000 })` — layered defense-in-depth against Monaco's built-in `paste` action (keybinding + own context menu), which has no single bulletproof interception point:
+  1. **Keybindings** — `Ctrl/Cmd+V` and `Shift+Insert` overridden with no-op commands (last-registered chord wins, so the built-in paste never fires)
+  2. **Context menu** — DOM `contextmenu` swallowed at the editor root in the capture phase, blocking both Monaco's menu and the browser default (which has a native Paste item)
+  3. **DOM `paste`** — any event reaching the browser pipeline (X11 middle-click, autofill, extensions, drag-insert) is prevented
+  4. **Drag & drop** — `dragAndDrop` option disabled + `dragover`/`drop` suppressed
+- Throttled `onBlocked` callback (default 5s cooldown) feeds a toast so users get feedback without spam; returns a dispose function wired to `editor.onDidDispose` (safe on language-toggle remount and unmount). Typing, `Ctrl/Cmd+C/X/A`, and Monaco commands unaffected
+- **Wiring** (`ProblemWorkspaceClient.tsx` +17): `blockPaste` called on editor mount with a throttled "Pasting is disabled — type your solution" toast; disposed in the cleanup path
+
+### Verification
+- `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`f15dd00`)
+
+---
+
+## Session 111 — 2026-08-06 — Professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening
+
+### Changes
+- **Test-result diff extraction** (`95d391f`, `TestResultPanel.tsx` 555 LOC, −367 net): the old ~150-line inline LCS line-diff (`computeLineDiff` + `TerminalDiff`) extracted into a reusable diff primitive kit:
+  - `frontend/components/test-results/lineDiff.ts` (56 LOC) — pure LCS line diff algorithm
+  - `frontend/components/test-results/charDiff.ts` (34 LOC) — character-level diff (prefix/suffix trim + middle)
+  - `frontend/components/test-results/ValueDiff.tsx` (221 LOC) — multi-line expected/actual renderer with LCS line-matching, per-line char highlighting, unchanged-context collapse, equal-match success state
+  - `TestResultPanel` now consumes `ValueDiff`, gained an `ordinal`/`isHidden`/`input` pass-through on `TestResult` (backed by `lib/types.ts` +3), and a `mode?: "test" | "submit"` prop
+- **Dashboard-style problem cards** (`(main)/problems/page.tsx` 725 LOC): rebuilt on `Card`/`CardHeader`/`CardContent`/`CardTitle`/`CardFooter` primitives — removed decorative ChatGPT image + overlay gradient, added staggered mount animation (`animationDelay: i*50ms`), emerald solved-accent top line, `#NNN` indexed position label (`tabular-nums`), updated difficulty pills, deeper hover lift (`hover:-translate-y-1.5` + `hover:shadow-xl hover:shadow-primary/8`)
+- **Auth deep-links** (`frontend/lib/auth-redirect.ts`, new, 29 LOC): `captureAuthRedirect()` stores the current deep path (`/problems`, `/learn`, `/profile`, `/leaderboard`, `/settings`, `/admin`, `/contribute` + descendants) in sessionStorage `koder_redirect`; `consumeAuthRedirect()` reads + clears it. `UserContext` calls `captureAuthRedirect()` before bouncing unauthenticated users to `/`; login page, onboarding page, and oauth callback all redirect to `consumeAuthRedirect() ?? '/home'` — fixes the lost-deep-link UX (session-expiry on `/problems/[slug]` dropped you at the dashboard). Settings page dropped an unused `koder_theme` localStorage block (−8)
+- **Monaco TextMate hardening** (`lib/monaco-textmate.ts` 88 LOC, `CodeEditor.tsx` 149 LOC): onig.wasm fetch now retries (4 attempts, exp backoff `2ⁿ×1000ms` capped 4s, `AbortSignal.timeout(10s)`); `CodeEditor` module-level warm-up runs `initTextMateTokenization` after `loader.init()` so the wasm is fetched (with retry) before the editor paints — closes the built-in-tokenizer→TextMate color-flip window; explicit `monaco.editor.setTheme("vs-dark-plus")` call removed (TextMate registry owns colors). `scripts/copy-monaco.mjs` retry handling; `package.json` minor dep adjustments
+
+### Verification
+- `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`95d391f`)
+
+---
+
+## Session 112 — 2026-08-06 — Hotfix — restore `setResults` in submit/test handlers
+
+### Changes
+- **Reported bug:** after the Session 111 `mapTestResults` refactor, the output panel never received the mapped test results — submissions/test-runs succeeded but no result rows appeared
+- **Root cause:** Session 111 moved result mapping (`mapTestResults`) into a helper; the two call sites in `ProblemWorkspaceClient.tsx` (submit + test) computed `mappedResults` for the pass/fail logic but the `setResults(mappedResults)` call was dropped — `results` state stayed `null`, so `TestResultPanel` rendered nothing
+- **Fix** (`b99b305`, `ProblemWorkspaceClient.tsx` +2): restore `setResults(mappedResults);` in both the `submit` and `test` handlers, immediately after mapping and before the pass/fail branch
+
+### Verification
+- `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`b99b305`)
+
+---
+
+## Session 113 — 2026-08-11 — Admin problem-reminder email broadcasts (incoming `8d8908a`)
+
+### Changes
+- **Backend:** `POST /admin/broadcast-emails` → `AdminHandler.SendProblemReminder` (`internal/api/admin.go`, 940→1,079 LOC) — admin picks a problem, backend loads all user emails (`store.ListAllUserEmails`, new, `users.go` 1,346→1,369), renders the brand-matched reminder template, sends via Resend (friendly 502 when `RESEND_API_KEY` unset); route registered in the AdminOnly group (`router.go` 311→312, ~116→~119 routes)
+- **Email package:** `internal/email/send.go` (new, 84 LOC) — `SendEmailViaResend` Resend REST client (reads/parses response body for provider `id` + error, 1 retry on transient 5xx/429/network, panic-recovery); `email.go` 248→368 LOC — `RenderProblemReminderString` reuses the shared `layoutBase` shell, adds a problem-title hero + gold "Solve on Koder" CTA
+- **Frontend:** `app/(main)/admin/EmailBroadcastPanel.tsx` (new, 298 LOC) — problem selector with per-problem body/CTA preview, send-confirmation state; wired into the admin dashboard (`page.tsx` 978→1,408 LOC); `lib/api.ts` 959→1,189 LOC adds `sendProblemReminder`
+- **Tests:** `internal/api/admin_test.go` (new, 80 LOC) — `TestSendProblemReminder_Handler` (1 test); `internal/email/problem_reminder_test.go` (new, 41 LOC) — `TestRenderProblemReminder_ContainsExpectedFields` (1 test) → 171 backend tests total
+
+### Verification
+- `go vet` clean, `go build ./cmd/server ./internal/...` OK, 9/9 backend suites green (171 tests), `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`8d8908a`)
+
+---
+
+## Session 114 — 2026-08-12 — CI `npm ci` fix + professional codebase reindex (post-pull refresh)
+
+### Changes
+- **Reported CI failure:** GitHub Actions `npm ci` EUSAGE lock-sync — `Missing: @emnapi/runtime@1.11.3 / @emnapi/core@1.11.3 from lock file` plus EBADENGINE warnings on node v20.20.2 for `@google-cloud/cloud-sql-connector@1.11.1` and `universal-analytics@0.5.4` (both require node `>=22`)
+- **Root cause (EBADENGINE):** unused devDependency `firebase-tools@^15.0.0` (no scripts/imports/config reference it anywhere) — sole source of the `>=22`-only transitive deps (also `re2`). Removed it; the lock-sync half was already fixed upstream by `fdbf615`
+- **Fix** (`7d0091e`, `frontend/package.json`): removed `"firebase-tools": "^15.0.0"` from devDependencies; `npm install` dropped 442 packages and regenerated `package-lock.json`; full `npm ci` (935 packages, ~14m) + `npm ci --dry-run` both clean — zero EBADENGINE, zero lock-sync errors (only benign local allow-scripts warnings + node-domexception deprecation). CI stays on Node 20
+- **Incoming commits folded into this reindex:** `8d8908a` (admin problem-reminder email feature, Session 113) and `fdbf615` (package-lock sync)
+- **Docs:** full professional reindex — CLAUDE.md header badge → 2026-08-12 / 171+11 tests, §3/§4/§6/§8/§12/§15/§17/§19/§20; SESSION_LOG.md rows + Sessions 113/114; README.md API table + file tree; UPDATE_LOG.txt; BRAIN.md; `.opencode/session-log.md`; CODEBASE_INDEX.md
+
+### Verification
+- ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success, `go vet ./internal/...` clean, `go build ./cmd/server` OK, `go test ./internal/...` 9/9 suites green (171 tests), sandbox vet + test green (11 tests)
+- Committed to `update` only (no staging/main merge per user decision; CI triggers on main/staging pushes so the fix is validated on the next merge)
