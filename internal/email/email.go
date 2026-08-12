@@ -43,16 +43,25 @@ const LogoDataURI = "data:image/svg+xml;charset=utf-8," +
 	"%3Crect width='36' height='36' rx='10' fill='%23D4AF37'/%3E" +
 	"%3Cpath d='M12 10h4l4 8-4 8h-4l4-8-4-8Z' fill='%23111727'/%3E%3C/svg%3E"
 
+func renderLogoHTML(logoURL template.URL) template.HTML {
+	base := `<div style="width:36px;height:36px;border-radius:12px;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;overflow:hidden;background-image:url('` + LogoDataURI + `');background-repeat:no-repeat;background-position:center;background-size:18px 18px;">`
+	if len(strings.TrimSpace(string(logoURL))) == 0 {
+		return template.HTML(base + `</div>`)
+	}
+	return template.HTML(base + `<img src="` + string(logoURL) + `" width="36" height="36" alt="Koder logo" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" />` + `</div>`)
+}
+
 // PasswordResetData is the data model for the password-reset email.
 type PasswordResetData struct {
 	PlatformName string       // display name, e.g. "Koder"
 	FirstName    string       // recipient's name (auto-escaped)
 	ResetURL     string       // one-time reset link (auto-escaped)
 	LogoURL      template.URL // absolute or safe inline URL to the platform logo
-	SupportEmail string       // mailto address
-	Tagline      string       // one-line brand message (footer)
-	ExpiresIn    string       // human-readable expiry, e.g. "1 hour"
-	Year         int          // copyright year
+	LogoHTML     template.HTML
+	SupportEmail string // mailto address
+	Tagline      string // one-line brand message (footer)
+	ExpiresIn    string // human-readable expiry, e.g. "1 hour"
+	Year         int    // copyright year
 }
 
 // RenderPasswordReset renders the password-reset email into w.
@@ -66,9 +75,7 @@ func RenderPasswordReset(w io.Writer, data PasswordResetData) error {
 	if data.Year == 0 {
 		data.Year = time.Now().Year()
 	}
-	if strings.TrimSpace(string(data.LogoURL)) == "" {
-		data.LogoURL = template.URL(LogoDataURI)
-	}
+	data.LogoHTML = renderLogoHTML(data.LogoURL)
 	return passwordResetTmpl.ExecuteTemplate(w, "layoutBase", data)
 }
 
@@ -93,6 +100,7 @@ type ProblemReminderData struct {
 	ProblemExcerptHTML template.HTML
 	CTAURL             string
 	LogoURL            template.URL
+	LogoHTML           template.HTML
 	SupportEmail       string
 	Tagline            string
 	Year               int
@@ -106,9 +114,7 @@ func RenderProblemReminder(w io.Writer, data ProblemReminderData) error {
 	if data.Year == 0 {
 		data.Year = time.Now().Year()
 	}
-	if strings.TrimSpace(string(data.LogoURL)) == "" {
-		data.LogoURL = template.URL(LogoDataURI)
-	}
+	data.LogoHTML = renderLogoHTML(data.LogoURL)
 	// Render markdown excerpt to safe HTML and attach
 	if data.ProblemExcerpt != "" {
 		htmlStr := renderMarkdownToHTML(data.ProblemExcerpt)
@@ -203,9 +209,7 @@ func problemReminderBody() string {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:middle;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:` + EmailBackground + `;display:flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;">
-<img src="{{.LogoURL}}" alt="{{.PlatformName}} logo" title="{{.PlatformName}}" width="32" height="32" style="display:block;width:32px;height:32px;border:0;border-radius:8px;" />
-</div>
+{{.LogoHTML}}
 </td>
 <td style="width:12px;">&nbsp;</td>
 <td style="vertical-align:middle;">
@@ -332,9 +336,7 @@ const passwordResetBody = `{{define "content"}}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:middle;">
-<div style="width:44px;height:44px;border-radius:14px;background-color:` + CardSurface + `;display:flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;">
-<img src="{{.LogoURL}}" alt="{{.PlatformName}} logo" title="{{.PlatformName}}" width="36" height="36" style="display:block;width:36px;height:36px;border:0;border-radius:10px;max-width:100%;height:auto;" />
-</div>
+{{.LogoHTML}}
 </td>
 <td style="width:14px;">&nbsp;</td>
 <td style="vertical-align:middle;">
@@ -354,7 +356,7 @@ const passwordResetBody = `{{define "content"}}
 <td style="padding:18px 16px 0 16px;">
 
 <div style="width:72px;height:72px;border-radius:50%;background-color:` + EmailBackground + `;display:flex;align-items:center;justify-content:center;margin-bottom:18px;border:1px solid ` + BorderColor + `;">
-<img src="{{.LogoURL}}" alt="{{.PlatformName}} logo" title="{{.PlatformName}}" width="36" height="36" style="display:block;border:0;border-radius:10px;max-width:100%;height:auto;" />
+{{.LogoHTML}}
 </div>
 
 <h1 style="margin:0;font-size:32px;line-height:40px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Reset your password</h1>

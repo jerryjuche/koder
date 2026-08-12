@@ -4,196 +4,198 @@
 
 ## Commits (chronological, branch `update`)
 
-| # | Hash | Description |
-|---|------|-------------|
-| 1 | `fd306e8` | feat: profile page redesign with shadcn/ui and CSS variables |
-| 2 | `e8a49e8` | perf: collapse 7 DB queries to 1, add caching, rewrite profile page with shadcn/ui |
-| 3 | `946ce46` | feat: leaderboard redesign with shadcn Avatar, top 15 display, no emoji podium |
-| 4 | `6648477` | profile: activity gauge radial charts, achievement badge grid, remove recent activity |
-| 5 | `a823b2f` | Fix: simplify Gitea request headers to avoid Cloudflare bot detection |
-| 6 | `ad750f5` | Add Gitea proxy endpoint to sandbox |
-| 7 | `99cb7cf` | Complete Google Sign-In migration + frontend polish (achievements, gauges, auto-publish) |
-| 8 | `696dde8` | Add /privacy route with professional privacy policy page |
-| 9 | `8216377` | Add /terms route with professional Terms of Service page |
-| 10 | `b61597c` | Add aud claim validation to Google token verification |
-| 11 | `f8177bf` | Fix Google token email_verified parsing + full profile page redesign |
-| 12 | `b9d06df` | Professional review: color reduction, onboarding flow, google sync, leaderboard username display |
-| 13 | `842ea60` | Add mandatory 6-digit PIN recovery during registration + PIN-based forgot-password flow |
-| 14 | `5a251b3` | Professional change password + PIN UX overhaul |
-| 15 | `d4fc76d` | Fix auth cookie for cross-origin dev server + CSP |
-| 16 | `d03af87` | Split monolithic problem statement into structured fields |
-| 17 | `972dfd0` | Fix Monaco Editor: local npm workers, CSP blob, Next.js 15 dynamic |
-| 18 | `98edab3` | Add pagination to problem listing (18 per page, page nav controls) |
-| 19 | `28f8334` | Back button preserves module via ?module= query param |
-| 20 | `6b864f2` | Boost confetti (60 particles, faster bursts) 2s toast duration |
-| 21 | `11526ba` | Sync confetti with page load — fire when data is ready |
-| 22 | `741d305` | Cache problems in sessionStorage — skip fetch when cached |
-| 23 | `ab6e195` | Performance optimization pass: API cache, useMemo, React.memo, preconnect |
-| 24 | `1a0d235` | July 6 — Error handling overhaul + registration race condition fix |
-| 25 | `9e25ac9` | Fix GetUserByID scan mismatch — missing UsernameSet in Scan targets |
-| 26 | `8c69707` | Add POST /auth/verify-pin endpoint + fix change-password PIN flow |
-| 27 | `a04dcc9` | Fix PIN change flow: add pin_hash to GetUserByID + add /auth/set-pin endpoint |
-| 28 | `b3663db` | Polish PIN input UI: professional design with error states and shake animation |
-| 29 | `eb58ecf` | Restore resetPassword export — used by reset-password landing page |
-| 30 | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
-| 31 | `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
-| 32 | `f2605dc` | Fix Google auth 502: remove nil pem.Encode in jwksKeyToPublicKey, add RecoveryMiddleware |
-| 33 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
-| 34 | `c093540` | Replace arrays-strings module image with professional version |
-| 35 | `0ecd5ef` | Use local image for all module cards |
-| 36 | `582917b` | fix: use profile as source of truth for solved count in ProfileHeader |
-| 37 | `ac5cbb8` | fix: store package import shadowed by parameter name |
-| 38 | `12bbc34` | fix: dashboard solved count reads from GET /me, same source as XP and streak |
-| 39 | `8d1adb6` | docs: update session log, codebase index, CLAUDE.md for session 49 |
-| 40 | `6657efa` | polish: remove no-op col-span-full, move isActive into non-disabled branch |
-| 41 | `77723fa` | feat: Beta-gate best-practices tab + Learn nav for non-admins |
-| 42 | `86258a4` | fix: copy button hover, multi-file key, type shadow |
-| 43 | `ac8a45e` | polish: CodeSnippet component + compact best-practices cards |
-| 44 | `6e7666f` | fix CSP errors |
-| 45 | `6473b91` | fix |
-| 46 | `b390378` | fix |
-| 47 | `2e8ec08` | docs: update codebase index, CLAUDE.md, session log and progress tracker |
-| 48 | `02aa051` | feat: problem module lock admin panel + locked module UI |
-| 49 | `dfe556a` | feat: add prominent curriculum card to admin dashboard with module lock access |
-| 50 | `62c53bc` | feat: add module lock/unlock with admin toggle and student enforcement |
-| 51 | `bee5837` | fix: restore saved code on refresh regardless of initial state |
-| 52 | `f57f867` | polish: professional typography for problem description |
-| 53 | `dc2d61b` | polish: professional typography for problem cards |
-| 54 | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar |
-| 55 | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme |
-| 56 | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard |
-| 57 | `4fc6cce` | fix: module selection updates URL via replaceState |
-| 58 | `32f264a` | fix: use pushState for module & tab selection (LIFO stack) |
-| 59 | `2ba2fac` | fix: clear cache after delete module so loadData() gets fresh data |
-| 60 | `f36bbdd` | docs: add sessions 54-57 (lock panel redesign, admin bypass, delete module, LIFO nav) |
-| 61 | `ef4f19b` | feat: module metadata system (rename + pin) + 4 Python WebP images |
-| 62 | `8497b09` | feat: add python-variables-math WebP image + ModuleCards entry |
-| 63 | `a513eed` | fix: remove source PNG (WebP is the deliverable) |
-| 64 | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks |
-| 65 | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency) |
-| 66 | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500 |
-| 67 | `1400598` | feat: auth guard middleware + UserContext fallback, fix locked module counts (handler-level stamping) |
-| 68 | `ba654d6` | fix: remove auth redirect guard from middleware (cookie lives on API domain, not frontend) |
-| 69 | `43eaef7` | fix: lint errors (key patterns, eslint-suppress) + add update branch to CI |
-| 70 | `bfadb3f` | fix: config tests — skip .env during tests, clear GO_VERSION for default test |
-| 71 | `549521f` | fix: config tests — clear CI env vars for missing-var tests |
-| 72 | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview) |
-| 73 | `c8c260c` | fix: dashboard nav link now refreshes when already on /home |
-| 74 | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews |
-| 75 | `b527df2` | feat: seeded shuffle + filter bar redesign for /problems page |
-| 76 | `ff88299` | style: add mt-2 to filter bar for top margin |
-| 77 | `4cefe19` | feat: beta-gate /problems page behind admin-only role |
-| 78 | `cf5435e` | fix: admin preview now shows rendered markdown + examples section |
-| 79 | `0f78c62` | fix: COOP header for GIS popup + module lock endpoint for non-admin + logo preload |
-| 80 | `6dfd1db` | feat: real-time system — 7s polling + WebSocket subscriptions for broadcast/admin |
-| 81 | `6e23cb8` | feat: remove PIN from sign-up flow — email register goes straight to username |
-| 82 | `3dee92a` | fix: remove unreachable step-3 success header dead code |
-| 83 | `0f6f96c` | fix: register page single-step (remove username), fix tryRefreshToken concurrency bug |
-| 84 | `5580370` | feat: desktop-only overlay for mobile screens (< 900px) |
-| 85 | `d4d9410` | fix: polish desktop overlay — rAF debounce, body scroll lock, preconnect url |
-| 86 | `98e8eb4` | fix: hydration error #418 — use next/dynamic ssr:false for DesktopOnlyOverlay |
-| 87 | `ae60525` | fix: SSR-safe mounted guard for DesktopOnlyOverlay, remove next/dynamic |
-| 88 | `9ea2db5` | fix: remove mounted guard — useState(false) already SSR-safe, passes lint |
-| 89 | `ce79000` | chore: extend reset_data.sql to clear ai_usage_logs, refresh_tokens, password_reset_tokens, token_blacklist, solved_count |
-| 90 | `f757c9e` | fix: reset_data.sql preserves admin progress, XP, submissions |
-| 91 | `88771ff` | chore: reset_data.sql only clears submissions + activity logs |
-| 92 | `6a42f0b` | chore: also clear feedback in reset_data.sql |
-| 93 | `ca35d68` | feat: add PixelSnow WebGL background (Three.js snowflake shader) on root layout |
-| 94 | `e9cba64` | fix: move PixelSnow to main layout with correct z-index stacking (z-0 above bg, z-10 for content) |
-| 95 | `6c3941c` | revert: remove PixelSnow (Three.js snowflake background) — restore original layout |
-| 96 | `0b81240` | Polish problem cards: larger titles, rendered markdown, professional spacing |
-| 97 | `4564d69` | Fix card description: strip inline styles from rendered markdown so card Tailwind classes apply |
-| 98 | `006fe14` | docs: add sessions 77-78 (PixelSnow revert, card polish) to session logs + reindex |
-| 99 | `f4ce518` | feat: leaderboard tiebreaker by latest submission + unify codebase index |
-| 100 | `38b4984` | feat: add param_names to problems schema and SQL generation tool |
-| 101 | `d8b1a6f` | fix: include param_names in all problem SQL queries so scaffold uses real names not arg1/arg2 |
-| 102 | `72b63a8` | fix: clear sessionStorage cache before problem fetch, preserve tokens on transient server errors |
-| 103 | `0a9808e` | fix: auto-detect stale arg1 scaffold and replace with real param names on next load |
-| 104 | `49100ba` | feat: add Next arrow after module name in workspace, disable Go on onboarding |
-| 105 | `9b4c81d` | feat: add Home icon button in workspace header |
-| 106 | `2c4425f` | feat: rephrase 30 python-challenges problems with param_names |
-| 107 | `4228859` | feat: rephrase 20 python-fundamentals problems with param_names |
-| 108 | `a709b3e` | feat: rephrase 30 python-intermediate problems with param_names |
-| 109 | `eac1efb` | feat: rephrase 30 python-practice problems with param_names |
-| 110 | `c374476` | feat: rephrase 25 python-practicals problems with param_names |
-| 111 | `71a16af` | feat: seed python-practicals + fix module visibility |
-| 112 | `fef38c5` | feat: professional OG metadata with module images for link previews |
-| 113 | `fcc360a` | fix(api): include param_names in problem response and admin update |
-| 114 | `e6ea3c8` | feat(learn): overhaul Learn UI with 3D tactile design system, fix prerequisite locking bug, and polish quizzes |
-| 115 | `8a09fdd` | fix(curriculum): filter deleted problem references at DB level and enable optional auth on problem details |
-| 116 | `891d787` | fix(lint): resolve ESLint rules and unescaped entities across Learn components |
-| 117 | `cb7b504` | fix(platform): update progress tracking, module status, problem filtering, and course enrollment |
-| 118 | `8ee975c` | Fix locked-module next problem flow and compact learning UI |
-| 119 | `212d45a` | feat: filter locked-module problems from workspace and listings + codebase reindex |
-| 120 | `10a570a` | refactor: remove Learning Progress section from dashboard — courses have dedicated /learn area |
-| 121 | `5c57050` | feat: enable Python IntelliSense and auto-closing in problem workspace editor |
-| 122 | `6c9ae00` | docs: update session logs through Session 89 — IntelliSense, dashboard cleanup, locked-module filtering |
-| 123 | `f5af60c` | feat: open /problems to all users — remove beta gate from nav |
-| 124 | `10aed9f` | fix(layout): add pt-6 to main content area and bump Toaster offset to 80px |
-| 125 | `7027aca` | Add NVIDIA-style animated background with brand-tone gradient orbs |
-| 126 | `75c6fc3` | Fix animated background: correct CSS file + use actual brand colors |
-| 127 | `0050ce2` | Fix animated background layering: absolute within (main) layout, above bg-background |
-| 128 | `083350d` | Revert animated background experiment |
-| 129 | `fdc1fc6` | Add courses.md — full curriculum CMS reference for AI seeding |
-| 130 | `6a13140` | Add slog.Error + response details to TOKEN_FAILED callers for debugging |
-| 131 | `f3b573a` | new course implementation guidelines and structure, ai fluency migration seed, and tool to generate sql from json |
-| 132 | `97972b4` | feat: reorganize admin dashboard layout — catalog above accordion, wrap panels in cards, fix sidebar height |
-| 133 | `aba5837` | fix: use namespace import for @radix-ui/react-accordion types |
-| 134 | `aa5510e` | feat: comprehensive Python IntelliSense with builtins, keywords, stdlib + shared editor options |
-| 135 | `a5aad43` | monaco-python: add Kind.Class to built-in types, dynamic kindName lookup, depth-tracking signature help |
-| 136 | `18303cf` | feat: migrate sandbox to Fly.io, move backend to Render, standardize on Go 1.26 |
-| 137 | `d5a7dc2` | feat: refresh AI Fluency curriculum content + add UPDATE-mode generator |
-| 138 | `3123b73` | feat: migrate sandbox to Azure Container Apps + GHCR — deploy scripts, docs, configurable rate limit |
-| 139 | `4e94cbc` | feat: extract shared CodeEditor component + Monaco Python IntelliSense |
-| 140 | `b56adbe` | fix(sandbox): keep one Fly.io machine warm for health checks |
-| 141 | `6b576dd` | feat(sandbox): harden Azure Container Apps cold starts + go-live docs |
-| 142 | `6e42212` | docs: sync SESSION_LOG 90-94 + CLAUDE.md inventory for sandbox cold-start |
-| 143 | `65a38be` | style(frontend): retune charcoal theme to neutral #141414 scale |
-| 144 | `52a1e05` | style(frontend): neutralize residual blue-tinted chrome + monaco tints |
-| 145 | `5558dec` | feat(frontend): real TextMate tokenization with exact Dark+ fidelity |
-| 146 | `61befdf` | feat: real formatting via POST /api/format (gofmt + pinned black) |
-| 147 | `a318821` | fix(sandbox): pip PEP 668 externally-managed-environment build failure |
-| 148 | `cb8ad4f` | feat(ui): integrate ShapeGrid background animation with brand styling |
-| 149 | `1d16977` | docs: update SESSION_LOG.md, UPDATE_LOG.txt, and progress.md for session 100 |
-| 150 | `a54984c` | style(editor): increase Monaco font size to 16px and weight to 600 |
-| 151 | `07ccc73` | feat(learn): redesign lesson workspace, collapsible sidebar, multi-step quiz flow, and victory success page |
-| 152 | `80c92fe` | fix(lint): resolve ESLint set-state-in-effect and hook dependency warnings |
-| 153 | `d59e0d1` | fix: transparent backgrounds for animated grid, scrollable sections, card bg images, Python auto-indent after colons |
-| 154 | `8400ca2` | fix(frontend): restore animated background grid, problem card images, monaco colon auto-indent, and resolve eslint set-state-in-effect |
+| #   | Hash      | Description                                                                                                                                                                               |
+| --- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `fd306e8` | feat: profile page redesign with shadcn/ui and CSS variables                                                                                                                              |
+| 2   | `e8a49e8` | perf: collapse 7 DB queries to 1, add caching, rewrite profile page with shadcn/ui                                                                                                        |
+| 3   | `946ce46` | feat: leaderboard redesign with shadcn Avatar, top 15 display, no emoji podium                                                                                                            |
+| 4   | `6648477` | profile: activity gauge radial charts, achievement badge grid, remove recent activity                                                                                                     |
+| 5   | `a823b2f` | Fix: simplify Gitea request headers to avoid Cloudflare bot detection                                                                                                                     |
+| 6   | `ad750f5` | Add Gitea proxy endpoint to sandbox                                                                                                                                                       |
+| 7   | `99cb7cf` | Complete Google Sign-In migration + frontend polish (achievements, gauges, auto-publish)                                                                                                  |
+| 8   | `696dde8` | Add /privacy route with professional privacy policy page                                                                                                                                  |
+| 9   | `8216377` | Add /terms route with professional Terms of Service page                                                                                                                                  |
+| 10  | `b61597c` | Add aud claim validation to Google token verification                                                                                                                                     |
+| 11  | `f8177bf` | Fix Google token email_verified parsing + full profile page redesign                                                                                                                      |
+| 12  | `b9d06df` | Professional review: color reduction, onboarding flow, google sync, leaderboard username display                                                                                          |
+| 13  | `842ea60` | Add mandatory 6-digit PIN recovery during registration + PIN-based forgot-password flow                                                                                                   |
+| 14  | `5a251b3` | Professional change password + PIN UX overhaul                                                                                                                                            |
+| 15  | `d4fc76d` | Fix auth cookie for cross-origin dev server + CSP                                                                                                                                         |
+| 16  | `d03af87` | Split monolithic problem statement into structured fields                                                                                                                                 |
+| 17  | `972dfd0` | Fix Monaco Editor: local npm workers, CSP blob, Next.js 15 dynamic                                                                                                                        |
+| 18  | `98edab3` | Add pagination to problem listing (18 per page, page nav controls)                                                                                                                        |
+| 19  | `28f8334` | Back button preserves module via ?module= query param                                                                                                                                     |
+| 20  | `6b864f2` | Boost confetti (60 particles, faster bursts) 2s toast duration                                                                                                                            |
+| 21  | `11526ba` | Sync confetti with page load — fire when data is ready                                                                                                                                    |
+| 22  | `741d305` | Cache problems in sessionStorage — skip fetch when cached                                                                                                                                 |
+| 23  | `ab6e195` | Performance optimization pass: API cache, useMemo, React.memo, preconnect                                                                                                                 |
+| 24  | `1a0d235` | July 6 — Error handling overhaul + registration race condition fix                                                                                                                        |
+| 25  | `9e25ac9` | Fix GetUserByID scan mismatch — missing UsernameSet in Scan targets                                                                                                                       |
+| 26  | `8c69707` | Add POST /auth/verify-pin endpoint + fix change-password PIN flow                                                                                                                         |
+| 27  | `a04dcc9` | Fix PIN change flow: add pin_hash to GetUserByID + add /auth/set-pin endpoint                                                                                                             |
+| 28  | `b3663db` | Polish PIN input UI: professional design with error states and shake animation                                                                                                            |
+| 29  | `eb58ecf` | Restore resetPassword export — used by reset-password landing page                                                                                                                        |
+| 30  | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions                                                                                                |
+| 31  | `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization                                                                                                                 |
+| 32  | `f2605dc` | Fix Google auth 502: remove nil pem.Encode in jwksKeyToPublicKey, add RecoveryMiddleware                                                                                                  |
+| 33  | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image                                                            |
+| 34  | `c093540` | Replace arrays-strings module image with professional version                                                                                                                             |
+| 35  | `0ecd5ef` | Use local image for all module cards                                                                                                                                                      |
+| 36  | `582917b` | fix: use profile as source of truth for solved count in ProfileHeader                                                                                                                     |
+| 37  | `ac5cbb8` | fix: store package import shadowed by parameter name                                                                                                                                      |
+| 38  | `12bbc34` | fix: dashboard solved count reads from GET /me, same source as XP and streak                                                                                                              |
+| 39  | `8d1adb6` | docs: update session log, codebase index, CLAUDE.md for session 49                                                                                                                        |
+| 40  | `6657efa` | polish: remove no-op col-span-full, move isActive into non-disabled branch                                                                                                                |
+| 41  | `77723fa` | feat: Beta-gate best-practices tab + Learn nav for non-admins                                                                                                                             |
+| 42  | `86258a4` | fix: copy button hover, multi-file key, type shadow                                                                                                                                       |
+| 43  | `ac8a45e` | polish: CodeSnippet component + compact best-practices cards                                                                                                                              |
+| 44  | `6e7666f` | fix CSP errors                                                                                                                                                                            |
+| 45  | `6473b91` | fix                                                                                                                                                                                       |
+| 46  | `b390378` | fix                                                                                                                                                                                       |
+| 47  | `2e8ec08` | docs: update codebase index, CLAUDE.md, session log and progress tracker                                                                                                                  |
+| 48  | `02aa051` | feat: problem module lock admin panel + locked module UI                                                                                                                                  |
+| 49  | `dfe556a` | feat: add prominent curriculum card to admin dashboard with module lock access                                                                                                            |
+| 50  | `62c53bc` | feat: add module lock/unlock with admin toggle and student enforcement                                                                                                                    |
+| 51  | `bee5837` | fix: restore saved code on refresh regardless of initial state                                                                                                                            |
+| 52  | `f57f867` | polish: professional typography for problem description                                                                                                                                   |
+| 53  | `dc2d61b` | polish: professional typography for problem cards                                                                                                                                         |
+| 54  | `2c472ac` | cleanup: remove duplicate difficulty badge from workspace toolbar                                                                                                                         |
+| 55  | `f9690b1` | cleanup: remove custom intellisense/hover providers, use vs-dark theme                                                                                                                    |
+| 56  | `d0ae5ac` | feat: curriculum module lock panel on admin dashboard                                                                                                                                     |
+| 57  | `4fc6cce` | fix: module selection updates URL via replaceState                                                                                                                                        |
+| 58  | `32f264a` | fix: use pushState for module & tab selection (LIFO stack)                                                                                                                                |
+| 59  | `2ba2fac` | fix: clear cache after delete module so loadData() gets fresh data                                                                                                                        |
+| 60  | `f36bbdd` | docs: add sessions 54-57 (lock panel redesign, admin bypass, delete module, LIFO nav)                                                                                                     |
+| 61  | `ef4f19b` | feat: module metadata system (rename + pin) + 4 Python WebP images                                                                                                                        |
+| 62  | `8497b09` | feat: add python-variables-math WebP image + ModuleCards entry                                                                                                                            |
+| 63  | `a513eed` | fix: remove source PNG (WebP is the deliverable)                                                                                                                                          |
+| 64  | `bceffea` | fix: remove remark-breaks so blank lines create proper paragraph breaks                                                                                                                   |
+| 65  | `528cd8b` | feat: self-contained markdown renderer with inline styles (no prose dependency)                                                                                                           |
+| 66  | `824fc10` | feat: locked module count fix, community solution collapsible cards, AND EXISTS removal, TestCase merge, LIMIT 500                                                                        |
+| 67  | `1400598` | feat: auth guard middleware + UserContext fallback, fix locked module counts (handler-level stamping)                                                                                     |
+| 68  | `ba654d6` | fix: remove auth redirect guard from middleware (cookie lives on API domain, not frontend)                                                                                                |
+| 69  | `43eaef7` | fix: lint errors (key patterns, eslint-suppress) + add update branch to CI                                                                                                                |
+| 70  | `bfadb3f` | fix: config tests — skip .env during tests, clear GO_VERSION for default test                                                                                                             |
+| 71  | `549521f` | fix: config tests — clear CI env vars for missing-var tests                                                                                                                               |
+| 72  | `9b882aa` | fix: remove duplicate # in global rank display (StatsOverview)                                                                                                                            |
+| 73  | `c8c260c` | fix: dashboard nav link now refreshes when already on /home                                                                                                                               |
+| 74  | `c2f0efa` | fix: dashboard nav refresh via user-updated event; success page scrollable code previews                                                                                                  |
+| 75  | `b527df2` | feat: seeded shuffle + filter bar redesign for /problems page                                                                                                                             |
+| 76  | `ff88299` | style: add mt-2 to filter bar for top margin                                                                                                                                              |
+| 77  | `4cefe19` | feat: beta-gate /problems page behind admin-only role                                                                                                                                     |
+| 78  | `cf5435e` | fix: admin preview now shows rendered markdown + examples section                                                                                                                         |
+| 79  | `0f78c62` | fix: COOP header for GIS popup + module lock endpoint for non-admin + logo preload                                                                                                        |
+| 80  | `6dfd1db` | feat: real-time system — 7s polling + WebSocket subscriptions for broadcast/admin                                                                                                         |
+| 81  | `6e23cb8` | feat: remove PIN from sign-up flow — email register goes straight to username                                                                                                             |
+| 82  | `3dee92a` | fix: remove unreachable step-3 success header dead code                                                                                                                                   |
+| 83  | `0f6f96c` | fix: register page single-step (remove username), fix tryRefreshToken concurrency bug                                                                                                     |
+| 84  | `5580370` | feat: desktop-only overlay for mobile screens (< 900px)                                                                                                                                   |
+| 85  | `d4d9410` | fix: polish desktop overlay — rAF debounce, body scroll lock, preconnect url                                                                                                              |
+| 86  | `98e8eb4` | fix: hydration error #418 — use next/dynamic ssr:false for DesktopOnlyOverlay                                                                                                             |
+| 87  | `ae60525` | fix: SSR-safe mounted guard for DesktopOnlyOverlay, remove next/dynamic                                                                                                                   |
+| 88  | `9ea2db5` | fix: remove mounted guard — useState(false) already SSR-safe, passes lint                                                                                                                 |
+| 89  | `ce79000` | chore: extend reset_data.sql to clear ai_usage_logs, refresh_tokens, password_reset_tokens, token_blacklist, solved_count                                                                 |
+| 90  | `f757c9e` | fix: reset_data.sql preserves admin progress, XP, submissions                                                                                                                             |
+| 91  | `88771ff` | chore: reset_data.sql only clears submissions + activity logs                                                                                                                             |
+| 92  | `6a42f0b` | chore: also clear feedback in reset_data.sql                                                                                                                                              |
+| 93  | `ca35d68` | feat: add PixelSnow WebGL background (Three.js snowflake shader) on root layout                                                                                                           |
+| 94  | `e9cba64` | fix: move PixelSnow to main layout with correct z-index stacking (z-0 above bg, z-10 for content)                                                                                         |
+| 95  | `6c3941c` | revert: remove PixelSnow (Three.js snowflake background) — restore original layout                                                                                                        |
+| 96  | `0b81240` | Polish problem cards: larger titles, rendered markdown, professional spacing                                                                                                              |
+| 97  | `4564d69` | Fix card description: strip inline styles from rendered markdown so card Tailwind classes apply                                                                                           |
+| 98  | `006fe14` | docs: add sessions 77-78 (PixelSnow revert, card polish) to session logs + reindex                                                                                                        |
+| 99  | `f4ce518` | feat: leaderboard tiebreaker by latest submission + unify codebase index                                                                                                                  |
+| 100 | `38b4984` | feat: add param_names to problems schema and SQL generation tool                                                                                                                          |
+| 101 | `d8b1a6f` | fix: include param_names in all problem SQL queries so scaffold uses real names not arg1/arg2                                                                                             |
+| 102 | `72b63a8` | fix: clear sessionStorage cache before problem fetch, preserve tokens on transient server errors                                                                                          |
+| 103 | `0a9808e` | fix: auto-detect stale arg1 scaffold and replace with real param names on next load                                                                                                       |
+| 104 | `49100ba` | feat: add Next arrow after module name in workspace, disable Go on onboarding                                                                                                             |
+| 105 | `9b4c81d` | feat: add Home icon button in workspace header                                                                                                                                            |
+| 106 | `2c4425f` | feat: rephrase 30 python-challenges problems with param_names                                                                                                                             |
+| 107 | `4228859` | feat: rephrase 20 python-fundamentals problems with param_names                                                                                                                           |
+| 108 | `a709b3e` | feat: rephrase 30 python-intermediate problems with param_names                                                                                                                           |
+| 109 | `eac1efb` | feat: rephrase 30 python-practice problems with param_names                                                                                                                               |
+| 110 | `c374476` | feat: rephrase 25 python-practicals problems with param_names                                                                                                                             |
+| 111 | `71a16af` | feat: seed python-practicals + fix module visibility                                                                                                                                      |
+| 112 | `fef38c5` | feat: professional OG metadata with module images for link previews                                                                                                                       |
+| 113 | `fcc360a` | fix(api): include param_names in problem response and admin update                                                                                                                        |
+| 114 | `e6ea3c8` | feat(learn): overhaul Learn UI with 3D tactile design system, fix prerequisite locking bug, and polish quizzes                                                                            |
+| 115 | `8a09fdd` | fix(curriculum): filter deleted problem references at DB level and enable optional auth on problem details                                                                                |
+| 116 | `891d787` | fix(lint): resolve ESLint rules and unescaped entities across Learn components                                                                                                            |
+| 117 | `cb7b504` | fix(platform): update progress tracking, module status, problem filtering, and course enrollment                                                                                          |
+| 118 | `8ee975c` | Fix locked-module next problem flow and compact learning UI                                                                                                                               |
+| 119 | `212d45a` | feat: filter locked-module problems from workspace and listings + codebase reindex                                                                                                        |
+| 120 | `10a570a` | refactor: remove Learning Progress section from dashboard — courses have dedicated /learn area                                                                                            |
+| 121 | `5c57050` | feat: enable Python IntelliSense and auto-closing in problem workspace editor                                                                                                             |
+| 122 | `6c9ae00` | docs: update session logs through Session 89 — IntelliSense, dashboard cleanup, locked-module filtering                                                                                   |
+| 123 | `f5af60c` | feat: open /problems to all users — remove beta gate from nav                                                                                                                             |
+| 124 | `10aed9f` | fix(layout): add pt-6 to main content area and bump Toaster offset to 80px                                                                                                                |
+| 125 | `7027aca` | Add NVIDIA-style animated background with brand-tone gradient orbs                                                                                                                        |
+| 126 | `75c6fc3` | Fix animated background: correct CSS file + use actual brand colors                                                                                                                       |
+| 127 | `0050ce2` | Fix animated background layering: absolute within (main) layout, above bg-background                                                                                                      |
+| 128 | `083350d` | Revert animated background experiment                                                                                                                                                     |
+| 129 | `fdc1fc6` | Add courses.md — full curriculum CMS reference for AI seeding                                                                                                                             |
+| 130 | `6a13140` | Add slog.Error + response details to TOKEN_FAILED callers for debugging                                                                                                                   |
+| 131 | `f3b573a` | new course implementation guidelines and structure, ai fluency migration seed, and tool to generate sql from json                                                                         |
+| 132 | `97972b4` | feat: reorganize admin dashboard layout — catalog above accordion, wrap panels in cards, fix sidebar height                                                                               |
+| 133 | `aba5837` | fix: use namespace import for @radix-ui/react-accordion types                                                                                                                             |
+| 134 | `aa5510e` | feat: comprehensive Python IntelliSense with builtins, keywords, stdlib + shared editor options                                                                                           |
+| 135 | `a5aad43` | monaco-python: add Kind.Class to built-in types, dynamic kindName lookup, depth-tracking signature help                                                                                   |
+| 136 | `18303cf` | feat: migrate sandbox to Fly.io, move backend to Render, standardize on Go 1.26                                                                                                           |
+| 137 | `d5a7dc2` | feat: refresh AI Fluency curriculum content + add UPDATE-mode generator                                                                                                                   |
+| 138 | `3123b73` | feat: migrate sandbox to Azure Container Apps + GHCR — deploy scripts, docs, configurable rate limit                                                                                      |
+| 139 | `4e94cbc` | feat: extract shared CodeEditor component + Monaco Python IntelliSense                                                                                                                    |
+| 140 | `b56adbe` | fix(sandbox): keep one Fly.io machine warm for health checks                                                                                                                              |
+| 141 | `6b576dd` | feat(sandbox): harden Azure Container Apps cold starts + go-live docs                                                                                                                     |
+| 142 | `6e42212` | docs: sync SESSION_LOG 90-94 + CLAUDE.md inventory for sandbox cold-start                                                                                                                 |
+| 143 | `65a38be` | style(frontend): retune charcoal theme to neutral #141414 scale                                                                                                                           |
+| 144 | `52a1e05` | style(frontend): neutralize residual blue-tinted chrome + monaco tints                                                                                                                    |
+| 145 | `5558dec` | feat(frontend): real TextMate tokenization with exact Dark+ fidelity                                                                                                                      |
+| 146 | `61befdf` | feat: real formatting via POST /api/format (gofmt + pinned black)                                                                                                                         |
+| 147 | `a318821` | fix(sandbox): pip PEP 668 externally-managed-environment build failure                                                                                                                    |
+| 148 | `cb8ad4f` | feat(ui): integrate ShapeGrid background animation with brand styling                                                                                                                     |
+| 149 | `1d16977` | docs: update SESSION_LOG.md, UPDATE_LOG.txt, and progress.md for session 100                                                                                                              |
+| 150 | `a54984c` | style(editor): increase Monaco font size to 16px and weight to 600                                                                                                                        |
+| 151 | `07ccc73` | feat(learn): redesign lesson workspace, collapsible sidebar, multi-step quiz flow, and victory success page                                                                               |
+| 152 | `80c92fe` | fix(lint): resolve ESLint set-state-in-effect and hook dependency warnings                                                                                                                |
+| 153 | `d59e0d1` | fix: transparent backgrounds for animated grid, scrollable sections, card bg images, Python auto-indent after colons                                                                      |
+| 154 | `8400ca2` | fix(frontend): restore animated background grid, problem card images, monaco colon auto-indent, and resolve eslint set-state-in-effect                                                    |
 | 155 | `a5b514a` | fix(frontend): boost animated background grid visibility, fix lesson scroll clipping & bottom dock padding, update card image overlays, and hook monaco beforeMount for colon auto-indent |
-| 156 | `ec4128f` | fix(frontend): force Monaco tokenization on Enter so language auto-indent always runs |
-| 157 | `d89528a` | fix(frontend): auto-indent on Enter for TextMate-tokenized languages |
-| 158 | `59e4f57` | fix: manual Enter handler for Python colon auto-indentation |
-| 159 | `d8ac1fe` | Sandbox: always-warm ACA replica + tighten sandbox client timeout |
-| 160 | `e2b79db` | Layout: remove global main padding + standardize success page |
-| 161 | `2f808bb` | docs: session 100 log entry |
-| 162 | `00d5067` | UI: small top margin on dashboard, settings, admin |
-| 163 | `ebf3fd2` | sandbox: detailed, professional Python format error messages |
-| 164 | `9a29850` | UI: remove animated hexagon background from landing, fix dead ShapeGrid hover |
-| 165 | `745f1d7` | password-recovery overhaul + parser summary-line fix |
-| 166 | `e32c50d` | fix: PIN removal, forgot-password resend, GIS COOP fix + Google auth diagnostics |
-| 167 | `a2bd1f6` | feat: email delivery diagnostics — Resend webhook + email_logs tracking (Session 106) |
-| 168 | `258a487` | fix: webhook jsonb payload encoding — pass raw body as string not []byte (SimpleProtocol bytea bug) |
-| 169 | `7cad9ec` | fix: frequent-logout — rotation-grace reuse detection + decouple /auth/refresh from IP limiter |
-| 170 | `360a318` | feat: professional password-reset email template — brand-matched, reusable, injection-safe |
-| 171 | `2239d9c` | fix: chi router panic — register /auth/refresh on parent mux before limiter |
-| 172 | `946fbb3` | docs: full professional reindex — sessions 106-109c in all logs, verified counts, production incident note |
-| 173 | `f15dd00` | feat: strictly disable pasting in problem workspace editor — layered paste guard with throttled toast |
-| 174 | `95d391f` | feat: professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening |
-| 175 | `b99b305` | fix: restore setResults in submit/test handlers — output panel never received mapped results after mapTestResults refactor |
-| 176 | `8d8908a` | feat: admin problem-reminder email broadcasts — problem picker + brand-matched Resend template (Session 113) |
-| 177 | `fdbf615` | fix: sync frontend package-lock after npm ci |
-| 178 | `7d0091e` | fix: remove unused firebase-tools devDependency — clears EBADENGINE warnings, slims npm ci (Session 114) |
-| 179 | `b82d44c` | docs: full professional reindex — sessions 113-114 in all logs, verified counts |
+| 156 | `ec4128f` | fix(frontend): force Monaco tokenization on Enter so language auto-indent always runs                                                                                                     |
+| 157 | `d89528a` | fix(frontend): auto-indent on Enter for TextMate-tokenized languages                                                                                                                      |
+| 158 | `59e4f57` | fix: manual Enter handler for Python colon auto-indentation                                                                                                                               |
+| 159 | `d8ac1fe` | Sandbox: always-warm ACA replica + tighten sandbox client timeout                                                                                                                         |
+| 160 | `e2b79db` | Layout: remove global main padding + standardize success page                                                                                                                             |
+| 161 | `2f808bb` | docs: session 100 log entry                                                                                                                                                               |
+| 162 | `00d5067` | UI: small top margin on dashboard, settings, admin                                                                                                                                        |
+| 163 | `ebf3fd2` | sandbox: detailed, professional Python format error messages                                                                                                                              |
+| 164 | `9a29850` | UI: remove animated hexagon background from landing, fix dead ShapeGrid hover                                                                                                             |
+| 165 | `745f1d7` | password-recovery overhaul + parser summary-line fix                                                                                                                                      |
+| 166 | `e32c50d` | fix: PIN removal, forgot-password resend, GIS COOP fix + Google auth diagnostics                                                                                                          |
+| 167 | `a2bd1f6` | feat: email delivery diagnostics — Resend webhook + email_logs tracking (Session 106)                                                                                                     |
+| 168 | `258a487` | fix: webhook jsonb payload encoding — pass raw body as string not []byte (SimpleProtocol bytea bug)                                                                                       |
+| 169 | `7cad9ec` | fix: frequent-logout — rotation-grace reuse detection + decouple /auth/refresh from IP limiter                                                                                            |
+| 170 | `360a318` | feat: professional password-reset email template — brand-matched, reusable, injection-safe                                                                                                |
+| 171 | `2239d9c` | fix: chi router panic — register /auth/refresh on parent mux before limiter                                                                                                               |
+| 172 | `946fbb3` | docs: full professional reindex — sessions 106-109c in all logs, verified counts, production incident note                                                                                |
+| 173 | `f15dd00` | feat: strictly disable pasting in problem workspace editor — layered paste guard with throttled toast                                                                                     |
+| 174 | `95d391f` | feat: professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening                                                                         |
+| 175 | `b99b305` | fix: restore setResults in submit/test handlers — output panel never received mapped results after mapTestResults refactor                                                                |
+| 176 | `8d8908a` | feat: admin problem-reminder email broadcasts — problem picker + brand-matched Resend template (Session 113)                                                                              |
+| 177 | `fdbf615` | fix: sync frontend package-lock after npm ci                                                                                                                                              |
+| 178 | `7d0091e` | fix: remove unused firebase-tools devDependency — clears EBADENGINE warnings, slims npm ci (Session 114)                                                                                  |
+| 179 | `b82d44c` | docs: full professional reindex — sessions 113-114 in all logs, verified counts                                                                                                           |
 
 ---
 
 ## 1–4. Session 1 (June 28) — Profile Redesign + Performance
+
 See `git log` for details. Key outcomes: radial activity gauges, contribution graph, `get_full_profile()` PL/pgSQL function.
 
 ---
 
 ## 5–6. Gitea API Fixes
+
 Cloudflare was blocking Go's default HTTP client. Added `User-Agent`, `Accept` headers, gzip decompression, and a sandbox proxy endpoint. (Archived — Gitea later removed entirely.)
 
 ---
@@ -201,38 +203,41 @@ Cloudflare was blocking Go's default HTTP client. Added `User-Agent`, `Accept` h
 ## 7. Google Sign-In Migration (June 30, Session 4)
 
 ### Backend Changes
-| File | Change |
-|------|--------|
-| `migrations/012_add_google_auth.sql` | Added `google_id`, `google_email`, `google_avatar_url`, `username`, `email` columns; backfilled data; updated `get_full_profile()` |
-| `internal/auth/oauth.go` | `VerifyGoogleToken()` — calls `oauth2.googleapis.com/tokeninfo?id_token=...`, validates sub/aud/email_verified |
-| `internal/auth/jwt.go` | JWT claims include `Username` + `Onboarding` (bool) |
-| `internal/store/types.go` | `GoogleUserInfo` struct; updated `User`/`NewUser`/`LeaderboardUser` with Google fields + `Username` |
-| `internal/store/users.go` | `GetUserByLogin`, `GetUserByUsername`, `GetUserByEmail`, `GetUserByGoogleID`, `CreateUserFromGoogle`, `LinkGoogleToUser`, `UpdateUserUsername`, `UpdateUserGoogleAvatar` |
-| `internal/api/auth.go` | `GoogleAuth`, `CompleteGoogle`, `CheckUsername` handlers; `Login` checks 3 fields (username, email, student_id); removed Gitea handlers |
-| `internal/api/me.go` | Returns `username` + `google_avatar_url` |
-| `internal/api/profile.go` | Returns `username` + `google_avatar_url` |
-| `internal/api/router.go` | Google routes added; all Gitea routes removed |
-| `internal/config/config.go` | Added `GoogleClientID`; removed Gitea vars |
+
+| File                                 | Change                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `migrations/012_add_google_auth.sql` | Added `google_id`, `google_email`, `google_avatar_url`, `username`, `email` columns; backfilled data; updated `get_full_profile()`                                       |
+| `internal/auth/oauth.go`             | `VerifyGoogleToken()` — calls `oauth2.googleapis.com/tokeninfo?id_token=...`, validates sub/aud/email_verified                                                           |
+| `internal/auth/jwt.go`               | JWT claims include `Username` + `Onboarding` (bool)                                                                                                                      |
+| `internal/store/types.go`            | `GoogleUserInfo` struct; updated `User`/`NewUser`/`LeaderboardUser` with Google fields + `Username`                                                                      |
+| `internal/store/users.go`            | `GetUserByLogin`, `GetUserByUsername`, `GetUserByEmail`, `GetUserByGoogleID`, `CreateUserFromGoogle`, `LinkGoogleToUser`, `UpdateUserUsername`, `UpdateUserGoogleAvatar` |
+| `internal/api/auth.go`               | `GoogleAuth`, `CompleteGoogle`, `CheckUsername` handlers; `Login` checks 3 fields (username, email, student_id); removed Gitea handlers                                  |
+| `internal/api/me.go`                 | Returns `username` + `google_avatar_url`                                                                                                                                 |
+| `internal/api/profile.go`            | Returns `username` + `google_avatar_url`                                                                                                                                 |
+| `internal/api/router.go`             | Google routes added; all Gitea routes removed                                                                                                                            |
+| `internal/config/config.go`          | Added `GoogleClientID`; removed Gitea vars                                                                                                                               |
 
 ### Frontend Changes
-| File | Change |
-|------|--------|
-| `lib/types.ts` | `User`/`UserProfile` use `username`/`google_avatar_url` |
-| `lib/api.ts` | `googleLogin`, `completeGoogleOnboarding`, `checkUsername`, `publishAllDrafts` |
-| `lib/achievements.ts` | **NEW** — shared `Achievement` type + `getAchievements()` |
-| `app/(auth)/login/page.tsx` | GIS button; "Username or Email" field |
-| `app/(auth)/register/page.tsx` | Username + email fields |
-| `app/(auth)/onboarding/page.tsx` | **NEW** — debounced username check with visual feedback |
-| `components/layout/TopNav.tsx` | `google_avatar_url` + `@{username}` |
-| `app/(main)/admin/page.tsx` | "Publish All Drafts" + enriched status column |
-| `app/(main)/profile/components/Achievements.tsx` | Shared module import |
-| `app/(main)/profile/components/ActivityFeed.tsx` | Shared module import |
-| `app/(main)/profile/components/ProgressMetrics.tsx` | Module colors, sorted, empty state |
-| `components/ui/activity-gauge.tsx` | ResizeObserver + 16-color palette |
-| `app/(main)/settings/page.tsx` | Gitea section removed, username read-only |
-| `app/(main)/leaderboard/LeaderboardClient.tsx` | `google_avatar_url` |
+
+| File                                                | Change                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `lib/types.ts`                                      | `User`/`UserProfile` use `username`/`google_avatar_url`                        |
+| `lib/api.ts`                                        | `googleLogin`, `completeGoogleOnboarding`, `checkUsername`, `publishAllDrafts` |
+| `lib/achievements.ts`                               | **NEW** — shared `Achievement` type + `getAchievements()`                      |
+| `app/(auth)/login/page.tsx`                         | GIS button; "Username or Email" field                                          |
+| `app/(auth)/register/page.tsx`                      | Username + email fields                                                        |
+| `app/(auth)/onboarding/page.tsx`                    | **NEW** — debounced username check with visual feedback                        |
+| `components/layout/TopNav.tsx`                      | `google_avatar_url` + `@{username}`                                            |
+| `app/(main)/admin/page.tsx`                         | "Publish All Drafts" + enriched status column                                  |
+| `app/(main)/profile/components/Achievements.tsx`    | Shared module import                                                           |
+| `app/(main)/profile/components/ActivityFeed.tsx`    | Shared module import                                                           |
+| `app/(main)/profile/components/ProgressMetrics.tsx` | Module colors, sorted, empty state                                             |
+| `components/ui/activity-gauge.tsx`                  | ResizeObserver + 16-color palette                                              |
+| `app/(main)/settings/page.tsx`                      | Gitea section removed, username read-only                                      |
+| `app/(main)/leaderboard/LeaderboardClient.tsx`      | `google_avatar_url`                                                            |
 
 ### Google Sign-In Flow
+
 ```
 Login Page → GIS button → Google popup → user selects account
   → Google returns ID token (JWT)
@@ -245,6 +250,7 @@ Login Page → GIS button → Google popup → user selects account
 ```
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `npx tsc --noEmit`
 - ✅ `npm run build` (4.3 min)
@@ -270,22 +276,24 @@ Login Page → GIS button → Google popup → user selects account
 
 ### Components Overhauled
 
-| Component | Changes |
-|-----------|---------|
-| **ProfileHeader** | Glassmorphism (`backdrop-blur-xl`, `bg-black/40`), animated gradient background pulsing, SVG XP ring with stroke-dashoffset animation, inline mini-stats row (Rank/Solved/Rate/Streak), gold accent line, pulsing glow ring around avatar |
-| **StatsOverview** | `AnimatedNumber` counter using `motion/react` `useMotionValue` + `animate`, unique gradient per stat card (amber/blue/emerald/cyan/orange/purple), hover lift with `whileHover`, staggered 0.07s entrance, glass cards with `bg-black/20 backdrop-blur-sm` |
-| **ProgressMetrics** | `AnimatedBar` with smooth width animation, difficulty colors with gradient hover, amber-themed icons, immersive empty state with icon, section description text |
-| **Achievements** | Motion stagger + scale entrance per badge, hover lift with colored shadow, premium `backdrop-blur-xl` dialog, refined locked opacity, purple accent header |
-| **ActivityFeed** | Timeline with vertical gradient line + colored dots, dot pulsing on hover, motion scale per achievement badge, amber-themed headers |
-| **ProfileClient** | Shimmer skeleton with gradient animation (`@keyframes shimmer`), `motion.div` entry for page title, error state with fade animation |
+| Component           | Changes                                                                                                                                                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ProfileHeader**   | Glassmorphism (`backdrop-blur-xl`, `bg-black/40`), animated gradient background pulsing, SVG XP ring with stroke-dashoffset animation, inline mini-stats row (Rank/Solved/Rate/Streak), gold accent line, pulsing glow ring around avatar                  |
+| **StatsOverview**   | `AnimatedNumber` counter using `motion/react` `useMotionValue` + `animate`, unique gradient per stat card (amber/blue/emerald/cyan/orange/purple), hover lift with `whileHover`, staggered 0.07s entrance, glass cards with `bg-black/20 backdrop-blur-sm` |
+| **ProgressMetrics** | `AnimatedBar` with smooth width animation, difficulty colors with gradient hover, amber-themed icons, immersive empty state with icon, section description text                                                                                            |
+| **Achievements**    | Motion stagger + scale entrance per badge, hover lift with colored shadow, premium `backdrop-blur-xl` dialog, refined locked opacity, purple accent header                                                                                                 |
+| **ActivityFeed**    | Timeline with vertical gradient line + colored dots, dot pulsing on hover, motion scale per achievement badge, amber-themed headers                                                                                                                        |
+| **ProfileClient**   | Shimmer skeleton with gradient animation (`@keyframes shimmer`), `motion.div` entry for page title, error state with fade animation                                                                                                                        |
 
 ### New CSS Animations (`globals.css`)
+
 ```css
 @keyframes pulse-slow { ... }    /* subtle glow breathing */
 @keyframes shimmer { ... }       /* skeleton loading sweep */
 ```
 
 ### Misc
+
 - `go build ./cmd/server/` — still passes
 - `npx tsc --noEmit` — passes
 - `npm run build` — passes (profile page: 113 kB → 162 kB, +motion library)
@@ -297,50 +305,56 @@ Login Page → GIS button → Google popup → user selects account
 ## 12. Session 6 (July 1) — Professional Review: Color Reduction, Onboarding Flow, Google Sync
 
 ### Backend Changes
-| File | Change |
-|------|--------|
-| `internal/api/auth.go` | Register: removed `Username` field; generates temp `u_<uuid[:8]>` username; issues JWT with `onboarding: true`; renamed `CompleteGoogle` → `CompleteOnboarding`; now updates `student_id` to match username; added `POST /auth/link-google` endpoint for existing users to sync Google account |
-| `internal/api/router.go` | Added `/auth/complete-onboarding` (alias for `/auth/complete-google`) and `/auth/link-google` as protected routes |
-| `internal/store/store.go` | Added `UpdateUserStudentID` to Store interface |
-| `internal/store/users.go` | Added `UpdateUserStudentID()` method; removed duplicate `UpdateUserUsername` |
+
+| File                      | Change                                                                                                                                                                                                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/api/auth.go`    | Register: removed `Username` field; generates temp `u_<uuid[:8]>` username; issues JWT with `onboarding: true`; renamed `CompleteGoogle` → `CompleteOnboarding`; now updates `student_id` to match username; added `POST /auth/link-google` endpoint for existing users to sync Google account |
+| `internal/api/router.go`  | Added `/auth/complete-onboarding` (alias for `/auth/complete-google`) and `/auth/link-google` as protected routes                                                                                                                                                                              |
+| `internal/store/store.go` | Added `UpdateUserStudentID` to Store interface                                                                                                                                                                                                                                                 |
+| `internal/store/users.go` | Added `UpdateUserStudentID()` method; removed duplicate `UpdateUserUsername`                                                                                                                                                                                                                   |
 
 ### Frontend — Auth Pages
-| File | Change |
-|------|--------|
-| `app/(auth)/register/page.tsx` | Removed Username field; added required "I agree to Terms of Service and Privacy Policy" checkbox; redirects to `/onboarding` after registration when `onboarding: true` |
-| `app/(auth)/login/page.tsx` | Fixed Google Sign-In button layout shift with skeleton loading state; professional "By signing in, you agree to our Terms/Privacy" footer |
-| `app/(auth)/onboarding/page.tsx` | Works for all auth methods (not just Google); uses `completeOnboarding()` API call; replaced emerald indicators with amber-400 |
-| `lib/api.ts` | Added `completeOnboarding()` and `linkGoogle()` functions; updated `register()` return type with onboarding flag |
+
+| File                             | Change                                                                                                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/(auth)/register/page.tsx`   | Removed Username field; added required "I agree to Terms of Service and Privacy Policy" checkbox; redirects to `/onboarding` after registration when `onboarding: true` |
+| `app/(auth)/login/page.tsx`      | Fixed Google Sign-In button layout shift with skeleton loading state; professional "By signing in, you agree to our Terms/Privacy" footer                               |
+| `app/(auth)/onboarding/page.tsx` | Works for all auth methods (not just Google); uses `completeOnboarding()` API call; replaced emerald indicators with amber-400                                          |
+| `lib/api.ts`                     | Added `completeOnboarding()` and `linkGoogle()` functions; updated `register()` return type with onboarding flag                                                        |
 
 ### Frontend — Profile Color Reduction (All 7 Components)
-| Component | Change |
-|-----------|--------|
-| **ProfileHeader** | All 4 mini-stats use uniform amber-400 (not emerald/cyan/orange); removed `@` prefix from username badge; removed `student_id` from display line; Copied checkmark uses amber |
-| **StatsOverview** | All 6 stat cards use uniform amber gradient/icon/text — no more blue/emerald/cyan/orange/purple per-stat colors; unified `hover:border-amber-500/30` |
-| **ProgressMetrics** | Easy difficulty uses amber-400; Strings & Runes uses teal; Trees & Graphs uses sky; module header icon uses amber |
-| **Achievements** | Icon header uses amber; checkmark uses amber; unlocked badge uses amber |
-| **ActivityFeed** | Timeline dots and "solved" text use amber (not emerald) |
-| **RecentActivity** | "Passed" status uses amber-400; badge styles use amber |
-| **MyContributions** | All emerald-400/border-emerald/bg-emerald replaced with amber variants |
+
+| Component           | Change                                                                                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ProfileHeader**   | All 4 mini-stats use uniform amber-400 (not emerald/cyan/orange); removed `@` prefix from username badge; removed `student_id` from display line; Copied checkmark uses amber |
+| **StatsOverview**   | All 6 stat cards use uniform amber gradient/icon/text — no more blue/emerald/cyan/orange/purple per-stat colors; unified `hover:border-amber-500/30`                          |
+| **ProgressMetrics** | Easy difficulty uses amber-400; Strings & Runes uses teal; Trees & Graphs uses sky; module header icon uses amber                                                             |
+| **Achievements**    | Icon header uses amber; checkmark uses amber; unlocked badge uses amber                                                                                                       |
+| **ActivityFeed**    | Timeline dots and "solved" text use amber (not emerald)                                                                                                                       |
+| **RecentActivity**  | "Passed" status uses amber-400; badge styles use amber                                                                                                                        |
+| **MyContributions** | All emerald-400/border-emerald/bg-emerald replaced with amber variants                                                                                                        |
 
 ### Frontend — Global Green Removal & @ Prefix
-| File | Change |
-|------|--------|
-| `app/globals.css` | `--color-brand-success` changed from `#22c55e` to `#F59E0B` (amber) |
-| `lib/utils.ts` | `getUserColor()` index 3 changed from green to steel; duplicate gold entries fixed; `getDifficultyColor()` Easy changed from `#52B788` to `text-amber-400` |
-| `app/(main)/page.tsx` | Dashboard username display: `text-emerald-400` removed; `@{username}` → plain `{username}`; `@{author_name}` → plain; added `GoogleSyncBanner` component for unlinked Google users |
-| `components/layout/TopNav.tsx` | `text-emerald-400` → `text-amber-400`; `@{username}` → plain `{username || studentId}` |
-| `app/(main)/admin/PendingContributions.tsx` | Green dot/code/approve button → amber variants |
+
+| File                                        | Change                                                                                                                                                                             |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----------- |
+| `app/globals.css`                           | `--color-brand-success` changed from `#22c55e` to `#F59E0B` (amber)                                                                                                                |
+| `lib/utils.ts`                              | `getUserColor()` index 3 changed from green to steel; duplicate gold entries fixed; `getDifficultyColor()` Easy changed from `#52B788` to `text-amber-400`                         |
+| `app/(main)/page.tsx`                       | Dashboard username display: `text-emerald-400` removed; `@{username}` → plain `{username}`; `@{author_name}` → plain; added `GoogleSyncBanner` component for unlinked Google users |
+| `components/layout/TopNav.tsx`              | `text-emerald-400` → `text-amber-400`; `@{username}` → plain `{username                                                                                                            |     | studentId}` |
+| `app/(main)/admin/PendingContributions.tsx` | Green dot/code/approve button → amber variants                                                                                                                                     |
 
 ### Frontend — Leaderboard (Username Primary)
-| Change | Detail |
-|--------|--------|
-| Podium | Shows `username` (monospace) with full `name` in tooltip |
-| "Your Ranking" | Shows `username` as primary, `studentId` as secondary, name in tooltip |
-| Table rows | Shows `username` with name in tooltip; search searches by username/name/studentId |
-| Table header | "Username" column; all `text-emerald-400` → `text-amber-400`; `@` prefix removed |
+
+| Change         | Detail                                                                            |
+| -------------- | --------------------------------------------------------------------------------- |
+| Podium         | Shows `username` (monospace) with full `name` in tooltip                          |
+| "Your Ranking" | Shows `username` as primary, `studentId` as secondary, name in tooltip            |
+| Table rows     | Shows `username` with name in tooltip; search searches by username/name/studentId |
+| Table header   | "Username" column; all `text-emerald-400` → `text-amber-400`; `@` prefix removed  |
 
 ### Build Verification
+
 - ✅ `go build ./internal/...` — passes
 - ✅ `npx tsc --noEmit` — passes
 - ✅ `git push` — commit `b9d06df`
@@ -363,56 +377,64 @@ Login Page → GIS button → Google popup → user selects account
 ## 14. Session 7 (July 1) — Codebase Cleanup, Google Auth Hardening, Account Deletion
 
 ### Backend Changes
-| File | Change |
-|------|--------|
-| `cmd/sandbox/main.go` | **REMOVED** — dead placeholder (`select {}`) |
-| `sandbox/main.go` | Removed Gitea proxy handler, route, rate-limiter bypass; dead code removal |
-| `internal/api/admin.go` | Replaced deprecated `strings.Title` → `cases.Title(language.English).String()` |
-| `internal/config/config.go` | Added `GoVersion` field, `GO_VERSION` env var (default `"1.23"`) |
-| `internal/executor/executor.go` | Wired `goVersion` through `PrepareSandbox` and sandbox client |
-| `internal/executor/sandbox.go` | `PrepareSandbox` accepts `goVersion string` param |
-| `internal/executor/sandbox_client.go` | `SandboxRequest` includes `GoVersion` field |
-| `internal/store/store.go` | Added `DeleteUser` + `GetVisibleTestCasesForProblem` to Store interface |
-| `internal/store/users.go` | New `DeleteUser()` — transactional cleanup: submissions → progress → user (cascades to notifications, submission_likes, user_problems) |
-| `internal/api/auth.go` | `GoogleAuth` returns `404 GOOGLE_NOT_LINKED` instead of auto-creating accounts; prevents silent duplicates |
-| `internal/api/me.go` | Added `google_linked: bool` to `/me`; new `DeleteAccount` handler |
-| `internal/api/router.go` | Added `POST /me/delete-account` route (auth-protected) |
-| `internal/auth/auth_test.go` | Updated all 10 `SignToken()` calls to match 7-argument signature |
-| `.env.example` | Added `GO_VERSION` |
+
+| File                                  | Change                                                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmd/sandbox/main.go`                 | **REMOVED** — dead placeholder (`select {}`)                                                                                           |
+| `sandbox/main.go`                     | Removed Gitea proxy handler, route, rate-limiter bypass; dead code removal                                                             |
+| `internal/api/admin.go`               | Replaced deprecated `strings.Title` → `cases.Title(language.English).String()`                                                         |
+| `internal/config/config.go`           | Added `GoVersion` field, `GO_VERSION` env var (default `"1.23"`)                                                                       |
+| `internal/executor/executor.go`       | Wired `goVersion` through `PrepareSandbox` and sandbox client                                                                          |
+| `internal/executor/sandbox.go`        | `PrepareSandbox` accepts `goVersion string` param                                                                                      |
+| `internal/executor/sandbox_client.go` | `SandboxRequest` includes `GoVersion` field                                                                                            |
+| `internal/store/store.go`             | Added `DeleteUser` + `GetVisibleTestCasesForProblem` to Store interface                                                                |
+| `internal/store/users.go`             | New `DeleteUser()` — transactional cleanup: submissions → progress → user (cascades to notifications, submission_likes, user_problems) |
+| `internal/api/auth.go`                | `GoogleAuth` returns `404 GOOGLE_NOT_LINKED` instead of auto-creating accounts; prevents silent duplicates                             |
+| `internal/api/me.go`                  | Added `google_linked: bool` to `/me`; new `DeleteAccount` handler                                                                      |
+| `internal/api/router.go`              | Added `POST /me/delete-account` route (auth-protected)                                                                                 |
+| `internal/auth/auth_test.go`          | Updated all 10 `SignToken()` calls to match 7-argument signature                                                                       |
+| `.env.example`                        | Added `GO_VERSION`                                                                                                                     |
 
 ### Frontend — Shared GIS Hook (NEW)
-| File | Change |
-|------|--------|
+
+| File                          | Change                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `hooks/use-google-one-tap.ts` | **NEW** — module-level singleton: loads GIS script once, calls `initialize()` once, exposes `prompt()` + `renderButton()`. FedCM calls wrapped in try-catch with `itp_support: true`. `renderButton()` uses popup flow (no FedCM dep) |
 
 ### Frontend — Google Link Banner (NEW)
-| File | Change |
-|------|--------|
+
+| File                              | Change                                                                                                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `components/GoogleLinkBanner.tsx` | **NEW** — replaces old `GoogleSyncBanner`; amber gradient, `AlertTriangle` icon, localStorage dismiss, auto-hides when `google_linked` is true; uses `renderButton` (popup) for linking |
-| `app/(main)/page.tsx` | Swapped `GoogleSyncBanner` → `GoogleLinkBanner` |
+| `app/(main)/page.tsx`             | Swapped `GoogleSyncBanner` → `GoogleLinkBanner`                                                                                                                                         |
 
 ### Frontend — Login & Register Pages
-| File | Change |
-|------|--------|
-| `app/(auth)/login/page.tsx` | Adopted shared hook; `renderButton` (popup, numeric 350 width) replaces direct GIS call with `width: '100%'`; `mounted` state pattern fixes hydration mismatch |
-| `app/(auth)/register/page.tsx` | Same fixes as login: shared hook, numeric width, `mounted` pattern |
+
+| File                           | Change                                                                                                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/(auth)/login/page.tsx`    | Adopted shared hook; `renderButton` (popup, numeric 350 width) replaces direct GIS call with `width: '100%'`; `mounted` state pattern fixes hydration mismatch |
+| `app/(auth)/register/page.tsx` | Same fixes as login: shared hook, numeric width, `mounted` pattern                                                                                             |
 
 ### Frontend — Settings Page
-| File | Change |
-|------|--------|
+
+| File                           | Change                                                                                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/(main)/settings/page.tsx` | Delete Account: two-step confirmation dialog → `deleteAccount()` API call → clears token → redirects to `/auth/login`. Google linking uses `renderButton` (popup) instead of `prompt()` (FedCM) |
 
 ### Frontend — API & Types
-| File | Change |
-|------|--------|
-| `lib/api.ts` | Added `deleteAccount()` function |
+
+| File           | Change                                        |
+| -------------- | --------------------------------------------- |
+| `lib/api.ts`   | Added `deleteAccount()` function              |
 | `lib/types.ts` | Added `google_linked: boolean` to `User` type |
 
 ### Git
+
 - Branch: `update`
 - Commits: `06c0590` (codebase cleanup + account deletion + shared hook), `dd5fcbb` (migration trailing newline), `239c886` (dynamic ready state), `7425582` (direct GIS button rendering), `6c05b84` (ready independent of init success), `1d19bb3` (explicit 350x40 container + fallback)
 
 ### Build Verification
+
 - ✅ `go build ./...`
 - ✅ `npx tsc --noEmit`
 
@@ -421,7 +443,9 @@ Login Page → GIS button → Google popup → user selects account
 ## 15. Session 7 (cont.) — GIS Button Reliability Fixes
 
 ### Problem
+
 The "Link Google Account" button in Settings and the banner didn't trigger Google authentication. Multiple root causes:
+
 1. `ready` was a static expression (`typeof window !== "undefined"`) — true immediately on client, but GIS script hadn't loaded
 2. When `ready` was changed to `useState` that required `initialize()` success, `initialize()` threw on localhost (FedCM AbortError) and `ready` stayed `false` forever
 3. `cancel_on_tap_outside` + `itp_support` in `initialize()` triggered FedCM mediation during init, causing throws on localhost
@@ -431,21 +455,24 @@ The "Link Google Account" button in Settings and the banner didn't trigger Googl
 7. `/gsi/status` endpoint returned 403 (origin not authorized in Google Cloud Console)
 
 ### Fixes Applied
-| Commit | Fix |
-|--------|-----|
-| `239c886` | `ready` changed to `useState` — flips `true` only after init attempt completes (script load + init called). Previously static `typeof window !== "undefined"` |
-| `7425582` | Removed hidden div + programmatic click approach. GIS `renderButton()` now renders directly into a visible container |
-| `6c05b84` | `ready` fires after init attempt regardless of success/failure. Removed `cancel_on_tap_outside` + `itp_support` from `initialize()` |
+
+| Commit    | Fix                                                                                                                                                                                                      |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `239c886` | `ready` changed to `useState` — flips `true` only after init attempt completes (script load + init called). Previously static `typeof window !== "undefined"`                                            |
+| `7425582` | Removed hidden div + programmatic click approach. GIS `renderButton()` now renders directly into a visible container                                                                                     |
+| `6c05b84` | `ready` fires after init attempt regardless of success/failure. Removed `cancel_on_tap_outside` + `itp_support` from `initialize()`                                                                      |
 | `1d19bb3` | Explicit 350×40px container (was `width: 100%`). 500ms timeout checks `childElementCount` after render; falls back to `prompt()` (One Tap) if zero. All GIS errors logged to console with `[GIS]` prefix |
 
 ### Modified Files
-| File | Change |
-|------|--------|
-| `hooks/use-google-one-tap.ts` | Dynamic `ready` state; init error logging; `renderButton` logging; removed FedCM-specific init options |
-| `app/(main)/settings/page.tsx` | Explicit 350×40px container; `gisFailed` detection; fallback button with `prompt()` |
-| `components/GoogleLinkBanner.tsx` | Same pattern as settings: explicit dimensions, fallback detection, prompt fallback |
+
+| File                              | Change                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `hooks/use-google-one-tap.ts`     | Dynamic `ready` state; init error logging; `renderButton` logging; removed FedCM-specific init options |
+| `app/(main)/settings/page.tsx`    | Explicit 350×40px container; `gisFailed` detection; fallback button with `prompt()`                    |
+| `components/GoogleLinkBanner.tsx` | Same pattern as settings: explicit dimensions, fallback detection, prompt fallback                     |
 
 ### Build Verification
+
 - ✅ `npx tsc --noEmit`
 
 ---
@@ -453,26 +480,31 @@ The "Link Google Account" button in Settings and the banner didn't trigger Googl
 ## 16. Current Session — GIS FedCM Error Resolution & Avatar Fix (July 1)
 
 ### Problem
+
 GIS `initialize()` throws `TypeError: Required member is undefined` on `navigator.credentials.get()` — FedCM detection fails because `providers` property is missing in the browser context. This error propagates out of `initialize()` and is caught by our try-catch.
 
 ### What We Tried (and Why)
+
 1. **`ready` state from hook** — Settings/Banner JSX used `ready && !gisFailed` to conditionally render GIS container. FedCM error caused `initialized = false`, `ready` never fired → container never mounted → polling effect never ran.
 2. **Polling in Settings/Banner** — Switched from `ready` to polling every 200ms for `window.google?.accounts?.id`. But JSX still guarded by `ready` → circular dependency.
 3. **Removed `ready` from JSX** — Always render GIS container, polling drives rendering. Added 5s timeout fallback. This worked (console showed `children after render: 1`).
 
 ### Final Approach
+
 - **Banner** → Simply navigates to `/settings?tab=security` — no GIS rendering at all. Clean amber notification with link.
 - **Settings** → Plain "Link Google Account" button that calls `prompt()` (One Tap via FedCM). No GIS `renderButton`, no polling, no fallback states. Works on production HTTPS.
 - **TopNav** → Replaced `<Image>` with `<img>` for Google avatars to fix 500 error from Next.js image optimization proxy.
 
 ### Changed Files
-| File | Change |
-|------|--------|
-| `components/GoogleLinkBanner.tsx` | Stripped all GIS complexity — now just an info banner with link to `/settings?tab=security` |
-| `app/(main)/settings/page.tsx` | Removed GIS `renderButton`/polling/gisFailed — plain button calling `prompt()`. Reads `?tab=` query param via `useSearchParams` |
-| `components/layout/TopNav.tsx` | Replaced `<Image>` → `<img>` for Google avatar URLs to avoid `/_next/image` 500 errors |
+
+| File                              | Change                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `components/GoogleLinkBanner.tsx` | Stripped all GIS complexity — now just an info banner with link to `/settings?tab=security`                                     |
+| `app/(main)/settings/page.tsx`    | Removed GIS `renderButton`/polling/gisFailed — plain button calling `prompt()`. Reads `?tab=` query param via `useSearchParams` |
+| `components/layout/TopNav.tsx`    | Replaced `<Image>` → `<img>` for Google avatar URLs to avoid `/_next/image` 500 errors                                          |
 
 ### Build Verification
+
 - ✅ `npx tsc --noEmit`
 
 ---
@@ -490,58 +522,62 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 18. Session 8 (July 3) — MultiStepLoader, Problem Sorting, Auth Form Redesign
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                    |
+| --------- | ------------------------------------------------------------------------------ |
 | `e9cd9e8` | feat: add MultiStepLoader to root page, remove Module Proficiency from profile |
-| `3488e09` | professional google sign-in layout + sort unsolved problems first |
+| `3488e09` | professional google sign-in layout + sort unsolved problems first              |
 
 ### MultiStepLoader (Root Page)
 
-| File | Change |
-|------|--------|
-| `components/ui/multi-step-loader.tsx` | **NEW** — full-screen overlay with animated check icons, backdrop blur, gradient mask, 5-state progress (7000ms total), `loop{false}` |
-| `components/multi-step-loader-demo.tsx` | **NEW** — standalone demo page |
-| `app/page.tsx` | RootPage shows MultiStepLoader with 5 states → navigates to `/home` (authenticated) or fades to `/landing` (unauthenticated) |
-| `app/(main)/home/page.tsx` | Restored skeleton-card loading (no double-loader flash) |
+| File                                    | Change                                                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/ui/multi-step-loader.tsx`   | **NEW** — full-screen overlay with animated check icons, backdrop blur, gradient mask, 5-state progress (7000ms total), `loop{false}` |
+| `components/multi-step-loader-demo.tsx` | **NEW** — standalone demo page                                                                                                        |
+| `app/page.tsx`                          | RootPage shows MultiStepLoader with 5 states → navigates to `/home` (authenticated) or fades to `/landing` (unauthenticated)          |
+| `app/(main)/home/page.tsx`              | Restored skeleton-card loading (no double-loader flash)                                                                               |
 
 - Uses project theme colors: `bg-background/95`, `text-primary` (amber), `text-foreground font-semibold` (active)
 - `lucide-react` `X` icon (avoiding `@tabler/icons-react` TS7016 type declaration issues)
 - `loop{false}` + `duration={1400}` × 5 states = 7000ms; auth check elapsed subtracted so navigation aligns with last step
 
 ### Unsolved-First Problem Sorting
+
 - `app/(main)/home/page.tsx` — Added `.sort((a, b) => Number(a.solved) - Number(b.solved))` to `filteredProblems` so unsolved problems appear at top of dashboard grid
 
 ### Professional Google-First Auth Layout
 
-| File | Change |
-|------|--------|
-| `app/(auth)/login/page.tsx` | Google as primary action (top), custom dark button with Google SVG, `shadow-input` card, framer-motion staggered entrance, `BottomGradient` on submit, shadcn `Input`+`Label`, `AuthDivider` |
-| `app/(auth)/register/page.tsx` | Same treatment: Google-first, professional form with two-column name layout, framer-motion |
+| File                           | Change                                                                                                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/(auth)/login/page.tsx`    | Google as primary action (top), custom dark button with Google SVG, `shadow-input` card, framer-motion staggered entrance, `BottomGradient` on submit, shadcn `Input`+`Label`, `AuthDivider` |
+| `app/(auth)/register/page.tsx` | Same treatment: Google-first, professional form with two-column name layout, framer-motion                                                                                                   |
 
 ### New Auth Components (`components/auth/`)
 
-| File | Purpose |
-|------|---------|
-| `google-button.tsx` | Custom dark Google button with SVG logo, `shadow-input`, `group/btn` hover states, calls `prompt()` on click |
-| `bottom-gradient.tsx` | Amber gradient line on button hover (`group-hover/btn:opacity-100`) |
-| `label-input-container.tsx` | Wrapper for input + label vertical spacing |
-| `auth-divider.tsx` | "or" divider with border line and muted centered text |
-| `index.ts` | Barrel exports |
+| File                        | Purpose                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `google-button.tsx`         | Custom dark Google button with SVG logo, `shadow-input`, `group/btn` hover states, calls `prompt()` on click |
+| `bottom-gradient.tsx`       | Amber gradient line on button hover (`group-hover/btn:opacity-100`)                                          |
+| `label-input-container.tsx` | Wrapper for input + label vertical spacing                                                                   |
+| `auth-divider.tsx`          | "or" divider with border line and muted centered text                                                        |
+| `index.ts`                  | Barrel exports                                                                                               |
 
 ### Other New/Updated Files
 
-| File | Change |
-|------|--------|
-| `components/ui/label.tsx` | **NEW** — shadcn Label with `@radix-ui/react-label` + CVA |
-| `app/globals.css` | Added `--shadow-input` custom shadow to `@theme inline` block |
+| File                      | Change                                                        |
+| ------------------------- | ------------------------------------------------------------- |
+| `components/ui/label.tsx` | **NEW** — shadcn Label with `@radix-ui/react-label` + CVA     |
+| `app/globals.css`         | Added `--shadow-input` custom shadow to `@theme inline` block |
 
 ### Design Decisions
+
 - GIS `renderButton` replaced with custom button + `prompt()` for full visual control
 - `shadow-input` gives card a refined inset-like shadow matching Aceternity pattern
 - Framer-motion staggered entrance: card → logo → Google button → divider → form → footer
 - Amber gold `BottomGradient` (not cyan/indigo from Aceternity demo) — matches Koder's `brand-muted-gold`
 
 ### Build Verification
+
 - ✅ `npx tsc --noEmit` — zero errors
 
 ---
@@ -549,38 +585,43 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 19. Session 9 (July 3) — Landing Page Polish + Feedback System
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------- |
 | `608c956` | Landing page: replace Go text with official wordmark SVG, simplify footer links, remove editor mockup |
-| `53a9ade` | Feedback & bug report system: floating button, modal, admin panel, email notifications |
+| `53a9ade` | Feedback & bug report system: floating button, modal, admin panel, email notifications                |
 
 ### Landing Page Changes
-| File | Change |
-|------|--------|
+
+| File                                     | Change                                                                                                                                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/components/LandingContent.tsx` | Replaced "Go" text with official Go wordmark SVG; removed editor mockup preview; removed "Zero-cost automated Go grading" badge; simplified footer links; removed "Oracle free tier" tagline |
 
 ### Feedback System — Backend
-| File | Change |
-|------|--------|
-| `migrations/014_feedback.sql` | **NEW** — `feedback` table with type, priority, status, screenshot, admin_notes, is_anonymous |
-| `internal/store/feedback.go` | **NEW** — CRUD methods for feedback |
-| `internal/store/types.go` | Added `Feedback`, `NewFeedback` structs |
-| `internal/store/store.go` | Added 5 feedback methods to Store interface |
-| `internal/api/feedback.go` | **NEW** — handler with submit, admin list, status update, user list, counts; Resend email notification |
-| `internal/api/router.go` | Added `/feedback`, `/feedback/mine`, `/admin/feedback`, `/admin/feedback/counts`, `/admin/feedback/{id}` routes |
-| `internal/config/config.go` | Added `ResendAPIKey` config field |
+
+| File                          | Change                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `migrations/014_feedback.sql` | **NEW** — `feedback` table with type, priority, status, screenshot, admin_notes, is_anonymous                   |
+| `internal/store/feedback.go`  | **NEW** — CRUD methods for feedback                                                                             |
+| `internal/store/types.go`     | Added `Feedback`, `NewFeedback` structs                                                                         |
+| `internal/store/store.go`     | Added 5 feedback methods to Store interface                                                                     |
+| `internal/api/feedback.go`    | **NEW** — handler with submit, admin list, status update, user list, counts; Resend email notification          |
+| `internal/api/router.go`      | Added `/feedback`, `/feedback/mine`, `/admin/feedback`, `/admin/feedback/counts`, `/admin/feedback/{id}` routes |
+| `internal/config/config.go`   | Added `ResendAPIKey` config field                                                                               |
 
 ### Feedback System — Frontend
-| File | Change |
-|------|--------|
-| `frontend/components/FeedbackButton.tsx` | **NEW** — floating FAB, modal with 3 tabs, priority selector, screenshot upload, anonymous toggle |
+
+| File                                          | Change                                                                                              |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `frontend/components/FeedbackButton.tsx`      | **NEW** — floating FAB, modal with 3 tabs, priority selector, screenshot upload, anonymous toggle   |
 | `frontend/app/(main)/admin/FeedbackPanel.tsx` | **NEW** — admin feedback table with status tabs, search, expandable rows, inline status/admin notes |
-| `frontend/app/(main)/layout.tsx` | Added `<FeedbackButton />` |
-| `frontend/app/(main)/admin/page.tsx` | Added `<FeedbackPanel />` |
-| `frontend/lib/api.ts` | Added 5 feedback API functions |
-| `frontend/lib/types.ts` | Added `FeedbackItem` type |
+| `frontend/app/(main)/layout.tsx`              | Added `<FeedbackButton />`                                                                          |
+| `frontend/app/(main)/admin/page.tsx`          | Added `<FeedbackPanel />`                                                                           |
+| `frontend/lib/api.ts`                         | Added 5 feedback API functions                                                                      |
+| `frontend/lib/types.ts`                       | Added `FeedbackItem` type                                                                           |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/api/ ./internal/store/ ./internal/config/`
 - ✅ `npx tsc --noEmit`
 - ✅ `npx next build` — compiled, types checked, all 17 pages generated
@@ -590,21 +631,23 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 20. Session 10 (July 3, cont.) — Admin Polish: Scrollable Problems, In-App Feedback Notification, Reordered Layout
 
 ### Commits
-| Hash | Description |
-|------|-------------|
-| `d78f2ba` | docs: session log, codebase index, feedback endpoints in README |
-| *(next)* | admin polish: scrollable problems, in-app feedback notification, reordered layout |
+
+| Hash      | Description                                                                       |
+| --------- | --------------------------------------------------------------------------------- |
+| `d78f2ba` | docs: session log, codebase index, feedback endpoints in README                   |
+| _(next)_  | admin polish: scrollable problems, in-app feedback notification, reordered layout |
 
 ### Changes
 
-| File | Change |
-|------|--------|
-| `internal/api/feedback.go` | Added `NotifyAdmins()` call after `CreateFeedback` — admins get in-app notification when feedback is submitted |
-| `frontend/app/(main)/admin/page.tsx` | Reordered layout (Contributions + Feedback panels below Ingest/Enrich, above Problem Catalog); changed grid to `lg:grid-cols-4` (3:1); made problem table scrollable (`max-h-[420px] overflow-y-auto` with sticky thead); professional card sections |
-| `frontend/app/(main)/admin/PendingContributions.tsx` | Added `compact` prop — removes outer heading/border when embedded |
-| `frontend/app/(main)/admin/FeedbackPanel.tsx` | Added `compact` prop — conditionally hides header/border, adds scrollable max-height |
+| File                                                 | Change                                                                                                                                                                                                                                               |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/api/feedback.go`                           | Added `NotifyAdmins()` call after `CreateFeedback` — admins get in-app notification when feedback is submitted                                                                                                                                       |
+| `frontend/app/(main)/admin/page.tsx`                 | Reordered layout (Contributions + Feedback panels below Ingest/Enrich, above Problem Catalog); changed grid to `lg:grid-cols-4` (3:1); made problem table scrollable (`max-h-[420px] overflow-y-auto` with sticky thead); professional card sections |
+| `frontend/app/(main)/admin/PendingContributions.tsx` | Added `compact` prop — removes outer heading/border when embedded                                                                                                                                                                                    |
+| `frontend/app/(main)/admin/FeedbackPanel.tsx`        | Added `compact` prop — conditionally hides header/border, adds scrollable max-height                                                                                                                                                                 |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/api/ ./internal/store/`
 - ✅ `npx tsc --noEmit`
 
@@ -615,44 +658,50 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ### Changes
 
 #### Broadcast System Fixes & Polish
-| File | Change |
-|------|--------|
-| `internal/api/broadcasts.go` | `NewBroadcast.Message`/`Priority` made optional (`omitempty`); handler defaults priority→"medium", message→title; goroutine uses `context.Background()` (not canceled request ctx) |
-| `internal/store/notifications.go` | `ReplaceBroadcastNotifications()` — atomic DELETE+INSERT in single transaction, replaces old `ClearBroadcastNotifications` + `NotifyAllUsers` pattern |
-| `internal/store/broadcasts.go` | `GetActiveBroadcasts` — subquery ensures only latest broadcast shows; `NOT EXISTS` dismissal check prevents resurfacing older ones |
-| `frontend/components/BroadcastBanner.tsx` | Slim centered card: `px-4 py-2.5`, `size-8` icon, `w-fit mx-auto`, no message text, "Admin" label, 5s live polling |
-| `frontend/app/(main)/admin/BroadcastPanel.tsx` | Compact form (type/title/priority/CTA only), history list with delete button, shows "Admin" |
-| `frontend/lib/useNotifications.ts` | Polling interval reduced 30s → 5s |
+
+| File                                           | Change                                                                                                                                                                             |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/api/broadcasts.go`                   | `NewBroadcast.Message`/`Priority` made optional (`omitempty`); handler defaults priority→"medium", message→title; goroutine uses `context.Background()` (not canceled request ctx) |
+| `internal/store/notifications.go`              | `ReplaceBroadcastNotifications()` — atomic DELETE+INSERT in single transaction, replaces old `ClearBroadcastNotifications` + `NotifyAllUsers` pattern                              |
+| `internal/store/broadcasts.go`                 | `GetActiveBroadcasts` — subquery ensures only latest broadcast shows; `NOT EXISTS` dismissal check prevents resurfacing older ones                                                 |
+| `frontend/components/BroadcastBanner.tsx`      | Slim centered card: `px-4 py-2.5`, `size-8` icon, `w-fit mx-auto`, no message text, "Admin" label, 5s live polling                                                                 |
+| `frontend/app/(main)/admin/BroadcastPanel.tsx` | Compact form (type/title/priority/CTA only), history list with delete button, shows "Admin"                                                                                        |
+| `frontend/lib/useNotifications.ts`             | Polling interval reduced 30s → 5s                                                                                                                                                  |
 
 #### Query Optimization
-| File | Change |
-|------|--------|
-| `internal/store/problems.go` | `ListVisibleProblems`: replaced 3 correlated subqueries with single `LATERAL` join; dropped `statement`/`raw_readme` from listing query; `ListProblemsNeedingEnrichment`: added `LIMIT 100` |
-| `internal/store/users.go` | `GetUserStats`: split into two queries — no `LEFT JOIN submissions` (avoided 50× row multiplication); `CalculateStreak` extracted as shared helper |
-| `internal/store/submissions.go` | `GetBestPractices`: replaced `HAVING COUNT(sl.id) > 0` with `EXISTS (SELECT 1 FROM submission_likes ...)` |
-| `internal/store/broadcasts.go` | `GetAllBroadcasts`: added `LIMIT 200` |
-| `internal/store/testcases.go` | `GetTestCasesForProblem`/`GetVisibleTestCasesForProblem`: added `LIMIT 200` |
-| `internal/store/user_problems.go` | User problem lists: added `LIMIT 100` |
+
+| File                              | Change                                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/store/problems.go`      | `ListVisibleProblems`: replaced 3 correlated subqueries with single `LATERAL` join; dropped `statement`/`raw_readme` from listing query; `ListProblemsNeedingEnrichment`: added `LIMIT 100` |
+| `internal/store/users.go`         | `GetUserStats`: split into two queries — no `LEFT JOIN submissions` (avoided 50× row multiplication); `CalculateStreak` extracted as shared helper                                          |
+| `internal/store/submissions.go`   | `GetBestPractices`: replaced `HAVING COUNT(sl.id) > 0` with `EXISTS (SELECT 1 FROM submission_likes ...)`                                                                                   |
+| `internal/store/broadcasts.go`    | `GetAllBroadcasts`: added `LIMIT 200`                                                                                                                                                       |
+| `internal/store/testcases.go`     | `GetTestCasesForProblem`/`GetVisibleTestCasesForProblem`: added `LIMIT 200`                                                                                                                 |
+| `internal/store/user_problems.go` | User problem lists: added `LIMIT 100`                                                                                                                                                       |
 
 #### Bulk INSERT Optimization
-| File | Change |
-|------|--------|
+
+| File                         | Change                                                                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `internal/store/problems.go` | `UpsertEnrichedProblem`/`UpsertTestCasesForProblem`: resolve `problem_id` once, single multi-row `VALUES` INSERT instead of N round-trips |
 
 #### Infrastructure Hardening
-| File | Change |
-|------|--------|
-| `internal/store/store.go` | pgxpool tuned: `MaxConns=10`, `MinConns=2`, `MaxConnLifetime=30m`, `MaxConnIdleTime=5m` |
+
+| File                         | Change                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| `internal/store/store.go`    | pgxpool tuned: `MaxConns=10`, `MinConns=2`, `MaxConnLifetime=30m`, `MaxConnIdleTime=5m` |
 | `internal/api/middleware.go` | Rate limiter periodic cleanup goroutine — evicts stale entries every 2× window duration |
-| `internal/api/cache.go` | `userCache` added `stopCh` for graceful goroutine shutdown |
-| `internal/api/feedback.go` | Feedback email uses `&http.Client{Timeout: 10 * time.Second}` (was no timeout) |
+| `internal/api/cache.go`      | `userCache` added `stopCh` for graceful goroutine shutdown                              |
+| `internal/api/feedback.go`   | Feedback email uses `&http.Client{Timeout: 10 * time.Second}` (was no timeout)          |
 
 #### Migration
-| File | Change |
-|------|--------|
+
+| File                                      | Change                                                    |
+| ----------------------------------------- | --------------------------------------------------------- |
 | `migrations/017_optimization_indexes.sql` | **NEW** — 16 performance indexes on all key query columns |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
 - ✅ `npx next build`
@@ -662,16 +711,19 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 22. Session 11 fixup (July 3) — SQL Bug Fix + Frontend Field Mismatch
 
 ### Bug 1: LATERAL Join SQL Error
+
 `ROUND(AVG(runtime_ms)) FILTER (WHERE status = 'passed')` — `FILTER` can only attach to aggregate functions, but `ROUND()` is scalar. PostgreSQL errored with `FILTER specified, but round is not an aggregate function`.
 
 **Fix:** Moved `FILTER` inside `AVG()`: `ROUND(AVG(runtime_ms) FILTER (WHERE status = 'passed'))`
 
 ### Bug 2: Frontend successRate camelCase Mismatch
+
 `frontend/app/(main)/home/page.tsx:489` used `problem.successRate` (camelCase) but backend JSON key is `success_rate` (snake_case). Acceptance rate always showed `0%`.
 
 **Fix:** Changed to `problem.success_rate`.
 
 ### Build Verification
+
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
 
@@ -680,12 +732,14 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 23. Session 12 (July 3, cont.) — Database Reset + 45 Problem Seed
 
 ### Changes
-| File | Change |
-|------|--------|
+
+| File                               | Change                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `migrations/018_seed_problems.sql` | **NEW** — 45 professional Go problems across 3 modules (Math & Recursion, Arrays & Strings, Data Structures) |
-| *(cleaned)* | Removed `server`/`main` binaries, `senior_role.txt`, `reset.sql`, `reset_all.sql`, `tmp/` |
+| _(cleaned)_                        | Removed `server`/`main` binaries, `senior_role.txt`, `reset.sql`, `reset_all.sql`, `tmp/`                    |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
 
@@ -694,135 +748,149 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 24. Session 13 (July 5) — PinInput, Change Password, Auth Cookie Fix
 
 ### Backend
-| File | Change |
-|------|--------|
+
+| File                              | Change                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
 | `internal/api/change_password.go` | **NEW** — `POST /auth/change-password`: verifies 6-digit PIN via bcrypt + updates password |
-| `internal/api/pin_reset.go` | PIN-based forgot-password flow with 5-attempt/15-min rate limiter |
-| `internal/api/responses.go` | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS` |
-| `internal/api/router.go` | Added change-password route; reset-password-pin route |
-| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users |
+| `internal/api/pin_reset.go`       | PIN-based forgot-password flow with 5-attempt/15-min rate limiter                          |
+| `internal/api/responses.go`       | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS`                   |
+| `internal/api/router.go`          | Added change-password route; reset-password-pin route                                      |
+| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users                                             |
 
 ### Frontend
-| File | Change |
-|------|--------|
-| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop |
-| `components/ui/input-otp.tsx` | **NEW** — shadcn InputOTP component |
-| `app/(main)/settings/page.tsx` | 3-step change-password dialog (PIN → new password → success checkmark) |
-| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon |
+
+| File                                  | Change                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop             |
+| `components/ui/input-otp.tsx`         | **NEW** — shadcn InputOTP component                                    |
+| `app/(main)/settings/page.tsx`        | 3-step change-password dialog (PIN → new password → success checkmark) |
+| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon     |
 
 ### Auth Cookie Fix
-| File | Change |
-|------|--------|
-| `internal/api/responses.go` | `SetAuthCookie`/`ClearAuthCookie` — dynamic `Secure` + `SameSite: None` when HTTPS |
-| `internal/config/config.go` | Added `isHTTPS()` check |
 
+| File                        | Change                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `internal/api/responses.go` | `SetAuthCookie`/`ClearAuthCookie` — dynamic `Secure` + `SameSite: None` when HTTPS |
+| `internal/config/config.go` | Added `isHTTPS()` check                                                            |
 
 ## 25. Session 14 (July 5) — Problem Field Split, Monaco, CSP
 
 ### Problem Field Split
-| File | Change |
-|------|--------|
-| `migrations/023_split_problem_fields.sql` | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
-| `internal/store/types.go` | `Problem.Constraints`, `Problem.LearningObjective` |
-| `internal/store/problems.go` | All 5 SELECT queries include new fields |
-| `internal/api/responses.go` | API response includes `constraints`/`learningObjective` |
-| `frontend/lib/types.ts` | `constraints?`, `learningObjective?` |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section |
-| Seed files 1–4 (180 problems) | `statement` cleaned, structured fields populated |
+
+| File                                                      | Change                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| `migrations/023_split_problem_fields.sql`                 | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
+| `internal/store/types.go`                                 | `Problem.Constraints`, `Problem.LearningObjective`           |
+| `internal/store/problems.go`                              | All 5 SELECT queries include new fields                      |
+| `internal/api/responses.go`                               | API response includes `constraints`/`learningObjective`      |
+| `frontend/lib/types.ts`                                   | `constraints?`, `learningObjective?`                         |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section             |
+| Seed files 1–4 (180 problems)                             | `statement` cleaned, structured fields populated             |
 
 ### Monaco Editor Local Workers
-| File | Change |
-|------|--------|
-| `scripts/copy-monaco.mjs` | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
-| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic` |
-| `frontend/app/problems/[slug]/page.tsx` | Server component wraps `DynamicWorkspace` in `Suspense` |
-| `frontend/next.config.ts` | CSP: `worker-src 'self' blob:` for Monaco workers |
+
+| File                                                | Change                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| `scripts/copy-monaco.mjs`                           | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
+| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic`         |
+| `frontend/app/problems/[slug]/page.tsx`             | Server component wraps `DynamicWorkspace` in `Suspense`       |
+| `frontend/next.config.ts`                           | CSP: `worker-src 'self' blob:` for Monaco workers             |
 
 ### UI Polish
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | Card excerpts strip markdown (`#`, `**`, code fences) |
+
+| File                                            | Change                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `frontend/app/(main)/home/page.tsx`             | Card excerpts strip markdown (`#`, `**`, code fences)                           |
 | `frontend/app/problems/[slug]/success/page.tsx` | Confetti: 60 particles/side, 150ms interval, 3.5s duration, fires on data ready |
-| `frontend/lib/toast.tsx` | Default duration 2s (was 4s) |
+| `frontend/lib/toast.tsx`                        | Default duration 2s (was 4s)                                                    |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
-
 
 ## 26. Session 15 (July 5) — Pagination, Back Button, Cache, Performance
 
 ### Pagination
-| File | Change |
-|------|--------|
+
+| File                                | Change                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------- |
 | `frontend/app/(main)/home/page.tsx` | 18 items/page, first/prev/next/last nav, smart ellipsis, resets on filter |
 
 ### Back Button Module Context
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | Reads `?module=` from URL on mount |
-| `frontend/app/(main)/problems/[slug]/success/page.tsx` | Links use `/home?module=...` |
+
+| File                                                      | Change                              |
+| --------------------------------------------------------- | ----------------------------------- |
+| `frontend/app/(main)/home/page.tsx`                       | Reads `?module=` from URL on mount  |
+| `frontend/app/(main)/problems/[slug]/success/page.tsx`    | Links use `/home?module=...`        |
 | `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Navigation preserves module context |
 
 ### SessionStorage Caching
-| File | Change |
-|------|--------|
-| `frontend/lib/cache.ts` | **NEW** — generic sessionStorage cache with 30s TTL |
-| `frontend/lib/api.ts` | `fetchApi` cached GET responses; `user-updated` handler debounced 300ms |
-| `frontend/app/(main)/home/page.tsx` | Stores all problems in `koder_all_problems` |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}` |
+
+| File                                                      | Change                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `frontend/lib/cache.ts`                                   | **NEW** — generic sessionStorage cache with 30s TTL                     |
+| `frontend/lib/api.ts`                                     | `fetchApi` cached GET responses; `user-updated` handler debounced 300ms |
+| `frontend/app/(main)/home/page.tsx`                       | Stores all problems in `koder_all_problems`                             |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}`                                |
 
 ### Performance
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | `filteredProblems` wrapped in `useMemo`; `handleSelectModule` in `useCallback` |
-| `frontend/components/dashboard/ModuleCards.tsx` | Wrapped in `React.memo` |
-| `frontend/app/layout.tsx` | `<link rel="preconnect">` for API domain |
+
+| File                                            | Change                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `frontend/app/(main)/home/page.tsx`             | `filteredProblems` wrapped in `useMemo`; `handleSelectModule` in `useCallback` |
+| `frontend/components/dashboard/ModuleCards.tsx` | Wrapped in `React.memo`                                                        |
+| `frontend/app/layout.tsx`                       | `<link rel="preconnect">` for API domain                                       |
 
 ### Build Verification
-- ✅ `go build ./cmd/server/`
 
+- ✅ `go build ./cmd/server/`
 
 ## 27. Session 16 (July 6) — Error Handling Overhaul
 
 ### Friendly Errors
-| File | Change |
-|------|--------|
+
+| File                       | Change                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
 | `internal/store/errors.go` | **NEW** — `FriendlyError` type with `DUPLICATE_RESOURCE`/`NOT_FOUND`/`VALIDATION_ERROR` codes |
-| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages |
-| `internal/store/users.go` | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations |
-| `internal/api/auth.go` | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409 |
+| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages                   |
+| `internal/store/users.go`  | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations          |
+| `internal/api/auth.go`     | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409                                |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/api/... ./internal/store/...`
-
 
 ## 28. Session 17 (July 6) — username_set Column + Registration Race Condition Fix
 
 ### Migration & Store
-| File | Change |
-|------|--------|
-| `migrations/024_add_username_set.sql` | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false` |
-| `internal/store/types.go` | `User.UsernameSet bool`, `NewUser.UsernameSet bool` |
-| `internal/store/store.go` | `UpdateUserUsernameSet()` added to Store interface |
-| `internal/store/users.go` | All 7 SELECT queries include `username_set`; `UpdateUserUsernameSet()` implementation; `CreateUser`/`CreateUserFromGoogle` return `UsernameSet` value |
+
+| File                                  | Change                                                                                                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `migrations/024_add_username_set.sql` | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false`                                                                  |
+| `internal/store/types.go`             | `User.UsernameSet bool`, `NewUser.UsernameSet bool`                                                                                                   |
+| `internal/store/store.go`             | `UpdateUserUsernameSet()` added to Store interface                                                                                                    |
+| `internal/store/users.go`             | All 7 SELECT queries include `username_set`; `UpdateUserUsernameSet()` implementation; `CreateUser`/`CreateUserFromGoogle` return `UsernameSet` value |
 
 ### Auth Flow
-| File | Change |
-|------|--------|
-| `internal/api/auth.go` | Login/Google auth uses `!user.UsernameSet` instead of `strings.HasPrefix` heuristic; `CompleteOnboarding` sets `username_set = true` |
-| `internal/api/me.go` | `PUT /me/username` — validates username, checks uniqueness, sets `username_set = true`; returns 403 if already set |
-| `internal/api/router.go` | `PUT /me/username` route added |
+
+| File                     | Change                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `internal/api/auth.go`   | Login/Google auth uses `!user.UsernameSet` instead of `strings.HasPrefix` heuristic; `CompleteOnboarding` sets `username_set = true` |
+| `internal/api/me.go`     | `PUT /me/username` — validates username, checks uniqueness, sets `username_set = true`; returns 403 if already set                   |
+| `internal/api/router.go` | `PUT /me/username` route added                                                                                                       |
 
 ### Frontend
-| File | Change |
-|------|--------|
-| `frontend/lib/types.ts` | `usernameSet?: boolean` added to `User` type |
-| `frontend/lib/api.ts` | `fetchUser` maps `username_set`; `updateUsername()` function |
+
+| File                                    | Change                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `frontend/lib/types.ts`                 | `usernameSet?: boolean` added to `User` type                             |
+| `frontend/lib/api.ts`                   | `fetchUser` maps `username_set`; `updateUsername()` function             |
 | `frontend/app/(main)/settings/page.tsx` | Editable username field when `usernameSet === false`; read-only when set |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
 
@@ -831,52 +899,59 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 29. Session 18 (July 6) — 404 Page, GOT/WANT Fix, Solved Guard, TerminalDiff, Error Standardization
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                |
+| --------- | ------------------------------------------------------------------------------------------ |
 | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
-| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
+| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization                  |
 
 ### Professional 404 Page
-| File | Change |
-|------|--------|
+
+| File                         | Change                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `frontend/app/not-found.tsx` | **NEW** — Terminal icon, gradient "404" heading, HelpCircle subtitle, Home + Go Back buttons, shadcn Card |
 
 ### GOT/WANT Parser Fix (Broken Since Inception)
+
 **Problem:** `t.Errorf` prefixes each output line with `\tfile:line: `. The anchor `^GOT:` never matched these prefixed lines. `gotMap`/`wantMap` were always empty.
 
-| File | Change |
-|------|--------|
-| `internal/executor/executor.go` | `^GOT:` → `(?:\s|^)GOT:\s+` in both `Execute` and `ExecuteVisibleOnly`; same for `WANT:` and `=== FAIL: Case` |
+| File                            | Change                                                        |
+| ------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `internal/executor/executor.go` | `^GOT:` → `(?:\s                                              | ^)GOT:\s+`in both`Execute`and`ExecuteVisibleOnly`; same for `WANT:`and`=== FAIL: Case` |
 | `internal/executor/executor.go` | Multi-line got/want: empty lines preserved instead of skipped |
-| `internal/executor/executor.go` | `friendly_message` for compiler errors and timeouts added |
+| `internal/executor/executor.go` | `friendly_message` for compiler errors and timeouts added     |
 
 ### Solved Status Guard
-| File | Change |
-|------|--------|
-| `internal/store/store.go` | `GetProblemBySlug(ctx, slug, userID)` signature updated |
-| `internal/store/problems.go` | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)` |
-| `internal/api/submissions.go` | Returns `409 ALREADY_SOLVED` when solved |
-| `internal/api/test.go` | Passes userID but no solved guard |
-| `internal/api/community.go` | Passes `uuid.Nil` to updated signature |
+
+| File                                      | Change                                                                            |
+| ----------------------------------------- | --------------------------------------------------------------------------------- |
+| `internal/store/store.go`                 | `GetProblemBySlug(ctx, slug, userID)` signature updated                           |
+| `internal/store/problems.go`              | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)`          |
+| `internal/api/submissions.go`             | Returns `409 ALREADY_SOLVED` when solved                                          |
+| `internal/api/test.go`                    | Passes userID but no solved guard                                                 |
+| `internal/api/community.go`               | Passes `uuid.Nil` to updated signature                                            |
 | `frontend/.../ProblemWorkspaceClient.tsx` | Submit `disabled` when solved, `CheckCircle2` + "Solved" badge; Test stays active |
 
 ### TerminalDiff Component
-| File | Change |
-|------|--------|
+
+| File                                      | Change                                                                                   |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `frontend/components/TestResultPanel.tsx` | LCS `computeLineDiff()` + `TerminalDiff`: git-style `-/+` unified diff with line numbers |
-| | Single-line: side-by-side `Got → Expected` grid |
-| | Multi-line: unified diff with dual line numbering |
-| | Removed `computeWordDiff()`, `ArrowRight` SVG, `AlertTriangle` import |
+|                                           | Single-line: side-by-side `Got → Expected` grid                                          |
+|                                           | Multi-line: unified diff with dual line numbering                                        |
+|                                           | Removed `computeWordDiff()`, `ArrowRight` SVG, `AlertTriangle` import                    |
 
 ### Error Message Standardization
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/contribute/page.tsx` | P0: `setError(err.message)` → `setError(err.message \|\| "Failed to submit contribution")` |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | P1: `toast.error(res.error.message)` → `toast.error(res.error?.message \|\| "...")` |
-| All 6 auth/settings pages | `'Network error'` → `'Unable to connect. Please try again.'` |
-| `internal/api/pin_reset.go` | `"Try again later"` → `"Please wait 15 minutes"` |
+
+| File                                                      | Change                                                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `frontend/app/(main)/contribute/page.tsx`                 | P0: `setError(err.message)` → `setError(err.message \|\| "Failed to submit contribution")` |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | P1: `toast.error(res.error.message)` → `toast.error(res.error?.message \|\| "...")`        |
+| All 6 auth/settings pages                                 | `'Network error'` → `'Unable to connect. Please try again.'`                               |
+| `internal/api/pin_reset.go`                               | `"Try again later"` → `"Please wait 15 minutes"`                                           |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
 - ✅ `git push` (commit `59f805f`)
@@ -886,29 +961,33 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 30. Session 19 (July 5) — PIN-based Password Management (Professional Flow)
 
 ### Backend
-| File | Change |
-|------|--------|
+
+| File                              | Change                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
 | `internal/api/change_password.go` | **NEW** — `POST /auth/change-password`: verifies 6-digit PIN via bcrypt + updates password |
-| `internal/api/pin_reset.go` | PIN-based forgot-password flow with 5-attempt/15-min rate limiter |
-| `internal/api/responses.go` | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS` |
-| `internal/api/router.go` | Added change-password route; reset-password-pin route |
-| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users |
+| `internal/api/pin_reset.go`       | PIN-based forgot-password flow with 5-attempt/15-min rate limiter                          |
+| `internal/api/responses.go`       | `isHTTPS()` helper — checks `X-Forwarded-Proto` (Render proxy) + `r.TLS`                   |
+| `internal/api/router.go`          | Added change-password route; reset-password-pin route                                      |
+| `migrations/022_add_pin_hash.sql` | **NEW** — Adds `pin_hash TEXT` column to users                                             |
 
 ### Frontend
-| File | Change |
-|------|--------|
-| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop |
-| `components/ui/input-otp.tsx` | **NEW** — shadcn InputOTP component |
-| `app/(main)/settings/page.tsx` | 3-step change-password dialog (PIN → new password → success checkmark) |
-| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon |
+
+| File                                  | Change                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `components/base/input/pin-input.tsx` | **NEW** — shadcn/input-otp based PinInput with `mask` prop             |
+| `components/ui/input-otp.tsx`         | **NEW** — shadcn InputOTP component                                    |
+| `app/(main)/settings/page.tsx`        | 3-step change-password dialog (PIN → new password → success checkmark) |
+| `app/(auth)/forgot-password/page.tsx` | Recovery PIN tab default; email reset tab disabled with `Ban` icon     |
 
 ### Auth Cookie Fix
-| File | Change |
-|------|--------|
+
+| File                        | Change                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------- |
 | `internal/api/responses.go` | `SetAuthCookie`/`ClearAuthCookie` — dynamic `Secure` + `SameSite: None` when HTTPS |
-| `internal/config/config.go` | Added `isHTTPS()` check |
+| `internal/config/config.go` | Added `isHTTPS()` check                                                            |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
 
@@ -917,32 +996,36 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 31. Session 20 (July 5) — Problem Field Split, Monaco Local, CSP, Confetti, Pagination
 
 ### Problem Field Split
-| File | Change |
-|------|--------|
-| `migrations/023_split_problem_fields.sql` | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
-| `internal/store/types.go` | `Problem.Constraints`, `Problem.LearningObjective` |
-| `internal/store/problems.go` | All 5 SELECT queries include new fields |
-| `internal/api/responses.go` | API response includes `constraints`/`learningObjective` |
-| `frontend/lib/types.ts` | `constraints?`, `learningObjective?` |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section |
-| Seed files 1–4 (180 problems) | `statement` cleaned, structured fields populated |
+
+| File                                                      | Change                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| `migrations/023_split_problem_fields.sql`                 | **NEW** — Adds `constraints TEXT`, `learning_objective TEXT` |
+| `internal/store/types.go`                                 | `Problem.Constraints`, `Problem.LearningObjective`           |
+| `internal/store/problems.go`                              | All 5 SELECT queries include new fields                      |
+| `internal/api/responses.go`                               | API response includes `constraints`/`learningObjective`      |
+| `frontend/lib/types.ts`                                   | `constraints?`, `learningObjective?`                         |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Learning Objective callout + Constraints section             |
+| Seed files 1–4 (180 problems)                             | `statement` cleaned, structured fields populated             |
 
 ### Monaco Editor Local Workers
-| File | Change |
-|------|--------|
-| `scripts/copy-monaco.mjs` | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
-| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic` |
-| `frontend/app/problems/[slug]/page.tsx` | Server component wraps `DynamicWorkspace` in `Suspense` |
-| `frontend/next.config.ts` | CSP: `worker-src 'self' blob:` for Monaco workers |
+
+| File                                                | Change                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| `scripts/copy-monaco.mjs`                           | **NEW** — copies Monaco web workers to `public/vs/` pre-build |
+| `frontend/app/problems/[slug]/DynamicWorkspace.tsx` | **NEW** — Client Component wrapper for `next/dynamic`         |
+| `frontend/app/problems/[slug]/page.tsx`             | Server component wraps `DynamicWorkspace` in `Suspense`       |
+| `frontend/next.config.ts`                           | CSP: `worker-src 'self' blob:` for Monaco workers             |
 
 ### UI Polish
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | Card excerpts strip markdown (`#`, `**`, code fences) |
+
+| File                                            | Change                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `frontend/app/(main)/home/page.tsx`             | Card excerpts strip markdown (`#`, `**`, code fences)                           |
 | `frontend/app/problems/[slug]/success/page.tsx` | Confetti: 60 particles/side, 150ms interval, 3.5s duration, fires on data ready |
-| `frontend/lib/toast.tsx` | Default duration 2s (was 4s) |
+| `frontend/lib/toast.tsx`                        | Default duration 2s (was 4s)                                                    |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
 
@@ -951,33 +1034,38 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 32. Session 21 (July 5) — Pagination, Back Button, Cache, Performance
 
 ### Pagination
-| File | Change |
-|------|--------|
+
+| File                                | Change                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------- |
 | `frontend/app/(main)/home/page.tsx` | 18 items/page, first/prev/next/last nav, smart ellipsis, resets on filter |
 
 ### Back Button Module Context
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | Reads `?module=` from URL on mount |
-| `frontend/app/(main)/problems/[slug]/success/page.tsx` | Links use `/home?module=...` |
+
+| File                                                      | Change                              |
+| --------------------------------------------------------- | ----------------------------------- |
+| `frontend/app/(main)/home/page.tsx`                       | Reads `?module=` from URL on mount  |
+| `frontend/app/(main)/problems/[slug]/success/page.tsx`    | Links use `/home?module=...`        |
 | `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Navigation preserves module context |
 
 ### SessionStorage Caching
-| File | Change |
-|------|--------|
-| `frontend/lib/cache.ts` | **NEW** — generic sessionStorage cache with 30s TTL |
-| `frontend/lib/api.ts` | `fetchApi` caches GET responses; `user-updated` handler debounced 300ms |
-| `frontend/app/(main)/home/page.tsx` | Stores all problems in `koder_all_problems` |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}` |
+
+| File                                                      | Change                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `frontend/lib/cache.ts`                                   | **NEW** — generic sessionStorage cache with 30s TTL                     |
+| `frontend/lib/api.ts`                                     | `fetchApi` caches GET responses; `user-updated` handler debounced 300ms |
+| `frontend/app/(main)/home/page.tsx`                       | Stores all problems in `koder_all_problems`                             |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | Stores problem in `koder_problem_{slug}`                                |
 
 ### Performance
-| File | Change |
-|------|--------|
-| `frontend/app/(main)/home/page.tsx` | `filteredProblems` in `useMemo`; `handleSelectModule` in `useCallback` |
-| `frontend/components/dashboard/ModuleCards.tsx` | `React.memo` wrapper |
-| `frontend/app/layout.tsx` | `<link rel="preconnect">` for API domain |
+
+| File                                            | Change                                                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `frontend/app/(main)/home/page.tsx`             | `filteredProblems` in `useMemo`; `handleSelectModule` in `useCallback` |
+| `frontend/components/dashboard/ModuleCards.tsx` | `React.memo` wrapper                                                   |
+| `frontend/app/layout.tsx`                       | `<link rel="preconnect">` for API domain                               |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 
 ---
@@ -985,26 +1073,29 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 33. Session 22 (July 6) — Error Handling Overhaul + Registration Race Condition Fix
 
 ### Friendly Errors
-| File | Change |
-|------|--------|
+
+| File                       | Change                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
 | `internal/store/errors.go` | **NEW** — `FriendlyError` type with `DUPLICATE_RESOURCE`/`NOT_FOUND`/`VALIDATION_ERROR` codes |
-| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages |
-| `internal/store/users.go` | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations |
-| `internal/api/auth.go` | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409 |
+| `internal/store/errors.go` | `IsUniqueViolation()` — maps PG constraint names to human-readable messages                   |
+| `internal/store/users.go`  | `CreateUser`, `CreateUserFromGoogle` return `NewDuplicateError` on unique violations          |
+| `internal/api/auth.go`     | Register handler propagates `DUPLICATE_RESOURCE` with HTTP 409                                |
 
 ### username_set Column
-| File | Change |
-|------|--------|
-| `migrations/024_add_username_set.sql` | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false` |
-| `internal/store/types.go` | `User.UsernameSet`, `NewUser.UsernameSet` |
-| `internal/store/store.go` | `UpdateUserUsernameSet()` added to Store interface |
-| `internal/store/users.go` | All 7 SELECT queries include `username_set` |
-| `internal/api/auth.go` | Login uses `!user.UsernameSet` instead of `strings.HasPrefix` |
-| `internal/api/me.go` | `PUT /me/username` — sets username_set = true; 403 if already set |
-| `frontend/lib/types.ts` | `usernameSet?: boolean` |
-| `frontend/app/(main)/settings/page.tsx` | Editable username when `usernameSet === false` |
+
+| File                                    | Change                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `migrations/024_add_username_set.sql`   | **NEW** — `ALTER TABLE users ADD COLUMN username_set BOOLEAN NOT NULL DEFAULT false` |
+| `internal/store/types.go`               | `User.UsernameSet`, `NewUser.UsernameSet`                                            |
+| `internal/store/store.go`               | `UpdateUserUsernameSet()` added to Store interface                                   |
+| `internal/store/users.go`               | All 7 SELECT queries include `username_set`                                          |
+| `internal/api/auth.go`                  | Login uses `!user.UsernameSet` instead of `strings.HasPrefix`                        |
+| `internal/api/me.go`                    | `PUT /me/username` — sets username_set = true; 403 if already set                    |
+| `frontend/lib/types.ts`                 | `usernameSet?: boolean`                                                              |
+| `frontend/app/(main)/settings/page.tsx` | Editable username when `usernameSet === false`                                       |
 
 ### Build Verification
+
 - ✅ `go build ./cmd/server/`
 - ✅ `go vet ./internal/...`
 
@@ -1013,41 +1104,48 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 34. Session 23 (July 6) — 404 Page, GOT/WANT Fix, Solved Guard, TerminalDiff, Error Standardization
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                |
+| --------- | ------------------------------------------------------------------------------------------ |
 | `226426e` | Professional 404 page: layered visual hierarchy, responsive layout, Home + Go Back actions |
-| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization |
+| `59f805f` | Professional got/want TerminalDiff + solved guard + error standardization                  |
 
 ### Professional 404 Page
-| File | Change |
-|------|--------|
+
+| File                         | Change                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `frontend/app/not-found.tsx` | **NEW** — Terminal icon, gradient "404" heading, HelpCircle subtitle, Home + Go Back buttons, shadcn Card |
 
 ### GOT/WANT Parser Fix (Broken Since Inception)
-| File | Change |
-|------|--------|
+
+| File                            | Change                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `internal/executor/executor.go` | `^GOT:` → `(?:\s\|^)GOT:\s+`; same for `WANT:` and `=== FAIL: Case`; multi-line accumulation fixed |
 
 ### Solved Status Guard
-| File | Change |
-|------|--------|
-| `internal/store/store.go` | `GetProblemBySlug(ctx, slug, userID)` signature updated |
-| `internal/store/problems.go` | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)` |
-| `internal/api/submissions.go` | Returns `409 ALREADY_SOLVED` when solved |
-| `frontend/.../ProblemWorkspaceClient.tsx` | Submit `disabled` when solved, `CheckCircle2` + "Solved" badge |
+
+| File                                      | Change                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `internal/store/store.go`                 | `GetProblemBySlug(ctx, slug, userID)` signature updated                  |
+| `internal/store/problems.go`              | SQL: `LEFT JOIN progress ... user_id = $2`, `COALESCE(pr.solved, false)` |
+| `internal/api/submissions.go`             | Returns `409 ALREADY_SOLVED` when solved                                 |
+| `frontend/.../ProblemWorkspaceClient.tsx` | Submit `disabled` when solved, `CheckCircle2` + "Solved" badge           |
 
 ### TerminalDiff Component
-| File | Change |
-|------|--------|
+
+| File                                      | Change                                                                                   |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `frontend/components/TestResultPanel.tsx` | LCS `computeLineDiff()` + `TerminalDiff`: git-style `-/+` unified diff with line numbers |
 
 ### Error Message Standardization
-| File | Change |
-|------|--------|
-| All auth pages | `'Network error'` → `'Unable to connect. Please try again.'` |
-| `internal/api/pin_reset.go` | `"Try again later"` → `"Please wait 15 minutes"` |
+
+| File                        | Change                                                       |
+| --------------------------- | ------------------------------------------------------------ |
+| All auth pages              | `'Network error'` → `'Unable to connect. Please try again.'` |
+| `internal/api/pin_reset.go` | `"Try again later"` → `"Please wait 15 minutes"`             |
 
 ### Build Verification
+
 - ✅ `go vet ./internal/...`
 - ✅ `npx tsc --noEmit`
 - ✅ `git push` (commit `59f805f`)
@@ -1057,53 +1155,60 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 35. Session 24 (July 6, cont.) — Admin Problem Editor, Report Issues, Broadcast Toggle, WebSocket Live Updates
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                 |
+| --------- | ----------------------------------------------------------- |
 | `bcf84ea` | Professional WebSocket live updates + optimized publish-all |
 
 ### Admin Problem Editor
-| File | Change |
-|------|--------|
-| `internal/api/admin.go` | `UpdateProblem` handler — partial merge via pointer-optional fields; publishes `problem.updated` event |
-| `internal/store/store.go` | Added `UpdateProblem(ctx, *Problem) (*Problem, error)` to Store interface |
-| `internal/store/problems.go` | `UpdateProblem` implementation + `PublishAllDrafts` (single UPDATE, no N round-trips) |
-| `internal/store/problems.go` | `GetProblemByID` implementation |
+
+| File                                             | Change                                                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `internal/api/admin.go`                          | `UpdateProblem` handler — partial merge via pointer-optional fields; publishes `problem.updated` event  |
+| `internal/store/store.go`                        | Added `UpdateProblem(ctx, *Problem) (*Problem, error)` to Store interface                               |
+| `internal/store/problems.go`                     | `UpdateProblem` implementation + `PublishAllDrafts` (single UPDATE, no N round-trips)                   |
+| `internal/store/problems.go`                     | `GetProblemByID` implementation                                                                         |
 | `frontend/app/(main)/admin/ProblemEditPanel.tsx` | **NEW** — full dialog (Basic Info, Description, Func Signature, Hints, Visibility, live preview toggle) |
-| `frontend/app/(main)/admin/page.tsx` | Pencil edit button per problem; WebSocket subscriptions replace 15s polling |
+| `frontend/app/(main)/admin/page.tsx`             | Pencil edit button per problem; WebSocket subscriptions replace 15s polling                             |
 
 ### Problem Reporting System
-| File | Change |
-|------|--------|
-| `migrations/025_report_issue_fields.sql` | **NEW** — adds `problem_slug`, `code_snippet`, `error_message` to feedback table |
-| `internal/store/feedback.go` | `GetProblemReports` — filters bug-type feedback by problem slug |
-| `internal/api/feedback.go` | `ListProblemReports` handler + `feedback.submitted` event publishing |
-| `frontend/app/(main)/admin/ProblemReports.tsx` | **NEW** — grouped by problem slug, status filters, expandable rows, inline code/error |
-| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | "Report Bug" button always visible in toolbar + dialog with pre-filled context |
+
+| File                                                      | Change                                                                                |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `migrations/025_report_issue_fields.sql`                  | **NEW** — adds `problem_slug`, `code_snippet`, `error_message` to feedback table      |
+| `internal/store/feedback.go`                              | `GetProblemReports` — filters bug-type feedback by problem slug                       |
+| `internal/api/feedback.go`                                | `ListProblemReports` handler + `feedback.submitted` event publishing                  |
+| `frontend/app/(main)/admin/ProblemReports.tsx`            | **NEW** — grouped by problem slug, status filters, expandable rows, inline code/error |
+| `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` | "Report Bug" button always visible in toolbar + dialog with pre-filled context        |
 
 ### Broadcast Toggle System
-| File | Change |
-|------|--------|
-| `internal/store/broadcasts.go` | `ActivateBroadcast` store method |
-| `internal/api/broadcasts.go` | `Activate` handler + `PATCH /admin/broadcasts/{id}/activate` route |
+
+| File                                           | Change                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `internal/store/broadcasts.go`                 | `ActivateBroadcast` store method                                                    |
+| `internal/api/broadcasts.go`                   | `Activate` handler + `PATCH /admin/broadcasts/{id}/activate` route                  |
 | `frontend/app/(main)/admin/BroadcastPanel.tsx` | Redesigned with per-broadcast toggle switch, WebSocket subscriptions, optimistic UI |
 
 ### WebSocket Live Updates
-| File | Change |
-|------|--------|
-| `internal/broker/broker.go` | **NEW** — in-memory pub/sub with Subscribe/Unsubscribe/Publish, non-blocking sends |
-| `internal/api/ws.go` | **NEW** — WebSocket upgrade handler using gorilla/websocket (auth-protected) |
-| `internal/api/router.go` | Registers `GET /ws` + passes broker to AdminHandler, BroadcastsHandler, FeedbackHandler |
-| `cmd/server/main.go` | Creates broker, passes to `NewRouter` |
-| `frontend/lib/event.ts` | **NEW** — typed `useWebSocket` hook with auto-reconnect and exponential backoff |
+
+| File                                 | Change                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `internal/broker/broker.go`          | **NEW** — in-memory pub/sub with Subscribe/Unsubscribe/Publish, non-blocking sends                                 |
+| `internal/api/ws.go`                 | **NEW** — WebSocket upgrade handler using gorilla/websocket (auth-protected)                                       |
+| `internal/api/router.go`             | Registers `GET /ws` + passes broker to AdminHandler, BroadcastsHandler, FeedbackHandler                            |
+| `cmd/server/main.go`                 | Creates broker, passes to `NewRouter`                                                                              |
+| `frontend/lib/event.ts`              | **NEW** — typed `useWebSocket` hook with auto-reconnect and exponential backoff                                    |
 | `frontend/app/(main)/admin/page.tsx` | Uses `useWebSocket` subscriptions; optimistic visibility toggles (update local state immediately, revert on error) |
 
 ### Performance
-| File | Change |
-|------|--------|
-| `internal/store/problems.go` | `PublishAllDrafts` — single `UPDATE SET visible = true WHERE NOT visible` instead of fetch-all + N round trips |
-| `frontend/app/(main)/admin/page.tsx` | Polling reduced from 15s to 60s (WebSocket handles real-time); `loadData` wrapped in `useCallback` |
+
+| File                                 | Change                                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `internal/store/problems.go`         | `PublishAllDrafts` — single `UPDATE SET visible = true WHERE NOT visible` instead of fetch-all + N round trips |
+| `frontend/app/(main)/admin/page.tsx` | Polling reduced from 15s to 60s (WebSocket handles real-time); `loadData` wrapped in `useCallback`             |
 
 ### Build Verification
+
 - ✅ `go build ./...`
 - ✅ `npx tsc --noEmit`
 
@@ -1112,21 +1217,25 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 36. Session 25 (July 6) — Google Auth 502 Fix + RecoveryMiddleware
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                              |
+| --------- | ---------------------------------------------------------------------------------------- |
 | `f2605dc` | Fix Google auth 502: remove nil pem.Encode in jwksKeyToPublicKey, add RecoveryMiddleware |
 
 ### Problem
+
 `POST /auth/google` returned HTTP 502 when Google's JWKS endpoint returned multiple keys. `jwksKeyToPublicKey` called `pem.Encode(nil, ...)` which panics because Go's `pem` package cannot write to a nil writer. The panic crashed the goroutine, causing a 502.
 
 ### Fixes
-| File | Change |
-|------|--------|
-| `internal/auth/oauth.go` | Removed `pem.Encode(nil, ...)` panic; removed unused `crypto/x509` and `encoding/pem` imports; replaced with raw `x509.ParsePKIXPublicKey` |
-| `internal/api/middleware.go` | Added `RecoveryMiddleware` that catches panics and returns JSON 500 with `PANIC` error code |
-| `internal/api/router.go` | Registered `RecoveryMiddleware` as first middleware |
+
+| File                         | Change                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `internal/auth/oauth.go`     | Removed `pem.Encode(nil, ...)` panic; removed unused `crypto/x509` and `encoding/pem` imports; replaced with raw `x509.ParsePKIXPublicKey` |
+| `internal/api/middleware.go` | Added `RecoveryMiddleware` that catches panics and returns JSON 500 with `PANIC` error code                                                |
+| `internal/api/router.go`     | Registered `RecoveryMiddleware` as first middleware                                                                                        |
 
 ### Build Verification
+
 - ✅ `go build ./...`
 - ✅ `npx tsc --noEmit`
 
@@ -1135,22 +1244,26 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 37. Session 26 (July 6) — Module Card Images: Key Alignment, Local Image, All Modules
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
-| `c093540` | Replace arrays-strings module image with professional version |
-| `0ecd5ef` | Use local image for all module cards |
+| `c093540` | Replace arrays-strings module image with professional version                                                                  |
+| `0ecd5ef` | Use local image for all module cards                                                                                           |
 
 ### Root Cause
+
 `MODULE_META` keys were display names (`"Arrays & Slices"`) but the API returns lowercase hypenated slugs (`"arrays-strings"`). Every module fell through to the Unsplash fallback — module images never showed for any module.
 
 ### Fixes
-| File | Change |
-|------|--------|
+
+| File                                            | Change                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/components/dashboard/ModuleCards.tsx` | Changed all `MODULE_META` keys from display names to lowercase-hyphenated slugs; added `MODULE_DISPLAY_NAMES` mapping for card titles; replaced all Unsplash URLs with `MODULE_IMAGE` constant pointing to `/modules/arrays-strings.png`; updated fallback to use same local image |
-| `frontend/public/modules/arrays-strings.png` | Replaced with professional ChatGPT-generated image |
+| `frontend/public/modules/arrays-strings.png`    | Replaced with professional ChatGPT-generated image                                                                                                                                                                                                                                 |
 
 ### Build Verification
+
 - ✅ Pushed to `update` branch (`0ecd5ef`)
 
 ---
@@ -1158,47 +1271,54 @@ GIS `initialize()` throws `TypeError: Required member is undefined` on `navigato
 ## 38. Session 27 (July 11) — Google Auto-Registration, Navigation Redux, Refresh Token Fix
 
 ### Goal
+
 Enable Google auto-registration for new users (no 404) while keeping email/password auth intact. Fix browser back button navigation to behave as a proper stack (not skipping to home).
 
 ### Changes
 
 #### Google Auto-Registration
-| File | Change |
-|------|--------|
-| `internal/api/auth.go:257-278` | Auto-create branch now uses `h.issueTokens(...)` instead of raw `auth.SignToken` — fixes **critical bug** where new Google users got no refresh token and were logged out after 15 min |
-| `internal/store/users.go:81-142` | `CreateUserFromGoogle()` — creates account with temp username, no PIN, `username_set=false` |
-| `internal/store/store.go:44` | Added `CreateUserFromGoogle` to Store interface |
-| `internal/store/types.go:82-93` | `NewUser` struct with `GoogleID`, `GoogleAvatarURL` fields |
+
+| File                             | Change                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/api/auth.go:257-278`   | Auto-create branch now uses `h.issueTokens(...)` instead of raw `auth.SignToken` — fixes **critical bug** where new Google users got no refresh token and were logged out after 15 min |
+| `internal/store/users.go:81-142` | `CreateUserFromGoogle()` — creates account with temp username, no PIN, `username_set=false`                                                                                            |
+| `internal/store/store.go:44`     | Added `CreateUserFromGoogle` to Store interface                                                                                                                                        |
+| `internal/store/types.go:82-93`  | `NewUser` struct with `GoogleID`, `GoogleAvatarURL` fields                                                                                                                             |
 
 #### Navigation Fixes
-| File | Change |
-|------|--------|
-| `frontend/app/(auth)/login/page.tsx` | `router.push('/')` → `router.push('/home')` (2 places) |
-| `frontend/app/(auth)/register/page.tsx` | `router.push('/')` → `router.push('/home')` (2 places) |
-| `frontend/app/(main)/admin/page.tsx` | `router.push('/')` → `router.push('/home')` |
-| `frontend/app/oauth/callback/page.tsx` | `router.push('/')` → `router.push('/home')` |
-| `frontend/components/layout/TopNav.tsx:68` | Problems link href changed from `/` → `/problems` |
-| `frontend/app/(main)/contribute/page.tsx` | Removed `router.replace`+`setTimeout` chain, direct `router.push("/profile")` |
+
+| File                                       | Change                                                                        |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `frontend/app/(auth)/login/page.tsx`       | `router.push('/')` → `router.push('/home')` (2 places)                        |
+| `frontend/app/(auth)/register/page.tsx`    | `router.push('/')` → `router.push('/home')` (2 places)                        |
+| `frontend/app/(main)/admin/page.tsx`       | `router.push('/')` → `router.push('/home')`                                   |
+| `frontend/app/oauth/callback/page.tsx`     | `router.push('/')` → `router.push('/home')`                                   |
+| `frontend/components/layout/TopNav.tsx:68` | Problems link href changed from `/` → `/problems`                             |
+| `frontend/app/(main)/contribute/page.tsx`  | Removed `router.replace`+`setTimeout` chain, direct `router.push("/profile")` |
 
 #### New `/problems` Listing Page
-| File | Change |
-|------|--------|
+
+| File                                    | Change                                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/app/(main)/problems/page.tsx` | **NEW** — 282-line client component with search, language filter tabs (All/Go/Python), pagination (18/page), header image |
 
 #### Workspace Layout
-| File | Change |
-|------|--------|
+
+| File                               | Change                                                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/app/problems/layout.tsx` | **NEW** — minimal layout with `UserProvider` + `TopNav` + `FeedbackButton` (no max-width container for full-screen editor) |
 
 #### Bug Fixes (Audit-Driven)
-| Fix | File |
-|-----|------|
-| Settings logout redirect `/auth/login` (404) → `/login` | `settings/page.tsx:226,234` |
+
+| Fix                                                                 | File                                |
+| ------------------------------------------------------------------- | ----------------------------------- |
+| Settings logout redirect `/auth/login` (404) → `/login`             | `settings/page.tsx:226,234`         |
 | Success page hardcoded `language: "go"` → dynamic from localStorage | `success/page.tsx:247-248, 335-336` |
-| Removed unused `ChevronRight` import | `success/page.tsx:20` |
-| Removed unused `getDifficultyLabel` import | `problems/page.tsx:17` |
+| Removed unused `ChevronRight` import                                | `success/page.tsx:20`               |
+| Removed unused `getDifficultyLabel` import                          | `problems/page.tsx:17`              |
 
 ### Verification
+
 - ✅ `go vet ./internal/...` — clean
 - ✅ `go test ./internal/...` — all 124 pass, 0 failures
 - ✅ `go build ./cmd/server/...` — clean
@@ -1210,22 +1330,26 @@ Enable Google auto-registration for new users (no 404) while keeping email/passw
 ## Known Issues & Next Steps
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `5f73879` | Fix module card image loading: align MODULE_META keys with API slugs, add display name mapping, use local arrays-strings image |
-| `c093540` | Replace arrays-strings module image with professional version |
-| `0ecd5ef` | Use local image for all module cards |
+| `c093540` | Replace arrays-strings module image with professional version                                                                  |
+| `0ecd5ef` | Use local image for all module cards                                                                                           |
 
 ### Root Cause
+
 `MODULE_META` keys were display names (`"Arrays & Slices"`) but the API returns lowercase hypenated slugs (`"arrays-strings"`). Every module fell through to the Unsplash fallback — module images never showed for any module.
 
 ### Fixes
-| File | Change |
-|------|--------|
+
+| File                                            | Change                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/components/dashboard/ModuleCards.tsx` | Changed all `MODULE_META` keys from display names to lowercase-hyphenated slugs; added `MODULE_DISPLAY_NAMES` mapping for card titles; replaced all Unsplash URLs with `MODULE_IMAGE` constant pointing to `/modules/arrays-strings.png`; updated fallback to use same local image |
-| `frontend/public/modules/arrays-strings.png` | Replaced with professional ChatGPT-generated image |
+| `frontend/public/modules/arrays-strings.png`    | Replaced with professional ChatGPT-generated image                                                                                                                                                                                                                                 |
 
 ### Build Verification
+
 - ✅ Pushed to `update` branch (`0ecd5ef`)
 
 ---
@@ -1247,9 +1371,11 @@ Enable Google auto-registration for new users (no 404) while keeping email/passw
 ## Session 16 — 2026-07-09
 
 ### Goal
+
 Fix Python compiler error formatting so tracebacks and syntax errors show proper line numbers.
 
 ### Tasks Completed
+
 1. Fixed `isPythonErrorLine` in `sandbox/main.go` to use a colon-based heuristic for Python exceptions.
 2. Fixed a variable shadowing bug in `internal/executor/executor.go` where `sandboxError` was scoped locally inside an `if` block, preventing propagation.
 3. Verified full test suite passes (124 tests).
@@ -1259,28 +1385,32 @@ Fix Python compiler error formatting so tracebacks and syntax errors show proper
 ## Session 39 — 2026-07-16 — Lesson step-by-step navigation, Pyodide polish, code block dark mode fix
 
 ### Goal
+
 Restructure lesson viewer to show sections as individual step-by-step pages with quiz consolidation, fix Pyodide execution issues, and repair code block dark mode rendering.
 
 ### Commits
-| Hash | Description |
-|------|-------------|
-| `8e6f7d1` | Implement input() via window.prompt in Pyodide |
-| `3434279` | Fix no-output in free-form Python: use standalone print templates |
-| `472554f` | Block input() in Pyodide with friendly error message |
-| `4b4bb4e` | Fix double prompt prefix in Pyodide console output |
+
+| Hash      | Description                                                                        |
+| --------- | ---------------------------------------------------------------------------------- |
+| `8e6f7d1` | Implement input() via window.prompt in Pyodide                                     |
+| `3434279` | Fix no-output in free-form Python: use standalone print templates                  |
+| `472554f` | Block input() in Pyodide with friendly error message                               |
+| `4b4bb4e` | Fix double prompt prefix in Pyodide console output                                 |
 | `d947af5` | Fix Run in Browser disabled state & match editor theme with ProblemWorkspaceClient |
-| `005ccc8` | Rewrite lesson as step-by-step page with quiz consolidation |
-| `12b7a45` | Fix code block dark mode & exercise results spacing |
+| `005ccc8` | Rewrite lesson as step-by-step page with quiz consolidation                        |
+| `12b7a45` | Fix code block dark mode & exercise results spacing                                |
 
 ### Changes
 
 #### Lesson step-by-step navigation
+
 - Sections shown one at a time with prev/next buttons and ArrowLeft/Right/Space keyboard shortcuts
 - All quizzes consolidated into a single Quiz Review step at the end with gradient card
 - Progress bar with step indicator dots and step counter
 - Professional gradient-bordered card component per section type with AnimatePresence transitions
 
 #### Pyodide console & execution fixes
+
 - `input()` now works via `window.prompt()` shim installed at init time (removed blocking check)
 - Removed `!pyodideReady` guard on Run in Browser button so lazy Pyodide can be triggered
 - Fixed `handlePyodideRun` with try/finally `setTesting(true/false)`
@@ -1289,15 +1419,18 @@ Restructure lesson viewer to show sections as individual step-by-step pages with
 - Free-form Python defaults to standalone `print()` templates
 
 #### Editor theme & spacing alignment
+
 - Editor options aligned with ProblemWorkspaceClient (fontFamily, bracketPairColorization, smoothScrolling)
 - Results panel now shows for all languages (not just non-Python)
 - Results padding increased (`px-1`→`px-2`, `mt-4`→`mt-5`)
 
 #### Code block dark mode fix
+
 - Added `darkModeClassNames` + `codeBlockClassName` + `lineHighlightClassNames` to `CodeBlockContent` rendered div (was rendering Shiki HTML without dark mode CSS)
 - Fixed `CodeBlockFallback` with proper dark mode text color, padding, overflow
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 
 ---
@@ -1305,18 +1438,21 @@ Restructure lesson viewer to show sections as individual step-by-step pages with
 ## Session 40 — 2026-07-16 — Course/Module/Lesson page professional redesign & audit fixes
 
 ### Goal
+
 Redesign learn course/module/lesson pages with professional card components matching dashboard styling, then audit and fix all implementation issues.
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                 |
+| --------- | --------------------------------------------------------------------------- |
 | `aa02d24` | Redesign learn course/module/lesson pages with professional card components |
-| `d1172fb` | Professional redesign: learn course/module/lesson pages |
-| `0771f5e` | Fix audit issues: error states, unused imports, edge case guards |
+| `d1172fb` | Professional redesign: learn course/module/lesson pages                     |
+| `0771f5e` | Fix audit issues: error states, unused imports, edge case guards            |
 
 ### Changes — Professional Card Redesign
 
 #### Course Catalog (`courses/page.tsx`)
+
 - Full gradient hero backgrounds per course (blue/cyan/violet/amber/slate)
 - Lucide icons in glass-morphism container with scale+rotate hover
 - Difficulty pill with colored dot indicator (Beginner/Intermediate/Advanced)
@@ -1325,6 +1461,7 @@ Redesign learn course/module/lesson pages with professional card components matc
 - Draft badge for unpublished courses
 
 #### Course Detail (`[courseSlug]/page.tsx`)
+
 - Hero section with course title, description, difficulty pill, metadata row
 - Course progress bar (gradient fill, shown only when started)
 - Module cards with 6px gradient stripe and colored lucide icons
@@ -1333,6 +1470,7 @@ Redesign learn course/module/lesson pages with professional card components matc
 - Hover: icon scale + CTA arrow turns primary
 
 #### Module Detail (`[moduleSlug]/page.tsx`)
+
 - Module header with gradient stripe + stats bar (lessons, XP, completion %)
 - Lesson cards with rich status indicators (emerald checkmark, primary circle-dot, numbered circle)
 - Green highlight background on completed lessons, primary ring on current lesson
@@ -1341,17 +1479,19 @@ Redesign learn course/module/lesson pages with professional card components matc
 - Total XP earned counter in module header
 
 ### Changes — Audit Fixes
-| Issue | File | Fix |
-|---|---|---|
-| Unused `CardContent` import | `courses/page.tsx` | Removed |
-| Unused `Cpu` import | `courses/page.tsx` | Removed |
-| Unused `letters` variable + `getCourseLetters` | `courses/page.tsx` | Removed dead code |
-| API failure → silent empty state | All 3 pages | Added `error` state + retry button with `Try again` |
-| `resolveModuleGradient` buggy first loop | `module/page.tsx` | Removed buggy loop (was matching wrong gradient val) |
-| `lesson_count` undefined breaks `firstIncomplete` | `course/page.tsx` | Now treats undefined as "incomplete if not started" |
-| `isCurrent` missing `!isComplete` guard | `module/page.tsx` | Added for consistency |
+
+| Issue                                             | File               | Fix                                                  |
+| ------------------------------------------------- | ------------------ | ---------------------------------------------------- |
+| Unused `CardContent` import                       | `courses/page.tsx` | Removed                                              |
+| Unused `Cpu` import                               | `courses/page.tsx` | Removed                                              |
+| Unused `letters` variable + `getCourseLetters`    | `courses/page.tsx` | Removed dead code                                    |
+| API failure → silent empty state                  | All 3 pages        | Added `error` state + retry button with `Try again`  |
+| `resolveModuleGradient` buggy first loop          | `module/page.tsx`  | Removed buggy loop (was matching wrong gradient val) |
+| `lesson_count` undefined breaks `firstIncomplete` | `course/page.tsx`  | Now treats undefined as "incomplete if not started"  |
+| `isCurrent` missing `!isComplete` guard           | `module/page.tsx`  | Added for consistency                                |
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - Pushed to `origin/update` (`0771f5e`)
 
@@ -1360,28 +1500,31 @@ Redesign learn course/module/lesson pages with professional card components matc
 ## Session 41 — 2026-07-17 — Layout refactor, multi-file Pyodide, admin CMS polish
 
 ### Goal
+
 Professional layout refinement (compact cards, wider containers), multi-file Pyodide execution support, and admin CMS UX improvements.
 
 ### Commits
-| Hash | Description |
-|------|-------------|
-| `03b8430` | Compact card sizes and horizontal grid layouts |
-| `e5a7f98` | Remove unused gradient prop from LearningCard |
-| `d57f812` | Increase card grid gaps to 5 for breathing room |
-| `2ea6751` | Widen page containers to max-w-screen-2xl |
-| `e923a4f` | Remove max-w-7xl mx-auto from main layout |
-| `62e850f` | Multi-file Pyodide execution for modular Python exercises |
-| `0323856` | JSON metadata editor for non-quiz sections in admin CMS |
-| `ef3c060` | Multi-file support for mini_project sections |
-| `ac1f5bb` | Fix visibility publish for courses |
-| `1e5f575` | Admin CMS UX: always-visible toggles, auto order_number, stale sections fix |
-| `1ac3d21` | 16:9 LearningCard, remove mock ratings from course catalog |
-| `9404250` | Lesson-aware problem success page — back to lesson, continue lesson |
+
+| Hash      | Description                                                                     |
+| --------- | ------------------------------------------------------------------------------- |
+| `03b8430` | Compact card sizes and horizontal grid layouts                                  |
+| `e5a7f98` | Remove unused gradient prop from LearningCard                                   |
+| `d57f812` | Increase card grid gaps to 5 for breathing room                                 |
+| `2ea6751` | Widen page containers to max-w-screen-2xl                                       |
+| `e923a4f` | Remove max-w-7xl mx-auto from main layout                                       |
+| `62e850f` | Multi-file Pyodide execution for modular Python exercises                       |
+| `0323856` | JSON metadata editor for non-quiz sections in admin CMS                         |
+| `ef3c060` | Multi-file support for mini_project sections                                    |
+| `ac1f5bb` | Fix visibility publish for courses                                              |
+| `1e5f575` | Admin CMS UX: always-visible toggles, auto order_number, stale sections fix     |
+| `1ac3d21` | 16:9 LearningCard, remove mock ratings from course catalog                      |
+| `9404250` | Lesson-aware problem success page — back to lesson, continue lesson             |
 | `64792ab` | Remove dead hovered state, shadowing sections var, dynamic import, unused icons |
 
 ### Changes
 
 #### Layout refactor
+
 - All card grids: compact card sizes with `gap-5` for breathing room
 - Containers widened from `max-w-6xl/7xl` → `max-w-screen-2xl` to fill large monitors
 - Removed `max-w-7xl mx-auto` from main layout — was constraining all pages unnecessarily
@@ -1389,24 +1532,28 @@ Professional layout refinement (compact cards, wider containers), multi-file Pyo
 - LoadingCard inner container changed to `aspect-[16/9]` with gradient stripe `h-16 → h-12`
 
 #### Multi-file Pyodide
+
 - `frontend/lib/pyodide.ts`: Added `FS.writeFile`, `FS.readFile`, `FS.mkdir`, `executeMultiFile`, and `MultiFileSpec` interface
 - `MultiFileConfigPanel.tsx`: Visual multi-file editor in admin CMS with file tabs, add/remove, path+content editing, entry point toggle
 - Auto-initializes on section type change to exercises/assessment/mini_project
 - `SectionExercise.tsx` uses `executeMultiFile` for multi-file exercises
 
 #### Admin CMS UX
+
 - Visibility toggles, action buttons, chevron icons: always visible (removed all `opacity-0` hover gates across AdminCards.tsx)
 - Order numbers auto-compute from existing array length in form defaults
 - Stale `sections` state cleared when opening create lesson dialog
 - JSON metadata editor for non-quiz sections
 
 #### Code cleanup
+
 - Removed dead `hovered`/`setHovered` state + handlers from AdminCourseCard, AdminModuleCard, AdminProjectCard
 - Fixed local variable shadowing (`sections` → `quizSections`)
 - `fetchLessonSections` changed to static import
 - Removed mock ratings (RatingBadge, likes/views stats) from course catalog
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1415,17 +1562,20 @@ Professional layout refinement (compact cards, wider containers), multi-file Pyo
 ## Session 42 — 2026-07-17 — Real-time XP/progress WebSocket + 16:9 admin cards
 
 ### Goal
+
 Complete professional real-time progress system (XP, levels, progress via WebSocket) and polish all admin cards to 16:9 aspect ratio.
 
 ### Commits
-| Hash | Description |
-|------|-------------|
-| `7634ab3` | Real-time XP/progress WebSocket system + 16:9 admin cards |
+
+| Hash      | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `7634ab3` | Real-time XP/progress WebSocket system + 16:9 admin cards          |
 | `6bcd102` | Fix page spacing, add progress.updated event, 16:9 all admin cards |
 
 ### Changes
 
 #### Real-time WebSocket events
+
 - Backend Broker (`internal/broker/broker.go`) with global fan-out via `/ws` WebSocket
 - `SubmissionHandler` has broker reference; publishes `user.xp.updated` + `progress.updated` on successful problem solve
 - `CompleteLesson` (in `cms.go`) publishes all three events (`lesson.completed`, `user.xp.updated`, `progress.updated`)
@@ -1435,6 +1585,7 @@ Complete professional real-time progress system (XP, levels, progress via WebSoc
 - `LessonViewerClient` stores `koder_lesson_context` in sessionStorage for lesson-aware problem success page
 
 #### 16:9 admin cards
+
 - `AdminCourseCard`: `aspect-[16/9] min-h-[96px]` on hero section
 - `AdminModuleCard`: Converted from sidebar row to full `aspect-[16/9]` card
 - `AdminLessonCard`: `aspect-[16/9]` with icon, title, description, metadata
@@ -1442,10 +1593,12 @@ Complete professional real-time progress system (XP, levels, progress via WebSoc
 - All admin cards: always-visible visibility toggles, edit, and delete buttons
 
 #### Page spacing fix
+
 - Main layout removed `py-8` to eliminate double-padding (each page controls its own vertical spacing)
 - Home page added `py-6` wrapper
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1454,17 +1607,20 @@ Complete professional real-time progress system (XP, levels, progress via WebSoc
 ## Session 43 — 2026-07-17 — Hero styling polish (16:9 + revert + natural height)
 
 ### Goal
+
 Apply consistent LearningCard visual DNA to all hero sections (course detail, module detail, lesson success) with proper sizing.
 
 ### Commits
-| Hash | Description |
-|------|-------------|
+
+| Hash      | Description                                                                                |
+| --------- | ------------------------------------------------------------------------------------------ |
 | `61ecf5f` | All heroes 16:9 with exact LearningCard styling (back plate, brand-charcoal, same classes) |
-| `d732545` | Fix: remove aspect-16/9 from heroes, keep LearningCard styling but natural height |
+| `d732545` | Fix: remove aspect-16/9 from heroes, keep LearningCard styling but natural height          |
 
 ### Changes
 
 #### Initial attempt (61ecf5f)
+
 - All three heroes (course, module, lesson success) given same exact classes as LearningCard:
   - Back plate: `absolute rounded-xl bg-brand-charcoal-card/60 border border-brand-charcoal-border/20 backdrop-blur-sm`
   - Container: `bg-brand-charcoal-base border-brand-charcoal-border rounded-xl` with hover shadow
@@ -1474,6 +1630,7 @@ Apply consistent LearningCard visual DNA to all hero sections (course detail, mo
 - Forced to `aspect-[16/9]` — made heroes too tall at full width (~1200px → 675px)
 
 #### Fix (d732545)
+
 - Removed `aspect-[16/9]` from all three heroes — natural height based on content
 - Removed `flex flex-col h-full` and `mt-auto` patterns only needed for fixed aspect ratio
 - Used `p-4 md:p-5` padding for compact but comfortable spacing
@@ -1481,11 +1638,13 @@ Apply consistent LearningCard visual DNA to all hero sections (course detail, mo
 - Removed truncation from titles (heroes have room for full text)
 
 #### Result
+
 - All heroes use identical design tokens as LearningCard but with natural content-based height
 - 16/9 ratio kept on LearningCard and AdminCards (used in grids, not full-width)
 - `cn` import added to success page
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1494,11 +1653,13 @@ Apply consistent LearningCard visual DNA to all hero sections (course detail, mo
 ## Session 44 — 2026-07-17 — Python Mastery: Build Your Own Games seed migration
 
 ### Goal
+
 Create the seed SQL migration for the new "Python Mastery: Build Your Own Games" elective course with 2 modules, 6 lessons, 5 dependencies, full lesson sections, quiz metadata, and 1 project.
 
 ### Changes
 
 #### New migration file: `migrations/042_seed_python_mastery_games.sql`
+
 - **Course:** `python-mastery-games` — "Python Mastery: Build Your Own Games" (difficulty 3, ~12 hours)
   - 2 taglines, 8 tags, icon: `gamepad-2`, cover_image, `visible=false`
 - **Module 1:** `text-adventure` — "Build a Text Adventure Game" (5 lessons, 5 linear deps)
@@ -1511,10 +1672,12 @@ Create the seed SQL migration for the new "Python Mastery: Build Your Own Games"
 - All `ON CONFLICT ... DO NOTHING` for safe re-runs; single `BEGIN; ... COMMIT;` transaction
 
 ### Supabase RLS Error
+
 - `ALTER TABLE full ENABLE ROW LEVEL SECURITY` error is NOT from this SQL — it's from Supabase's auto-RLS step
 - Workaround: run SQL directly or disable auto-apply in SQL editor
 
 ### Verification
+
 - SQL file saved and complete, ready to run against database
 
 ---
@@ -1532,29 +1695,35 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 ### Backend Changes
 
 **`internal/api/cms.go` — `GetModuleDetail` handler:**
+
 - Added `Dependencies []store.LessonPrereq` to the inline `lessonWithProgress` struct (with `json:"dependencies,omitempty"`)
 - Bulk-fetches all lesson dependencies for the module in a single `ANY($1)` query via new `GetLessonDependenciesByLessonIDs` store function
 - Attaches dependencies to each lesson in the response
 - Uses `string(l.ID.Bytes[:])` for map keys (pgtype.UUID has no `.String()` method)
 
 **`internal/store/curriculum.go` — new `GetLessonDependenciesByLessonIDs`:**
+
 - Batch query: `SELECT lesson_id, depends_on_lesson_id FROM lesson_dependencies WHERE lesson_id = ANY($1)`
 - Returns early if `lessonIDs` is empty
 - Same scan pattern as `GetLessonDependencies`
 
 **`internal/store/store.go` — interface updated:**
+
 - Added `GetLessonDependenciesByLessonIDs(ctx context.Context, lessonIDs []uuid.UUID) ([]LessonPrereq, error)`
 
 ### Frontend Changes
 
 **`frontend/lib/types.ts`:**
+
 - `ModuleWithLessons.lessons` type updated: `(Lesson & { completed: boolean; dependencies?: LessonPrereq[] })[]`
 
 **`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module Detail:**
+
 - Computes `isLocked` per lesson: locked if any dependency lesson is incomplete
 - Locked lessons get `status="locked"` → `LearningCard` renders with lock overlay, no clickable link
 
 **`frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/lessons/[lessonSlug]/LessonViewerClient.tsx`:**
+
 - New locked overlay when `!lessonData.prerequisites_met`
 - Shows amber lock icon, "Complete Prerequisites First" heading
 - Lists all unmet prerequisites with warning icons
@@ -1564,6 +1733,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Added `Lock`, `AlertTriangle` to lucide imports
 
 **`frontend/components/learn/LessonSidebar.tsx`:**
+
 - Props updated: `lessons` type now includes optional `dependencies?: LessonPrereq[]`
 - Computes per-lesson locked state from `dependencies` array + completion status
 - Locked lessons show `Lock` icon instead of numbered circle
@@ -1571,6 +1741,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Active/completed/available states unchanged
 
 **`frontend/app/(main)/admin/curriculum/page.tsx` — Admin Dependency Picker:**
+
 - Imports: added `updateLessonDependencies`, `fetchLesson`, `GitBranch`, `Check`, `Search`, `ChevronDown`, `ChevronUp`
 - New state: `lessonDependencies`, `loadingDeps`, `depSearch`
 - New function: `loadLessonDeps(lessonSlug)` — fetches lesson detail via public API to get current dependencies
@@ -1581,6 +1752,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Form state cleared on open/close/save
 
 ### Verification
+
 - `go build ./cmd/server/` — clean
 - `npx tsc --noEmit` — 0 errors
 
@@ -1591,15 +1763,18 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commit:** `3aef8d2`
 
 **New Files:**
+
 - `migrations/043_seed_python_mastery_practice.sql` — Python Mastery: Practice & Review course (1 module, 5 lessons)
 
 **Modified Files:**
+
 - `frontend/app/(main)/learn/courses/page.tsx` — Course catalog with improved LearningCard integration
 - `frontend/app/(main)/learn/courses/[courseSlug]/page.tsx` — Course detail page enhancements
 - `frontend/app/(main)/learn/courses/[courseSlug]/modules/[moduleSlug]/page.tsx` — Module detail page updates
 - `frontend/components/ui/learning-card.tsx` — LearningCard component improvements
 
 **What was done:**
+
 - Full professional codebase re-index: read all 80 Go source files, ~200 frontend source files, 44 migration SQL files, 14 documentation files
 - Updated CLAUDE.md with migration 043 in seed data summary and repository structure
 - Updated CODEBASE_INDEX.md with current counts
@@ -1607,6 +1782,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Verified `go vet`, `go build`, `go test` (9/9 packages pass) — clean
 
 **Codebase Statistics (current):**
+
 - Go source files: 80 (49 source + 13 test in internal/, 8 sandbox, 1 cmd)
 - Frontend source files: ~200
 - Migration SQL files: 44 (043 + 999_test)
@@ -1619,6 +1795,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 ### 2026-07-21 — Session 47: Remove Console/Play in Browser from problem workspace
 
 **Files modified:**
+
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed PyodideConsole, "Run in Browser" button, Console toggle (header + right panel tab bar) from the problem workspace. The Console and client-side Python execution are only relevant for learn lesson exercises, not standard problem solving. Hints panel is now always the sole right panel content.
 
 ---
@@ -1628,6 +1805,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `02aa051`
 
 **Problem module lock system (full stack):**
+
 - `migrations/045_add_module_locks.sql` — `module_locks` table (module_name TEXT PK, created_at TIMESTAMPTZ)
 - `internal/store/module_locks.go` — 3 store functions: `ListLockedModules`, `ToggleProblemModuleLock`, `IsModuleLocked`
 - `internal/store/types.go` — `ModuleLock` struct (ModuleName, CreatedAt)
@@ -1637,17 +1815,21 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `internal/store/users.go` — `GetModuleProficiency` excludes locked modules via `NOT EXISTS` subquery
 
 **Admin frontend:**
+
 - `frontend/app/(main)/admin/page.tsx` — Module Locks panel: fetches locks alongside stats, per-module lock/unlock buttons with Lock/LockOpen icons, amber styling, toast feedback
 
 **Student-facing UI:**
+
 - `frontend/components/dashboard/ModuleCards.tsx` — New `lockedModules: Set<string>` prop; amber padlock overlay; `cursor-not-allowed opacity-60` with `disabled={isLocked}`
 - `frontend/app/(main)/home/page.tsx` — Fetches `fetchModuleLocks()` alongside problems, passes `lockedModules` to ModuleCards
 
 **Bug fixes:**
+
 - Paragraph spacing: `[&_p]:mb-3` on problem statement prose container
 - Saved code restore: always restores saved code when found, regardless of initial state
 
 **Curriculum module lock (carried from prior sub-session):**
+
 - `migrations/044_add_module_locked.sql` — `locked BOOLEAN` on `modules` table
 - `internal/api/cms.go` — `ToggleModuleLock` handler, 403 on locked module detail
 - `frontend/components/learn/admin/AdminCards.tsx` — amber badge + lock/unlock button on AdminModuleCard
@@ -1660,22 +1842,27 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `ac8a45e` `86258a4` `77723fa` `6657efa`
 
 **CodeSnippet component rewrite:**
+
 - `frontend/components/application/code-snippet/index.tsx` — Rewrote from 476→314 lines: removed `react-icons` (heavy), simplified compound-API to single component, added `collapsed`/`maxHeight` props with gradient-fade "Show more/less" toggle
 - `frontend/components/application/code-snippet/code-snippet.story.tsx` — Updated stories to match new API
 
 **Best-practices cards compacted:**
+
 - `frontend/app/(main)/home/page.tsx` — Replaced 40-line CodeBlock compound usage with 7-line CodeSnippet (`collapsed`, `maxHeight={140}`)
 
 **Bug fixes:**
+
 - Copy button was permanently invisible — added `group` class to root div for `group-hover:opacity-100`
 - Multi-file tab keys used `f.language` (collision risk) — changed to `f.filename`
 - `SnippetCtx` type alias shadowed const — renamed to `SnippetCtxType`
 
 **Beta-gate features (non-admin only):**
+
 - Best-practices tab: `cursor-not-allowed`, muted text, amber BETA badge with `FlaskConical`; `onClick` gated to `user?.role === "admin"`; `aria-disabled` + `title` for a11y; coming-soon card if state reached
 - Learn nav link (TopNav): rendered as disabled `<span>` (not `<Link>`) with BETA badge for non-admins; `title` tooltip explaining "Coming soon"
 
 **Polish:**
+
 - Removed no-op `col-span-full` from coming-soon card
 - Moved `isActive` computation inside non-disabled branch in TopNav loop
 - `tsc --noEmit`: clean throughout
@@ -1687,6 +1874,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `582917b` `ac5cbb8` `12bbc34`
 
 **Solved count source of truth:**
+
 - Dashboard solved stat (`totalSolved`) now reads from `user.solvedCount` (`GET /me`, same source as XP and streak) instead of deriving from the language-filtered problems list (which has LIMIT 200)
 - `frontend/app/(main)/home/page.tsx` — Stats card: `totalSolved` renamed to reflect true total; subtitle shows `visibleSolved` (view-specific)
 - `frontend/lib/api.ts` — `fetchUser()` maps `solved_count` → `solvedCount`
@@ -1694,9 +1882,11 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `frontend/lib/types.ts` — `User` interface: `solvedCount` field
 
 **Build fix:**
+
 - `internal/api/router.go` — Store package import aliased as `storepkg` to avoid shadowing by handler parameter name
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1707,6 +1897,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `f57f867` `dc2d61b`
 
 **Problem description (workspace):**
+
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Typography overhaul on the prose description container:
   - Text color: `text-brand-offwhite-muted` → `text-brand-offwhite/90` (bright, high contrast)
   - Size: `prose-sm` → `prose-base`
@@ -1721,6 +1912,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Problem cards (problems + home page):**
 
 `frontend/app/(main)/problems/page.tsx`:
+
 - Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
 - Title: `font-semibold text-sm` → `font-bold text-base`
 - Description: `text-xs` / `opacity-70` → `text-sm` / `opacity-90`
@@ -1728,6 +1920,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Solved: `font-medium` → `font-bold`
 
 `frontend/app/(main)/home/page.tsx`:
+
 - Number: `font-semibold` / `opacity-30` → `font-bold` / `opacity-50`
 - Description: `text-xs` / `opacity-60` → `text-sm` / `opacity-90`
 - Tags: `opacity-50` / `font-medium` → `opacity-80` / `font-semibold`
@@ -1735,6 +1928,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Stat icons: `opacity-30` → `opacity-50`
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1745,9 +1939,11 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `2c472ac` `f9690b1`
 
 **Removed duplicate difficulty badge:**
+
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — Removed the duplicate difficulty badge from the top toolbar header. The difficulty badge remains in the description area (left sidebar) where users read the problem context.
 
 **Removed custom intellisense/hover providers:**
+
 - Removed `registerVSCodeDarkPlusTheme` import and custom theme registration (deleted entire `frontend/lib/monaco-theme.ts` usage)
 - Removed `loader.init()` pre-initialization effect
 - Removed all custom completion providers (~740 lines):
@@ -1755,6 +1951,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
   - Python: `pythonKeywords`, `pythonBuiltins`, `pythonStdlibHints`, `pythonSnippets`, `registerCompletionItemProvider`, `registerHoverProvider`
 
 **Editor config updated:**
+
 - Theme: `vs-dark-plus` (custom) → `vs-dark` (built-in VS Code Dark+)
 - `quickSuggestions`: `{ other: true, ... }` → `false`
 - `snippetSuggestions`: `inline` → `none`
@@ -1767,6 +1964,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Result:** Clean VS Code Dark+ experience — syntax coloring only, no popups, no autocomplete, no hover tooltips. Only the keyboard shortcuts remain: Ctrl+S (format), Ctrl+Enter (test), Ctrl+Shift+Enter (submit).
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1777,6 +1975,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commit:** `d0ae5ac`
 
 **What was built:**
+
 - New "Curriculum Module Locks" panel on the main admin dashboard (below existing "Problem Module Locks")
 - Fetches all courses + their modules via `fetchAllCourses()` and `fetchModules()` in `loadData`
 - Courses are collapsible accordions (`<details>`/`<summary>`) with chevron animation
@@ -1786,14 +1985,17 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Uses existing `toggleModuleLock(id)` API → `PATCH /admin/modules/{id}/lock`
 
 **Existing lock enforcement (already in place):**
+
 - `CourseDetail` page: `mod.locked` → `status="locked"` → `LearningCard` renders lock overlay with amber padlock
 - `ModuleDetail` page: backend returns 403 `MODULE_LOCKED` → amber lock screen with retry
 - `ModuleCards` (dashboard): locked problem modules show amber padlock via `lockedModules` prop
 
 **Files modified:**
+
 - `frontend/app/(main)/admin/page.tsx` — Added imports, state, data fetching, and curriculum module locks panel
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1804,26 +2006,31 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `d1495d6` `486ae78` `55e054c`
 
 **Problem module lock panel (admin dashboard):**
+
 - New "Problem Module Locks" panel below stats — grouped by Go/Python in collapsible accordions
 - Display names (e.g. "Arrays & Strings") instead of raw slugs
 - Lock count per language (e.g. "2/8 locked")
 - Inline lock/unlock toggle with amber styling
 
 **Locked module card redesign:**
+
 - Locked cards remain fully visible (no `opacity-60` dimming) — subtle amber border instead
 - Small amber lock badge fixed at top-right corner
 - Hover reveals "LOCKED" pill overlay centered on card image with backdrop blur
 - Footer shows "Locked by instructor" with lock icon
 
 **Dashboard fix:**
+
 - Locked modules now appear on the dashboard module list — included `lockedModules` set in module list derivation so locked modules render even when their problems are filtered out by the backend
 
 **Files modified:**
+
 - `frontend/app/(main)/admin/page.tsx` — Problem Module Locks panel
 - `frontend/components/dashboard/ModuleCards.tsx` — Locked card visual redesign
 - `frontend/app/(main)/home/page.tsx` — Include lockedModules in module list
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1834,12 +2041,14 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `345edcb`
 
 **Admin bypass for module locks (4 endpoints):**
+
 - `GetProblemBySlug` — admins can view locked module problems (nil-safe claims check)
 - `ListVisibleProblems` — admins see ALL problems; students still filtered
 - `Submit` — admins can submit to locked modules
 - `Test` — admins can test against locked modules
 
 **Delete problem module (end-to-end):**
+
 - **Store:** `DeleteProblemModule` — transaction-safe: deletes submissions → progress → problems (cascades test_cases) → module lock
 - **Handler:** `DELETE /admin/problem-modules/{moduleName}`
 - **Frontend:** Trash icon button next to each module in Problem Module Locks panel with `confirm()` dialog
@@ -1848,6 +2057,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Cache invalidation:** `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` after delete — stale 30s cache was masking deletions
 
 **Backend files:**
+
 - `internal/api/problems.go` — bypass in `GetProblemBySlug` + `ListVisibleProblems`
 - `internal/api/submissions.go` — bypass in `Submit`
 - `internal/api/test.go` — bypass in `Test`
@@ -1857,10 +2067,12 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `internal/api/router.go` — route registration
 
 **Frontend files:**
+
 - `frontend/app/(main)/admin/page.tsx` — delete button, state, handlers; cache imports
 - `frontend/lib/api.ts` — `deleteProblemModule()` API function
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
@@ -1878,15 +2090,18 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 | 2 `<a href>` tags causing full page reloads | High | `MyContributions.tsx:78`, `admin/page.tsx:279` |
 
 **Smart back navigation:**
+
 - Workspace stores `return_to` in `sessionStorage` on every problem link click (`/home` and `/problems` pages)
 - Workspace reads `sessionStorage.getItem("return_to")` for the "Back" link href — falls back to `/home`
 - Label changed from "Problems" to "Back" to reflect dynamic destination
 
 **Full SPA navigation:**
+
 - `MyContributions.tsx:78` — `<a href="/contribute">` → `<Link href="/contribute">`
 - `admin/page.tsx:279` — `<a href="/admin/curriculum">` → `<Link href="/admin/curriculum">`
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1897,19 +2112,23 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `4fc6cce` `32f264a` `2ba2fac`
 
 **LIFO navigation stack:**
+
 - Module card clicks use `pushState` instead of `replaceState` — each selection is a proper history entry
 - Language filter tabs use `pushState` — back/forward navigates through tab changes
 - "Back to topics" uses `pushState` to return to all-modules view
 - `popstate` event listener syncs React state (selectedModule + languageFilter) with URL on browser back/forward
 
 **Module URL persistence:**
+
 - `handleSelectModule` writes `?module=xxx` to URL via `pushState`
 - Refresh preserves the module filter state — reads from URL params on mount
 
 **Cache invalidation for delete module:**
+
 - Added `clearCache("/admin/problems")` and `clearCache("/admin/module-locks")` before `loadData()` in delete handler — stale 30s cache was returning old data, making deletes appear to do nothing
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - All pushed to `origin/update`
 
@@ -1918,6 +2137,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 ### 2026-07-22 — Session 59: Module metadata system + Python module images
 
 **Module metadata system:**
+
 - Migration `046_module_meta.sql` — `module_meta` table (module_name PK, display_name, is_pinned) with seed data for all 26 known modules
 - `internal/store/module_meta.go` — `ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin` store functions
 - `internal/api/admin.go` — 3 handler functions (`ListModuleMeta`, `UpsertModuleMeta`, `SetModulePin`)
@@ -1925,6 +2145,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `frontend/lib/api.ts` — `ModuleMeta` interface + `fetchModuleMeta`, `upsertModuleMeta`, `setModulePin`
 
 **Admin panel — Module Settings panel:**
+
 - New "Module Settings" panel — inline rename + pin toggle
 - Modules from `moduleMeta` keys (all known modules)
 - Inline rename with Enter/blur/Escape keyboard support
@@ -1932,6 +2153,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Cache invalidation before re-fetch after mutations
 
 **Admin panel — Problem Module Locks fixes:**
+
 - Modules now derived from `Object.keys(moduleMeta)` — ALL modules, not just ones with problems
 - Display names use `moduleMeta[mod]?.display_name` — reflects renames from Module Settings
 - Delete button only renders when module has problems
@@ -1939,15 +2161,18 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Removed hardcoded `MODULE_DISPLAY_NAMES`
 
 **ModuleCards integration:**
+
 - Accepts `moduleMeta` prop, sorts by `is_pinned`, uses `display_name` from meta
 - `home/page.tsx` fetches moduleMeta on load + window focus refresh
 
 **Python module images (4 new WebP):**
+
 - `python-arrays-strings.webp` (31KB), `python-challenges.webp` (25KB)
 - `python-fundamentals.webp` (32KB), `python-intermediate.webp` (35KB)
 - Full `MODULE_META` + `MODULE_COLORS` entries for each
 
 **Backend files:**
+
 - `internal/store/module_meta.go` — new
 - `internal/store/types.go` — `ModuleMeta` struct
 - `internal/store/store.go` — interface methods
@@ -1956,6 +2181,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `migrations/046_module_meta.sql` — new
 
 **Frontend files:**
+
 - `frontend/lib/api.ts` — types + API functions
 - `frontend/app/(main)/admin/page.tsx` — Module Settings panel, locks panel fixes
 - `frontend/app/(main)/home/page.tsx` — focus refresh
@@ -1963,6 +2189,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - `frontend/public/modules/python-*.webp` — 4 new images
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `go build ./...` — clean
 - `./node_modules/.bin/tsc --noEmit` — clean
@@ -1974,11 +2201,13 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `528cd8b`
 
 **Problem statement rendering — root cause fix:**
+
 - `frontend/app/globals.css` was missing `@tailwindcss/typography` — all `prose-*` Tailwind classes were no-ops (headings, paragraph spacing, code styling, bold color all did nothing)
 - Removed `react-markdown` / `remark-gfm` dependency — replaced with self-contained `renderMarkdown()` + `inlineMd()` functions using `dangerouslySetInnerHTML`
 - All styling now uses inline `style=` attributes — deterministic, no CSS plugin required
 
 **Renderer design (`ProblemWorkspaceClient.tsx:159-228`):**
+
 - Split on `\n\s*\n` (blank lines) → paragraphs with `0.75rem` bottom margin
 - `#` / `##` / `###` → `h1`/`h2`/`h3` with proper sizing and bold
 - `-` / `*` at line start → bullet lists
@@ -1992,9 +2221,11 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Key insight for AI:** The renderer is intentionally simple — no GFM tables, no blockquotes, no strikethrough. Blank lines (`\n\n`) are the only block separator.
 
 **Files modified:**
+
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx` — full renderer rewrite
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 
 ### 2026-07-22 — Session 61: Locked module count fix, community solution collapsible cards, professional polish
@@ -2002,6 +2233,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `824fc10`
 
 **Locked module cards — fix problem counts:**
+
 - `internal/store/types.go` — Added `Locked bool` field to `Problem` struct
 - `internal/store/problems.go` — SQL now includes `EXISTS (SELECT 1 FROM module_locks WHERE module_name = p.module) AS is_locked`
 - `internal/store/problems.go` — Scans `is_locked` into `problem.Locked`; `LIMIT` raised from 200 to 500
@@ -2011,18 +2243,22 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Locked module cards now show `12 problems · 3 solved · 25%` — identical visual treatment to unlocked cards
 
 **Community solutions — remove AND EXISTS:**
+
 - `internal/store/submissions.go:146` — Removed `AND EXISTS (SELECT 1 FROM submission_likes ...)` — solutions with 0 likes now surface, sorted by likes DESC
 
 **Community solution cards — auto-height + collapse:**
+
 - `frontend/app/(main)/problems/[slug]/success/page.tsx` — Each card uses per-card `expandedSolutions` Set + `toggleSolution`. Code >8 lines collapses to `max-h-[220px]` with gradient fade + "Show full solution" toggle. Cards use `rounded-xl` (no double-radius). Removed fixed `h-[200px]`.
 
 **Bug fix:**
+
 - `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx:427` — Fixed `lang` → `activeLanguage` (undefined variable)
 
 **Files modified (14):**
 `CLAUDE.md`, `ProblemEditPanel.tsx`, `home/page.tsx`, `success/page.tsx`, `ProblemWorkspaceClient.tsx`, `api.ts`, `types.ts`, `admin.go`, `problems.go` (api), `router.go`, `problems.go` (store), `store.go`, `submissions.go`, `types.go`
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
@@ -2036,6 +2272,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commit:** `ba654d6`
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `npx tsc --noEmit` — clean
@@ -2045,18 +2282,22 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `43eaef7`
 
 **Lint fixes (6 errors → 0):**
-- `ProblemEditPanel.tsx` — changed `key={tc.id}` → `key={\`\${tc.id}-\${tc.expected}\`}` so row re-mounts on expected change, removing `useEffect`/`useRef` sync pattern
+
+- `ProblemEditPanel.tsx` — changed `key={tc.id}` → `key={\`\${tc.id}-\${tc.expected}\`}`so row re-mounts on expected change, removing`useEffect`/`useRef` sync pattern
 - `home/page.tsx` — initialized `selectedModule` from URL in `useState` lazy initializer, removed mount-time `useEffect`
 - `LessonViewerClient.tsx` — added `key={lessonSlug}` to root div so component remounts on lesson navigation, removing step-reset `useEffect`/`useRef`
 - `MultiFileConfigPanel.tsx` — used `eslint-disable` block comments for legitimate external-system sync (spec prop → local state)
 
 **CI/CD:**
+
 - Added `update` branch to both push and pull_request triggers in `.github/workflows/ci.yml` — same 2-job pipeline (backend: vet/test/build, frontend: lint/tsc/build)
 
 **Branch rename:**
+
 - Remote branch renamed from `update` → `staging`; `origin/update` force-pushed to match old staging
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors, 1 pre-existing warning (unrelated `<img>` tag)
 - `go test ./internal/...` — all pass (4 pre-existing config env mismatch failures)
@@ -2068,19 +2309,23 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `bfadb3f` `549521f` `9b882aa` `c8c260c`
 
 **1. Config test fixes (4 failing → all pass):**
+
 - `internal/config/config.go` — `loadEnvFile()` now skips loading `.env` during tests (checks `os.Args[0]` suffix `.test`), so "missing var" tests correctly see empty env
 - `internal/config/config_test.go` — All 3 "missing" tests (`MissingDatabaseURL`, `MissingJWTSecret`, `MissingNvidiaKey`) now call `t.Setenv("VAR", "")` before `Load()` to clear CI-provided env vars
 - `TestLoadConfig_Defaults` — clears `GO_VERSION` before testing, so the code's default `"1.23"` is tested (not CI's `"1.26"` override)
 
 **2. Dashboard nav link fix (`TopNav.tsx`):**
+
 - Added `onClick` handler to nav links: `if (pathname === link.href) { e.preventDefault(); router.refresh(); }`
 - Clicking Dashboard when already on `/home` now forces a fresh RSC payload
 
 **3. Global rank `# #1` fix (`StatsOverview.tsx`):**
+
 - Removed duplicate `#` from template literal — `#{profile.global_rank}` → `{profile.global_rank}`
 - The `Hash` icon already serves as the `#` symbol, so icon + number = clean `#1` display
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `go test ./internal/...` — all 8 packages pass (24 tests)
@@ -2095,10 +2340,12 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `c2f0efa`
 
 **1. Dashboard nav link — fix corrected:**
+
 - `TopNav.tsx` — `router.refresh()` didn't work because it doesn't re-run client `useEffect` hooks
 - Changed to `window.dispatchEvent(new Event("user-updated"))` — the dashboard (`home/page.tsx:118`) already listens for this event, clears cache, and re-fetches all data with 300ms debounce
 
 **2. Success page — scrollable code previews:**
+
 - `success/page.tsx` — Removed 141 lines of collapse/expand machinery:
   - Removed `showFullCode` state, `expandedSolutions` state, `toggleSolution` function
   - Removed `codeLines`/`isLongCode`/`solCodeLines`/`solIsLong`/`solShowFull` calculations
@@ -2108,6 +2355,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Both "Your Solution" and community solution code blocks now use `max-h-[220px] overflow-y-auto` with thin custom scrollbar visible on hover
 
 **Verification:**
+
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `go test ./internal/...` — all 8 packages pass
@@ -2123,11 +2371,13 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `b527df2` `ff88299` `4cefe19`
 
 **1. Seeded random problem ordering (`frontend/lib/utils.ts`):**
+
 - Added `seededRandom(seed)` — mulberry32 PRNG for deterministic randomness
 - Added `shuffleArray(arr, seed)` — Fisher-Yates shuffle using seeded RNG
 - Seed derived from first 8 hex chars of user UUID — each user gets a unique consistent ordering
 
 **2. Filter bar redesign (`frontend/app/(main)/problems/page.tsx`):**
+
 - Removed sidebar `aside` with Status/Difficulty/XP filter buttons
 - Replaced with top-mounted card (`bg-card border rounded-xl p-4 space-y-4 mt-2`):
   - Search row with inline problem count badge
@@ -2137,11 +2387,13 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Removed `#001` numbering from problem cards (meaningless with random order)
 
 **3. Beta gate — /problems admin-only (`TopNav.tsx` + `problems/page.tsx`):**
+
 - TopNav: "Problems" nav link disabled for non-admins with amber BETA badge + `cursor-not-allowed`
 - problems/page.tsx: non-admins see centered coming-soon card (`FlaskConical` icon, border-dashed)
 - Matches existing Learn + Best Practices beta gate pattern
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors
 - All pushed to `origin/update`
@@ -2153,14 +2405,17 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `cf5435e`
 
 **1. Shared markdown module (`frontend/lib/markdown.ts` — NEW):**
+
 - Extracted `renderMarkdown()`, `inlineMd()`, `escapeHtml()` from `ProblemWorkspaceClient.tsx`
 - Self-contained inline-styled markdown renderer (no GFM tables/blockquotes, blank lines as block separator)
 
 **2. ProblemWorkspaceClient updated:**
+
 - Imports `renderMarkdown` from shared module instead of defining locally
 - Removed 53 lines of duplicated functions
 
 **3. Admin preview fix (`ProblemEditPanel.tsx`):**
+
 - **Root cause:** Admin Preview toggle never rendered examples — only statement, constraints, learning objective. Toggling Preview made it look like examples vanished.
 - **Fix:** Preview now renders:
   - Statement via `renderMarkdown()` with `dangerouslySetInnerHTML` (was `whitespace-pre-wrap` raw text)
@@ -2168,6 +2423,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
   - Constraints and learning objective also via `renderMarkdown()`
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (all touched files)
 - All pushed to `origin/update`
@@ -2179,12 +2435,14 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `1e28c16`
 
 **1. ModuleCards sort fix (`frontend/components/dashboard/ModuleCards.tsx`):**
+
 - **Problem:** Locked and unlocked modules were mixed in alphabetical order. Users saw locked modules interspersed with active ones.
 - **Fix:** Added lock-status check as the primary sort key — locked modules always appear after all unlocked modules
 - **Sort order:** pinned unlocked → alphabetical unlocked → pinned locked → alphabetical locked
 - Single change: `lookedModules.has()` check added before pin/alphabetical comparisons
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - All pushed to `origin/update`
@@ -2194,12 +2452,14 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commit:** `ac7b4d4`
 
 **Changes to `frontend/app/(main)/admin/ProblemEditPanel.tsx`:**
+
 - Dialog width: `max-w-4xl` (896px) → `max-w-5xl` (1024px) — more breathing room for 8-section form
 - Content spacing: `space-y-6` → `space-y-4` — tighter vertical gaps reduce scrolling
 - Description textarea: `min-h-[200px]` → `min-h-[350px]` — more editing room for markdown
 - Footer buttons: wrapped with `flex-wrap`, condensed labels (`AI` / `Enrich`), bold + shadow on Save Changes, `gap-2` instead of `gap-3` — no overflow even at smaller widths
 
 **Verification:**
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
 - Pushed to `origin/update`
@@ -2211,6 +2471,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** (pending — squashed)
 
 **1. Functional fix — new `GET /admin/all-modules` endpoint:**
+
 - **Problem:** Admin panels derived module list from `module_meta` table (fixed seed). New modules from ingested problems never appeared.
 - **Fix:** New `ListAllModules` store function returns `SELECT DISTINCT p.module` from `problems` table, `COALESCE`d with `module_meta` display names, joined with `module_locks` lock state, plus `UNION` for orphan `module_meta` rows with zero problems
 - **Backend struct:** `AllModule` — `module_name`, `display_name`, `is_pinned`, `is_locked`, `problem_count`
@@ -2219,6 +2480,7 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - **Frontend API:** `fetchAllModules()` in `frontend/lib/api.ts`
 
 **2. Problem Module Locks panel — professional redesign:**
+
 - Card wrapper with CodePen shadow back plate depth effect
 - shadcn Tabs for Go/Python language filtering
 - Grid of compact module cards (1→2→3 columns responsive)
@@ -2226,24 +2488,28 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 - Optimistic lock state updates — no re-fetch needed on toggle
 
 **3. Curriculum Module Locks panel — professional redesign:**
+
 - Same card wrapper + shadow back plate pattern
 - Course-level collapsible sections (`<details>`) with locked count badges
 - Per-module lock toggle as styled `Button` with Lock/LockOpen icons
 - Auto-opens courses that have locked modules
 
 **4. Module Settings panel — professional redesign:**
+
 - Same card wrapper + shadow back plate + language Tabs pattern
 - Inline rename via shadcn `Input` with Enter/blur save + Escape/X cancel
 - Pin toggle always visible (not hover-only) with active/inactive styling
 - Display name + slug + problem count per row
 
 **5. Import changes:**
+
 - Removed `fetchModuleLocks()`, `fetchModuleMeta()` — replaced by `fetchAllModules()`
 - Removed `moduleLocks` Set state, `moduleMeta` Record state — replaced by `allModules: AllModule[]`
 - Added shadcn: `Card`, `CardContent`, `Button`, `Badge`, `Input`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
 - Added lucide icons: `ShieldCheck`, `ShieldOff`, `Plus`, `X`, `Check`, `Sparkles`
 
 **Verification:**
+
 - `go vet ./internal/api/ ./internal/store/` — clean
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors (1 pre-existing warning in MarkdownPreview.tsx)
@@ -2256,23 +2522,28 @@ Full-stack lesson prerequisite/dependency management system — admin UI for set
 **Commits:** `0f78c62`
 
 ### 1. Google OAuth 401 fix
+
 `GOOGLE_CLIENT_ID` was missing from the backend environment — `POST /auth/google` returned `401 GOOGLE_AUTH_FAILED` because audience check failed against empty string. Added to backend env.
 
 ### 2. COOP header for GIS popup
+
 Google Identity Services opens a popup requiring `Cross-Origin-Opener-Policy: cross-origin` (default is `same-origin`), otherwise popup returns `null` and One Tap breaks.
 
-| File | Change |
-|---|---|
-| `frontend/middleware.ts:28` | Added `Cross-Origin-Opener-Policy: cross-origin` to response headers |
-| `internal/api/middleware.go:495` | Added same header to SecurityHeadersMiddleware |
+| File                             | Change                                                               |
+| -------------------------------- | -------------------------------------------------------------------- |
+| `frontend/middleware.ts:28`      | Added `Cross-Origin-Opener-Policy: cross-origin` to response headers |
+| `internal/api/middleware.go:495` | Added same header to SecurityHeadersMiddleware                       |
 
 ### 3. Logo preload warning
+
 TopNav `<Image priority>` triggered React preload warnings. Removed `priority` from logo in `frontend/components/layout/TopNav.tsx:87-94`.
 
 ### 4. Module lock endpoint for non-admin
+
 `fetchModuleLocks()` called `/admin/module-locks` (admin-only, returns 403 for students). Changed to `/me/module-locks` in `frontend/lib/api.ts:853`. Non-admin users now see lock icons on locked modules.
 
 ### Verification
+
 - `go vet ./internal/...` — clean
 - `npx tsc --noEmit` — clean
 - Pushed to `origin/update`
@@ -2284,18 +2555,21 @@ TopNav `<Image priority>` triggered React preload warnings. Removed `priority` f
 **Commits:** `6dfd1db`
 
 ### Polling intervals (visible features)
-| Feature | File | Before | After |
-|---|---|---|---|
-| Notifications | `useNotifications.ts:70` | 15s | 7s |
-| Broadcasts | `BroadcastBanner.tsx:97` | 30s | 7s |
-| Leaderboard | `LeaderboardClient.tsx:140` | 30s | 7s |
-| Admin dashboard | `admin/page.tsx:117` | 60s | 7s |
+
+| Feature         | File                        | Before | After |
+| --------------- | --------------------------- | ------ | ----- |
+| Notifications   | `useNotifications.ts:70`    | 15s    | 7s    |
+| Broadcasts      | `BroadcastBanner.tsx:97`    | 30s    | 7s    |
+| Leaderboard     | `LeaderboardClient.tsx:140` | 30s    | 7s    |
+| Admin dashboard | `admin/page.tsx:117`        | 60s    | 7s    |
 
 ### WebSocket subscriptions
+
 - `BroadcastBanner.tsx` — subscribes to `broadcast.created/updated/deleted` — re-fetches immediately
 - `admin/page.tsx` — subscribes to `broadcast.*` + `feedback.submitted` — admin panels update in real-time
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors
 - Pushed to `origin/update`
@@ -2307,28 +2581,34 @@ TopNav `<Image priority>` triggered React preload warnings. Removed `priority` f
 **Commits:** `6e23cb8` `3dee92a`
 
 ### Why
+
 Mandatory 6-digit PIN during registration adds friction. Users can set a PIN later via Settings for PIN-based recovery. Email-based forgot-password (via Resend) remains the primary recovery method.
 
 ### Backend (`internal/api/auth.go`)
+
 - Removed `Pin` field from `registerRequest` struct
 - Removed PIN validation (6-digit) and bcrypt hashing block from `Register` handler
 
 ### Frontend registration (`frontend/app/(auth)/register/page.tsx`)
+
 - Collapsed from 3-step (name → PIN → username) to 2-step (name → username)
 - Removed `step` state, `pin` state, `PinInput` import, step-2 UI, dead step-3/step-4 code
 - 647 lines → 466 lines
 
 ### `completeOnboarding` fix (`frontend/lib/api.ts:244-252`)
+
 - Was returning the response without calling `handleAuthResponse` — JWT with `usernameSet=true` was never saved to localStorage
 - Caused infinite redirect loop: `/onboarding → /home → fetchUser() → usernameSet=false → /onboarding`
 - **Fix:** Added `handleAuthResponse(data.token!, data.refresh_token!)` before return
 
 ### What's preserved
+
 - PIN management endpoints remain: `/auth/set-pin`, `/auth/verify-pin`, `/auth/change-password`, `/auth/forgot-password-pin`
 - Settings Security tab still offers PIN setup
 - PIN reset flow works for users who set a PIN
 
 ### Verification
+
 - `go vet ./internal/...` — clean
 - `go build ./internal/...` — clean
 - `go test ./internal/...` — all pass
@@ -2343,16 +2623,19 @@ Mandatory 6-digit PIN during registration adds friction. Users can set a PIN lat
 **Commits:** `0f6f96c`
 
 ### 1. `tryRefreshToken` concurrency bug (`frontend/lib/api.ts:50`)
+
 **Root cause:** `isRefreshing` guard was there but the variable was never set to `true` — all concurrent refresh requests passed through, first one rotated the token, subsequent ones found the old token revoked and called `clearAuth()`, wiping localStorage (signing the user out mid-session).
 
 **Fix:** Added `isRefreshing = true;` right after the initial `if (isRefreshing)` guard check.
 
 ### 2. Register page — single-step simplification (`frontend/app/(auth)/register/page.tsx`)
+
 **Before:** 3 steps — (1) name/email/password, (2) username with `completeOnboarding`, (3) redirect to `/onboarding` which asked for username again. UserContext never refreshed after step 2, so `/onboarding` firewalled.
 
 **After:** Single step — name/email/password form (291 lines). On success, redirects to `/onboarding` for username + language selection. UserContext correctly reflects new user after `handleAuthResponse` (fixed in session 73).
 
 **Changes:**
+
 - Removed step management (`step` state, step 2/3/4 UI, step back button)
 - Removed duplicate username input + `completeOnboarding` call
 - Removed `z.string().min(3)` username validation from step 2
@@ -2360,6 +2643,7 @@ Mandatory 6-digit PIN during registration adds friction. Users can set a PIN lat
 - 466 lines → 291 lines
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors
 - Pushed to `origin/update`
@@ -2371,6 +2655,7 @@ Mandatory 6-digit PIN during registration adds friction. Users can set a PIN lat
 **Commits:** `5580370` `d4d9410` `98e8eb4` `ae60525` `9ea2db5`
 
 ### 1. DesktopOnlyOverlay (`frontend/components/DesktopOnlyOverlay.tsx` — NEW)
+
 Full-screen overlay for screens < 900px wide:
 
 - **Breakpoint:** 900px (`window.innerWidth < 900`)
@@ -2380,21 +2665,24 @@ Full-screen overlay for screens < 900px wide:
 - **Preconnect:** `<link rel="preconnect" href="https://fonts.googleapis.com">` in case user rotates to landscape
 
 ### 2. Git history of SSR fixes
-| Commit | Approach | Problem |
-|---|---|---|
-| `5580370` | Import directly in layout | Hydration error #418 — server `window is not defined` |
-| `d4d9410` | rAF debounce, body scroll lock | Still hydration error |
-| `98e8eb4` | `next/dynamic ssr:false` | Webpack build error — can't use next/dynamic in root layout |
-| `ae60525` | Custom `useHasMounted()` hook checking `useState(false)` | Works but extra hook file |
-| `9ea2db5` | `useState(false)` directly in component, remove hook | Clean, minimal — `useState(false)` is SSR-safe by default |
+
+| Commit    | Approach                                                 | Problem                                                     |
+| --------- | -------------------------------------------------------- | ----------------------------------------------------------- |
+| `5580370` | Import directly in layout                                | Hydration error #418 — server `window is not defined`       |
+| `d4d9410` | rAF debounce, body scroll lock                           | Still hydration error                                       |
+| `98e8eb4` | `next/dynamic ssr:false`                                 | Webpack build error — can't use next/dynamic in root layout |
+| `ae60525` | Custom `useHasMounted()` hook checking `useState(false)` | Works but extra hook file                                   |
+| `9ea2db5` | `useState(false)` directly in component, remove hook     | Clean, minimal — `useState(false)` is SSR-safe by default   |
 
 **Verdict:** `useState(false)` returns `[false, setter]` on server and first client render, so `if (!isDesktop) return null;` always fires initially. After hydration, the `useEffect` runs and sets `isDesktop = window.innerWidth >= 900`.
 
 ### 3. Layout integration (`frontend/app/layout.tsx`)
+
 - Static import: `import DesktopOnlyOverlay from "@/components/DesktopOnlyOverlay";`
 - Rendered after `<Toaster>` — no wrapping divs
 
 ### Verification
+
 - `npx tsc --noEmit` — clean
 - `npm run lint` — 0 errors
 - All pushed to `origin/update`
@@ -2406,15 +2694,18 @@ Full-screen overlay for screens < 900px wide:
 **Commits:** `ce79000` `f757c9e` `88771ff` `6a42f0b`
 
 ### `scripts/reset_data.sql`
+
 Safe cleanup script that clears student solution data while preserving accounts, XP, progress, problems, and curriculum. Useful for testing pipelines end-to-end without a full database reset.
 
 **Tables cleared:**
+
 - `submissions` — all student code submissions
 - `submission_likes` — likes on submissions
 - `feedback` — bug reports and feature requests
 - `activity_logs` — admin audit trail
 
 **Preserved:**
+
 - `users` — all accounts, XP, progress, passwords, google_ids
 - `progress` — solved status, stars, XP awarded
 - `problems`, `test_cases` — all problems and their test cases
@@ -2424,6 +2715,7 @@ Safe cleanup script that clears student solution data while preserving accounts,
 - Admin users' data is preserved end-to-end
 
 **Verification:**
+
 - Script runs without error against a populated database
 - All pushed to `origin/update`
 
@@ -2434,6 +2726,7 @@ Safe cleanup script that clears student solution data while preserving accounts,
 **Commits:** `ca35d68` `e9cba64` `6c3941c`
 
 ### What happened
+
 - Added `three` and `@types/three` dependencies
 - Created `PixelSnow.tsx` with Three.js snowflake shader — 60fps WebGL canvas with perspective snow effect
 - Integrated into root layout (`app/layout.tsx`) with `-z-10` — hidden behind `bg-background`
@@ -2441,6 +2734,7 @@ Safe cleanup script that clears student solution data while preserving accounts,
 - **Reverted entirely** — `PixelSnow.tsx` deleted, `three` uninstalled, layouts restored
 
 ### Why reverted
+
 Snowflake background didn't match Koder's professional amber/charcoal brand aesthetic. Felt distracting rather than polished.
 
 ---
@@ -2451,22 +2745,23 @@ Snowflake background didn't match Koder's professional amber/charcoal brand aest
 
 ### Changes to `frontend/app/(main)/home/page.tsx`
 
-| Change | Before | After |
-|--------|--------|-------|
-| **Title** | `text-sm font-bold` → `text-primary` | `text-base font-extrabold md:text-lg tracking-tight` → `text-brand-muted-gold` |
-| **Description** | Regex-stripped raw text (leaked `**bold**`, `` `code` ``) | `renderMarkdown()` on first paragraph via `dangerouslySetInnerHTML` |
-| **Inline style fix** | `renderMarkdown()` injected `style="..."` attributes (overrode card Tailwind) | `.replace(/\sstyle="[^"]*"/g, '')` strips inline styles; card CSS controls preview |
-| **Description styling** | `<p>` element with regex | `<div>` with `[&_p]:inline [&_p]:m-0 [&_strong]:text-foreground/80 [&_code]:text-[13px] bg-white/[0.04] ...` |
-| **Difficulty badge** | `text-[10px]` | `text-[11px] px-2.5` |
-| **Tags** | `text-[10px] font-semibold` | `text-xs font-medium` |
-| **Footer stats** | `text-[11px] gap-2.5` icons `size={11}` | `text-xs gap-3` icons `size={13}` |
-| **XP badge** | `text-[11px]` | `text-xs` |
-| **Card base** | No default shadow | `shadow-sm` |
-| **Card hover** | `hover:-translate-y-1 hover:shadow-lg` | `hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8` |
-| **Grid gap** | `gap-5` | `gap-6` |
-| **Spacing** | Header `pb-3`, Content `pb-3`, Footer `py-3` | Header `pb-2`, Content `pb-2`, Footer `py-3.5` |
+| Change                  | Before                                                                        | After                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Title**               | `text-sm font-bold` → `text-primary`                                          | `text-base font-extrabold md:text-lg tracking-tight` → `text-brand-muted-gold`                               |
+| **Description**         | Regex-stripped raw text (leaked `**bold**`, `` `code` ``)                     | `renderMarkdown()` on first paragraph via `dangerouslySetInnerHTML`                                          |
+| **Inline style fix**    | `renderMarkdown()` injected `style="..."` attributes (overrode card Tailwind) | `.replace(/\sstyle="[^"]*"/g, '')` strips inline styles; card CSS controls preview                           |
+| **Description styling** | `<p>` element with regex                                                      | `<div>` with `[&_p]:inline [&_p]:m-0 [&_strong]:text-foreground/80 [&_code]:text-[13px] bg-white/[0.04] ...` |
+| **Difficulty badge**    | `text-[10px]`                                                                 | `text-[11px] px-2.5`                                                                                         |
+| **Tags**                | `text-[10px] font-semibold`                                                   | `text-xs font-medium`                                                                                        |
+| **Footer stats**        | `text-[11px] gap-2.5` icons `size={11}`                                       | `text-xs gap-3` icons `size={13}`                                                                            |
+| **XP badge**            | `text-[11px]`                                                                 | `text-xs`                                                                                                    |
+| **Card base**           | No default shadow                                                             | `shadow-sm`                                                                                                  |
+| **Card hover**          | `hover:-translate-y-1 hover:shadow-lg`                                        | `hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/8`                                              |
+| **Grid gap**            | `gap-5`                                                                       | `gap-6`                                                                                                      |
+| **Spacing**             | Header `pb-3`, Content `pb-3`, Footer `py-3`                                  | Header `pb-2`, Content `pb-2`, Footer `py-3.5`                                                               |
 
 ### Files modified
+
 - `frontend/app/(main)/home/page.tsx` — 30+ line changes, 1 new import (`renderMarkdown`)
 
 ---
@@ -2476,7 +2771,9 @@ Snowflake background didn't match Koder's professional amber/charcoal brand aest
 **Commits:** _(pending)_
 
 ### Problem
+
 Two Python modules (`python-practice`, `python-practicals`) didn't show in the admin panel's Problem Module Locks tab or on the student home page. Root causes:
+
 - `migrations/046_module_meta.sql` — missing `module_meta` entries for both
 - `frontend/components/dashboard/ModuleCards.tsx` — missing `MODULE_META`/`MODULE_DISPLAY_NAMES`/`MODULE_COLORS` entries
 - `python-practicals` problems were never INSERTed into the DB (only UPDATE SQL existed)
@@ -2484,6 +2781,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ### Changes
 
 **`migrations/047_seed_python_practicals.sql`** (new, 1095 lines)
+
 - Full seed for 25 python-practicals problems with 7 test cases each (175 total)
 - Professional INSERTs with: constraints, learning_objective, tags, `language_versions` JSONB
 - 3 visible + 4 hidden test cases per problem
@@ -2491,19 +2789,23 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Escaped double-quotes in PostgreSQL array hints (`\"`) and quoted JSONB inputs (`'[...]'::jsonb`)
 
 **`scripts/generate-practicals-migration.mjs`** (new, 480 lines)
+
 - Reads `problems_python-practicals.json`, outputs clean migration SQL
 - Handles: Parameterized test cases, pgArray escaping, JSONB quoting
 
 **`frontend/components/dashboard/ModuleCards.tsx`** (+14 lines)
+
 - Added `python-practice` and `python-practicals` to `MODULE_META`, `MODULE_DISPLAY_NAMES`, `MODULE_COLORS`
 
 ### Verification
+
 - ✅ 25 problems, 175 test cases, correct difficulty distribution (6×1, 7×2, 6×3, 6×4)
 - ✅ JSONB inputs properly quoted, array elements properly escaped
 - ✅ Module meta entries for display names in admin panel
 - ✅ Frontend has fallback image/color/description for both modules
 
 ### Verification
+
 - ✅ `npx tsc --noEmit` — 0 errors
 - ✅ `npm run lint` — 0 errors (1 pre-existing warning in `MarkdownPreview.tsx`)
 - ✅ All pushed to `origin/update`
@@ -2515,6 +2817,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `fcc360a`
 
 ### Changes
+
 - **`migrations/047_add_param_names.sql`** (16 lines) — added `param_names TEXT[]` column to problems schema
 - Backend updates: `problems.go` (ListProblemWithTestCases), `admin.go` (UpdateProblem), `enricher.go` — scaffold uses real parameter names instead of `arg1`/`arg2`
 - `go vet ./internal/...` — clean
@@ -2526,6 +2829,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `fef38c5`
 
 ### Changes
+
 - `frontend/app/layout.tsx` — Open Graph / Twitter Card meta tags, og:image, theme-color, module-specific preview images
 - `frontend/app/problems/[slug]/page.tsx` — per-problem OG metadata with module-specific WebP images
 - Preview cards display module-specific images on social links
@@ -2537,6 +2841,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `e6ea3c8`, `8a09fdd`, `891d787`
 
 ### Changes
+
 - Complete overhaul of course/module/lesson pages with 3D tactile design system
 - `learning-card.tsx` (379→258 LOC): redesigned with depth, shadows, and type-based gradients
 - `SectionQuiz.tsx` (109→195 LOC): redesigned MCQ with dynamic feedback and review mode
@@ -2553,6 +2858,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `71a16af`, `c374476`, `eac1efb`, `a709b3e`, `4228859`, `9b4c81d`, `0a9808e`, `72b63a8`
 
 ### Changes
+
 - `migrations/047_seed_python_practicals.sql` + `scripts/generate-practicals-migration.mjs` — 25 problems with 5–7 test cases each
 - Rephrased 100+ problems with proper param_names across 5 Python modules
 - Scaffold generation: auto-detect stale `arg1`/`arg2` scaffolds and replace with real param_names on load
@@ -2566,6 +2872,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `212d45a`
 
 ### Changes
+
 - **`internal/api/problems.go`** — backend filters locked problems from response for non-admin users at the handler level
 - **`ProblemWorkspaceClient.tsx`** — `nextProblem` scans past locked items in shuffled list
 - **`success/page.tsx`** — next-problem logic excludes `p.locked` for both `others` and `sameModule` fallbacks
@@ -2580,6 +2887,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `10a570a`
 
 ### Changes
+
 - Removed entire "Learning Progress" section (courses grid with progress bars) from `/home`
 - Courses have dedicated `/learn/courses` area — dashboard is for problems only
 - Cleaned up dead imports: `useWebSocket` (entire import), `fetchProgress`, `CourseProgressEntry`
@@ -2594,6 +2902,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `5c57050`
 
 ### Changes
+
 - **`ProblemWorkspaceClient.tsx`** — 11 changes to Monaco editor configuration:
   - `autoClosingBrackets`: `"never"` → `"always"`
   - `autoClosingQuotes`: `"never"` → `"always"`
@@ -2618,6 +2927,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 90 — 2026-07-30 — Professional codebase reindex — all MD files read, accurate LOC verified
 
 ### Changes
+
 - Read and catalogued all 17 markdown files across the repository
 - Discovered 4 new docs: `docs/curriculum.md` (937 LOC), `docs/ai-curriculum-prompt.md` (387 LOC), `courses.md` (607 LOC), `rephrase-review.md` (393 LOC)
 - Discovered new CLI tool: `cmd/generate-curriculum/main.go` (280 LOC) — reads AI JSON, writes curriculum SQL
@@ -2632,6 +2942,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 91 — 2026-07-31 — Professional codebase reindex — all Go/frontend files verified
 
 ### Changes
+
 - Full automated audit: `go vet` (10/10 packages clean), `go test` (9/9 suites passing), `tsc --noEmit` (0 errors), ESLint (0 errors)
 - Verified Go backend: 62 source + 14 test files, ~18,518 LOC (15,784 source + 2,734 test)
 - Verified Go sandbox: 7 source + 1 test + 1 Dockerfile, ~1,052 LOC, zero external deps
@@ -2648,6 +2959,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 92 — 2026-07-31 — Professional codebase reindex — full verified audit
 
 ### Changes
+
 - Full automated audit: `go vet` (12/12 root packages + sandbox = 13 clean), `go test` (10/10 suites, 136 tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors, sandbox `go build` + `go test` clean
 - Verified Go backend: 62 source + 13 test files, 21,211 LOC (18,073 source + 3,138 test) — api 7,009, store 6,398, executor 1,801, enricher 942, auth 364, config 350, parser 371, broker 68 + 4 cmd tools 770
 - Verified Go sandbox: 7 source + 1 test + Dockerfile + fly.toml, 1,233 LOC, zero external deps
@@ -2666,6 +2978,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `3123b73`, `2a906bf` (PR #170)
 
 ### Changes
+
 - Merged `3123b73` (Azure migration) to `staging` via PR #170 (`2a906bf`); CI + sandbox-publish workflow passed
 - `sandbox-publish.yml` builds/pushes `ghcr.io/jerryjuche/koder-sandbox:latest` + `:sha-2a906bfb934f` (public) — image only, no Azure resources
 - Deployed via `sandbox/azure/deploy.sh --yes` in Azure Cloud Shell: RG `koder-sandbox`, env `sandbox-env`, app `koder-sandbox` (0.5 vCPU/1.0Gi, min 0/max 4, HTTPS→8080, rate limit 60/min)
@@ -2680,6 +2993,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `6b576dd`
 
 ### Changes
+
 - Root-caused a real production bug: the first Go submission after ~5 min idle **failed** (backend client timeout `30s + 10 = 40s` < ACA cold start ~30–60s + first `go test` compile ~23s = 53–83s)
 - Decoupled the sandbox HTTP client timeout from the execution timeout — new `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) covers scale-to-zero cold starts while `timeout_sec` (30s Go / 60s Python) still hard-caps student code runs (`sandbox_client.go`, `executor.go` ×3 call sites, `config.go`)
 - Raised `http.Server` read/write/idle timeouts 60s → 180s so `WriteTimeout` cannot kill a cold-start request (`cmd/server/main.go`)
@@ -2696,6 +3010,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 **Commits:** `6e42212`
 
 ### Changes
+
 - Synced the canonical `SESSION_LOG.md` logbook — appended Sessions 90–94 (CLAUDE.md numbering) that post-dated its last entry (Session 88) with an alignment note for the 85–88 consolidation
 - Updated `CLAUDE.md` inventory for the cold-start commit `6b576dd`: sandbox total ~1,233 → ~1,244 LOC (`Dockerfile` 19 → 30, baked Go cache), `config.go` 350 → 366 (33 fields), `config_test.go` 352 → 355, `sandbox_client.go` 166 → 170, executor 1,801 → 1,805, Go LOC ~22,444 → ~22,478
 - Added `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 90) + cold-start timing note to §19; bumped "Last indexed" to 2026-08-01
@@ -2707,6 +3022,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 96 — 2026-08-01 — Neutral charcoal theme retune (#141414)
 
 ### Changes
+
 - Retuned the entire charcoal palette to neutral gray, removing the blue-violet cast of `#1A1A24`: base `#141414`, panel `#191919`, card `#1E1E1E`, sidebar `#111113` (hover/border rgba unchanged)
 - `frontend/app/globals.css` — 17 lines: `@theme` `--color-brand-charcoal-{base,card,panel}` + `:root`/`.dark` shadcn vars (`--background`, `--card`, `--popover`, `--primary-foreground`, `--secondary`, `--accent`, `--sidebar`)
 - `frontend/lib/monaco-theme.ts` — 7 editor surface colors aligned to panel/card (`editor.background`/`SuggestWidget`/`HoverWidget`/`Gutter`, `lineHighlight`/`Widget`/`input`)
@@ -2720,6 +3036,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 97 — 2026-08-01 — Neutralize residual blue-tinted chrome + Monaco tints
 
 ### Changes
+
 - Follow-up to Session 96: neutralized the remaining cool blue-gray grays that clashed with the neutral `#141414` charcoal
 - `frontend/lib/monaco-theme.ts` — 12 supporting tints → neutral: selection `#3A3A4A→#3D3D3D`, inactive selection `#2E2E3E→#2E2E2E`, indent guides `#2A2A3A→#2A2A2A` + `#3A3A50→#3A3A3A`, widget borders `#33334A→#333333` ×4, line numbers `#555568→#565656`, scrollbar `#33334A55→#33333355` + `#44445F88→#44444488`
 - Chrome surfaces: google-button (`#1C1C28→#1C1C1C`, `#2A2A3A→#2A2A2A`, `#252535→#252525`), hover-card (`#1C1C28→#1C1C1C`), DesktopOnlyOverlay (`#0D0D14→#0D0D0D`, `#2A2A3A→#2A2A2A` ×3), error boundaries ×2 (`#0A0A0F→#0A0A0A`), workspace editor toolbar (`#0F1115→#121212` ×2)
@@ -2732,6 +3049,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 98 — 2026-08-01 — Phase 1 complete: real TextMate tokenization (Dark+ fidelity)
 
 ### Changes
+
 - **Exact VS Code Dark+ tokenization for Go + Python** via vscode-textmate + vscode-oniguruma wired into Monaco's binary token path — pixel-identical to VS Code, not an approximation
 - `frontend/lib/monaco-textmate.ts` (new, 67 LOC): `Registry({ onigLib, loadGrammar })` → `setTheme(rawTheme, null)` → `monaco.languages.setColorMap(registry.getColorMap())` → `setTokensProvider("python"|"go", { getInitialState, tokenizeEncoded })`. `tokenizeEncoded` passthrough routes through Monaco's `EncodedTokenizationSupportAdapter` (verified in AMD source), so vscode-textmate color ids render against the registry color map directly — no scope→color translation, no Monarch fallback
 - `frontend/scripts/build-monaco-assets.mjs`: now emits 4 tracked artifacts — (1) `lib/dark-plus-theme.generated.json` (Monaco theme), (2) `lib/dark-plus-textmate.generated.json` (raw `IRawTheme` with a **prepended scope-less default rule** `#D4D4D4`/`#1E1E1E` so uncolored tokens inherit Dark+'s editor.foreground instead of vscode-textmate's `#000000` fallback), (3) `lib/grammars/python.tmLanguage.json` (MagicPython), (4) `lib/grammars/go.tmLanguage.json` (VSCode Go). Generated artifacts live under `lib/` (tracked); vendored sources under `scripts/vendor/` remain gitignored build inputs
@@ -2742,6 +3060,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Runtime-safety detail:** both CJS packages have `__esModule: true` with no `.default` export, so default imports would resolve to `undefined`; namespace imports (`import * as tm`) are the correct form
 
 ### Verification
+
 - Node end-to-end probe (committed artifacts → Registry → tokenizeLine2 → `(meta >>> 15) & 0x1ff` → colorMap): `from typing import List` → `from`/`import` #C586C0, `List` plain #D4D4D4 (matches real MagicPython); `def is_palindrome(s: str) -> bool` → #569CD6/#DCDCAA/#4EC9B0; Go `const factor = 2.5` → #4FC1FF (canonical `variable.other.constant`), `fmt.Println("hi")` → #9CDCFE/#DCDCAA/#CE9178; `"1"`/`2.5` → #B5CEA8 — all exact Dark+ values
 - Default-rule fix confirmed: colorMap[1] = #D4D4D4 (was #000000), colorMap[2] = #1E1E1E
 - Monaco AMD build verified: `setColorMap`, `setTokensProvider`, `tokenizeEncoded`, `getInitialState` all present in `editor.api` chunk; `setTokensProvider` throws for unknown language (both registered via existing completion/hover providers)
@@ -2751,6 +3070,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 99 — 2026-08-01 — Real formatting (gofmt + pinned black) via POST /api/format
 
 ### Changes
+
 - **Sandbox:** `POST /format` endpoint (`sandbox/format.go`) — pipes Python source through `black -q -` (stdin→stdout) with a 30s timeout, returns `{formatted, error}`; empty input → empty output. Registered under the rate-limited path next to `/execute` (`sandbox/main.go`). Dockerfile now installs **pinned `black==25.1.0`** via `py3-pip` so formatting output is byte-stable across image rebuilds (image previously had only `python3`)
 - **Backend:** `executor.FormatCode(ctx, language, code)` (`internal/executor/format.go`) — Go formatted **in-process** via `go/format.Source()` (gofmt's canonicalizer, no new dep); Python routed to the sandbox `/format` via a new `sandboxClient.format()` with the same 3-attempt exp-backoff retry as execute (tolerates ACA scale-to-zero cold starts). Parse failures surface as a typed `*FormatSyntaxError` (client error, not infrastructure)
 - **Backend:** `POST /api/format` (`internal/api/format.go`) — auth required (mirrors `/test`), language ∈ {go,python}, `code ≤ 50KB`; maps syntax errors → **422**, sandbox unreachable → **502** with friendly message, success → `{formatted}`. Registered in the authenticated router group with a 256KB body limit (no tight per-user rate limiter — formatting must survive save cycles; the sandbox keeps its own per-IP limit)
@@ -2762,11 +3082,13 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Deferred:** pyright-based Python autocomplete (monaco-pyright-lsp) deliberately **not** implemented this session — see CLAUDE.md Known Issues #16. The existing 157-entry static Python completions remain
 
 ### Tests
+
 - Sandbox `format_test.go` (5): valid formatting (`def add(a,b):` → `def add(a, b):\n    return a + b\n`), syntax error → error message, empty → empty, unsupported language → 400, quote normalization (`'hello'` → `"hello"`) — black-gated via `exec.LookPath` (skips locally, runs in the Docker image)
 - Executor `format_test.go` (7): Go valid/syntax-error/empty, unsupported language, Python via fake sandbox server (request language/code + response parsing), black error → `*FormatSyntaxError`, and **stub-signature regression guard** — formatting a generated scaffold must preserve the `func` signature line
 - API `format_test.go` (6): 401 unauthenticated, success payload shape, unsupported language, 50KB cap, 422 syntax error, 502 infrastructure failure (via a scriptable `Formatter` interface)
 
 ### Verification
+
 - `go vet` clean (backend + sandbox); full `go test ./internal/...` green (8/8 suites incl. new format tests); sandbox tests green (black tests skip on dev box, run in image)
 - `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors
 - `next build` success (formatting provider bundled; monaco-format.ts in client chunks)
@@ -2775,12 +3097,14 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 100 — 2026-08-01 — React Bits ShapeGrid background animation integration & brand UI polish
 
 ### Changes
+
 - **ShapeGrid Component:** Integrated React Bits `<ShapeGrid />` canvas component in [`frontend/components/ui/ShapeGrid.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/ShapeGrid.tsx). Adjusted radial gradient edge stop from `#120F17` to `#141414` to match Koder's charcoal background token `--color-brand-charcoal-base`. Added `prefers-reduced-motion` check to avoid animation overhead for users with motion sensitivity settings.
 - **AnimatedBackground Overlay Wrapper:** Created [`frontend/components/ui/AnimatedBackground.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/ui/AnimatedBackground.tsx) positioning `ShapeGrid` at `z-0` behind page contents. Uses brand gold tones (`rgba(212, 175, 55, 0.045)` border & `rgba(212, 175, 55, 0.07)` hover fill) with diagonal drift motion and a multi-stop top-to-bottom gradient overlay fading to solid `#141414`. Dynamically imported with `ssr: false` to ensure clean hydration.
 - **Landing Page Integration:** Updated [`frontend/components/LandingContent.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/components/LandingContent.tsx) with `<AnimatedBackground fadeEnd="55%" opacity={0.4} />` for an ambient backdrop under the Hero section.
 - **Main App Layout Integration:** Updated [`frontend/app/(main)/layout.tsx`](file:///C:/Users/Jerry%20Koko/Desktop/koder/frontend/app/%28main%29/layout.tsx) with `<AnimatedBackground fadeEnd="50%" opacity={0.35} />` so the authenticated dashboard benefits from the ambient texture without interfering with problem workspace elements.
 
 ### Verification
+
 - `npx tsc --noEmit` 0 errors
 - `npx next build` exited with code 0 (20+ routes compiled cleanly)
 - Pushed commit `cb8ad4f` to `origin/update`
@@ -2788,6 +3112,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 101 — 2026-08-02 — Layout margin cleanup + standardized success pages + always-warm sandbox
 
 ### Changes
+
 - **Removed global `<main>` padding** (`frontend/app/(main)/layout.tsx`): `<main>` is now `relative z-10 flex-1 w-full` — no `px/pt`. Each page owns its own container; home + problems were the only pages relying on the global padding
 - **Dashboard + problems listing:** now `max-w-7xl mx-auto pt-4 pb-8 px-4 sm:px-6 lg:px-8` — content edges align with the TopNav's `max-w-7xl` container; kills the double top gap (was `main pt-6` + page `py-6` = 48px) and the redundant side margins; `pt-4` leaves a small breathing room under the sticky nav
 - **Settings + Admin:** `settings` root `py-8` → `pt-4 pb-8`; `admin` root `pb-12` → `pt-4 pb-12` — consistent top margin
@@ -2795,13 +3120,16 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Sandbox always-warm (earlier in the day):** ACA `deploy.sh`/`container-app.yaml` `MIN_REPLICAS=1` (~$18-22/mo, no cold-start waits); `sandbox/main.go` `WriteTimeout = maxTimeoutSec+60` (was +10) so 60s Python runs aren't killed server-side; `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` default 90 → 20; docs + CLAUDE.md cost model rewritten for always-warm
 
 ### Verification
+
 - `npx tsc --noEmit` 0 errors, `npm run lint` 0 errors
 - `go test ./internal/...` (8 suites) + sandbox vet/build/test green
 - Pushed `d8ac1fe`, `e2b79db`, `2f808bb` to `origin/update`
+
 ## Session 102 — 2026-08-02 — Detailed Python format errors
 
 ### Changes
-- **`sandbox/format.go`** — failed Python formats now return a professional, actionable message instead of black's raw `error: cannot format -: Cannot parse: 7:0: ...`. Black reports positions against its own *normalized* copy of the source, so the line/column was misleading (e.g. `7:0` for a one-line file)
+
+- **`sandbox/format.go`** — failed Python formats now return a professional, actionable message instead of black's raw `error: cannot format -: Cannot parse: 7:0: ...`. Black reports positions against its own _normalized_ copy of the source, so the line/column was misleading (e.g. `7:0` for a one-line file)
 - Re-parses the **raw** source with `ast.parse` (python3 subprocess, reusing `findPythonBin()`/`runCommandWithLimitedOutput()` — same pattern as `validatePythonAST`) to surface the true `line N, column M` + error class, with per-class tips:
   - `IndentationError`/`TabError` → "Check your indentation. Python requires consistent spaces (usually 4)..."
   - `SyntaxError` → "Check for missing colons, unclosed brackets, or statements merged onto one line."
@@ -2810,6 +3138,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - Frontend untouched — the workspace toast and Monaco Shift+Alt+F silent-degrade already surface the backend message
 
 ### Verification
+
 - `go vet` clean (sandbox); full sandbox suite + all 8 backend suites green; `go build ./sandbox` OK
 - **Deployment note:** lives in the sandbox binary → rebuild GHCR `:latest` (CI push to `main`/`staging` for `sandbox/**`) then `./sandbox/azure/deploy.sh --yes`; backend + frontend need no changes
 - Committed `friendly-python-format-errors` to `origin/update`
@@ -2817,6 +3146,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 103 — 2026-08-04 — Hidden-test transparency + password recovery overhaul
 
 ### Changes
+
 - **Hidden-test masking removed** (`internal/executor/executor.go`, `frontend/components/TestResultPanel.tsx`, `frontend/app/problems/[slug]/ProblemWorkspaceClient.tsx`): after a full submission every test case now reports its real `output`/`expectedOutput` (incl. hidden edge cases) — the `(hidden test case)` placeholder block and the `(hidden)` sentinel values are gone. `ExecuteVisibleOnly` now caps the test endpoint at the first 3 visible cases for a quick preview. Enricher prompts updated to `3 visible + 5 hidden` (8 total) so AI-generated suites align with the transparent reveal model.
 - **Parser: `--- FAIL: TestSolution` parent-summary leak fixed** (`internal/executor/parser.go`): the trailing top-level summary line (Python `--- FAIL: TestSolution`, Go `--- FAIL: TestSolution (0.00s)`) matched no case and fell through to the `want` append branch, corrupting the last failing case's expected value with `"1\n--- FAIL: TestSolution"`. New `parentSummaryRegex` + switch case flushes open GOT/WANT buffers and resets state, so the last failing case keeps a clean single-line expected value (fixes the forced multi-line diff). 4 regression cases added in `executor_test.go`.
 - **PIN reset now accepts username/email/student_id** (`internal/api/pin_reset.go`): `forgotPasswordPinRequest` uses `login` instead of `email`; lookup via `GetUserByLogin`; rate limiter keyed by login (renamed `emailRateLimiter` → `identifierRateLimiter`); short-lived JWT carries `user_id` claim (was email) so accounts without an email can recover. `ResetPasswordPin` resolves the user by ID. `maskLogin()` added for log redaction. `GetUserByLogin` (`internal/store/users.go`) now SELECTs/Scans `pin_hash` (was missing → PIN verify would have failed).
@@ -2824,6 +3154,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Admin password reset** (`internal/api/admin.go`, `internal/api/router.go`, `frontend/lib/api.ts`, `frontend/app/(main)/admin/UserVerificationPanel.tsx`): new `POST /admin/users/{id}/reset-password` (8–128 char password, bcrypt, `LogActivity`, cache invalidation) registered in the AdminOnly group; admin UI gains a key icon per search result that opens a reset dialog mirroring the verified-toggle pattern.
 
 ### Verification
+
 - `go vet ./internal/... ./cmd/...` clean; `go build ./cmd/server` OK; all 8 backend suites green (incl. 4 new parser regressions)
 - `npx tsc --noEmit` 0 errors; ESLint 0 errors on changed frontend files
 - Single combined commit pushed to `origin/update`
@@ -2831,6 +3162,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 105 — 2026-08-05 — 6-digit PIN removal → email-only recovery + password eye-toggles
 
 ### Changes
+
 - **PIN system fully removed** — password recovery is now email-only; changing a password while signed in verifies the **current password** instead of the 6-digit recovery PIN:
   - **`internal/api/change_password.go`** (266→148 LOC): `SetPin`/`VerifyPin`/`pinRateLimiter`/`globalPinLimiter` deleted; `ChangePassword` now accepts `{current_password, new_password}`, verifies via bcrypt against `users.password`, keeps a 5-attempt/15-min brute-force limiter (renamed `globalPasswordLimiter`), returns 409 `NO_PASSWORD_SET` for Google-only accounts, validates 8–128 chars + "must differ from current", uses `INCORRECT_PASSWORD` (401) on mismatch
   - **`internal/api/pin_reset.go` deleted** (296 LOC) — the whole login/PIN → JWT recovery path, `identifierRateLimiter`, `pinResetKey` domain-separation, and `maskLogin` are gone
@@ -2845,6 +3177,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Docs:** README.md (auth API table, users schema snippet, backend file tree) + CLAUDE.md (§6.2 handler table, §12 API/§12.1 auth route tables, §10 users row, §9.1 migration table + `022` flagged `[OBSOLETE]`, §19 RESEND note) purged of PIN references; §17 metrics updated (backend 63 src, frontend 159 TS/TSX, migrations 52, ~116,450 total tracked LOC)
 
 ### Verification
+
 - `go vet ./internal/...` clean; `go build ./cmd/server ./internal/...` OK; all 8 backend suites green
 - `npx tsc --noEmit` 0 errors; ESLint 0 errors
 - Working tree: source + docs only; production DB requires running `050_drop_pin_hash.sql`
@@ -2852,6 +3185,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 106 — 2026-08-05 — Email delivery diagnostics (Resend webhook + email_logs)
 
 ### Changes
+
 - **Root cause hunt:** "6 reset flows → 1 email delivered" traced to a blind spot — the backend treated a Resend `200` as success but never read the response body, and had no way to learn the true outcome (delivered/bounced/failed) after the email left Resend
 - **`internal/store/email_logs.go`** (new, 188 LOC): email lifecycle tracking — `CreateEmailLog`, `UpdateEmailLogStatus`, `UpdateEmailLogAttempts`, `UpdateEmailLogByProviderID` (SQL status precedence: bounced/complained/failed terminal > delivered > delivery_delayed > sent > created), `GetEmailLogByProviderID`, `MarkWebhookEventProcessed` (svix-id dedupe), `ListEmailLogs` (status/email filters); 7 new methods on the `Store` interface
 - **`internal/api/webhooks.go`** (new, 218 LOC): `POST /api/webhooks/resend` — public route registered outside all auth groups; Svix signature verification (HMAC-SHA256 over `{id}.{timestamp}.{body}` with base64-decoded `whsec_` secret, ±5 min timestamp tolerance, constant-time compare) with zero new dependencies; maps `email.delivered/bounced/complained/delivery_delayed/failed` to `email_logs` statuses by provider email id; dedupes on `svix-id` (at-least-once delivery); bounces surface their reason; always returns 200 to acknowledge
@@ -2867,6 +3201,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 107 — 2026-08-05 — Production hotfix — webhook jsonb payload encoding (SimpleProtocol bytea bug)
 
 ### Changes
+
 - **Production incident:** live Resend webhooks (signatures now passing) failed at `MarkWebhookEventProcessed` with `invalid input syntax for type json (SQLSTATE 22P02)`, causing 500s → infinite Resend retries on the same `svix_id`
 - **Root cause:** the pool runs in `QueryExecModeSimpleProtocol` (`store.go:259`); pgx encodes `[]byte` params as **bytea** (`\x` hex text), so the raw webhook body was inserted into the `payload JSONB` column as `\x7b...`, which Postgres cannot parse as JSON. Unit tests missed it because they use a `fakeEmailLogStore`, never a real Postgres
 - **Fix:** `MarkWebhookEventProcessed` payload param `[]byte` → `string` (text literal + Postgres `text → jsonb` assignment cast) across all 4 sites — `internal/store/email_logs.go` (impl + `$4::jsonb` defensive cast), `internal/store/store.go` (interface), `internal/api/webhooks.go` (call site passes `string(rawBody)`), `internal/api/webhooks_test.go` (fake signature)
@@ -2877,6 +3212,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 108 — 2026-08-05 — Frequent-logout fix — refresh rotation race + auth limiter decoupling
 
 ### Changes
+
 - **Reported issue:** user "logged out frequently"; a 300s "domain TTL" was suspected but DNS TTL cannot affect sessions — full codebase scan of the auth chain (JWT issue/refresh/logout, middleware, `fetchApi`/`tryRefreshToken`, `UserContext`, polling) found the real causes
 - **Root cause 1 — token-rotation race killed all sessions:** on expiry (access token default 15 min), every active tab/background poll (`useNotifications` 7s when visible, BroadcastBanner 30s, WS reconnects) independently hit `/auth/refresh`. Rotation revokes the old refresh token; a second request presenting the just-revoked token was treated as theft → `RevokeAllUserRefreshTokens` (`auth.go:537`) nuked every session → 401 `REFRESH_TOKEN_REVOKED` → frontend cleared tokens → `UserContext` → `router.replace("/")`. The `isRefreshing` queue only guards one tab's JS realm; localStorage is shared across tabs
 - **Root cause 2 — `/auth/refresh` sat behind the per-IP 10 req/min limiter** (`router.go:97`): refresh bursts (multi-tab, short TTL) → 429 → refresh fails → `fetchUser` fails → landing-page bounce
@@ -2895,6 +3231,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 109 — 2026-08-05 — Professional password-reset email template (brand-matched, reusable, injection-safe)
 
 ### Changes
+
 - **Motivation:** the reset email was a bare `<h2>` + `<a>` built with `fmt.Sprintf` — no email-safe layout, no brand, and it interpolated the user-supplied recipient name unescaped (HTML-injection vector). Rebuilt as a professional template matching Koder's charcoal + purple + gold brand.
 - **New `internal/email` package** (`email.go`, 248 LOC): reusable document shell — `html/template`, 600px table column on `#141414`, email-client-safe inline CSS (no `<style>` blocks), `color-scheme: dark`, auto-escaping of every dynamic value. `layoutBase` define is the shared shell with a `{{template "content" .}}` slot; future emails (verification, welcome, enrollment, certificates) reuse it by swapping the content definition. Constants mirror `frontend/app/globals.css`: charcoal `#141414`/`#1E1E1E`, border `#2B2B2B`, off-white `#D1D1D8`, muted `#88889A`, purple gradient `#53389E→#7F56D9→#9E77ED`, gold CTA `#D4AF37` on `#141414` text (matches the reset-password page + landing CTAs). No emoji anywhere — the hero lock is an inline SVG (Lucide-style padlock) encoded as a `data:` URI spliced into the template at parse time (Go's CSS `url()` sanitizer would rewrite a data URI to `#ZgotmplZ` if passed as data).
 - **`internal/api/password_reset.go`** (409→414 LOC): `sendEmailOnce` now renders via `emailtmpl.RenderPasswordResetString` (import aliased `emailtmpl` — the `email` param shadows the package). `LogoURL` = `FRONTEND_URL + /logo.png` (2000×2000 PNG, rendered at 44px in the header band); `SupportEmail` extracted from `EMAIL_FROM` via new `emailAddressFromFrom` helper (strips the `Name <addr>` wrapper for a clean `mailto:`); `Tagline` = the landing hero's "Koder turns every problem into an instant feedback loop."
@@ -2906,8 +3243,9 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 109b — 2026-08-05 — Chi router panic fix — `/auth/refresh` middleware-ordering regression
 
 ### Changes
+
 - **Reported bug:** backend crashes at startup with `panic: chi: all middlewares must be defined before routes on a mux`
-- **Root cause:** Session 108 moved `/auth/refresh` out of the per-IP rate-limiter by registering it inside the `/auth` `r.Route` block *before* `r.Use(authRateLimiter.Middleware)`. chi requires all `Use()` middleware to precede any route on the same mux — a route registered first panics at construction. The existing test suite never constructed the full router (`NewRouter`), so the regression passed CI.
+- **Root cause:** Session 108 moved `/auth/refresh` out of the per-IP rate-limiter by registering it inside the `/auth` `r.Route` block _before_ `r.Use(authRateLimiter.Middleware)`. chi requires all `Use()` middleware to precede any route on the same mux — a route registered first panics at construction. The existing test suite never constructed the full router (`NewRouter`), so the regression passed CI.
 - **Fix** (`router.go:96-112`): `/auth/refresh` is now registered on the **parent mux** (`r.With(BodySizeLimitMiddleware(256KB)).Post("/auth/refresh", ...)`), entirely outside the `/auth` group. It still bypasses the IP limiter (the goal of Session 108) while keeping `r.Use()` before all routes inside the group — satisfying chi's ordering rule.
 - **Regression test** (`router_test.go`, new, 42 LOC): `TestNewRouter_DoesNotPanic` constructs the full router via `NewRouter` with a `nilStore` (embeds `store.Store` — construction-time methods only, none invoked) and minimal config, then asserts a non-nil `App`. Verified the test **fails on the pre-fix code** (panic) and passes post-fix.
 - **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green (169 tests = 168 + 1 new), test table + header badge updated.
@@ -2915,6 +3253,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 109c — 2026-08-05 — Production incident — main deployed Session 108 regression; fix pending merge to main
 
 ### Changes
+
 - **Reported via Render logs:** production `main` panics at startup with `panic: chi: all middlewares must be defined before routes on a mux` (router.go:105) — deployed commit `82ca6b7` (`Merge pull request #199 from jerryjuche/staging`) still contains Session 108's broken `/auth/refresh` registration
 - **Branch state:** `main` = `82ca6b7` (broken, has `7cad9ec` but NOT the fix); `staging` = `01c65ae` (fixed, `2239d9c` merged via PR #200); `update` = `2239d9c` (fixed). `git diff origin/main origin/staging` = exactly the fix (router.go +14/−6, router_test.go +46, CLAUDE.md)
 - **Resolution path:** merge `staging` → `main` (PR flow, matches #199) or push `2239d9c` to `main` directly; user opted to merge manually — fix remains on `update`/`staging` until then
@@ -2925,6 +3264,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 110 — 2026-08-06 — Strictly disable pasting in the problem workspace editor
 
 ### Changes
+
 - **New `frontend/lib/monaco-paste-guard.ts`** (154 LOC): `blockPaste(editor, monaco, { onBlocked, feedbackCooldownMs = 5000 })` — layered defense-in-depth against Monaco's built-in `paste` action (keybinding + own context menu), which has no single bulletproof interception point:
   1. **Keybindings** — `Ctrl/Cmd+V` and `Shift+Insert` overridden with no-op commands (last-registered chord wins, so the built-in paste never fires)
   2. **Context menu** — DOM `contextmenu` swallowed at the editor root in the capture phase, blocking both Monaco's menu and the browser default (which has a native Paste item)
@@ -2934,6 +3274,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Wiring** (`ProblemWorkspaceClient.tsx` +17): `blockPaste` called on editor mount with a throttled "Pasting is disabled — type your solution" toast; disposed in the cleanup path
 
 ### Verification
+
 - `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`f15dd00`)
 
 ---
@@ -2941,6 +3282,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 111 — 2026-08-06 — Professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening
 
 ### Changes
+
 - **Test-result diff extraction** (`95d391f`, `TestResultPanel.tsx` 555 LOC, −367 net): the old ~150-line inline LCS line-diff (`computeLineDiff` + `TerminalDiff`) extracted into a reusable diff primitive kit:
   - `frontend/components/test-results/lineDiff.ts` (56 LOC) — pure LCS line diff algorithm
   - `frontend/components/test-results/charDiff.ts` (34 LOC) — character-level diff (prefix/suffix trim + middle)
@@ -2951,6 +3293,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Monaco TextMate hardening** (`lib/monaco-textmate.ts` 88 LOC, `CodeEditor.tsx` 149 LOC): onig.wasm fetch now retries (4 attempts, exp backoff `2ⁿ×1000ms` capped 4s, `AbortSignal.timeout(10s)`); `CodeEditor` module-level warm-up runs `initTextMateTokenization` after `loader.init()` so the wasm is fetched (with retry) before the editor paints — closes the built-in-tokenizer→TextMate color-flip window; explicit `monaco.editor.setTheme("vs-dark-plus")` call removed (TextMate registry owns colors). `scripts/copy-monaco.mjs` retry handling; `package.json` minor dep adjustments
 
 ### Verification
+
 - `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`95d391f`)
 
 ---
@@ -2958,11 +3301,13 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 112 — 2026-08-06 — Hotfix — restore `setResults` in submit/test handlers
 
 ### Changes
+
 - **Reported bug:** after the Session 111 `mapTestResults` refactor, the output panel never received the mapped test results — submissions/test-runs succeeded but no result rows appeared
 - **Root cause:** Session 111 moved result mapping (`mapTestResults`) into a helper; the two call sites in `ProblemWorkspaceClient.tsx` (submit + test) computed `mappedResults` for the pass/fail logic but the `setResults(mappedResults)` call was dropped — `results` state stayed `null`, so `TestResultPanel` rendered nothing
 - **Fix** (`b99b305`, `ProblemWorkspaceClient.tsx` +2): restore `setResults(mappedResults);` in both the `submit` and `test` handlers, immediately after mapping and before the pass/fail branch
 
 ### Verification
+
 - `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`b99b305`)
 
 ---
@@ -2970,12 +3315,14 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 113 — 2026-08-11 — Admin problem-reminder email broadcasts (incoming `8d8908a`)
 
 ### Changes
+
 - **Backend:** `POST /admin/broadcast-emails` → `AdminHandler.SendProblemReminder` (`internal/api/admin.go`, 940→1,079 LOC) — admin picks a problem, backend loads all user emails (`store.ListAllUserEmails`, new, `users.go` 1,346→1,369), renders the brand-matched reminder template, sends via Resend (friendly 502 when `RESEND_API_KEY` unset); route registered in the AdminOnly group (`router.go` 311→312, ~116→~119 routes)
 - **Email package:** `internal/email/send.go` (new, 84 LOC) — `SendEmailViaResend` Resend REST client (reads/parses response body for provider `id` + error, 1 retry on transient 5xx/429/network, panic-recovery); `email.go` 248→368 LOC — `RenderProblemReminderString` reuses the shared `layoutBase` shell, adds a problem-title hero + gold "Solve on Koder" CTA
 - **Frontend:** `app/(main)/admin/EmailBroadcastPanel.tsx` (new, 298 LOC) — problem selector with per-problem body/CTA preview, send-confirmation state; wired into the admin dashboard (`page.tsx` 978→1,408 LOC); `lib/api.ts` 959→1,189 LOC adds `sendProblemReminder`
 - **Tests:** `internal/api/admin_test.go` (new, 80 LOC) — `TestSendProblemReminder_Handler` (1 test); `internal/email/problem_reminder_test.go` (new, 41 LOC) — `TestRenderProblemReminder_ContainsExpectedFields` (1 test) → 171 backend tests total
 
 ### Verification
+
 - `go vet` clean, `go build ./cmd/server ./internal/...` OK, 9/9 backend suites green (171 tests), `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update` (`8d8908a`)
 
 ---
@@ -2983,6 +3330,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 ## Session 114 — 2026-08-12 — CI `npm ci` fix + professional codebase reindex (post-pull refresh)
 
 ### Changes
+
 - **Reported CI failure:** GitHub Actions `npm ci` EUSAGE lock-sync — `Missing: @emnapi/runtime@1.11.3 / @emnapi/core@1.11.3 from lock file` plus EBADENGINE warnings on node v20.20.2 for `@google-cloud/cloud-sql-connector@1.11.1` and `universal-analytics@0.5.4` (both require node `>=22`)
 - **Root cause (EBADENGINE):** unused devDependency `firebase-tools@^15.0.0` (no scripts/imports/config reference it anywhere) — sole source of the `>=22`-only transitive deps (also `re2`). Removed it; the lock-sync half was already fixed upstream by `fdbf615`
 - **Fix** (`7d0091e`, `frontend/package.json`): removed `"firebase-tools": "^15.0.0"` from devDependencies; `npm install` dropped 442 packages and regenerated `package-lock.json`; full `npm ci` (935 packages, ~14m) + `npm ci --dry-run` both clean — zero EBADENGINE, zero lock-sync errors (only benign local allow-scripts warnings + node-domexception deprecation). CI stays on Node 20
@@ -2990,16 +3338,19 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - **Docs:** full professional reindex — CLAUDE.md header badge → 2026-08-12 / 171+11 tests, §3/§4/§6/§8/§12/§15/§17/§19/§20; SESSION_LOG.md rows + Sessions 113/114; README.md API table + file tree; UPDATE_LOG.txt; BRAIN.md; `.opencode/session-log.md`; CODEBASE_INDEX.md
 
 ### Verification
+
 - ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success, `go vet ./internal/...` clean, `go build ./cmd/server` OK, `go test ./internal/...` 9/9 suites green (171 tests), sandbox vet + test green (11 tests)
 - Committed to `update` only (no staging/main merge per user decision; CI triggers on main/staging pushes so the fix is validated on the next merge)
 
 ## Session 115 — 2026-08-12 — Password-reset email template light-theme polish + tests
 
 ### Changes
+
 - Refined `internal/email/email.go` to finalize the light-theme transactional email shell for password reset and problem reminder messages: updated background/text colors to the new brand palette, tightened vertical spacing, improved CTA/button styling, and hardened the fallback URL block.
 - Removed the legacy `OffWhite` alias from inline list item rendering and aligned all email bodies to the new `TextPrimary`/`TextSecondary` palette.
 - Updated `internal/email/email_test.go` expectations to match the refined color palette and confirm safe HTML escaping for injected content.
 
 ### Verification
+
 - `go test ./internal/email/...` passes.
 - Only the log entries were appended in this session; unrelated `go.mod`/`go.sum` changes remain separate.

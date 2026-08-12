@@ -103,7 +103,7 @@ func TestRenderPasswordReset_InlineLogoFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	if !strings.Contains(out, "data:image/svg") {
+	if !strings.Contains(out, "background-image:url('data:image/svg+xml") {
 		t.Errorf("expected inline SVG logo fallback, got %q", out)
 	}
 }
