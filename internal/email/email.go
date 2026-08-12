@@ -73,6 +73,126 @@ func RenderPasswordResetString(data PasswordResetData) (string, error) {
 	return buf.String(), nil
 }
 
+// ProblemReminderData is the data model for a problem reminder / campaign email.
+type ProblemReminderData struct {
+	PlatformName   string
+	FirstName      string
+	ProblemTitle   string
+	ProblemSlug    string
+	ProblemExcerpt string
+	CTAURL         string
+	LogoURL        string
+	SupportEmail   string
+	Tagline        string
+	Year           int
+}
+
+// RenderProblemReminder renders a problem reminder email into w.
+func RenderProblemReminder(w io.Writer, data ProblemReminderData) error {
+	if data.PlatformName == "" {
+		data.PlatformName = "Koder"
+	}
+	if data.Year == 0 {
+		data.Year = time.Now().Year()
+	}
+	return problemReminderTmpl.ExecuteTemplate(w, "layoutBase", data)
+}
+
+// RenderProblemReminderString renders the reminder email and returns the HTML.
+func RenderProblemReminderString(data ProblemReminderData) (string, error) {
+	var buf bytes.Buffer
+	if err := RenderProblemReminder(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+var problemReminderTmpl = template.Must(template.New("problem-reminder").Parse(layoutBase + problemReminderBody()))
+
+func problemReminderBody() string {
+	return `{{define "content"}}
+
+<!-- Header band -->
+<tr>
+<td style="background-image:linear-gradient(135deg,#53389E,#7F56D9);padding:28px 40px;" bgcolor="#7F56D9">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="left">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:middle;">
+<img src="{{.LogoURL}}" alt="{{.PlatformName}}" width="40" height="40" style="display:block;width:40px;height:40px;border:0;border-radius:10px;" />
+</td>
+<td style="width:12px;">&nbsp;</td>
+<td style="vertical-align:middle;">
+<div style="font-size:20px;font-weight:700;color:#FFFFFF;letter-spacing:-0.3px;">{{.PlatformName}}</div>
+<div style="margin-top:2px;color:rgba(255,255,255,.85);font-size:12px;">Practice · Quick wins · Keep the streak</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Hero -->
+<tr>
+<td style="padding:36px 48px 8px 48px;">
+
+<h1 style="margin:0;font-size:26px;line-height:34px;color:#FFFFFF;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
+
+<p style="margin:14px 0 0;color:#D1D1D8;font-size:15px;line-height:24px;">
+Sharpen your skills with this short exercise: <strong style="color:#FFFFFF;">{{.ProblemTitle}}</strong>
+</p>
+
+</td>
+</tr>
+
+<!-- Problem card & CTA -->
+<tr>
+<td style="padding:18px 48px 0 48px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:#141414;border:1px solid #2B2B2B;border-radius:12px;padding:18px;">
+<tr>
+<td style="color:#D1D1D8;font-size:14px;line-height:20px;">
+<div style="font-size:15px;font-weight:700;color:#FFFFFF;margin-bottom:6px;">{{.ProblemTitle}}</div>
+<div style="font-size:13px;color:#88889A;margin-bottom:12px;">{{.ProblemExcerpt}}</div>
+<div>
+<a href="{{.CTAURL}}" style="display:inline-block;padding:12px 22px;background-color:#D4AF37;color:#141414;font-weight:700;border-radius:10px;text-decoration:none;">Open Problem</a>
+</div>
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- Fallback link -->
+<tr>
+<td style="padding:20px 48px 0 48px;">
+<div style="background-color:#191919;border:1px solid #2B2B2B;border-radius:12px;padding:16px;">
+<div style="font-size:13px;color:#88889A;margin-bottom:8px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:13px;line-height:20px;color:#9E77ED;"><a href="{{.CTAURL}}" style="color:#9E77ED;text-decoration:none;">{{.CTAURL}}</a></div>
+</div>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="padding:34px 48px 36px 48px;background-color:#191919;border-top:1px solid #2B2B2B;" bgcolor="#191919">
+
+<div style="font-size:14px;color:#D1D1D8;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:10px;font-size:13px;line-height:20px;color:#88889A;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:#88889A;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:#9E77ED;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:16px;font-size:12px;line-height:18px;color:#5B5B66;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+
+</td>
+</tr>
+
+{{end}}`
+}
+
 // passwordResetTmpl is a reusable document shell (dark background, centered
 // 600px column, email-safe table markup) with a "content" slot that each email
 // type fills. Future templates (verification, welcome, enrollment) reuse the

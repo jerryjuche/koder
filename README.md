@@ -282,16 +282,15 @@ koder/
 │   │   │                               dialog, dropdown-menu, input, input-otp, label,
 │   │   │                               progress, select, tabs, textarea, tooltip, etc.)
 │   │   ├── auth/                    # Google button, label-input, divider, gradient
-│   │   ├── base/avatar.tsx          # Avatar with src/initials fallback + verified badge
-│   │   ├── base/input/pin-input.tsx # OTP PIN input
+│   │   ├── base/avatar/avatar.tsx    # Avatar with src/initials fallback + verified badge
 │   │   ├── kibo-ui/                 # Code block (Shiki), contribution graph
 │   │   ├── learn/                   # SectionRenderer, SectionQuiz, SectionExercise
 │   │   │                               (Monaco), LessonSidebar
+│   │   ├── test-results/            # ValueDiff, lineDiff, charDiff diff primitives
 │   │   ├── BroadcastBanner.tsx
 │   │   ├── FeedbackButton.tsx
 │   │   ├── LanguageLogo.tsx         # Go/Python SVG icons
-│   │   ├── LanguageSelector.tsx
-│   │   ├── TestResultPanel.tsx      # LCS unified diff display
+│   │   ├── TestResultPanel.tsx      # Unified got/expected diff (LCS line+char level)
 │   │   ├── layout/TopNav.tsx        # Nav: Dashboard, Problems, Learn, Leaderboard, Admin
 │   │   └── dashboard/ModuleCards.tsx
 │   ├── hooks/                       # use-google-one-tap, use-has-mounted, use-mobile
@@ -303,6 +302,8 @@ koder/
 │   │   ├── event.ts                 # WebSocket hook with auto-reconnect
 │   │   ├── cache.ts                 # sessionStorage cache with 30s TTL
 │   │   ├── achievements.ts / utils.ts / toast.tsx / index.ts
+│   │   ├── auth-redirect.ts         # Deep-link preservation across auth flows
+│   │   ├── monaco-paste-guard.ts    # Strict paste-blocking for the workspace editor
 │   │   └── monaco-theme.ts          # VS Code Dark+ theme registration
 │   ├── middleware.ts                 # CSP security headers
 │   └── package.json
@@ -772,6 +773,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 | GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
 | GET | `/admin/email-logs` | Admin | Email delivery lifecycle (?status,?email,?limit,?offset) |
+| POST | `/admin/broadcast-emails` | Admin | Send problem-reminder email to all users via Resend |
 | GET | `/health` | None | Service health (db ping, env info) |
 | GET | `/version` | None | Build commit + time + Go version |
 | POST | `/api/webhooks/resend` | None | Resend delivery webhook (Svix HMAC verified, email_logs tracking) |
@@ -888,19 +890,19 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 
 ### Key Components
 
-#### TestResultPanel
-- LCS-based unified diff for multi-line got/want values with git-style markers
-- Side-by-side grid for single-line values
+#### TestResultPanel + `test-results/` diff primitives
+- LCS-based unified diff for multi-line got/want values with git-style markers, rendered by `ValueDiff.tsx`
+- Pure, shared diff algorithms in `lineDiff.ts` (LCS) and `charDiff.ts` (character-level)
+- Side-by-side grid for single-line values, unchanged-context collapse for long outputs
 - Compiler error, timeout states with Python-specific debugging tips
-- Circular progress indicator per test suite
+- Circular progress indicator per test suite; `mode?: "test" | "submit"` and hidden/ordinal pass-through
 
 #### SectionRenderer + SectionExercise
 - `SectionRenderer` routes all 11 lesson section types (quiz, exercises, assessment, mini_project, etc.)
 - `SectionExercise` uses Monaco Editor (SSR-safe with textarea fallback), calls `POST /test`
 - Dynamic language prop (defaults to python) with language badge header
 
-#### LanguageSelector + LanguageLogo
-- Language toggle for Go/Python with persistent per-language scaffold
+#### LanguageLogo
 - SVG icons for Go gopher and Python logo
 
 ---
@@ -924,7 +926,7 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | AI usage logging | Per-user/action tracking with success/failure rates |
 | Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
 | CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
-| Test suite | 169 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
+| Test suite | 171 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
 | Security hardening | CSP headers, account data export, user search/verify, admin AI rate limiting |
 
 ---
@@ -1074,7 +1076,7 @@ Add all frontend origins to Authorized JavaScript origins:
 
 ### Frontend — Tests
 
-- `components/TestResultPanel.tsx`: Unit test rendering with passed/failed/mixed result fixtures.
+- `components/TestResultPanel.tsx` + `test-results/lineDiff.ts`/`charDiff.ts`: Unit test rendering with passed/failed/mixed result fixtures; pure diff algorithms are directly testable.
 - Submission flow: Mock `fetch` and assert loading state → result state transition.
 
 ### CI

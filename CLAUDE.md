@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-05 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (169 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-12 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -34,21 +34,22 @@
 
 ---
 
-## 3. Repository Statistics (Verified: 2026-08-05)
+## 3. Repository Statistics (Verified: 2026-08-12)
 
 | Category | Files | Lines of Code | Notes |
 |---|---|---|---|
-| **Go Backend** (`cmd/` + `internal/`) | 66 source + 19 test | ~18,863 + ~4,041 | 8 packages, 158 Store interface methods, 118 API endpoints; includes 4 cmd tools |
+| **Go Backend** (`cmd/` + `internal/`) | 67 source + 21 test | ~19,231 + ~4,162 | 9 packages, 159 Store interface methods, 119 API endpoints; includes 4 cmd tools |
 | **Go Sandbox** (`sandbox/`) | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter |
 | **SQL Migrations** (`migrations/`) | 54 | ~27,525 | 38 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables |
-| **Frontend App** (`app/`) | 74 `.tsx` | ~17,682 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
-| **Frontend Components** (`components/`) | 64 | ~10,715 | 22 shadcn/ui + 43 custom |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 23 | ~4,057 | 60+ API functions, 40+ TS interfaces, 4 hooks || **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
-| **Documentation** | 21 | ~10,300 | 6 docs/ + 15 root/docs markdown files |
+| **Frontend App** (`app/`) | 75 `.tsx` | ~18,466 | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC) |
+| **Frontend Components** (`components/`) | 68 | ~10,960 | 22 shadcn/ui + 46 custom (incl. new `test-results/` diff primitives) |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`) | 25 | ~4,500 | 21 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC) |
+| **Frontend Styles** (`styles/` + `app/globals.css`) | 4 | ~1,598 | theme.css (856 vars), typography.css (430 lines) |
+| **Documentation** | 21 | ~10,300 | 5 docs/ + 16 root/docs markdown files |
 | **Scripts** | 7 | ~904 | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator |
 | **Config/Build** | 16 | ~699 | go.mod, go.sum, Procfile, build.sh, CI, env, env example, frontend configs, sandbox/azure |
 | **Root Data (JSON, SQL)** | 26 | ~11,823 | Problem JSONs, rollback/update SQL, curriculum JSON |
-| **Total (tracked source)** | **~370** | **~118,600** | Source code + migrations + docs + config + scripts + root data files |
+| **Total (tracked source)** | **~392** | **~110,400** | Source code + migrations + docs + config + scripts + root data; excludes generated vendor JSON, `package-lock.json`, `.next/trace`, binary assets |
 
 ---
 
@@ -61,21 +62,21 @@ koder/
 ├── cmd/generate-sql/main.go                 # CL tool — generate seed SQL from problem JSON
 ├── cmd/generate-curriculum/main.go          # CL tool — generate curriculum SQL from AI JSON
 ├── internal/
-│   ├── api/              (25 files, 7,184 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
-│   ├── store/            (22 files, 6,602 LOC)  # Database access layer — pgx/v5, 158 Store methods
+│   ├── api/              (25 files, 7,324 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (22 files, 6,602 LOC)  # Database access layer — pgx/v5, 159 Store methods
 │   ├── executor/         (7 files, 1,940 LOC)   # Code execution engine, sandbox orchestration, output parsing
 │   ├── enricher/         (1 file, 942 LOC)      # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
-│   ├── email/            (1 file + 1 test, 345 LOC) # Transactional email templates (html/template, email-safe tables)
+│   ├── email/            (2 source + 2 test, 452 + 138 LOC) # Transactional email templates + Resend client (html/template, email-safe tables)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
 │   └── config/           (1 file, 374 LOC)      # Env var loader (33 vars, fails-fast validation)
 ├── sandbox/              (8 source + 2 test + Dockerfile + fly.toml, ~1,610 LOC)  # Remote execution — zero external deps
 ├── frontend/
-│   ├── app/              (74 .tsx, ~17,682 LOC) # App Router pages (7 route groups)
-│   ├── components/       (64 files, ~10,715 LOC) # Shared components + shadcn/ui primitives
+│   ├── app/              (75 .tsx, ~18,466 LOC) # App Router pages (7 route groups)
+│   ├── components/       (68 files, ~10,960 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
-│   ├── lib/              (19 files, ~3,683 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
+│   ├── lib/              (21 files, ~4,126 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
 │   ├── styles/           (3 files, ~1,382 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
 │   └── public/           (28 assets)            # module WebP images (18), icons, logo, OG image
 ├── migrations/           (54 files, ~27,525 LOC) # Full schema + seed data — 25 tables
@@ -136,18 +137,18 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cmd/generate-sql/main.go` | 116 | `main` | CLI — generate seed SQL INSERTs from problem JSON |
 | `cmd/generate-curriculum/main.go` | 398 | `main` | CLI — generate curriculum SQL from AI-generated JSON (CREATE + UPDATE modes) |
 
-### 6.2 API Handlers (`internal/api/` — 25 files, 7,184 LOC)
+### 6.2 API Handlers (`internal/api/` — 25 files, 7,324 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `router.go` | 311 | `App` struct, `NewRouter()` (~116 routes), `Shutdown()` |
+| `router.go` | 312 | `App` struct, `NewRouter()` (~119 routes), `Shutdown()` |
 | `middleware.go` | 540 | 11 middleware functions, `GetClaims(ctx)`, `GetRequestID(ctx)` |
-| `auth.go` | 612 | `AuthHandler` — Register, Login (3-field), GoogleAuth (JWKS), CompleteOnboarding, LinkGoogle, RefreshToken (rotation), Logout, CheckUsername |
-| `admin.go` | 941 | `AdminHandler` — Ingest, Enrich, EnrichAll, AIAssist (8 actions), GetAdminStats, GetAIUsage, ListAllProblems, ToggleVisibility, UpdateProblem, PublishAllDrafts, Approve/Reject contributions, SearchUsers, ToggleUserVerified, ResetUserPassword, ListModuleMeta, UpsertModuleMeta, SetModulePin, ListAllModules, List/Toggle ProblemModuleLocks, DeleteProblemModule |
+| `auth.go` | 628 | `AuthHandler` — Register, Login (3-field), GoogleAuth (JWKS), CompleteOnboarding, LinkGoogle, RefreshToken (rotation), Logout, CheckUsername |
+| `admin.go` | 1,079 | `AdminHandler` — Ingest, Enrich, EnrichAll, AIAssist (8 actions), GetAdminStats, GetAIUsage, ListAllProblems, ToggleVisibility, UpdateProblem, PublishAllDrafts, Approve/Reject contributions, SearchUsers, ToggleUserVerified, ResetUserPassword, ListModuleMeta, UpsertModuleMeta, SetModulePin, ListAllModules, List/Toggle ProblemModuleLocks, DeleteProblemModule, SendProblemReminder |
 | `cms.go` | 1,428 | `CMHandler` — 6 student routes (ListPublishedCourses, GetCourseDetail, GetModuleDetail, GetLessonDetail, CompleteLesson, GetAllProgress) + 22 admin routes (full CRUD for courses/modules/lessons/sections/projects/dependencies) |
 | `me.go` | 360 | `MeHandler` — GetMe (cached 30s), SetUsername (one-time 403), UpdateLanguage, DeleteAccount (cascade), ExportData (JSON) |
 | `change_password.go` | 148 | `ChangePasswordHandler` — ChangePassword (current-password verify, 5/15min rate-limit) |
-| `password_reset.go` | 414 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready), professional HTML via `internal/email` |
+| `password_reset.go` | 424 | `PasswordResetHandler` — ForgotPassword (Resend API, always-ok, email-logged), ResetPassword (SHA-256 token), ListEmailLogs (admin), sendResetEmail (response-body parsed, 1 retry, svix-ready), professional HTML via `internal/email` |
 | `broadcasts.go` | 237 | `BroadcastsHandler` — ListActive, Dismiss (student); ListAll, Create, Deactivate, Activate, Delete (admin) |
 | `feedback.go` | 345 | `FeedbackHandler` — Submit (10MB, screenshot, Resend + in-app notification), ListMyFeedback, ListAdmin (status filter), Counts, UpdateStatus, ListProblemReports |
 | `problems.go` | 202 | `ProblemHandler` — ListVisibleProblems (LATERAL JOIN, locked-module stamping), GetProblemBySlug (403 MODULE_LOCKED), optional auth bypass |
@@ -163,16 +164,16 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `users.go` | 33 | `UsersHandler` — GetUserPublicData |
 | `ws.go` | 75 | `WSHandler` — WebSocket upgrade (gorilla), broker subscribe/unsubscribe, write pump (30s pong) |
 | `cache.go` | 132 | Generic TTL cache (30s): `userCache`, `profileCache`, `leaderboardCache`, `problemsCache` + `StopCaches()` |
-| `responses.go` | 95 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
-| `webhooks.go` | 218 | `WebhooksHandler` — POST /api/webhooks/resend (Svix HMAC verification, delivery-event → email_logs status, svix-id dedupe) |
+| `responses.go` | 98 | `APIError`, `APIResponse`, `RespondSuccess`/`Created`/`Error`, `SetAuthCookie`/`ClearAuthCookie` |
+| `webhooks.go` | 220 | `WebhooksHandler` — POST /api/webhooks/resend (Svix HMAC verification, delivery-event → email_logs status, svix-id dedupe) |
 
 ### 6.3 Store Layer (`internal/store/` — 22 files, 6,602 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `store.go` | 293 | `Store` interface (158 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
-| `types.go` | 676 | ~52 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, EmailLog, EmailLogEvent, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
-| `users.go` | 1,373 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade) |
+| `store.go` | 294 | `Store` interface (159 methods), `PostgresStore` struct, `NewPostgresStore` (MaxConns=10, MinConns=2, 30m lifetime, SimpleProtocol) |
+| `types.go` | 677 | ~52 structs: User, Problem, Submission, Progress, TestCase, Feedback, Broadcast, Notification, Course, Module, Lesson, LessonSection, Project, LanguageSpec, ModuleMeta, ModuleLock, RefreshToken, EmailLog, EmailLogEvent, AIUsageStats, AdminStats, LeaderboardEntry, FlexibleBool, FlexibleStrings, GoogleUserInfo |
+| `users.go` | 1,369 | 30+ functions: CreateUser (bcrypt cost 12), GetUserByLogin (3-field), GetLeaderboard (period, top 100), CalculateStreak (gaps-and-islands DENSE_RANK), CompleteUserOnboarding (atomic tx), DeleteAccount (cascade), ListAllUserEmails (id/email/name for broadcast) |
 | `problems.go` | 809 | 12+ functions: ListVisibleProblems (LATERAL JOIN, `NOT EXISTS` + `EXISTS` locking), UpsertEnrichedProblem (tx), UpdateProblem (16 fields, merge semantics) |
 | `curriculum.go` | 1,146 | 30+ functions: Full CMS CRUD for courses/modules/lessons/sections/projects + dependency management + progress tracking (UpsertCourseProgress, UpsertLessonProgress with GREATER NEVER DECREASE) |
 | `user_problems.go` | 358 | CreateUserProblem, ListPending, Approve (5-step tx with FOR UPDATE), Reject, generateDualLanguageSpec, pascalToSnake, goTypeToPython |
@@ -191,7 +192,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `errors.go` | 67 | `FriendlyError` (Code+Message), `IsUniqueViolation` (23505), constraint→message map |
 | `token_blacklist.go` | 33 | BlacklistToken, IsTokenBlacklisted, CleanupExpired |
 | `password_reset.go` | 48 | Create, Get, MarkUsed, CleanupExpired |
-| `email_logs.go` | 188 | Email delivery lifecycle: CreateEmailLog, UpdateEmailLogStatus, UpdateEmailLogAttempts, UpdateEmailLogByProviderID (status precedence), GetEmailLogByProviderID, MarkWebhookEventProcessed (svix-id dedupe), ListEmailLogs (status/email filters) |
+| `email_logs.go` | 194 | Email delivery lifecycle: CreateEmailLog, UpdateEmailLogStatus, UpdateEmailLogAttempts, UpdateEmailLogByProviderID (status precedence), GetEmailLogByProviderID, MarkWebhookEventProcessed (svix-id dedupe), ListEmailLogs (status/email filters) |
 
 ### 6.4 Auth (`internal/auth/` — 3 source + 2 test files, 364 + 320 LOC)
 
@@ -203,14 +204,23 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `auth_test.go` | 209 | 15 tests: JWT sign/verify, bcrypt hash/compare |
 | `oauth_test.go` | 111 | 5 tests: audience/issuer validation, JWKS key round-trip |
 
-### 6.5 Enricher (`internal/enricher/` — 1 source + 1 test file, 942 + 231 LOC)
+### 6.5 Email (`internal/email/` — 2 source + 2 test files, 452 + 138 LOC)
+
+| File | Lines | Key Exports |
+|---|---|---|
+| `email.go` | 368 | Brand-matched transactional email shell — `html/template`, 600px table column on `#141414`, email-client-safe inline CSS (no `<style>` blocks), `color-scheme: dark`, auto-escaping of every dynamic value. `layoutBase` define is the shared shell with a `{{template "content" .}}` slot; `RenderPasswordResetString`, `RenderProblemReminderString` reuse it by swapping the content definition. Brand constants mirror `frontend/app/globals.css`: charcoal `#141414`/`#1E1E1E`, border `#2B2B2B`, off-white `#D1D1D8`, muted `#88889A`, purple gradient `#53389E→#7F56D9→#9E77ED`, gold CTA `#D4AF37`. Zero emoji — hero icons are inline SVG `data:` URIs (Go CSS `url()` sanitizer would rewrite a data URI to `#ZgotmplZ` if passed as data) |
+| `send.go` | 84 | `SendEmailViaResend` — Resend REST client (`POST /emails`, reads + parses the response body for provider `id` + error message, 1 retry on transient failures 5xx/429/network), panic-recovery wrapper |
+| `email_test.go` | 97 | 3 tests: brand/structure assertions (dark shell, gold CTA, logo, backup URL, support `mailto`, tagline, `©`), XSS-escape regression (script tags + raw `&`), defaults applied (empty PlatformName/ExpiresIn, zero Year), zero emoji glyphs |
+| `problem_reminder_test.go` | 41 | 1 test: problem-reminder template renders expected fields (brand shell, problem title, gold CTA) |
+
+### 6.6 Enricher (`internal/enricher/` — 1 source + 1 test file, 942 + 231 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `enricher.go` | 942 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
 | `enricher_test.go` | 231 | 4 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests) |
 
-### 6.6 Executor (`internal/executor/` — 7 source + 2 test files, 1,940 + 711 LOC)
+### 6.7 Executor (`internal/executor/` — 7 source + 2 test files, 1,940 + 711 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
@@ -224,28 +234,28 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `executor_test.go` | 570 | 16 tests: literal formatting, template rendering, output parsing (all-pass, mixed, multi-line, errors), Python pipeline |
 | `format_test.go` | 141 | 7 tests: gofmt valid/syntax/empty, sandbox formatting (fake server), black error mapping, stub-signature regression |
 
-### 6.7 Broker (`internal/broker/` — 1 source + 1 test file, 68 + 186 LOC)
+### 6.8 Broker (`internal/broker/` — 1 source + 1 test file, 68 + 186 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `broker.go` | 68 | `Event` struct, `Broker` (sync.RWMutex + map of cap-32 channels), `New`, `Subscribe` (UUID), `Unsubscribe`, `Publish` (non-blocking), `PublishEvent` |
 | `broker_test.go` | 186 | 10 tests: subscribe uniqueness, delivery (1/M), overflow (cap 32), concurrent (10 goroutines) |
 
-### 6.8 Parser (`internal/parser/` — 1 source + 1 test file, 371 + 346 LOC)
+### 6.9 Parser (`internal/parser/` — 1 source + 1 test file, 371 + 346 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `parser.go` | 371 | `Parser` struct, `RawProblem`, `IngestGitHubRepo` (clone + sparse checkout, SHA-256 idempotency), `ParseProblem`, `normalizeSlug`, `normalizeModule`, `cleanRepoURL` |
 | `parser_test.go` | 346 | 13 tests: isReadmeFile, detectProblemType, normalizeSlug, computeSourceHash, URL parsing (HTTPS+SSH) |
 
-### 6.9 Config (`internal/config/` — 1 source + 1 test file, 374 + 382 LOC)
+### 6.10 Config (`internal/config/` — 1 source + 1 test file, 374 + 382 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
 | `config.go` | 374 | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
 | `config_test.go` | 355 | 24 tests: missing vars, invalid port, environment validation |
 
-### 6.10 Dependencies (`go.mod`)
+### 6.11 Dependencies (`go.mod`)
 
 | Direct Dep | Version | Purpose |
 |---|---|---|
@@ -280,7 +290,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 ## 8. Frontend — Complete File Inventory
 
-### 8.1 App Router Pages (`frontend/app/` — 74 `.tsx` files + 1 CSS, ~17,682 LOC)
+### 8.1 App Router Pages (`frontend/app/` — 75 `.tsx` files + 1 CSS, ~18,466 LOC)
 
 #### Root (4 files)
 | File | Lines | Type | Purpose |
@@ -314,7 +324,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `home/page.tsx` | 831 | Client | Dashboard: ModuleCards grid, language filter, URL-persisted module filter, search, pagination (18/page), best practices tab, locked module support, user stats bar |
 | `home/loading.tsx` | 17 | Server | Skeleton grid |
 | `home/error.tsx` | 32 | Client | Error boundary |
-| `settings/page.tsx` | 969 | Client | 4 tabs: Profile (name/bio), Security (current-password change with eye toggles, Google link/delete), Notifications, Appearance |
+| `settings/page.tsx` | 961 | Client | 4 tabs: Profile (name/bio), Security (current-password change with eye toggles, Google link/delete), Notifications, Appearance |
 
 #### Profile `(main)/profile/` (12 files)
 | File | Lines | Type | Purpose |
@@ -344,10 +354,10 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | File | Lines | Type | Purpose |
 |---|---|---|---|
 | `app/problems/layout.tsx` | 16 | Server | UserProvider + FeedbackButton + PyodidePreloader |
-| `(main)/problems/page.tsx` | 687 | Client | (BETA-gated) Search/filter: language tabs, status/difficulty/XP range, seeded random ordering per user, mobile sidebar |
+| `(main)/problems/page.tsx` | 725 | Client | (BETA-gated) Search/filter: language tabs, status/difficulty/XP range, seeded random ordering per user, mobile sidebar |
 | `app/problems/[slug]/page.tsx` | 54 | Server | Shell → Suspense → DynamicWorkspace, OG metadata per-problem |
 | `app/problems/[slug]/DynamicWorkspace.tsx` | 40 | Client | next/dynamic no-SSR wrapper |
-| `app/problems/[slug]/ProblemWorkspaceClient.tsx` | 1,666 | Client | Monaco Editor (Go/Python), language toggle with Save & Switch, submit/test, renderMarkdown statement, confetti, sessionStorage navigation, formatCode, hints panel, bug report, admin edit |
+| `app/problems/[slug]/ProblemWorkspaceClient.tsx` | 1,688 | Client | Monaco Editor (Go/Python), language toggle with Save & Switch, submit/test, renderMarkdown statement, confetti, sessionStorage navigation, formatCode, hints panel, bug report, admin edit |
 | `app/problems/[slug]/error.tsx` | 32 | Client | Error boundary |
 | `(main)/problems/[slug]/success/page.tsx` | 427 | Client | Post-submission: confetti, CodeBlock, community likes, next problem |
 
@@ -357,12 +367,13 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `page.tsx` | 372 | Client | Community problem submission form, test cases, language_versions |
 | `error.tsx` | 32 | Client | Error boundary |
 
-#### Admin `(main)/admin/` (9 files)
+#### Admin `(main)/admin/` (10 files)
 | File | Lines | Type | Purpose |
 |---|---|---|---|
-| `page.tsx` | 957 | Client | Dashboard: tabs for Stats, Ingest, Activity, Problems, Feedback, Broadcasts, Pending Contributions, Problem Reports, User Verification, Module Settings, Problem Module Locks, Curriculum Module Locks |
+| `page.tsx` | 1,408 | Client | Dashboard: tabs for Stats, Ingest, Activity, Problems, Feedback, Broadcasts, Pending Contributions, Problem Reports, User Verification, Module Settings, Problem Module Locks, Curriculum Module Locks |
 | `error.tsx` | 32 | Client | Error boundary |
 | `BroadcastPanel.tsx` | 334 | Client | Create/edit broadcasts, activate/deactivate toggles |
+| `EmailBroadcastPanel.tsx` | 298 | Client | Send problem-reminder emails to all users via Resend (per-problem body/CTA), send-confirmation state |
 | `FeedbackPanel.tsx` | 276 | Client | Status filters, inline resolve |
 | `PendingContributions.tsx` | 268 | Client | Approval/rejection queue |
 | `ProblemEditPanel.tsx` | 666 | Client | 16-field editor, renderMarkdown preview, AI assist |
@@ -386,7 +397,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `.../modules/[moduleSlug]/loading.tsx` | 13 | Server | Skeleton |
 | `.../modules/[moduleSlug]/error.tsx` | 30 | Client | Error boundary |
 | `.../lessons/[lessonSlug]/page.tsx` | 5 | Server | Shell → LessonViewerClient |
-| `.../lessons/[lessonSlug]/LessonViewerClient.tsx` | 733 | Client | Step-by-step nav (AnimatePresence), keyboard shortcuts, quiz review, progress dots, locked overlay |
+| `.../lessons/[lessonSlug]/LessonViewerClient.tsx` | 664 | Client | Step-by-step nav (AnimatePresence), keyboard shortcuts, quiz review, progress dots, locked overlay |
 | `.../lessons/[lessonSlug]/loading.tsx` | 22 | Server | Skeleton |
 | `.../lessons/[lessonSlug]/error.tsx` | 30 | Client | Error boundary |
 | `.../lessons/[lessonSlug]/success/page.tsx` | 433 | Client | Confetti, "What You Covered", next lesson nav |
@@ -398,7 +409,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149 | Server | Privacy policy |
 | `terms/page.tsx` | 159 | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 64 files, ~10,715 LOC)
+### 8.2 Shared Components (`frontend/components/` — 68 files, ~10,960 LOC)
 
 #### shadcn/ui + Effects Primitives (22 files, ~1,932 LOC)
 | File | Lines | Purpose |
@@ -431,7 +442,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 |---|---|---|
 | `layout/TopNav.tsx` | 344 | Logo, Dashboard/Problems/Learn links (BETA badges), notification bell, avatar menu, XP bar, Google link trigger |
 
-#### Feature Components (12 files)
+#### Feature Components (13 files)
 | File | Lines | Purpose |
 |---|---|---|
 | `BroadcastBanner.tsx` | 198 | Color-coded, 30s polling, per-user dismiss |
@@ -440,13 +451,20 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `GoogleLinkBanner.tsx` | 77 | Amber dismissible banner |
 | `LandingContent.tsx` | 141 | Landing page composition |
 | `LanguageLogo.tsx` | 32 | Go/Python SVG icon renderer |
-| `TestResultPanel.tsx` | 632 | LCS unified diff, circular progress, compiler error tips |
+| `TestResultPanel.tsx` | 555 | Unified diff (LCS char/line-level), circular progress, compiler error tips |
 | `PyodideConsole.tsx` | 186 | Terminal-style (#0D0D14), Fira Code, colored output, auto-scroll |
 | `ResizableSplitPane.tsx` | 107 | Drag-resizable horizontal split |
 | `PyodidePreloader.tsx` | 11 | Eager CDN Pyodide load |
 | `DesktopOnlyOverlay.tsx` | 59 | SSR-safe mobile overlay (< 900px), rAF debounced resize, body scroll lock |
 | `MultiFileEditor.tsx` | 279 | Tabbed multi-file editor, entry point markers |
 | `multi-step-loader-demo.tsx` | 62 | Standalone demo of MultiStepLoader variants |
+
+#### Test-Results Diff Primitives (`test-results/` — 3 files)
+| File | Lines | Purpose |
+|---|---|---|
+| `test-results/ValueDiff.tsx` | 221 | Multi-line expected/actual diff rendering (LCS line-matching, per-line char diff, unchanged-context collapse) |
+| `test-results/lineDiff.ts` | 56 | LCS line diff algorithm — shared, pure, tested |
+| `test-results/charDiff.ts` | 34 | Character-level diff algorithm (prefix/suffix trim + middle) |
 
 #### Auth Components (5 files)
 | File | Lines | Purpose |
@@ -494,7 +512,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 |---|---|---|
 | `application/code-snippet/index.tsx` | 314 | Professional Shiki code block, multi-file tabs, copy, collapsed mode |
 | `application/code-snippet/code-snippet.story.tsx` | 30 | Standalone storybook-style demo of the code snippet component |
-| `CodeEditor.tsx` | 142 | Monaco editor wrapper, resizable, toolbar (used by landing/dashboards) |
+| `CodeEditor.tsx` | 149 | Monaco editor wrapper, resizable, toolbar (used by landing/dashboards) |
 
 #### Kibo UI (3 files)
 | File | Lines | Purpose |
@@ -522,29 +540,31 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts` | 22 | `useIsMobile()` with matchMedia listener (768px breakpoint) |
 | `use-has-mounted.ts` | 10 | SSR-safe mount detection |
 
-### 8.4 Library Modules (`frontend/lib/` — 19 files, ~3,683 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 21 files, ~4,126 LOC)
 
 | File | Lines | Key Exports |
 |---|---|---|
-| `api.ts` | 895 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs |
-| `types.ts` | 619 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
-| `monaco-python.ts` | 496 | Monaco Python IntelliSense language configuration |
-| `pyodide.ts` | 234 | `eagerLoadPyodide()`, `executePython(code, timeout?)` (10s), `executeMultiFile(spec)`, CDN v0.27.4 |
-| `event.ts` | 136 | `subscribe(type, callback)`, `useWebSocket(handlers, deps)`, 9 event types, auto-reconnect |
-| `UserContext.tsx` | 103 | `UserProvider`, `useUser()`, `refreshUser()`, `setPrimaryLanguage()`, WebSocket XP auto-refresh |
-| `useNotifications.ts` | 98 | `useNotifications()`, 15s/60s polling, markAsRead (optimistic), markAllAsRead |
-| `toast.tsx` | 91 | Sonner toast wrapper: success/error/info/warning, Lucide icons, progress bar |
-| `achievements.ts` | 86 | `getAchievements(profile)`, 6 badges (First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist) |
-| `utils.ts` | 70 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
-| `markdown.ts` | 63 | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency |
-| `monaco-options.ts` | 63 | Monaco editor default options |
-| `monaco-setup.ts` | 65 | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring) |
-| `monaco-textmate.ts` | 68 | Real TextMate tokenization: Registry + oniguruma WASM, encoded-tokens providers for Go/Python |
-| `monaco-format.ts` | 40 | Real formatting: `registerDocumentFormattingEditProvider` (go/python) → `editor.action.formatDocument` via POST /api/format |
-| `monaco-theme.ts` | 57 | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces) |
+| `api.ts` | 1,189 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs (incl. `sendProblemReminder`) |
+| `types.ts` | 644 | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New* payload types, ApiResponse<T> |
+| `monaco-python.ts` | 531 | Monaco Python IntelliSense language configuration |
 | `monaco-intellisense.ts` | 348 | Go static completion + hover providers (25 keywords + predeclared builtins + stdlib modules) |
-| `cache.ts` | 41 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
-| `index.ts` | 2 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
+| `pyodide.ts` | 233 | `eagerLoadPyodide()`, `executePython(code, timeout?)` (10s), `executeMultiFile(spec)`, CDN v0.27.4 |
+| `monaco-paste-guard.ts` | 154 | Strict paste-blocking + sanitize guard for the problem workspace editor (Ctrl/Cmd+V, context-menu paste, drag-drop, undo re-injection) |
+| `event.ts` | 135 | `subscribe(type, callback)`, `useWebSocket(handlers, deps)`, 9 event types, auto-reconnect |
+| `UserContext.tsx` | 108 | `UserProvider`, `useUser()`, `refreshUser()`, `setPrimaryLanguage()`, WebSocket XP auto-refresh |
+| `useNotifications.ts` | 97 | `useNotifications()`, 15s/60s polling, markAsRead (optimistic), markAllAsRead |
+| `toast.tsx` | 90 | Sonner toast wrapper: success/error/info/warning, Lucide icons, progress bar |
+| `monaco-textmate.ts` | 88 | Real TextMate tokenization: Registry + oniguruma WASM, encoded-tokens providers for Go/Python |
+| `achievements.ts` | 85 | `getAchievements(profile)`, 6 badges (First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist) |
+| `utils.ts` | 69 | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates) |
+| `monaco-setup.ts` | 65 | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring) |
+| `markdown.ts` | 62 | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency |
+| `monaco-options.ts` | 62 | Monaco editor default options |
+| `monaco-theme.ts` | 56 | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces) |
+| `monaco-format.ts` | 40 | Real formatting: `registerDocumentFormattingEditProvider` (go/python) → `editor.action.formatDocument` via POST /api/format |
+| `cache.ts` | 40 | `getCache<T>()` / `setCache<T>()` / `clearCache()`, 30s TTL, `kc_` prefix, sessionStorage |
+| `auth-redirect.ts` | 29 | Auth deep-link helpers: extract `redirect_to` from OAuth callback, safe URL validation, post-login redirect targets |
+| `index.ts` | 1 | Barrel: cn, getUserColor, getDifficultyColor, getDifficultyLabel |
 
 ### 8.5 Styles (`frontend/styles/` + `app/globals.css` — 4 files, ~1,598 LOC)
 
@@ -741,7 +761,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 12. API Endpoints (~116 Total)
+## 12. API Endpoints (~119 Total)
 
 ### 12.1 Auth (11 endpoints, IP-rate-limited: 10 req/min)
 
@@ -847,6 +867,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | PATCH | `/admin/users/{id}/verified` | ToggleUserVerified | `admin.go` |
 | POST | `/admin/users/{id}/reset-password` | ResetUserPassword | `admin.go` |
 | GET | `/admin/email-logs` | ListEmailLogs (?limit,?offset,?status,?email) | `password_reset.go` |
+| POST | `/admin/broadcast-emails` | SendProblemReminder (Resend, per-problem reminder to all users) | `admin.go` |
 | GET | `/admin/module-locks` | ListProblemModuleLocks | `admin.go` |
 | POST | `/admin/module-locks/{moduleName}` | ToggleProblemModuleLock | `admin.go` |
 | DELETE | `/admin/problem-modules/{moduleName}` | DeleteProblemModule | `admin.go` |
@@ -915,7 +936,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (19 backend + 2 sandbox test files, ~4,269 LOC, 169 backend + 11 sandbox tests)
+## 15. Testing Strategy (21 backend + 2 sandbox test files, ~4,300 LOC, 171 backend + 11 sandbox tests)
 
 | Package | Test File | Tests |
 |---|---|---|
@@ -926,11 +947,13 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/api` | `webhooks_test.go` (290 LOC) | 13 |
 | `internal/api` | `auth_test.go` (119 LOC) | 4 |
 | `internal/api` | `router_test.go` (42 LOC) | 1 |
+| `internal/api` | `admin_test.go` (80 LOC) | 1 |
 | `internal/auth` | `auth_test.go` (209 LOC) | 15 |
 | `internal/auth` | `oauth_test.go` (111 LOC) | 5 |
 | `internal/broker` | `broker_test.go` (186 LOC) | 10 |
 | `internal/config` | `config_test.go` (382 LOC) | 26 |
 | `internal/email` | `email_test.go` (97 LOC) | 3 |
+| `internal/email` | `problem_reminder_test.go` (41 LOC) | 1 |
 | `internal/enricher` | `enricher_test.go` (231 LOC) | 4 |
 | `internal/executor` | `executor_test.go` (570 LOC) | 16 |
 | `internal/executor` | `format_test.go` (141 LOC) | 7 |
@@ -940,7 +963,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store` | `users_test.go` (154 LOC) | 4 |
 | `sandbox` | `security_message_test.go` (32 LOC) | 3 |
 | `sandbox` | `format_test.go` (196 LOC) | 8 (6 black-gated) |
-| **Total** | **21 files** | **180 tests (169 backend + 11 sandbox)** |
+| **Total** | **23 files** | **182 tests (171 backend + 11 sandbox)** |
 
 ---
 
@@ -971,12 +994,12 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric | Value |
 |---|---|
-| **Go source files** | 74 (66 backend + 8 sandbox) |
-| **Go LOC** | ~24,577 (18,863 backend source + 4,041 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
-| **Go test files** | 21 (~4,269 LOC, 180 tests = 169 backend + 11 sandbox) |
-| **Frontend TSX/TS files** | 163 (~32,458 LOC) |
-| **Total tracked source LOC** | ~118,600 |
-| **API endpoints** | ~118 |
+| **Go source files** | 75 (67 backend + 8 sandbox) |
+| **Go LOC** | ~25,066 (19,231 backend source + 4,162 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
+| **Go test files** | 23 (~4,390 LOC, 182 tests = 171 backend + 11 sandbox) |
+| **Frontend TSX/TS files** | 168 (~33,926 LOC) |
+| **Total tracked source LOC** | ~121,000 |
+| **API endpoints** | ~119 |
 | **Database tables** | 25 |
 | **Database indexes** | ~60 |
 | **Seed problems** | ~259 (180 Go, 53 Python, 25 Python-practicals, 1 pipeline) |
@@ -985,8 +1008,8 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | **Curriculum lessons** | ~200+ across 6 courses |
 | **Curriculum section types** | 11 (ENUM) |
 | **AI assist actions** | 8 |
-| **shadcn/ui primitives** | 20 |
-| **Custom components** | 45 |
+| **shadcn/ui primitives** | 22 |
+| **Custom components** | 46 |
 | **External Go deps** | 7 |
 | **Sandbox external deps** | 0 (stdlib only) |
 | **Module WebP images** | 18 |
@@ -998,7 +1021,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 1. **`.github/copilot-instructions.md`** — References Gemini genai SDK (removed), httpOnly cookies (JWT in localStorage), semaphore cap=2 (now 6), timeout 5s (now 30s), Docker memory 64m (now 256m). Needs full rewrite.
 2. **`@tanstack/react-virtual`** — Listed in `frontend/package.json` but unused. Should be removed.
-3. **Session log duplication** — `.opencode/session-log.md` (44 lines) is stale; canonical log is `SESSION_LOG.md` (2,905 lines).
+3. **Session log duplication** — `.opencode/session-log.md` (63 lines) is stale; canonical log is `SESSION_LOG.md` (2,962 lines).
 4. **`sandbox/secure_unix.go`** — `resourceLimits` uses raw numeric values for `RLIMIT_NPROC` (6) instead of `syscall.RLIMIT_NPROC`. Works on linux/amd64 but brittle.
 5. **`forcePackageKoder` regex duplication** — `packageRegexp` pattern duplicated in both `sandbox/runtest_go.go` (`\w+`) and `internal/executor/sandbox.go` (`[a-zA-Z0-9_]+`). Functionally identical but diverges.
 6. **`@google/genai` dep** — Listed in `go.mod` (indirect) but may be unused after NVIDIA NIM migration.
@@ -1012,7 +1035,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 14. **`docs/adr/` and `docs/diagrams/`** — Empty placeholder directories with zero content.
 15. **`react-markdown`, `remark-gfm`, `rehype-raw`, `rehype-sanitize`, `remark-breaks`** — Listed in `package.json` runtime deps but superseded by self-contained `renderMarkdown()` in `lib/markdown.ts`. Should be removed.
 16. **Pyright Python autocomplete deferred** — `monaco-pyright-lsp` (webpack-bundled pyright WASM worker, pyodide-based) is the prescribed upgrade for type-aware Python completions/diagnostics, but was deliberately skipped in Session 99. Risks to resolve before adopting: ~10–20MB WASM worker download on first Python editor mount, possible Next.js webpack/dual-monaco (AMD vs ESM) conflicts, and a worst case where pyright requires `crossOriginIsolated` (COOP/COEP headers on Vercel) that could break Google Identity / Pyodide CDN loading. Current Python completions remain the static 157-entry list in `lib/monaco-python.ts`.
-17. **`session-log.md` line count** — `SESSION_LOG.md` has grown to ~2,900+ lines (canonical log, kept whole; the git table at the top is chronological and updated per session).
+17. **`session-log.md` line count** — `SESSION_LOG.md` has grown to ~3,000 lines (canonical log, kept whole; the git table at the top is chronological and updated per session).
 
 ---
 
@@ -1052,7 +1075,7 @@ RESEND_API_KEY=<resend-api-key>
 EMAIL_FROM=Koder <noreply@koder.sbs>
 RESEND_WEBHOOK_SECRET=<whsec_...>   # Optional: enables delivery tracking via POST /api/webhooks/resend
 ```
-Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing — email reset silently degrades while current-password change (Settings) and admin reset remain fully functional. With `RESEND_WEBHOOK_SECRET` set, every reset email is traced in the `email_logs` table (Admin → Email Logs) from `created → sent → delivered`, with bounced/complained/failed outcomes and reasons reported by the Resend webhook.
+Without `RESEND_API_KEY`, `/auth/forgot-password` returns a generic "if the account exists" response but sends nothing and `/admin/broadcast-emails` returns a friendly 502 — email reset and admin problem-reminder broadcasts silently degrade while current-password change (Settings) and admin reset remain fully functional. With `RESEND_WEBHOOK_SECRET` set, every reset email and problem reminder is traced in the `email_logs` table (Admin → Email Logs) from `created → sent → delivered`, with bounced/complained/failed outcomes and reasons reported by the Resend webhook.
 
 ### Required Frontend Environment
 ```bash
@@ -1063,6 +1086,45 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-12 — Session 114: CI `npm ci` fix + professional codebase reindex (post-pull refresh)
+- **Reported CI failure:** GitHub Actions `npm ci` EUSAGE lock-sync — `Missing: @emnapi/runtime@1.11.3 / @emnapi/core@1.11.3 from lock file` plus EBADENGINE warnings on node v20.20.2 for `@google-cloud/cloud-sql-connector@1.11.1` and `universal-analytics@0.5.4` (both require node `>=22`)
+- **Root cause (EBADENGINE):** unused devDependency `firebase-tools@^15.0.0` (no scripts/imports/config reference it anywhere) — sole source of the `>=22`-only transitive deps (also `re2`). Removed it; the lock-sync half of the failure was already fixed upstream by `fdbf615`
+- **Fix:** `frontend/package.json` devDependencies — removed `"firebase-tools": "^15.0.0"`; `npm install` dropped 442 packages and regenerated `package-lock.json`; full `npm ci` (935 packages, ~14m) + `npm ci --dry-run` both clean — zero EBADENGINE, zero lock-sync errors (remaining output was only local allow-scripts warnings + a node-domexception deprecation, both benign). CI stays on Node 20
+- **Verified:** ESLint 0 errors, `tsc --noEmit` 0 errors, `next build` success, `go vet ./internal/...` clean, `go build ./cmd/server` OK, `go test ./internal/...` 9/9 suites green (171 tests), sandbox vet + test green (11 tests)
+- **Feature `8d8908a` folded into this reindex:** admin problem-reminder email broadcasts (Session 113 below) — `internal/email` package grew to 2 source + 2 test files (452 + 138 LOC), Store interface 158 → 159 methods, ~119 API endpoints, app 75 `.tsx`, frontend lib ~4,126 LOC
+- **Docs:** full `CLAUDE.md` reindex (header badge → 2026-08-12 / 171+11 tests, §3/§4/§6/§8/§12/§15/§17/§19/§20), `SESSION_LOG.md` rows #176–179 + Session 113 entry, `README.md` API table + file tree, `UPDATE_LOG.txt`, `BRAIN.md`, `.opencode/session-log.md`, `CODEBASE_INDEX.md` — committed to `update` only (no staging/main merge per user decision; CI triggers on main/staging pushes so the fix will be validated on the next merge)
+
+### 2026-08-11 — Session 113: Admin problem-reminder email broadcasts (incoming `8d8908a`)
+- **Backend:** `POST /admin/broadcast-emails` → `AdminHandler.SendProblemReminder` (`internal/api/admin.go`, 940→1,079 LOC) — admin picks a problem, backend loads all user emails (`store.ListAllUserEmails`, new, `users.go` 1,346→1,369), renders the brand-matched reminder template, sends via Resend (friendly 502 when `RESEND_API_KEY` unset); route registered in the AdminOnly group (`router.go` 311→312, ~116→~119 routes)
+- **Email package:** `internal/email/send.go` (new, 84 LOC) — `SendEmailViaResend` Resend REST client (reads/parses response body for provider `id` + error, 1 retry on transient 5xx/429/network, panic-recovery); `email.go` 248→368 LOC — `RenderProblemReminderString` reuses the shared `layoutBase` shell, adds a problem-title hero + gold "Solve on Koder" CTA
+- **Frontend:** `app/(main)/admin/EmailBroadcastPanel.tsx` (new, 298 LOC) — problem selector with per-problem body/CTA preview, send-confirmation state; wired into the admin dashboard (`page.tsx` 978→1,408 LOC); `lib/api.ts` 959→1,189 LOC adds `sendProblemReminder`
+- **Tests:** `internal/api/admin_test.go` (new, 80 LOC) — `TestSendProblemReminder_Handler` (1 test); `internal/email/problem_reminder_test.go` (new, 41 LOC) — `TestRenderProblemReminder_ContainsExpectedFields` (1 test) → 171 backend tests total
+- **Docs:** `SESSION_LOG.md` + CLAUDE.md inventory updated (email package now 2 source + 2 test, Store 159 methods, ~119 endpoints)
+
+### 2026-08-06 — Session 112: Hotfix — restore `setResults` in submit/test handlers
+- **Reported bug:** after the Session 111 `mapTestResults` refactor, the output panel never received the mapped test results — submissions/test-runs succeeded but no result rows appeared
+- **Root cause:** Session 111 moved result mapping (`mapTestResults`) into a helper; the two call sites in `ProblemWorkspaceClient.tsx` (submit + test) computed `mappedResults` for the pass/fail logic but the `setResults(mappedResults)` call was dropped in the refactor — `results` state stayed `null`, so `TestResultPanel` rendered nothing
+- **Fix** (`b99b305`, `ProblemWorkspaceClient.tsx` +2): restore `setResults(mappedResults);` in both the `submit` and `test` handlers, immediately after mapping and before the pass/fail branch
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update`
+
+### 2026-08-06 — Session 111: Professional test-results panel, dashboard-style problem cards, auth deep-links + Monaco TextMate hardening
+- **Test-result diff extraction** (`95d391f`, `TestResultPanel.tsx` 555 LOC, −367 net): the old ~150-line inline LCS line-diff (`computeLineDiff` + `TerminalDiff`) is extracted into a reusable diff primitive kit — `components/test-results/lineDiff.ts` (56 LOC, pure LCS line diff), `charDiff.ts` (34 LOC, prefix/suffix trim + middle), and `ValueDiff.tsx` (221 LOC, multi-line expected/actual renderer with LCS line-matching, per-line char highlighting, unchanged-context collapse, equal-match success state). `TestResultPanel` now consumes `ValueDiff`, gained an `ordinal`/`isHidden`/`input` pass-through on `TestResult`, and a `mode?: "test" | "submit"` prop; diff components are shared, pure, and unit-testable
+- **Dashboard-style problem cards** (`(main)/problems/page.tsx` 725 LOC): cards rebuilt on `Card`/`CardHeader`/`CardContent`/`CardTitle`/`CardFooter` primitives — removed the decorative ChatGPT image + overlay gradient, added a staggered mount animation (`animationDelay: i*50ms`), an emerald solved-accent top line, `#NNN` indexed position label (`tabular-nums`), updated difficulty pills, deeper hover lift (`hover:-translate-y-1.5` + `hover:shadow-xl hover:shadow-primary/8`)
+- **Auth deep-links** (`lib/auth-redirect.ts`, new, 29 LOC): `captureAuthRedirect()` stores the current deep path (`/problems`, `/learn`, `/profile`, `/leaderboard`, `/settings`, `/admin`, `/contribute` + descendants) in sessionStorage `koder_redirect`; `consumeAuthRedirect()` reads + clears it. `UserContext` calls `captureAuthRedirect()` before bouncing unauthenticated users to `/`; the login page, onboarding page, and oauth callback all redirect to `consumeAuthRedirect() ?? '/home'` after auth instead of hard-coding `/home` — fixes the lost-deep-link UX (was a known annoyance: session-expiry on `/problems/[slug]` dropped you at the dashboard). Settings page dropped an unused `koder_theme` localStorage theme-state block (−8)
+- **Monaco TextMate hardening** (`lib/monaco-textmate.ts` 88 LOC, `CodeEditor.tsx` 149 LOC): onig.wasm fetch now retries (4 attempts, exp backoff `2ⁿ×1000ms` capped 4s, `AbortSignal.timeout(10s)`) instead of failing on the first cold miss; `CodeEditor` module-level warm-up now runs `initTextMateTokenization` after `loader.init()` so the wasm is fetched (with retry) before the editor paints — closes the built-in-tokenizer→TextMate color-flip window; the explicit `monaco.editor.setTheme("vs-dark-plus")` call is gone (TextMate registry now owns colors). `lib/types.ts` +3 (hidden/input metadata on test results); `scripts/copy-monaco.mjs` retry handling; `package.json` minor dep adjustments
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update`
+
+### 2026-08-06 — Session 110: Strictly disable pasting in the problem workspace editor
+- **Motivation:** AI-generated solutions pasted into the workspace undermine the grading loop — the editor must enforce hand-written submission while keeping normal editing (type, cut/copy, select) frictionless
+- **New `lib/monaco-paste-guard.ts`** (154 LOC): `blockPaste(editor, monaco, { onBlocked, feedbackCooldownMs = 5000 })` layers defense-in-depth because Monaco's built-in `paste` action (keybinding + own context menu) has no single bulletproof interception point:
+  1. **Keybindings** — `Ctrl/Cmd+V` and `Shift+Insert` overridden with no-op commands (last-registered chord wins, so the built-in paste never fires)
+  2. **Context menu** — DOM `contextmenu` swallowed at the editor root in the capture phase, blocking both Monaco's menu and the browser default (which has a native Paste item)
+  3. **DOM `paste`** — any event reaching the browser pipeline (X11 middle-click, autofill, extensions, drag-insert) is prevented
+  4. **Drag & drop** — `dragAndDrop` option disabled + `dragover`/`drop` suppressed
+- Throttled `onBlocked` callback (default 5s cooldown) feeds a toast so users get feedback without spam; returns a dispose function wired to `editor.onDidDispose` (safe on language-toggle remount and unmount). Typing, `Ctrl/Cmd+C/X/A`, and Monaco commands unaffected
+- **Wiring** (`ProblemWorkspaceClient.tsx` +17): `blockPaste` called on editor mount with a throttled "Pasting is disabled — type your solution" toast; disposed in the cleanup path
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; committed directly to `update`
 
 ### 2026-08-05 — Session 109c: Production incident — main deployed Session 108 regression; fix pending merge to main
 - **Reported via Render logs:** production `main` panics at startup with `panic: chi: all middlewares must be defined before routes on a mux` (router.go:105) — deployed commit `82ca6b7` (`Merge pull request #199 from jerryjuche/staging`) still contains Session 108's broken `/auth/refresh` registration
@@ -1407,4 +1469,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-*Last indexed: 2026-08-05 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (169 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
+*Last indexed: 2026-08-12 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean*
