@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { useRef, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { fetchUser } from "@/lib/api";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
@@ -17,14 +17,15 @@ import Footer from "@/components/landing/Footer";
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // If landing page receives ?redirect_to=... and the user is already
-  // authenticated, immediately navigate to the target path.
+  // authenticated, immediately navigate to the target path. Use the
+  // browser `location` API instead of `useSearchParams` to avoid Next.js
+  // suspense/server rendering constraints for this page.
   useEffect(() => {
-    const redirectTo = searchParams.get("redirect_to");
-    if (!redirectTo) return;
     let mounted = true;
+    const redirectTo = typeof window !== "undefined" ? new URL(window.location.href).searchParams.get("redirect_to") : null;
+    if (!redirectTo) return;
     (async () => {
       try {
         const res = await fetchUser();
@@ -39,7 +40,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
     return () => {
       mounted = false;
     };
-  }, [searchParams, router]);
+  }, [router]);
 
   const nav = (
     <>

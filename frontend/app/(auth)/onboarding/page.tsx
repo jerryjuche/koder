@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
   XCircle,
@@ -45,7 +45,6 @@ const stepVariants = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, setPrimaryLanguage } = useUser();
   const [step, setStep] = useState<1 | 2>(1);
   const [direction, setDirection] = useState(1);
@@ -60,7 +59,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!user) return;
-    const redirectParam = searchParams.get('redirect_to');
+    const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
     if (user.usernameSet && user.primaryLanguage) {
       router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
     } else if (user.usernameSet && !user.primaryLanguage) {
@@ -142,7 +141,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       await setPrimaryLanguage(lang);
-      const redirectParam = searchParams.get('redirect_to');
+      const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
       router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
     } catch {
       setErrorMsg('Failed to set language. Please try again.');

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowRight, Mail, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -27,7 +27,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -39,7 +38,7 @@ export default function LoginPage() {
     try {
       const res = await googleLogin(credential);
       if (res.success && res.data) {
-        const redirectParam = searchParams.get('redirect_to');
+        const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
         router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Google sign-in failed');
@@ -66,7 +65,7 @@ export default function LoginPage() {
     try {
       const res = await login({ login: data.loginId, password: data.password });
       if (res.success && res.data) {
-        const redirectParam = searchParams.get('redirect_to');
+        const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
         router.push(res.data.onboarding ? '/onboarding' : (redirectParam ?? consumeAuthRedirect() ?? '/home'));
       } else {
         setErrorMsg(res.error?.message || 'Login failed');
