@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import confetti from "canvas-confetti";
+import { fireConfettiRain } from "@/lib/confetti";
 import {
   CheckCircle2,
   Trophy,
@@ -64,29 +64,6 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   assessment: "Assessment",
   ai_review: "AI Review",
 };
-
-function burstConfetti() {
-  try {
-    confetti({
-      particleCount: 60,
-      angle: 60,
-      spread: 90,
-      origin: { x: 0, y: 0.6 },
-      colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-      startVelocity: 45,
-    });
-    confetti({
-      particleCount: 60,
-      angle: 120,
-      spread: 90,
-      origin: { x: 1, y: 0.6 },
-      colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-      startVelocity: 45,
-    });
-  } catch (e) {
-    console.error("Confetti failed", e);
-  }
-}
 
 export default function LessonSuccessPage() {
   const params = useParams();
@@ -172,14 +149,11 @@ export default function LessonSuccessPage() {
   }, [courseSlug, moduleSlug, lessonSlug]);
 
   useEffect(() => {
-    if (loading) return;
     const t = setTimeout(() => {
-      burstConfetti();
-      const interval = setInterval(burstConfetti, 150);
-      setTimeout(() => clearInterval(interval), 3500);
-    }, 200);
+      void fireConfettiRain();
+    }, 300);
     return () => clearTimeout(t);
-  }, [loading]);
+  }, []);
 
   if (loading) {
     return (

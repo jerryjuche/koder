@@ -42,7 +42,7 @@ import LessonSidebar from "@/components/learn/LessonSidebar";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/lib/event";
-import confetti from "canvas-confetti";
+import { fireConfetti } from "@/lib/confetti";
 import {
   Tooltip,
   TooltipContent,
@@ -240,16 +240,16 @@ export default function LessonViewerClient() {
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev]);
 
-  const fireConfetti = useCallback(() => {
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-    confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.6 } });
-    confetti({
+  const celebrate = useCallback(() => {
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60 };
+    void fireConfetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.6 } });
+    void fireConfetti({
       ...defaults,
       particleCount: 30,
       origin: { x: 0.3, y: 0.5 },
       colors: ["#ffd700", "#ff6b6b"],
     });
-    confetti({
+    void fireConfetti({
       ...defaults,
       particleCount: 30,
       origin: { x: 0.7, y: 0.5 },
@@ -274,7 +274,7 @@ export default function LessonViewerClient() {
 
     if (res.success) {
       setCompleted(true);
-      fireConfetti();
+      celebrate();
       window.dispatchEvent(new Event("user-updated"));
 
       const total = moduleData?.lessons?.length || 0;
