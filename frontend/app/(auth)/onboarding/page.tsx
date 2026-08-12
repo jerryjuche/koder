@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { checkUsername, completeOnboarding, fetchUser } from '@/lib/api';
-import { consumeAuthRedirect } from '@/lib/auth-redirect';
+import { consumeAuthRedirect, getCurrentRedirectTarget } from '@/lib/auth-redirect';
 import { useUser } from '@/lib/UserContext';
 import { cn } from '@/lib/utils';
 
@@ -59,9 +59,8 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!user) return;
-    const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
     if (user.usernameSet && user.primaryLanguage) {
-      router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
+      router.push(getCurrentRedirectTarget() ?? consumeAuthRedirect() ?? '/home');
     } else if (user.usernameSet && !user.primaryLanguage) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep(2);
@@ -141,8 +140,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       await setPrimaryLanguage(lang);
-      const redirectParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('redirect_to') : null;
-      router.push(redirectParam ?? consumeAuthRedirect() ?? '/home');
+      router.push(getCurrentRedirectTarget() ?? consumeAuthRedirect() ?? '/home');
     } catch {
       setErrorMsg('Failed to set language. Please try again.');
       setIsSubmitting(false);

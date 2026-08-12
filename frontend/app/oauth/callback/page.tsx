@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { consumeAuthRedirect } from '@/lib/auth-redirect';
+import { consumeAuthRedirect, getSafeRedirectTarget } from '@/lib/auth-redirect';
 
 function OAuthCallbackInner() {
   const router = useRouter();
@@ -15,7 +15,7 @@ function OAuthCallbackInner() {
 
     if (token) {
       // Scrub token from URL bar and browser history immediately
-      const dest = redirectParam ?? consumeAuthRedirect() ?? '/home';
+      const dest = getSafeRedirectTarget(redirectParam) ?? consumeAuthRedirect() ?? '/home';
       window.history.replaceState({}, document.title, dest);
       router.push(dest);
     } else {

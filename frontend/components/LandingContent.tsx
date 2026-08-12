@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchUser } from "@/lib/api";
+import { getCurrentRedirectTarget } from "@/lib/auth-redirect";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
 import Features from "@/components/landing/Features";
@@ -18,27 +19,13 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
 
-  const getSafeRedirectTarget = (value: string | null) => {
-    if (!value) return null;
-    try {
-      const url = new URL(value, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-      if (url.origin !== window.location.origin) return null;
-      return `${url.pathname}${url.search}${url.hash}`;
-    } catch {
-      return null;
-    }
-  };
-
   // If landing page receives ?redirect_to=... and the user is already
   // authenticated, immediately navigate to the target path. Use the
   // browser `location` API instead of `useSearchParams` to avoid Next.js
   // suspense/server rendering constraints for this page.
   useEffect(() => {
     let mounted = true;
-    const safeRedirect =
-      typeof window !== "undefined"
-        ? getSafeRedirectTarget(new URL(window.location.href).searchParams.get("redirect_to"))
-        : null;
+    const safeRedirect = getCurrentRedirectTarget();
     if (!safeRedirect) return;
 
     (async () => {
@@ -59,10 +46,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
   }, [router]);
 
   const authLinkHref = (path: string) => {
-    const redirect =
-      typeof window !== "undefined"
-        ? getSafeRedirectTarget(new URL(window.location.href).searchParams.get("redirect_to"))
-        : null;
+    const redirect = getCurrentRedirectTarget();
     return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
   };
 
