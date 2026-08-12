@@ -25,6 +25,16 @@ export default function Hero() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.7], [1, 0.95]);
 
+  const getCurrentRedirectTarget = () => {
+    if (typeof window === "undefined") return null;
+    return new URL(window.location.href).searchParams.get("redirect_to");
+  };
+
+  const authLinkHref = (path: string) => {
+    const redirect = getCurrentRedirectTarget();
+    return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
+  };
+
   return (
     <motion.section
       ref={ref}
@@ -100,14 +110,14 @@ export default function Hero() {
             className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <Link
-              href="/register"
+              href={authLinkHref('/register')}
               className="group relative inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark px-8 text-base font-semibold text-brand-charcoal-base shadow-[0_0_24px_rgba(212,175,55,0.2)] transition-all duration-300 hover:shadow-[0_0_40px_rgba(212,175,55,0.35)] hover:scale-[1.02] overflow-hidden"
             >
               Start learning
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
-              href="/login"
+              href={authLinkHref('/login')}
               className="inline-flex h-12 items-center gap-2 rounded-full border border-brand-charcoal-border bg-brand-charcoal-card/60 px-8 text-base font-semibold text-brand-offwhite backdrop-blur-sm transition-all duration-300 hover:border-brand-muted-gold/40 hover:text-brand-muted-gold"
             >
               Browse problems
