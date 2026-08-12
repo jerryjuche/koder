@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import LandingContent from "@/components/LandingContent";
 import { fetchUser } from "@/lib/api";
+import { getCurrentRedirectTarget } from "@/lib/auth-redirect";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 
 const LOADER_DURATION = 1400;
@@ -33,7 +34,10 @@ export default function RootPage() {
 
       if (res.success && res.data) {
         await new Promise((r) => setTimeout(r, remaining));
-        router.replace("/home");
+        // Honor a validated ?redirect_to= (e.g. broadcast/problem-reminder email
+        // CTAs that land on the root) so authenticated users arrive at the
+        // intended page instead of always bouncing to /home.
+        router.replace(getCurrentRedirectTarget() ?? "/home");
         setPhase("done");
       } else {
         const minLanding = Math.max(2200 - elapsed, 400);

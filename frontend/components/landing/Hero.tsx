@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Code2, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { getCurrentRedirectTarget } from '@/lib/auth-redirect';
 
 const wordVariants = {
   hidden: { opacity: 0, filter: "blur(4px)", y: 10 },
@@ -25,16 +26,10 @@ export default function Hero() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.7], [1, 0.95]);
 
-  const getCurrentRedirectTarget = () => {
-    if (typeof window === "undefined") return null;
-    return new URL(window.location.href).searchParams.get("redirect_to");
-  };
-
   const authLinkHref = (path: string) => {
     const redirect = getCurrentRedirectTarget();
     return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
   };
-
   return (
     <motion.section
       ref={ref}
