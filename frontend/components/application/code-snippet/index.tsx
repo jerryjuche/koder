@@ -101,6 +101,7 @@ export type CodeSnippetProps = {
   collapsed?: boolean;
   maxHeight?: number;
   lineNumbers?: boolean;
+  hideCopy?: boolean;
   className?: string;
 };
 
@@ -111,6 +112,7 @@ export function CodeSnippet({
   collapsed = false,
   maxHeight = 180,
   lineNumbers = true,
+  hideCopy = false,
   className,
 }: CodeSnippetProps) {
   const [internal, setInternal] = useState(files[0]?.language ?? "");
@@ -148,7 +150,7 @@ export function CodeSnippet({
                 );
               })}
             </div>
-            <CopyButton />
+            {!hideCopy && <CopyButton />}
           </div>
         ) : activeFile ? (
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-muted/30">
@@ -162,7 +164,7 @@ export function CodeSnippet({
                 {langLabel[activeFile.language] || activeFile.language}
               </span>
             </div>
-            <CopyButton />
+            {!hideCopy && <CopyButton />}
           </div>
         ) : null}
         <SnippetBody collapsed={collapsed} maxHeight={maxHeight} lineNumbers={lineNumbers} />
