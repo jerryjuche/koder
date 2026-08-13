@@ -4,7 +4,10 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef, useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { fetchUser } from "@/lib/api";
+import { getCurrentRedirectTarget } from "@/lib/auth-redirect";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
 import Features from "@/components/landing/Features";
@@ -14,17 +17,49 @@ import Footer from "@/components/landing/Footer";
 
 export default function LandingContent({ onGetStarted }: { onGetStarted?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+
+  // If landing page receives ?redirect_to=... and the user is already
+  // authenticated, immediately navigate to the target path. Use the
+  // browser `location` API instead of `useSearchParams` to avoid Next.js
+  // suspense/server rendering constraints for this page.
+  useEffect(() => {
+    let mounted = true;
+    const safeRedirect = getCurrentRedirectTarget();
+    if (!safeRedirect) return;
+
+    (async () => {
+      try {
+        const res = await fetchUser();
+        if (!mounted) return;
+        if (res.success && res.data) {
+          router.push(safeRedirect);
+        }
+      } catch {
+        // ignore — unauthenticated users will see the landing page
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  const authLinkHref = (path: string) => {
+    const redirect = getCurrentRedirectTarget();
+    return redirect ? `${path}?redirect_to=${encodeURIComponent(redirect)}` : path;
+  };
 
   const nav = (
     <>
       <Link
-        href="/login"
+        href={authLinkHref('/login')}
         className="text-sm font-medium text-brand-offwhite-muted transition-colors hover:text-brand-offwhite"
       >
         Log in
       </Link>
       <Link
-        href="/register"
+        href={authLinkHref('/register')}
         className="inline-flex items-center gap-1.5 rounded-full bg-brand-muted-gold px-5 py-2 text-sm font-semibold text-brand-charcoal-base transition-all duration-300 hover:bg-brand-muted-gold-dark hover:shadow-[0_0_24px_rgba(212,175,55,0.3)]"
       >
         Get started
@@ -70,14 +105,14 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
             >
               <div className="flex flex-col gap-3 px-4 py-4">
                 <Link
-                  href="/login"
+                  href={authLinkHref('/login')}
                   className="rounded-xl border border-brand-charcoal-border px-4 py-2.5 text-center text-sm font-medium text-brand-offwhite-muted"
                   onClick={() => setMobileOpen(false)}
                 >
                   Log in
                 </Link>
                 <Link
-                  href="/register"
+                  href={authLinkHref('/register')}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-muted-gold px-4 py-2.5 text-sm font-semibold text-brand-charcoal-base"
                   onClick={() => setMobileOpen(false)}
                 >
@@ -117,14 +152,14 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
             </p>
             <div className="relative mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/register"
+                href={authLinkHref('/register')}
                 className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-brand-muted-gold to-brand-muted-gold-dark px-8 text-base font-semibold text-brand-charcoal-base shadow-[0_0_24px_rgba(212,175,55,0.2)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_36px_rgba(212,175,55,0.35)]"
               >
                 Create free account
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
-                href="/login"
+                href={authLinkHref('/login')}
                 className="inline-flex h-12 items-center gap-2 rounded-full border border-brand-charcoal-border bg-brand-charcoal-card/60 px-8 text-base font-semibold text-brand-offwhite backdrop-blur-sm transition-all duration-300 hover:border-brand-muted-gold/30 hover:text-brand-muted-gold"
               >
                 Sign in

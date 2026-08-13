@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Editor, { loader, type OnMount } from "@monaco-editor/react";
 import { initMonacoEditor, useMonacoSetup } from "@/lib/monaco-setup";
+import { initTextMateTokenization } from "@/lib/monaco-textmate";
 import { MONACO_EDITOR_OPTIONS } from "@/lib/monaco-options";
 
 interface CodeEditorProps {
@@ -104,7 +105,6 @@ function CodeEditorInner({
   const handleMount: OnMount = useCallback(
     (editor, monaco) => {
       initMonacoEditor(monaco);
-      monaco.editor.setTheme("vs-dark-plus");
       handleEnterIndent(editor, monaco);
       onMountRef.current?.(editor, monaco);
     },
@@ -134,9 +134,16 @@ function CodeEditorInner({
 
 export const CodeEditor = memo(CodeEditorInner);
 
-// Warm the Monaco loader module-level so the first mount is instant.
+// Warm the Monaco loader + TextMate tokenization module-level so the first
+// mount is instant and onig.wasm is fetched (with retry) before the editor
+// paints — this closes the built-in-tokenizer→TextMate color flip window.
 if (typeof window !== "undefined") {
-  loader.init().catch(() => {
-    /* Monaco still works with fallback defaults */
-  });
+  loader
+    .init()
+    .then((monaco) => {
+      initTextMateTokenization(monaco);
+    })
+    .catch(() => {
+      /* Monaco still works with fallback defaults */
+    });
 }

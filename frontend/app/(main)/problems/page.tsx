@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,14 +10,13 @@ import {
   List,
   Circle,
   CheckCircle2,
-  FlaskConical,
 } from "lucide-react";
-import { LanguageLogo, type Language } from "@/components/LanguageLogo";
+import { LanguageLogo } from "@/components/LanguageLogo";
+import ProblemCard from "@/components/problems/ProblemCard";
 import { fetchProblems } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { cn, shuffleArray } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectTrigger,
@@ -30,24 +27,16 @@ import {
 
 const ITEMS_PER_PAGE = 18;
 
-const diffColor: Record<number, string> = {
-  1: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
-  2: "text-sky-400 bg-sky-500/10 border-sky-500/25",
-  3: "text-amber-400 bg-amber-500/10 border-amber-500/25",
-  4: "text-orange-400 bg-orange-500/10 border-orange-500/25",
-  5: "text-purple-400 bg-purple-500/10 border-purple-500/25",
-};
-
-const diffLabel: Record<number, string> = {
-  1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
-};
-
 const diffDot: Record<number, string> = {
   1: "bg-emerald-500",
   2: "bg-sky-500",
   3: "bg-amber-500",
   4: "bg-orange-500",
   5: "bg-purple-500",
+};
+
+const diffLabel: Record<number, string> = {
+  1: "Beginner", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Expert",
 };
 
 type SolvedFilter = "all" | "solved" | "unsolved";
@@ -547,98 +536,16 @@ export default function ProblemsPage() {
       {mobileFiltersOpen && mobileFilterDrawer}
 
       {/* Problem grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {paginated.map((problem) => {
-          const d = problem.difficulty as keyof typeof diffColor;
-          const langs = problem.language_versions
-            ? Object.entries(problem.language_versions)
-                .filter(([_, spec]) => spec.func_name)
-                .map(([lang]) => lang as Language)
-            : [];
-
-          return (
-            <Link
-              key={problem.id}
-              href={`/problems/${problem.slug}`}
-              onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))}
-              className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
-            >
-              <div
-                className={cn(
-                  "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border hover:border-primary/30",
-                  "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/6",
-                  "animate-in fade-in slide-in-from-bottom-2",
-                  problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",
-                  "bg-card",
-                )}
-              >
-                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
-                  <Image
-                    src="/ChatGPT%20Image%20Jul%209%2C%202026%2C%2009_07_32%20PM.png"
-                    alt=""
-                    fill
-                    className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-300 scale-105 group-hover:scale-100"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#141414]/95" />
-                </div>
-
-                <div
-                  className={cn(
-                    "absolute top-0 left-0 right-0 h-0.5 transition-colors duration-300 z-10",
-                    problem.solved ? "bg-emerald-500" : "bg-transparent",
-                  )}
-                />
-
-                <div className="flex flex-row items-start justify-between p-5 pb-3 relative z-10">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
-                        diffColor[d] || diffColor[3],
-                      )}
-                    >
-                      {diffLabel[d] || "Medium"}
-                    </span>
-                  </div>
-
-                  {langs.length > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      {langs.map((lang) => (
-                        <div
-                          key={lang}
-                          className="w-[34px] h-[34px] flex items-center justify-center rounded-lg border border-border/50 bg-background/40 backdrop-blur-sm"
-                        >
-                          <LanguageLogo language={lang} size={18} />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-5 pb-5 flex-1 flex flex-col relative z-10">
-                  <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors leading-snug mb-2 line-clamp-2">
-                    {problem.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-2 mb-3">
-                    {problem.statement?.replace(/<[^>]*>/g, "").slice(0, 120)}
-                  </p>
-
-                  <div className="mt-auto flex items-center gap-3 text-sm text-muted-foreground/80">
-                    {problem.xpReward > 0 && (
-                      <span className="font-bold text-primary">
-                        {problem.xpReward} XP
-                      </span>
-                    )}
-                    {problem.solved && (
-                      <span className="text-emerald-400 font-bold">Solved</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {paginated.map((problem, i) => (
+          <ProblemCard
+            key={problem.id}
+            problem={problem}
+            position={(safePage - 1) * ITEMS_PER_PAGE + i + 1}
+            delay={i * 50}
+            metrics
+          />
+        ))}
       </div>
 
       {paginated.length === 0 && (

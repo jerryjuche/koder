@@ -35,7 +35,6 @@ export type Problem = {
   locked: boolean;
   status: "active" | "draft" | "error";
   visible: boolean;
-  successRate: number;
   estTimeMinutes: number;
   tags: string[];
   statement?: string;
@@ -233,6 +232,9 @@ export type TestResult = {
   executionTimeMs: number;
   output?: string;
   expectedOutput?: string;
+  ordinal?: number;
+  isHidden?: boolean;
+  input?: string;
 };
 
 export type BackendTestResult = {

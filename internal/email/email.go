@@ -8,24 +8,23 @@ package email
 
 import (
 	"bytes"
+	"html"
 	"html/template"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 )
 
 // Brand tokens (mirrored from frontend/app/globals.css).
 const (
-	CharcoalBase     = "#141414" // page background
-	CharcoalPanel    = "#191919" // footer surface
-	CharcoalCard     = "#1E1E1E" // card surface
-	BorderColor      = "#2B2B2B" // borders, dividers
-	OffWhite         = "#D1D1D8" // primary text
-	MutedText        = "#88889A" // secondary text
-	BrandPurpleDark  = "#53389E" // gradient start
-	BrandPurple      = "#7F56D9" // gradient mid / accents
-	BrandPurpleLight = "#9E77ED" // gradient end / links
-	MutedGold        = "#D4AF37" // CTA background
+	EmailBackground = "#FFFFFF" // page background
+	CardSurface     = "#F7F8FA" // content card surface
+	BorderColor     = "#E5E7EB" // borders, dividers
+	TextPrimary     = "#111827" // primary text
+	TextSecondary   = "#6B7280" // secondary text
+	MutedText       = "#4B5563" // muted paragraph text
+	ButtonGold      = "#D4AF37" // CTA background
 )
 
 // LockIconDataURI is an inline SVG padlock (Lucide-style stroke) encoded as a
@@ -37,12 +36,28 @@ const LockIconDataURI = "data:image/svg+xml;charset=utf-8," +
 	"%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E" +
 	"%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E"
 
+// LogoDataURI is a minimal inline SVG logo used when an external logo URL
+// is unavailable or blocked by the email client.
+const LogoDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36' fill='none'%3E" +
+	"%3Crect width='36' height='36' rx='10' fill='%23D4AF37'/%3E" +
+	"%3Cpath d='M12 10h4l4 8-4 8h-4l4-8-4-8Z' fill='%23111727'/%3E%3C/svg%3E"
+
+func renderLogoHTML(logoURL template.URL) template.HTML {
+	base := `<div style="width:36px;height:36px;border-radius:12px;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;overflow:hidden;background-image:url('` + LogoDataURI + `');background-repeat:no-repeat;background-position:center;background-size:18px 18px;">`
+	if len(strings.TrimSpace(string(logoURL))) == 0 {
+		return template.HTML(base + `</div>`)
+	}
+	return template.HTML(base + `<img src="` + string(logoURL) + `" width="36" height="36" alt="Koder logo" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" />` + `</div>`)
+}
+
 // PasswordResetData is the data model for the password-reset email.
 type PasswordResetData struct {
-	PlatformName string // display name, e.g. "Koder"
-	FirstName    string // recipient's name (auto-escaped)
-	ResetURL     string // one-time reset link (auto-escaped)
-	LogoURL      string // absolute URL to the platform logo
+	PlatformName string       // display name, e.g. "Koder"
+	FirstName    string       // recipient's name (auto-escaped)
+	ResetURL     string       // one-time reset link (auto-escaped)
+	LogoURL      template.URL // absolute or safe inline URL to the platform logo
+	LogoHTML     template.HTML
 	SupportEmail string // mailto address
 	Tagline      string // one-line brand message (footer)
 	ExpiresIn    string // human-readable expiry, e.g. "1 hour"
@@ -60,6 +75,7 @@ func RenderPasswordReset(w io.Writer, data PasswordResetData) error {
 	if data.Year == 0 {
 		data.Year = time.Now().Year()
 	}
+	data.LogoHTML = renderLogoHTML(data.LogoURL)
 	return passwordResetTmpl.ExecuteTemplate(w, "layoutBase", data)
 }
 
@@ -71,6 +87,198 @@ func RenderPasswordResetString(data PasswordResetData) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// ProblemReminderData is the data model for a problem reminder / campaign email.
+type ProblemReminderData struct {
+	PlatformName   string
+	FirstName      string
+	ProblemTitle   string
+	ProblemSlug    string
+	ProblemExcerpt string
+	// ProblemExcerptHTML contains rendered, safe HTML for the excerpt
+	ProblemExcerptHTML template.HTML
+	CTAURL             string
+	LogoURL            template.URL
+	LogoHTML           template.HTML
+	SupportEmail       string
+	Tagline            string
+	Year               int
+}
+
+// RenderProblemReminder renders a problem reminder email into w.
+func RenderProblemReminder(w io.Writer, data ProblemReminderData) error {
+	if data.PlatformName == "" {
+		data.PlatformName = "Koder"
+	}
+	if data.Year == 0 {
+		data.Year = time.Now().Year()
+	}
+	data.LogoHTML = renderLogoHTML(data.LogoURL)
+	// Render markdown excerpt to safe HTML and attach
+	if data.ProblemExcerpt != "" {
+		htmlStr := renderMarkdownToHTML(data.ProblemExcerpt)
+		data.ProblemExcerptHTML = template.HTML(htmlStr)
+	}
+	return problemReminderTmpl.ExecuteTemplate(w, "layoutBase", data)
+}
+
+// RenderProblemReminderString renders the reminder email and returns the HTML.
+func RenderProblemReminderString(data ProblemReminderData) (string, error) {
+	var buf bytes.Buffer
+	if err := RenderProblemReminder(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// renderMarkdownToHTML performs a small, safe markdown -> HTML conversion
+// tailored for email: headings, fenced code blocks, inline code, bold,
+// italics, links and simple - lists. Input is HTML-escaped first to avoid
+// raw HTML injection; the output contains inline styles suitable for the
+// light email shell.
+func renderMarkdownToHTML(md string) string {
+	s := strings.TrimSpace(md)
+	// escape raw HTML first
+	s = html.EscapeString(s)
+
+	// fenced code blocks ```lang\n...``` -> styled <pre><code>
+	codeRe := regexp.MustCompile("(?s)```(?:[a-zA-Z0-9_-]*\\n)?(.*?)```")
+	s = codeRe.ReplaceAllStringFunc(s, func(m string) string {
+		sub := codeRe.ReplaceAllString(m, "$1")
+		return `<pre style="background:` + CardSurface + `;padding:14px;border-radius:12px;color:` + TextPrimary + `;overflow:auto;font-family:monospace;line-height:1.5;"><code>` + sub + `</code></pre>`
+	})
+
+	// Headings
+	s = regexp.MustCompile(`(?m)^###\s*(.+)$`).ReplaceAllString(s, `<h3 style="margin:14px 0 6px;color:`+TextPrimary+`;font-size:16px;">$1</h3>`)
+	s = regexp.MustCompile(`(?m)^##\s*(.+)$`).ReplaceAllString(s, `<h2 style="margin:16px 0 8px;color:`+TextPrimary+`;font-size:18px;">$1</h2>`)
+	s = regexp.MustCompile(`(?m)^#\s*(.+)$`).ReplaceAllString(s, `<h1 style="margin:18px 0 10px;color:`+TextPrimary+`;font-size:22px;">$1</h1>`)
+
+	// Inline code
+	s = regexp.MustCompile("`([^`]+)`").ReplaceAllString(s, `<code style="background:`+CardSurface+`;padding:2px 6px;border-radius:6px;color:`+TextPrimary+`;font-family:monospace;">$1</code>`)
+
+	// Bold then italics
+	s = regexp.MustCompile(`\*\*(.+?)\*\*`).ReplaceAllString(s, `<strong style="color:`+TextPrimary+`;">$1</strong>`)
+	s = regexp.MustCompile(`\*(.+?)\*`).ReplaceAllString(s, `<em style="color:`+TextSecondary+`;">$1</em>`)
+
+	// Links [text](url)
+	s = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`).ReplaceAllString(s, `<a href="$2" style="color:`+ButtonGold+`;text-decoration:none;">$1</a>`)
+
+	// Lines -> paragraphs and simple lists
+	lines := strings.Split(s, "\n")
+	var out []string
+	inList := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- ") {
+			if !inList {
+				out = append(out, `<ul style="margin:10px 0 10px 20px;padding:0;">`)
+				inList = true
+			}
+			item := strings.TrimSpace(trimmed[2:])
+			out = append(out, `<li style="margin-bottom:8px;color:`+TextPrimary+`">`+item+`</li>`)
+		} else {
+			if inList {
+				out = append(out, `</ul>`)
+				inList = false
+			}
+			if trimmed == "" {
+				out = append(out, "")
+			} else {
+				out = append(out, `<p style="margin:10px 0;color:`+TextSecondary+`;line-height:1.7;">`+trimmed+`</p>`)
+			}
+		}
+	}
+	if inList {
+		out = append(out, `</ul>`)
+	}
+	return strings.Join(out, "\n")
+}
+
+var problemReminderTmpl = template.Must(template.New("problem-reminder").Parse(layoutBase + problemReminderBody()))
+
+func problemReminderBody() string {
+	return `{{define "content"}}
+
+<!-- Header band -->
+<tr>
+<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="left">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:middle;">
+{{.LogoHTML}}
+</td>
+<td style="width:12px;">&nbsp;</td>
+<td style="vertical-align:middle;">
+<div style="font-size:20px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
+<div style="margin-top:4px;color:` + TextSecondary + `;font-size:12px;">{{.Tagline}}</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Hero -->
+<tr>
+<td style="padding:24px 16px 0 16px;">
+
+<h1 style="margin:0;font-size:28px;line-height:34px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
+
+<p style="margin:14px 0 0;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
+Sharpen your skills with this short exercise: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</strong>
+</p>
+
+</td>
+</tr>
+
+<!-- Problem card & CTA -->
+<tr>
+<td style="padding:20px 16px 0 16px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:20px;color:` + TextPrimary + `;font-size:14px;line-height:22px;">
+<div style="font-size:18px;font-weight:700;color:` + TextPrimary + `;margin-bottom:8px;">{{.ProblemTitle}}</div>
+<div style="font-size:14px;color:` + TextSecondary + `;margin-bottom:16px;line-height:22px;">{{.ProblemExcerptHTML}}</div>
+<div>
+<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 24px;background-color:` + ButtonGold + `;color:#121212;font-weight:700;border-radius:12px;text-decoration:none;">Open Problem</a>
+</div>
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- Fallback link -->
+<tr>
+<td style="padding:14px 16px 0 16px;">
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+</div>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+
+</td>
+</tr>
+
+{{end}}`
 }
 
 // passwordResetTmpl is a reusable document shell (dark background, centered
@@ -94,17 +302,17 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
-<title>{{.PlatformName}} — Password Reset</title>
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{{.PlatformName}}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#141414;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#D1D1D8;">
+<body style="margin:0;padding:0;background-color:` + EmailBackground + `;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:` + TextPrimary + `;">
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#141414;padding:40px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + EmailBackground + `;padding:24px 12px;">
 <tr>
 <td align="center">
 
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#1E1E1E;border:1px solid #2B2B2B;border-radius:18px;overflow:hidden;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:` + CardSurface + `;border-radius:20px;overflow:hidden;">
 
 {{template "content" .}}
 
@@ -121,19 +329,19 @@ const passwordResetBody = `{{define "content"}}
 
 <!-- Header band -->
 <tr>
-<td style="background-image:linear-gradient(135deg,#53389E,#7F56D9,#9E77ED);padding:36px 48px;" bgcolor="#7F56D9">
+<td style="background-color:` + EmailBackground + `;padding:18px 16px;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:middle;">
-<img src="{{.LogoURL}}" alt="{{.PlatformName}}" width="44" height="44" style="display:block;width:44px;height:44px;border:0;border-radius:12px;" />
+{{.LogoHTML}}
 </td>
 <td style="width:14px;">&nbsp;</td>
 <td style="vertical-align:middle;">
-<div style="font-size:26px;font-weight:700;color:#FFFFFF;letter-spacing:-0.5px;">{{.PlatformName}}</div>
-<div style="margin-top:2px;color:rgba(255,255,255,.8);font-size:13px;letter-spacing:0.3px;">Coding Practice &amp; Grading</div>
+<div style="font-size:26px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.5px;">{{.PlatformName}}</div>
+<div style="margin-top:4px;color:` + TextSecondary + `;font-size:13px;letter-spacing:0.3px;">{{.Tagline}}</div>
 </td>
 </tr>
 </table>
@@ -145,21 +353,23 @@ const passwordResetBody = `{{define "content"}}
 
 <!-- Hero -->
 <tr>
-<td style="padding:48px 48px 8px 48px;">
+<td style="padding:18px 16px 0 16px;">
 
-<div style="width:72px;height:72px;border-radius:50%;background-color:#7F56D9;background-image:url('{{__LOCK_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:32px 32px;margin-bottom:28px;" bgcolor="#7F56D9">&nbsp;</div>
+<div style="width:72px;height:72px;border-radius:50%;background-color:` + EmailBackground + `;display:flex;align-items:center;justify-content:center;margin-bottom:18px;border:1px solid ` + BorderColor + `;">
+{{.LogoHTML}}
+</div>
 
-<h1 style="margin:0;font-size:32px;line-height:40px;color:#FFFFFF;font-weight:700;letter-spacing:-0.3px;">Reset your password</h1>
+<h1 style="margin:0;font-size:32px;line-height:40px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Reset your password</h1>
 
-<p style="margin:20px 0 0;color:#D1D1D8;font-size:16px;line-height:28px;">
-Hi <strong style="color:#FFFFFF;">{{.FirstName}}</strong>,
+<p style="margin:20px 0 0;color:` + TextPrimary + `;font-size:16px;line-height:28px;">
+Hi <strong style="color:` + TextPrimary + `;">{{.FirstName}}</strong>,
 </p>
 
-<p style="margin:8px 0 0;color:#88889A;font-size:16px;line-height:28px;">
+<p style="margin:10px 0 0;color:` + MutedText + `;font-size:15px;line-height:24px;">
 We received a request to reset the password for your {{.PlatformName}} account.
 </p>
 
-<p style="margin:8px 0 0;color:#88889A;font-size:16px;line-height:28px;">
+<p style="margin:10px 0 0;color:` + MutedText + `;font-size:15px;line-height:24px;">
 If you made this request, click the button below to choose a new password.
 </p>
 
@@ -168,59 +378,46 @@ If you made this request, click the button below to choose a new password.
 
 <!-- CTA -->
 <tr>
-<td style="padding:32px 48px 0 48px;">
+<td style="padding:20px 16px 0 16px;">
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
 <tr>
-<td style="border-radius:12px;background-color:#D4AF37;">
-<a href="{{.ResetURL}}" style="display:inline-block;padding:18px 34px;font-size:16px;font-weight:600;color:#141414;text-decoration:none;border-radius:12px;letter-spacing:0.2px;">Reset Password</a>
+<td style="border-radius:14px;background-color:` + ButtonGold + `;">
+<a href="{{.ResetURL}}" style="display:inline-block;padding:16px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Reset Password</a>
 </td>
 </tr>
 </table>
 
-<p style="margin-top:28px;margin-bottom:0;font-size:14px;line-height:24px;color:#88889A;">
-This secure link expires in <strong style="color:#FFFFFF;">{{.ExpiresIn}}</strong>.
-</p>
+<p style="margin-top:18px;margin-bottom:0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">
+This secure link expires in <strong style="color:` + TextPrimary + `;">{{.ExpiresIn}}</strong>.
 
-</td>
-</tr>
-
-<!-- Divider -->
-<tr>
-<td style="padding:40px 48px 0 48px;">
-<hr style="border:none;border-top:1px solid #2B2B2B;margin:0;">
 </td>
 </tr>
 
 <!-- Security -->
 <tr>
-<td style="padding:36px 48px 0 48px;">
+<td style="padding:24px 16px 0 16px;">
 
-<h2 style="margin:0;font-size:20px;color:#FFFFFF;font-weight:700;">Didn't request this?</h2>
-
-<p style="margin:14px 0 0;font-size:15px;line-height:28px;color:#88889A;">
-If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-</p>
-
-<p style="margin:8px 0 0;font-size:15px;line-height:28px;color:#88889A;">
-If you believe someone attempted to access your account, we recommend changing your password immediately after signing in and reviewing your recent account activity.
-</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:20px;color:` + TextPrimary + `;font-size:15px;line-height:24px;">
+<h2 style="margin:0;font-size:20px;color:` + TextPrimary + `;font-weight:700;">Didn't request this?</h2>
+<p style="margin:18px 0 0;color:` + TextSecondary + `;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+<p style="margin:14px 0 0;color:` + TextSecondary + `;">If you believe someone attempted to access your account, we recommend changing your password immediately after signing in and reviewing your recent account activity.</p>
+</td>
+</tr>
+</table>
 
 </td>
 </tr>
 
 <!-- Backup URL -->
 <tr>
-<td style="padding:28px 48px 0 48px;">
+<td style="padding:20px 16px 0 16px;">
 
-<div style="background-color:#191919;border:1px solid #2B2B2B;border-radius:12px;padding:20px;">
-
-<div style="font-size:13px;color:#88889A;margin-bottom:12px;font-weight:600;">Button not working?</div>
-
-<div style="word-break:break-all;font-size:14px;line-height:24px;color:#9E77ED;">
-<a href="{{.ResetURL}}" style="color:#9E77ED;text-decoration:none;word-break:break-all;">{{.ResetURL}}</a>
-</div>
-
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:10px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.ResetURL}}</a></div>
 </div>
 
 </td>
@@ -228,19 +425,12 @@ If you believe someone attempted to access your account, we recommend changing y
 
 <!-- Footer -->
 <tr>
-<td style="padding:40px 48px 36px 48px;background-color:#191919;border-top:1px solid #2B2B2B;" bgcolor="#191919">
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:#D1D1D8;font-weight:600;">{{.PlatformName}}</div>
-
-<div style="margin-top:12px;font-size:14px;line-height:24px;color:#88889A;">{{.Tagline}}</div>
-
-<div style="margin-top:24px;font-size:13px;line-height:22px;color:#88889A;">
-Need help? <a href="mailto:{{.SupportEmail}}" style="color:#9E77ED;text-decoration:none;">{{.SupportEmail}}</a>
-</div>
-
-<div style="margin-top:18px;font-size:12px;line-height:22px;color:#5B5B66;">
-&copy; {{.Year}} {{.PlatformName}}. All rights reserved.
-</div>
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:12px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:18px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:18px;font-size:12px;line-height:20px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>

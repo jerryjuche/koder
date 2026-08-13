@@ -89,14 +89,6 @@ function SettingsPageContent() {
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Preferences states (local storage)
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("koder_theme") || "vs-dark";
-    }
-    return "vs-dark";
-  });
-
   // Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);

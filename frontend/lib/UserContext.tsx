@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { User } from "@/lib/types";
 import { fetchUser, updatePrimaryLanguage } from "@/lib/api";
 import { useWebSocket } from "@/lib/event";
+import { captureAuthRedirect } from "@/lib/auth-redirect";
 
 type UserContextType = {
   user: User | null;
@@ -26,6 +27,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const redirecting = useRef(false);
 
+  const redirectToLanding = useCallback(() => {
+    // Prefer an explicit query param so redirects survive new tabs/windows
+    try {
+      if (typeof window !== "undefined") {
+        const { pathname, search } = window.location;
+        const full = pathname + search;
+        const url = "/?redirect_to=" + encodeURIComponent(full);
+        // keep existing same-tab fallback
+        captureAuthRedirect();
+        router.replace(url);
+        return;
+      }
+    } catch {
+      // fall back to previous behavior
+    }
+    captureAuthRedirect();
+    router.replace("/");
+  }, [router]);
+
   const loadUser = useCallback(async () => {
     try {
       const res = await fetchUser();
@@ -33,17 +53,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(res.data);
       } else if (!redirecting.current) {
         redirecting.current = true;
-        router.replace("/");
+        redirectToLanding();
       }
     } catch {
       if (!redirecting.current) {
         redirecting.current = true;
-        router.replace("/");
+        redirectToLanding();
       }
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [redirectToLanding]);
 
   useEffect(() => {
     const initialLoad = async () => {
@@ -53,12 +73,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUser(res.data);
         } else if (!redirecting.current) {
           redirecting.current = true;
-          router.replace("/");
+          redirectToLanding();
         }
       } catch {
         if (!redirecting.current) {
           redirecting.current = true;
-          router.replace("/");
+          redirectToLanding();
         }
       } finally {
         setLoading(false);
@@ -67,7 +87,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     initialLoad();
     window.addEventListener("user-updated", loadUser);
     return () => window.removeEventListener("user-updated", loadUser);
-  }, [loadUser, router]);
+  }, [loadUser, router, redirectToLanding]);
 
   useWebSocket({
     "user.xp.updated": useCallback(() => {

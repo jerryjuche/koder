@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
 import { Avatar } from "@/components/base/avatar/avatar";
-import confetti from "canvas-confetti";
+import { fireConfettiRain } from "@/lib/confetti";
 import {
   CodeBlock,
   CodeBlockBody,
@@ -55,7 +55,15 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     : null;
   const isFromLesson = lessonContext?.courseSlug && lessonContext?.lessonSlug;
 
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = sessionStorage.getItem(`koder_problem_${slug}`);
+      return cached ? (JSON.parse(cached) as Problem) : null;
+    } catch {
+      return null;
+    }
+  });
   const [code, setCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem(`koder_solution_${slug}`) || "";
@@ -139,38 +147,12 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
     loadData();
   }, [slug]);
 
-  function burstConfetti() {
-    try {
-      confetti({
-        particleCount: 60,
-        angle: 60,
-        spread: 90,
-        origin: { x: 0, y: 0.6 },
-        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-        startVelocity: 45,
-      });
-      confetti({
-        particleCount: 60,
-        angle: 120,
-        spread: 90,
-        origin: { x: 1, y: 0.6 },
-        colors: ["#D4AF37", "#22C55E", "#FFFFFF"],
-        startVelocity: 45,
-      });
-    } catch (e) {
-      console.error("Confetti failed", e);
-    }
-  }
-
   useEffect(() => {
-    if (loading) return;
     const t = setTimeout(() => {
-      burstConfetti();
-      const interval = setInterval(burstConfetti, 150);
-      setTimeout(() => clearInterval(interval), 3500);
-    }, 200);
+      void fireConfettiRain();
+    }, 300);
     return () => clearTimeout(t);
-  }, [loading]);
+  }, []);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const originalSolutions = [...communitySolutions];

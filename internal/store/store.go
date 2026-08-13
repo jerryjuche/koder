@@ -1,6 +1,5 @@
 package store
 
-
 import (
 	"context"
 	"fmt"
@@ -27,11 +26,11 @@ type FullProfileResult struct {
 
 // ActivityEntry represents a single day's activity for the contribution graph.
 type ActivityEntry struct {
-	Date           string `json:"date"`
-	Submissions    int    `json:"submissions"`
-	Solved         int    `json:"solved"`
-	TestsRun       int    `json:"tests_run"`
-	Level          int    `json:"level"`
+	Date        string `json:"date"`
+	Submissions int    `json:"submissions"`
+	Solved      int    `json:"solved"`
+	TestsRun    int    `json:"tests_run"`
+	Level       int    `json:"level"`
 }
 
 // Store defines the interface for all database operations.
@@ -49,6 +48,8 @@ type Store interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByLogin(ctx context.Context, login string) (*User, error) // checks username, email, student_id
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	// ListAllUserEmails returns all non-empty user email addresses (unique).
+	ListAllUserEmails(ctx context.Context) ([]string, error)
 	GetUserPublicData(ctx context.Context, id uuid.UUID) (*PublicUserData, error)
 	GetUserByGoogleID(ctx context.Context, googleID string) (*User, error)
 	GetUserWithSolvedCount(ctx context.Context, id uuid.UUID) (*User, int, error)
@@ -123,6 +124,7 @@ type Store interface {
 	GetProblemReports(ctx context.Context, problemSlug string) ([]Feedback, error)
 	UpdateFeedbackStatus(ctx context.Context, id uuid.UUID, status, adminNotes string) (*Feedback, error)
 	CountFeedbackByStatus(ctx context.Context) (map[string]int, error)
+	HideProblemOnReportThreshold(ctx context.Context, problemSlug string, threshold int) (bool, error)
 
 	// Notifications
 	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error

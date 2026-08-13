@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *PostgresStore) CreateFeedback(ctx context.Context, userID uuid.UUID, fb *NewFeedback) (*Feedback, error) {
@@ -22,6 +23,56 @@ func (s *PostgresStore) CreateFeedback(ctx context.Context, userID uuid.UUID, fb
 		return nil, fmt.Errorf("failed to create feedback: %w", err)
 	}
 	return &f, nil
+}
+
+// HideProblemOnReportThreshold counts distinct bug reporters for a problem and,
+// once the threshold is met, auto-drafts it (visible=false) so it drops out of
+// student listings until an admin reviews it. A per-problem advisory lock
+// serializes concurrent reports so two simultaneous submissions can't both read
+// a count below the threshold. Returns whether the problem is now a draft.
+func (s *PostgresStore) HideProblemOnReportThreshold(ctx context.Context, problemSlug string, threshold int) (bool, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtext($1)::bigint)", problemSlug); err != nil {
+		return false, fmt.Errorf("failed to acquire report lock: %w", err)
+	}
+
+	var visible bool
+	err = tx.QueryRow(ctx, "SELECT visible FROM problems WHERE slug = $1", problemSlug).Scan(&visible)
+	if err == pgx.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to load problem visibility: %w", err)
+	}
+
+	var reporters int
+	if err := tx.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT user_id)::int
+		FROM feedback
+		WHERE type = 'bug' AND problem_slug = $1
+	`, problemSlug).Scan(&reporters); err != nil {
+		return false, fmt.Errorf("failed to count bug reporters: %w", err)
+	}
+
+	drafted := false
+	if !visible {
+		// Already a draft — report anyway, nothing to flip.
+		drafted = true
+	} else if reporters >= threshold {
+		if _, err := tx.Exec(ctx, "UPDATE problems SET visible = false WHERE slug = $1", problemSlug); err != nil {
+			return false, fmt.Errorf("failed to draft problem: %w", err)
+		}
+		drafted = true
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("failed to commit draft decision: %w", err)
+	}
+	return drafted, nil
 }
 
 func (s *PostgresStore) GetAdminFeedback(ctx context.Context, statusFilter string) ([]Feedback, error) {
