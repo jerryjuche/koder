@@ -3371,3 +3371,24 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 
 - `tsc --noEmit` 0 errors, ESLint 0 errors, `go build ./...` + `go vet ./internal/...` clean, `go test ./internal/api/... ./internal/store/...` green; `node scripts/copy-monaco.mjs` produces 5.19 MB / 105-file `public/vs`.
 - Uncommitted working tree; staged for the `update` branch on approval.
+
+## Session 117 — 2026-08-13 — Professional Best Practices "Hall of Fame" redesign (uncommitted)
+
+### Changes
+
+- **Motivation:** the dashboard Best Practices tab was a flat, unorganized 2-column grid of near-identical Cards — no hierarchy, grouping, filters, or visual language. Researched Exercism community solutions, GitHub Trending, Codewars/LeetCode solution galleries, and NN/G tab/filter patterns; rebuilt as an inspiring, ranked showcase within the existing charcoal/purple/gold system (zero new dependencies — `framer-motion` + `shiki` already present).
+- **New `frontend/components/best-practices/` (6 files, ~664 LOC):**
+  - `BestPracticesSection.tsx` (180) — orchestrator: language/sort/search state URL-persisted (`?bp_lang=`, `?bp_sort=`), top-3 podium + ranked grid (rank = canonical like-rank; display re-sorts Top rated/Fastest/Newest), skeleton + empty + no-results states.
+  - `BestPracticeCard.tsx` (199) — ranked grid card: rank medallion (`#1` gold → `#N` muted), `ProfileHoverCard` author row + verified badge + problem link (keeps `return_to` nav), language/runtime/time meta chips, `LikeButton`, and a `CodeSnippet` using the **real `solution.language`/`solutionFilename`** — fixes the old hardcoded `language: "go"`/`solution.go` bug.
+  - `PodiumCard.tsx` (115) — top-3 variant: gold/silver/bronze gradient accent bar + glow, `Crown` chip for #1, elevated #1, larger code preview (260px).
+  - `BestPracticesToolbar.tsx` (91) — All/Go/Python segmented control (`LanguageLogo`), Top rated/Fastest/Newest sort select, author/problem search, live result count.
+  - `BestPracticesHeader.tsx` (74) — gradient trophy icon chip + subtitle + stat chips (solutions, Go/Python counts, total likes, best runtime).
+  - `index.ts` (5) — barrel re-exports.
+- **Backend:** `GetBestPractices` (`internal/store/submissions.go`) now selects `p.title as problem_title` + `p.module` (added to `GROUP BY`); `CommunitySolution` (`internal/store/types.go`) gains `ProblemTitle`/`Module` for readable problem titles instead of bare slugs. `CommunitySolution` TS type mirrors them.
+- **Wiring:** `home/page.tsx` (−80 lines) replaced the flat grid with `<BestPracticesSection solutions={bestPractices} loading={loading} onLike={handleLike} />`; admin/BETA gate + optimistic-like flow unchanged; unused imports pruned.
+- **Helpers:** `lib/utils.ts` + `formatRelativeTime()` ("just now" → "2d ago").
+
+### Verification
+
+- `go vet ./internal/...` clean, `go build ./cmd/server` OK, 9/9 backend suites green (171 tests), `tsc --noEmit` 0 errors, ESLint 0 errors on all changed files.
+- Uncommitted working tree (5 modified + 1 untracked `components/best-practices/`).

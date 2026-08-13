@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   Search,
   ChevronDown,
@@ -10,10 +9,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   CheckCircle2,
-  Clock,
   Flame,
   Code,
-  Heart,
   Trophy,
   ArrowLeft,
   BookOpen,
@@ -31,14 +28,10 @@ import {
 } from "@/lib/utils";
 import {
   Card,
-  CardContent,
-  CardHeader,
 } from "@/components/ui/card";
-import { CodeSnippet } from "@/components/application/code-snippet";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
-import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
-import { Avatar } from "@/components/base/avatar/avatar";
+import { BestPracticesSection } from "@/components/best-practices";
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -600,84 +593,11 @@ export default function Dashboard() {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {loading ? (
-            <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="h-[320px] animate-pulse" />
-              ))}
-            </div>
-          ) : bestPractices.length === 0 ? (
-            <div className="col-span-full">
-              <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
-                <Trophy className="mx-auto mb-4 text-muted-foreground/20" size={48} />
-                <h3 className="text-lg font-bold text-foreground mb-2">No Best Practices Yet</h3>
-                <p className="text-muted-foreground">Solve problems and get likes to feature here!</p>
-              </Card>
-            </div>
-          ) : (
-            bestPractices.map((sol) => (
-              <Card
-                key={sol.id}
-                className="overflow-hidden flex flex-col gap-0 p-0"
-              >
-                <CardHeader className="p-4 flex-row items-center justify-between space-y-0 border-b border-border/50 bg-muted/20">
-                  <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
-                    <div className="flex items-center gap-3 cursor-pointer">
-                      <Avatar
-                        src={sol.user_avatar_url}
-                        name={sol.user_name}
-                        size="sm"
-                        verified={sol.verified}
-                      />
-                      <div>
-                        <div className="font-bold text-sm text-foreground flex items-center gap-2">
-                          {sol.user_name}
-                        {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))} className="text-xs text-primary hover:underline font-mono">
-                            in {sol.problem_slug}
-                          </Link>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono flex items-center gap-2 mt-0.5">
-                        <Clock size={12} /> {sol.runtime_ms}ms
-                      </div>
-                    </div>
-                  </div>
-                  </ProfileHoverCard>
-                  <button
-                    onClick={() => handleLike(sol.id, sol.has_liked)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-xs font-bold shrink-0",
-                      sol.has_liked
-                        ? "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20"
-                        : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Heart
-                      size={14}
-                      fill={sol.has_liked ? "currentColor" : "none"}
-                      className={cn(sol.has_liked && "text-rose-500")}
-                    />
-                    {sol.likes}
-                  </button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <CodeSnippet
-                    files={[{
-                      language: "go",
-                      filename: "solution.go",
-                      code: sol.code,
-                    }]}
-                    collapsed
-                    maxHeight={140}
-                    className="rounded-none border-0 shadow-none"
-                  />
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+        <BestPracticesSection
+          solutions={bestPractices}
+          loading={loading}
+          onLike={handleLike}
+        />
       )}
     </div>
   );

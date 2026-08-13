@@ -375,6 +375,8 @@ type CommunitySolution struct {
 	Verified      bool        `json:"verified"`
 	ProblemID     pgtype.UUID `json:"problem_id"`
 	ProblemSlug   string      `json:"problem_slug,omitempty"`
+	ProblemTitle  string      `json:"problem_title,omitempty"`
+	Module        string      `json:"module,omitempty"`
 	Language      string      `json:"language"`
 	Code          string      `json:"code"`
 	RuntimeMs     int         `json:"runtime_ms"`

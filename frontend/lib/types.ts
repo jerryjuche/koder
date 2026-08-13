@@ -200,6 +200,8 @@ export type CommunitySolution = {
   verified: boolean;
   problem_id: string;
   problem_slug?: string;
+  problem_title?: string;
+  module?: string;
   language: string;
   code: string;
   runtime_ms: number;
