@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-12 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `update` | **Last indexed:** 2026-08-13 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -42,8 +42,8 @@
 | **Go Sandbox** (`sandbox/`)                         | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter                                                                              |
 | **SQL Migrations** (`migrations/`)                  | 54                                        | ~27,525             | 38 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
 | **Frontend App** (`app/`)                           | 75 `.tsx`                                 | ~18,466             | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC)                                                                    |
-| **Frontend Components** (`components/`)             | 68                                        | ~10,960             | 22 shadcn/ui + 46 custom (incl. new `test-results/` diff primitives)                                                                              |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 25                                        | ~4,500              | 21 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
+| **Frontend Components** (`components/`)             | 69                                        | ~11,000             | 22 shadcn/ui + 47 custom (incl. `test-results/` diff primitives + `MonacoPreloader`)                                                              |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 26                                        | ~4,520              | 22 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
 | **Frontend Styles** (`styles/` + `app/globals.css`) | 4                                         | ~1,598              | theme.css (856 vars), typography.css (430 lines)                                                                                                  |
 | **Documentation**                                   | 21                                        | ~10,300             | 5 docs/ + 16 root/docs markdown files                                                                                                             |
 | **Scripts**                                         | 7                                         | ~904                | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator                                                       |
@@ -323,7 +323,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File                | Lines | Type   | Purpose                                                                                                                                                            |
 | ------------------- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `layout.tsx`        | 22    | Server | TopNav, BroadcastBanner, FeedbackButtonWrapper, PyodidePreloader                                                                                                   |
+| `layout.tsx`        | 27    | Server | TopNav, BroadcastBanner, FeedbackButtonWrapper, PyodidePreloader, MonacoPreloader                                                                                 |
 | `error.tsx`         | 32    | Client | AlertTriangle + retry                                                                                                                                              |
 | `home/page.tsx`     | 831   | Client | Dashboard: ModuleCards grid, language filter, URL-persisted module filter, search, pagination (18/page), best practices tab, locked module support, user stats bar |
 | `home/loading.tsx`  | 17    | Server | Skeleton grid                                                                                                                                                      |
@@ -360,7 +360,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File                                             | Lines | Type   | Purpose                                                                                                                                                                                    |
 | ------------------------------------------------ | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/problems/layout.tsx`                        | 16    | Server | UserProvider + FeedbackButton + PyodidePreloader                                                                                                                                           |
+| `app/problems/layout.tsx`                        | 18    | Server | UserProvider + FeedbackButton + PyodidePreloader + MonacoPreloader                                                                                              |
 | `(main)/problems/page.tsx`                       | 725   | Client | (BETA-gated) Search/filter: language tabs, status/difficulty/XP range, seeded random ordering per user, mobile sidebar                                                                     |
 | `app/problems/[slug]/page.tsx`                   | 54    | Server | Shell → Suspense → DynamicWorkspace, OG metadata per-problem                                                                                                                               |
 | `app/problems/[slug]/DynamicWorkspace.tsx`       | 40    | Client | next/dynamic no-SSR wrapper                                                                                                                                                                |
@@ -455,7 +455,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | ------------------- | ----- | --------------------------------------------------------------------------------------------------------------- |
 | `layout/TopNav.tsx` | 344   | Logo, Dashboard/Problems/Learn links (BETA badges), notification bell, avatar menu, XP bar, Google link trigger |
 
-#### Feature Components (13 files)
+#### Feature Components (14 files)
 
 | File                         | Lines | Purpose                                                                    |
 | ---------------------------- | ----- | -------------------------------------------------------------------------- |
@@ -469,6 +469,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `PyodideConsole.tsx`         | 186   | Terminal-style (#0D0D14), Fira Code, colored output, auto-scroll           |
 | `ResizableSplitPane.tsx`     | 107   | Drag-resizable horizontal split                                            |
 | `PyodidePreloader.tsx`       | 11    | Eager CDN Pyodide load                                                     |
+| `MonacoPreloader.tsx`        | 28    | Idle Monaco AMD + TextMate warm-up before first editor mount               |
 | `DesktopOnlyOverlay.tsx`     | 59    | SSR-safe mobile overlay (< 900px), rAF debounced resize, body scroll lock  |
 | `MultiFileEditor.tsx`        | 279   | Tabbed multi-file editor, entry point markers                              |
 | `multi-step-loader-demo.tsx` | 62    | Standalone demo of MultiStepLoader variants                                |
@@ -564,7 +565,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts`         | 22    | `useIsMobile()` with matchMedia listener (768px breakpoint)                                                |
 | `use-has-mounted.ts`    | 10    | SSR-safe mount detection                                                                                   |
 
-### 8.4 Library Modules (`frontend/lib/` — 21 files, ~4,126 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 22 files, ~4,149 LOC)
 
 | File                     | Lines | Key Exports                                                                                                                                                                                          |
 | ------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -581,7 +582,8 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `monaco-textmate.ts`     | 88    | Real TextMate tokenization: Registry + oniguruma WASM, encoded-tokens providers for Go/Python                                                                                                        |
 | `achievements.ts`        | 85    | `getAchievements(profile)`, 6 badges (First Blood, Hot Streak, Perfectionist, Speed Demon, Veteran Coder, Completionist)                                                                             |
 | `utils.ts`               | 69    | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates)                     |
-| `monaco-setup.ts`        | 65    | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring)                                                                                                           |
+| `monaco-setup.ts`        | 65    | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring)                                                                           |
+| `monaco-warm.ts`         | 23    | Module-scope `warmMonaco()` — idle loader.init + initMonacoEditor for pre-mount warm-up (MonacoPreloader)                                                            |
 | `markdown.ts`            | 62    | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency                                                                  |
 | `monaco-options.ts`      | 62    | Monaco editor default options                                                                                                                                                                        |
 | `monaco-theme.ts`        | 56    | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces)                                                                                                                      |
@@ -613,7 +615,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `components.json`         | 25     | shadcn/ui config                                                    |
 | `next-env.d.ts`           | 6      | Auto-generated TS declarations                                      |
 | `metadata.json`           | 6      | Project metadata                                                    |
-| `scripts/copy-monaco.mjs` | 16     | Copies Monaco worker files into public/                             |
+| `scripts/copy-monaco.mjs` | 48     | Regenerates `public/vs` each run (pruned: ts/css/html/json workers + non-English NLS dropped, ~15 MB → ~5 MB) + copies onig.wasm |
 | `.env`                    | 2      | Active vars (API URL + Google client ID)                            |
 | `.env.example`            | 8      | Template with all 25+ env vars documented                           |
 | `package-lock.json`       | 20,934 | Auto-generated (excluded from tracked LOC)                          |
@@ -1033,11 +1035,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | **Curriculum section types** | 11 (ENUM)                                                                                                               |
 | **AI assist actions**        | 8                                                                                                                       |
 | **shadcn/ui primitives**     | 22                                                                                                                      |
-| **Custom components**        | 46                                                                                                                      |
-| **External Go deps**         | 7                                                                                                                       |
-| **Sandbox external deps**    | 0 (stdlib only)                                                                                                         |
-| **Module WebP images**       | 18                                                                                                                      |
-| **Monaco worker files**      | ~113                                                                                                                    |
+| **Custom components**        | 47 (incl. `MonacoPreloader`)                                                                            |
+| **External Go deps**         | 7                                                                                                       |
+| **Sandbox external deps**    | 0 (stdlib only)                                                                                         |
+| **Module WebP images**       | 18                                                                                                      |
+| **Monaco worker files**      | ~105 deployed (pruned via copy-monaco.mjs from ~113)                                                    |
 
 ---
 
@@ -1114,6 +1116,13 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-13 — Session 116: Monaco warm-up + `/vs` asset prune + problems listings density
+
+- **Monaco warm-up:** `components/MonacoPreloader.tsx` (new, 28 LOC) + `lib/monaco-warm.ts` (new, 23 LOC) — background idle load of the Monaco AMD build + TextMate/onig.wasm before the first editor mount (mounted in `(main)/layout.tsx` + `app/problems/layout.tsx`); runs the identical init path editors use so later mounts skip duplicate registration
+- **`/vs` prune** (`scripts/copy-monaco.mjs` 16→48 LOC): regenerates `public/vs` each run, drops ts/css/html/json workers + non-English NLS locales that the app never requests → deployed payload 15.4 MB → 5.19 MB (105 files; `public/vs` is gitignored, so the win is Vercel payload + local disk)
+- **Problems listings:** `/problems` cards pass `metrics`; `ProblemCard.tsx` densified (p-4 header, `text-[15px]` title, fixed 2-line description clamp, `py-3` footer) and the `mb-auto` bottom-crow removed; dead `Problem.successRate` field dropped from `lib/types.ts`
+- **Bug-report auto-draft (store fix):** `HideProblemOnReportThreshold` inverted UPDATE guard fixed — it now actually sets `visible=false` at the 2-reporter threshold (was reporting drafted without hiding); handler + fake-store tests green
 
 ### 2026-08-12 — Session 114: CI `npm ci` fix + professional codebase reindex (post-pull refresh)
 
@@ -1558,4 +1567,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-_Last indexed: 2026-08-12 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean_
+_Last indexed: 2026-08-13 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: 3 modified + 3 untracked (Monaco warm-up + /vs prune + listings density + bug-report auto-draft), uncommitted_

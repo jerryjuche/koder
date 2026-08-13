@@ -84,3 +84,26 @@ Fix the CI `npm ci` failure after `git pull origin update`, then professionally 
 
 ### Open Issues
 - None
+
+## Session 116 — 2026-08-13 (Monaco warm-up + /vs prune + listings density + bug-report auto-draft)
+
+### Goal
+Professional polish pass over the uncommitted working tree: Monaco warm-up, `/vs` asset prune, denser problem cards, and the incoming bug-report auto-draft feature.
+
+### Tasks Completed
+1. **Monaco warm-up** — `components/MonacoPreloader.tsx` + `lib/monaco-warm.ts`: idle background load of the Monaco AMD build + TextMate/onig.wasm before first editor mount (mounted in `(main)/layout.tsx` + `app/problems/layout.tsx`); same init path as editors so the `initialized` guard skips duplicate registration on later mounts.
+2. **`/vs` prune** — `scripts/copy-monaco.mjs` (16→48 LOC) regenerates `public/vs` each run and drops ts/css/html/json workers + non-English NLS → 15.4 MB → 5.19 MB (105 files). `public/vs` is gitignored, so the win is Vercel payload + local disk.
+3. **Problems listings** — `/problems` passes `metrics`; `ProblemCard.tsx` densified (p-4 header, 15px title, fixed 2-line description clamp, py-3 footer, `mb-auto` removed); dead `Problem.successRate` dropped from `lib/types.ts`.
+4. **Bug-report auto-draft (WIP, fixed)** — `internal/store/feedback.go` inverted UPDATE guard fixed: `HideProblemOnReportThreshold` now sets `visible=false` at the 2-reporter threshold (was returning drafted without hiding); workspace dialog + 4s auto-advance with Stay/Next + `clearCache("/problems")` verified; handler + fake-store tests green.
+5. **Docs** — SESSION_LOG.md (Session 116), CLAUDE.md (badges, §3/§8/§17/§20).
+
+### Decisions
+- `public/vs` stays gitignored; the prune benefit is deployment payload.
+- Uncommitted; staged for the `update` branch on approval.
+
+### Next Steps
+- Commit to `update` on approval; then merge update → staging/main per CI flow.
+- Migration-free; no Supabase changes required for the auto-draft feature.
+
+### Open Issues
+- None

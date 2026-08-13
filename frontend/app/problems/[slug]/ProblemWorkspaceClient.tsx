@@ -71,6 +71,9 @@ const GO_CODE = `package koder
 // The backend will test your exported function automatically.
 `;
 
+const REPORT_AUTO_ADVANCE_SECONDS = 4;
+const REPORT_AUTO_ADVANCE_MS = REPORT_AUTO_ADVANCE_SECONDS * 1000;
+
 const PYTHON_CODE = `def solution():
     # Write your solution here.
     pass
@@ -237,6 +240,8 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportSending, setReportSending] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
+  const [problemDrafted, setProblemDrafted] = useState(false);
+  const [reportCountdown, setReportCountdown] = useState(0);
   const [languageConfirmOpen, setLanguageConfirmOpen] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
   const [scaffoldAtToggle, setScaffoldAtToggle] = useState<string>("");
@@ -601,6 +606,22 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
     setSubmitting(false);
   }
+  // Next problem (deterministic per-user shuffle) — shared by the header link
+  // and the post-report thank-you flow.
+  const nextProblem =
+    problem && user?.id && allProblems.length > 0
+      ? (() => {
+          const unlockedProblems = allProblems.filter((p) => !p.locked);
+          if (unlockedProblems.length === 0) return null;
+          const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
+          const shuffled = shuffleArray(unlockedProblems, seed);
+          const idx = shuffled.findIndex((p) => p.slug === slug);
+          return idx >= 0 && idx < shuffled.length - 1
+            ? shuffled[idx + 1]
+            : null;
+        })()
+      : null;
+
   const handleReportSubmit = async () => {
     if (!problem) return;
     setReportSending(true);
@@ -620,11 +641,33 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     });
     setReportSending(false);
     if (res.success) {
+      const drafted = Boolean(res.data?.problem_drafted);
+      setProblemDrafted(drafted);
+      if (drafted) {
+        clearCache("/problems");
+      }
+      setReportCountdown(REPORT_AUTO_ADVANCE_SECONDS);
       setReportSubmitted(true);
     } else {
       toast.error(res.error?.message || "Failed to submit report");
     }
   };
+
+  // Auto-advance to the next question ~4s after a successful report, unless the
+  // student opts to stay. Cancelled on unmount, on close, or via "Stay here".
+  useEffect(() => {
+    if (!reportSubmitted || !nextProblem) return;
+    const countdown = setInterval(() => {
+      setReportCountdown((c) => (c > 1 ? c - 1 : 0));
+    }, 1000);
+    const advance = setTimeout(() => {
+      router.push(`/problems/${nextProblem.slug}`);
+    }, REPORT_AUTO_ADVANCE_MS);
+    return () => {
+      clearInterval(countdown);
+      clearTimeout(advance);
+    };
+  }, [reportSubmitted, nextProblem, router]);
 
   useEffect(() => {
     handleFormatRef.current = handleFormat;
@@ -688,20 +731,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     go: { active: "bg-[#00ADD8]/15 text-[#00ADD8]", text: "Go" },
     python: { active: "bg-[#FFD43B]/15 text-[#FFD43B]", text: "Python" },
   };
-
-  const nextProblem =
-    problem && user?.id && allProblems.length > 0
-      ? (() => {
-          const unlockedProblems = allProblems.filter((p) => !p.locked);
-          if (unlockedProblems.length === 0) return null;
-          const seed = parseInt(user.id.replace(/-/g, "").slice(0, 8), 16);
-          const shuffled = shuffleArray(unlockedProblems, seed);
-          const idx = shuffled.findIndex((p) => p.slug === slug);
-          return idx >= 0 && idx < shuffled.length - 1
-            ? shuffled[idx + 1]
-            : null;
-        })()
-      : null;
 
   return (
     <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
@@ -1328,23 +1357,79 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           />
           <div className="relative w-full max-w-lg rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             {reportSubmitted ? (
-              <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
+              <div className="flex flex-col items-center text-center px-8 py-10">
                 <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-success/10 border border-brand-success/20">
                   <CheckCircle2 className="h-8 w-8 text-brand-success" />
                 </div>
-                <h3 className="text-xl font-bold text-brand-offwhite mb-2">
-                  Thank You
+                <h3 className="text-xl font-bold text-brand-offwhite">
+                  {problemDrafted
+                    ? "Problem taken down for review"
+                    : "Thank you — report received"}
                 </h3>
-                <p className="text-sm text-brand-offwhite-muted max-w-sm leading-relaxed">
-                  Your report has been submitted. The admin will review the
-                  issue and fix it as soon as possible.
+                <p className="mt-2 text-sm text-brand-offwhite-muted max-w-sm leading-relaxed">
+                  {problemDrafted
+                    ? "This problem has been automatically removed from the listings so our team can investigate and fix it."
+                    : "Our team has been notified. If other students report the same issue, the problem is automatically taken down for review."}
                 </p>
-                <button
-                  onClick={() => setReportOpen(false)}
-                  className="mt-6 rounded-lg border border-brand-charcoal-border px-5 py-2 text-sm font-medium text-brand-offwhite hover:bg-brand-charcoal-hover transition-colors"
-                >
-                  Close
-                </button>
+
+                {nextProblem ? (
+                  <>
+                    <div className="mt-6 flex max-w-sm items-center gap-2 rounded-lg border border-brand-charcoal-border bg-brand-charcoal-base px-3 py-2">
+                      <ChevronRight
+                        size={14}
+                        className="shrink-0 text-brand-muted-gold"
+                      />
+                      <span className="truncate text-xs text-brand-offwhite-muted">
+                        Next:{" "}
+                        <span className="font-medium text-brand-offwhite">
+                          {nextProblem.title}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+                      <button
+                        onClick={() => {
+                          setReportSubmitted(false);
+                          setReportOpen(false);
+                          setReportDescription("");
+                        }}
+                        className="rounded-lg border border-brand-charcoal-border px-5 py-2.5 text-sm font-medium text-brand-offwhite-muted hover:bg-brand-charcoal-hover transition-colors"
+                      >
+                        {reportCountdown > 0
+                          ? `Stay here (${reportCountdown}s)`
+                          : "Stay here"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReportSubmitted(false);
+                          setReportOpen(false);
+                          setReportDescription("");
+                          router.push(`/problems/${nextProblem.slug}`);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-muted-gold hover:bg-brand-muted-gold-dark px-6 py-2.5 text-sm font-semibold text-brand-charcoal-base transition-all duration-300 shadow-lg shadow-brand-muted-gold/20"
+                      >
+                        Next Question <ChevronRight size={16} />
+                      </button>
+                    </div>
+                    {reportCountdown > 0 && (
+                      <p className="mt-3 text-[11px] text-brand-offwhite-muted/70">
+                        Continuing automatically in {reportCountdown}s
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setReportSubmitted(false);
+                      setReportOpen(false);
+                      setReportDescription("");
+                      router.push(returnTo);
+                    }}
+                    className="mt-6 rounded-lg bg-brand-muted-gold hover:bg-brand-muted-gold-dark px-6 py-2.5 text-sm font-semibold text-brand-charcoal-base transition-all duration-300 shadow-lg shadow-brand-muted-gold/20"
+                  >
+                    Back to Topics
+                  </button>
+                )}
               </div>
             ) : (
               <>
