@@ -100,7 +100,7 @@ type Store interface {
 	LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
 	UnlikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
 	GetTopCommunitySolutionsForProblem(ctx context.Context, problemID, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
-	GetBestPractices(ctx context.Context, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
+	GetBestPractices(ctx context.Context, currentUserID uuid.UUID, mineOnly bool, limit int) ([]CommunitySolution, error)
 
 	// Admin operations
 	GetAdminStats(ctx context.Context) (*AdminStats, error)

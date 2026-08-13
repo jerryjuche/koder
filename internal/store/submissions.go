@@ -178,12 +178,20 @@ func (s *PostgresStore) GetTopCommunitySolutionsForProblem(ctx context.Context, 
 }
 
 // GetBestPractices gets the top liked successful submissions across all problems globally.
-func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error) {
+// When mineOnly is true, only submissions liked by currentUserID are returned.
+func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid.UUID, mineOnly bool, limit int) ([]CommunitySolution, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 
-	query := `
+	hasAnyLike := `EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)`
+	hasMyLike := `EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1)`
+	likedBy := hasAnyLike
+	if mineOnly {
+		likedBy = hasMyLike
+	}
+
+	query := fmt.Sprintf(`
 		SELECT 
 			sub.id, sub.user_id, u.name as user_name, sub.problem_id, p.slug as problem_slug,
 			p.title as problem_title, p.module,
@@ -196,11 +204,11 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		JOIN problems p ON sub.problem_id = p.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.status = 'passed' AND p.visible = true
-		  AND EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)
+		  AND %s
 		GROUP BY sub.id, u.name, p.slug, p.title, p.module, u.google_avatar_url, u.verified
 		ORDER BY likes DESC, sub.created_at DESC
 		LIMIT $2
-	`
+	`, likedBy)
 
 	rows, err := s.pool.Query(ctx, query, currentUserID, limit)
 	if err != nil {

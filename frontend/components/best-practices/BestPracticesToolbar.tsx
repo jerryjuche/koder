@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownWideNarrow, Search, Trophy } from "lucide-react";
+import { ArrowDownWideNarrow, Heart, Search, Trophy, Users } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,8 @@ const sorts: { value: BpSort; label: string }[] = [
 ];
 
 export function BestPracticesToolbar({
+  mine,
+  onMineChange,
   lang,
   onLangChange,
   sort,
@@ -28,6 +30,8 @@ export function BestPracticesToolbar({
   onQueryChange,
   resultCount,
 }: {
+  mine: boolean;
+  onMineChange: (m: boolean) => void;
   lang: BpLang;
   onLangChange: (l: BpLang) => void;
   sort: BpSort;
@@ -38,6 +42,33 @@ export function BestPracticesToolbar({
 }) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+      <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => onMineChange(false)}
+          className={cn(
+            "px-3.5 py-1.5 rounded text-sm font-medium transition-all flex items-center gap-1.5",
+            !mine
+              ? "bg-muted text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Users size={14} />
+          All
+        </button>
+        <button
+          onClick={() => onMineChange(true)}
+          className={cn(
+            "px-3.5 py-1.5 rounded text-sm font-medium transition-all flex items-center gap-1.5",
+            mine
+              ? "bg-muted text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Heart size={14} />
+          Mine
+        </button>
+      </div>
+
       <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
         {langs.map((l) => (
           <button

@@ -91,23 +91,3 @@ export function LikeButton({
     </button>
   );
 }
-
-export function RankBadge({ rank, size = "md" }: { rank: number; size?: "md" | "lg" }) {
-  const base = cn(
-    "shrink-0 flex items-center justify-center rounded-lg font-mono font-bold leading-none select-none border",
-    size === "lg" ? "w-10 h-10 text-base" : "w-9 h-9 text-sm",
-  );
-  const style =
-    rank === 1
-      ? "bg-amber-400/10 text-amber-400 border-amber-400/30"
-      : rank === 2
-        ? "bg-slate-400/10 text-slate-300 border-slate-400/30"
-        : rank === 3
-          ? "bg-amber-700/10 text-amber-600 border-amber-700/30"
-          : "bg-muted/40 text-muted-foreground border-border/60";
-  return (
-    <span className={cn(base, style)}>
-      #{rank}
-    </span>
-  );
-}

@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SearchX, Trophy } from "lucide-react";
+import { Heart, SearchX, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { CommunitySolution } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { BestPracticesHeader } from "./BestPracticesHeader";
 import { BestPracticesToolbar, BpLang, BpSort } from "./BestPracticesToolbar";
-import { PodiumCard } from "./PodiumCard";
 import { SolutionList } from "./SolutionList";
 import { BestPracticesSkeleton } from "./BestPracticesSkeleton";
 
@@ -29,10 +28,14 @@ const sorters: Record<BpSort, (a: CommunitySolution, b: CommunitySolution) => nu
 export function BestPracticesSection({
   solutions,
   loading,
+  mine,
+  onMineChange,
   onLike,
 }: {
   solutions: CommunitySolution[];
   loading: boolean;
+  mine: boolean;
+  onMineChange: (m: boolean) => void;
   onLike: (id: string, currentlyLiked: boolean) => void;
 }) {
   const [lang, setLang] = useState<BpLang>(() => {
@@ -67,10 +70,7 @@ export function BestPracticesSection({
   }, [filtered]);
 
   const ordered = useMemo(() => {
-    const list = [...filtered].sort(sorters[sort]);
-    const top3 = [...filtered].sort(byTop).slice(0, 3);
-    const top3Ids = new Set(top3.map((s) => s.id));
-    return { list, top3: top3.map((s) => s.id), top3Ids };
+    return [...filtered].sort(sorters[sort]);
   }, [filtered, sort]);
 
   useEffect(() => {
@@ -87,13 +87,13 @@ export function BestPracticesSection({
   const handleSortChange = useCallback((s: BpSort) => setSort(s), []);
   const handleQueryChange = useCallback((q: string) => setQuery(q), []);
 
-  const rest = ordered.list.filter((s) => !ordered.top3Ids.has(s.id));
-
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <BestPracticesHeader solutions={solutions} />
+      <BestPracticesHeader solutions={solutions} mine={mine} />
 
       <BestPracticesToolbar
+        mine={mine}
+        onMineChange={onMineChange}
         lang={lang}
         onLangChange={handleLangChange}
         sort={sort}
@@ -108,7 +108,16 @@ export function BestPracticesSection({
       ) : filtered.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
-            {solutions.length === 0 ? (
+            {solutions.length === 0 && mine ? (
+              <>
+                <Heart className="mx-auto mb-4 text-rose-500/20" size={48} />
+                <h3 className="text-lg font-bold text-foreground mb-2">No liked solutions yet</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Like solutions you find in the community to save them here — switch to the All
+                  view to browse and start building your library.
+                </p>
+              </>
+            ) : solutions.length === 0 ? (
               <>
                 <Trophy className="mx-auto mb-4 text-muted-foreground/20" size={48} />
                 <h3 className="text-lg font-bold text-foreground mb-2">No Best Practices Yet</h3>
@@ -128,32 +137,7 @@ export function BestPracticesSection({
           </Card>
         </motion.div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
-            {ordered.top3.map((id) => {
-              const sol = solutions.find((s) => s.id === id)!;
-              const rank = ordered.top3.indexOf(id) + 1;
-              return (
-                <div
-                  key={id}
-                  className={rank === 1 ? "md:order-2" : rank === 2 ? "md:order-1" : "md:order-3"}
-                >
-                  <PodiumCard
-                    solution={sol}
-                    rank={rank as 1 | 2 | 3}
-                    index={rank - 1}
-                    featured={rank === 1}
-                    onLike={onLike}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {rest.length > 0 && (
-            <SolutionList solutions={rest} ranks={ranks} onLike={onLike} />
-          )}
-        </>
+        <SolutionList solutions={ordered} ranks={ranks} onLike={onLike} />
       )}
     </div>
   );
