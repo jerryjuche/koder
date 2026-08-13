@@ -7,8 +7,9 @@ import { CommunitySolution } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { BestPracticesHeader } from "./BestPracticesHeader";
 import { BestPracticesToolbar, BpLang, BpSort } from "./BestPracticesToolbar";
-import { BestPracticeCard } from "./BestPracticeCard";
 import { PodiumCard } from "./PodiumCard";
+import { SolutionList } from "./SolutionList";
+import { BestPracticesSkeleton } from "./BestPracticesSkeleton";
 
 const byTop = (a: CommunitySolution, b: CommunitySolution) =>
   b.likes - a.likes || b.created_at.localeCompare(a.created_at);
@@ -103,18 +104,7 @@ export function BestPracticesSection({
       />
 
       {loading ? (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[0, 1, 2].map((i) => (
-              <Card key={i} className="h-[380px] animate-pulse" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {[0, 1, 2, 3].map((i) => (
-              <Card key={i} className="h-[280px] animate-pulse" />
-            ))}
-          </div>
-        </div>
+        <BestPracticesSkeleton />
       ) : filtered.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
@@ -161,17 +151,7 @@ export function BestPracticesSection({
           </div>
 
           {rest.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {rest.map((sol, i) => (
-                <BestPracticeCard
-                  key={sol.id}
-                  solution={sol}
-                  rank={ranks.get(sol.id) ?? 0}
-                  index={i}
-                  onLike={onLike}
-                />
-              ))}
-            </div>
+            <SolutionList solutions={rest} ranks={ranks} onLike={onLike} />
           )}
         </>
       )}
