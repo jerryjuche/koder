@@ -3354,3 +3354,20 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 
 - `go test ./internal/email/...` passes.
 - Only the log entries were appended in this session; unrelated `go.mod`/`go.sum` changes remain separate.
+
+---
+
+## Session 116 — 2026-08-13 — Monaco warm-up + `/vs` asset prune + problems listings density (uncommitted)
+
+### Changes
+
+- **Monaco warm-up** (`components/MonacoPreloader.tsx`, new, 28 LOC; `lib/monaco-warm.ts`, new, 23 LOC): background idle fetch of the Monaco AMD build + TextMate/onig.wasm before the first editor mount — the same loader.config → loader.init → initMonacoEditor path editors use, so the module-level `initialized` guard flips here and later mounts skip duplicate registration. Mounted in `(main)/layout.tsx` + `app/problems/layout.tsx` alongside `PyodidePreloader`.
+- **`/vs` asset prune** (`scripts/copy-monaco.mjs` 16→48 LOC): regenerates `public/vs` every run and drops ts/css/html/json workers (~9 MB) + non-English NLS locale bundles (~1.7 MB) that this app never requests (Monaco only mounts go/python/plaintext, always English). Deployed payload 15.4 MB → 5.19 MB across 105 files. `public/vs` is gitignored so the impact is on Vercel payload + local disk, not repo size.
+- **Problems listings density** (`ProblemCard.tsx` 10 lines, `(main)/problems/page.tsx` +1): header `p-5 pb-2`→`p-4 pb-2`, body `px-5 pb-2`→`px-4 pb-3`, title `text-base md:text-lg`→`text-[15px] md:text-base`, description drops `mb-auto` (bottom-crow) + `md:text-base` (fixed 2-line clamp), footer `px-5 py-3.5`→`px-4 py-3`; listings now passes `metrics` (displays total_submissions / success_rate footer).
+- **Dead field removed** (`lib/types.ts`): `Problem.successRate` (never populated — backend returns `success_rate` and cards use `success_rate`/`total_submissions`).
+- **Bug-report auto-draft feature (incoming WIP, folded in):** `internal/store/feedback.go` — fixed inverted UPDATE guard in `HideProblemOnReportThreshold` (was returning `drafted=true` at threshold without flipping `visible=false`; now sets `visible=false` when visible and 2+ distinct reporters, and returns already-drafted correctly). Handler + fake-store tests (`internal/api/feedback_test.go`, 176 LOC, `HideProblemOnReportThreshold` on `Store` interface) verified green; workspace `ProblemWorkspaceClient.tsx` gained the drafted-state thank-you dialog + 4s auto-advance to next question with Stay/Next controls + `clearCache("/problems")` on draft.
+
+### Verification
+
+- `tsc --noEmit` 0 errors, ESLint 0 errors, `go build ./...` + `go vet ./internal/...` clean, `go test ./internal/api/... ./internal/store/...` green; `node scripts/copy-monaco.mjs` produces 5.19 MB / 105-file `public/vs`.
+- Uncommitted working tree; staged for the `update` branch on approval.
