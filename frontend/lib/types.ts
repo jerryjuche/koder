@@ -35,7 +35,6 @@ export type Problem = {
   locked: boolean;
   status: "active" | "draft" | "error";
   visible: boolean;
-  successRate: number;
   estTimeMinutes: number;
   tags: string[];
   statement?: string;

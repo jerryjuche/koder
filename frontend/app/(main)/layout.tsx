@@ -3,6 +3,7 @@ import TopNav from '@/components/layout/TopNav';
 import BroadcastBanner from '@/components/BroadcastBanner';
 import FeedbackButtonWrapper from '@/components/FeedbackButtonWrapper';
 import PyodidePreloader from '@/components/PyodidePreloader';
+import MonacoPreloader from '@/components/MonacoPreloader';
 import { UserProvider } from '@/lib/UserContext';
 import AnimatedBackground from '@/components/ui/AnimatedBackground';
 
@@ -19,6 +20,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </main>
         <FeedbackButtonWrapper />
         <PyodidePreloader />
+        <MonacoPreloader />
       </div>
     </UserProvider>
   );

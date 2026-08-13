@@ -124,6 +124,7 @@ type Store interface {
 	GetProblemReports(ctx context.Context, problemSlug string) ([]Feedback, error)
 	UpdateFeedbackStatus(ctx context.Context, id uuid.UUID, status, adminNotes string) (*Feedback, error)
 	CountFeedbackByStatus(ctx context.Context) (map[string]int, error)
+	HideProblemOnReportThreshold(ctx context.Context, problemSlug string, threshold int) (bool, error)
 
 	// Notifications
 	CreateNotification(ctx context.Context, userID uuid.UUID, notifType, message string, relatedID *uuid.UUID) error

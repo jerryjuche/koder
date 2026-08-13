@@ -18,6 +18,10 @@ import (
 	"github.com/jerryjuche/koder/internal/store"
 )
 
+// bugReportDraftThreshold is the number of distinct students whose bug reports
+// against the same problem auto-draft it, removing it from listings for review.
+const bugReportDraftThreshold = 2
+
 type FeedbackHandler struct {
 	store  store.Store
 	cfg    *config.Config
@@ -92,11 +96,31 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	userIdentifier := claims.UserID
 
+	// Auto-draft rule: a problem is taken out of student listings (saved as a
+	// draft) once 2+ distinct students file a bug report against it. Admin review
+	// decides whether it returns or is fixed while hidden. Best-effort — a failed
+	// threshold check never fails the report itself.
+	problemDrafted := false
+	if fb.Type == "bug" && fb.ProblemSlug != nil && *fb.ProblemSlug != "" {
+		drafted, err := h.store.HideProblemOnReportThreshold(r.Context(), *fb.ProblemSlug, bugReportDraftThreshold)
+		if err != nil {
+			slog.Warn("feedback: draft threshold check failed", "slug", *fb.ProblemSlug, "error", err)
+		} else {
+			problemDrafted = drafted
+			if problemDrafted {
+				slog.Info("feedback: problem auto-drafted by bug reports", "slug", *fb.ProblemSlug)
+			}
+		}
+	}
+
 	// In-app notification for admins
 	notifType := "feedback"
 	notifMessage := fmt.Sprintf("New %s feedback: %s", fb.Type, fb.Title)
 	if fb.ProblemSlug != nil && *fb.ProblemSlug != "" {
 		notifMessage = fmt.Sprintf("Bug report for %s: %s", *fb.ProblemSlug, fb.Title)
+		if problemDrafted {
+			notifMessage = fmt.Sprintf("Bug report for %s (taken down for review): %s", *fb.ProblemSlug, fb.Title)
+		}
 	}
 	fbID := uuid.UUID(fb.ID.Bytes)
 	if err := h.store.NotifyAdmins(r.Context(), notifType, notifMessage, &fbID); err != nil {
@@ -111,7 +135,10 @@ func (h *FeedbackHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		"title": fb.Title,
 	})
 
-	RespondCreated(w, fb)
+	RespondCreated(w, map[string]interface{}{
+		"feedback":        fb,
+		"problem_drafted": problemDrafted,
+	})
 }
 
 func (h *FeedbackHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {

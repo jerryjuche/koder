@@ -543,6 +543,7 @@ export default function ProblemsPage() {
             problem={problem}
             position={(safePage - 1) * ITEMS_PER_PAGE + i + 1}
             delay={i * 50}
+            metrics
           />
         ))}
       </div>

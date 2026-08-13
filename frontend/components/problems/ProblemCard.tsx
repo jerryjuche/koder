@@ -91,7 +91,7 @@ export default function ProblemCard({
         />
 
         {/* Header */}
-        <CardHeader className="flex-row items-start justify-between p-5 pb-2 space-y-0 relative z-10">
+        <CardHeader className="flex-row items-start justify-between p-4 pb-2 space-y-0 relative z-10">
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-muted-foreground/50 font-bold tabular-nums">
               #{String(position).padStart(3, "0")}
@@ -113,9 +113,9 @@ export default function ProblemCard({
         </CardHeader>
 
         {/* Body */}
-        <CardContent className="px-5 pb-2 flex-1 flex flex-col relative z-10">
+        <CardContent className="px-4 pb-3 flex-1 flex flex-col relative z-10">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <CardTitle className="text-base font-extrabold md:text-lg tracking-tight text-foreground group-hover:text-brand-muted-gold transition-colors leading-snug">
+            <CardTitle className="text-[15px] font-extrabold md:text-base tracking-tight text-foreground group-hover:text-brand-muted-gold transition-colors leading-snug">
               {problem.title}
             </CardTitle>
             {langs.length > 0 && (
@@ -132,7 +132,7 @@ export default function ProblemCard({
             )}
           </div>
 
-          <div className="text-sm md:text-base text-muted-foreground/80 leading-relaxed line-clamp-2 mb-auto space-y-0 [&_p]:inline [&_p]:m-0 [&_p]:text-muted-foreground/80 [&_strong]:text-foreground/80 [&_code]:text-[13px] [&_code]:bg-white/[0.04] [&_code]:px-1 [&_code]:py-[1px] [&_code]:rounded [&_code]:font-mono [&_ul]:inline [&_ul]:m-0 [&_ol]:inline [&_ol]:m-0 [&_li]:inline [&_li]:m-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_h1]:m-0 [&_h2]:m-0 [&_h3]:m-0 [&_h1]:text-inherit [&_h2]:text-inherit [&_h3]:text-inherit">
+          <div className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2 space-y-0 [&_p]:inline [&_p]:m-0 [&_p]:text-muted-foreground/80 [&_strong]:text-foreground/80 [&_code]:text-[13px] [&_code]:bg-white/[0.04] [&_code]:px-1 [&_code]:py-[1px] [&_code]:rounded [&_code]:font-mono [&_ul]:inline [&_ul]:m-0 [&_ol]:inline [&_ol]:m-0 [&_li]:inline [&_li]:m-0 [&_h1]:inline [&_h2]:inline [&_h3]:inline [&_h1]:m-0 [&_h2]:m-0 [&_h3]:m-0 [&_h1]:text-inherit [&_h2]:text-inherit [&_h3]:text-inherit">
             {problem.statement ? (
               <span
                 dangerouslySetInnerHTML={{
@@ -166,7 +166,7 @@ export default function ProblemCard({
         </CardContent>
 
         {/* Footer */}
-        <CardFooter className="px-5 py-3.5 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
+        <CardFooter className="px-4 py-3 border-t border-border/20 relative z-10 bg-background/40 backdrop-blur-[2px]">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3 text-xs text-muted-foreground/80 font-semibold">
               {metrics && (

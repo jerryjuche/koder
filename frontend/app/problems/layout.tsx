@@ -1,6 +1,7 @@
 import React from 'react';
 import FeedbackButtonWrapper from '@/components/FeedbackButtonWrapper';
 import PyodidePreloader from '@/components/PyodidePreloader';
+import MonacoPreloader from '@/components/MonacoPreloader';
 import { UserProvider } from '@/lib/UserContext';
 
 export default function ProblemsLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export default function ProblemsLayout({ children }: { children: React.ReactNode
         {children}
         <FeedbackButtonWrapper />
         <PyodidePreloader />
+        <MonacoPreloader />
       </div>
     </UserProvider>
   );
