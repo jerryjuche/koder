@@ -186,6 +186,7 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 	query := `
 		SELECT 
 			sub.id, sub.user_id, u.name as user_name, sub.problem_id, p.slug as problem_slug,
+			p.title as problem_title, p.module,
 			sub.language, sub.code, sub.runtime_ms, sub.created_at,
 			COUNT(sl.id) as likes,
 			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1) as has_liked,
@@ -196,7 +197,7 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.status = 'passed' AND p.visible = true
 		  AND EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)
-		GROUP BY sub.id, u.name, p.slug, u.google_avatar_url, u.verified
+		GROUP BY sub.id, u.name, p.slug, p.title, p.module, u.google_avatar_url, u.verified
 		ORDER BY likes DESC, sub.created_at DESC
 		LIMIT $2
 	`
@@ -212,6 +213,7 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		var cs CommunitySolution
 		err := rows.Scan(
 			&cs.ID, &cs.UserID, &cs.UserName, &cs.ProblemID, &cs.ProblemSlug,
+			&cs.ProblemTitle, &cs.Module,
 			&cs.Language, &cs.Code, &cs.RuntimeMs, &cs.CreatedAt,
 			&cs.Likes, &cs.HasLiked, &cs.UserAvatarURL, &cs.Verified,
 		)

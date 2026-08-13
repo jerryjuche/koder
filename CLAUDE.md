@@ -42,7 +42,7 @@
 | **Go Sandbox** (`sandbox/`)                         | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter                                                                              |
 | **SQL Migrations** (`migrations/`)                  | 54                                        | ~27,525             | 38 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
 | **Frontend App** (`app/`)                           | 75 `.tsx`                                 | ~18,466             | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC)                                                                    |
-| **Frontend Components** (`components/`)             | 69                                        | ~11,000             | 22 shadcn/ui + 47 custom (incl. `test-results/` diff primitives + `MonacoPreloader`)                                                              |
+| **Frontend Components** (`components/`)             | 75                                        | ~11,624             | 22 shadcn/ui + 53 custom (incl. `test-results/` diff primitives, `best-practices/` showcase, `MonacoPreloader`)                                     |
 | **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 26                                        | ~4,520              | 22 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
 | **Frontend Styles** (`styles/` + `app/globals.css`) | 4                                         | ~1,598              | theme.css (856 vars), typography.css (430 lines)                                                                                                  |
 | **Documentation**                                   | 21                                        | ~10,300             | 5 docs/ + 16 root/docs markdown files                                                                                                             |
@@ -74,7 +74,7 @@ koder/
 ├── sandbox/              (8 source + 2 test + Dockerfile + fly.toml, ~1,610 LOC)  # Remote execution — zero external deps
 ├── frontend/
 │   ├── app/              (75 .tsx, ~18,466 LOC) # App Router pages (7 route groups)
-│   ├── components/       (68 files, ~10,960 LOC) # Shared components + shadcn/ui primitives
+│   ├── components/       (75 files, ~11,624 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
 │   ├── lib/              (21 files, ~4,126 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
 │   ├── styles/           (3 files, ~1,382 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
@@ -420,7 +420,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149   | Server | Privacy policy   |
 | `terms/page.tsx`   | 159   | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 68 files, ~10,960 LOC)
+### 8.2 Shared Components (`frontend/components/` — 75 files, ~11,624 LOC)
 
 #### shadcn/ui + Effects Primitives (22 files, ~1,932 LOC)
 
@@ -518,6 +518,17 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | File                           | Lines | Purpose                                         |
 | ------------------------------ | ----- | ----------------------------------------------- |
 | `profile/ProfileHoverCard.tsx` | 153   | XP progress bar, 3-column stats, verified badge |
+
+#### Best Practices Components (6 files)
+
+| File                                       | Lines | Purpose                                                                                                                                                 |
+| ------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `best-practices/BestPracticesSection.tsx`  | 180   | Orchestrator: state (lang/sort/search, URL-persisted), top-3 podium + ranked grid, skeletons + empty/no-results states                                  |
+| `best-practices/BestPracticeCard.tsx`      | 199   | Ranked grid card: rank medallion, ProfileHoverCard author row, verified badge, problem link, language/runtime/time meta chips, correct-language CodeSnippet, LikeButton |
+| `best-practices/PodiumCard.tsx`           | 115   | Top-3 variant with gold/silver/bronze accent bar, glow, crown chip, larger code preview, elevated #1                    |
+| `best-practices/BestPracticesToolbar.tsx`  | 91    | All/Go/Python segmented control (LanguageLogo), sort select (Top rated/Fastest/Newest), search, result count                                            |
+| `best-practices/BestPracticesHeader.tsx`   | 74    | Gradient trophy hero band + stat chips (solutions, Go/Python counts, likes, best runtime)                                                              |
+| `best-practices/index.ts`                  | 5     | Barrel re-exports                                                                                                                                       |
 
 #### Admin Curriculum Components (5 files)
 
@@ -1035,7 +1046,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | **Curriculum section types** | 11 (ENUM)                                                                                                               |
 | **AI assist actions**        | 8                                                                                                                       |
 | **shadcn/ui primitives**     | 22                                                                                                                      |
-| **Custom components**        | 47 (incl. `MonacoPreloader`)                                                                            |
+| **Custom components**        | 53 (incl. `best-practices/` showcase + `MonacoPreloader`)                                            |
 | **External Go deps**         | 7                                                                                                       |
 | **Sandbox external deps**    | 0 (stdlib only)                                                                                         |
 | **Module WebP images**       | 18                                                                                                      |
@@ -1116,6 +1127,21 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-13 — Session 117: Professional Best Practices redesign — "Hall of Fame" podium + ranked grid
+
+- **Motivation:** the dashboard Best Practices tab was a flat, unorganized 2-column grid of near-identical Cards — no hierarchy, grouping, filters, or visual language. Researched Exercism community solutions, GitHub Trending, Codewars/LeetCode solution galleries, and NN/G tab/filter patterns, then rebuilt it as an inspiring, ranked showcase within the existing charcoal/purple/gold system (zero new dependencies — `framer-motion` + `shiki` already present)
+- **New `frontend/components/best-practices/` (6 files, ~664 LOC):**
+  - `BestPracticesSection.tsx` (180 LOC) — orchestrator: language/sort/search state URL-persisted (`?bp_lang=`, `?bp_sort=`), top-3 podium + ranked grid (rank stays the canonical like-rank; display re-sorts by Top rated/Fastest/Newest), skeleton + empty + no-results states
+  - `BestPracticeCard.tsx` (199 LOC) — ranked grid card: rank medallion (`#1` gold → `#N` muted), `ProfileHoverCard` author row with verified badge + problem link (keeps `return_to` nav), language/runtime/time meta chips, `LikeButton`, and a `CodeSnippet` that now uses the **real `solution.language`/`solutionFilename`** — fixing the old hardcoded `language: "go"`/`solution.go` bug in `home/page.tsx:668`
+  - `PodiumCard.tsx` (115 LOC) — top-3 variant: gold/silver/bronze gradient accent bar + glow, `Crown` chip for #1, elevated `#1`, larger code preview (260px), avatar `podium` size
+  - `BestPracticesToolbar.tsx` (91 LOC) — All/Go/Python segmented control with `LanguageLogo`, Top rated/Fastest/Newest sort select, author/problem search, live result count
+  - `BestPracticesHeader.tsx` (74 LOC) — gradient trophy icon chip + subtitle + stat chips (solutions, Go/Python counts, total likes, best runtime)
+- **Backend:** `GetBestPractices` (`internal/store/submissions.go`) now selects `p.title as problem_title` + `p.module` (added to `GROUP BY`); `CommunitySolution` (`types.go`) gains `ProblemTitle`/`Module` — enables readable problem titles in cards instead of bare slugs
+- **Wiring:** `home/page.tsx` (−80 lines) replaced the flat grid with `<BestPracticesSection solutions={bestPractices} loading={loading} onLike={handleLike} />`; admin/BETA gate + optimistic like flow unchanged; unused imports pruned
+- **Helpers:** `lib/utils.ts` + `formatRelativeTime()` ("just now" → "2d ago"); `lib/types.ts` + `problem_title`/`module` on `CommunitySolution`
+- **Verified:** `go vet ./internal/...` clean, `go build ./cmd/server` OK, 9/9 backend suites green (171 tests), `tsc --noEmit` 0 errors, ESLint 0 errors on all changed files
+- **Noted for later:** the per-problem community-solutions section on the success page still uses the older `CodeBlock` style — candidate to adopt `BestPracticeCard` for visual consistency
 
 ### 2026-08-13 — Session 116: Monaco warm-up + `/vs` asset prune + problems listings density
 
@@ -1567,4 +1593,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-_Last indexed: 2026-08-13 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: 3 modified + 3 untracked (Monaco warm-up + /vs prune + listings density + bug-report auto-draft), uncommitted_
+_Last indexed: 2026-08-13 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (171 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: 5 modified + 1 untracked (Best Practices "Hall of Fame" redesign), uncommitted_
