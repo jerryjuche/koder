@@ -540,8 +540,11 @@ export async function fetchCommunitySolutions(
 
 export async function fetchBestPractices(
   limit: number = 20,
+  mine: boolean = false,
 ): Promise<ApiResponse<CommunitySolution[]>> {
-  return fetchApi<CommunitySolution[]>(`/best-practices?limit=${limit}`);
+  return fetchApi<CommunitySolution[]>(
+    `/best-practices?limit=${limit}${mine ? "&mine=1" : ""}`,
+  );
 }
 
 export async function likeSubmission(

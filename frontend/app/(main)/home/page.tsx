@@ -40,6 +40,11 @@ export default function Dashboard() {
   const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
+  const [bpMine, setBpMine] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const p = new URLSearchParams(window.location.search).get("bp_mine");
+    return p === "1" || p === "true";
+  });
   const [loading, setLoading] = useState(true);
 
   // View state
@@ -72,12 +77,22 @@ export default function Dashboard() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
+  // Persist best-practices scope (?bp_mine=) in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (bpMine) params.set("bp_mine", "1");
+    else params.delete("bp_mine");
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, "", newUrl);
+  }, [bpMine]);
+
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
+      setLoading(true);
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20, bpMine), fetchModuleLocks(), fetchModuleMeta()]).then(
         ([probRes, userRes, bpRes, locksRes, metaRes]) => {
           if (!mounted) return;
           if (probRes.success) {
@@ -138,7 +153,7 @@ export default function Dashboard() {
       window.removeEventListener("focus", handleFocus);
       clearTimeout(debounceTimer);
     };
-  }, [languageFilter]);
+  }, [languageFilter, bpMine]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
@@ -151,6 +166,9 @@ export default function Dashboard() {
     try {
       const res = currentlyLiked ? await unlikeSubmission(id) : await likeSubmission(id);
       if (!res.success) throw new Error("Failed to update like");
+      if (bpMine && currentlyLiked) {
+        setBestPractices((prev) => prev.filter((s) => s.id !== id));
+      }
     } catch (err: any) {
       setBestPractices(original);
       toast.error({
@@ -596,6 +614,8 @@ export default function Dashboard() {
         <BestPracticesSection
           solutions={bestPractices}
           loading={loading}
+          mine={bpMine}
+          onMineChange={setBpMine}
           onLike={handleLike}
         />
       )}

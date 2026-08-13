@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -128,7 +129,12 @@ func (h *CommunityHandler) GetBestPractices(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	solutions, err := h.store.GetBestPractices(r.Context(), userUUID, limit)
+	mineOnly := false
+	if v := r.URL.Query().Get("mine"); v == "1" || strings.EqualFold(v, "true") {
+		mineOnly = true
+	}
+
+	solutions, err := h.store.GetBestPractices(r.Context(), userUUID, mineOnly, limit)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "FETCH_ERROR", "Failed to fetch best practices", nil)
 		return

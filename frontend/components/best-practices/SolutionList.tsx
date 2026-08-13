@@ -1,7 +1,7 @@
 "use client";
 
 import { CommunitySolution } from "@/lib/types";
-import { SolutionRow } from "./SolutionRow";
+import { SolutionCard } from "./SolutionCard";
 
 export function SolutionList({
   solutions,
@@ -15,7 +15,7 @@ export function SolutionList({
   return (
     <div className="space-y-2">
       {solutions.map((sol, i) => (
-        <SolutionRow
+        <SolutionCard
           key={sol.id}
           solution={sol}
           rank={ranks.get(sol.id) ?? 0}
