@@ -21,13 +21,21 @@ type Config struct {
 	AccessTokenMinutes int
 	RefreshTokenDays   int
 
-	// AI Provider (nvidia — DeepSeek V4 Flash via NVIDIA NIM)
+	// AI Provider (nvidia-compatible — DeepSeek V4 Flash via NVIDIA NIM by default;
+	// any OpenAI-compatible chat/completions endpoint works via AI_* aliases)
 	EnrichmentProvider string
 
-	// NVIDIA NIM (DeepSeek V4 Flash)
-	NVIDIAAPIKey  string
-	NVIDIAModel   string // default: deepseek-ai/deepseek-v4-flash
-	NVIDIABaseURL string // default: https://integrate.api.nvidia.com/v1
+	// AI provider credentials. Generic AI_* aliases are preferred; the NVIDIA_*
+	// vars remain as fallbacks. All of these can point at any OpenAI-compatible
+	// chat/completions endpoint.
+	NVIDIAAPIKey  string // source: AI_API_KEY or NVIDIA_API_KEY
+	NVIDIAModel   string // source: AI_MODEL or NVIDIA_MODEL (default: deepseek-ai/deepseek-v4-flash)
+	NVIDIABaseURL string // source: AI_BASE_URL or NVIDIA_BASE_URL (default: https://integrate.api.nvidia.com/v1)
+
+	// AI provider knobs — tune per model without code changes.
+	AIMaxTokens   int     // source: AI_MAX_TOKENS (default: 8192; e.g. 16384 for z-ai/glm-5.2)
+	AITemperature float64 // source: AI_TEMPERATURE (default: 0.7; 0.2 for consistent code analysis)
+	AIJSONMode    bool    // source: AI_JSON_MODE (default: false; sends response_format json_object)
 
 	// Execution
 	ExecutorMaxConcurrency int
@@ -79,6 +87,40 @@ type Config struct {
 	// Admin
 	AdminEmail    string
 	AdminPassword string
+}
+
+// firstEnv returns the value of the first environment variable that is set
+// (non-empty), or "" if none are set. Used for config aliases such as
+// AI_API_KEY falling back to NVIDIA_API_KEY.
+func firstEnv(names ...string) string {
+	for _, n := range names {
+		if v := os.Getenv(n); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// firstEnvName returns the name of the first environment variable that is set,
+// or "" if none are. Used for logging which alias supplied the value.
+func firstEnvName(names ...string) string {
+	for _, n := range names {
+		if os.Getenv(n) != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+// envBool parses a boolean environment variable. Accepts "1", "true", "yes",
+// "on" (case-insensitive) as true; anything else is false.
+func envBool(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func loadEnvFile() {
@@ -169,31 +211,66 @@ func Load() (*Config, error) {
 	}
 	cfg.RefreshTokenDays = refreshTokenDays
 
-	// AI Provider Selection — DeepSeek V4 Flash via NVIDIA NIM
+	// AI Provider Selection — DeepSeek V4 Flash via NVIDIA NIM (or any
+	// OpenAI-compatible endpoint). Generic AI_* env vars take priority over the
+	// legacy NVIDIA_* names so you can plug in a different provider token
+	// without changing code.
 	cfg.EnrichmentProvider = os.Getenv("ENRICHMENT_PROVIDER")
 	if cfg.EnrichmentProvider == "" {
 		cfg.EnrichmentProvider = "nvidia"
 	}
-	cfg.NVIDIAAPIKey = os.Getenv("NVIDIA_API_KEY")
+	cfg.NVIDIAAPIKey = firstEnv("AI_API_KEY", "NVIDIA_API_KEY")
 
 	if cfg.EnrichmentProvider != "nvidia" {
 		return nil, fmt.Errorf("ENRICHMENT_PROVIDER must be 'nvidia', got %q", cfg.EnrichmentProvider)
 	}
 	if cfg.NVIDIAAPIKey == "" {
-		return nil, fmt.Errorf("NVIDIA_API_KEY is required for DeepSeek V4 Flash via NVIDIA NIM")
+		return nil, fmt.Errorf("AI_API_KEY (or NVIDIA_API_KEY) is required for the AI provider")
 	}
 
-	cfg.NVIDIAModel = os.Getenv("NVIDIA_MODEL")
+	cfg.NVIDIAModel = firstEnv("AI_MODEL", "NVIDIA_MODEL")
 	if cfg.NVIDIAModel == "" {
 		cfg.NVIDIAModel = "deepseek-ai/deepseek-v4-flash"
 	}
 
-	cfg.NVIDIABaseURL = os.Getenv("NVIDIA_BASE_URL")
+	cfg.NVIDIABaseURL = firstEnv("AI_BASE_URL", "NVIDIA_BASE_URL")
 	if cfg.NVIDIABaseURL == "" {
 		cfg.NVIDIABaseURL = "https://integrate.api.nvidia.com/v1"
 	}
 
-	slog.Info("config: using NVIDIA NIM (DeepSeek V4 Flash) for problem enrichment")
+	// Provider knobs (AI_MAX_TOKENS / AI_TEMPERATURE / AI_JSON_MODE)
+	aiMaxTokensStr := os.Getenv("AI_MAX_TOKENS")
+	if aiMaxTokensStr == "" {
+		cfg.AIMaxTokens = 8192
+	} else {
+		aiMaxTokens, err := strconv.Atoi(aiMaxTokensStr)
+		if err != nil || aiMaxTokens <= 0 {
+			return nil, fmt.Errorf("AI_MAX_TOKENS must be a positive integer, got %q", aiMaxTokensStr)
+		}
+		cfg.AIMaxTokens = aiMaxTokens
+	}
+
+	aiTempStr := os.Getenv("AI_TEMPERATURE")
+	if aiTempStr == "" {
+		cfg.AITemperature = 0.7
+	} else {
+		aiTemp, err := strconv.ParseFloat(aiTempStr, 64)
+		if err != nil || aiTemp < 0 || aiTemp > 2 {
+			return nil, fmt.Errorf("AI_TEMPERATURE must be a number in [0, 2], got %q", aiTempStr)
+		}
+		cfg.AITemperature = aiTemp
+	}
+
+	cfg.AIJSONMode = envBool("AI_JSON_MODE")
+
+	slog.Info("config: using AI provider",
+		"provider", cfg.EnrichmentProvider,
+		"model", cfg.NVIDIAModel,
+		"base_url", cfg.NVIDIABaseURL,
+		"key_source", firstEnvName("AI_API_KEY", "NVIDIA_API_KEY"),
+		"max_tokens", cfg.AIMaxTokens,
+		"temperature", cfg.AITemperature,
+		"json_mode", cfg.AIJSONMode)
 
 	// Execution
 	executorMaxConcurrencyStr := os.Getenv("EXECUTOR_MAX_CONCURRENCY")

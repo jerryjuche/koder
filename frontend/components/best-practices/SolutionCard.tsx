@@ -35,6 +35,12 @@ export function SolutionCard({
   onLike: (id: string, currentlyLiked: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [aiRequested, setAiRequested] = useState(false);
+
+  const expandWithAI = () => {
+    setAiRequested(true);
+    setExpanded(true);
+  };
 
   return (
     <motion.div
@@ -73,7 +79,7 @@ export function SolutionCard({
               </span>
             )}
             {!expanded && (
-              <AIAnalysisPill hasAnalysis onClick={() => setExpanded(true)} />
+              <AIAnalysisPill hasAnalysis onClick={expandWithAI} />
             )}
           </div>
 
@@ -131,7 +137,7 @@ export function SolutionCard({
                   lineNumbers
                   className="rounded-lg shadow-none"
                 />
-                <ExplainPanel solution={solution} />
+                <ExplainPanel solution={solution} autoStart={aiRequested} />
               </div>
             </motion.div>
           )}
