@@ -98,10 +98,14 @@ func (s *PostgresStore) UpsertSolutionExplanation(ctx context.Context, exp *Solu
 			best_practices_score = EXCLUDED.best_practices_score
 	`
 
+	// The pool runs in QueryExecModeSimpleProtocol, which encodes []byte params
+	// as PostgreSQL bytea. A raw []byte here would fail to cast to the JSONB
+	// columns (SQLSTATE 22P02). Wrapping in json.RawMessage makes pgx send the
+	// literal JSON text so Postgres performs the implicit text → jsonb cast.
 	_, err = s.pool.Exec(ctx, query,
 		exp.SubmissionID, exp.Language, exp.Summary, exp.Approach,
 		exp.TimeComplexity, exp.SpaceComplexity,
-		keyTechniques, strengths, improvements,
+		json.RawMessage(keyTechniques), json.RawMessage(strengths), json.RawMessage(improvements),
 		exp.QualityScore, exp.EfficiencyScore,
 		exp.ReadabilityScore, exp.CorrectnessScore, exp.BestPracticesScore,
 	)

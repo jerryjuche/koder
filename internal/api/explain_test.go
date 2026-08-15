@@ -57,6 +57,28 @@ func (f *fakeExplainer) ExplainChat(_ context.Context, _ *enricher.ExplainChatRe
 	return f.answer, f.err
 }
 
+func (f *fakeExplainer) ExplainSolutionStream(_ context.Context, _ *enricher.ExplainSolutionRequest, onDelta func(string) error) (*store.SolutionExplanation, error) {
+	f.calls++
+	if f.err != nil {
+		return nil, f.err
+	}
+	if onDelta != nil && f.answer != "" {
+		_ = onDelta(f.answer)
+	}
+	return f.exp, nil
+}
+
+func (f *fakeExplainer) ExplainChatStream(_ context.Context, _ *enricher.ExplainChatRequest, onDelta func(string) error) (string, error) {
+	f.calls++
+	if f.err != nil {
+		return "", f.err
+	}
+	if onDelta != nil && f.answer != "" {
+		_ = onDelta(f.answer)
+	}
+	return f.answer, nil
+}
+
 func explainHTTPRequest(body string) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, "/ai/explain", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -150,22 +172,28 @@ func TestExplainCacheHitSkipsProvider(t *testing.T) {
 	}
 }
 
-func TestExplainCacheMissGeneratesAndUpserts(t *testing.T) {
+func TestExplainCacheMissStreamsAndUpserts(t *testing.T) {
 	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
-	fe := &fakeExplainer{exp: &store.SolutionExplanation{
-		Language:        "go",
-		Summary:         "Adds two numbers",
-		Approach:        "Returns a + b",
-		TimeComplexity:  "O(1)",
-		SpaceComplexity: "O(1)",
-		KeyTechniques:   []string{"addition"},
-	}}
+	fe := &fakeExplainer{
+		answer: `{"summary":"Adds two numbers","approach":"Returns a+b","time_complexity":"O(1)","space_complexity":"O(1)"}`,
+		exp: &store.SolutionExplanation{
+			Language:        "go",
+			Summary:         "Adds two numbers",
+			Approach:        "Returns a + b",
+			TimeComplexity:  "O(1)",
+			SpaceComplexity: "O(1)",
+			KeyTechniques:   []string{"addition"},
+		},
+	}
 	h := NewExplainHandler(fs, fe)
 	rec := httptest.NewRecorder()
 	h.Explain(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+		t.Fatalf("expected text/event-stream, got %q", ct)
 	}
 	if fe.calls != 1 {
 		t.Fatalf("expected 1 provider call, got %d", fe.calls)
@@ -179,64 +207,43 @@ func TestExplainCacheMissGeneratesAndUpserts(t *testing.T) {
 	if fs.usageLogs != 1 {
 		t.Fatalf("expected 1 usage log, got %d", fs.usageLogs)
 	}
-	var body map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("failed to parse response: %v", err)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `data: {"delta":"`) {
+		t.Errorf("expected a delta frame in stream, got %s", body)
 	}
-	data, _ := body["data"].(map[string]any)
-	if data["cached"] != false {
-		t.Fatalf("expected cached=false, got %v", data["cached"])
+	if !strings.Contains(body, `"cached":false`) || !strings.Contains(body, `"summary":"Adds two numbers"`) {
+		t.Errorf("expected final explanation frame with cached=false, got %s", body)
+	}
+	if !strings.Contains(body, "data: [DONE]") {
+		t.Errorf("expected [DONE] terminator, got %s", body)
 	}
 }
 
-func TestExplainProviderFailureReturns502(t *testing.T) {
+func TestExplainProviderFailureSendsStreamErrorFrame(t *testing.T) {
 	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
 	fe := &fakeExplainer{err: fmt.Errorf("%w: upstream 500", enricher.ErrAIUpstream)}
 	h := NewExplainHandler(fs, fe)
 	rec := httptest.NewRecorder()
 	h.Explain(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
 
-	if rec.Code != http.StatusBadGateway {
-		t.Fatalf("expected 502, got %d", rec.Code)
+	// Headers were sent once streaming started, so the failure surfaces as a
+	// mid-stream error frame rather than a JSON 502.
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 with error frame, got %d", rec.Code)
+	}
+	if !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/event-stream") {
+		t.Fatalf("expected text/event-stream, got %q", rec.Header().Get("Content-Type"))
+	}
+	if !strings.Contains(rec.Body.String(), "EXPLAIN_FAILED") {
+		t.Errorf("expected error frame with EXPLAIN_FAILED, got %s", rec.Body.String())
 	}
 	if fs.upserted != nil {
 		t.Fatal("expected no upsert when generation fails")
 	}
-
-	var body map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("failed to parse response: %v", err)
-	}
-	errObj, _ := body["error"].(map[string]any)
-	if errObj["details"] != "upstream_error" {
-		t.Errorf("expected details=upstream_error, got %v", errObj["details"])
-	}
-	if rec.Header().Get("Retry-After") != "30" {
-		t.Errorf("expected Retry-After=30, got %q", rec.Header().Get("Retry-After"))
-	}
 }
 
-func TestExplainInvalidResponseReportsDetails(t *testing.T) {
-	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
-	fe := &fakeExplainer{err: fmt.Errorf("%w: bad JSON", enricher.ErrAIInvalidResponse)}
-	h := NewExplainHandler(fs, fe)
-	rec := httptest.NewRecorder()
-	h.Explain(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
-
-	var body map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("failed to parse response: %v", err)
-	}
-	errObj, _ := body["error"].(map[string]any)
-	if errObj["details"] != "invalid_response" {
-		t.Errorf("expected details=invalid_response, got %v", errObj["details"])
-	}
-	if rec.Header().Get("Retry-After") != "" {
-		t.Errorf("expected no Retry-After for invalid response, got %q", rec.Header().Get("Retry-After"))
-	}
-}
-
-func TestExplainChatReturnsAnswer(t *testing.T) {
+func TestExplainChatStreamsAnswer(t *testing.T) {
 	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
 	fe := &fakeExplainer{answer: "The loop runs O(n) times."}
 	h := NewExplainHandler(fs, fe)
@@ -246,16 +253,39 @@ func TestExplainChatReturnsAnswer(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
+	if !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/event-stream") {
+		t.Fatalf("expected text/event-stream, got %q", rec.Header().Get("Content-Type"))
+	}
 	if fe.calls != 1 {
 		t.Fatalf("expected 1 provider call, got %d", fe.calls)
 	}
-	var body map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("failed to parse response: %v", err)
+	if fs.usageLogs != 1 {
+		t.Fatalf("expected 1 usage log, got %d", fs.usageLogs)
 	}
-	data, _ := body["data"].(map[string]any)
-	if data["answer"] != "The loop runs O(n) times." {
-		t.Fatalf("unexpected answer: %v", data["answer"])
+	body := rec.Body.String()
+	if !strings.Contains(body, `data: {"delta":"The loop runs O(n) times."}`) {
+		t.Errorf("expected chat delta frame, got %s", body)
+	}
+	if !strings.Contains(body, "data: [DONE]") {
+		t.Errorf("expected [DONE] terminator, got %s", body)
+	}
+}
+
+func TestExplainChatProviderFailureSendsStreamErrorFrame(t *testing.T) {
+	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
+	fe := &fakeExplainer{err: fmt.Errorf("%w: upstream 500", enricher.ErrAIUpstream)}
+	h := NewExplainHandler(fs, fe)
+	rec := httptest.NewRecorder()
+	h.ExplainChat(rec, explainClaims(explainChatHTTPRequest(`{"submission_id":"`+uuid.NewString()+`","question":"why?"}`)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 with error frame, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "EXPLAIN_CHAT_FAILED") {
+		t.Errorf("expected error frame with EXPLAIN_CHAT_FAILED, got %s", rec.Body.String())
+	}
+	if fs.usageLogs != 1 {
+		t.Fatalf("expected 1 (failed) usage log, got %d", fs.usageLogs)
 	}
 }
 

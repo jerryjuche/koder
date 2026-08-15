@@ -1,92 +1,98 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bot, Sparkles } from "lucide-react";
+import type { CommunitySolution, SolutionExplanation } from "@/lib/types";
 import {
-  Bot,
-  Eye,
-  RotateCcw,
-  MessageSquare,
-  ShieldCheck,
-  ThumbsUp,
-  Zap,
-  AlertTriangle,
-  Sparkles,
-} from "lucide-react";
-import { CommunitySolution, SolutionExplanation } from "@/lib/types";
-import { explainSolution, explainSolutionChat } from "@/lib/api";
-import { renderMarkdown } from "@/lib/markdown";
+  explainSolutionStream,
+  explainSolutionChatStream,
+} from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 import { AnalysisHeader } from "./AnalysisHeader";
-import { AnalysisSkeleton } from "./AnalysisSkeleton";
+import { AnalysisHydration } from "./AnalysisHydration";
+import { AnalysisError, type ExplainErrorInfo } from "./AnalysisError";
+import { AnalysisSummary } from "./AnalysisSummary";
+import { AnalysisScorecard } from "./AnalysisScorecard";
+import { AnalysisApproach } from "./AnalysisApproach";
+import { AnalysisComplexity } from "./AnalysisComplexity";
+import { AnalysisTechniques } from "./AnalysisTechniques";
+import { AnalysisPoints } from "./AnalysisPoints";
+import { AnalysisFooter } from "./AnalysisFooter";
 import { FollowUpDrawer } from "./FollowUpDrawer";
-import { gradeScore, QualityGauge } from "./QualityGauge";
-import { ScoreRadar } from "./ScoreRadar";
-import { MetricTile } from "./MetricTile";
-import { ComplexityBadge } from "./ComplexityBadge";
-import { ComplexityScale } from "./ComplexityScale";
+import type { ChatMessage } from "./chat/types";
 
-type ChatMessage = {
-  role: "user" | "ai";
-  content: string;
-};
+const STRING_FIELDS = [
+  "summary",
+  "approach",
+  "time_complexity",
+  "space_complexity",
+] as const;
+const ARRAY_FIELDS = [
+  "key_techniques",
+  "strengths",
+  "improvements",
+] as const;
+const SCORE_FIELDS = [
+  "quality_score",
+  "efficiency_score",
+  "readability_score",
+  "correctness_score",
+  "best_practices_score",
+] as const;
 
-type ExplainError = {
-  message: string;
-  details?: string;
-  code?: string;
-};
+// Best-effort progressive parse of the accumulating JSON. The server streams
+// the analysis in a single JSON object, so until the closing brace arrives
+// JSON.parse always fails — instead we scan for complete field values so the
+// panel can hydrate live while generation is still running.
+function hydratePartial(raw: string): Partial<SolutionExplanation> | null {
+  if (!raw.trim()) return null;
+  const out: Partial<SolutionExplanation> = {};
+  let any = false;
 
-function SectionLabel({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <h4 className={cn("text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2", className)}>
-      {children}
-    </h4>
-  );
-}
+  for (const key of STRING_FIELDS) {
+    const m = raw.match(
+      new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`),
+    );
+    if (m) {
+      try {
+        out[key] = JSON.parse(`"${m[1]}"`);
+        any = true;
+      } catch {
+        // incomplete escape — keep waiting
+      }
+    }
+  }
 
-function AnalysisError({
-  error,
-  onRetry,
-}: {
-  error: ExplainError;
-  onRetry: () => void;
-}) {
-  const upstream = error.details === "upstream_error";
-  const rateLimited = error.code === "AI_RATE_LIMITED";
-  const title = rateLimited
-    ? "Too many AI requests"
-    : upstream
-      ? "The AI service is temporarily busy"
-      : "AI analysis unavailable";
-  return (
-    <div className="flex flex-col items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-      <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
-        <AlertTriangle size={15} />
-        {title}
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        {rateLimited
-          ? "You have used up the AI analysis quota for this minute. Wait a moment, then retry."
-          : upstream
-            ? "The AI provider did not respond in time. Wait a moment, then retry."
-            : error.message}
-      </p>
-      <button
-        onClick={onRetry}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
-      >
-        <RotateCcw size={12} />
-        Retry
-      </button>
-    </div>
-  );
+  for (const key of ARRAY_FIELDS) {
+    const m = raw.match(new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)\\]`));
+    if (m) {
+      const items =
+        m[1]
+          .match(/"((?:[^"\\]|\\.)*)"/g)
+          ?.map((tok) => {
+            try {
+              return JSON.parse(tok) as unknown;
+            } catch {
+              return null;
+            }
+          })
+          .filter((x): x is string => typeof x === "string") ?? [];
+      if (items.length) {
+        out[key] = items;
+        any = true;
+      }
+    }
+  }
+
+  for (const key of SCORE_FIELDS) {
+    const m = raw.match(new RegExp(`"${key}"\\s*:\\s*(\\d+)`));
+    if (m) {
+      out[key] = Number(m[1]);
+      any = true;
+    }
+  }
+
+  return any ? out : null;
 }
 
 export function ExplainPanel({
@@ -99,34 +105,40 @@ export function ExplainPanel({
   const [explanation, setExplanation] = useState<SolutionExplanation | null>(null);
   const [cached, setCached] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ExplainError | null>(null);
+  const [error, setError] = useState<ExplainErrorInfo | null>(null);
+  const [partial, setPartial] = useState<Partial<SolutionExplanation> | null>(null);
+  const rawRef = useRef("");
 
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [streamingAnswer, setStreamingAnswer] = useState<string | null>(null);
+  const pendingAnswerRef = useRef("");
 
   const loadExplanation = useCallback(async () => {
     if (explanation || loading) return;
     setLoading(true);
     setError(null);
-    try {
-      const res = await explainSolution(solution.id);
-      if (res.success && res.data) {
-        setExplanation(res.data.explanation);
-        setCached(!!res.data.cached);
-      } else {
-        setError({
-          message: res.error?.message || "The AI could not analyze this solution.",
-          details: res.error?.details,
-          code: res.error?.code,
-        });
-      }
-    } catch {
-      setError({ message: "AI analysis unavailable — please try again." });
-    } finally {
-      setLoading(false);
-    }
+    rawRef.current = "";
+    setPartial(null);
+
+    await explainSolutionStream(solution.id, {
+      onDelta: (delta) => {
+        rawRef.current += delta;
+        const p = hydratePartial(rawRef.current);
+        if (p) setPartial(p);
+      },
+      onFinal: (exp, wasCached) => {
+        setExplanation(exp);
+        setCached(wasCached);
+        setLoading(false);
+      },
+      onError: (code, message) => {
+        setError({ message, code });
+        setLoading(false);
+      },
+    });
   }, [explanation, loading, solution.id]);
 
   // The analysis only starts when the user asks for it — either via the
@@ -145,18 +157,34 @@ export function ExplainPanel({
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setQuestion("");
     setChatLoading(true);
-    try {
-      const res = await explainSolutionChat(solution.id, q);
-      if (res.success && res.data) {
-        setMessages((prev) => [...prev, { role: "ai", content: res.data!.answer }]);
-      } else {
-        toast.error(res.error?.message || "Failed to get an answer");
-      }
-    } catch {
-      toast.error("AI chat unavailable — please try again");
-    } finally {
-      setChatLoading(false);
+    pendingAnswerRef.current = "";
+    setStreamingAnswer("");
+
+    await explainSolutionChatStream(solution.id, q, {
+      onDelta: (delta) => {
+        pendingAnswerRef.current += delta;
+        setStreamingAnswer(pendingAnswerRef.current);
+      },
+      onError: (code, message) => {
+        if (code === "AUTH_REQUIRED") {
+          toast.error(message);
+        } else if (code === "AI_RATE_LIMITED") {
+          toast.error("You have used up the AI chat quota for this minute. Wait a moment, then retry.");
+        } else {
+          toast.error(message || "Failed to get an answer");
+        }
+      },
+    });
+
+    if (pendingAnswerRef.current) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", content: pendingAnswerRef.current },
+      ]);
     }
+    pendingAnswerRef.current = "";
+    setStreamingAnswer(null);
+    setChatLoading(false);
   };
 
   const copyAnalysis = async () => {
@@ -189,27 +217,20 @@ export function ExplainPanel({
     }
   };
 
-  const hasSubScores =
-    (explanation?.efficiency_score ?? 0) +
-      (explanation?.readability_score ?? 0) +
-      (explanation?.correctness_score ?? 0) +
-      (explanation?.best_practices_score ?? 0) >
-    0;
-
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-purple-900/40 bg-gradient-to-br from-purple-950/60 to-brand-charcoal-panel">
+    <div className="mt-3 overflow-hidden rounded-lg border border-border bg-brand-charcoal-panel">
       {!loading && !explanation && !error && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Sparkles size={15} className="text-purple-300" />
             AI Analysis
-            <span className="rounded-md bg-purple-900/50 border border-purple-700/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-200">
+            <span className="rounded-md border border-purple-700/40 bg-purple-900/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-200">
               NIM
             </span>
           </div>
           <button
             onClick={loadExplanation}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
           >
             <Bot size={13} />
             Run AI Analysis
@@ -219,7 +240,7 @@ export function ExplainPanel({
 
       {loading && !explanation && (
         <div className="px-4 py-4">
-          <AnalysisSkeleton />
+          <AnalysisHydration partial={partial} />
         </div>
       )}
 
@@ -232,122 +253,19 @@ export function ExplainPanel({
       {explanation && (
         <div className="space-y-4 px-4 py-4">
           <AnalysisHeader cached={cached} onCopy={copyAnalysis} />
-
-          <div>
-            <SectionLabel>Summary</SectionLabel>
-            <p className="text-sm leading-relaxed text-brand-offwhite/90">{explanation.summary}</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
-            <QualityGauge score={explanation.quality_score} label="Overall quality" />
-            <ScoreRadar
-              efficiency={explanation.efficiency_score}
-              readability={explanation.readability_score}
-              correctness={explanation.correctness_score}
-              bestPractices={explanation.best_practices_score}
-            />
-          </div>
-
-          {hasSubScores && (
-            <div className="stats">
-              <MetricTile
-                icon={Zap}
-                label="Efficiency"
-                value={`${explanation.efficiency_score}/100`}
-                sublabel={gradeScore(explanation.efficiency_score).label}
-                tone="emerald"
-              />
-              <MetricTile
-                icon={Eye}
-                label="Readability"
-                value={`${explanation.readability_score}/100`}
-                sublabel={gradeScore(explanation.readability_score).label}
-              />
-              <MetricTile
-                icon={ShieldCheck}
-                label="Correctness"
-                value={`${explanation.correctness_score}/100`}
-                sublabel={gradeScore(explanation.correctness_score).label}
-              />
-              <MetricTile
-                icon={ThumbsUp}
-                label="Best practices"
-                value={`${explanation.best_practices_score}/100`}
-                sublabel={gradeScore(explanation.best_practices_score).label}
-              />
-            </div>
-          )}
-
-          <div>
-            <SectionLabel>Approach</SectionLabel>
-            <div
-              className="text-sm leading-relaxed text-brand-offwhite/90"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(explanation.approach) }}
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <ComplexityBadge label="Time" value={explanation.time_complexity} />
-            <ComplexityBadge label="Space" value={explanation.space_complexity} />
-          </div>
-
-          <ComplexityScale />
-
-          {explanation.key_techniques.length > 0 && (
-            <div>
-              <SectionLabel>Key Techniques</SectionLabel>
-              <div className="flex flex-wrap gap-1.5">
-                {explanation.key_techniques.map((t, i) => (
-                  <span
-                    key={i}
-                    className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {explanation.strengths.length > 0 && (
-              <div>
-                <SectionLabel>Strengths</SectionLabel>
-                <ul className="space-y-1.5">
-                  {explanation.strengths.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-brand-offwhite/80">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-emerald-400" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {explanation.improvements.length > 0 && (
-              <div>
-                <SectionLabel>Improvements</SectionLabel>
-                <ul className="space-y-1.5">
-                  {explanation.improvements.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-brand-offwhite/80">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-purple-300" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="divider">Have a question?</div>
-
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-600/40 bg-purple-600/10 px-3 py-2 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
-          >
-            <MessageSquare size={13} />
-            Ask a follow-up in chat
-          </button>
+          <AnalysisSummary summary={explanation.summary} />
+          <AnalysisScorecard explanation={explanation} />
+          <AnalysisApproach approach={explanation.approach} />
+          <AnalysisComplexity
+            time={explanation.time_complexity}
+            space={explanation.space_complexity}
+          />
+          <AnalysisTechniques techniques={explanation.key_techniques} />
+          <AnalysisPoints
+            strengths={explanation.strengths}
+            improvements={explanation.improvements}
+          />
+          <AnalysisFooter onOpenChat={() => setChatOpen(true)} />
         </div>
       )}
 
@@ -357,6 +275,7 @@ export function ExplainPanel({
         title={solution.problem_title || solution.problem_slug || "Solution"}
         messages={messages}
         loading={chatLoading}
+        streaming={streamingAnswer}
         question={question}
         onQuestionChange={setQuestion}
         onSend={sendChat}

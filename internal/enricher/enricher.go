@@ -1,6 +1,7 @@
 package enricher
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -21,6 +22,10 @@ import (
 type enrichmentProvider interface {
 	Name() string
 	GenerateContent(ctx context.Context, systemPrompt, userPrompt string) (string, error)
+	// GenerateContentStream streams content deltas to onDelta as they are
+	// produced. Returning an error from onDelta aborts the stream and the
+	// error is propagated to the caller.
+	GenerateContentStream(ctx context.Context, systemPrompt, userPrompt string, onDelta func(string) error) error
 }
 
 type Enricher struct {
@@ -453,25 +458,60 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 		return nil, fmt.Errorf("%w: %v", ErrAIUpstream, err)
 	}
 
-	payload = cleanResponse(payload)
+	return e.parseExplainSolution(payload)
+}
+
+// ExplainSolutionStream is the streaming variant of ExplainSolution. Each raw
+// JSON delta is forwarded to onDelta as it is generated so the client can
+// progressively hydrate the panel, while the aggregated response is parsed and
+// validated server-side for the final frame and the dedupe cache.
+func (e *Enricher) ExplainSolutionStream(ctx context.Context, req *ExplainSolutionRequest, onDelta func(string) error) (*store.SolutionExplanation, error) {
+	if req == nil || strings.TrimSpace(req.Code) == "" {
+		return nil, fmt.Errorf("code is required")
+	}
+
+	if err := e.waitForRateLimit(ctx); err != nil {
+		return nil, err
+	}
+
+	var sb strings.Builder
+	err := e.provider.GenerateContentStream(ctx, buildExplainSystemPrompt(req.Language), buildExplainUserPrompt(req), func(delta string) error {
+		sb.WriteString(delta)
+		if onDelta != nil {
+			return onDelta(delta)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrAIUpstream, err)
+	}
+
+	return e.parseExplainSolution(sb.String())
+}
+
+// parseExplainSolution strips fences, parses, clamps, and validates a raw AI
+// response into a structured SolutionExplanation. Shared by the buffered and
+// streaming paths so both surfaces identical validation semantics.
+func (e *Enricher) parseExplainSolution(raw string) (*store.SolutionExplanation, error) {
+	payload := cleanResponse(raw)
 	slog.Debug("enricher: explain solution raw response",
 		"payload_len", len(payload),
 		"payload_preview", truncate(payload, 500),
 	)
 
 	var parsed struct {
-		Summary           string   `json:"summary"`
-		Approach          string   `json:"approach"`
-		TimeComplexity    string   `json:"time_complexity"`
-		SpaceComplexity   string   `json:"space_complexity"`
-		KeyTechniques     []string `json:"key_techniques"`
-		Strengths         []string `json:"strengths"`
-		Improvements      []string `json:"improvements"`
-		QualityScore      int      `json:"quality_score"`
-		EfficiencyScore   int      `json:"efficiency_score"`
-		ReadabilityScore  int      `json:"readability_score"`
-		CorrectnessScore  int      `json:"correctness_score"`
-		BestPracticesScore int     `json:"best_practices_score"`
+		Summary            string   `json:"summary"`
+		Approach           string   `json:"approach"`
+		TimeComplexity     string   `json:"time_complexity"`
+		SpaceComplexity    string   `json:"space_complexity"`
+		KeyTechniques      []string `json:"key_techniques"`
+		Strengths          []string `json:"strengths"`
+		Improvements       []string `json:"improvements"`
+		QualityScore       int      `json:"quality_score"`
+		EfficiencyScore    int      `json:"efficiency_score"`
+		ReadabilityScore   int      `json:"readability_score"`
+		CorrectnessScore   int      `json:"correctness_score"`
+		BestPracticesScore int      `json:"best_practices_score"`
 	}
 
 	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
@@ -483,7 +523,6 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 	}
 
 	exp := &store.SolutionExplanation{
-		Language:           req.Language,
 		Summary:            strings.TrimSpace(parsed.Summary),
 		Approach:           strings.TrimSpace(parsed.Approach),
 		TimeComplexity:     strings.TrimSpace(parsed.TimeComplexity),
@@ -503,8 +542,6 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 	}
 
 	slog.Info("enricher: explain solution completed",
-		"language", req.Language,
-		"problem", req.ProblemTitle,
 		"techniques", len(exp.KeyTechniques),
 		"improvements", len(exp.Improvements),
 		"quality_score", exp.QualityScore,
@@ -541,50 +578,91 @@ func (e *Enricher) ExplainChat(ctx context.Context, req *ExplainChatRequest) (st
 	return answer, nil
 }
 
+// ExplainChatStream is the streaming variant of ExplainChat. Each delta is
+// forwarded to onDelta as it is generated so the chat bubble grows live; the
+// aggregated answer is returned for usage accounting.
+func (e *Enricher) ExplainChatStream(ctx context.Context, req *ExplainChatRequest, onDelta func(string) error) (string, error) {
+	if req == nil || strings.TrimSpace(req.Question) == "" {
+		return "", fmt.Errorf("question is required")
+	}
+	if strings.TrimSpace(req.Code) == "" {
+		return "", fmt.Errorf("code is required")
+	}
+
+	if err := e.waitForRateLimit(ctx); err != nil {
+		return "", err
+	}
+
+	var sb strings.Builder
+	err := e.provider.GenerateContentStream(ctx, buildExplainChatSystemPrompt(req.Language), buildExplainChatUserPrompt(req), func(delta string) error {
+		sb.WriteString(delta)
+		if onDelta != nil {
+			return onDelta(delta)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrAIUpstream, err)
+	}
+
+	answer := strings.TrimSpace(sb.String())
+	if answer == "" {
+		return "", fmt.Errorf("AI returned an empty answer")
+	}
+
+	slog.Debug("enricher: explain chat stream completed", "language", req.Language, "answer_len", len(answer))
+	return answer, nil
+}
+
+// mdFence is the markdown code fence used inside prompt text. It is spliced in
+// via %s because Go raw string literals cannot contain backticks.
+const mdFence = "```"
+
 // buildExplainSystemPrompt instructs the AI to return a strict-JSON structured
 // analysis with Big-O complexity, a quality scorecard, and concrete improvement
-// ideas.
+// ideas. Field names are load-bearing — the parser and the frontend depend on
+// them exactly.
 func buildExplainSystemPrompt(language string) string {
 	lang := language
 	if lang == "" {
 		lang = "Go or Python"
 	}
-	return fmt.Sprintf(`You are a senior %s software engineering educator helping a student understand a community best-practice solution on a coding platform.
+	return fmt.Sprintf(`You are a senior %s software engineer and technical educator at a professional coding academy. Your job is to help a student deeply understand an exemplary community solution by producing a rigorous, honest code review paired with a clear teaching walkthrough.
 
-Analyze the solution and return ONLY valid JSON with these exact fields:
-- "summary": a 1-2 sentence plain-English overview of what the code does
-- "approach": a step-by-step walkthrough of how the code works, written for a learner — explain each meaningful step and why it is correct
-- "time_complexity": Big-O notation (e.g. "O(n log n)") followed by a one-sentence justification tied to the actual loops/operations
-- "space_complexity": Big-O notation followed by a one-sentence justification tied to the actual data structures
-- "key_techniques": an array of 2-5 short strings naming the algorithms, data structures, and idioms the solution uses
-- "strengths": an array of 2-4 reasons this is a good solution
-- "improvements": an array of 2-4 concrete, advanced improvement ideas — optimization opportunities, alternative algorithms with better complexity, edge cases not handled, or readability/idiomatic improvements
-- "quality_score": an integer 0-100 overall quality rating for this solution
-- "efficiency_score": an integer 0-100 rating how well the algorithm balances speed and memory for the problem size
-- "readability_score": an integer 0-100 rating naming, structure, and how easy the code is to read
-- "correctness_score": an integer 0-100 rating whether the solution handles edge cases and returns correct results for all inputs
-- "best_practices_score": an integer 0-100 rating how idiomatically the code follows language conventions and best practices
+Respond with a single JSON object. No markdown fences around it, no commentary outside it, no trailing prose. The JSON must contain EXACTLY these keys (all required; do not add or omit keys):
 
-Scoring rubric: 85-100 excellent, 70-84 good, 50-69 fair, below 50 needs work. Be honest and calibrated — a clean O(n) solution should score higher than an equivalent O(n^2) one.
+- "summary": string — 1-2 sentences describing what the code accomplishes, in plain English pitched at a learner.
+- "approach": string — a step-by-step walkthrough of how the code works, written for a learner. Structure it as clean markdown: a short lead-in, then a numbered list of steps, using inline code for identifiers and a fenced code block only when a short snippet genuinely clarifies a step. Justify why each step is correct.
+- "time_complexity": string — Big-O notation (e.g. "O(n log n)") followed by a 1-2 sentence justification tied to the actual loops, recursion, or data structures in the code.
+- "space_complexity": string — Big-O notation followed by a 1-2 sentence justification tied to the data structures actually allocated.
+- "key_techniques": array of 2-5 strings — the algorithms, data structures, and idiomatic patterns the solution demonstrates.
+- "strengths": array of 2-4 strings — concrete reasons this is a good solution (correctness, clarity, idiomatic style, efficiency).
+- "improvements": array of 2-4 strings — concrete, advanced improvement ideas: optimizations with better complexity, alternative algorithms, unhandled edge cases, or readability/idiomatic refinements. If the solution is already optimal, say so explicitly and focus on edge cases and readability instead of inventing complexity.
+- "quality_score": integer 0-100 — overall quality.
+- "efficiency_score": integer 0-100 — how well time and memory balance the problem size.
+- "readability_score": integer 0-100 — naming, structure, and comprehensibility.
+- "correctness_score": integer 0-100 — correctness across edge cases and inputs.
+- "best_practices_score": integer 0-100 — how idiomatically the code follows %s conventions and best practices.
 
-Rules:
-- Explain the code you are shown; never invent unshown context or variables.
-- Use the problem statement and constraints provided to ground your explanation and edge-case analysis.
-- Keep the explanation accurate and grounded; if the code is already optimal, say so and focus improvements on readability/edge cases.
-- Use markdown sparingly inside the text fields (backticks for identifiers) — no markdown fences around the JSON.
-- Do not mention that you are an AI.`, lang)
+Scoring rubric: 85-100 excellent, 70-84 good, 50-69 fair, below 50 needs work. Be calibrated and honest: a clean O(n) solution should outscore an equivalent O(n^2) one, and two algorithms of equal complexity may still differ on readability.
+
+Grounding rules:
+- Analyze ONLY the code you are shown; never invent variables, context, or behavior that is not present.
+- Use the provided problem statement and constraints to ground the explanation and edge-case analysis.
+- Use markdown inside the text fields (backticks for identifiers, fenced code blocks in "approach" where genuinely helpful), but the response as a whole must be pure JSON.
+- Never mention that you are an AI or that this is an AI-generated analysis.`, lang, lang)
 }
 
 // buildExplainUserPrompt assembles the code + problem context for the AI.
 func buildExplainUserPrompt(req *ExplainSolutionRequest) string {
 	var b strings.Builder
-	b.WriteString("Explain this solution like a senior engineer teaching a student.\n\n")
+	b.WriteString("Produce the structured code review described in your instructions. The solution and its context follow.\n\n")
 
 	if req.ProblemTitle != "" {
-		fmt.Fprintf(&b, "Problem: %s\n", req.ProblemTitle)
+		fmt.Fprintf(&b, "# %s\n\n", req.ProblemTitle)
 	}
 	if req.Module != "" {
-		fmt.Fprintf(&b, "Module: %s\n", req.Module)
+		fmt.Fprintf(&b, "Module: %s  \n", req.Module)
 	}
 	if req.RuntimeMs > 0 {
 		fmt.Fprintf(&b, "Measured runtime: %d ms\n", req.RuntimeMs)
@@ -592,40 +670,54 @@ func buildExplainUserPrompt(req *ExplainSolutionRequest) string {
 	fmt.Fprintf(&b, "Language: %s\n\n", req.Language)
 
 	if req.ProblemStatement != "" {
-		b.WriteString("Problem statement:\n")
+		b.WriteString("## Problem statement\n\n")
 		b.WriteString(req.ProblemStatement)
 		b.WriteString("\n\n")
 	}
 	if req.ProblemConstraints != "" {
-		b.WriteString("Constraints:\n")
+		b.WriteString("## Constraints\n\n")
 		b.WriteString(req.ProblemConstraints)
 		b.WriteString("\n\n")
 	}
 
-	fmt.Fprintf(&b, "```%s\n%s\n```\n\n", req.Language, req.Code)
-	b.WriteString("Return ONLY the structured JSON described in your instructions.")
+	fmt.Fprintf(&b, "## Solution (%s)\n\n```%s\n%s\n```\n\n", req.Language, req.Language, req.Code)
+	b.WriteString("Return ONLY the JSON object described in your instructions.")
 	return b.String()
 }
 
-// buildExplainChatSystemPrompt scopes the follow-up chat to the solution's language.
+// buildExplainChatSystemPrompt scopes the follow-up chat to the solution's
+// language and enforces a consistent, renderer-friendly markdown shape.
 func buildExplainChatSystemPrompt(language string) string {
 	lang := language
 	if lang == "" {
 		lang = "Go or Python"
 	}
-	return fmt.Sprintf(`You are a senior %s software engineering educator helping a student understand a community best-practice solution.
+	return fmt.Sprintf(`You are a senior %s software engineer and teaching assistant on a coding platform. A student is asking a follow-up question about an exemplary solution they just read. Answer with a polished, self-contained markdown response.
 
-Answer the student's follow-up question directly and pedagogically using markdown. Be concise but complete. If they ask about alternatives, complexity, edge cases, or trade-offs, give a concrete, accurate answer grounded in the solution you are shown. Do not mention that you are an AI.`, lang)
+Formatting requirements:
+- Use markdown throughout: numbered lists for sequential steps, bullet lists for enumerations, and fenced code blocks with a language tag (e.g. %sgo) for any code snippet.
+- Use bold lead-ins for mini-headings inside prose where helpful (e.g. **Complexity:**).
+- Write Big-O notation inline in simple form, e.g. $O(n)$ or $O(n log n)$ (no LaTeX, no \mathcal or display math).
+- Use single backticks for inline identifiers and types.
+- Do NOT wrap the entire answer in a code fence, and do NOT emit raw HTML.
+- Keep it concise but complete — typically 3-8 short paragraphs or a tight list; prioritize the most useful answer over exhaustive detail.
+
+Grounding rules:
+- Ground every claim in the solution you are shown. If the student asks about alternatives, complexity, edge cases, or trade-offs, give a concrete and accurate answer.
+- If the reference analysis disagrees with the code, trust the code and note the discrepancy.
+- Never mention that you are an AI.`, lang, mdFence)
 }
 
 // buildExplainChatUserPrompt grounds the chat in the code + cached analysis.
 func buildExplainChatUserPrompt(req *ExplainChatRequest) string {
 	var b strings.Builder
-	b.WriteString("Solution being discussed:\n\n")
+	b.WriteString("Answer the student's follow-up question about the solution below.\n\n")
+
+	b.WriteString("## Solution\n\n")
 	fmt.Fprintf(&b, "```%s\n%s\n```\n\n", req.Language, req.Code)
 
 	if req.Explanation != nil {
-		b.WriteString("Previously generated analysis of this solution (use it as context):\n")
+		b.WriteString("## Reference analysis (already shown to the student; keep your answer consistent with it)\n")
 		fmt.Fprintf(&b, "- Summary: %s\n", req.Explanation.Summary)
 		fmt.Fprintf(&b, "- Approach: %s\n", req.Explanation.Approach)
 		fmt.Fprintf(&b, "- Time complexity: %s\n", req.Explanation.TimeComplexity)
@@ -636,7 +728,7 @@ func buildExplainChatUserPrompt(req *ExplainChatRequest) string {
 		b.WriteString("\n")
 	}
 
-	fmt.Fprintf(&b, "Student question: %s", req.Question)
+	fmt.Fprintf(&b, "## Student question\n\n%s", req.Question)
 	return b.String()
 }
 
@@ -951,6 +1043,7 @@ type nvidiaRequest struct {
 	Temperature    float64               `json:"temperature"`
 	MaxTokens      int                   `json:"max_tokens"`
 	ResponseFormat *nvidiaResponseFormat `json:"response_format,omitempty"`
+	Stream         bool                  `json:"stream,omitempty"`
 }
 
 type nvidiaResponse struct {
@@ -959,6 +1052,22 @@ type nvidiaResponse struct {
 		Message       struct {
 			Content string `json:"content"`
 		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	} `json:"error,omitempty"`
+}
+
+// nvidiaStreamChunk is a single Server-Sent Events frame from a streaming
+// chat/completions response. Delta.Content carries the token(s) produced since
+// the previous frame.
+type nvidiaStreamChunk struct {
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
 	Error *struct {
@@ -1003,6 +1112,131 @@ func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, user
 	}
 
 	return n.doRequest(ctx, payload, 0)
+}
+
+// GenerateContentStream issues a streaming chat/completions request and feeds
+// each content delta to onDelta as it arrives. It returns the first error
+// raised by onDelta (which aborts the stream) so callers can detect a broken
+// client connection and stop writing. 429/503 are retried with exponential
+// backoff only when no content has been delivered yet — retrying a partially
+// consumed stream would duplicate output.
+func (n *nvidiaProvider) GenerateContentStream(ctx context.Context, systemPrompt, userPrompt string, onDelta func(string) error) error {
+	body := nvidiaRequest{
+		Model: n.model,
+		Messages: []nvidiaMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		Temperature: n.temperature,
+		MaxTokens:   n.maxTokens,
+		Stream:      true,
+	}
+	if n.jsonMode {
+		body.ResponseFormat = &nvidiaResponseFormat{Type: "json_object"}
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("nvidia marshal request: %w", err)
+	}
+
+	return n.doStreamRequest(ctx, payload, 0, onDelta)
+}
+
+// doStreamRequest performs one streaming request attempt, parsing SSE
+// "data:" frames. Returns nil on [DONE] or when the stream closes cleanly.
+func (n *nvidiaProvider) doStreamRequest(ctx context.Context, payload []byte, attempt int, onDelta func(string) error) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", n.baseURL+"/chat/completions", bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("nvidia create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+n.apiKey)
+
+	resp, err := n.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("nvidia request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if (resp.StatusCode == 429 || resp.StatusCode == 503) && attempt < 3 {
+		wait := time.Duration(1<<(attempt+1)) * time.Second
+		slog.Warn("nvidia transient error, retrying stream",
+			"status", resp.StatusCode,
+			"retry_after_sec", wait.Seconds(),
+			"attempt", attempt+1,
+		)
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		return n.doStreamRequest(ctx, payload, attempt+1, onDelta)
+	}
+
+	if resp.StatusCode != 200 {
+		respBody, _ := io.ReadAll(resp.Body)
+		bodySnippet := truncate(string(respBody), 1000)
+		slog.Error("nvidia HTTP error",
+			"status", resp.StatusCode,
+			"body", bodySnippet,
+		)
+		return fmt.Errorf("nvidia returned HTTP %d: %s", resp.StatusCode, bodySnippet)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	delivered := false
+	var sinkErr error
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			break
+		}
+
+		var chunk nvidiaStreamChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			slog.Warn("nvidia stream: failed to parse chunk",
+				"error", err,
+				"chunk", truncate(data, 200),
+			)
+			continue
+		}
+		if chunk.Error != nil {
+			return fmt.Errorf("nvidia stream error: %s - %s", chunk.Error.Type, chunk.Error.Message)
+		}
+		if len(chunk.Choices) == 0 {
+			continue
+		}
+		content := chunk.Choices[0].Delta.Content
+		if content == "" {
+			continue
+		}
+		delivered = true
+		if onDelta != nil {
+			if err := onDelta(content); err != nil {
+				sinkErr = err
+				break
+			}
+		}
+	}
+
+	if sinkErr != nil {
+		return sinkErr
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("nvidia stream read failed: %w", err)
+	}
+	if !delivered {
+		return fmt.Errorf("%w: nvidia stream returned no content", ErrAIInvalidResponse)
+	}
+	return nil
 }
 
 func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt int) (string, error) {
