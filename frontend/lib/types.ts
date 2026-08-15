@@ -218,6 +218,11 @@ export type SolutionExplanation = {
   key_techniques: string[];
   strengths: string[];
   improvements: string[];
+  quality_score: number;
+  efficiency_score: number;
+  readability_score: number;
+  correctness_score: number;
+  best_practices_score: number;
 };
 
 export type NotificationItem = {
@@ -226,6 +231,7 @@ export type NotificationItem = {
   type: string;
   message: string;
   related_id?: string;
+  related_slug?: string;
   is_read: boolean;
   created_at: string;
 };

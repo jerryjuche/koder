@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -282,23 +283,39 @@ type AIAssistResponse struct {
 
 // ExplainSolutionRequest is the input for analyzing a best-practice solution.
 type ExplainSolutionRequest struct {
-	Code         string
-	Language     string
-	ProblemTitle string
-	ProblemSlug  string
-	Module       string
-	RuntimeMs    int
+	Code               string
+	Language           string
+	ProblemTitle       string
+	ProblemSlug        string
+	ProblemStatement   string
+	ProblemConstraints string
+	Module             string
+	RuntimeMs          int
 }
 
 // ExplainChatRequest is the input for a follow-up question about a solution.
 // Explanation carries the cached structured analysis so follow-ups stay
 // coherent with the original explanation.
 type ExplainChatRequest struct {
-	Code         string
-	Language     string
-	Question     string
-	Explanation  *store.SolutionExplanation
+	Code        string
+	Language    string
+	Question    string
+	Explanation *store.SolutionExplanation
 }
+
+// Explain failure classes. The handler maps these to a human-actionable
+// "details" hint in the API error so operators can diagnose a 502 without
+// digging through logs.
+var (
+	// ErrAIUpstream wraps provider HTTP/network/quota/timeout failures — the
+	// NVIDIA NIM service itself rejected or failed to serve the request.
+	ErrAIUpstream = errors.New("ai upstream failure")
+	// ErrAIInvalidResponse wraps responses the AI returned that could not be
+	// parsed into the expected JSON shape.
+	ErrAIInvalidResponse = errors.New("ai invalid response")
+	// ErrAIValidation wraps valid JSON that is missing required sections.
+	ErrAIValidation = errors.New("ai response missing required fields")
+)
 
 // AIAssistProblem performs a targeted AI editing action on a problem.
 func (e *Enricher) AIAssistProblem(ctx context.Context, req *AIAssistRequest) (*AIAssistResponse, error) {
@@ -426,7 +443,7 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 
 	payload, err := e.provider.GenerateContent(ctx, buildExplainSystemPrompt(req.Language), buildExplainUserPrompt(req))
 	if err != nil {
-		return nil, fmt.Errorf("explain solution generate content failed: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrAIUpstream, err)
 	}
 
 	payload = cleanResponse(payload)
@@ -436,13 +453,18 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 	)
 
 	var parsed struct {
-		Summary         string   `json:"summary"`
-		Approach        string   `json:"approach"`
-		TimeComplexity  string   `json:"time_complexity"`
-		SpaceComplexity string   `json:"space_complexity"`
-		KeyTechniques   []string `json:"key_techniques"`
-		Strengths       []string `json:"strengths"`
-		Improvements    []string `json:"improvements"`
+		Summary           string   `json:"summary"`
+		Approach          string   `json:"approach"`
+		TimeComplexity    string   `json:"time_complexity"`
+		SpaceComplexity   string   `json:"space_complexity"`
+		KeyTechniques     []string `json:"key_techniques"`
+		Strengths         []string `json:"strengths"`
+		Improvements      []string `json:"improvements"`
+		QualityScore      int      `json:"quality_score"`
+		EfficiencyScore   int      `json:"efficiency_score"`
+		ReadabilityScore  int      `json:"readability_score"`
+		CorrectnessScore  int      `json:"correctness_score"`
+		BestPracticesScore int     `json:"best_practices_score"`
 	}
 
 	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
@@ -450,22 +472,27 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 			"error", err,
 			"payload", truncate(payload, 2000),
 		)
-		return nil, fmt.Errorf("unable to parse explain solution response: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrAIInvalidResponse, err)
 	}
 
 	exp := &store.SolutionExplanation{
-		Language:        req.Language,
-		Summary:         strings.TrimSpace(parsed.Summary),
-		Approach:        strings.TrimSpace(parsed.Approach),
-		TimeComplexity:  strings.TrimSpace(parsed.TimeComplexity),
-		SpaceComplexity: strings.TrimSpace(parsed.SpaceComplexity),
-		KeyTechniques:   parsed.KeyTechniques,
-		Strengths:       parsed.Strengths,
-		Improvements:    parsed.Improvements,
+		Language:           req.Language,
+		Summary:            strings.TrimSpace(parsed.Summary),
+		Approach:           strings.TrimSpace(parsed.Approach),
+		TimeComplexity:     strings.TrimSpace(parsed.TimeComplexity),
+		SpaceComplexity:    strings.TrimSpace(parsed.SpaceComplexity),
+		KeyTechniques:      nonNilStrings(parsed.KeyTechniques),
+		Strengths:          nonNilStrings(parsed.Strengths),
+		Improvements:       nonNilStrings(parsed.Improvements),
+		QualityScore:       clampScore(parsed.QualityScore),
+		EfficiencyScore:    clampScore(parsed.EfficiencyScore),
+		ReadabilityScore:   clampScore(parsed.ReadabilityScore),
+		CorrectnessScore:   clampScore(parsed.CorrectnessScore),
+		BestPracticesScore: clampScore(parsed.BestPracticesScore),
 	}
 
 	if err := validateExplainResponse(exp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAIValidation, err)
 	}
 
 	slog.Info("enricher: explain solution completed",
@@ -473,6 +500,7 @@ func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequ
 		"problem", req.ProblemTitle,
 		"techniques", len(exp.KeyTechniques),
 		"improvements", len(exp.Improvements),
+		"quality_score", exp.QualityScore,
 	)
 
 	return exp, nil
@@ -494,7 +522,7 @@ func (e *Enricher) ExplainChat(ctx context.Context, req *ExplainChatRequest) (st
 
 	payload, err := e.provider.GenerateContent(ctx, buildExplainChatSystemPrompt(req.Language), buildExplainChatUserPrompt(req))
 	if err != nil {
-		return "", fmt.Errorf("explain chat generate content failed: %w", err)
+		return "", fmt.Errorf("%w: %v", ErrAIUpstream, err)
 	}
 
 	answer := strings.TrimSpace(payload)
@@ -507,7 +535,8 @@ func (e *Enricher) ExplainChat(ctx context.Context, req *ExplainChatRequest) (st
 }
 
 // buildExplainSystemPrompt instructs the AI to return a strict-JSON structured
-// analysis with Big-O complexity and concrete improvement ideas.
+// analysis with Big-O complexity, a quality scorecard, and concrete improvement
+// ideas.
 func buildExplainSystemPrompt(language string) string {
 	lang := language
 	if lang == "" {
@@ -523,9 +552,17 @@ Analyze the solution and return ONLY valid JSON with these exact fields:
 - "key_techniques": an array of 2-5 short strings naming the algorithms, data structures, and idioms the solution uses
 - "strengths": an array of 2-4 reasons this is a good solution
 - "improvements": an array of 2-4 concrete, advanced improvement ideas — optimization opportunities, alternative algorithms with better complexity, edge cases not handled, or readability/idiomatic improvements
+- "quality_score": an integer 0-100 overall quality rating for this solution
+- "efficiency_score": an integer 0-100 rating how well the algorithm balances speed and memory for the problem size
+- "readability_score": an integer 0-100 rating naming, structure, and how easy the code is to read
+- "correctness_score": an integer 0-100 rating whether the solution handles edge cases and returns correct results for all inputs
+- "best_practices_score": an integer 0-100 rating how idiomatically the code follows language conventions and best practices
+
+Scoring rubric: 85-100 excellent, 70-84 good, 50-69 fair, below 50 needs work. Be honest and calibrated — a clean O(n) solution should score higher than an equivalent O(n^2) one.
 
 Rules:
 - Explain the code you are shown; never invent unshown context or variables.
+- Use the problem statement and constraints provided to ground your explanation and edge-case analysis.
 - Keep the explanation accurate and grounded; if the code is already optimal, say so and focus improvements on readability/edge cases.
 - Use markdown sparingly inside the text fields (backticks for identifiers) — no markdown fences around the JSON.
 - Do not mention that you are an AI.`, lang)
@@ -546,6 +583,17 @@ func buildExplainUserPrompt(req *ExplainSolutionRequest) string {
 		fmt.Fprintf(&b, "Measured runtime: %d ms\n", req.RuntimeMs)
 	}
 	fmt.Fprintf(&b, "Language: %s\n\n", req.Language)
+
+	if req.ProblemStatement != "" {
+		b.WriteString("Problem statement:\n")
+		b.WriteString(req.ProblemStatement)
+		b.WriteString("\n\n")
+	}
+	if req.ProblemConstraints != "" {
+		b.WriteString("Constraints:\n")
+		b.WriteString(req.ProblemConstraints)
+		b.WriteString("\n\n")
+	}
 
 	fmt.Fprintf(&b, "```%s\n%s\n```\n\n", req.Language, req.Code)
 	b.WriteString("Return ONLY the structured JSON described in your instructions.")
@@ -605,6 +653,28 @@ func validateExplainResponse(exp *store.SolutionExplanation) error {
 		return fmt.Errorf("AI response missing space_complexity")
 	}
 	return nil
+}
+
+// nonNilStrings guarantees a non-nil slice so the frontend never receives null
+// for optional array fields the AI omitted (a common failure mode).
+func nonNilStrings(in []string) []string {
+	if in == nil {
+		return []string{}
+	}
+	return in
+}
+
+// clampScore bounds a 0-100 AI rating to the valid range. Scores outside the
+// range (e.g. 105 or -5) are clamped rather than rejected so a single bad value
+// never takes down the whole explanation.
+func clampScore(v int) int {
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
 }
 
 func buildProblemContext(p *store.Problem) string {

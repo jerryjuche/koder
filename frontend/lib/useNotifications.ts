@@ -9,6 +9,7 @@ export interface Notification {
   type: string;
   message: string;
   related_id?: string;
+  related_slug?: string;
   is_read: boolean;
   created_at: string;
 }

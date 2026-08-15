@@ -8,6 +8,7 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import { CodeSnippet } from "@/components/application/code-snippet";
 import { ExplainPanel } from "./ExplainPanel";
 import {
+  AIAnalysisPill,
   LikeButton,
   ProblemLink,
   SolutionAuthorRow,
@@ -70,6 +71,9 @@ export function SolutionCard({
               <span className="hidden shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
                 {solution.module}
               </span>
+            )}
+            {!expanded && (
+              <AIAnalysisPill hasAnalysis onClick={() => setExpanded(true)} />
             )}
           </div>
 

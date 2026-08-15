@@ -564,15 +564,33 @@ export async function unlikeSubmission(
 
 // AI Solution Explanations (Best Practices)
 
+// Upstream AI failures (details === "upstream_error") are transient provider
+// errors. Retry once after a short backoff instead of surfacing a 502 to the
+// student; non-upstream failures return immediately.
+async function retryUpstream<T>(
+  fn: () => Promise<ApiResponse<T>>,
+  retries = 1,
+  delayMs = 3000,
+): Promise<ApiResponse<T>> {
+  let res = await fn();
+  for (let i = 0; i < retries; i++) {
+    if (res.success) return res;
+    const err = res.error as { details?: string } | undefined;
+    if (err?.details !== "upstream_error") return res;
+    await new Promise((r) => setTimeout(r, delayMs));
+    res = await fn();
+  }
+  return res;
+}
+
 export async function explainSolution(
   submissionId: string,
 ): Promise<ApiResponse<{ cached: boolean; explanation: SolutionExplanation }>> {
-  return fetchApi<{ cached: boolean; explanation: SolutionExplanation }>(
-    "/ai/explain",
-    {
+  return retryUpstream<{ cached: boolean; explanation: SolutionExplanation }>(() =>
+    fetchApi<{ cached: boolean; explanation: SolutionExplanation }>("/ai/explain", {
       method: "POST",
       body: JSON.stringify({ submission_id: submissionId }),
-    },
+    }),
   );
 }
 
@@ -580,10 +598,12 @@ export async function explainSolutionChat(
   submissionId: string,
   question: string,
 ): Promise<ApiResponse<{ answer: string }>> {
-  return fetchApi<{ answer: string }>("/ai/explain/chat", {
-    method: "POST",
-    body: JSON.stringify({ submission_id: submissionId, question }),
-  });
+  return retryUpstream<{ answer: string }>(() =>
+    fetchApi<{ answer: string }>("/ai/explain/chat", {
+      method: "POST",
+      body: JSON.stringify({ submission_id: submissionId, question }),
+    }),
+  );
 }
 
 // Community Contributions

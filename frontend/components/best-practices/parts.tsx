@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { ExternalLink, Heart, Sparkles } from "lucide-react";
 import { CommunitySolution } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/base/avatar/avatar";
@@ -19,20 +19,52 @@ export function ProblemLink({ solution }: { solution: CommunitySolution }) {
   if (!solution.problem_slug) return null;
   const display = solution.problem_title || solution.problem_slug;
   return (
-    <Link
-      href={`/problems/${solution.problem_slug}`}
+    <span
+      className="inline-flex min-w-0 items-center gap-1"
+      title={`Problem: ${display}`}
+    >
+      <span className="truncate text-muted-foreground">{display}</span>
+      <Link
+        href={`/problems/${solution.problem_slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open problem ${display} in a new tab`}
+        onClick={(e) => {
+          e.stopPropagation();
+          sessionStorage.setItem(
+            "return_to",
+            window.location.href.replace(window.location.origin, ""),
+          );
+        }}
+        className="shrink-0 rounded p-0.5 text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground"
+      >
+        <ExternalLink size={12} />
+      </Link>
+    </span>
+  );
+}
+
+export function AIAnalysisPill({
+  hasAnalysis,
+  onClick,
+}: {
+  hasAnalysis: boolean;
+  onClick: () => void;
+}) {
+  if (!hasAnalysis) return null;
+  return (
+    <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
-        sessionStorage.setItem(
-          "return_to",
-          window.location.href.replace(window.location.origin, ""),
-        );
+        onClick();
       }}
-      className="group/link inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors min-w-0"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-300 transition-colors hover:bg-purple-500/20"
+      aria-label="Open AI analysis"
     >
-      <span className="truncate">{display}</span>
-      <span className="opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0">→</span>
-    </Link>
+      <Sparkles size={10} className="fill-purple-400/60" />
+      AI Analysis
+    </button>
   );
 }
 
