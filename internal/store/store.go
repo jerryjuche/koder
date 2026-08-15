@@ -97,10 +97,16 @@ type Store interface {
 	ListAllProblemsAdmin(ctx context.Context) ([]Problem, error)
 
 	// Community Solutions & Likes
-	LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
+	LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) (bool, error)
 	UnlikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error
 	GetTopCommunitySolutionsForProblem(ctx context.Context, problemID, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error)
 	GetBestPractices(ctx context.Context, currentUserID uuid.UUID, mineOnly bool, limit int) ([]CommunitySolution, error)
+	GetSubmissionLikeSummary(ctx context.Context, submissionID uuid.UUID) (*SubmissionLikeSummary, error)
+
+	// AI Solution Explanations (Best Practices code analysis, deduped per submission)
+	GetSolutionForExplain(ctx context.Context, submissionID uuid.UUID) (*SolutionForExplain, error)
+	GetSolutionExplanation(ctx context.Context, submissionID uuid.UUID) (*SolutionExplanation, error)
+	UpsertSolutionExplanation(ctx context.Context, exp *SolutionExplanation) error
 
 	// Admin operations
 	GetAdminStats(ctx context.Context) (*AdminStats, error)

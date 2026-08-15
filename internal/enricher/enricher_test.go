@@ -1,10 +1,25 @@
 package enricher
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
 
+	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+// fakeProvider is a scriptable enrichmentProvider for unit tests.
+type fakeProvider struct {
+	out string
+	err error
+}
+
+func (f *fakeProvider) Name() string { return "fake" }
+func (f *fakeProvider) GenerateContent(_ context.Context, systemPrompt, userPrompt string) (string, error) {
+	return f.out, f.err
+}
 
 func TestToSnakeCase(t *testing.T) {
 	tests := []struct {
@@ -228,4 +243,124 @@ func TestValidateEnrichedProblem(t *testing.T) {
 			t.Error("expected error for negative ordinal")
 		}
 	})
+}
+
+func TestExplainSolution(t *testing.T) {
+	validJSON := `{
+		"summary": "Adds two integers and returns the sum.",
+		"approach": "Return a + b directly.",
+		"time_complexity": "O(1) — a single addition, no loops.",
+		"space_complexity": "O(1) — only the result is stored.",
+		"key_techniques": ["arithmetic", "early return"],
+		"strengths": ["simple", "correct"],
+		"improvements": ["validate overflow"]
+	}`
+
+	t.Run("parses structured explanation", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: validJSON}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+			Code:     "func Sum(a, b int) int { return a + b }",
+			Language: "go",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.Summary == "" || exp.Approach == "" {
+			t.Error("expected summary and approach to be populated")
+		}
+		if exp.TimeComplexity != "O(1) — a single addition, no loops." {
+			t.Errorf("unexpected time_complexity: %q", exp.TimeComplexity)
+		}
+		if len(exp.KeyTechniques) != 2 || len(exp.Improvements) != 1 {
+			t.Errorf("unexpected techniques/improvements: %v / %v", exp.KeyTechniques, exp.Improvements)
+		}
+	})
+
+	t.Run("strips markdown fences", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "```json\n" + validJSON + "\n```"}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+			Code:     "func Sum(a, b int) int { return a + b }",
+			Language: "go",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.TimeComplexity == "" {
+			t.Error("expected parsed fields despite fences")
+		}
+	})
+
+	t.Run("requires code", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: validJSON}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "  "})
+		if err == nil {
+			t.Error("expected error for empty code")
+		}
+	})
+
+	t.Run("provider error propagates", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Error("expected error from provider")
+		}
+	})
+
+	t.Run("unparseable response errors", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "sorry, no JSON here"}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Error("expected parse error")
+		}
+	})
+}
+
+func TestExplainChat(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "It is O(n) because of the loop."}}
+	answer, err := e.ExplainChat(context.Background(), &ExplainChatRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+		Question: "What is the complexity?",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(answer, "O(n)") {
+		t.Errorf("unexpected answer: %q", answer)
+	}
+}
+
+func TestExplainChatValidatesInput(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "answer"}}
+	if _, err := e.ExplainChat(context.Background(), &ExplainChatRequest{Code: "x"}); err == nil {
+		t.Error("expected error for empty question")
+	}
+	if _, err := e.ExplainChat(context.Background(), &ExplainChatRequest{Question: "why?"}); err == nil {
+		t.Error("expected error for empty code")
+	}
+}
+
+func TestValidateExplainResponse(t *testing.T) {
+	valid := &store.SolutionExplanation{
+		Summary:         "s",
+		Approach:        "a",
+		TimeComplexity:  "O(n)",
+		SpaceComplexity: "O(1)",
+	}
+	if err := validateExplainResponse(valid); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	cases := []*store.SolutionExplanation{
+		nil,
+		{},
+		{Summary: "s"},
+		{Summary: "s", Approach: "a"},
+		{Summary: "s", Approach: "a", TimeComplexity: "O(n)"},
+	}
+	for i, c := range cases {
+		if err := validateExplainResponse(c); err == nil {
+			t.Errorf("case %d: expected error", i)
+		}
+	}
 }

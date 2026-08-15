@@ -4,3 +4,4 @@ export { SolutionList } from "./SolutionList";
 export { BestPracticesHeader } from "./BestPracticesHeader";
 export { BestPracticesToolbar } from "./BestPracticesToolbar";
 export { BestPracticesSkeleton } from "./BestPracticesSkeleton";
+export { ExplainPanel } from "./ExplainPanel";

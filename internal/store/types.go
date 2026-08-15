@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -383,6 +384,42 @@ type CommunitySolution struct {
 	Likes         int         `json:"likes"`
 	HasLiked      bool        `json:"has_liked"`
 	CreatedAt     time.Time   `json:"created_at"`
+}
+
+// SolutionExplanation is a cached AI-generated explanation of a best-practice solution.
+type SolutionExplanation struct {
+	SubmissionID    pgtype.UUID `json:"submission_id"`
+	Language        string      `json:"language"`
+	Summary         string      `json:"summary"`
+	Approach        string      `json:"approach"`
+	TimeComplexity  string      `json:"time_complexity"`
+	SpaceComplexity string      `json:"space_complexity"`
+	KeyTechniques   []string    `json:"key_techniques"`
+	Strengths       []string    `json:"strengths"`
+	Improvements    []string    `json:"improvements"`
+	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// SolutionForExplain describes a passable submission + its problem context,
+// used as the input for AI code explanation.
+type SolutionForExplain struct {
+	SubmissionID pgtype.UUID
+	AuthorID     pgtype.UUID
+	Language     string
+	Code         string
+	ProblemTitle string
+	ProblemSlug  string
+	Module       string
+	RuntimeMs    int
+}
+
+// SubmissionLikeSummary carries the author + problem context needed to notify
+// a submission's author when their solution receives a like.
+type SubmissionLikeSummary struct {
+	AuthorID     uuid.UUID
+	ProblemID    uuid.UUID
+	ProblemTitle string
+	ProblemSlug  string
 }
 
 // AIUsageLog records a single AI assist call for monitoring and billing.

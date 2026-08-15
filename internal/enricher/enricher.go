@@ -280,6 +280,26 @@ type AIAssistResponse struct {
 	Explanation       string                        `json:"explanation"`
 }
 
+// ExplainSolutionRequest is the input for analyzing a best-practice solution.
+type ExplainSolutionRequest struct {
+	Code         string
+	Language     string
+	ProblemTitle string
+	ProblemSlug  string
+	Module       string
+	RuntimeMs    int
+}
+
+// ExplainChatRequest is the input for a follow-up question about a solution.
+// Explanation carries the cached structured analysis so follow-ups stay
+// coherent with the original explanation.
+type ExplainChatRequest struct {
+	Code         string
+	Language     string
+	Question     string
+	Explanation  *store.SolutionExplanation
+}
+
 // AIAssistProblem performs a targeted AI editing action on a problem.
 func (e *Enricher) AIAssistProblem(ctx context.Context, req *AIAssistRequest) (*AIAssistResponse, error) {
 	if req == nil || req.Problem == nil {
@@ -390,6 +410,201 @@ func (e *Enricher) AIAssistProblem(ctx context.Context, req *AIAssistRequest) (*
 	)
 
 	return resp, nil
+}
+
+// ExplainSolution generates a structured, pedagogical explanation of a
+// best-practice solution. The returned *store.SolutionExplanation carries only
+// the analysis fields; the caller attaches submission identity and caches it.
+func (e *Enricher) ExplainSolution(ctx context.Context, req *ExplainSolutionRequest) (*store.SolutionExplanation, error) {
+	if req == nil || strings.TrimSpace(req.Code) == "" {
+		return nil, fmt.Errorf("code is required")
+	}
+
+	if err := e.waitForRateLimit(ctx); err != nil {
+		return nil, err
+	}
+
+	payload, err := e.provider.GenerateContent(ctx, buildExplainSystemPrompt(req.Language), buildExplainUserPrompt(req))
+	if err != nil {
+		return nil, fmt.Errorf("explain solution generate content failed: %w", err)
+	}
+
+	payload = cleanResponse(payload)
+	slog.Debug("enricher: explain solution raw response",
+		"payload_len", len(payload),
+		"payload_preview", truncate(payload, 500),
+	)
+
+	var parsed struct {
+		Summary         string   `json:"summary"`
+		Approach        string   `json:"approach"`
+		TimeComplexity  string   `json:"time_complexity"`
+		SpaceComplexity string   `json:"space_complexity"`
+		KeyTechniques   []string `json:"key_techniques"`
+		Strengths       []string `json:"strengths"`
+		Improvements    []string `json:"improvements"`
+	}
+
+	if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
+		slog.Error("enricher: explain solution failed to parse JSON",
+			"error", err,
+			"payload", truncate(payload, 2000),
+		)
+		return nil, fmt.Errorf("unable to parse explain solution response: %w", err)
+	}
+
+	exp := &store.SolutionExplanation{
+		Language:        req.Language,
+		Summary:         strings.TrimSpace(parsed.Summary),
+		Approach:        strings.TrimSpace(parsed.Approach),
+		TimeComplexity:  strings.TrimSpace(parsed.TimeComplexity),
+		SpaceComplexity: strings.TrimSpace(parsed.SpaceComplexity),
+		KeyTechniques:   parsed.KeyTechniques,
+		Strengths:       parsed.Strengths,
+		Improvements:    parsed.Improvements,
+	}
+
+	if err := validateExplainResponse(exp); err != nil {
+		return nil, err
+	}
+
+	slog.Info("enricher: explain solution completed",
+		"language", req.Language,
+		"problem", req.ProblemTitle,
+		"techniques", len(exp.KeyTechniques),
+		"improvements", len(exp.Improvements),
+	)
+
+	return exp, nil
+}
+
+// ExplainChat answers a follow-up question about a solution, grounded in the
+// cached structured explanation. Returns markdown.
+func (e *Enricher) ExplainChat(ctx context.Context, req *ExplainChatRequest) (string, error) {
+	if req == nil || strings.TrimSpace(req.Question) == "" {
+		return "", fmt.Errorf("question is required")
+	}
+	if strings.TrimSpace(req.Code) == "" {
+		return "", fmt.Errorf("code is required")
+	}
+
+	if err := e.waitForRateLimit(ctx); err != nil {
+		return "", err
+	}
+
+	payload, err := e.provider.GenerateContent(ctx, buildExplainChatSystemPrompt(req.Language), buildExplainChatUserPrompt(req))
+	if err != nil {
+		return "", fmt.Errorf("explain chat generate content failed: %w", err)
+	}
+
+	answer := strings.TrimSpace(payload)
+	if answer == "" {
+		return "", fmt.Errorf("AI returned an empty answer")
+	}
+
+	slog.Debug("enricher: explain chat completed", "language", req.Language, "answer_len", len(answer))
+	return answer, nil
+}
+
+// buildExplainSystemPrompt instructs the AI to return a strict-JSON structured
+// analysis with Big-O complexity and concrete improvement ideas.
+func buildExplainSystemPrompt(language string) string {
+	lang := language
+	if lang == "" {
+		lang = "Go or Python"
+	}
+	return fmt.Sprintf(`You are a senior %s software engineering educator helping a student understand a community best-practice solution on a coding platform.
+
+Analyze the solution and return ONLY valid JSON with these exact fields:
+- "summary": a 1-2 sentence plain-English overview of what the code does
+- "approach": a step-by-step walkthrough of how the code works, written for a learner — explain each meaningful step and why it is correct
+- "time_complexity": Big-O notation (e.g. "O(n log n)") followed by a one-sentence justification tied to the actual loops/operations
+- "space_complexity": Big-O notation followed by a one-sentence justification tied to the actual data structures
+- "key_techniques": an array of 2-5 short strings naming the algorithms, data structures, and idioms the solution uses
+- "strengths": an array of 2-4 reasons this is a good solution
+- "improvements": an array of 2-4 concrete, advanced improvement ideas — optimization opportunities, alternative algorithms with better complexity, edge cases not handled, or readability/idiomatic improvements
+
+Rules:
+- Explain the code you are shown; never invent unshown context or variables.
+- Keep the explanation accurate and grounded; if the code is already optimal, say so and focus improvements on readability/edge cases.
+- Use markdown sparingly inside the text fields (backticks for identifiers) — no markdown fences around the JSON.
+- Do not mention that you are an AI.`, lang)
+}
+
+// buildExplainUserPrompt assembles the code + problem context for the AI.
+func buildExplainUserPrompt(req *ExplainSolutionRequest) string {
+	var b strings.Builder
+	b.WriteString("Explain this solution like a senior engineer teaching a student.\n\n")
+
+	if req.ProblemTitle != "" {
+		fmt.Fprintf(&b, "Problem: %s\n", req.ProblemTitle)
+	}
+	if req.Module != "" {
+		fmt.Fprintf(&b, "Module: %s\n", req.Module)
+	}
+	if req.RuntimeMs > 0 {
+		fmt.Fprintf(&b, "Measured runtime: %d ms\n", req.RuntimeMs)
+	}
+	fmt.Fprintf(&b, "Language: %s\n\n", req.Language)
+
+	fmt.Fprintf(&b, "```%s\n%s\n```\n\n", req.Language, req.Code)
+	b.WriteString("Return ONLY the structured JSON described in your instructions.")
+	return b.String()
+}
+
+// buildExplainChatSystemPrompt scopes the follow-up chat to the solution's language.
+func buildExplainChatSystemPrompt(language string) string {
+	lang := language
+	if lang == "" {
+		lang = "Go or Python"
+	}
+	return fmt.Sprintf(`You are a senior %s software engineering educator helping a student understand a community best-practice solution.
+
+Answer the student's follow-up question directly and pedagogically using markdown. Be concise but complete. If they ask about alternatives, complexity, edge cases, or trade-offs, give a concrete, accurate answer grounded in the solution you are shown. Do not mention that you are an AI.`, lang)
+}
+
+// buildExplainChatUserPrompt grounds the chat in the code + cached analysis.
+func buildExplainChatUserPrompt(req *ExplainChatRequest) string {
+	var b strings.Builder
+	b.WriteString("Solution being discussed:\n\n")
+	fmt.Fprintf(&b, "```%s\n%s\n```\n\n", req.Language, req.Code)
+
+	if req.Explanation != nil {
+		b.WriteString("Previously generated analysis of this solution (use it as context):\n")
+		fmt.Fprintf(&b, "- Summary: %s\n", req.Explanation.Summary)
+		fmt.Fprintf(&b, "- Approach: %s\n", req.Explanation.Approach)
+		fmt.Fprintf(&b, "- Time complexity: %s\n", req.Explanation.TimeComplexity)
+		fmt.Fprintf(&b, "- Space complexity: %s\n", req.Explanation.SpaceComplexity)
+		if len(req.Explanation.Improvements) > 0 {
+			fmt.Fprintf(&b, "- Improvement ideas: %s\n", strings.Join(req.Explanation.Improvements, "; "))
+		}
+		b.WriteString("\n")
+	}
+
+	fmt.Fprintf(&b, "Student question: %s", req.Question)
+	return b.String()
+}
+
+// validateExplainResponse enforces that the AI actually produced the sections
+// the frontend renders, so a malformed response surfaces as a clean error
+// instead of an empty card.
+func validateExplainResponse(exp *store.SolutionExplanation) error {
+	if exp == nil {
+		return fmt.Errorf("explanation cannot be nil")
+	}
+	if strings.TrimSpace(exp.Summary) == "" {
+		return fmt.Errorf("AI response missing summary")
+	}
+	if strings.TrimSpace(exp.Approach) == "" {
+		return fmt.Errorf("AI response missing approach")
+	}
+	if strings.TrimSpace(exp.TimeComplexity) == "" {
+		return fmt.Errorf("AI response missing time_complexity")
+	}
+	if strings.TrimSpace(exp.SpaceComplexity) == "" {
+		return fmt.Errorf("AI response missing space_complexity")
+	}
+	return nil
 }
 
 func buildProblemContext(p *store.Problem) string {
