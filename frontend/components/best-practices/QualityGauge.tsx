@@ -1,56 +1,52 @@
 "use client";
 
-import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
+import type { CSSProperties } from "react";
+import { RatingBadge } from "@/components/ui/rating-badge";
 
-function grade(score: number): { label: string; barClass: string; textClass: string } {
-  if (score >= 85) return { label: "Excellent", barClass: "fill-emerald-500 stroke-emerald-500", textClass: "text-emerald-400" };
-  if (score >= 70) return { label: "Good", barClass: "fill-teal-500 stroke-teal-500", textClass: "text-teal-400" };
-  if (score >= 50) return { label: "Fair", barClass: "fill-amber-500 stroke-amber-500", textClass: "text-amber-400" };
-  return { label: "Needs work", barClass: "fill-rose-500 stroke-rose-500", textClass: "text-rose-400" };
+export function gradeScore(score: number): { label: string; color: string } {
+  if (score >= 85) return { label: "Excellent", color: "#10b981" };
+  if (score >= 70) return { label: "Good", color: "#14b8a6" };
+  if (score >= 50) return { label: "Fair", color: "#f59e0b" };
+  return { label: "Needs work", color: "#f43f5e" };
 }
 
 export function QualityGauge({ score, label }: { score: number; label: string }) {
-  const g = grade(score);
-  const data = [{ name: label, value: score, fill: "currentColor" }];
+  const g = gradeScore(score);
+  const stars = Math.round((score / 100) * 5 * 2) / 2;
 
   return (
-    <div className="flex flex-col items-center rounded-lg border border-border/60 bg-muted/40 p-3">
-      <div className="h-[130px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            data={data}
-            innerRadius={32}
-            outerRadius={54}
-            startAngle={90}
-            endAngle={450}
-            barSize={12}
+    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+      <div
+        className="radial-progress"
+        role="img"
+        aria-label={`${label}: ${score} out of 100 — ${g.label}`}
+        style={
+          {
+            "--value": score,
+            "--size": "6.5rem",
+            "--thickness": "0.5rem",
+            color: g.color,
+          } as CSSProperties
+        }
+      >
+        <div className="flex flex-col items-center leading-none">
+          <span className="text-2xl font-bold tabular-nums text-foreground">
+            {score}
+          </span>
+          <span
+            className="mt-1 text-[9px] font-semibold uppercase tracking-wider"
+            style={{ color: g.color }}
           >
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar
-              dataKey="value"
-              cornerRadius={99}
-              className={score > 0 ? g.barClass : "fill-primary/20 stroke-primary/20"}
-              background={{ className: "fill-primary/10" }}
-              isAnimationActive
-              animationDuration={1100}
-              animationEasing="ease-out"
-            />
-            <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle">
-              <tspan x="50%" dy="0" className="fill-foreground text-lg font-bold tabular-nums">
-                {score}
-              </tspan>
-            </text>
-            <text x="50%" y="62%" textAnchor="middle" dominantBaseline="middle" className={g.textClass}>
-              <tspan x="50%" dy="0" className="fill-current text-[10px] font-semibold uppercase tracking-wider">
-                {g.label}
-              </tspan>
-            </text>
-          </RadialBarChart>
-        </ResponsiveContainer>
+            {g.label}
+          </span>
+        </div>
       </div>
-      <span className="text-center text-[10px] font-semibold text-muted-foreground leading-tight">
-        {label}
-      </span>
+      <div className="flex flex-col items-center gap-1">
+        <RatingBadge rating={stars} maxRating={5} size="sm" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+      </div>
     </div>
   );
 }

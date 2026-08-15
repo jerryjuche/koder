@@ -102,7 +102,9 @@ export type CodeSnippetProps = {
   maxHeight?: number;
   lineNumbers?: boolean;
   hideCopy?: boolean;
+  hideHeader?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 };
 
 export function CodeSnippet({
@@ -113,7 +115,9 @@ export function CodeSnippet({
   maxHeight = 180,
   lineNumbers = true,
   hideCopy = false,
+  hideHeader = false,
   className,
+  style,
 }: CodeSnippetProps) {
   const [internal, setInternal] = useState(files[0]?.language ?? "");
   const activeValue = controlledValue ?? internal;
@@ -127,8 +131,9 @@ export function CodeSnippet({
           "group relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
           className
         )}
+        style={style}
       >
-        {files.length > 1 ? (
+        {!hideHeader && (files.length > 1 ? (
           <div className="flex items-center justify-between px-1.5 py-1 border-b border-border/40 bg-muted/30">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {files.map((f) => {
@@ -166,7 +171,7 @@ export function CodeSnippet({
             </div>
             {!hideCopy && <CopyButton />}
           </div>
-        ) : null}
+        ) : null)}
         <SnippetBody collapsed={collapsed} maxHeight={maxHeight} lineNumbers={lineNumbers} />
       </div>
     </SnippetCtx.Provider>
