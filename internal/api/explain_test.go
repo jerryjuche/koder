@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,8 +14,6 @@ import (
 	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/store"
 )
-
-var errExplainFailure = errors.New("nvidia: upstream failed")
 
 // explainFakeStore simulates the store interactions of the explain handler.
 type explainFakeStore struct {
@@ -193,7 +191,7 @@ func TestExplainCacheMissGeneratesAndUpserts(t *testing.T) {
 
 func TestExplainProviderFailureReturns502(t *testing.T) {
 	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
-	fe := &fakeExplainer{err: errExplainFailure}
+	fe := &fakeExplainer{err: fmt.Errorf("%w: upstream 500", enricher.ErrAIUpstream)}
 	h := NewExplainHandler(fs, fe)
 	rec := httptest.NewRecorder()
 	h.Explain(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
@@ -203,6 +201,38 @@ func TestExplainProviderFailureReturns502(t *testing.T) {
 	}
 	if fs.upserted != nil {
 		t.Fatal("expected no upsert when generation fails")
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	errObj, _ := body["error"].(map[string]any)
+	if errObj["details"] != "upstream_error" {
+		t.Errorf("expected details=upstream_error, got %v", errObj["details"])
+	}
+	if rec.Header().Get("Retry-After") != "30" {
+		t.Errorf("expected Retry-After=30, got %q", rec.Header().Get("Retry-After"))
+	}
+}
+
+func TestExplainInvalidResponseReportsDetails(t *testing.T) {
+	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
+	fe := &fakeExplainer{err: fmt.Errorf("%w: bad JSON", enricher.ErrAIInvalidResponse)}
+	h := NewExplainHandler(fs, fe)
+	rec := httptest.NewRecorder()
+	h.Explain(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	errObj, _ := body["error"].(map[string]any)
+	if errObj["details"] != "invalid_response" {
+		t.Errorf("expected details=invalid_response, got %v", errObj["details"])
+	}
+	if rec.Header().Get("Retry-After") != "" {
+		t.Errorf("expected no Retry-After for invalid response, got %q", rec.Header().Get("Retry-After"))
 	}
 }
 

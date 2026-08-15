@@ -16,7 +16,10 @@ import (
 func (s *PostgresStore) GetSolutionExplanation(ctx context.Context, submissionID uuid.UUID) (*SolutionExplanation, error) {
 	query := `
 		SELECT submission_id, language, summary, approach, time_complexity, space_complexity,
-		       key_techniques, strengths, improvements, created_at
+		       key_techniques, strengths, improvements,
+		       COALESCE(quality_score, 0), COALESCE(efficiency_score, 0),
+		       COALESCE(readability_score, 0), COALESCE(correctness_score, 0),
+		       COALESCE(best_practices_score, 0), created_at
 		FROM ai_solution_explanations
 		WHERE submission_id = $1
 	`
@@ -27,7 +30,10 @@ func (s *PostgresStore) GetSolutionExplanation(ctx context.Context, submissionID
 	err := s.pool.QueryRow(ctx, query, submissionID).Scan(
 		&exp.SubmissionID, &exp.Language, &exp.Summary, &exp.Approach,
 		&exp.TimeComplexity, &exp.SpaceComplexity,
-		&keyTechniques, &strengths, &improvements, &exp.CreatedAt,
+		&keyTechniques, &strengths, &improvements,
+		&exp.QualityScore, &exp.EfficiencyScore,
+		&exp.ReadabilityScore, &exp.CorrectnessScore, &exp.BestPracticesScore,
+		&exp.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -73,8 +79,9 @@ func (s *PostgresStore) UpsertSolutionExplanation(ctx context.Context, exp *Solu
 	query := `
 		INSERT INTO ai_solution_explanations
 			(submission_id, language, summary, approach, time_complexity, space_complexity,
-			 key_techniques, strengths, improvements)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			 key_techniques, strengths, improvements,
+			 quality_score, efficiency_score, readability_score, correctness_score, best_practices_score)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		ON CONFLICT (submission_id) DO UPDATE SET
 			language = EXCLUDED.language,
 			summary = EXCLUDED.summary,
@@ -83,13 +90,20 @@ func (s *PostgresStore) UpsertSolutionExplanation(ctx context.Context, exp *Solu
 			space_complexity = EXCLUDED.space_complexity,
 			key_techniques = EXCLUDED.key_techniques,
 			strengths = EXCLUDED.strengths,
-			improvements = EXCLUDED.improvements
+			improvements = EXCLUDED.improvements,
+			quality_score = EXCLUDED.quality_score,
+			efficiency_score = EXCLUDED.efficiency_score,
+			readability_score = EXCLUDED.readability_score,
+			correctness_score = EXCLUDED.correctness_score,
+			best_practices_score = EXCLUDED.best_practices_score
 	`
 
 	_, err = s.pool.Exec(ctx, query,
 		exp.SubmissionID, exp.Language, exp.Summary, exp.Approach,
 		exp.TimeComplexity, exp.SpaceComplexity,
 		keyTechniques, strengths, improvements,
+		exp.QualityScore, exp.EfficiencyScore,
+		exp.ReadabilityScore, exp.CorrectnessScore, exp.BestPracticesScore,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert solution explanation: %w", err)
@@ -104,7 +118,7 @@ func (s *PostgresStore) UpsertSolutionExplanation(ctx context.Context, exp *Solu
 func (s *PostgresStore) GetSolutionForExplain(ctx context.Context, submissionID uuid.UUID) (*SolutionForExplain, error) {
 	query := `
 		SELECT sub.id, sub.user_id, sub.language, sub.code,
-		       p.title, p.slug, p.module, sub.runtime_ms
+		       p.title, p.slug, p.statement, COALESCE(p.constraints, ''), p.module, sub.runtime_ms
 		FROM submissions sub
 		JOIN problems p ON sub.problem_id = p.id
 		WHERE sub.id = $1 AND sub.status = 'passed' AND p.visible = true
@@ -113,7 +127,8 @@ func (s *PostgresStore) GetSolutionForExplain(ctx context.Context, submissionID 
 	var sol SolutionForExplain
 	err := s.pool.QueryRow(ctx, query, submissionID).Scan(
 		&sol.SubmissionID, &sol.AuthorID, &sol.Language, &sol.Code,
-		&sol.ProblemTitle, &sol.ProblemSlug, &sol.Module, &sol.RuntimeMs,
+		&sol.ProblemTitle, &sol.ProblemSlug, &sol.ProblemStatement, &sol.ProblemConstraints,
+		&sol.Module, &sol.RuntimeMs,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

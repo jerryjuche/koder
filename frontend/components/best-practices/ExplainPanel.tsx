@@ -1,24 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Sparkles,
   Bot,
-  Clock,
-  MemoryStick,
+  Eye,
   Send,
   Loader2,
-  CheckCircle2,
+  RotateCcw,
+  ShieldCheck,
+  ThumbsUp,
+  Zap,
+  AlertTriangle,
 } from "lucide-react";
 import { CommunitySolution, SolutionExplanation } from "@/lib/types";
 import { explainSolution, explainSolutionChat } from "@/lib/api";
 import { renderMarkdown } from "@/lib/markdown";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { AnalysisHeader } from "./AnalysisHeader";
+import { AnalysisSkeleton } from "./AnalysisSkeleton";
+import { QualityGauge } from "./QualityGauge";
+import { ScoreRadar } from "./ScoreRadar";
+import { MetricTile } from "./MetricTile";
+import { ComplexityBadge } from "./ComplexityBadge";
+import { ComplexityScale } from "./ComplexityScale";
 
 type ChatMessage = {
   role: "user" | "ai";
   content: string;
+};
+
+type ExplainError = {
+  message: string;
+  details?: string;
 };
 
 function SectionLabel({
@@ -35,16 +49,32 @@ function SectionLabel({
   );
 }
 
-function ComplexityBadge({ label, value }: { label: string; value: string }) {
+function AnalysisError({
+  error,
+  onRetry,
+}: {
+  error: ExplainError;
+  onRetry: () => void;
+}) {
+  const upstream = error.details === "upstream_error";
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1.5">
-      {label === "Time" ? (
-        <Clock size={13} className="text-purple-300 shrink-0" />
-      ) : (
-        <MemoryStick size={13} className="text-purple-300 shrink-0" />
-      )}
-      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
-      <code className="font-mono text-xs font-semibold text-emerald-400">{value}</code>
+    <div className="flex flex-col items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+      <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+        <AlertTriangle size={15} />
+        {upstream ? "The AI service is temporarily busy" : "AI analysis unavailable"}
+      </div>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        {upstream
+          ? "The AI provider did not respond in time. Wait a moment, then retry."
+          : error.message}
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
+      >
+        <RotateCcw size={12} />
+        Retry
+      </button>
     </div>
   );
 }
@@ -53,29 +83,41 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
   const [explanation, setExplanation] = useState<SolutionExplanation | null>(null);
   const [cached, setCached] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ExplainError | null>(null);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
 
-  const loadExplanation = async () => {
+  const loadExplanation = useCallback(async () => {
     if (explanation || loading) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await explainSolution(solution.id);
       if (res.success && res.data) {
         setExplanation(res.data.explanation);
         setCached(!!res.data.cached);
       } else {
-        toast.error(res.error?.message || "Failed to analyze solution");
+        setError({
+          message: res.error?.message || "The AI could not analyze this solution.",
+          details: res.error?.details,
+        });
       }
     } catch {
-      toast.error("AI analysis unavailable — please try again");
+      setError({ message: "AI analysis unavailable — please try again." });
     } finally {
       setLoading(false);
     }
-  };
+  }, [explanation, loading, solution.id]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadExplanation();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [loadExplanation]);
 
   const sendChat = async () => {
     const q = question.trim();
@@ -86,8 +128,7 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
     try {
       const res = await explainSolutionChat(solution.id, q);
       if (res.success && res.data) {
-        const answer = res.data.answer;
-        setMessages((prev) => [...prev, { role: "ai", content: answer }]);
+        setMessages((prev) => [...prev, { role: "ai", content: res.data!.answer }]);
       } else {
         toast.error(res.error?.message || "Failed to get an answer");
       }
@@ -98,54 +139,93 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
     }
   };
 
+  const copyAnalysis = async () => {
+    if (!explanation) return;
+    const sections = [
+      `AI Analysis — ${solution.problem_title || solution.problem_slug}`,
+      "",
+      `Summary: ${explanation.summary}`,
+      "",
+      `Approach: ${explanation.approach}`,
+      "",
+      `Time complexity: ${explanation.time_complexity}`,
+      `Space complexity: ${explanation.space_complexity}`,
+      "",
+      `Scores — Quality: ${explanation.quality_score}/100, Efficiency: ${explanation.efficiency_score}/100, Readability: ${explanation.readability_score}/100, Correctness: ${explanation.correctness_score}/100, Best practices: ${explanation.best_practices_score}/100`,
+    ];
+    if (explanation.key_techniques.length) {
+      sections.push("", `Key techniques: ${explanation.key_techniques.join(", ")}`);
+    }
+    if (explanation.strengths.length) {
+      sections.push("", "Strengths:", ...explanation.strengths.map((s) => `- ${s}`));
+    }
+    if (explanation.improvements.length) {
+      sections.push("", "Improvements:", ...explanation.improvements.map((s) => `- ${s}`));
+    }
+    try {
+      await navigator.clipboard.writeText(sections.join("\n"));
+    } catch {
+      toast.error("Could not copy analysis");
+    }
+  };
+
+  const hasSubScores =
+    (explanation?.efficiency_score ?? 0) +
+      (explanation?.readability_score ?? 0) +
+      (explanation?.correctness_score ?? 0) +
+      (explanation?.best_practices_score ?? 0) >
+    0;
+
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-purple-900/40 bg-gradient-to-br from-purple-950/60 to-brand-charcoal-panel">
-      {!explanation && (
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Sparkles size={15} className="text-purple-300" />
-            AI Explain
-            <span className="rounded-md bg-purple-900/50 border border-purple-700/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-200">
-              NIM
-            </span>
-          </div>
-          <button
-            onClick={loadExplanation}
-            disabled={loading}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
-                Analyzing…
-              </>
-            ) : (
-              <>
-                <Bot size={13} />
-                Explain this solution
-              </>
-            )}
-          </button>
+      {loading && !explanation && (
+        <div className="px-4 py-4">
+          <AnalysisSkeleton />
+        </div>
+      )}
+
+      {!loading && !explanation && error && (
+        <div className="px-4 py-3">
+          <AnalysisError error={error} onRetry={loadExplanation} />
         </div>
       )}
 
       {explanation && (
         <div className="space-y-4 px-4 py-4">
-          <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-purple-300" />
-            <span className="text-sm font-bold text-foreground">AI Explain</span>
-            {cached && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-                <CheckCircle2 size={11} />
-                cached
-              </span>
-            )}
-          </div>
+          <AnalysisHeader cached={cached} onCopy={copyAnalysis} />
 
           <div>
             <SectionLabel>Summary</SectionLabel>
             <p className="text-sm leading-relaxed text-brand-offwhite/90">{explanation.summary}</p>
           </div>
+
+          <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
+            <QualityGauge score={explanation.quality_score} label="Overall quality" />
+            <ScoreRadar
+              efficiency={explanation.efficiency_score}
+              readability={explanation.readability_score}
+              correctness={explanation.correctness_score}
+              bestPractices={explanation.best_practices_score}
+            />
+          </div>
+
+          {hasSubScores && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <MetricTile
+                icon={Zap}
+                label="Efficiency"
+                value={`${explanation.efficiency_score}/100`}
+                tone="emerald"
+              />
+              <MetricTile icon={Eye} label="Readability" value={`${explanation.readability_score}/100`} />
+              <MetricTile icon={ShieldCheck} label="Correctness" value={`${explanation.correctness_score}/100`} />
+              <MetricTile
+                icon={ThumbsUp}
+                label="Best practices"
+                value={`${explanation.best_practices_score}/100`}
+              />
+            </div>
+          )}
 
           <div>
             <SectionLabel>Approach</SectionLabel>
@@ -159,6 +239,8 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
             <ComplexityBadge label="Time" value={explanation.time_complexity} />
             <ComplexityBadge label="Space" value={explanation.space_complexity} />
           </div>
+
+          <ComplexityScale />
 
           {explanation.key_techniques.length > 0 && (
             <div>

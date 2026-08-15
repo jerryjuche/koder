@@ -282,13 +282,14 @@ type UserProblem struct {
 
 // Notification represents an alert for a user.
 type Notification struct {
-	ID        pgtype.UUID  `db:"id" json:"id"`
-	UserID    pgtype.UUID  `db:"user_id" json:"user_id"`
-	Type      string       `db:"type" json:"type"`
-	Message   string       `db:"message" json:"message"`
-	RelatedID *pgtype.UUID `db:"related_id" json:"related_id,omitempty"`
-	IsRead    bool         `db:"is_read" json:"is_read"`
-	CreatedAt time.Time    `db:"created_at" json:"created_at"`
+	ID          pgtype.UUID  `db:"id" json:"id"`
+	UserID      pgtype.UUID  `db:"user_id" json:"user_id"`
+	Type        string       `db:"type" json:"type"`
+	Message     string       `db:"message" json:"message"`
+	RelatedID   *pgtype.UUID `db:"related_id" json:"related_id,omitempty"`
+	RelatedSlug string       `db:"related_slug" json:"related_slug,omitempty"`
+	IsRead      bool         `db:"is_read" json:"is_read"`
+	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
 }
 
 // NewUserProblem is the payload for creating a community contribution.
@@ -397,20 +398,27 @@ type SolutionExplanation struct {
 	KeyTechniques   []string    `json:"key_techniques"`
 	Strengths       []string    `json:"strengths"`
 	Improvements    []string    `json:"improvements"`
+	QualityScore    int         `json:"quality_score"`
+	EfficiencyScore int         `json:"efficiency_score"`
+	ReadabilityScore int        `json:"readability_score"`
+	CorrectnessScore int        `json:"correctness_score"`
+	BestPracticesScore int      `json:"best_practices_score"`
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
 // SolutionForExplain describes a passable submission + its problem context,
 // used as the input for AI code explanation.
 type SolutionForExplain struct {
-	SubmissionID pgtype.UUID
-	AuthorID     pgtype.UUID
-	Language     string
-	Code         string
-	ProblemTitle string
-	ProblemSlug  string
-	Module       string
-	RuntimeMs    int
+	SubmissionID       pgtype.UUID
+	AuthorID           pgtype.UUID
+	Language           string
+	Code               string
+	ProblemTitle       string
+	ProblemSlug        string
+	ProblemStatement   string
+	ProblemConstraints string
+	Module             string
+	RuntimeMs          int
 }
 
 // SubmissionLikeSummary carries the author + problem context needed to notify

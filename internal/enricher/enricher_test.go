@@ -12,12 +12,16 @@ import (
 
 // fakeProvider is a scriptable enrichmentProvider for unit tests.
 type fakeProvider struct {
-	out string
-	err error
+	out    string
+	err    error
+	system string
+	user   string
 }
 
 func (f *fakeProvider) Name() string { return "fake" }
 func (f *fakeProvider) GenerateContent(_ context.Context, systemPrompt, userPrompt string) (string, error) {
+	f.system = systemPrompt
+	f.user = userPrompt
 	return f.out, f.err
 }
 
@@ -312,7 +316,132 @@ func TestExplainSolution(t *testing.T) {
 		if err == nil {
 			t.Error("expected parse error")
 		}
+		if !errors.Is(err, ErrAIInvalidResponse) {
+			t.Errorf("expected ErrAIInvalidResponse sentinel, got %v", err)
+		}
 	})
+
+	t.Run("provider error classified as upstream", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Fatal("expected error from provider")
+		}
+		if !errors.Is(err, ErrAIUpstream) {
+			t.Errorf("expected ErrAIUpstream sentinel, got %v", err)
+		}
+	})
+
+	t.Run("missing required sections classified as validation", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: `{"summary": "only a summary"}`}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !errors.Is(err, ErrAIValidation) {
+			t.Errorf("expected ErrAIValidation sentinel, got %v", err)
+		}
+	})
+}
+
+func TestExplainSolutionScores(t *testing.T) {
+	scoreJSON := `{
+		"summary": "Sums the slice.",
+		"approach": "Iterate and accumulate.",
+		"time_complexity": "O(n)",
+		"space_complexity": "O(1)",
+		"quality_score": 92,
+		"efficiency_score": 88,
+		"readability_score": 76,
+		"correctness_score": 104,
+		"best_practices_score": -5
+	}`
+
+	t.Run("parses and clamps scores", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: scoreJSON}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.QualityScore != 92 || exp.EfficiencyScore != 88 || exp.ReadabilityScore != 76 {
+			t.Errorf("unexpected scores: %+v", exp)
+		}
+		if exp.CorrectnessScore != 100 {
+			t.Errorf("expected correctness clamped to 100, got %d", exp.CorrectnessScore)
+		}
+		if exp.BestPracticesScore != 0 {
+			t.Errorf("expected best_practices clamped to 0, got %d", exp.BestPracticesScore)
+		}
+	})
+
+	t.Run("missing optional arrays default to empty", func(t *testing.T) {
+		minimal := `{
+			"summary": "Sums the slice.",
+			"approach": "Iterate and accumulate.",
+			"time_complexity": "O(n)",
+			"space_complexity": "O(1)"
+		}`
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: minimal}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.KeyTechniques == nil || exp.Strengths == nil || exp.Improvements == nil {
+			t.Error("expected non-nil optional arrays")
+		}
+		if len(exp.KeyTechniques) != 0 || len(exp.Strengths) != 0 || len(exp.Improvements) != 0 {
+			t.Errorf("expected empty optional arrays, got %+v", exp)
+		}
+	})
+
+	t.Run("missing scores default to zero", func(t *testing.T) {
+		noScores := `{
+			"summary": "Sums the slice.",
+			"approach": "Iterate and accumulate.",
+			"time_complexity": "O(n)",
+			"space_complexity": "O(1)"
+		}`
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: noScores}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.QualityScore != 0 || exp.EfficiencyScore != 0 ||
+			exp.ReadabilityScore != 0 || exp.CorrectnessScore != 0 || exp.BestPracticesScore != 0 {
+			t.Errorf("expected zero scores, got %+v", exp)
+		}
+	})
+}
+
+func TestExplainSolutionGrounding(t *testing.T) {
+	fp := &fakeProvider{out: `{
+		"summary": "s", "approach": "a",
+		"time_complexity": "O(n)", "space_complexity": "O(1)"
+	}`}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+	_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+		Code:               "func Sum(a []int) int { return 0 }",
+		Language:           "go",
+		ProblemTitle:       "Sum a slice",
+		ProblemStatement:   "Return the sum of all integers in the slice.",
+		ProblemConstraints: "1 <= len(a) <= 10^5",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{
+		"Sum a slice",
+		"Return the sum of all integers in the slice.",
+		"1 <= len(a) <= 10^5",
+		"func Sum(a []int) int { return 0 }",
+	} {
+		if !strings.Contains(fp.user, want) {
+			t.Errorf("user prompt missing %q\n---\n%s", want, fp.user)
+		}
+	}
+	if !strings.Contains(fp.system, "quality_score") {
+		t.Errorf("system prompt missing scoring rubric\n---\n%s", fp.system)
+	}
 }
 
 func TestExplainChat(t *testing.T) {

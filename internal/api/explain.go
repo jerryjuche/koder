@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -97,19 +98,21 @@ func (h *ExplainHandler) Explain(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	exp, err := h.explainer.ExplainSolution(r.Context(), &enricher.ExplainSolutionRequest{
-		Code:         sol.Code,
-		Language:     sol.Language,
-		ProblemTitle: sol.ProblemTitle,
-		ProblemSlug:  sol.ProblemSlug,
-		Module:       sol.Module,
-		RuntimeMs:    sol.RuntimeMs,
+		Code:               sol.Code,
+		Language:           sol.Language,
+		ProblemTitle:       sol.ProblemTitle,
+		ProblemSlug:        sol.ProblemSlug,
+		ProblemStatement:   sol.ProblemStatement,
+		ProblemConstraints: sol.ProblemConstraints,
+		Module:             sol.Module,
+		RuntimeMs:          sol.RuntimeMs,
 	})
 	duration := time.Since(start)
 	tokensIn := len(sol.Code)/4 + 10
 	if err != nil {
 		h.logUsage(r.Context(), userUUID, "explain_solution", sol.ProblemSlug, tokensIn, 5, duration, false, err.Error())
 		slog.Warn("explain: ai generation failed", "submission_id", submissionUUID, "error", err)
-		RespondError(w, http.StatusBadGateway, "EXPLAIN_FAILED", "The AI could not analyze this solution. Please try again.", nil)
+		h.respondExplainError(w, r, err, "EXPLAIN_FAILED", "The AI could not analyze this solution. Please try again.")
 		return
 	}
 
@@ -202,7 +205,7 @@ func (h *ExplainHandler) ExplainChat(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logUsage(r.Context(), userUUID, "explain_chat", sol.ProblemSlug, tokensIn, 5, duration, false, err.Error())
 		slog.Warn("explain: chat generation failed", "submission_id", submissionUUID, "error", err)
-		RespondError(w, http.StatusBadGateway, "EXPLAIN_CHAT_FAILED", "The AI could not answer. Please try again.", nil)
+		h.respondExplainError(w, r, err, "EXPLAIN_CHAT_FAILED", "The AI could not answer. Please try again.")
 		return
 	}
 
@@ -217,4 +220,36 @@ func (h *ExplainHandler) logUsage(ctx context.Context, userID uuid.UUID, action,
 	if err := h.store.LogAIUsage(ctx, userID, action, slug, tokensIn, tokensOut, int(duration.Milliseconds()), success, errMsg); err != nil {
 		slog.Warn("explain: failed to log ai usage", "action", action, "error", err)
 	}
+}
+
+// respondExplainError classifies an explainer failure and returns a 502 with a
+// machine-readable "details" hint so operators can diagnose the root cause
+// (upstream provider vs. a malformed AI response vs. missing fields) directly
+// from the browser. Upstream failures carry Retry-After so the client can back
+// off and retry instead of hammering a degraded provider.
+func (h *ExplainHandler) respondExplainError(w http.ResponseWriter, r *http.Request, err error, code, message string) {
+	var details string
+	switch {
+	case errors.Is(err, enricher.ErrAIValidation):
+		details = "validation_error"
+	case errors.Is(err, enricher.ErrAIInvalidResponse):
+		details = "invalid_response"
+	case errors.Is(err, enricher.ErrAIUpstream):
+		details = "upstream_error"
+	default:
+		details = "unknown_error"
+	}
+
+	if details == "upstream_error" {
+		w.Header().Set("Retry-After", "30")
+	}
+
+	slog.Warn("explain: responding failure",
+		"path", r.URL.Path,
+		"code", code,
+		"details", details,
+		"error", err,
+	)
+
+	RespondError(w, http.StatusBadGateway, code, message, details)
 }

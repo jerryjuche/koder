@@ -16,6 +16,10 @@ import {
   Code2,
   BookOpen,
   FlaskConical,
+  Heart,
+  CheckCircle2,
+  XCircle,
+  GitPullRequest,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -208,25 +212,55 @@ export default function TopNav() {
                         No new notifications.
                       </div>
                     ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            if (!n.is_read) markAsRead(n.id);
-                            setNotifMenuOpen(false);
-                            router.push("/settings?tab=notifications");
-                          }}
-                          className={cn(
-                            "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors",
-                            n.is_read ? "opacity-60" : "bg-muted/30"
-                          )}
-                        >
-                          <p className="text-sm text-foreground">{n.message}</p>
-                          <span className="text-xs text-muted-foreground mt-1 block">
-                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                      ))
+                      notifications.map((n) => {
+                        const liked = n.type === "solution_liked";
+                        const target = liked && n.related_slug ? `/problems/${n.related_slug}` : null;
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              if (!n.is_read) markAsRead(n.id);
+                              setNotifMenuOpen(false);
+                              if (target) {
+                                router.push(target);
+                              } else {
+                                router.push("/settings?tab=notifications");
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors flex items-start gap-3",
+                              n.is_read ? "opacity-60" : "bg-muted/30"
+                            )}
+                          >
+                            <span className={cn(
+                              "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md",
+                              n.type === "contribution_approved"
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : n.type === "contribution_rejected"
+                                ? "bg-red-500/10 text-red-400"
+                                : liked
+                                ? "bg-rose-500/10 text-rose-400"
+                                : "bg-amber-500/10 text-amber-400"
+                            )}>
+                              {n.type === "contribution_approved" ? (
+                                <CheckCircle2 size={13} />
+                              ) : n.type === "contribution_rejected" ? (
+                                <XCircle size={13} />
+                              ) : liked ? (
+                                <Heart size={13} fill="currentColor" />
+                              ) : (
+                                <GitPullRequest size={13} />
+                              )}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-sm text-foreground leading-snug">{n.message}</span>
+                              <span className="text-xs text-muted-foreground mt-1 block">
+                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                   {notifications.length > 0 && unreadCount > 0 && (
