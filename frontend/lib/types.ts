@@ -210,6 +210,16 @@ export type CommunitySolution = {
   created_at: string;
 };
 
+export type SolutionExplanation = {
+  summary: string;
+  approach: string;
+  time_complexity: string;
+  space_complexity: string;
+  key_techniques: string[];
+  strengths: string[];
+  improvements: string[];
+};
+
 export type NotificationItem = {
   id: string;
   user_id: string;
@@ -219,7 +229,6 @@ export type NotificationItem = {
   is_read: boolean;
   created_at: string;
 };
-
 export type LeaderboardEntry = {
   rank: number;
   user: User;

@@ -6,6 +6,7 @@ import { ChevronDown, Zap } from "lucide-react";
 import { CommunitySolution } from "@/lib/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { CodeSnippet } from "@/components/application/code-snippet";
+import { ExplainPanel } from "./ExplainPanel";
 import {
   LikeButton,
   ProblemLink,
@@ -40,7 +41,20 @@ export function SolutionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.3, ease: "easeOut" }}
     >
-      <div className="group flex flex-col overflow-hidden rounded-lg border border-border bg-brand-charcoal-card transition-all duration-150 hover:border-white/15 hover:bg-[#222222]">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-label={`${expanded ? "Collapse" : "Expand"} solution by ${solution.user_name}`}
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((v) => !v);
+          }
+        }}
+        className="group flex flex-col overflow-hidden rounded-lg border border-border bg-brand-charcoal-card transition-all duration-150 hover:border-white/15 hover:bg-[#222222] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 cursor-pointer select-none"
+      >
         <div className="flex items-center gap-3 px-4 py-3">
           <span className="w-8 shrink-0 text-center font-mono text-xs font-medium text-muted-foreground">
             #{String(rank).padStart(2, "0")}
@@ -77,17 +91,12 @@ export function SolutionCard({
             <LikeButton solution={solution} onLike={onLike} size="xs" />
           </div>
 
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            aria-label={expanded ? "Hide code" : "Show code"}
-            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-          >
+          <span className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors group-hover:text-foreground">
             <ChevronDown
               size={16}
               className={cn("transition-transform duration-200", expanded && "rotate-180")}
             />
-          </button>
+          </span>
         </div>
 
         <AnimatePresence initial={false}>
@@ -100,7 +109,11 @@ export function SolutionCard({
               transition={{ duration: 0.25, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="border-t border-border bg-brand-charcoal-panel p-3">
+              <div
+                role="presentation"
+                className="border-t border-border bg-brand-charcoal-panel p-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <CodeSnippet
                   files={[
                     {
@@ -114,6 +127,7 @@ export function SolutionCard({
                   lineNumbers
                   className="rounded-lg shadow-none"
                 />
+                <ExplainPanel solution={solution} />
               </div>
             </motion.div>
           )}

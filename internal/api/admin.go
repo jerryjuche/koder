@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,13 +35,11 @@ type AdminHandler struct {
 	httpClient *http.Client
 }
 
-func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker) (*AdminHandler, error) {
+// NewAdminHandler creates the admin handler. The enricher is shared across all
+// AI endpoints (admin assist + solution explain) so the global 1s NIM gap keeps
+// requests serialized and the free-tier budget predictable.
+func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker, enricher *enricher.Enricher) (*AdminHandler, error) {
 	parser := parser.NewParser(cfg.SandboxBaseDir)
-	enricher, err := enricher.NewEnricher(context.Background(), cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	return &AdminHandler{store: store, parser: parser, enricher: enricher, broker: b, cfg: cfg, httpClient: nil}, nil
 }
 

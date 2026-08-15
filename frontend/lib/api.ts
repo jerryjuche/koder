@@ -33,6 +33,7 @@ import {
   NewLessonSection,
   TestCase,
   AllModule,
+  SolutionExplanation,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -558,6 +559,30 @@ export async function unlikeSubmission(
 ): Promise<ApiResponse<any>> {
   return fetchApi<any>(`/submissions/${submissionId}/like`, {
     method: "DELETE",
+  });
+}
+
+// AI Solution Explanations (Best Practices)
+
+export async function explainSolution(
+  submissionId: string,
+): Promise<ApiResponse<{ cached: boolean; explanation: SolutionExplanation }>> {
+  return fetchApi<{ cached: boolean; explanation: SolutionExplanation }>(
+    "/ai/explain",
+    {
+      method: "POST",
+      body: JSON.stringify({ submission_id: submissionId }),
+    },
+  );
+}
+
+export async function explainSolutionChat(
+  submissionId: string,
+  question: string,
+): Promise<ApiResponse<{ answer: string }>> {
+  return fetchApi<{ answer: string }>("/ai/explain/chat", {
+    method: "POST",
+    body: JSON.stringify({ submission_id: submissionId, question }),
   });
 }
 

@@ -21,12 +21,13 @@ export function ProblemLink({ solution }: { solution: CommunitySolution }) {
   return (
     <Link
       href={`/problems/${solution.problem_slug}`}
-      onClick={() =>
+      onClick={(e) => {
+        e.stopPropagation();
         sessionStorage.setItem(
           "return_to",
           window.location.href.replace(window.location.origin, ""),
-        )
-      }
+        );
+      }}
       className="group/link inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors min-w-0"
     >
       <span className="truncate">{display}</span>
@@ -44,7 +45,10 @@ export function SolutionAuthorRow({
 }) {
   return (
     <ProfileHoverCard userId={solution.user_id} side="bottom" align="start">
-      <div className="flex items-center gap-2.5 cursor-pointer min-w-0">
+      <div
+        className="flex items-center gap-2.5 cursor-pointer min-w-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Avatar
           src={solution.user_avatar_url}
           name={solution.user_name}
@@ -72,7 +76,10 @@ export function LikeButton({
 }) {
   return (
     <button
-      onClick={() => onLike(solution.id, solution.has_liked)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onLike(solution.id, solution.has_liked);
+      }}
       aria-label={solution.has_liked ? "Unlike solution" : "Like solution"}
       className={cn(
         "flex items-center gap-1.5 rounded-lg border transition-all font-bold shrink-0",

@@ -394,3 +394,16 @@ CI npm ci fix + professional reindex (Session 114, 7d0091e):
 3. Fix (7d0091e): removed firebase-tools from frontend/package.json devDependencies; npm install dropped 442 packages, regenerated package-lock.json; full npm ci (935 packages) + npm ci --dry-run clean — zero EBADENGINE, zero lock-sync errors. CI stays on Node 20.
 4. Full professional reindex: CLAUDE.md (header badge 2026-08-12 / 171+11 tests, §3/§4/§6/§8/§12/§15/§17/§19/§20), SESSION_LOG.md (commit rows #176–178 + Sessions 113/114), README.md (POST /admin/broadcast-emails + test suite row), UPDATE_LOG.txt, BRAIN.md, CODEBASE_INDEX.md.
 5. Verified: ESLint 0, tsc 0, next build ok, go vet clean, go build ./cmd/server ok, go test 9/9 suites (171 tests), sandbox green (11 tests). Committed to update only — no staging/main merge per user decision.
+
+Date: 2026-08-14
+
+AI best-practice explanations + like notifications (Session 118, uncommitted):
+1. New migrations/053_ai_solution_explanations.sql (19 LOC) — ai_solution_explanations cache table (submission_id PK → submissions CASCADE, JSONB techniques/strengths/improvements, created_at DESC index). One NIM call billed at most once per solution.
+2. New internal/store/solution_explanations.go (126 LOC) — GetSolutionExplanation (cache read, nil on miss), UpsertSolutionExplanation (ON CONFLICT DO UPDATE), GetSolutionForExplain (passed + visible eligibility). submissions.go — LikeSubmission returns (bool, error) via RowsAffected; new GetSubmissionLikeSummary. Store interface 159→163 methods.
+3. Enricher: ExplainSolution/ExplainChat (enricher.go 942→1,157) — strict-JSON validateExplainResponse, prompt builders, grounded follow-up chat; shares the 1s NIM rate-limit gap.
+4. New internal/api/explain.go (220 LOC) — ExplainHandler with scriptable Explainer interface; POST /ai/explain (cached structured analysis) + POST /ai/explain/chat (ephemeral grounded Q&A); auth + eligibility (404 SOLUTION_NOT_FOUND), 502 EXPLAIN_FAILED/EXPLAIN_CHAT_FAILED, LogAIUsage per call. community.go 139→196 — CommunityHandler takes the broker; LikeSubmission notifies author (solution_liked + WS solution.liked) and skips self/duplicate likes.
+5. Router: shared enricher passed to NewAdminHandler + NewExplainHandler; explainRateLimiter (10/60s, no bypass); ~121 routes.
+6. Frontend: lib/event.ts + 'solution.liked'; useNotifications subscribes (instant bell refresh); lib/api.ts 1,189→1,217 (explainSolution/explainSolutionChat); lib/types.ts + SolutionExplanation; new components/best-practices/ExplainPanel.tsx (273 LOC, structured AI panel + follow-up chat); SolutionCard whole-row accordion (keyboard accessible, stopPropagation on interactive children).
+7. New tests: explain_test.go (249 LOC, 9), community_test.go (140 LOC, 3), enricher_test.go 4→8 → 195 backend tests (was 179); total 206 (195 backend + 11 sandbox).
+8. Verified: go vet clean, go build ./cmd/server OK, 9/9 suites green (195 tests), tsc --noEmit 0 errors, ESLint 0 errors on changed files.
+9. Deployment: run migrations/053_ai_solution_explanations.sql on Supabase; backend + frontend deploy; no sandbox change.

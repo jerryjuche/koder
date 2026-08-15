@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jerryjuche/koder/internal/broker"
 	"github.com/jerryjuche/koder/internal/config"
+	"github.com/jerryjuche/koder/internal/enricher"
 	"github.com/jerryjuche/koder/internal/executor"
 	storepkg "github.com/jerryjuche/koder/internal/store"
 )
@@ -15,10 +17,11 @@ import (
 // App holds the HTTP handler and lifecycle-managed resources that need
 // clean shutdown (rate limiters, caches, etc.).
 type App struct {
-	Handler         http.Handler
-	rateLimiter     *RateLimiter
-	authRateLimiter *IPRateLimiter
-	aiRateLimiter   *RateLimiter
+	Handler            http.Handler
+	rateLimiter        *RateLimiter
+	authRateLimiter    *IPRateLimiter
+	aiRateLimiter      *RateLimiter
+	explainRateLimiter *RateLimiter
 }
 
 // Shutdown stops all background goroutines managed by the API layer.
@@ -26,6 +29,7 @@ func (a *App) Shutdown() {
 	a.rateLimiter.Stop()
 	a.authRateLimiter.Stop()
 	a.aiRateLimiter.Stop()
+	a.explainRateLimiter.Stop()
 	StopCaches()
 }
 
@@ -55,10 +59,22 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	aiRateLimiter := NewRateLimiter(15, 1*time.Minute)
 	slog.Info("ai_rate_limiter: enabled", "max_requests", 15, "window_seconds", 60)
 
-	adminHandler, err := NewAdminHandler(store, cfg, b)
+	// AI solution explanations share the same NIM provider as admin assist, so
+	// one Enricher instance (with its internal 1s rate-limit gap) is created
+	// here and passed to both handlers — keeping requests globally serialized.
+	enricherInst, err := enricher.NewEnricher(context.Background(), cfg)
 	if err != nil {
 		return nil, err
 	}
+
+	adminHandler, err := NewAdminHandler(store, cfg, b, enricherInst)
+	if err != nil {
+		return nil, err
+	}
+
+	explainRateLimiter := NewRateLimiter(10, 1*time.Minute)
+	slog.Info("explain_rate_limiter: enabled", "max_requests", 10, "window_seconds", 60)
+	explainHandler := NewExplainHandler(store, enricherInst)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -176,11 +192,17 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 
 		r.Get("/problems", problemHandler.ListVisibleProblems)
 
-		communityHandler := NewCommunityHandler(store)
+		communityHandler := NewCommunityHandler(store, b)
 		r.Get("/problems/{slug}/community-solutions", communityHandler.GetCommunitySolutions)
 		r.Get("/best-practices", communityHandler.GetBestPractices)
 		r.With(BodySizeLimitMiddleware(1*1024*1024)).Post("/submissions/{id}/like", communityHandler.LikeSubmission)
 		r.Delete("/submissions/{id}/like", communityHandler.UnlikeSubmission)
+
+		// AI code explanations for Best Practices solutions (structured analysis
+		// + follow-up chat). Tighter per-user limiter than admin AI assist since
+		// explain is a student-facing surface; NO bypass.
+		r.With(AIRateLimitMiddleware(explainRateLimiter), BodySizeLimitMiddleware(256*1024)).Post("/ai/explain", explainHandler.Explain)
+		r.With(AIRateLimitMiddleware(explainRateLimiter), BodySizeLimitMiddleware(256*1024)).Post("/ai/explain/chat", explainHandler.ExplainChat)
 
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/submit", submissionHandler.Submit)
 		r.With(RateLimitMiddleware(rateLimiter), BodySizeLimitMiddleware(10*1024*1024)).Post("/test", testHandler.Test)
@@ -304,9 +326,10 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	})
 
 	return &App{
-		Handler:         r,
-		rateLimiter:     rateLimiter,
-		authRateLimiter: authRateLimiter,
-		aiRateLimiter:   aiRateLimiter,
+		Handler:            r,
+		rateLimiter:        rateLimiter,
+		authRateLimiter:    authRateLimiter,
+		aiRateLimiter:      aiRateLimiter,
+		explainRateLimiter: explainRateLimiter,
 	}, nil
 }
