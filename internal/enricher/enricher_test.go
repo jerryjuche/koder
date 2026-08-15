@@ -2,7 +2,10 @@ package enricher
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -491,5 +494,70 @@ func TestValidateExplainResponse(t *testing.T) {
 		if err := validateExplainResponse(c); err == nil {
 			t.Errorf("case %d: expected error", i)
 		}
+	}
+}
+
+func TestNvidiaProviderRequestBody(t *testing.T) {
+	var got nvidiaRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Errorf("unexpected authorization header: %q", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"index":0,"message":{"content":"ok"},"finish_reason":"stop"}]}`))
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "z-ai/glm-5.2", srv.URL, 16384, 0.2, true)
+	out, err := p.GenerateContent(context.Background(), "sys", "user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "ok" {
+		t.Errorf("unexpected output %q", out)
+	}
+	if got.Model != "z-ai/glm-5.2" {
+		t.Errorf("unexpected model %q", got.Model)
+	}
+	if got.MaxTokens != 16384 {
+		t.Errorf("expected max_tokens 16384, got %d", got.MaxTokens)
+	}
+	if got.Temperature != 0.2 {
+		t.Errorf("expected temperature 0.2, got %v", got.Temperature)
+	}
+	if got.ResponseFormat == nil || got.ResponseFormat.Type != "json_object" {
+		t.Errorf("expected response_format json_object, got %+v", got.ResponseFormat)
+	}
+
+	got = nvidiaRequest{}
+	p2 := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	if _, err := p2.GenerateContent(context.Background(), "sys", "user"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.ResponseFormat != nil {
+		t.Errorf("expected no response_format when jsonMode off, got %+v", got.ResponseFormat)
+	}
+	if got.MaxTokens != 8192 || got.Temperature != 0.7 {
+		t.Errorf("expected default knobs, got max_tokens=%d temperature=%v", got.MaxTokens, got.Temperature)
+	}
+}
+
+func TestNvidiaProviderTruncationIsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"index":0,"message":{"content":"partial"},"finish_reason":"length"}]}`))
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	_, err := p.GenerateContent(context.Background(), "sys", "user")
+	if err == nil {
+		t.Fatal("expected truncation to be an error")
+	}
+	if !errors.Is(err, ErrAIInvalidResponse) {
+		t.Errorf("expected ErrAIInvalidResponse, got %v", err)
 	}
 }

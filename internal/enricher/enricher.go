@@ -53,8 +53,15 @@ type enrichedTestCase struct {
 }
 
 func NewEnricher(_ context.Context, cfg *config.Config) (*Enricher, error) {
-	provider := newNvidiaProvider(cfg.NVIDIAAPIKey, cfg.NVIDIAModel, cfg.NVIDIABaseURL)
-	slog.Info("enricher: using NVIDIA NIM (DeepSeek V4 Flash)")
+	provider := newNvidiaProvider(
+		cfg.NVIDIAAPIKey,
+		cfg.NVIDIAModel,
+		cfg.NVIDIABaseURL,
+		cfg.AIMaxTokens,
+		cfg.AITemperature,
+		cfg.AIJSONMode,
+	)
+	slog.Info("enricher: using NVIDIA NIM (DeepSeek V4 Flash)", "max_tokens", cfg.AIMaxTokens, "json_mode", cfg.AIJSONMode)
 	return &Enricher{cfg: cfg, provider: provider}, nil
 }
 
@@ -919,16 +926,14 @@ func (e *Enricher) waitForRateLimit(ctx context.Context) error {
 	return nil
 }
 
-const (
-	nvidiaTemp      = 0.7
-	nvidiaMaxTokens = 8192
-)
-
 type nvidiaProvider struct {
-	apiKey     string
-	model      string
-	baseURL    string
-	httpClient *http.Client
+	apiKey      string
+	model       string
+	baseURL     string
+	maxTokens   int
+	temperature float64
+	jsonMode    bool
+	httpClient  *http.Client
 }
 
 type nvidiaMessage struct {
@@ -936,11 +941,16 @@ type nvidiaMessage struct {
 	Content string `json:"content"`
 }
 
+type nvidiaResponseFormat struct {
+	Type string `json:"type"`
+}
+
 type nvidiaRequest struct {
-	Model       string          `json:"model"`
-	Messages    []nvidiaMessage `json:"messages"`
-	Temperature float64         `json:"temperature"`
-	MaxTokens   int             `json:"max_tokens"`
+	Model          string                `json:"model"`
+	Messages       []nvidiaMessage       `json:"messages"`
+	Temperature    float64               `json:"temperature"`
+	MaxTokens      int                   `json:"max_tokens"`
+	ResponseFormat *nvidiaResponseFormat `json:"response_format,omitempty"`
 }
 
 type nvidiaResponse struct {
@@ -957,11 +967,14 @@ type nvidiaResponse struct {
 	} `json:"error,omitempty"`
 }
 
-func newNvidiaProvider(apiKey, model, baseURL string) *nvidiaProvider {
+func newNvidiaProvider(apiKey, model, baseURL string, maxTokens int, temperature float64, jsonMode bool) *nvidiaProvider {
 	return &nvidiaProvider{
-		apiKey:  apiKey,
-		model:   model,
-		baseURL: baseURL,
+		apiKey:      apiKey,
+		model:       model,
+		baseURL:     baseURL,
+		maxTokens:   maxTokens,
+		temperature: temperature,
+		jsonMode:    jsonMode,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -977,8 +990,11 @@ func (n *nvidiaProvider) GenerateContent(ctx context.Context, systemPrompt, user
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		Temperature: nvidiaTemp,
-		MaxTokens:   nvidiaMaxTokens,
+		Temperature: n.temperature,
+		MaxTokens:   n.maxTokens,
+	}
+	if n.jsonMode {
+		body.ResponseFormat = &nvidiaResponseFormat{Type: "json_object"}
 	}
 
 	payload, err := json.Marshal(body)
@@ -1056,7 +1072,7 @@ func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt 
 
 	finishReason := result.Choices[0].FinishReason
 	if finishReason == "length" {
-		slog.Warn("nvidia response truncated due to max_tokens", "finish_reason", finishReason)
+		return "", fmt.Errorf("%w: response truncated (max_tokens=%d, finish_reason=length)", ErrAIInvalidResponse, n.maxTokens)
 	} else if finishReason != "stop" {
 		return "", fmt.Errorf("nvidia generation stopped early: %s", finishReason)
 	}

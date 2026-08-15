@@ -947,9 +947,18 @@ GOOGLE_CLIENT_ID=             # Google Cloud Console → OAuth 2.0 Client ID
 ACCESS_TOKEN_EXPIRY_MINUTES=60
 REFRESH_TOKEN_EXPIRY_DAYS=7
 
-# NVIDIA NIM (required for enrichment)
-NVIDIA_API_KEY=<nvidia-nim-api-key>
-NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
+# AI provider (required) — any OpenAI-compatible chat/completions endpoint.
+# AI_* take priority; NVIDIA_* are legacy fallbacks. Set just AI_API_KEY to
+# plug in a different provider token. Example for z-ai/glm-5.2:
+AI_API_KEY=<your-ai-api-key>
+AI_MODEL=z-ai/glm-5.2
+AI_BASE_URL=https://integrate.api.nvidia.com/v1
+AI_MAX_TOKENS=16384        # default 8192; raise for long outputs
+AI_TEMPERATURE=0.2         # default 0.7; lower = more consistent code analysis
+AI_JSON_MODE=true          # default false; send response_format=json_object
+# NVIDIA_API_KEY=<legacy fallback for AI_API_KEY>
+# NVIDIA_MODEL=<legacy fallback for AI_MODEL>
+# NVIDIA_BASE_URL=<legacy fallback for AI_BASE_URL>
 
 # Execution
 EXECUTOR_MAX_CONCURRENCY=6

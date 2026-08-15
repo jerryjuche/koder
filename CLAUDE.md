@@ -70,7 +70,7 @@ koder/
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
 │   ├── parser/           (1 file, 371 LOC)      # GitHub YAML curriculum parser
-│   └── config/           (1 file, 374 LOC)      # Env var loader (33 vars, fails-fast validation)
+│   └── config/           (1 file, 374 LOC)      # Env var loader (36 vars, fails-fast validation)
 ├── sandbox/              (8 source + 2 test + Dockerfile + fly.toml, ~1,610 LOC)  # Remote execution — zero external deps
 ├── frontend/
 │   ├── app/              (75 .tsx, ~18,466 LOC) # App Router pages (7 route groups)
@@ -254,7 +254,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 
 | File             | Lines | Key Exports                                                                                                                                                            |
 | ---------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config.go`      | 374   | `Config` struct (33 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20) |
+| `config.go`      | 374   | `Config` struct (36 fields), `Load()` — env + .env file, fails-fast validation (JWT_MIN_LENGTH=32, port 1-65535), `SANDBOX_REQUEST_TIMEOUT_EXTRA_SECONDS` (default 20), AI knobs `AI_MAX_TOKENS`/`AI_TEMPERATURE`/`AI_JSON_MODE` |
 | `config_test.go` | 355   | 24 tests: missing vars, invalid port, environment validation                                                                                                           |
 
 ### 6.11 Dependencies (`go.mod`)

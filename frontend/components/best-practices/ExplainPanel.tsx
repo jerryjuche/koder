@@ -11,6 +11,7 @@ import {
   ThumbsUp,
   Zap,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { CommunitySolution, SolutionExplanation } from "@/lib/types";
 import { explainSolution, explainSolutionChat } from "@/lib/api";
@@ -33,6 +34,7 @@ type ChatMessage = {
 type ExplainError = {
   message: string;
   details?: string;
+  code?: string;
 };
 
 function SectionLabel({
@@ -57,16 +59,24 @@ function AnalysisError({
   onRetry: () => void;
 }) {
   const upstream = error.details === "upstream_error";
+  const rateLimited = error.code === "AI_RATE_LIMITED";
+  const title = rateLimited
+    ? "Too many AI requests"
+    : upstream
+      ? "The AI service is temporarily busy"
+      : "AI analysis unavailable";
   return (
     <div className="flex flex-col items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
         <AlertTriangle size={15} />
-        {upstream ? "The AI service is temporarily busy" : "AI analysis unavailable"}
+        {title}
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        {upstream
-          ? "The AI provider did not respond in time. Wait a moment, then retry."
-          : error.message}
+        {rateLimited
+          ? "You have used up the AI analysis quota for this minute. Wait a moment, then retry."
+          : upstream
+            ? "The AI provider did not respond in time. Wait a moment, then retry."
+            : error.message}
       </p>
       <button
         onClick={onRetry}
@@ -79,7 +89,13 @@ function AnalysisError({
   );
 }
 
-export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
+export function ExplainPanel({
+  solution,
+  autoStart = false,
+}: {
+  solution: CommunitySolution;
+  autoStart?: boolean;
+}) {
   const [explanation, setExplanation] = useState<SolutionExplanation | null>(null);
   const [cached, setCached] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -103,6 +119,7 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
         setError({
           message: res.error?.message || "The AI could not analyze this solution.",
           details: res.error?.details,
+          code: res.error?.code,
         });
       }
     } catch {
@@ -112,12 +129,15 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
     }
   }, [explanation, loading, solution.id]);
 
+  // The analysis only starts when the user asks for it — either via the
+  // "Run AI Analysis" button or the autoStart signal from the AI pill.
   useEffect(() => {
+    if (!autoStart) return;
     const t = setTimeout(() => {
       loadExplanation();
     }, 0);
     return () => clearTimeout(t);
-  }, [loadExplanation]);
+  }, [autoStart, loadExplanation]);
 
   const sendChat = async () => {
     const q = question.trim();
@@ -178,6 +198,25 @@ export function ExplainPanel({ solution }: { solution: CommunitySolution }) {
 
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-purple-900/40 bg-gradient-to-br from-purple-950/60 to-brand-charcoal-panel">
+      {!loading && !explanation && !error && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Sparkles size={15} className="text-purple-300" />
+            AI Analysis
+            <span className="rounded-md bg-purple-900/50 border border-purple-700/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-200">
+              NIM
+            </span>
+          </div>
+          <button
+            onClick={loadExplanation}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
+          >
+            <Bot size={13} />
+            Run AI Analysis
+          </button>
+        </div>
+      )}
+
       {loading && !explanation && (
         <div className="px-4 py-4">
           <AnalysisSkeleton />
