@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -26,6 +28,18 @@ func (f *fakeProvider) GenerateContent(_ context.Context, systemPrompt, userProm
 	f.system = systemPrompt
 	f.user = userPrompt
 	return f.out, f.err
+}
+
+func (f *fakeProvider) GenerateContentStream(_ context.Context, systemPrompt, userPrompt string, onDelta func(string) error) error {
+	f.system = systemPrompt
+	f.user = userPrompt
+	if f.err != nil {
+		return f.err
+	}
+	if onDelta != nil && f.out != "" {
+		return onDelta(f.out)
+	}
+	return nil
 }
 
 func TestToSnakeCase(t *testing.T) {
@@ -469,6 +483,159 @@ func TestExplainChatValidatesInput(t *testing.T) {
 	}
 	if _, err := e.ExplainChat(context.Background(), &ExplainChatRequest{Question: "why?"}); err == nil {
 		t.Error("expected error for empty code")
+	}
+}
+
+func TestExplainSolutionStream(t *testing.T) {
+	validJSON := `{
+		"summary": "Adds two integers and returns the sum.",
+		"approach": "Return a + b directly.",
+		"time_complexity": "O(1)",
+		"space_complexity": "O(1)"
+	}`
+	fp := &fakeProvider{out: validJSON}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+
+	var deltas []string
+	exp, err := e.ExplainSolutionStream(context.Background(), &ExplainSolutionRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+	}, func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(deltas) != 1 || deltas[0] != validJSON {
+		t.Errorf("expected one delta with the full JSON, got %v", deltas)
+	}
+	if exp.Summary == "" || exp.TimeComplexity != "O(1)" {
+		t.Errorf("expected parsed fields, got %+v", exp)
+	}
+	if !strings.Contains(fp.system, "quality_score") {
+		t.Errorf("expected professional system prompt to mention the scorecard, got\n%s", fp.system)
+	}
+}
+
+func TestExplainSolutionStreamError(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+	_, err := e.ExplainSolutionStream(context.Background(), &ExplainSolutionRequest{Code: "x"}, nil)
+	if err == nil {
+		t.Fatal("expected error from provider")
+	}
+	if !errors.Is(err, ErrAIUpstream) {
+		t.Errorf("expected ErrAIUpstream sentinel, got %v", err)
+	}
+}
+
+func TestExplainChatStream(t *testing.T) {
+	fp := &fakeProvider{out: "It is **O(n)** because of the loop:\n\n1. Step one\n2. Step two"}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+
+	var deltas []string
+	answer, err := e.ExplainChatStream(context.Background(), &ExplainChatRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+		Question: "What is the complexity?",
+	}, func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(answer, "O(n)") {
+		t.Errorf("unexpected answer: %q", answer)
+	}
+	if len(deltas) != 1 || deltas[0] != fp.out {
+		t.Errorf("expected one delta with the answer, got %v", deltas)
+	}
+}
+
+func TestExplainChatStreamAbortsOnSinkError(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "answer"}}
+	_, err := e.ExplainChatStream(context.Background(), &ExplainChatRequest{
+		Code:     "x",
+		Language: "go",
+		Question: "why?",
+	}, func(string) error {
+		return errors.New("sink aborted")
+	})
+	if err == nil {
+		t.Fatal("expected the sink error to propagate")
+	}
+	if !strings.Contains(err.Error(), "sink aborted") {
+		t.Errorf("expected sink error to propagate, got %v", err)
+	}
+}
+
+func TestNvidiaProviderStreaming(t *testing.T) {
+	var got nvidiaRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Errorf("unexpected authorization header: %q", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		frames := []string{
+			`data: {"choices":[{"delta":{"content":"Hello "},"finish_reason":null}]}`,
+			`data: {"choices":[{"delta":{"content":"world"},"finish_reason":null}]}`,
+			`data: {"choices":[{"delta":{"content":""},"finish_reason":"stop"}]}`,
+			`data: [DONE]`,
+		}
+		for _, f := range frames {
+			fmt.Fprintf(w, "%s\n\n", f)
+			if fl, ok := w.(http.Flusher); ok {
+				fl.Flush()
+			}
+		}
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "z-ai/glm-5.2", srv.URL, 16384, 0.2, true)
+	var deltas []string
+	err := p.GenerateContentStream(context.Background(), "sys", "user", func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.Stream {
+		t.Error("expected stream=true in request body")
+	}
+	if got.ResponseFormat == nil || got.ResponseFormat.Type != "json_object" {
+		t.Errorf("expected response_format json_object in stream, got %+v", got.ResponseFormat)
+	}
+	want := []string{"Hello ", "world"}
+	if !reflect.DeepEqual(deltas, want) {
+		t.Errorf("unexpected deltas %v, want %v", deltas, want)
+	}
+}
+
+func TestNvidiaProviderStreamingSinkErrorAborts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"first"},"finish_reason":null}]}`+"\n\n")
+		fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"second"},"finish_reason":null}]}`+"\n\n")
+		if fl, ok := w.(http.Flusher); ok {
+			fl.Flush()
+		}
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	err := p.GenerateContentStream(context.Background(), "sys", "user", func(string) error {
+		return errors.New("client gone")
+	})
+	if err == nil {
+		t.Fatal("expected sink error to abort the stream")
+	}
+	if !strings.Contains(err.Error(), "client gone") {
+		t.Errorf("expected sink error propagated, got %v", err)
 	}
 }
 

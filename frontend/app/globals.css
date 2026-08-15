@@ -242,6 +242,11 @@
     transparent 225deg,
     currentColor
   );
+}
+
+/* Spin is opt-in (.aura-spin) so the glow can sit static until it is acting
+   as an active/processing indicator. */
+.aura-spin {
   animation: aura-rotate var(--aura-duration) linear infinite;
 }
 
@@ -261,6 +266,10 @@
   background-image: inherit;
   opacity: 0.7;
   filter: blur(0.25rem);
+}
+
+.aura-spin::before,
+.aura-spin::after {
   animation: aura-rotate var(--aura-duration) linear infinite;
 }
 
@@ -309,9 +318,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aura,
-  .aura::before,
-  .aura::after {
+  .aura-spin,
+  .aura-spin::before,
+  .aura-spin::after {
     animation-duration: calc(var(--aura-duration, 6s) * 4);
   }
 }

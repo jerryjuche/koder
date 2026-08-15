@@ -606,6 +606,165 @@ export async function explainSolutionChat(
   );
 }
 
+// ============================================
+// SSE streaming clients
+// ============================================
+// POST /ai/explain and /ai/explain/chat stream Server-Sent Events while a
+// cache miss is generated. Frame shapes (the client discriminates by key):
+//   data: {"delta":"..."}                         incremental generated text
+//   data: {"cached":false,"explanation":{...}}    final validated analysis
+//   data: {"error":{"code","message"}}            mid-stream failure
+//   data: [DONE]                                  normal termination
+// Cached responses and pre-stream failures arrive as ordinary JSON, so the
+// client inspects the content-type instead of assuming SSE.
+
+type ExplainStreamHandlers = {
+  onDelta: (delta: string) => void;
+  onFinal?: (explanation: SolutionExplanation, cached: boolean) => void;
+  onError?: (code: string, message: string) => void;
+};
+
+function parseStreamFrame(
+  line: string,
+): { done?: boolean; delta?: string; cached?: boolean; explanation?: SolutionExplanation; error?: { code: string; message: string } } | null {
+  if (!line.startsWith("data:")) return null;
+  const payload = line.slice(5).trim();
+  if (payload === "[DONE]") return { done: true };
+  try {
+    return JSON.parse(payload) as any;
+  } catch {
+    return null;
+  }
+}
+
+async function consumeExplainStream(
+  endpoint: string,
+  body: unknown,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  const attempt = async (): Promise<{ ok: boolean; retryAuth?: boolean }> => {
+    const token = localStorage.getItem("koder_token");
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return { ok: false };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, retryAuth: true };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+
+    // Cache hit or pre-stream error — plain JSON.
+    if (contentType.includes("application/json")) {
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+      if (!response.ok || data?.error) {
+        const code = data?.error?.code || "EXPLAIN_FAILED";
+        const message = data?.error?.message || "The AI could not answer.";
+        handlers.onError?.(code, message);
+        return { ok: false };
+      }
+      if (data?.data?.cached && data?.data?.explanation) {
+        handlers.onFinal?.(data.data.explanation, Boolean(data.data.cached));
+      }
+      return { ok: true };
+    }
+
+    if (!response.ok || !response.body) {
+      handlers.onError?.(
+        "EXPLAIN_FAILED",
+        "The AI could not answer. Please try again.",
+      );
+      return { ok: false };
+    }
+
+    // text/event-stream — parse frames incrementally as they arrive.
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let ok = true;
+    let closed = false;
+    try {
+      while (!closed) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx = buffer.indexOf("\n\n");
+        while (idx !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          for (const line of rawEvent.split("\n")) {
+            const frame = parseStreamFrame(line);
+            if (!frame) continue;
+            if (frame.done) {
+              closed = true;
+              break;
+            }
+            if (frame.delta) {
+              handlers.onDelta(frame.delta);
+            } else if (frame.explanation) {
+              handlers.onFinal?.(frame.explanation, Boolean(frame.cached));
+            } else if (frame.error) {
+              ok = false;
+              handlers.onError?.(frame.error.code, frame.error.message);
+            }
+          }
+          if (closed) break;
+          idx = buffer.indexOf("\n\n");
+        }
+      }
+    } catch {
+      ok = false;
+    }
+    return { ok };
+  };
+
+  let result = await attempt();
+  if (result.retryAuth) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      result = await attempt();
+    } else {
+      handlers.onError?.("AUTH_REQUIRED", "Session expired. Please log in again.");
+    }
+  }
+  return result.ok;
+}
+
+export async function explainSolutionStream(
+  submissionId: string,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  return consumeExplainStream("/ai/explain", { submission_id: submissionId }, handlers);
+}
+
+export async function explainSolutionChatStream(
+  submissionId: string,
+  question: string,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  return consumeExplainStream(
+    "/ai/explain/chat",
+    { submission_id: submissionId, question },
+    handlers,
+  );
+}
+
 // Community Contributions
 export async function submitContribution(data: any): Promise<ApiResponse<any>> {
   return fetchApi<any>("/user-problems", {
