@@ -23,15 +23,13 @@ export function MetricTile({
         : "text-purple-300";
 
   return (
-    <div className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <Icon size={11} className={toneClasses} />
-        {label}
+    <div className="stat">
+      <div className="flex items-center gap-1.5">
+        <Icon size={13} className={toneClasses} />
+        <span className="stat-title">{label}</span>
       </div>
-      <div className="text-sm font-bold text-foreground leading-tight">{value}</div>
-      {sublabel && (
-        <div className="text-[10px] text-muted-foreground leading-tight">{sublabel}</div>
-      )}
+      <div className="stat-value">{value}</div>
+      {sublabel && <div className="stat-desc">{sublabel}</div>}
     </div>
   );
 }

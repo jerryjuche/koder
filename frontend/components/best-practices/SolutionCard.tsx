@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Zap } from "lucide-react";
+import { Check, ChevronDown, Copy, Zap } from "lucide-react";
 import { CommunitySolution } from "@/lib/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { CodeSnippet } from "@/components/application/code-snippet";
@@ -23,6 +23,15 @@ const languageDot: Record<string, string> = {
 
 const languageLabel: Record<string, string> = { go: "Go", python: "Python" };
 
+const languagePill: Record<string, string> = {
+  go: "bg-cyan-400/10 text-cyan-300 border-cyan-400/30",
+  python: "bg-sky-400/10 text-sky-300 border-sky-400/30",
+};
+
+// Interactive descendants that must never toggle the accordion.
+const INTERACTIVE_SELECTOR =
+  'input, textarea, button, a, select, [data-interactive], [data-followup-drawer]';
+
 export function SolutionCard({
   solution,
   rank,
@@ -36,10 +45,33 @@ export function SolutionCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [aiRequested, setAiRequested] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    },
+    [],
+  );
 
   const expandWithAI = () => {
     setAiRequested(true);
     setExpanded(true);
+  };
+
+  const toggleExpanded = () => setExpanded((v) => !v);
+
+  const copyCode = async () => {
+    if (!navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(solution.code);
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
   };
 
   return (
@@ -53,11 +85,20 @@ export function SolutionCard({
         tabIndex={0}
         aria-expanded={expanded}
         aria-label={`${expanded ? "Collapse" : "Expand"} solution by ${solution.user_name}`}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={(e) => {
+          // Ignore clicks originating inside interactive children or the
+          // follow-up drawer (its clicks bubble up through this root).
+          const target = e.target as HTMLElement;
+          if (target.closest(INTERACTIVE_SELECTOR)) return;
+          toggleExpanded();
+        }}
         onKeyDown={(e) => {
+          // Only the root itself may trigger via keyboard — otherwise Enter
+          // / Space typed in the chat composer would collapse the card.
+          if (e.target !== e.currentTarget) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setExpanded((v) => !v);
+            toggleExpanded();
           }
         }}
         className="group flex flex-col overflow-hidden rounded-lg border border-border bg-brand-charcoal-card transition-all duration-150 hover:border-white/15 hover:bg-[#222222] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 cursor-pointer select-none"
@@ -124,19 +165,70 @@ export function SolutionCard({
                 className="border-t border-border bg-brand-charcoal-panel p-3"
                 onClick={(e) => e.stopPropagation()}
               >
-                <CodeSnippet
-                  files={[
-                    {
-                      language: solutionLanguage(solution.language),
-                      filename: solutionFilename(solution.language),
-                      code: solution.code,
-                    },
-                  ]}
-                  collapsed
-                  maxHeight={200}
-                  lineNumbers
-                  className="rounded-lg shadow-none"
-                />
+                <div className="mockup-window">
+                  <div className="mockup-window-titlebar">
+                    <span className="mockup-window-dots" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                    <span className="truncate font-mono text-[11px] text-muted-foreground">
+                      {solutionFilename(solution.language)}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase leading-none tracking-wide border",
+                        languagePill[solution.language] ||
+                          "bg-muted text-muted-foreground border-border",
+                      )}
+                    >
+                      {languageLabel[solution.language] || solution.language}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyCode}
+                      aria-label={copied ? "Copied" : "Copy solution code"}
+                      title="Copy code"
+                      className={cn(
+                        "ml-auto flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                        copied
+                          ? "text-emerald-400"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                      )}
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={12} />
+                          <span className="hidden sm:inline">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span className="hidden sm:inline">Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <CodeSnippet
+                    files={[
+                      {
+                        language: solutionLanguage(solution.language),
+                        filename: solutionFilename(solution.language),
+                        code: solution.code,
+                      },
+                    ]}
+                    collapsed
+                    maxHeight={200}
+                    lineNumbers
+                    hideHeader
+                    style={{
+                      border: "none",
+                      borderRadius: 0,
+                      boxShadow: "none",
+                      background: "transparent",
+                    }}
+                  />
+                </div>
                 <ExplainPanel solution={solution} autoStart={aiRequested} />
               </div>
             </motion.div>

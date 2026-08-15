@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Bot,
   Eye,
-  Send,
-  Loader2,
   RotateCcw,
+  MessageSquare,
   ShieldCheck,
   ThumbsUp,
   Zap,
@@ -20,7 +19,8 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { AnalysisHeader } from "./AnalysisHeader";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
-import { QualityGauge } from "./QualityGauge";
+import { FollowUpDrawer } from "./FollowUpDrawer";
+import { gradeScore, QualityGauge } from "./QualityGauge";
 import { ScoreRadar } from "./ScoreRadar";
 import { MetricTile } from "./MetricTile";
 import { ComplexityBadge } from "./ComplexityBadge";
@@ -238,7 +238,7 @@ export function ExplainPanel({
             <p className="text-sm leading-relaxed text-brand-offwhite/90">{explanation.summary}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
+          <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
             <QualityGauge score={explanation.quality_score} label="Overall quality" />
             <ScoreRadar
               efficiency={explanation.efficiency_score}
@@ -249,19 +249,31 @@ export function ExplainPanel({
           </div>
 
           {hasSubScores && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="stats">
               <MetricTile
                 icon={Zap}
                 label="Efficiency"
                 value={`${explanation.efficiency_score}/100`}
+                sublabel={gradeScore(explanation.efficiency_score).label}
                 tone="emerald"
               />
-              <MetricTile icon={Eye} label="Readability" value={`${explanation.readability_score}/100`} />
-              <MetricTile icon={ShieldCheck} label="Correctness" value={`${explanation.correctness_score}/100`} />
+              <MetricTile
+                icon={Eye}
+                label="Readability"
+                value={`${explanation.readability_score}/100`}
+                sublabel={gradeScore(explanation.readability_score).label}
+              />
+              <MetricTile
+                icon={ShieldCheck}
+                label="Correctness"
+                value={`${explanation.correctness_score}/100`}
+                sublabel={gradeScore(explanation.correctness_score).label}
+              />
               <MetricTile
                 icon={ThumbsUp}
                 label="Best practices"
                 value={`${explanation.best_practices_score}/100`}
+                sublabel={gradeScore(explanation.best_practices_score).label}
               />
             </div>
           )}
@@ -326,69 +338,29 @@ export function ExplainPanel({
             )}
           </div>
 
-          <div className="border-t border-border/60 pt-3">
-            <button
-              onClick={() => setChatOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-200 hover:text-purple-100 transition-colors"
-            >
-              <Bot size={13} />
-              Ask a follow-up
-              <span className="text-muted-foreground font-normal">
-                {chatOpen ? "▾" : "▸"}
-              </span>
-            </button>
+          <div className="divider">Have a question?</div>
 
-            {chatOpen && (
-              <div className="mt-3 space-y-3">
-                {messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "max-w-[90%] rounded-lg px-3 py-2 text-[13px] leading-relaxed",
-                      m.role === "user"
-                        ? "ml-auto bg-purple-600/20 border border-purple-500/30 text-brand-offwhite"
-                        : "mr-auto bg-muted/40 border border-border/60 text-brand-offwhite/90",
-                    )}
-                  >
-                    {m.role === "ai" ? (
-                      <div dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
-                    ) : (
-                      m.content
-                    )}
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="mr-auto inline-flex items-center gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2 text-[13px] text-muted-foreground">
-                    <Loader2 size={13} className="animate-spin" />
-                    Thinking…
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendChat();
-                      }
-                    }}
-                    placeholder="Ask anything about this solution…"
-                    className="flex-1 rounded-md border border-border/70 bg-brand-charcoal-card px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  />
-                  <button
-                    onClick={sendChat}
-                    disabled={!question.trim() || chatLoading}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-purple-600/40 bg-purple-600/10 px-2.5 py-1.5 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20 disabled:opacity-50"
-                  >
-                    <Send size={13} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-600/40 bg-purple-600/10 px-3 py-2 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-600/20"
+          >
+            <MessageSquare size={13} />
+            Ask a follow-up in chat
+          </button>
         </div>
       )}
+
+      <FollowUpDrawer
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        title={solution.problem_title || solution.problem_slug || "Solution"}
+        messages={messages}
+        loading={chatLoading}
+        question={question}
+        onQuestionChange={setQuestion}
+        onSend={sendChat}
+      />
     </div>
   );
 }
