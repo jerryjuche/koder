@@ -220,6 +220,46 @@ func TestExplainCacheMissStreamsAndUpserts(t *testing.T) {
 	}
 }
 
+// TestExplainStreamsThroughLoggingMiddleware guards against a regression where
+// a ResponseWriter wrapper hides http.Flusher. Every request in production
+// passes through RequestLoggingMiddleware, so if its wrapper loses Flush the
+// w.(http.Flusher) assertion fails and the endpoint silently degrades to the
+// buffered JSON path (which older clients would drop entirely). The direct
+// httptest.NewRecorder() tests never catch this because the recorder itself
+// implements Flusher.
+func TestExplainStreamsThroughLoggingMiddleware(t *testing.T) {
+	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
+	fe := &fakeExplainer{
+		answer: `{"summary":"Adds two numbers","approach":"Returns a+b","time_complexity":"O(1)","space_complexity":"O(1)"}`,
+		exp: &store.SolutionExplanation{
+			Language:        "go",
+			Summary:         "Adds two numbers",
+			Approach:        "Returns a + b",
+			TimeComplexity:  "O(1)",
+			SpaceComplexity: "O(1)",
+			KeyTechniques:   []string{"addition"},
+		},
+	}
+	h := NewExplainHandler(fs, fe)
+	wrapped := RequestLoggingMiddleware(http.HandlerFunc(h.Explain))
+
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, explainClaims(explainHTTPRequest(`{"submission_id":"`+uuid.NewString()+`"}`)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+		t.Fatalf("expected text/event-stream through the logging middleware, got %q", ct)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `data: {"delta":"`) || !strings.Contains(body, "data: [DONE]") {
+		t.Errorf("expected streamed delta + [DONE] frames through the logging middleware, got %s", body)
+	}
+	if fs.upserted == nil {
+		t.Fatal("expected explanation to be cached after streaming")
+	}
+}
+
 func TestExplainProviderFailureSendsStreamErrorFrame(t *testing.T) {
 	fs := &explainFakeStore{sol: sampleSolution(), cached: nil}
 	fe := &fakeExplainer{err: fmt.Errorf("%w: upstream 500", enricher.ErrAIUpstream)}

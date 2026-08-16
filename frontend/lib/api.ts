@@ -679,8 +679,15 @@ async function consumeExplainStream(
         handlers.onError?.(code, message);
         return { ok: false };
       }
-      if (data?.data?.cached && data?.data?.explanation) {
+      // Plain JSON carries three shapes: a cache-hit explanation, a buffered
+      // cache-miss explanation (servers without Flush support or older
+      // backends that never stream), and a buffered chat answer. Route all of
+      // them — a missed explanation or chat answer is the whole payload, so it
+      // must reach the handlers or the UI silently never responds.
+      if (data?.data?.explanation) {
         handlers.onFinal?.(data.data.explanation, Boolean(data.data.cached));
+      } else if (typeof data?.data?.answer === "string") {
+        handlers.onDelta?.(data.data.answer);
       }
       return { ok: true };
     }
