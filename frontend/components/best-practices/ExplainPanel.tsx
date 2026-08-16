@@ -176,15 +176,17 @@ export function ExplainPanel({
       },
     });
 
-    if (pendingAnswerRef.current) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", content: pendingAnswerRef.current },
-      ]);
-    }
+    // Snapshot the accumulated text before clearing the ref. Reading the ref
+    // inside the setMessages updater would see "" instead: React batches these
+    // state updates and runs the updater after this synchronous block, by which
+    // point pendingAnswerRef has already been reset.
+    const finalAnswer = pendingAnswerRef.current;
     pendingAnswerRef.current = "";
     setStreamingAnswer(null);
     setChatLoading(false);
+    if (finalAnswer) {
+      setMessages((prev) => [...prev, { role: "ai", content: finalAnswer }]);
+    }
   };
 
   const copyAnalysis = async () => {
