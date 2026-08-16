@@ -1,64 +1,71 @@
 "use client";
 
-import { Eye, ShieldCheck, ThumbsUp, Zap } from "lucide-react";
+import type { CSSProperties } from "react";
+import { Progress } from "@/components/ui/progress";
 import type { SolutionExplanation } from "@/lib/types";
-import { gradeScore, QualityGauge } from "./QualityGauge";
-import { ScoreRadar } from "./ScoreRadar";
-import { MetricTile } from "./MetricTile";
+
+export function gradeScore(score: number): { label: string; color: string } {
+  if (score >= 85) return { label: "Excellent", color: "#10b981" };
+  if (score >= 70) return { label: "Good", color: "#14b8a6" };
+  if (score >= 50) return { label: "Fair", color: "#f59e0b" };
+  return { label: "Needs work", color: "#f43f5e" };
+}
+
+const DIMENSIONS: Array<{
+  label: string;
+  score: (e: SolutionExplanation) => number;
+}> = [
+  { label: "Efficiency", score: (e) => e.efficiency_score },
+  { label: "Readability", score: (e) => e.readability_score },
+  { label: "Correctness", score: (e) => e.correctness_score },
+  { label: "Best practices", score: (e) => e.best_practices_score },
+];
 
 export function AnalysisScorecard({
   explanation,
 }: {
   explanation: SolutionExplanation;
 }) {
-  const hasSubScores =
-    (explanation.efficiency_score ?? 0) +
-      (explanation.readability_score ?? 0) +
-      (explanation.correctness_score ?? 0) +
-      (explanation.best_practices_score ?? 0) >
-    0;
+  const overall = gradeScore(explanation.quality_score);
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
-        <QualityGauge score={explanation.quality_score} label="Overall quality" />
-        <ScoreRadar
-          efficiency={explanation.efficiency_score}
-          readability={explanation.readability_score}
-          correctness={explanation.correctness_score}
-          bestPractices={explanation.best_practices_score}
+    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="text-xl font-bold leading-none tabular-nums text-foreground">
+          {explanation.quality_score}
+        </span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-wider"
+          style={{ color: overall.color }}
+        >
+          {overall.label}
+        </span>
+        <Progress
+          value={explanation.quality_score}
+          className="h-1.5 flex-1 [&>div]:bg-[var(--quality-color)]"
+          style={{ "--quality-color": overall.color } as CSSProperties}
         />
       </div>
-
-      {hasSubScores && (
-        <div className="stats">
-          <MetricTile
-            icon={Zap}
-            label="Efficiency"
-            value={`${explanation.efficiency_score}/100`}
-            sublabel={gradeScore(explanation.efficiency_score).label}
-            tone="emerald"
-          />
-          <MetricTile
-            icon={Eye}
-            label="Readability"
-            value={`${explanation.readability_score}/100`}
-            sublabel={gradeScore(explanation.readability_score).label}
-          />
-          <MetricTile
-            icon={ShieldCheck}
-            label="Correctness"
-            value={`${explanation.correctness_score}/100`}
-            sublabel={gradeScore(explanation.correctness_score).label}
-          />
-          <MetricTile
-            icon={ThumbsUp}
-            label="Best practices"
-            value={`${explanation.best_practices_score}/100`}
-            sublabel={gradeScore(explanation.best_practices_score).label}
-          />
-        </div>
-      )}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+        {DIMENSIONS.map((d) => {
+          const g = gradeScore(d.score(explanation));
+          return (
+            <span
+              key={d.label}
+              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            >
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: g.color }}
+              />
+              <span>{d.label}</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                {d.score(explanation)}
+              </span>
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }

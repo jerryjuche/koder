@@ -1,14 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Check,
+  CheckCircle2,
+  Copy,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import type { CommunitySolution, SolutionExplanation } from "@/lib/types";
 import {
   explainSolutionStream,
   explainSolutionChatStream,
 } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { AnalysisHeader } from "./AnalysisHeader";
 import { AnalysisHydration } from "./AnalysisHydration";
 import { AnalysisError, type ExplainErrorInfo } from "./AnalysisError";
 import { AnalysisSummary } from "./AnalysisSummary";
@@ -17,7 +23,6 @@ import { AnalysisApproach } from "./AnalysisApproach";
 import { AnalysisComplexity } from "./AnalysisComplexity";
 import { AnalysisTechniques } from "./AnalysisTechniques";
 import { AnalysisPoints } from "./AnalysisPoints";
-import { AnalysisFooter } from "./AnalysisFooter";
 import { FollowUpDrawer } from "./FollowUpDrawer";
 import type { ChatMessage } from "./chat/types";
 
@@ -108,6 +113,8 @@ export function ExplainPanel({
   const [error, setError] = useState<ExplainErrorInfo | null>(null);
   const [partial, setPartial] = useState<Partial<SolutionExplanation> | null>(null);
   const rawRef = useRef("");
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -115,6 +122,13 @@ export function ExplainPanel({
   const [chatLoading, setChatLoading] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState<string | null>(null);
   const pendingAnswerRef = useRef("");
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    },
+    [],
+  );
 
   const loadExplanation = useCallback(async () => {
     if (explanation || loading) return;
@@ -214,6 +228,9 @@ export function ExplainPanel({
     }
     try {
       await navigator.clipboard.writeText(sections.join("\n"));
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Could not copy analysis");
     }
@@ -253,11 +270,49 @@ export function ExplainPanel({
       )}
 
       {explanation && (
-        <div className="space-y-4 px-4 py-4">
-          <AnalysisHeader cached={cached} onCopy={copyAnalysis} />
+        <div className="space-y-3 px-4 py-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Sparkles size={15} className="text-purple-300" />
+              AI Analysis
+              <span className="rounded-md border border-purple-700/40 bg-purple-900/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-200">
+                NIM
+              </span>
+            </div>
+            {cached && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                <CheckCircle2 size={11} />
+                cached
+              </span>
+            )}
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1 text-[11px] font-semibold text-purple-300 transition-colors hover:bg-purple-500/20"
+              >
+                <MessageSquare size={12} />
+                Ask AI
+              </button>
+              <button
+                type="button"
+                onClick={copyAnalysis}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Copy analysis"
+              >
+                {copied ? (
+                  <Check size={12} className="text-emerald-400" />
+                ) : (
+                  <Copy size={12} />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+
           <AnalysisSummary summary={explanation.summary} />
-          <AnalysisScorecard explanation={explanation} />
           <AnalysisApproach approach={explanation.approach} />
+          <AnalysisScorecard explanation={explanation} />
           <AnalysisComplexity
             time={explanation.time_complexity}
             space={explanation.space_complexity}
@@ -267,7 +322,6 @@ export function ExplainPanel({
             strengths={explanation.strengths}
             improvements={explanation.improvements}
           />
-          <AnalysisFooter onOpenChat={() => setChatOpen(true)} />
         </div>
       )}
 
