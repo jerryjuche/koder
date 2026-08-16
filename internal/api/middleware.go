@@ -34,9 +34,22 @@ func generateRequestID() string {
 	return hex.EncodeToString(b)
 }
 
+// requestLoggingSkipPaths are infrastructure endpoints that produce no user
+// traffic value in request logs. Platform health probes (Render/Azure) hit
+// these at fixed intervals, and each hit would otherwise emit a full log line
+// plus a fresh request ID / CSP nonce — noise that buries real traffic.
+var requestLoggingSkipPaths = map[string]struct{}{
+	"/health":  {},
+	"/version": {},
+}
+
 // RequestLoggingMiddleware logs every request with method, path, status, duration, and correlation ID.
 func RequestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, skip := requestLoggingSkipPaths[r.URL.Path]; skip {
+			next.ServeHTTP(w, r)
+			return
+		}
 		start := time.Now()
 		reqID := generateRequestID()
 		r = r.WithContext(context.WithValue(r.Context(), reqIDContextKey, reqID))
