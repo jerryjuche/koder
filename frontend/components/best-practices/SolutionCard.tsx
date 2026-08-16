@@ -6,7 +6,7 @@ import { Check, ChevronDown, Copy, Zap } from "lucide-react";
 import { CommunitySolution } from "@/lib/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { CodeSnippet } from "@/components/application/code-snippet";
-import { ExplainPanel } from "./ExplainPanel";
+import { AnalysisModal } from "./AnalysisModal";
 import {
   AIAnalysisPill,
   LikeButton,
@@ -44,7 +44,7 @@ export function SolutionCard({
   onLike: (id: string, currentlyLiked: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [aiRequested, setAiRequested] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,11 +54,6 @@ export function SolutionCard({
     },
     [],
   );
-
-  const expandWithAI = () => {
-    setAiRequested(true);
-    setExpanded(true);
-  };
 
   const toggleExpanded = () => setExpanded((v) => !v);
 
@@ -120,7 +115,7 @@ export function SolutionCard({
               </span>
             )}
             {!expanded && (
-              <AIAnalysisPill hasAnalysis onClick={expandWithAI} />
+              <AIAnalysisPill hasAnalysis onClick={() => setAnalysisOpen(true)} />
             )}
           </div>
 
@@ -229,12 +224,17 @@ export function SolutionCard({
                     }}
                   />
                 </div>
-                <ExplainPanel solution={solution} autoStart={aiRequested} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <AnalysisModal
+        solution={solution}
+        open={analysisOpen}
+        onOpenChange={setAnalysisOpen}
+      />
     </motion.div>
   );
 }
