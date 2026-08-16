@@ -5,3 +5,6 @@ export { BestPracticesHeader } from "./BestPracticesHeader";
 export { BestPracticesToolbar } from "./BestPracticesToolbar";
 export { BestPracticesSkeleton } from "./BestPracticesSkeleton";
 export { ExplainPanel } from "./ExplainPanel";
+export { AnalysisModal } from "./AnalysisModal";
+export { QualityGauge, gradeScore } from "./QualityGauge";
+export { ScoreRadar } from "./ScoreRadar";
