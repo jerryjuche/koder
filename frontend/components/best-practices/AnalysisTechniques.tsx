@@ -1,11 +1,12 @@
 "use client";
 
-import { AnalysisSection } from "./AnalysisSection";
+import { AnalysisLabel } from "./AnalysisLabel";
 
 export function AnalysisTechniques({ techniques }: { techniques: string[] }) {
   if (!techniques.length) return null;
   return (
-    <AnalysisSection label="Key Techniques">
+    <div>
+      <AnalysisLabel>Key techniques</AnalysisLabel>
       <div className="flex flex-wrap gap-1.5">
         {techniques.map((t, i) => (
           <span
@@ -16,6 +17,6 @@ export function AnalysisTechniques({ techniques }: { techniques: string[] }) {
           </span>
         ))}
       </div>
-    </AnalysisSection>
+    </div>
   );
 }
