@@ -291,11 +291,14 @@ koder/
 │   │   ├── FeedbackButton.tsx
 │   │   ├── LanguageLogo.tsx         # Go/Python SVG icons
 │   │   ├── TestResultPanel.tsx      # Unified got/expected diff (LCS line+char level)
+│   │   ├── best-practices/          # Best Practices showcase + AI analysis (SolutionCard,
+│   │   │                               AnalysisModal split command center, QualityGauge,
+│   │   │                               ScoreRadar, ComplexityScale, ExplainPanel, chat/)
 │   │   ├── layout/TopNav.tsx        # Nav: Dashboard, Problems, Learn, Leaderboard, Admin
 │   │   └── dashboard/ModuleCards.tsx
 │   ├── hooks/                       # use-google-one-tap, use-has-mounted, use-mobile
 │   ├── lib/
-│   │   ├── api.ts                   # 40+ typed endpoint functions
+│   │   ├── api.ts                   # 60+ typed endpoint functions (incl. SSE explain clients)
 │   │   ├── types.ts                 # All TypeScript interfaces
 │   │   ├── UserContext.tsx           # Auth state provider
 │   │   ├── useNotifications.ts      # 15s polling for unread count
@@ -716,6 +719,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | GET | `/best-practices` | Student | Best practice solutions |
 | POST | `/submissions/{id}/like` | Student | Like a community solution |
 | DELETE | `/submissions/{id}/like` | Student | Unlike a community solution |
+| POST | `/ai/explain` | Student | SSE-streamed AI code analysis (structured summary/approach/Big-O/scores + grounded follow-up chat) |
 
 ### Contributions
 
@@ -919,6 +923,8 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | Python sandbox | AST validation, snake_case fallback, meaningful error messages |
 | Refresh token rotation | Reuse detection revokes all sessions on compromise |
 | NVIDIA NIM migration | Replaced Gemini/Groq with DeepSeek V4 Flash via NVIDIA NIM |
+| AI code explanations | SSE-streamed structured analysis per best-practice solution (summary/approach/Big-O/quality scores) + grounded follow-up chat, cached per submission |
+| Best Practices showcase | "Hall of Fame" podium + ranked grid; AI analysis in a split command-center modal (code viewer + QualityGauge/ScoreRadar telemetry) |
 | Curriculum CMS | Full CRUD for courses/modules/lessons/sections/projects with admin panel |
 | Student learn pages | Course catalog, lesson viewer with quizzes/code exercises, progress tracking |
 | XP propagation | Lesson completion awards XP to users.xp and updates course_progress |
@@ -926,7 +932,7 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | AI usage logging | Per-user/action tracking with success/failure rates |
 | Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
 | CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
-| Test suite | 171 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
+| Test suite | 215 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
 | Security hardening | CSP headers, account data export, user search/verify, admin AI rate limiting |
 
 ---

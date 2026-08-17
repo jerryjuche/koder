@@ -185,6 +185,16 @@
 | 177 | `fdbf615` | fix: sync frontend package-lock after npm ci                                                                                                                                              |
 | 178 | `7d0091e` | fix: remove unused firebase-tools devDependency — clears EBADENGINE warnings, slims npm ci (Session 114)                                                                                  |
 | 179 | `b82d44c` | docs: full professional reindex — sessions 113-114 in all logs, verified counts                                                                                                           |
+| 180 | `9848927` | feat: AI best-practice explanations + author like notifications (NIM, deduped cache, WS) (Session 118)                                                                                     |
+| 181 | `cc20eac` | feat: AI analysis dashboard, explain diagnostics, notification deep-links (Session 119)                                                                                                   |
+| 182 | `3694b5b` | feat: manual AI trigger, custom AI provider aliases + tunable knobs (Session 120)                                                                                                          |
+| 183 | `66fb117` | fix: follow-up chat collapsing accordion + professional AI analysis panel (Session 121)                                                                                                   |
+| 184 | `4ee86e3` | feat: SSE streaming AI analysis + chat, professional prompts, decomposed panel UI (Session 122)                                                                                           |
+| 185 | `300bc96` | fix: AI analysis/chat not responding — SSE Flusher hidden by logging wrapper + dropped JSON responses (Session 123)                                                                        |
+| 186 | `9d53340` | fix: follow-up AI chat clearing partial answer — ref read inside deferred state updater (Session 124)                                                                                     |
+| 187 | `aa68764` | refactor: compress AI analysis panel — replace decorative charts with compact inline layout (Session 125)                                                                                 |
+| 188 | `78c3816` | fix: suppress request logs for /health and /version infrastructure probes (Session 126)                                                                                                   |
+| 189 | `23ce46a` | feat: professional AI analysis modal — split command center with code viewer, quality gauge, skill radar, tabbed analysis (Session 127)                                                    |
 
 ---
 
@@ -3393,7 +3403,7 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 - `go vet ./internal/...` clean, `go build ./cmd/server` OK, 9/9 backend suites green (171 tests), `tsc --noEmit` 0 errors, ESLint 0 errors on all changed files.
 - Uncommitted working tree (5 modified + 1 untracked `components/best-practices/`).
 
-## Session 118 — 2026-08-14 — AI best-practice explanations + like notifications (uncommitted)
+## Session 118 — 2026-08-14 — AI best-practice explanations + like notifications (committed `9848927` on 08-15)
 
 ### Changes
 
@@ -3414,4 +3424,119 @@ Two Python modules (`python-practice`, `python-practicals`) didn't show in the a
 
 - `go vet ./internal/...` clean, `go build ./cmd/server` OK, 9/9 backend suites green (195 tests), `tsc --noEmit` 0 errors, ESLint 0 errors on all changed files.
 - Deployment: run `migrations/053_ai_solution_explanations.sql` on Supabase; backend + frontend deploy; no sandbox change required.
-- Uncommitted working tree (15 modified + 6 untracked).
+- Committed `9848927` on 08-15 (docs reindexed in that commit); sessions 119–127 below document the follow-on work.
+
+## Session 119 — 2026-08-15 — AI analysis dashboard — quality scores, explain diagnostics, notification deep-links (`cc20eac`)
+
+### Changes
+
+- **Migration `055_ai_solution_scores.sql` (new, 10 LOC):** 5 numeric score columns on `ai_solution_explanations` (quality/efficiency/readability/correctness/best_practices, 0-100; NULL = not scored yet → UI hides gauges until real scores exist).
+- **Backend:** `ExplainSolution` parses + clamps the 5 AI quality scores (0-100) into the cached `SolutionExplanation` (`store/types.go` +38, `solution_explanations.go` +29); `explain.go` (+51) returns scores in the response, adds `respondExplainError`; `enricher.go` (1,157 → 1,347) — prompt rubrics ask for per-dimension scores 0-100 + Big-O; notifications gain deep-links (`store/notifications.go` +22 — `related_id` routes to the problem page).
+- **Frontend:** new dashboard components — `AnalysisHeader` (46), `AnalysisSkeleton` (40), `ComplexityBadge` (35), `ComplexityScale` (51), `MetricTile` (37), `QualityGauge` (56), `ScoreRadar` (53); `ExplainPanel` reworked (194 diff) to show the scorecard; `TopNav` (+72) — notification bell deep-links to problem pages; settings page (+93) — AI provider/analysis diagnostics panel.
+- **Tests:** explain_test.go 9 → 10 (score clamping), enricher_test.go 8 → 15 (score parsing/prompts/validate) → **209 backend tests** (was 195); config/README/.env.example docs synced.
+
+### Verification
+
+- `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 120 — 2026-08-15 — Manual AI trigger + custom provider aliases + tunable knobs (`3694b5b`)
+
+### Changes
+
+- **Manual AI trigger:** `SolutionCard`/`ExplainPanel` gained an explicit AI button — users click to run analysis instead of it firing on expand (saves a NIM call on every card open); loading/error/retry states wired to the button.
+- **Config — generic AI aliases:** `AI_API_KEY`/`AI_BASE_URL`/`AI_MODEL` generic aliases preferred; legacy `NVIDIA_*` names kept as fallbacks so a different provider token/model can be plugged in without code changes (`config.go` 366 → 465 LOC, 36 → 42+ config fields).
+- **Config — tunable AI knobs:** `AI_MAX_TOKENS` (default 8192), `AI_TEMPERATURE` (default 0.7), `AI_JSON_MODE` — passed through to the provider request (`max_tokens`/`temperature`/`response_format`); `.env.example` +17 documented rows.
+- **Tests:** config_test.go +7 (aliases precedence, defaults, invalid values → 33 total), enricher_test.go +2 (knob propagation → provider request) → **211 backend tests** (was 209).
+
+### Verification
+
+- `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 121 — 2026-08-15 — Follow-up chat collapsing the accordion — drawer extraction + professional panel (`66fb117`)
+
+### Changes
+
+- **Reported bug:** typing in the follow-up chat collapsed the `SolutionCard` accordion (interactive children re-triggered the row toggle).
+- **Fix:** follow-up chat extracted out of the card body into a **bottom-sheet drawer** — `FollowUpDrawer.tsx` (new, 221 LOC, Radix Dialog, animated) rendered above the card; chat input no longer lives inside the accordion; `SolutionCard` (+126) — chat button opens the drawer, whole-row accordion logic now excludes the drawer trigger; `globals.css` +249 (drawer/keyframe animations).
+- **Also:** AI analysis panel gained a more professional layout (`ExplainPanel` +106 diff, `QualityGauge` +82, `MetricTile` +14) — telemetry tiles + refined spacing.
+
+### Verification
+
+- `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 122 — 2026-08-15 — SSE streaming AI analysis + chat, professional prompts, decomposed panel UI (`4ee86e3`)
+
+### Changes
+
+- **Backend — streaming:** `enricher.GenerateContentStream` (bufio SSE parser, 1MB scan buffer, `[DONE]` sentinel, 429/503 retry mapping) + `ExplainSolutionStream`/`ExplainChatStream` (callback-based delta delivery, `ErrAIUpstream` sentinel, `errStreamWrite` abort); `explain.go` (220 → 397 LOC) — `Explain`/`ExplainChat` stream **SSE frames** (`data:` + flush) on cache miss, with a **buffered fallback** for non-Flusher servers; frame types `sseDeltaFrame`/`sseExplanationFrame`/`sseErrorFrame`; `setStreamHeaders`/`writeSSEFrame`/`sseErrorFrameFrom` helpers; mid-stream failures surface as error frames.
+- **Frontend — SSE clients:** `lib/api.ts` (1,217 → 1,403) — `explainSolutionStream`/`explainSolutionChatStream` raw-fetch SSE consumers (`text/event-stream` content-type detection, `[DONE]`, error frames, `onFinal(explanation, cached)`/`onDelta`/`onError`); `lib/markdown.ts` (62 → 168) — upgraded self-contained renderer (code blocks w/ escaping, inline emphasis).
+- **Decomposed UI:** ExplainPanel rewritten (→ 389 LOC diff) into sub-components — `AnalysisSummary`/`AnalysisApproach`/`AnalysisTechniques`/`AnalysisPoints`/`AnalysisComplexity`/`AnalysisScorecard`/`AnalysisSection`/`AnalysisError`/`AnalysisLabel`/`AnalysisFooter`/`AnalysisHydration` + `chat/` (ChatBubble/ChatComposer/ChatHeader/ChatMessages/types); `AnalysisSkeleton` removed (replaced by progressive partial-JSON hydration during the stream); `FollowUpDrawer` (→ 156 diff) rebuilt on the chat primitives with live streaming bubbles.
+- **Professional prompts:** dual-language prompt builders tightened (metrics: quality/efficiency/readability/correctness/best_practices 0-100 + Big-O).
+- **Tests:** fake provider/explainer gained stream methods; new stream tests (provider SSE error-frame + chat streaming, `[DONE]`, JSON-branch fallback); cache-miss + provider-failure tests updated to the streaming contract → **213 backend tests** (was 211).
+
+### Verification
+
+- `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 123 — 2026-08-16 — AI analysis/chat not responding — SSE Flusher hidden by logging wrapper (`300bc96`)
+
+### Changes
+
+- **Reported bug:** the AI analysis spinner ran forever and chat never produced answers — but the backend WAS responding (two interacting bugs).
+- **Root cause 1 — server:** `RequestLoggingMiddleware` wraps every `ResponseWriter` in `loggingResponseWriter`, which implemented only `WriteHeader`/`Hijack` and **no `Flush()`** → it did not satisfy `http.Flusher`. The `w.(http.Flusher)` checks in Explain/ExplainChat always failed in production, silently degrading both to the **buffered JSON path** — SSE never streamed. Unit tests missed it because `httptest.ResponseRecorder` implements `Flusher`.
+- **Root cause 2 — client:** `consumeExplainStream`'s plain-JSON branch only handled `cached:true` — buffered cache-miss analyses (`{cached:false, explanation}`) and buffered chat answers (`{answer}`) were **dropped**.
+- **Fix:** `loggingResponseWriter.Flush()` delegates to the underlying writer when it implements `http.Flusher`, with compile-time guard `var _ http.Flusher = (*loggingResponseWriter)(nil)`; `api.ts` JSON branch routes any `data.data.explanation` → `onFinal` (cached true/false) and `data.data.answer` → `onDelta`.
+- **Test:** `TestExplainStreamsThroughLoggingMiddleware` (40 LOC) drives the Explain handler through the **real** `RequestLoggingMiddleware` asserting SSE frames are emitted — fails pre-fix (`application/json`), passes post-fix → **214 backend tests** (was 213).
+
+### Verification
+
+- `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors, `next build` success.
+
+## Session 124 — 2026-08-16 — Follow-up AI chat clearing partial answer — React 18 batching bug (`9d53340`)
+
+### Changes
+
+- **Reported bug:** the follow-up chat bubble cleared its in-progress (streaming) answer and sometimes didn't render.
+- **Root cause:** `onDelta` read the message `ref` **inside the deferred state updater** — React 18's automatic batching merged the deltas so each `setMessages(prev => [...prev, ref.current + delta])` used a stale closure that reset instead of appended.
+- **Fix** (`ExplainPanel.tsx`, 14 LOC): read `messagesRef.current` **before** the updater (capture into a local), then pass the captured value to the functional update — deltas now accumulate correctly.
+
+### Verification
+
+- `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 125 — 2026-08-16 — Compress AI analysis panel — compact inline layout (`aa68764`)
+
+### Changes
+
+- **Refactor:** replaced the decorative telemetry (QualityGauge/ScoreRadar/ComplexityScale/MetricTile) with a compact inline analysis layout — prose-first (summary/approach/techniques/points) with a single inline complexity pill; removed `AnalysisFooter.tsx`/`AnalysisSection.tsx`; globals.css −112 LOC (aura/animation classes pruned); `AnalysisLabel.tsx` added for shared eyebrows; `ComplexityScale.tsx`, `QualityGauge.tsx`, `ScoreRadar.tsx`, `MetricTile.tsx` deleted.
+- **Noted:** superseded the next session by the professional AnalysisModal redesign (Session 127) — the compressed panel never shipped to a reviewable state.
+
+### Verification
+
+- `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 126 — 2026-08-16 — Suppress request logs for `/health` + `/version` infra probes (`78c3816`)
+
+### Changes
+
+- **Reported:** Render's health-check + ACA `/health` probes (and `/version`) spam the request log every few seconds, burying real traffic.
+- **Fix:** `RequestLoggingMiddleware` now skips logging for `GET /health` and `GET /version` (infrastructure probes, no correlation ID noise); `middleware.go` 540 → 568 LOC.
+- **Test:** `middleware_test.go` +1 (`TestRequestLoggingMiddleware_SkipsHealthAndVersion`, 41 LOC) → **215 backend tests** (was 214); verified pre-fix it logs, post-fix it doesn't.
+
+### Verification
+
+- `go vet` clean, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors.
+
+## Session 127 — 2026-08-17 — Professional AI analysis modal — "split command center" (`23ce46a`)
+
+### Changes
+
+- **Motivation:** the compressed AI panel from `aa68764` (Session 125) was functional but cramped — telemetry, code, and prose fought for space in the card body. Rebuilt the analysis as a **full-screen dialog split 50/50** (code viewer left, analysis right), following an approved "Concept 3 — Split Command Center" plan audited against the codebase (6 breaking assumptions caught pre-implementation: `solution.explanation`/`solution.cached` don't exist on `CommunitySolution` — explanation arrives via SSE streaming; `solutionFilename`/`solutionLanguage` take `language: string`; `FollowUpDrawer` prop contract; `ComplexityScale.tsx` had to be restored from git `aa68764^`).
+- **`AnalysisModal.tsx` (new, 399 LOC)** — the orchestrator, owning **all** interactive state (analysis streaming, follow-up chat, clipboard): `sm:max-w-[880px] h-[85vh] bg-[#141414]`, `grid grid-cols-1 md:grid-cols-2`, code pane capped `max-md:h-[38%]` on mobile; header carries a NIM badge + `cached` chip; footer has "Ask AI" (opens `FollowUpDrawer` at `z-100` above the dialog `z-50`) + "Copy Analysis" (builds plain-text sections from the explanation); streaming starts on `open` via `useEffect` → `loadExplanation()` guarded by `explanation || loading`; `DialogClose` via a custom button (`showCloseButton={false}`).
+- **`QualityGauge.tsx` (restored + rebuilt, 132 LOC)** — SVG radial ring (110px), `gradeScore()` mapping (Excellent/Good/Fair/Needs work), half-star gold rating, `QualityGaugeSkeleton`; **`ScoreRadar.tsx` (restored, 55 LOC)** — recharts 4-axis radar (Efficiency/Readability/Correctness/Best practices), purple fill `#7F56D9` 0.35 / stroke `#9E77ED`, 150px; **`ComplexityScale.tsx` (restored, 51 LOC)** — collapsible O(1)→O(n!) tier bars for time/space.
+- **`ExplainPanel.tsx` (→ 110 LOC)** — now **presentational only**: receives `{explanation, loading, error, partial, onRetry}`, renders the telemetry grid (QualityGauge + ScoreRadar) + tabs (Overview / Approach / Pros & Cons); `AnalysisHydration.tsx` (82 LOC) — two-column shimmer with progressive partial-data hydration (QualityGauge → ScoreRadar → summary → complexity).
+- **`SolutionCard.tsx` (→ 240 LOC)** — AI pill now opens the modal (`analysisOpen` state); the card stays collapsed (no `expandWithAI`); deleted orphaned `AnalysisScorecard.tsx` + `AnalysisHeader.tsx`; `index.ts` barrel exports `AnalysisModal`, `QualityGauge`, `gradeScore`, `ScoreRadar`.
+
+### Verification
+
+- `tsc --noEmit` 0 errors, ESLint 0 errors, `next build` success (first attempt hit a transient Windows build-worker crash `0xC0000409` during "Collecting page data" — not a code error, retry passed); pushed to `origin/update`.

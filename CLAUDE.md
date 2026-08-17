@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-14 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (195 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** 15 modified + 6 untracked (AI code explanations + like notifications), uncommitted
+> **Branch:** `update` | **Last indexed:** 2026-08-17 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (215 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -38,11 +38,11 @@
 
 | Category                                            | Files                                     | Lines of Code       | Notes                                                                                                                                             |
 | --------------------------------------------------- | ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Go Backend** (`cmd/` + `internal/`)               | 69 source + 24 test                       | ~20,123 + ~4,977    | 9 packages, 163 Store interface methods, ~121 API endpoints; includes 4 cmd tools                                                                  |
+| **Go Backend** (`cmd/` + `internal/`)               | 69 source + 24 test                       | ~20,758 + ~5,611    | 9 packages, 163 Store interface methods, ~121 API endpoints; includes 4 cmd tools                                                                  |
 | **Go Sandbox** (`sandbox/`)                         | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter                                                                              |
-| **SQL Migrations** (`migrations/`)                  | 55                                        | ~27,544             | 39 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
+| **SQL Migrations** (`migrations/`)                  | 56                                        | ~27,559             | 40 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
 | **Frontend App** (`app/`)                           | 75 `.tsx`                                 | ~18,466             | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC)                                                                    |
-| **Frontend Components** (`components/`)             | 75                                        | ~12,227             | 22 shadcn/ui + 53 custom (incl. `test-results/` diff primitives, `best-practices/` showcase, `MonacoPreloader`)                                     |
+| **Frontend Components** (`components/`)             | 98                                        | ~13,469             | 22 shadcn/ui + 76 custom (incl. `test-results/` diff primitives, `best-practices/` AI showcase, `MonacoPreloader`)                               |
 | **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 27                                        | ~4,714              | 23 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
 | **Frontend Styles** (`styles/` + `app/globals.css`) | 4                                         | ~1,598              | theme.css (856 vars), typography.css (430 lines)                                                                                                  |
 | **Documentation**                                   | 21                                        | ~10,300             | 5 docs/ + 16 root/docs markdown files                                                                                                             |
@@ -62,10 +62,10 @@ koder/
 ├── cmd/generate-sql/main.go                 # CL tool — generate seed SQL from problem JSON
 ├── cmd/generate-curriculum/main.go          # CL tool — generate curriculum SQL from AI JSON
 ├── internal/
-│   ├── api/              (26 files, 7,667 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
-│   ├── store/            (23 files, 6,890 LOC)  # Database access layer — pgx/v5, 163 Store methods
+│   ├── api/              (26 files, 7,872 LOC)  # HTTP handlers, middleware, WebSocket, test endpoint
+│   ├── store/            (23 files, 6,923 LOC)  # Database access layer — pgx/v5, 163 Store methods
 │   ├── executor/         (7 files, 1,940 LOC)   # Code execution engine, sandbox orchestration, output parsing
-│   ├── enricher/         (1 file, 1,157 LOC)    # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
+│   ├── enricher/         (1 file, 1,477 LOC)    # AI test generation — NVIDIA NIM (DeepSeek V4 Flash)
 │   ├── email/            (2 source + 2 test, 452 + 248 LOC) # Transactional email templates + Resend client (html/template, email-safe tables)
 │   ├── auth/             (3 files, 364 LOC)     # JWT (HS256), Google OAuth (JWKS), bcrypt
 │   ├── broker/           (1 file, 68 LOC)       # In-memory pub/sub (cap 32, non-blocking)
@@ -74,9 +74,9 @@ koder/
 ├── sandbox/              (8 source + 2 test + Dockerfile + fly.toml, ~1,610 LOC)  # Remote execution — zero external deps
 ├── frontend/
 │   ├── app/              (75 .tsx, ~18,466 LOC) # App Router pages (7 route groups)
-│   ├── components/       (75 files, ~12,227 LOC) # Shared components + shadcn/ui primitives
+│   ├── components/       (98 files, ~13,469 LOC) # Shared components + shadcn/ui primitives
 │   ├── hooks/            (4 files, ~374 LOC)    # usePyodide, useGoogleOneTap, useHasMounted, useMobile
-│   ├── lib/              (21 files, ~4,126 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
+│   ├── lib/              (23 files, ~4,639 LOC) # API client, types, cache, event bus, markdown, pyodide, monaco + TextMate
 │   ├── styles/           (3 files, ~1,382 LOC)  # theme.css (856 var tokens), typography.css (430 lines)
 │   └── public/           (28 assets)            # module WebP images (18), icons, logo, OG image
 ├── migrations/           (55 files, ~27,544 LOC) # Full schema + seed data — 25 tables
@@ -137,7 +137,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `cmd/generate-sql/main.go`        | 116   | `main`  | CLI — generate seed SQL INSERTs from problem JSON                                                                                                                         |
 | `cmd/generate-curriculum/main.go` | 398   | `main`  | CLI — generate curriculum SQL from AI-generated JSON (CREATE + UPDATE modes)                                                                                              |
 
-### 6.2 API Handlers (`internal/api/` — 26 files, 7,667 LOC)
+### 6.2 API Handlers (`internal/api/` — 26 files, 7,872 LOC)
 
 | File                 | Lines | Key Exports                                                                                                                                                                                                                                                                                                                                                                                 |
 | -------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -159,7 +159,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `activity.go`        | 54    | `ActivityHandler` — GetActivity (contribution heatmap by year)                                                                                                                                                                                                                                                                                                                              |
 | `notifications.go`   | 115   | `NotificationsHandler` — GetUnread (50), GetRecent (20), MarkRead, MarkAllRead                                                                                                                                                                                                                                                                                                              |
 | `community.go`       | 196   | `CommunityHandler` — GetCommunitySolutions, GetBestPractices, LikeSubmission (notifies author via WS `solution.liked`), UnlikeSubmission                                                                                                                                |
-| `explain.go`         | 220   | `ExplainHandler` — POST /ai/explain (structured AI code analysis with server-side dedupe cache), POST /ai/explain/chat (grounded follow-up Q&A); auth + eligibility (passed, visible problem) enforced; LogAIUsage per call |
+| `explain.go`         | 397   | `ExplainHandler` — POST /ai/explain + /ai/explain/chat (SSE-streamed structured AI code analysis with server-side dedupe cache, grounded follow-up Q&A); auth + eligibility (passed, visible problem) enforced; LogAIUsage per call |
 | `contributions.go`   | 85    | `ContributionsHandler` — PostContribution (verified_contributor+), GetMyContributions                                                                                                                                                                                                                                                                                                       |
 | `leaderboard.go`     | 40    | `LeaderboardHandler` — GetLeaderboard (?period=, 30s cache)                                                                                                                                                                                                                                                                                                                                 |
 | `users.go`           | 33    | `UsersHandler` — GetUserPublicData                                                                                                                                                                                                                                                                                                                                                          |
@@ -215,12 +215,12 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `email_test.go`            | 184   | 6 tests: brand/structure assertions (dark shell, gold CTA, logo, backup URL, support `mailto`, tagline, `©`), XSS-escape regression (script tags + raw `&`), defaults applied (empty PlatformName/ExpiresIn, zero Year), zero emoji glyphs, light-theme palette, HTML escaping of injected content                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `problem_reminder_test.go` | 64    | 2 tests: problem-reminder template renders expected fields (brand shell, problem title, gold CTA)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-### 6.6 Enricher (`internal/enricher/` — 1 source + 1 test file, 1,157 + 366 LOC)
+### 6.6 Enricher (`internal/enricher/` — 1 source + 1 test file, 1,477 + 730 LOC)
 
 | File               | Lines | Key Exports                                                                                                                                                                                                                                                                          |
 | ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enricher.go`      | 1,157   | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `ExplainSolution`/`ExplainChat` (structured Best Practices code analysis + grounded Q&A), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `validateExplainResponse`, `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
-| `enricher_test.go` | 366   | 8 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests), ExplainSolution (5 sub-tests), ExplainChat, chat input validation, validateExplainResponse                                                                                                                 |
+| `enricher.go`      | 1,477 | `Enricher` struct, `NewEnricher`, `EnrichProblem` (NVIDIA NIM, dual-language prompts, 1s rate-limit), `AIAssistProblem` (8 action types), `ExplainSolution`/`ExplainChat` (SSE-streamed structured Best Practices code analysis + grounded Q&A), `toSnakeCase`, `toPythonType`, `validateEnrichedProblem` (14 checks), `validateExplainResponse`, `cleanResponse` (markdown fence stripping), `normalizeTestCaseInput` |
+| `enricher_test.go` | 730   | 18 tests: toSnakeCase (10 cases), toPythonType (13 mappings), cleanResponse (5 cases), validateEnrichedProblem (11 sub-tests), ExplainSolution (5 sub-tests), ExplainChat, chat input validation, validateExplainResponse, scoring/streaming coverage                                                                                                                 |
 
 ### 6.7 Executor (`internal/executor/` — 7 source + 2 test files, 1,940 + 711 LOC)
 
@@ -422,7 +422,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `privacy/page.tsx` | 149   | Server | Privacy policy   |
 | `terms/page.tsx`   | 159   | Server | Terms of service |
 
-### 8.2 Shared Components (`frontend/components/` — 75 files, ~12,227 LOC)
+### 8.2 Shared Components (`frontend/components/` — 98 files, ~13,469 LOC)
 
 #### shadcn/ui + Effects Primitives (22 files, ~1,932 LOC)
 
@@ -521,19 +521,37 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | ------------------------------ | ----- | ----------------------------------------------- |
 | `profile/ProfileHoverCard.tsx` | 153   | XP progress bar, 3-column stats, verified badge |
 
-#### Best Practices Components (6 files)
+#### Best Practices Components (28 files, ~2,105 LOC)
 
 | File                                       | Lines | Purpose                                                                                                                                                 |
 | ------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `best-practices/BestPracticesSection.tsx`  | 144   | Orchestrator: state (lang/sort/search, URL-persisted), top-3 podium + ranked grid, skeletons + empty/no-results states                                  |
-| `best-practices/SolutionCard.tsx`          | 138   | Whole-row accordion card (any click toggles code + AI explain), keyboard accessible, rank medallion, stopPropagation on interactive children         |
-| `best-practices/parts.tsx`                 | 100   | Card sub-parts: LikeButton, ProblemLink, SolutionAuthorRow, meta chips (stopPropagation on interactive children)                                     |
+| `best-practices/SolutionCard.tsx`          | 240   | Whole-row accordion card (any click toggles code + AI explain), keyboard accessible, rank medallion, stopPropagation on interactive children; AI pill opens the AnalysisModal                                             |
+| `best-practices/AnalysisModal.tsx`         | 398   | Split command center: full-screen dialog (h-[85vh], 50/50) with code viewer + QualityGauge/ScoreRadar telemetry + tabbed analysis (Overview/Approach/Pros & Cons); owns all streaming/chat/clipboard state              |
+| `best-practices/ExplainPanel.tsx`          | 110   | Presentational AI analysis panel: telemetry grid + tabs, receives `{explanation, loading, error, partial, onRetry}`                                    |
+| `best-practices/QualityGauge.tsx`          | 132   | SVG radial ring gauge (110px), `gradeScore()` Excellent/Good/Fair/Needs work, half-star gold rating, `QualityGaugeSkeleton`                             |
+| `best-practices/ScoreRadar.tsx`            | 55    | Recharts 4-axis radar (Efficiency/Readability/Correctness/Best practices), purple fill                                                                  |
+| `best-practices/ComplexityScale.tsx`       | 51    | Collapsible O(1)→O(n!) tier bars for time/space complexity                                                                                              |
+| `best-practices/ComplexityBadge.tsx`       | 35    | Compact O(n) notation pill (used inline where the full scale is too heavy)                                                                              |
+| `best-practices/AnalysisHydration.tsx`     | 82    | Two-column shimmer mirroring the rendered layout; progressive partial-data hydration (QualityGauge → ScoreRadar → summary → complexity)                |
+| `best-practices/AnalysisApproach.tsx`      | 15    | Approach sub-section (renderMarkdown)                                                                                                                   |
+| `best-practices/AnalysisSummary.tsx`       | 11    | Summary sub-section (renderMarkdown)                                                                                                                    |
+| `best-practices/AnalysisTechniques.tsx`    | 21    | Key-technique chips row                                                                                                                                 |
+| `best-practices/AnalysisPoints.tsx`        | 42    | Two-column strengths / improvements lists                                                                                                               |
+| `best-practices/AnalysisError.tsx`         | 47    | In-panel error state with retry + friendly message                                                                                                      |
+| `best-practices/AnalysisLabel.tsx`         | 8     | Shared uppercase eyebrow label                                                                                                                          |
+| `best-practices/FollowUpDrawer.tsx`        | 105   | Bottom-sheet follow-up chat (Radix Dialog, z-100), messages + streaming + composer                                                                     |
+| `best-practices/chat/ChatBubble.tsx`       | 34    | Chat message bubble (markdown-rendered assistant)                                                                                                       |
+| `best-practices/chat/ChatComposer.tsx`     | 71    | Chat input, Enter-to-send, loading/disabled states                                                                                                      |
+| `best-practices/chat/ChatHeader.tsx`       | 33    | Drawer header (title + close)                                                                                                                          |
+| `best-practices/chat/ChatMessages.tsx`     | 70    | Scrolling message list + streaming indicator                                                                                                            |
+| `best-practices/chat/types.ts`             | 4     | `ChatMessage` type                                                                                                                                      |
+| `best-practices/parts.tsx`                 | 132   | Card sub-parts: LikeButton, ProblemLink, SolutionAuthorRow, meta chips (stopPropagation on interactive children)                                     |
 | `best-practices/SolutionList.tsx`          | 28    | Ranked grid wrapper for `SolutionCard` rows                                                                                                          |
 | `best-practices/BestPracticesSkeleton.tsx` | 22    | Skeleton grid for the best-practices tab                                                                                                             |
-| `best-practices/ExplainPanel.tsx`          | 273   | AI code explanation: structured summary/approach/Big-O badges/key-techniques/strengths/improvements + follow-up chat; cached chip                   |
 | `best-practices/BestPracticesToolbar.tsx`  | 122   | All/Go/Python segmented control (LanguageLogo), sort select (Top rated/Fastest/Newest), search, result count                                            |
 | `best-practices/BestPracticesHeader.tsx`   | 68    | Gradient trophy hero band + stat chips (solutions, Go/Python counts, likes, best runtime)                                                              |
-| `best-practices/index.ts`                  | 7     | Barrel re-exports                                                                                                                                       |
+| `best-practices/index.ts`                  | 7     | Barrel re-exports (incl. `AnalysisModal`, `QualityGauge`, `gradeScore`, `ScoreRadar`)                                                                   |
 
 #### Admin Curriculum Components (5 files)
 
@@ -581,11 +599,11 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `use-mobile.ts`         | 22    | `useIsMobile()` with matchMedia listener (768px breakpoint)                                                |
 | `use-has-mounted.ts`    | 10    | SSR-safe mount detection                                                                                   |
 
-### 8.4 Library Modules (`frontend/lib/` — 23 files, ~4,340 LOC)
+### 8.4 Library Modules (`frontend/lib/` — 23 files, ~4,639 LOC)
 
 | File                     | Lines | Key Exports                                                                                                                                                                                          |
 | ------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api.ts`                 | 1,217 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs (incl. `sendProblemReminder`, `explainSolution`, `explainSolutionChat`)                            |
+| `api.ts`                 | 1,403 | `fetchApi<T>()` (auth+refresh+retry+30s cache), `tryRefreshToken()` (singleton queue), **60+ endpoint functions** covering all backend APIs (incl. `sendProblemReminder`, `explainSolutionStream`, `explainSolutionChatStream` SSE clients)                          |
 | `types.ts`               | 654   | **40+ TypeScript interfaces**: User, Problem, Submission, ExecutionResult, Course, Module, Lesson, Section, QuizMetadata, AllModule, ModuleLock, AdminStats, all New\* payload types, ApiResponse<T> |
 | `monaco-python.ts`       | 531   | Monaco Python IntelliSense language configuration                                                                                                                                                    |
 | `monaco-intellisense.ts` | 348   | Go static completion + hover providers (25 keywords + predeclared builtins + stdlib modules)                                                                                                         |
@@ -600,7 +618,7 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `utils.ts`               | 69    | `cn()` (clsx+tailwind-merge), `getUserColor()` (6-color palette), `getDifficultyColor()`, `getDifficultyLabel()`, `seededRandom()` (mulberry32), `shuffleArray()` (Fisher-Yates)                     |
 | `monaco-setup.ts`        | 65    | Monaco AMD loader config + `initMonacoEditor` (theme, python/go features, TextMate wiring)                                                                           |
 | `monaco-warm.ts`         | 23    | Module-scope `warmMonaco()` — idle loader.init + initMonacoEditor for pre-mount warm-up (MonacoPreloader)                                                            |
-| `markdown.ts`            | 62    | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists) — all inline styles, no CSS dependency                                                                  |
+| `markdown.ts`            | 168   | Self-contained markdown renderer (headings, paragraphs, bold/italic/code/links, ul/ol lists, code blocks w/ escaping) — all inline styles, no CSS dependency                                                                  |
 | `monaco-options.ts`      | 62    | Monaco editor default options                                                                                                                                                                        |
 | `monaco-theme.ts`        | 56    | VS Code Dark+ theme registration (169-rule generated theme + charcoal surfaces)                                                                                                                      |
 | `monaco-format.ts`       | 40    | Real formatting: `registerDocumentFormattingEditProvider` (go/python) → `editor.action.formatDocument` via POST /api/format                                                                          |
@@ -982,11 +1000,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 ---
 
-## 15. Testing Strategy (24 backend + 2 sandbox test files, ~5,205 LOC, 195 backend + 11 sandbox tests)
+## 15. Testing Strategy (24 backend + 2 sandbox test files, ~5,920 LOC, 215 backend + 11 sandbox tests)
 
 | Package             | Test File                           | Tests                                    |
 | ------------------- | ----------------------------------- | ---------------------------------------- |
-| `internal/api`      | `middleware_test.go` (618 LOC)      | 23                                       |
+| `internal/api`      | `middleware_test.go` (659 LOC)      | 24                                       |
 | `internal/api`      | `problems_test.go` (35 LOC)         | 1                                        |
 | `internal/api`      | `responses_test.go` (214 LOC)       | 9                                        |
 | `internal/api`      | `format_test.go` (138 LOC)          | 6                                        |
@@ -994,16 +1012,16 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/api`      | `auth_test.go` (119 LOC)            | 4                                        |
 | `internal/api`      | `router_test.go` (46 LOC)           | 1                                        |
 | `internal/api`      | `admin_test.go` (86 LOC)            | 1                                        |
-| `internal/api`      | `explain_test.go` (249 LOC)         | 9                                        |
+| `internal/api`      | `explain_test.go` (349 LOC)         | 11                                       |
 | `internal/api`      | `community_test.go` (140 LOC)       | 3                                        |
 | `internal/api`      | `feedback_test.go` (175 LOC)        | 4                                        |
 | `internal/auth`     | `auth_test.go` (209 LOC)            | 15                                       |
 | `internal/auth`     | `oauth_test.go` (111 LOC)           | 5                                        |
 | `internal/broker`   | `broker_test.go` (186 LOC)          | 10                                       |
-| `internal/config`   | `config_test.go` (382 LOC)          | 26                                       |
+| `internal/config`   | `config_test.go` (511 LOC)          | 33                                       |
 | `internal/email`    | `email_test.go` (184 LOC)           | 6                                        |
 | `internal/email`    | `problem_reminder_test.go` (64 LOC) | 2                                        |
-| `internal/enricher` | `enricher_test.go` (366 LOC)        | 8                                        |
+| `internal/enricher` | `enricher_test.go` (730 LOC)        | 18                                       |
 | `internal/executor` | `executor_test.go` (570 LOC)        | 16                                       |
 | `internal/executor` | `format_test.go` (141 LOC)          | 7                                        |
 | `internal/parser`   | `parser_test.go` (346 LOC)          | 13                                       |
@@ -1012,7 +1030,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | `internal/store`    | `users_test.go` (154 LOC)           | 4                                        |
 | `sandbox`           | `security_message_test.go` (32 LOC) | 3                                        |
 | `sandbox`           | `format_test.go` (196 LOC)          | 8 (6 black-gated)                        |
-| **Total**           | **26 files**                        | **206 tests (195 backend + 11 sandbox)** |
+| **Total**           | **26 files**                        | **226 tests (215 backend + 11 sandbox)** |
 
 ---
 
@@ -1043,11 +1061,11 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 
 | Metric                       | Value                                                                                                                   |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Go source files**          | 76 (68 backend + 8 sandbox)                                                                                             |
-| **Go LOC**                   | ~25,700 (20,123 backend source + 4,977 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
-| **Go test files**            | 26 (~5,205 LOC, 206 tests = 195 backend + 11 sandbox)                                                                   |
-| **Frontend TSX/TS files**    | 168 (~33,926 LOC)                                                                                                       |
-| **Total tracked source LOC** | ~121,000                                                                                                                |
+| **Go source files**          | 77 (69 backend + 8 sandbox)                                                                                             |
+| **Go LOC**                   | ~28,042 (20,758 backend source + 5,611 backend test + 1,382 sandbox source + 228 sandbox test + 63 Dockerfile/fly.toml) |
+| **Go test files**            | 26 (~5,920 LOC, 226 tests = 215 backend + 11 sandbox)                                                                   |
+| **Frontend TSX/TS files**    | 205 (~36,839 LOC)                                                                                                       |
+| **Total tracked source LOC** | ~125,000                                                                                                                |
 | **API endpoints**            | ~121                                                                                                                    |
 | **Database tables**          | 25                                                                                                                      |
 | **Database indexes**         | ~60                                                                                                                     |
@@ -1058,7 +1076,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | **Curriculum section types** | 11 (ENUM)                                                                                                               |
 | **AI assist actions**        | 8                                                                                                                       |
 | **shadcn/ui primitives**     | 22                                                                                                                      |
-| **Custom components**        | 53 (incl. `best-practices/` showcase + `MonacoPreloader`)                                            |
+| **Custom components**        | 76 (incl. `best-practices/` AI showcase + `MonacoPreloader`)                                            |
 | **External Go deps**         | 7                                                                                                       |
 | **Sandbox external deps**    | 0 (stdlib only)                                                                                         |
 | **Module WebP images**       | 18                                                                                                      |
@@ -1139,6 +1157,76 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 ---
 
 ## 20. Session Log (Recent)
+
+### 2026-08-17 — Session 127: Professional AI analysis modal — "split command center" (`23ce46a`)
+
+- **Motivation:** the compressed AI panel from `aa68764` (Session 125) was functional but cramped — telemetry, code, and prose fought for space in the card body. This session rebuilds the analysis as a **full-screen dialog split 50/50** (code viewer left, analysis right), following an approved "Concept 3 — Split Command Center" plan audited against the codebase (6 breaking assumptions caught pre-implementation: `solution.explanation`/`solution.cached` don't exist on `CommunitySolution` — explanation arrives via SSE streaming; `solutionFilename`/`solutionLanguage` take `language: string`; `FollowUpDrawer` prop contract; `ComplexityScale.tsx` had to be restored from git `aa68764^`)
+- **`AnalysisModal.tsx` (new, 399 LOC)** — the orchestrator, owning **all** interactive state (analysis streaming, follow-up chat, clipboard): `sm:max-w-[880px] h-[85vh] bg-[#141414]`, `grid grid-cols-1 md:grid-cols-2`, code pane capped `max-md:h-[38%]` on mobile; header carries a NIM badge + `cached` chip; footer has "Ask AI" (opens `FollowUpDrawer` at `z-100` above the dialog `z-50`) + "Copy Analysis" (builds plain-text sections from the explanation); streaming starts on `open` via `useEffect` → `loadExplanation()` guarded by `explanation || loading`; `DialogClose` via a custom button (`showCloseButton={false}`)
+- **`QualityGauge.tsx` (restored + rebuilt, 132 LOC)** — SVG radial ring (110px), `gradeScore()` mapping (Excellent/Good/Fair/Needs work), half-star gold rating, `QualityGaugeSkeleton`; **`ScoreRadar.tsx` (restored, 55 LOC)** — recharts 4-axis radar (Efficiency/Readability/Correctness/Best practices), purple fill `#7F56D9` 0.35 / stroke `#9E77ED`, 150px; **`ComplexityScale.tsx` (restored, 51 LOC)** — collapsible O(1)→O(n!) tier bars for time/space
+- **`ExplainPanel.tsx` (→ 110 LOC)** — now **presentational only**: receives `{explanation, loading, error, partial, onRetry}`, renders the telemetry grid (QualityGauge + ScoreRadar) + tabs (Overview / Approach / Pros & Cons); `AnalysisHydration.tsx` (82 LOC) — two-column shimmer with progressive partial-data hydration (QualityGauge → ScoreRadar → summary → complexity)
+- **`SolutionCard.tsx` (→ 240 LOC)** — AI pill now opens the modal (`analysisOpen` state); the card stays collapsed (no `expandWithAI`); deleted orphaned `AnalysisScorecard.tsx` + `AnalysisHeader.tsx`; `index.ts` barrel exports `AnalysisModal`, `QualityGauge`, `gradeScore`, `ScoreRadar`
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors, `next build` success (first attempt hit a transient Windows build-worker crash `0xC0000409` during "Collecting page data" — not a code error, retry passed); commit pushed to `origin/update`
+
+### 2026-08-16 — Session 126: Suppress request logs for `/health` + `/version` infra probes (`78c3816`)
+
+- **Reported:** Render's health-check + ACA `/health` probes (and `/version`) spam the request log every few seconds, burying real traffic
+- **Fix:** `RequestLoggingMiddleware` now skips logging for `GET /health` and `GET /version` (infrastructure probes, no correlation ID noise); `middleware.go` 540 → 568 LOC
+- **Test:** `middleware_test.go` +1 (TestRequestLoggingMiddleware_SkipsHealthAndVersion, 41 LOC) → **215 backend tests** (was 214); verified pre-fix it logs, post-fix it doesn't
+- **Verified:** `go vet` clean, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+
+### 2026-08-16 — Session 125: Compress AI analysis panel — compact inline layout (`aa68764`)
+
+- **Refactor:** replaced the decorative telemetry (QualityGauge/ScoreRadar/ComplexityScale/MetricTile) with a compact inline analysis layout — prose-first (summary/approach/techniques/points) with a single inline complexity pill; removed `AnalysisFooter.tsx`/`AnalysisSection.tsx`; globals.css −112 LOC (aura/animation classes pruned); `AnalysisLabel.tsx` added for shared eyebrows; `ComplexityScale.tsx`, `QualityGauge.tsx`, `ScoreRadar.tsx`, `MetricTile.tsx` deleted
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+- **Noted:** this layout was **superseded** the next session by the professional AnalysisModal redesign (Session 127) — the compressed panel never shipped to a reviewable state
+
+### 2026-08-16 — Session 124: Follow-up AI chat clearing partial answer — React 18 batching bug (`9d53340`)
+
+- **Reported bug:** the follow-up chat bubble cleared its in-progress (streaming) answer and sometimes didn't render
+- **Root cause:** `onDelta` read the message `ref` **inside the deferred state updater** — React 18's automatic batching merged the deltas so each `setMessages(prev => [...prev, ref.current + delta])` used a stale closure that reset instead of appended
+- **Fix** (`ExplainPanel.tsx`, 14 LOC): read `messagesRef.current` **before** the updater (capture into a local), then pass the captured value to the functional update — deltas now accumulate correctly
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+
+### 2026-08-16 — Session 123: AI analysis/chat not responding — SSE Flusher hidden by logging wrapper (`300bc96`)
+
+- **Reported bug:** the AI analysis spinner ran forever and chat never produced answers — but the backend WAS responding (diagnosed as two interacting bugs)
+- **Root cause 1 — server:** `RequestLoggingMiddleware` wraps every `ResponseWriter` in `loggingResponseWriter`, which implemented only `WriteHeader`/`Hijack` and **no `Flush()`** → it did not satisfy `http.Flusher`. The `w.(http.Flusher)` checks in Explain/ExplainChat always failed in production, silently degrading both to the **buffered JSON path** — SSE never streamed. Unit tests missed it because `httptest.ResponseRecorder` implements `Flusher`
+- **Root cause 2 — client:** `consumeExplainStream`'s plain-JSON branch only handled `cached:true` — buffered cache-miss analyses (`{cached:false, explanation}`) and buffered chat answers (`{answer}`) were **dropped**
+- **Fix:** `loggingResponseWriter.Flush()` now delegates to the underlying writer when it implements `http.Flusher`, with a compile-time guard `var _ http.Flusher = (*loggingResponseWriter)(nil)` (fails the build instead of degrading production); `api.ts` JSON branch routes any `data.data.explanation` → `onFinal` (cached true/false) and `data.data.answer` → `onDelta`
+- **Test:** `TestExplainStreamsThroughLoggingMiddleware` (40 LOC) drives the Explain handler through the **real** `RequestLoggingMiddleware` and asserts SSE frames are emitted — fails pre-fix (`application/json`), passes post-fix → **214 backend tests** (was 213)
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors, `next build` success; pushed to `origin/update`
+
+### 2026-08-15 — Session 122: SSE streaming AI analysis + chat, professional prompts, decomposed panel UI (`4ee86e3`)
+
+- **Backend — streaming:** `enricher.GenerateContentStream` (bufio SSE parser, 1MB scan buffer, `[DONE]` sentinel, 429/503 retry mapping) + `ExplainSolutionStream`/`ExplainChatStream` (callback-based delta delivery, `ErrAIUpstream` sentinel, `errStreamWrite` abort); `explain.go` (220 → 397 LOC) — `Explain`/`ExplainChat` stream **SSE frames** (`data:` + flush) on cache miss, with a **buffered fallback** for non-Flusher servers; frame types: `sseDeltaFrame`/`sseExplanationFrame`/`sseErrorFrame`; `setStreamHeaders`/`writeSSEFrame`/`sseErrorFrameFrom` helpers; mid-stream failures surface as error frames
+- **Frontend — SSE clients:** `lib/api.ts` (1,217 → 1,403) — `explainSolutionStream`/`explainSolutionChatStream` raw-fetch SSE consumers: `text/event-stream` content-type detection, `[DONE]`, error frames, `onFinal(explanation, cached)`/`onDelta`/`onError` handlers; `lib/markdown.ts` (62 → 168) — upgraded self-contained renderer (code blocks w/ escaping, inline emphasis)
+- **Decomposed UI:** ExplainPanel rewritten (→ 389 LOC diff) into sub-components — `AnalysisSummary`/`AnalysisApproach`/`AnalysisTechniques`/`AnalysisPoints`/`AnalysisComplexity`/`AnalysisScorecard`/`AnalysisSection`/`AnalysisError`/`AnalysisLabel`/`AnalysisFooter`/`AnalysisHydration` + `chat/` (ChatBubble/ChatComposer/ChatHeader/ChatMessages/types); `AnalysisSkeleton` removed (replaced by progressive partial-JSON hydration during the stream); `FollowUpDrawer` (→ 156 diff) rebuilt on the chat primitives with live streaming bubbles
+- **Professional prompts:** dual-language prompt builders tightened (metrics: quality/efficiency/readability/correctness/best_practices 0-100 + Big-O)
+- **Tests:** fake provider/explainer gained stream methods; new stream tests (provider SSE error-frame + chat streaming, [DONE], JSON-branch fallback); cache-miss + provider-failure tests updated to the streaming contract → **213 backend tests** (was 211)
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+
+### 2026-08-15 — Session 121: Follow-up chat collapsing the accordion — drawer extraction + professional panel (`66fb117`)
+
+- **Reported bug:** typing in the follow-up chat collapsed the `SolutionCard` accordion (interactive children were re-triggering the row toggle)
+- **Fix:** the follow-up chat was extracted out of the card body into a **bottom-sheet drawer** — `FollowUpDrawer.tsx` (new, 221 LOC, Radix Dialog, animated) rendered above the card; chat input no longer lives inside the accordion; `SolutionCard` (+126) — chat button opens the drawer, whole-row accordion logic now excludes the drawer trigger; `globals.css` +249 (drawer/keyframe animations)
+- **Also in this commit:** the AI analysis panel gained a more professional layout (`ExplainPanel` +106 diff, `QualityGauge` +82, `MetricTile` +14) — proper telemetry tiles + refined spacing
+- **Verified:** `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+
+### 2026-08-15 — Session 120: Manual AI trigger + custom provider aliases + tunable knobs (`3694b5b`)
+
+- **Manual AI trigger:** `SolutionCard`/`ExplainPanel` gained an explicit AI button — users click to run the analysis instead of it firing on expand (saves a NIM call on every card open); loading/error/retry states wired to the button
+- **Config — generic AI aliases:** `AI_API_KEY`/`AI_BASE_URL`/`AI_MODEL` generic aliases preferred; legacy `NVIDIA_*` names kept as fallbacks so a different provider token/model can be plugged in without code changes (`config.go` 366 → 465 LOC, 36 → 42+ config fields)
+- **Config — tunable AI knobs:** `AI_MAX_TOKENS` (default 8192), `AI_TEMPERATURE` (default 0.7), `AI_JSON_MODE` — passed through to the provider request (`max_tokens`/`temperature`/`response_format`); `.env.example` +17 documented rows
+- **Tests:** config_test.go +7 (aliases precedence, defaults, invalid values → 33 total), enricher_test.go +2 (knob propagation → provider request) → **211 backend tests** (was 209)
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
+
+### 2026-08-15 — Session 119: AI analysis dashboard — quality scores, explain diagnostics, notification deep-links (`cc20eac`)
+
+- **Migration `055_ai_solution_scores.sql` (new, 10 LOC):** 5 numeric score columns on `ai_solution_explanations` (quality/efficiency/readability/correctness/best_practices, 0-100, NULL = not scored yet → UI hides gauges until real scores exist)
+- **Backend:** `ExplainSolution` now parses + clamps the 5 AI quality scores (0-100) into the cached `SolutionExplanation` (store `types.go` +38, `solution_explanations.go` +29); `explain.go` (+51) — scores returned in the response, error-friendlier `respondExplainError`; enricher.go (1,157 → 1,347) — prompt rubrics ask for per-dimension scores 0-100 + Big-O; notifications gain deep-links (`store/notifications.go` +22 — `related_id` routing to the problem)
+- **Frontend:** new dashboard components — `AnalysisHeader` (46), `AnalysisSkeleton` (40), `ComplexityBadge` (35), `ComplexityScale` (51), `MetricTile` (37), `QualityGauge` (56), `ScoreRadar` (53); `ExplainPanel` reworked (194 diff) to show the scorecard; `TopNav` (+72) — notification bell deep-links to problem pages; settings page (+93) — AI provider/analysis diagnostics panel
+- **Tests:** explain_test.go 9 → 10 (score clamping), enricher_test.go 8 → 15 (score parsing/prompts/validate) → **209 backend tests** (was 195); config/README/.env.example docs synced
+- **Verified:** `go vet` clean, `go build ./cmd/server` OK, 9/9 backend suites green, `tsc --noEmit` 0 errors, ESLint 0 errors; pushed to `origin/update`
 
 ### 2026-08-14 — Session 118: AI best-practice explanations + like notifications (NIM, deduped cache, WS)
 
@@ -1620,4 +1708,4 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
-_Last indexed: 2026-08-14 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (195 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: 15 modified + 6 untracked (AI code explanations + like notifications), uncommitted_
+_Last indexed: 2026-08-17 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (215 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean_
