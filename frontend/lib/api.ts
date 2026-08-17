@@ -975,6 +975,21 @@ export async function sendProblemReminder(data: {
   );
 }
 
+export async function sendBestPracticesAnnouncement(data: {
+  subject?: string;
+  cta_url?: string;
+  test_email?: string;
+  send_to_all?: boolean;
+}): Promise<ApiResponse<{ attempted: number; sent: number; failed: number }>> {
+  return fetchApi<{ attempted: number; sent: number; failed: number }>(
+    "/admin/broadcast-best-practices",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
+}
+
 export async function deactivateBroadcast(
   id: string,
 ): Promise<ApiResponse<any>> {

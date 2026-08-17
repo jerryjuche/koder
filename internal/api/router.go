@@ -230,6 +230,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(1*1024*1024)).Patch("/admin/test-cases/{id}", adminHandler.UpdateTestCase)
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Post("/admin/problems/publish-all", adminHandler.PublishAllDrafts)
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Post("/admin/broadcast-emails", adminHandler.SendProblemReminder)
+			r.With(BodySizeLimitMiddleware(5*1024*1024)).Post("/admin/broadcast-best-practices", adminHandler.SendBestPracticesAnnouncement)
 			r.Get("/admin/user-problems/pending", adminHandler.ListPendingUserProblems)
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Patch("/admin/user-problems/{id}/approve", adminHandler.ApproveUserProblem)
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Patch("/admin/user-problems/{id}/reject", adminHandler.RejectUserProblem)

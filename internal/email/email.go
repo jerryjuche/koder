@@ -195,6 +195,303 @@ func renderMarkdownToHTML(md string) string {
 	return strings.Join(out, "\n")
 }
 
+// TrophyIconDataURI is an inline SVG trophy (Lucide-style stroke) in gold,
+// used as the hero icon for the Best Practices announcement email.
+const TrophyIconDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Cpath d='M6 9H4.5a2.5 2.5 0 0 1 0-5H6'/%3E" +
+	"%3Cpath d='M18 9h1.5a2.5 2.5 0 0 0 0-5H18'/%3E" +
+	"%3Cpath d='M4 22h16'/%3E" +
+	"%3Cpath d='M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22'/%3E" +
+	"%3Cpath d='M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22'/%3E" +
+	"%3Cpath d='M18 2H6v7a6 6 0 0 0 12 0V2Z'/%3E%3C/svg%3E"
+
+// HeartIconDataURI is an inline SVG heart in gold for the Community Solutions card.
+const HeartIconDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E"
+
+// SparklesIconDataURI is an inline SVG sparkles in gold for the AI Analysis card.
+const SparklesIconDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Cpath d='m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z'/%3E" +
+	"%3Cpath d='M5 3v4'/%3E%3Cpath d='M19 17v4'/%3E" +
+	"%3Cpath d='M3 5h4'/%3E%3Cpath d='M17 19h4'/%3E%3C/svg%3E"
+
+// StarIconDataURI is an inline SVG star in gold for the How to Get Featured card.
+const StarIconDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E"
+
+// DigestSolution holds the data for a single solution preview in the Best Practices email.
+type DigestSolution struct {
+	UserName     string
+	ProblemTitle string
+	Language     string
+	Likes        int
+}
+
+// BestPracticesData is the data model for the Best Practices announcement email.
+type BestPracticesData struct {
+	PlatformName   string
+	FirstName      string
+	CTAURL         string
+	LogoURL        template.URL
+	LogoHTML       template.HTML
+	SupportEmail   string
+	Tagline        string
+	Year           int
+	SolutionCount  int
+	GoCount        int
+	PythonCount    int
+	TotalLikes     int
+	BestRuntimeMs  int
+	DeveloperCount int
+	TopSolutions   []DigestSolution
+}
+
+// RenderBestPractices renders the Best Practices announcement email into w.
+func RenderBestPractices(w io.Writer, data BestPracticesData) error {
+	if data.PlatformName == "" {
+		data.PlatformName = "Koder"
+	}
+	if data.Year == 0 {
+		data.Year = time.Now().Year()
+	}
+	data.LogoHTML = renderLogoHTML(data.LogoURL)
+	return bestPracticesTmpl.ExecuteTemplate(w, "layoutBase", data)
+}
+
+// RenderBestPracticesString renders the Best Practices email and returns the
+// full HTML document as a string.
+func RenderBestPracticesString(data BestPracticesData) (string, error) {
+	var buf bytes.Buffer
+	if err := RenderBestPractices(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+var bestPracticesTmpl = template.Must(template.New("best-practices").Parse(
+	layoutBase + bestPracticesBodyWithIcons(),
+))
+
+func bestPracticesBodyWithIcons() string {
+	s := bestPracticesBody()
+	s = strings.Replace(s, "{{__TROPHY_ICON__}}", TrophyIconDataURI, 1)
+	s = strings.Replace(s, "{{__HEART_ICON__}}", HeartIconDataURI, 1)
+	s = strings.Replace(s, "{{__SPARKLES_ICON__}}", SparklesIconDataURI, 1)
+	s = strings.Replace(s, "{{__STAR_ICON__}}", StarIconDataURI, 1)
+	return s
+}
+
+func bestPracticesBody() string {
+	return `{{define "content"}}
+
+<!-- Header band -->
+<tr>
+<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="left">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:middle;">
+{{.LogoHTML}}
+</td>
+<td style="width:12px;">&nbsp;</td>
+<td style="vertical-align:middle;">
+<div style="font-size:20px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
+<div style="margin-top:4px;color:` + TextSecondary + `;font-size:12px;">{{.Tagline}}</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Hero -->
+<tr>
+<td style="padding:32px 16px 0 16px;text-align:center;">
+
+<div style="width:72px;height:72px;border-radius:50%;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;background-image:url('{{__TROPHY_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:32px 32px;" bgcolor="#D4AF37"></div>
+
+<h1 style="margin:0;font-size:28px;line-height:34px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Introducing Best Practices</h1>
+
+<p style="margin:14px auto 0;max-width:420px;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
+See how top developers solve real problems. Browse community solutions, get AI-powered code analysis, and learn from the best.
+</p>
+
+</td>
+</tr>
+
+<!-- Stats bar -->
+<tr>
+<td style="padding:24px 16px 0 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:16px 8px;text-align:center;width:25%;">
+<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.SolutionCount}}</div>
+<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Solutions</div>
+</td>
+<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.DeveloperCount}}</div>
+<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Developers</div>
+</td>
+<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.TotalLikes}}</div>
+<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Likes</div>
+</td>
+<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.GoCount}} / {{.PythonCount}}</div>
+<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Go / Python</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Feature Card 1: Community Solutions -->
+<tr>
+<td style="padding:20px 16px 0 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:20px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:top;width:40px;">
+<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__HEART_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+</td>
+<td style="vertical-align:top;padding-left:12px;">
+<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">Community Solutions</div>
+<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Compare how others approached the same problem. Sort by most liked, fastest runtime, or newest submissions. Every solution includes the full source code and developer stats.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Feature Card 2: AI Analysis -->
+<tr>
+<td style="padding:12px 16px 0 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:20px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:top;width:40px;">
+<div style="width:40px;height:40px;border-radius:12px;background-color:#F3E8FF;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__SPARKLES_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+</td>
+<td style="vertical-align:top;padding-left:12px;">
+<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">AI-Powered Code Analysis</div>
+<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Click any solution to get instant AI analysis: quality scores, efficiency and readability ratings, time and space complexity breakdown, key techniques, strengths, and areas for improvement. Ask follow-up questions about the approach.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Feature Card 3: How to Get Featured -->
+<tr>
+<td style="padding:12px 16px 0 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<tr>
+<td style="padding:20px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="vertical-align:top;width:40px;">
+<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF9C3;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__STAR_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+</td>
+<td style="vertical-align:top;padding-left:12px;">
+<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">How to Get Featured</div>
+<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Solve any problem to submit your solution. Other developers can like your code, and the top-rated solutions appear at the top of Best Practices. The more problems you solve, the more your solutions get discovered.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Top Solutions Preview -->
+{{if .TopSolutions}}
+<tr>
+<td style="padding:24px 16px 0 16px;">
+<div style="font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:` + TextSecondary + `;font-weight:600;margin-bottom:12px;">Top Rated Solutions</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ` + BorderColor + `;border-radius:16px;overflow:hidden;">
+{{range $i, $s := .TopSolutions}}
+<tr{{if $i}} style="border-top:1px solid ` + BorderColor + `;"{{end}}>
+<td style="padding:14px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td>
+<div style="font-size:14px;font-weight:600;color:` + TextPrimary + `;">{{.ProblemTitle}}</div>
+<div style="font-size:12px;color:` + TextSecondary + `;margin-top:2px;">by {{.UserName}} &middot; {{.Language}}</div>
+</td>
+<td align="right" style="white-space:nowrap;">
+<div style="display:inline-flex;align-items:center;gap:4px;background-color:#FEF3C7;border-radius:20px;padding:4px 10px;">
+<span style="font-size:12px;font-weight:600;color:#92400E;">&#9829; {{.Likes}}</span>
+</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+{{end}}
+</table>
+</td>
+</tr>
+{{end}}
+
+<!-- CTA -->
+<tr>
+<td style="padding:28px 16px 0 16px;text-align:center;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+<tr>
+<td style="border-radius:14px;background-color:` + ButtonGold + `;">
+<a href="{{.CTAURL}}" style="display:inline-block;padding:16px 36px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Explore Best Practices</a>
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- Fallback link -->
+<tr>
+<td style="padding:16px 16px 0 16px;">
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+</div>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+
+</td>
+</tr>
+
+{{end}}`
+}
+
 var problemReminderTmpl = template.Must(template.New("problem-reminder").Parse(layoutBase + problemReminderBody()))
 
 func problemReminderBody() string {

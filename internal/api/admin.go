@@ -473,6 +473,170 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 	RespondSuccess(w, map[string]int{"attempted": len(recipients), "sent": sent, "failed": failed})
 }
 
+// sendBestPracticesRequest is the payload for POST /admin/broadcast-best-practices
+type sendBestPracticesRequest struct {
+	Subject   string `json:"subject"`
+	CTAURL    string `json:"cta_url"`
+	TestEmail string `json:"test_email"`
+	SendToAll bool   `json:"send_to_all"`
+}
+
+// SendBestPracticesAnnouncement sends a Best Practices announcement email
+// either as a single test email or to all registered users.
+func (h *AdminHandler) SendBestPracticesAnnouncement(w http.ResponseWriter, r *http.Request) {
+	var req sendBestPracticesRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	// Fetch live stats from the Best Practices endpoint
+	solutions, err := h.store.GetBestPractices(r.Context(), uuid.Nil, false, 500)
+	if err != nil {
+		slog.Error("admin: failed to load best practices for email", "error", err)
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to load best practices data", nil)
+		return
+	}
+
+	// Aggregate stats
+	solutionCount := len(solutions)
+	goCount := 0
+	pythonCount := 0
+	totalLikes := 0
+	bestRuntime := 0
+	authorSet := make(map[string]bool)
+	topSolutions := make([]emailtmpl.DigestSolution, 0, 5)
+
+	for i, s := range solutions {
+		switch strings.ToLower(s.Language) {
+		case "go":
+			goCount++
+		case "python":
+			pythonCount++
+		}
+		totalLikes += s.Likes
+		if s.RuntimeMs > 0 && (bestRuntime == 0 || s.RuntimeMs < bestRuntime) {
+			bestRuntime = s.RuntimeMs
+		}
+		authorSet[s.UserName] = true
+		if i < 5 {
+			topSolutions = append(topSolutions, emailtmpl.DigestSolution{
+				UserName:     s.UserName,
+				ProblemTitle: s.ProblemTitle,
+				Language:     s.Language,
+				Likes:        s.Likes,
+			})
+		}
+	}
+
+	// Build CTA URL
+	cta := strings.TrimSpace(req.CTAURL)
+	if cta == "" {
+		if h.cfg != nil && h.cfg.FrontendURL != "" {
+			cta = strings.TrimRight(h.cfg.FrontendURL, "/") + "/home?bp_tab=all"
+		} else {
+			cta = "/home?bp_tab=all"
+		}
+	}
+
+	var logoURL template.URL
+	if h.cfg != nil && h.cfg.FrontendURL != "" {
+		logoURL = template.URL(strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png")
+	}
+
+	htmlBody, err := emailtmpl.RenderBestPracticesString(emailtmpl.BestPracticesData{
+		PlatformName:   "Koder",
+		FirstName:      "Coder",
+		CTAURL:         cta,
+		LogoURL:        logoURL,
+		SupportEmail:   emailAddressFromFrom(h.cfg.EmailFrom),
+		Tagline:        "Koder turns every problem into an instant feedback loop.",
+		SolutionCount:  solutionCount,
+		GoCount:        goCount,
+		PythonCount:    pythonCount,
+		TotalLikes:     totalLikes,
+		BestRuntimeMs:  bestRuntime,
+		DeveloperCount: len(authorSet),
+		TopSolutions:   topSolutions,
+	})
+	if err != nil {
+		slog.Error("admin: failed to render best-practices template", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TEMPLATE_ERROR", "Failed to render email template", nil)
+		return
+	}
+
+	subject := strings.TrimSpace(req.Subject)
+	if subject == "" {
+		subject = "Koder — Discover Best Practices: See how top developers solve problems"
+	}
+
+	// Determine recipients
+	recipients := []string{}
+	if req.TestEmail != "" {
+		recipients = append(recipients, strings.TrimSpace(req.TestEmail))
+	} else if req.SendToAll {
+		emails, err := h.store.ListAllUserEmails(r.Context())
+		if err != nil {
+			slog.Error("admin: failed to list user emails", "error", err)
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list user emails", nil)
+			return
+		}
+		recipients = append(recipients, emails...)
+	} else {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "either test_email or send_to_all=true must be provided", nil)
+		return
+	}
+
+	sent := 0
+	failed := 0
+	ctx := r.Context()
+
+	client := h.httpClient
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
+	for _, to := range recipients {
+		emailLog, _ := h.store.CreateEmailLog(ctx, nil, to, "broadcast_best_practices")
+		logID := uuid.Nil
+		if emailLog != nil {
+			logID = emailLog.ID.Bytes
+		}
+
+		textBody := fmt.Sprintf("Discover Best Practices on %s\n\nSee how top developers solve problems with community solutions and AI-powered code analysis.\n\nExplore: %s\n", "Koder", cta)
+
+		providerID, statusCode, respBody, sendErr := emailtmpl.SendEmailViaResend(ctx, client, h.cfg.ResendAPIKey, h.cfg.EmailFrom, []string{to}, subject, htmlBody, textBody)
+
+		if logID != uuid.Nil {
+			h.store.UpdateEmailLogAttempts(ctx, logID, 1)
+		}
+
+		if sendErr != nil {
+			failed++
+			msg := sendErr.Error()
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "failed", nil, &msg)
+			}
+			slog.Error("admin: resend send failed", "to", to, "error", sendErr, "status", statusCode, "body", string(respBody))
+		} else {
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "sent", &providerID, nil)
+			}
+			sent++
+		}
+
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Best Practices announcement sent to %d users (%d sent, %d failed)", len(recipients), sent, failed),
+		"text-brand-success", "Trophy",
+	)
+
+	RespondSuccess(w, map[string]int{"attempted": len(recipients), "sent": sent, "failed": failed})
+}
+
 // ListPendingUserProblems returns all pending community contributions.
 func (h *AdminHandler) ListPendingUserProblems(w http.ResponseWriter, r *http.Request) {
 	problems, err := h.store.ListPendingUserProblems(r.Context())
