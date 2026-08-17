@@ -17,6 +17,8 @@ func TestRenderProblemReminder_ContainsExpectedFields(t *testing.T) {
 		LogoURL:        "https://koder.sbs/logo.png",
 		SupportEmail:   "support@koder.sbs",
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
+		PreviewTitle:   "Sum Two Numbers — Koder",
+		PreheaderText:  "A new challenge is waiting: Sum Two Numbers. Sharpen your skills with this short exercise.",
 	}
 
 	out, err := RenderProblemReminderString(data)
@@ -26,12 +28,20 @@ func TestRenderProblemReminder_ContainsExpectedFields(t *testing.T) {
 
 	required := []string{
 		"<!DOCTYPE html>",
+		"<title>Sum Two Numbers — Koder</title>",
+		"display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;",
+		"A new challenge is waiting: Sum Two Numbers",
 		"Ready for a quick challenge?",
 		"Sum Two Numbers",
 		"Add two integers and return the sum.",
 		"Open Problem",
 		"https://koder.sbs/logo.png",
 		"support@koder.sbs",
+		"border-left:4px solid #7F56D9",
+		"border-top:2px solid #7F56D9",
+		"color:#53389E",
+		"border-bottom:2px solid #B8941F",
+		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 	}
 
 	for _, want := range required {

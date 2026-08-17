@@ -14,6 +14,8 @@ func testData() PasswordResetData {
 		LogoURL:      template.URL("https://koder.sbs/logo.png"),
 		SupportEmail: "support@koder.sbs",
 		Tagline:      "Koder turns every problem into an instant feedback loop.",
+		PreviewTitle: "Reset Your Password — Koder",
+		PreheaderText: "Hi Ada, we received a password reset request for your Koder account.",
 	}
 }
 
@@ -27,11 +29,16 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"<!DOCTYPE html>",
 		`<html lang="en">`,
 		`<meta name="color-scheme" content="light">`,
+		"<title>Reset Your Password — Koder</title>",
+		"display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;",
+		"Hi Ada, we received a password reset request",
 		"Reset your password",
 		"Hi <strong style=\"color:#111827;\">Ada</strong>",
 		"https://koder.sbs/reset-password?token=abc123&amp;x=1",
 		"https://koder.sbs/logo.png",
 		"background-color:#D4AF37",
+		"border-bottom:2px solid #B8941F",
+		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 		"Reset Password",
 		"This secure link expires in <strong style=\"color:#111827;\">1 hour</strong>.",
 		"Didn't request this?",
@@ -41,6 +48,9 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"Koder turns every problem into an instant feedback loop.",
 		"&copy; ",
 		"Koder",
+		"border-left:4px solid #7F56D9",
+		"border-top:2px solid #7F56D9",
+		"color:#53389E",
 	}
 	for _, want := range required {
 		if !strings.Contains(out, want) {
@@ -91,7 +101,7 @@ func TestRenderPasswordReset_AppliesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	for _, want := range []string{"Koder", "1 hour"} {
+	for _, want := range []string{"Koder", "1 hour", "<title>Koder</title>"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("default not applied, missing %q", want)
 		}
@@ -160,7 +170,9 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 			{UserName: "Alice", ProblemTitle: "Sum Two Numbers", Language: "go", Likes: 24},
 			{UserName: "Bob", ProblemTitle: "Fibonacci", Language: "python", Likes: 19},
 		},
-		Year: 2026,
+		Year:          2026,
+		PreviewTitle:  "Discover Best Practices — Koder",
+		PreheaderText: "See top-rated community solutions, get AI-powered code analysis, and learn from the best developers.",
 	}
 
 	out, err := RenderBestPracticesString(data)
@@ -172,7 +184,10 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"<!DOCTYPE html>",
 		`<html lang="en">`,
 		`<meta name="color-scheme" content="light">`,
-		"Introducing Best Practices",
+		"<title>Discover Best Practices — Koder</title>",
+		"display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;",
+		"See top-rated community solutions",
+		"Discover Best Practices",
 		"See how top developers solve real problems",
 		"42",                    // solution count
 		"18",                    // developer count
@@ -194,6 +209,13 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
 		"&copy; ",
+		// Purple accent checks
+		"border-left:4px solid #7F56D9",
+		"border-top:3px solid #7F56D9",
+		"border-top:2px solid #7F56D9",
+		"color:#53389E",
+		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
+		"border-bottom:2px solid #B8941F",
 	}
 	for _, want := range required {
 		if !strings.Contains(out, want) {
@@ -294,7 +316,7 @@ func TestRenderBestPractices_AppliesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	for _, want := range []string{"Koder", "Explore Best Practices"} {
+	for _, want := range []string{"Koder", "Explore Best Practices", "<title>Koder</title>"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("default not applied, missing %q", want)
 		}
@@ -313,6 +335,8 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		SupportEmail:   "support@koder.sbs",
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
 		Year:           2026,
+		PreviewTitle:   "Binary Search — Koder",
+		PreheaderText:  "A new challenge is waiting: Binary Search.",
 	}
 
 	out, err := RenderProblemReminderString(data)
@@ -322,6 +346,9 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 
 	for _, want := range []string{
 		`<meta name="color-scheme" content="light">`,
+		"<title>Binary Search — Koder</title>",
+		"display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;",
+		"A new challenge is waiting: Binary Search",
 		"background-color:#F7F8FA",
 		"background-color:#FFFFFF",
 		"background-color:#D4AF37",
@@ -331,6 +358,8 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
+		"border-left:4px solid #7F56D9",
+		"color:#53389E",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered reminder missing %q", want)
