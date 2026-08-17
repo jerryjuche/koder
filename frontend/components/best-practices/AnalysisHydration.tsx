@@ -24,7 +24,7 @@ export function AnalysisHydration({
     partial.best_practices_score != null;
 
   return (
-    <div className="flex h-full flex-col space-y-4">
+    <div className="flex flex-col space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <Loader2 size={15} className="animate-spin text-purple-300" />
         Generating analysis

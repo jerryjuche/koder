@@ -369,6 +369,37 @@ func TestPythonTemplate_ComparisonLogic(t *testing.T) {
 	if !strings.Contains(content, "result == expected_val") {
 		t.Error("template missing result == expected_val")
 	}
+	if !strings.Contains(content, "json.JSONDecodeError") {
+		t.Error("template missing JSONDecodeError fallback for non-JSON expected values")
+	}
+}
+
+func TestFormatPythonExpected(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		// Valid JSON passthrough
+		{"42", "42"},
+		{"true", "true"},
+		{"null", "null"},
+		{"[1,2,3]", "[1,2,3]"},
+		{`"hello"`, `"hello"`},
+		// Bare strings wrapped as JSON strings
+		{"fish", `"fish"`},
+		{"hello world", `"hello world"`},
+		{"", `""`},
+		// Strings with special chars
+		{"it's", `"it's"`},
+		{`he said "hi"`, `"he said \"hi\""`},
+	}
+
+	for _, tc := range tests {
+		got := formatPythonExpected(tc.raw)
+		if got != tc.want {
+			t.Errorf("formatPythonExpected(%q) = %q, want %q", tc.raw, got, tc.want)
+		}
+	}
 }
 
 func TestResolveProblemLanguageMeta(t *testing.T) {
