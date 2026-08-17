@@ -44,11 +44,11 @@ const LogoDataURI = "data:image/svg+xml;charset=utf-8," +
 	"%3Cpath d='M12 10h4l4 8-4 8h-4l4-8-4-8Z' fill='%23111727'/%3E%3C/svg%3E"
 
 func renderLogoHTML(logoURL template.URL) template.HTML {
-	base := `<div style="width:36px;height:36px;border-radius:12px;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;overflow:hidden;background-image:url('` + LogoDataURI + `');background-repeat:no-repeat;background-position:center;background-size:18px 18px;">`
-	if len(strings.TrimSpace(string(logoURL))) == 0 {
-		return template.HTML(base + `</div>`)
+	src := string(LogoDataURI)
+	if len(strings.TrimSpace(string(logoURL))) > 0 {
+		src = string(logoURL)
 	}
-	return template.HTML(base + `<img src="` + string(logoURL) + `" width="36" height="36" alt="Koder logo" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" />` + `</div>`)
+	return template.HTML(`<div style="width:36px;height:36px;border-radius:12px;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;border:1px solid ` + BorderColor + `;overflow:hidden;"><img src="` + src + `" width="36" height="36" alt="Koder logo" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" /></div>`)
 }
 
 // PasswordResetData is the data model for the password-reset email.
@@ -223,6 +223,13 @@ const StarIconDataURI = "data:image/svg+xml;charset=utf-8," +
 	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E" +
 	"%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E"
 
+// SmallHeartIconDataURI is a 12×12 inline SVG heart in amber for the like
+// badge in the Top Solutions list. Replaces the &#9829; HTML entity so the
+// icon renders consistently across all email clients (including Outlook).
+const SmallHeartIconDataURI = "data:image/svg+xml;charset=utf-8," +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2392400E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E"
+
 // DigestSolution holds the data for a single solution preview in the Best Practices email.
 type DigestSolution struct {
 	UserName     string
@@ -282,6 +289,7 @@ func bestPracticesBodyWithIcons() string {
 	s = strings.Replace(s, "{{__HEART_ICON__}}", HeartIconDataURI, 1)
 	s = strings.Replace(s, "{{__SPARKLES_ICON__}}", SparklesIconDataURI, 1)
 	s = strings.Replace(s, "{{__STAR_ICON__}}", StarIconDataURI, 1)
+	s = strings.Replace(s, "{{__SMALL_HEART_ICON__}}", SmallHeartIconDataURI, -1)
 	return s
 }
 
@@ -316,7 +324,7 @@ func bestPracticesBody() string {
 <tr>
 <td style="padding:32px 16px 0 16px;text-align:center;">
 
-<div style="width:72px;height:72px;border-radius:50%;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;background-image:url('{{__TROPHY_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:32px 32px;" bgcolor="#D4AF37"></div>
+<div style="width:72px;height:72px;border-radius:50%;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;" bgcolor="#D4AF37"><img src="{{__TROPHY_ICON__}}" width="32" height="32" alt="" style="display:block;border:0;" /></div>
 
 <h1 style="margin:0;font-size:28px;line-height:34px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Introducing Best Practices</h1>
 
@@ -332,21 +340,25 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <td style="padding:24px 16px 0 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
 <tr>
-<td style="padding:16px 8px;text-align:center;width:25%;">
-<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.SolutionCount}}</div>
-<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Solutions</div>
+<td style="padding:16px 6px;text-align:center;width:20%;">
+<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.SolutionCount}}</div>
+<div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Solutions</div>
 </td>
-<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.DeveloperCount}}</div>
-<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Developers</div>
+<td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.DeveloperCount}}</div>
+<div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Developers</div>
 </td>
-<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.TotalLikes}}</div>
-<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Likes</div>
+<td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.TotalLikes}}</div>
+<div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Likes</div>
 </td>
-<td style="padding:16px 8px;text-align:center;width:25%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:24px;font-weight:700;color:` + TextPrimary + `;">{{.GoCount}} / {{.PythonCount}}</div>
-<div style="font-size:11px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Go / Python</div>
+<td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.GoCount}}</div>
+<div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Go</div>
+</td>
+<td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
+<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.PythonCount}}</div>
+<div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Python</div>
 </td>
 </tr>
 </table>
@@ -362,7 +374,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__HEART_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__HEART_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
 <div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">Community Solutions</div>
@@ -385,7 +397,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#F3E8FF;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__SPARKLES_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:#F3E8FF;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__SPARKLES_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
 <div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">AI-Powered Code Analysis</div>
@@ -408,7 +420,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF9C3;display:inline-flex;align-items:center;justify-content:center;background-image:url('{{__STAR_ICON__}}');background-repeat:no-repeat;background-position:center;background-size:20px 20px;"></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF9C3;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__STAR_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
 <div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">How to Get Featured</div>
@@ -439,7 +451,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 </td>
 <td align="right" style="white-space:nowrap;">
 <div style="display:inline-flex;align-items:center;gap:4px;background-color:#FEF3C7;border-radius:20px;padding:4px 10px;">
-<span style="font-size:12px;font-weight:600;color:#92400E;">&#9829; {{.Likes}}</span>
+<img src="{{__SMALL_HEART_ICON__}}" width="12" height="12" alt="" style="display:inline-block;vertical-align:middle;border:0;" /><span style="font-size:12px;font-weight:600;color:#92400E;">{{.Likes}}</span>
 </div>
 </td>
 </tr>

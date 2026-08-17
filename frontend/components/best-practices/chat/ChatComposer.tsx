@@ -25,15 +25,23 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
   }, [question]);
 
-  // Focus the textarea after the FollowUpDrawer's slide-in animation completes
-  // (280ms + 40ms buffer). Replaces autoFocus which fires while the element is
-  // still off-screen mid-transform — the browser considers the focus attempt
-  // "done" before the animation finishes, so subsequent clicks don't register.
+  // Focus the textarea after the FollowUpDrawer's slide-in animation completes.
+  // Uses double-rAF to wait for the browser to paint the drawer in its final
+  // position before attempting focus — more reliable than a fixed setTimeout.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      textareaRef.current?.focus({ preventScroll: true });
-    }, 320);
-    return () => clearTimeout(timer);
+    let raf: number;
+    let timer: ReturnType<typeof setTimeout>;
+    raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => {
+        timer = setTimeout(() => {
+          textareaRef.current?.focus({ preventScroll: true });
+        }, 50);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, []);
 
   const submit = () => {
@@ -42,9 +50,17 @@ export function ChatComposer({
   };
 
   return (
-    <div className="border-t border-border bg-brand-charcoal-card p-3">
+    <div
+      className="border-t border-border bg-brand-charcoal-card p-3 cursor-text"
+      onClick={() => textareaRef.current?.focus()}
+    >
       <div
-        className={cn("aura aura-md aura-dual w-full text-purple-400", loading && "aura-spin")}
+        className={cn(
+          "w-full rounded-xl transition-all duration-200",
+          loading
+            ? "aura aura-md aura-dual text-purple-400 aura-spin"
+            : "border border-border focus-within:border-purple-500/50",
+        )}
         style={{ ["--aura-radius" as string]: "0.75rem" }}
       >
         <div className="flex items-end gap-2 rounded-xl bg-brand-charcoal-card px-3 py-2">

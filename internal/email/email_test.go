@@ -103,8 +103,8 @@ func TestRenderPasswordReset_InlineLogoFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	if !strings.Contains(out, "background-image:url('data:image/svg+xml") {
-		t.Errorf("expected inline SVG logo fallback, got %q", out)
+	if !strings.Contains(out, LogoDataURI) {
+		t.Errorf("expected inline SVG logo data URI fallback in <img> src")
 	}
 }
 
@@ -177,7 +177,8 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"42",                    // solution count
 		"18",                    // developer count
 		"156",                   // total likes
-		"28 / 14",               // Go / Python
+		"28",                    // Go count
+		"14",                    // Python count
 		"Community Solutions",
 		"AI-Powered Code Analysis",
 		"How to Get Featured",
@@ -200,8 +201,24 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		}
 	}
 
+	// No emoji glyphs or heart entities anywhere in the output.
 	if strings.ContainsAny(out, "😀🔒🤖🚀✨🔥") {
 		t.Errorf("rendered email contains emoji characters")
+	}
+	if strings.Contains(out, "&#9829;") {
+		t.Errorf("rendered email contains raw &#9829; entity (should use SVG img)")
+	}
+
+	// Inline SVG icons must be present.
+	for _, icon := range []string{SmallHeartIconDataURI, TrophyIconDataURI, HeartIconDataURI, SparklesIconDataURI, StarIconDataURI} {
+		if !strings.Contains(out, icon) {
+			t.Errorf("rendered email missing inline SVG icon data URI (truncated: %s...)", icon[:60])
+		}
+	}
+
+	// Stats bar should have separate Go and Python cells, not "Go / Python".
+	if strings.Contains(out, "Go / Python") {
+		t.Errorf("rendered email still has combined 'Go / Python' stat (should be separate cells)")
 	}
 }
 
