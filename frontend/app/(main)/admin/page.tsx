@@ -71,6 +71,7 @@ import PendingContributions from "./PendingContributions";
 import FeedbackPanel from "./FeedbackPanel";
 import BroadcastPanel from "./BroadcastPanel";
 import EmailBroadcastPanel from "./EmailBroadcastPanel";
+import BestPracticesAnnouncementPanel from "./BestPracticesAnnouncementPanel";
 import ProblemEditPanel from "./ProblemEditPanel";
 import ProblemReports from "./ProblemReports";
 import UserVerificationPanel from "./UserVerificationPanel";
@@ -1290,6 +1291,13 @@ export default function AdminDashboard() {
           <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
             <div className="p-4">
               <EmailBroadcastPanel problems={problems} />
+            </div>
+          </div>
+
+          {/* Best Practices Announcement */}
+          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
+            <div className="p-4">
+              <BestPracticesAnnouncementPanel />
             </div>
           </div>
 

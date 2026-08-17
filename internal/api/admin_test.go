@@ -47,6 +47,12 @@ func (f *fakeStore) UpdateEmailLogStatus(ctx context.Context, logID uuid.UUID, s
 func (f *fakeStore) LogActivity(ctx context.Context, logType, message, color, icon string) error {
 	return nil
 }
+func (f *fakeStore) GetBestPractices(ctx context.Context, currentUserID uuid.UUID, mineOnly bool, limit int) ([]store.CommunitySolution, error) {
+	return []store.CommunitySolution{
+		{UserName: "Alice", ProblemTitle: "Sum Two Numbers", Language: "go", Likes: 24, RuntimeMs: 5},
+		{UserName: "Bob", ProblemTitle: "Fibonacci", Language: "python", Likes: 19, RuntimeMs: 12},
+	}, nil
+}
 
 func TestSendProblemReminder_Handler(t *testing.T) {
 	cfg := &config.Config{FrontendURL: "https://koder.sbs", EmailFrom: "Koder <noreply@koder.sbs>", ResendAPIKey: "testkey"}
@@ -75,6 +81,42 @@ func TestSendProblemReminder_Handler(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	h.SendProblemReminder(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200 got %d body=%s", w.Code, w.Body.String())
+	}
+
+	if len(fs.createdEmails) != 1 || fs.createdEmails[0] != "tester@example.com" {
+		t.Fatalf("expected one email created for tester@example.com, got %v", fs.createdEmails)
+	}
+}
+
+func TestSendBestPracticesAnnouncement_Handler(t *testing.T) {
+	cfg := &config.Config{FrontendURL: "https://koder.sbs", EmailFrom: "Koder <noreply@koder.sbs>", ResendAPIKey: "testkey"}
+	fs := &fakeStore{}
+	h := &AdminHandler{store: fs, cfg: cfg}
+	h.httpClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) *http.Response {
+		if req.URL.Path != "/emails" {
+			t.Fatalf("unexpected Resend request path: %s", req.URL.Path)
+		}
+		bodyBytes, _ := io.ReadAll(req.Body)
+		bodyStr := string(bodyBytes)
+		if !strings.Contains(bodyStr, "Best Practices") {
+			t.Fatalf("expected 'Best Practices' in email body, got body=%s", bodyStr)
+		}
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(`{"id":"bp-456"}`)),
+			Header:     make(http.Header),
+		}
+	})}
+
+	payload := `{"send_to_all":true}`
+	req := httptest.NewRequest("POST", "/admin/broadcast-best-practices", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.SendBestPracticesAnnouncement(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200 got %d body=%s", w.Code, w.Body.String())

@@ -25,6 +25,17 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
   }, [question]);
 
+  // Focus the textarea after the FollowUpDrawer's slide-in animation completes
+  // (280ms + 40ms buffer). Replaces autoFocus which fires while the element is
+  // still off-screen mid-transform — the browser considers the focus attempt
+  // "done" before the animation finishes, so subsequent clicks don't register.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    }, 320);
+    return () => clearTimeout(timer);
+  }, []);
+
   const submit = () => {
     if (!question.trim() || loading) return;
     onSend();
@@ -39,7 +50,6 @@ export function ChatComposer({
         <div className="flex items-end gap-2 rounded-xl bg-brand-charcoal-card px-3 py-2">
           <textarea
             ref={textareaRef}
-            autoFocus
             value={question}
             onChange={(e) => onQuestionChange(e.target.value)}
             onKeyDown={(e) => {
