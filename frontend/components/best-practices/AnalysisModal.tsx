@@ -342,7 +342,7 @@ export function AnalysisModal({
             </div>
 
             {/* RIGHT: Telemetry & Tabbed Analysis */}
-            <div className="flex min-h-0 flex-col overflow-hidden bg-[#141414] p-5">
+            <div className="flex min-h-0 flex-col overflow-y-auto bg-[#141414] p-5">
               <ExplainPanel
                 explanation={explanation}
                 loading={loading}

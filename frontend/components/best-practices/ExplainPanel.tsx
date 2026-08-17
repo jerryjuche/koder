@@ -48,7 +48,7 @@ export function ExplainPanel({
   if (!explanation) return null;
 
   return (
-    <div className="flex h-full flex-col space-y-4">
+    <div className="flex flex-col space-y-4">
       {/* Top Telemetry: Quality Gauge + Score Radar */}
       <div className="grid shrink-0 grid-cols-2 gap-3">
         <QualityGauge score={explanation.quality_score} />
@@ -80,7 +80,7 @@ export function ExplainPanel({
       </div>
 
       {/* Scrollable Tab Content */}
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+      <div className="space-y-4 pr-1">
         {activeTab === "overview" && (
           <>
             <AnalysisSummary summary={explanation.summary} />

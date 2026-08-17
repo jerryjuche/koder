@@ -53,7 +53,10 @@ for tc in test_cases:
     expected = tc["expected"]
     try:
         result = {{.FuncName}}(*inputs)
-        expected_val = json.loads(expected)
+        try:
+            expected_val = json.loads(expected)
+        except json.JSONDecodeError:
+            expected_val = expected
         if result == expected_val:
             passed += 1
             print(f"--- PASS: TestSolution/case_{ordinal}")
