@@ -332,6 +332,9 @@ export default function Dashboard() {
         >
           <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
           Best Practices
+          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+            Beta
+          </span>
           {activeTab === "best-practices" && (
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
