@@ -333,6 +333,8 @@ If you didn't request this, you can safely ignore this email.
 		SupportEmail: emailAddressFromFrom(h.cfg.EmailFrom),
 		Tagline:      "Koder turns every problem into an instant feedback loop.",
 		ExpiresIn:    "1 hour",
+		PreviewTitle: "Reset Your Password — Koder",
+		PreheaderText: fmt.Sprintf("Hi %s, we received a password reset request for your Koder account. Click the link below to set a new password.", name),
 	})
 	if err != nil {
 		return "", &emailSendError{message: fmt.Sprintf("failed to render email template: %v", err)}

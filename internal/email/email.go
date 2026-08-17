@@ -25,6 +25,11 @@ const (
 	TextSecondary   = "#6B7280" // secondary text
 	MutedText       = "#4B5563" // muted paragraph text
 	ButtonGold      = "#D4AF37" // CTA background
+	ButtonGoldDark  = "#B8941F" // CTA bottom border (3D effect)
+	PurplePrimary   = "#53389E" // brand purple (numbers, titles)
+	PurpleMid       = "#7F56D9" // brand purple (accents, badges)
+	PurpleLight     = "#F3E8FF" // light purple (icon badge bg)
+	PurpleDark      = "#9E77ED" // brand purple (lighter accent)
 )
 
 // LockIconDataURI is an inline SVG padlock (Lucide-style stroke) encoded as a
@@ -62,6 +67,8 @@ type PasswordResetData struct {
 	Tagline      string // one-line brand message (footer)
 	ExpiresIn    string // human-readable expiry, e.g. "1 hour"
 	Year         int    // copyright year
+	PreviewTitle string // <title> override for email client preview
+	PreheaderText string // hidden preheader text shown before email is opened
 }
 
 // RenderPasswordReset renders the password-reset email into w.
@@ -104,6 +111,8 @@ type ProblemReminderData struct {
 	SupportEmail       string
 	Tagline            string
 	Year               int
+	PreviewTitle       string
+	PreheaderText      string
 }
 
 // RenderProblemReminder renders a problem reminder email into w.
@@ -255,6 +264,8 @@ type BestPracticesData struct {
 	BestRuntimeMs  int
 	DeveloperCount int
 	TopSolutions   []DigestSolution
+	PreviewTitle   string
+	PreheaderText  string
 }
 
 // RenderBestPractices renders the Best Practices announcement email into w.
@@ -298,7 +309,7 @@ func bestPracticesBody() string {
 
 <!-- Header band -->
 <tr>
-<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<td style="background-color:` + EmailBackground + `;padding:20px 16px;border-left:4px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -324,11 +335,13 @@ func bestPracticesBody() string {
 <tr>
 <td style="padding:32px 16px 0 16px;text-align:center;">
 
-<div style="width:72px;height:72px;border-radius:50%;background-color:` + ButtonGold + `;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;" bgcolor="#D4AF37"><img src="{{__TROPHY_ICON__}}" width="32" height="32" alt="" style="display:block;border:0;" /></div>
+<div style="width:72px;height:72px;border-radius:50%;background-color:` + PurpleMid + `;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;" bgcolor="` + PurpleMid + `"><img src="{{__TROPHY_ICON__}}" width="32" height="32" alt="" style="display:block;border:0;" /></div>
 
-<h1 style="margin:0;font-size:28px;line-height:34px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Introducing Best Practices</h1>
+<h1 style="margin:0;font-size:30px;line-height:36px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Discover Best Practices</h1>
 
-<p style="margin:14px auto 0;max-width:420px;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
+<div style="width:40px;height:3px;background-color:` + PurpleMid + `;border-radius:2px;margin:16px auto 0;"></div>
+
+<p style="margin:18px auto 0;max-width:420px;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
 See how top developers solve real problems. Browse community solutions, get AI-powered code analysis, and learn from the best.
 </p>
 
@@ -338,26 +351,26 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <!-- Stats bar -->
 <tr>
 <td style="padding:24px 16px 0 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;border-top:3px solid ` + PurpleMid + `;box-shadow:0 2px 8px rgba(83,56,158,0.08);">
 <tr>
 <td style="padding:16px 6px;text-align:center;width:20%;">
-<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.SolutionCount}}</div>
+<div style="font-size:22px;font-weight:700;color:` + PurplePrimary + `;">{{.SolutionCount}}</div>
 <div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Solutions</div>
 </td>
 <td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.DeveloperCount}}</div>
+<div style="font-size:22px;font-weight:700;color:` + PurplePrimary + `;">{{.DeveloperCount}}</div>
 <div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Developers</div>
 </td>
 <td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.TotalLikes}}</div>
+<div style="font-size:22px;font-weight:700;color:` + PurplePrimary + `;">{{.TotalLikes}}</div>
 <div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Likes</div>
 </td>
 <td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.GoCount}}</div>
+<div style="font-size:22px;font-weight:700;color:` + PurplePrimary + `;">{{.GoCount}}</div>
 <div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Go</div>
 </td>
 <td style="padding:16px 6px;text-align:center;width:20%;border-left:1px solid ` + BorderColor + `;">
-<div style="font-size:22px;font-weight:700;color:` + TextPrimary + `;">{{.PythonCount}}</div>
+<div style="font-size:22px;font-weight:700;color:` + PurplePrimary + `;">{{.PythonCount}}</div>
 <div style="font-size:10px;color:` + TextSecondary + `;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Python</div>
 </td>
 </tr>
@@ -368,16 +381,16 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <!-- Feature Card 1: Community Solutions -->
 <tr>
 <td style="padding:20px 16px 0 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;border-left:4px solid ` + PurpleMid + `;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
 <tr>
 <td style="padding:20px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__HEART_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:` + PurpleLight + `;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__HEART_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
-<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">Community Solutions</div>
+<div style="font-size:16px;font-weight:700;color:` + PurplePrimary + `;">Community Solutions</div>
 <p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Compare how others approached the same problem. Sort by most liked, fastest runtime, or newest submissions. Every solution includes the full source code and developer stats.</p>
 </td>
 </tr>
@@ -391,16 +404,16 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <!-- Feature Card 2: AI Analysis -->
 <tr>
 <td style="padding:12px 16px 0 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;border-left:4px solid ` + PurpleMid + `;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
 <tr>
 <td style="padding:20px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#F3E8FF;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__SPARKLES_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:` + PurpleLight + `;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__SPARKLES_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
-<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">AI-Powered Code Analysis</div>
+<div style="font-size:16px;font-weight:700;color:` + PurplePrimary + `;">AI-Powered Code Analysis</div>
 <p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Click any solution to get instant AI analysis: quality scores, efficiency and readability ratings, time and space complexity breakdown, key techniques, strengths, and areas for improvement. Ask follow-up questions about the approach.</p>
 </td>
 </tr>
@@ -414,16 +427,16 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <!-- Feature Card 3: How to Get Featured -->
 <tr>
 <td style="padding:12px 16px 0 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;border-left:4px solid ` + PurpleMid + `;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
 <tr>
 <td style="padding:20px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;width:40px;">
-<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF9C3;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__STAR_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
+<div style="width:40px;height:40px;border-radius:12px;background-color:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;"><img src="{{__STAR_ICON__}}" width="20" height="20" alt="" style="display:block;border:0;" /></div>
 </td>
 <td style="vertical-align:top;padding-left:12px;">
-<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">How to Get Featured</div>
+<div style="font-size:16px;font-weight:700;color:` + PurplePrimary + `;">How to Get Featured</div>
 <p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Solve any problem to submit your solution. Other developers can like your code, and the top-rated solutions appear at the top of Best Practices. The more problems you solve, the more your solutions get discovered.</p>
 </td>
 </tr>
@@ -438,16 +451,16 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 {{if .TopSolutions}}
 <tr>
 <td style="padding:24px 16px 0 16px;">
-<div style="font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:` + TextSecondary + `;font-weight:600;margin-bottom:12px;">Top Rated Solutions</div>
+<div style="display:inline-block;border-left:3px solid ` + PurpleMid + `;padding-left:10px;margin-bottom:12px;"><span style="font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:` + TextSecondary + `;font-weight:600;">Top Rated Solutions</span></div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ` + BorderColor + `;border-radius:16px;overflow:hidden;">
 {{range $i, $s := .TopSolutions}}
 <tr{{if $i}} style="border-top:1px solid ` + BorderColor + `;"{{end}}>
-<td style="padding:14px 16px;">
+<td style="padding:14px 16px;border-left:3px solid ` + PurpleMid + `;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td>
 <div style="font-size:14px;font-weight:600;color:` + TextPrimary + `;">{{.ProblemTitle}}</div>
-<div style="font-size:12px;color:` + TextSecondary + `;margin-top:2px;">by {{.UserName}} &middot; {{.Language}}</div>
+<div style="font-size:12px;color:` + PurplePrimary + `;margin-top:2px;">by {{.UserName}} &middot; {{.Language}}</div>
 </td>
 <td align="right" style="white-space:nowrap;">
 <div style="display:inline-flex;align-items:center;gap:4px;background-color:#FEF3C7;border-radius:20px;padding:4px 10px;">
@@ -470,8 +483,8 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
 <tr>
-<td style="border-radius:14px;background-color:` + ButtonGold + `;">
-<a href="{{.CTAURL}}" style="display:inline-block;padding:16px 36px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Explore Best Practices</a>
+<td style="border-radius:14px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
+<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Explore Best Practices</a>
 </td>
 </tr>
 </table>
@@ -482,20 +495,21 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <!-- Fallback link -->
 <tr>
 <td style="padding:16px 16px 0 16px;">
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-left:3px solid ` + PurpleMid + `;border-radius:14px;padding:16px;">
 <div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.CTAURL}}</a></div>
 </div>
 </td>
 </tr>
 
 <!-- Footer -->
 <tr>
-<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:2px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
@@ -511,7 +525,7 @@ func problemReminderBody() string {
 
 <!-- Header band -->
 <tr>
-<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<td style="background-color:` + EmailBackground + `;padding:20px 16px;border-left:4px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -550,13 +564,13 @@ Sharpen your skills with this short exercise: <strong style="color:` + TextPrima
 <tr>
 <td style="padding:20px 16px 0 16px;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;border-left:4px solid ` + PurpleMid + `;">
 <tr>
 <td style="padding:20px;color:` + TextPrimary + `;font-size:14px;line-height:22px;">
-<div style="font-size:18px;font-weight:700;color:` + TextPrimary + `;margin-bottom:8px;">{{.ProblemTitle}}</div>
+<div style="font-size:18px;font-weight:700;color:` + PurplePrimary + `;margin-bottom:8px;">{{.ProblemTitle}}</div>
 <div style="font-size:14px;color:` + TextSecondary + `;margin-bottom:16px;line-height:22px;">{{.ProblemExcerptHTML}}</div>
 <div>
-<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 24px;background-color:` + ButtonGold + `;color:#121212;font-weight:700;border-radius:12px;text-decoration:none;">Open Problem</a>
+<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 24px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);color:#121212;font-weight:700;border-radius:12px;text-decoration:none;">Open Problem</a>
 </div>
 </td>
 </tr>
@@ -568,20 +582,21 @@ Sharpen your skills with this short exercise: <strong style="color:` + TextPrima
 <!-- Fallback link -->
 <tr>
 <td style="padding:14px 16px 0 16px;">
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-left:3px solid ` + PurpleMid + `;border-radius:14px;padding:16px;">
 <div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.CTAURL}}</a></div>
 </div>
 </td>
 </tr>
 
 <!-- Footer -->
 <tr>
-<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:2px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
@@ -613,10 +628,10 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>{{.PlatformName}}</title>
+<title>{{if .PreviewTitle}}{{.PreviewTitle}}{{else}}{{.PlatformName}}{{end}}</title>
 </head>
 <body style="margin:0;padding:0;background-color:` + EmailBackground + `;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:` + TextPrimary + `;">
-
+{{if .PreheaderText}}<div style="display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">{{.PreheaderText}}</div>{{end}}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + EmailBackground + `;padding:24px 12px;">
 <tr>
 <td align="center">
@@ -638,7 +653,7 @@ const passwordResetBody = `{{define "content"}}
 
 <!-- Header band -->
 <tr>
-<td style="background-color:` + EmailBackground + `;padding:18px 16px;" bgcolor="` + EmailBackground + `">
+<td style="background-color:` + EmailBackground + `;padding:18px 16px;border-left:4px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -691,8 +706,8 @@ If you made this request, click the button below to choose a new password.
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
 <tr>
-<td style="border-radius:14px;background-color:` + ButtonGold + `;">
-<a href="{{.ResetURL}}" style="display:inline-block;padding:16px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Reset Password</a>
+<td style="border-radius:14px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
+<a href="{{.ResetURL}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Reset Password</a>
 </td>
 </tr>
 </table>
@@ -724,9 +739,9 @@ This secure link expires in <strong style="color:` + TextPrimary + `;">{{.Expire
 <tr>
 <td style="padding:20px 16px 0 16px;">
 
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
+<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-left:3px solid ` + PurpleMid + `;border-radius:14px;padding:16px;">
 <div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:10px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.ResetURL}}</a></div>
+<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.ResetURL}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.ResetURL}}</a></div>
 </div>
 
 </td>
@@ -734,11 +749,12 @@ This secure link expires in <strong style="color:` + TextPrimary + `;">{{.Expire
 
 <!-- Footer -->
 <tr>
-<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:24px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:2px solid ` + PurpleMid + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
+<div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:12px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:18px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:14px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
+<div style="margin-top:18px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:18px;font-size:12px;line-height:20px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>

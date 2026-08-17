@@ -263,7 +263,7 @@ export function AnalysisModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} modal={!chatOpen}>
         <DialogContent
           showCloseButton={false}
           className="flex h-[85vh] max-h-[85vh] flex-col gap-0 overflow-hidden bg-[#141414] p-0 sm:max-w-[880px]"

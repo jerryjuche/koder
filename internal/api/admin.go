@@ -395,6 +395,8 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		LogoURL:        logoURL,
 		SupportEmail:   emailAddressFromFrom(h.cfg.EmailFrom),
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
+		PreviewTitle:   "Problem Reminder — Koder",
+		PreheaderText:  fmt.Sprintf("A new challenge is waiting: %s. Sharpen your skills with this short exercise.", problem.Title),
 	})
 	if err != nil {
 		slog.Error("admin: failed to render reminder template", "error", err)
@@ -560,6 +562,8 @@ func (h *AdminHandler) SendBestPracticesAnnouncement(w http.ResponseWriter, r *h
 		BestRuntimeMs:  bestRuntime,
 		DeveloperCount: len(authorSet),
 		TopSolutions:   topSolutions,
+		PreviewTitle:   "Discover Best Practices — Koder",
+		PreheaderText:  "See top-rated community solutions, get AI-powered code analysis, and learn from the best developers.",
 	})
 	if err != nil {
 		slog.Error("admin: failed to render best-practices template", "error", err)
