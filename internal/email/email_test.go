@@ -46,6 +46,7 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
+		"Sent by Jerry Koko from Koder",
 		"&copy; ",
 		"Koder",
 		"border-left:4px solid #7F56D9",

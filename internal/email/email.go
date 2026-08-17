@@ -508,6 +508,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 
 <div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
 <div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
@@ -594,6 +595,7 @@ Sharpen your skills with this short exercise: <strong style="color:` + TextPrima
 
 <div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
 <div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
@@ -751,6 +753,7 @@ This secure link expires in <strong style="color:` + TextPrimary + `;">{{.Expire
 
 <div style="font-size:14px;color:` + PurplePrimary + `;font-weight:600;">{{.PlatformName}}</div>
 <div style="margin-top:12px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:14px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Sent by Jerry Koko from Koder</div>
 <div style="margin-top:18px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + PurpleMid + `;text-decoration:none;">{{.SupportEmail}}</a></div>
 <div style="margin-top:18px;font-size:12px;line-height:20px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
