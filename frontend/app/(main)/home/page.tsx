@@ -323,26 +323,16 @@ export default function Dashboard() {
           )}
         </button>
         <button
-          onClick={() => { if (user?.role === "admin") setActiveTab("best-practices"); }}
-          aria-disabled={user?.role !== "admin" ? true : undefined}
-          title={user?.role !== "admin" ? "Private beta — administrators only" : undefined}
+          onClick={() => setActiveTab("best-practices")}
           className={cn(
             "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
             activeTab === "best-practices"
               ? "text-foreground"
-              : user?.role === "admin"
-                ? "text-muted-foreground hover:text-foreground"
-                : "text-muted-foreground/40 cursor-not-allowed select-none"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
           Best Practices
-          {user?.role !== "admin" && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
-              <FlaskConical size={10} />
-              BETA
-            </span>
-          )}
           {activeTab === "best-practices" && (
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
           )}
