@@ -407,3 +407,49 @@ AI best-practice explanations + like notifications (Session 118, uncommitted):
 7. New tests: explain_test.go (249 LOC, 9), community_test.go (140 LOC, 3), enricher_test.go 4→8 → 195 backend tests (was 179); total 206 (195 backend + 11 sandbox).
 8. Verified: go vet clean, go build ./cmd/server OK, 9/9 suites green (195 tests), tsc --noEmit 0 errors, ESLint 0 errors on changed files.
 9. Deployment: run migrations/053_ai_solution_explanations.sql on Supabase; backend + frontend deploy; no sandbox change.
+
+---
+
+Date: 2026-08-17
+
+Professional AI analysis modal + Best Practices AI upgrade (Sessions 119–127, commits `cc20eac`→`23ce46a`):
+
+119 (`cc20eac`) — AI analysis dashboard:
+1. Migration 055_ai_solution_scores.sql (10 LOC) — 5 numeric score columns on ai_solution_explanations (quality/efficiency/readability/correctness/best_practices, 0-100, NULL = unscored).
+2. Backend: ExplainSolution parses + clamps scores into the cached SolutionExplanation (store types +38, solution_explanations +29); explain.go +51 (scores in response, respondExplainError); enricher.go 1,157→1,347 (per-dimension score rubrics + Big-O); notifications +22 (related_id deep-links).
+3. Frontend: AnalysisHeader/AnalysisSkeleton/ComplexityBadge/ComplexityScale/MetricTile/QualityGauge/ScoreRadar; ExplainPanel scorecard rework; TopNav +72 notification deep-links; settings +93 AI diagnostics panel.
+4. Tests: explain_test 9→10 (score clamping), enricher_test 8→15 → 209 backend tests (was 195).
+
+120 (`3694b5b`) — manual AI trigger + provider aliases + knobs:
+5. SolutionCard/ExplainPanel explicit AI button (analysis no longer fires on expand).
+6. Config: generic AI_API_KEY/AI_BASE_URL/AI_MODEL aliases preferred over legacy NVIDIA_* (config.go 366→465); AI_MAX_TOKENS (8192), AI_TEMPERATURE (0.7), AI_JSON_MODE passed to provider; .env.example +17.
+7. Tests: config_test +7 (→33), enricher_test +2 → 211 backend tests.
+
+121 (`66fb117`) — chat-collapse fix + professional panel:
+8. FollowUpDrawer.tsx (new, 221 LOC) bottom-sheet chat extracted out of the accordion (typing no longer collapses SolutionCard); SolutionCard +126; globals.css +249; ExplainPanel/QualityGauge/MetricTile professional layout.
+
+122 (`4ee86e3`) — SSE streaming + professional prompts:
+9. enricher.GenerateContentStream (bufio SSE, 1MB buffer, [DONE], 429/503 retry) + ExplainSolutionStream/ExplainChatStream; explain.go 220→397 streams SSE frames with buffered JSON fallback for non-Flusher servers; frame types sseDelta/sseExplanation/sseError.
+10. Frontend: lib/api.ts 1,217→1,403 explainSolutionStream/explainSolutionChatStream SSE clients; lib/markdown.ts 62→168 (code blocks + emphasis); ExplainPanel decomposed into 11 Analysis* sub-components + chat/ primitives; FollowUpDrawer rebuilt on chat primitives; AnalysisSkeleton removed (progressive partial-JSON hydration).
+11. Tests: stream tests (SSE error-frame, chat streaming, [DONE], JSON-branch) → 213 backend tests.
+
+123 (`300bc96`) — SSE not streaming fix:
+12. Root cause: RequestLoggingMiddleware's loggingResponseWriter lacked Flush() → http.Flusher checks failed in production, SSE degraded to buffered JSON; client JSON branch only handled cached:true (dropped buffered cache-miss + chat answers).
+13. Fix: loggingResponseWriter.Flush() delegates to underlying http.Flusher + compile-time guard; api.ts routes any data.explanation → onFinal and data.answer → onDelta.
+14. Test: TestExplainStreamsThroughLoggingMiddleware (fails pre-fix, passes post) → 214 backend tests.
+
+124 (`9d53340`) — chat partial-answer clear fix:
+15. onDelta read the message ref inside the deferred state updater (React 18 batching merged deltas with a stale closure); fix reads messagesRef.current before the updater.
+
+125 (`aa68764`) — compress AI analysis panel (superseded by 127):
+16. Replaced decorative telemetry with compact prose-first inline layout; deleted QualityGauge/ScoreRadar/ComplexityScale/MetricTile/AnalysisFooter/AnalysisSection; globals.css −112.
+
+126 (`78c3816`) — /health + /version log suppression:
+17. RequestLoggingMiddleware skips GET /health and GET /version infra probes (middleware.go 540→568).
+18. Test: middleware_test +1 (SkipsHealthAndVersion) → 215 backend tests.
+
+127 (`23ce46a`) — professional AI analysis modal "split command center":
+19. New AnalysisModal.tsx (399 LOC) — full-screen dialog (h-[85vh], 50/50 code | analysis), owns all streaming/chat/clipboard state; NIM + cached header badges; footer Ask AI (FollowUpDrawer at z-100) + Copy Analysis.
+20. QualityGauge.tsx restored+rebuilt (132, SVG radial + gradeScore + half-star), ScoreRadar.tsx restored (55, recharts 4-axis), ComplexityScale.tsx restored (51, O(1)→O(n!)).
+21. ExplainPanel.tsx now presentational ({explanation, loading, error, partial, onRetry}); AnalysisHydration two-column progressive shimmer; SolutionCard AI pill opens the modal; deleted AnalysisScorecard + AnalysisHeader.
+22. Verified: tsc 0 errors, ESLint 0 errors, next build success; committed `23ce46a`, pushed to origin/update.
