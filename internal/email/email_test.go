@@ -46,11 +46,10 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"Sent by Jerry Koko from Koder",
+		"Sent by <strong>Jerry Koko</strong> from Koder",
 		"&copy; ",
 		"Koder",
-		"border-left:4px solid #D4AF37",
-		"border-top:2px solid #D4AF37",
+		"border-top:1px solid #E5E7EB",
 	}
 	for _, want := range required {
 		if !strings.Contains(out, want) {
@@ -189,11 +188,6 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"See top-rated community solutions",
 		"Discover Best Practices",
 		"See how top developers solve real problems",
-		"42",                    // solution count
-		"18",                    // developer count
-		"156",                   // total likes
-		"28",                    // Go count
-		"14",                    // Python count
 		"Community Solutions",
 		"AI-Powered Code Analysis",
 		"How to Get Featured",
@@ -208,10 +202,8 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
+		"Sent by <strong>Jerry Koko</strong> from Koder",
 		"&copy; ",
-		// Gold accent checks
-		"border-left:4px solid #D4AF37",
-		"border-left:3px solid #D4AF37",
 		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 		"border-bottom:2px solid #B8941F",
 	}
@@ -224,11 +216,6 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 	// No emoji glyphs in the output.
 	if strings.ContainsAny(out, "😀🔒🤖🚀✨🔥") {
 		t.Errorf("rendered email contains emoji characters")
-	}
-
-	// Stats bar should have separate Go and Python cells, not "Go / Python".
-	if strings.Contains(out, "Go / Python") {
-		t.Errorf("rendered email still has combined 'Go / Python' stat (should be separate cells)")
 	}
 }
 
@@ -346,7 +333,7 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"border-left:4px solid #D4AF37",
+		"Sent by <strong>Jerry Koko</strong> from Koder",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered reminder missing %q", want)
