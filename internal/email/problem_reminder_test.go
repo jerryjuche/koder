@@ -37,7 +37,7 @@ func TestRenderProblemReminder_ContainsExpectedFields(t *testing.T) {
 		"Open Problem",
 		"https://koder.sbs/logo.png",
 		"support@koder.sbs",
-		"border-left:4px solid #D4AF37",
+		"Sent by <strong>Jerry Koko</strong> from Koder",
 		"border-bottom:2px solid #B8941F",
 		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 	}

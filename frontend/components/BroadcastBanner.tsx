@@ -1,56 +1,86 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { X, ArrowRight } from "lucide-react";
+import {
+  Info,
+  AlertTriangle,
+  Sparkles,
+  Star,
+  ShieldAlert,
+  Bell,
+  X,
+  ArrowRight,
+} from "lucide-react";
 import { fetchActiveBroadcasts, dismissBroadcast } from "@/lib/api";
 import { useWebSocket } from "@/lib/event";
 import { Broadcast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const TYPE_STYLES: Record<
+const TYPE_CONFIG: Record<
   string,
   {
+    icon: React.ElementType;
+    bg: string;
     border: string;
-    textColor: string;
-    button: string;
-    dismissHover: string;
+    text: string;
+    muted: string;
+    link: string;
+    linkHover: string;
   }
 > = {
   info: {
-    border: "border-l-blue-500",
-    textColor: "text-blue-100/70",
-    button: "bg-blue-500/15 text-blue-300 hover:bg-blue-500/25",
-    dismissHover: "hover:bg-blue-500/10 hover:text-blue-300",
+    icon: Info,
+    bg: "bg-blue-500/10",
+    border: "border-b border-blue-500/20",
+    text: "text-blue-200",
+    muted: "text-blue-300/60",
+    link: "text-blue-300",
+    linkHover: "hover:text-blue-200",
   },
   warning: {
-    border: "border-l-amber-500",
-    textColor: "text-amber-100/70",
-    button: "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25",
-    dismissHover: "hover:bg-amber-500/10 hover:text-amber-300",
+    icon: AlertTriangle,
+    bg: "bg-amber-500/10",
+    border: "border-b border-amber-500/20",
+    text: "text-amber-200",
+    muted: "text-amber-300/60",
+    link: "text-amber-300",
+    linkHover: "hover:text-amber-200",
   },
   update: {
-    border: "border-l-emerald-500",
-    textColor: "text-emerald-100/70",
-    button: "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25",
-    dismissHover: "hover:bg-emerald-500/10 hover:text-emerald-300",
+    icon: Star,
+    bg: "bg-emerald-500/10",
+    border: "border-b border-emerald-500/20",
+    text: "text-emerald-200",
+    muted: "text-emerald-300/60",
+    link: "text-emerald-300",
+    linkHover: "hover:text-emerald-200",
   },
   new_feature: {
-    border: "border-l-purple-500",
-    textColor: "text-purple-100/70",
-    button: "bg-purple-500/15 text-purple-300 hover:bg-purple-500/25",
-    dismissHover: "hover:bg-purple-500/10 hover:text-purple-300",
+    icon: Sparkles,
+    bg: "bg-violet-500/10",
+    border: "border-b border-violet-500/20",
+    text: "text-violet-200",
+    muted: "text-violet-300/60",
+    link: "text-violet-300",
+    linkHover: "hover:text-violet-200",
   },
   maintenance: {
-    border: "border-l-red-500",
-    textColor: "text-red-100/70",
-    button: "bg-red-500/15 text-red-300 hover:bg-red-500/25",
-    dismissHover: "hover:bg-red-500/10 hover:text-red-300",
+    icon: ShieldAlert,
+    bg: "bg-red-500/10",
+    border: "border-b border-red-500/20",
+    text: "text-red-200",
+    muted: "text-red-300/60",
+    link: "text-red-300",
+    linkHover: "hover:text-red-200",
   },
   announcement: {
-    border: "border-l-sky-500",
-    textColor: "text-sky-100/70",
-    button: "bg-sky-500/15 text-sky-300 hover:bg-sky-500/25",
-    dismissHover: "hover:bg-sky-500/10 hover:text-sky-300",
+    icon: Bell,
+    bg: "bg-sky-500/10",
+    border: "border-b border-sky-500/20",
+    text: "text-sky-200",
+    muted: "text-sky-300/60",
+    link: "text-sky-300",
+    linkHover: "hover:text-sky-200",
   },
 };
 
@@ -98,11 +128,20 @@ export default function BroadcastBanner() {
     };
   }, [fetchBanners]);
 
-  useWebSocket({
-    'broadcast.created': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-    'broadcast.updated': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-    'broadcast.deleted': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-  }, [fetchBanners]);
+  useWebSocket(
+    {
+      "broadcast.created": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+      "broadcast.updated": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+      "broadcast.deleted": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+    },
+    [fetchBanners],
+  );
 
   const handleDismiss = async (id: string) => {
     await dismissBroadcast(id);
@@ -114,58 +153,60 @@ export default function BroadcastBanner() {
   if (visible.length === 0) return null;
 
   return (
-    <div className="space-y-3 mb-5 max-w-3xl mx-auto">
+    <div className="w-full">
       {visible.map((broadcast) => {
-        const style = TYPE_STYLES[broadcast.type] || TYPE_STYLES.info;
-        const hasMessage = broadcast.message && broadcast.message.trim().length > 0;
+        const config = TYPE_CONFIG[broadcast.type] || TYPE_CONFIG.info;
+        const Icon = config.icon;
+        const hasMessage =
+          broadcast.message && broadcast.message.trim().length > 0;
 
         return (
           <div
             key={broadcast.id}
             className={cn(
-              "group relative overflow-hidden rounded-lg border border-l-[3px] bg-[#1A1A1A] transition-colors",
-              "animate-in fade-in slide-in-from-top-2 duration-500",
-              style.border,
-              broadcast.priority === "critical" && "border-l-red-500 ring-1 ring-red-500/20",
+              "relative w-full overflow-hidden",
+              config.bg,
+              config.border,
+              "animate-in fade-in slide-in-from-top-0 duration-300",
             )}
           >
-            <div className="px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-semibold text-foreground leading-snug">
-                    {broadcast.title}
-                  </h4>
-                  {hasMessage && (
-                    <p className={cn("mt-1 text-[13px] leading-relaxed", style.textColor)}>
-                      {broadcast.message}
-                    </p>
-                  )}
-                </div>
+            <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
+              <Icon className={cn("h-4 w-4 shrink-0", config.text)} />
 
-                <button
-                  onClick={() => handleDismiss(broadcast.id)}
-                  className={cn(
-                    "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/50 transition-colors",
-                    style.dismissHover,
-                  )}
-                  aria-label="Dismiss"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              <p className={cn("min-w-0 flex-1 text-sm", config.text)}>
+                <span className="font-medium">{broadcast.title}</span>
+                {hasMessage && (
+                  <span className={cn(" ml-1.5", config.muted)}>
+                    {broadcast.message}
+                  </span>
+                )}
+              </p>
 
               {broadcast.action_label && broadcast.action_url && (
                 <a
                   href={broadcast.action_url}
                   className={cn(
-                    "mt-3 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
-                    style.button,
+                    "inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors",
+                    config.link,
+                    config.linkHover,
                   )}
                 >
                   {broadcast.action_label}
-                  <ArrowRight size={11} />
+                  <ArrowRight className="h-3 w-3" />
                 </a>
               )}
+
+              <button
+                onClick={() => handleDismiss(broadcast.id)}
+                className={cn(
+                  "ml-1 shrink-0 p-0.5 rounded transition-colors",
+                  config.muted,
+                  "hover:bg-white/5",
+                )}
+                aria-label="Dismiss"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         );
