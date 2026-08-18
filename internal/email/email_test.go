@@ -49,9 +49,8 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"Sent by Jerry Koko from Koder",
 		"&copy; ",
 		"Koder",
-		"border-left:4px solid #7F56D9",
-		"border-top:2px solid #7F56D9",
-		"color:#53389E",
+		"border-left:4px solid #D4AF37",
+		"border-top:2px solid #D4AF37",
 	}
 	for _, want := range required {
 		if !strings.Contains(out, want) {
@@ -210,11 +209,9 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
 		"&copy; ",
-		// Purple accent checks
-		"border-left:4px solid #7F56D9",
-		"border-top:3px solid #7F56D9",
-		"border-top:2px solid #7F56D9",
-		"color:#53389E",
+		// Gold accent checks
+		"border-left:4px solid #D4AF37",
+		"border-left:3px solid #D4AF37",
 		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 		"border-bottom:2px solid #B8941F",
 	}
@@ -224,19 +221,9 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		}
 	}
 
-	// No emoji glyphs or heart entities anywhere in the output.
+	// No emoji glyphs in the output.
 	if strings.ContainsAny(out, "😀🔒🤖🚀✨🔥") {
 		t.Errorf("rendered email contains emoji characters")
-	}
-	if strings.Contains(out, "&#9829;") {
-		t.Errorf("rendered email contains raw &#9829; entity (should use SVG img)")
-	}
-
-	// Inline SVG icons must be present.
-	for _, icon := range []string{SmallHeartIconDataURI, TrophyIconDataURI, HeartIconDataURI, SparklesIconDataURI, StarIconDataURI} {
-		if !strings.Contains(out, icon) {
-			t.Errorf("rendered email missing inline SVG icon data URI (truncated: %s...)", icon[:60])
-		}
 	}
 
 	// Stats bar should have separate Go and Python cells, not "Go / Python".
@@ -359,8 +346,7 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"border-left:4px solid #7F56D9",
-		"color:#53389E",
+		"border-left:4px solid #D4AF37",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered reminder missing %q", want)

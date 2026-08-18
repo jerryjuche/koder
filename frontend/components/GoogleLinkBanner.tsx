@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "@untitledui/icons";
-import { Chrome, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchUser } from "@/lib/api";
 import { User } from "@/lib/types";
@@ -32,45 +31,39 @@ export default function GoogleLinkBanner() {
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-amber-500/15 bg-amber-500/[0.04] transition-colors",
+        "group relative overflow-hidden rounded-lg border border-l-[3px] border-l-amber-500 bg-[#1A1A1A] transition-colors",
         "animate-in fade-in slide-in-from-top-2 duration-500",
       )}
     >
-      <div className="h-1 w-full bg-amber-500" />
-
       <div className="px-4 py-3">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-            <AlertTriangle className="size-4 text-amber-400" />
-          </div>
-
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h4 className="text-sm font-semibold text-amber-100 leading-snug">
+            <h4 className="text-sm font-semibold text-foreground leading-snug">
               Secure your account
             </h4>
-            <p className="mt-1 text-[13px] leading-relaxed text-amber-200/60">
+            <p className="mt-1 text-[13px] leading-relaxed text-amber-100/70">
               Link your Google account for seamless sign-in and automatic profile syncing across all your devices.
             </p>
-            <a
-              href="/settings?tab=security"
-              className={cn(
-                "mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all",
-                "hover:bg-amber-500/25",
-              )}
-            >
-              <Chrome size={13} />
-              Link Google
-            </a>
           </div>
 
           <button
             onClick={handleDismiss}
-            className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-amber-500/10 hover:text-amber-300"
+            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-amber-500/10 hover:text-amber-300"
             aria-label="Dismiss"
           >
             <X size={14} />
           </button>
         </div>
+
+        <a
+          href="/settings?tab=security"
+          className={cn(
+            "mt-3 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
+            "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25",
+          )}
+        >
+          Link Google
+        </a>
       </div>
     </div>
   );
