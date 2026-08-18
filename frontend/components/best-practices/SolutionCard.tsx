@@ -114,9 +114,7 @@ export function SolutionCard({
                 {solution.module}
               </span>
             )}
-            {!expanded && (
-              <AIAnalysisPill hasAnalysis onClick={() => setAnalysisOpen(true)} />
-            )}
+            <AIAnalysisPill hasAnalysis onClick={() => setAnalysisOpen(true)} />
           </div>
 
           <div className="hidden shrink-0 items-center gap-3 md:flex">

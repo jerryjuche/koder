@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
 
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <DesktopOnlyOverlay />
         {children}
         <Analytics />
+        <SpeedInsights />
         <Toaster
           theme="dark"
           position="top-right"
