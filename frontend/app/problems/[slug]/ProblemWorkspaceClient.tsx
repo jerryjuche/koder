@@ -64,6 +64,8 @@ import {
 import { LanguageLogo } from "@/components/LanguageLogo";
 import { CodeEditor } from "@/components/CodeEditor";
 import { blockPaste } from "@/lib/monaco-paste-guard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileWorkspace from "@/components/mobile/MobileWorkspace";
 
 const GO_CODE = `package koder
 
@@ -259,6 +261,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+  const isMobile = useIsMobile(900);
 
   // Map a backend ExecutionResult into the panel's TestResult shape, joining
   // visible test inputs from problem.examples by ordinal so the panel can show
@@ -733,9 +736,68 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
-      {/* Workspace Header */}
-      <header className="h-12 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-3">
+    <>
+      {isMobile ? (
+        <MobileWorkspace
+          problem={problem}
+          code={code}
+          onCodeChange={handleEditorChange}
+          onEditorMount={handleEditorMount}
+          getInitialValue={getInitialValue}
+          activeLanguage={activeLanguage}
+          availableLanguages={availableLanguages}
+          onLanguageChange={async (lang) => {
+            if (activeLanguage === lang) return;
+            if (code !== scaffoldAtToggle) {
+              setPendingLanguage(lang);
+              setLanguageConfirmOpen(true);
+            } else {
+              await applyLanguageSwitch(lang);
+            }
+          }}
+          resetKey={resetKey}
+          saved={saved}
+          scaffoldAtToggle={scaffoldAtToggle}
+          handleFormat={handleFormat}
+          handleReset={handleReset}
+          handleTest={handleTest}
+          handleSubmit={handleSubmit}
+          submitting={submitting}
+          cooldown={cooldown}
+          results={results}
+          lastExecution={lastExecution}
+          errorMsg={errorMsg}
+          hintsOpen={hintsOpen}
+          setHintsOpen={setHintsOpen}
+          onOpenReport={() => {
+            setReportOpen(true);
+            setReportSubmitted(false);
+            setReportDescription("");
+          }}
+          onOpenEdit={() => {
+            if (problem) {
+              setEditForm({
+                title: problem.title || "",
+                statement: problem.statement || "",
+                difficulty: problem.difficulty || 1,
+                xp_reward: problem.xpReward || 0,
+                tags: (problem.tags || []).join(", "),
+                module: problem.module || "",
+                constraints: problem.constraints || "",
+                learning_objective: problem.learningObjective || "",
+              });
+            }
+            setEditOpen(true);
+          }}
+          isAdmin={user?.role === "admin"}
+          nextProblem={nextProblem}
+          returnTo={returnTo}
+          editorRef={editorRef}
+        />
+      ) : (
+        <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
+          {/* Workspace Header */}
+          <header className="h-12 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-3">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href="/home"
@@ -1344,6 +1406,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         )}
       </div>
+    </div>
+  )}
+
 
       {/* Report Issue Dialog */}
       {reportOpen && (
@@ -1355,7 +1420,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               setReportDescription("");
             }}
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             {reportSubmitted ? (
               <div className="flex flex-col items-center text-center px-8 py-10">
                 <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-success/10 border border-brand-success/20">
@@ -1595,7 +1660,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setEditOpen(false)}
           />
-          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-accent-teal/10 border border-brand-accent-teal/20 flex items-center justify-center">
@@ -1764,6 +1829,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

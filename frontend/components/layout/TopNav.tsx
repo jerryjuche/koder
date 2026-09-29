@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   XCircle,
   GitPullRequest,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -42,6 +44,7 @@ export default function TopNav() {
   const { user, loading, refreshUser } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifMenuOpen, setNotifMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [avatarError, setAvatarError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
   const [prevGoogleUrl, setPrevGoogleUrl] = React.useState(user?.google_avatar_url);
@@ -57,6 +60,7 @@ export default function TopNav() {
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
     setNotifMenuOpen(false);
+    setMobileMenuOpen(false);
   }
 
   // Close notification menu on outside click
@@ -362,16 +366,123 @@ export default function TopNav() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         ) : (
-          <Link
-            href="/login"
-            className="text-sm font-bold text-foreground hover:text-primary transition-colors"
-          >
-            Log In
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-bold text-foreground hover:text-primary transition-colors"
+            >
+              Log In
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Mobile Navigation Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200 shadow-xl">
+          {user && (
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <div className="flex items-center gap-1.5 text-primary text-xs font-bold">
+                <svg
+                  width="12"
+                  height="16"
+                  viewBox="0 0 12 16"
+                  fill="currentColor"
+                >
+                  <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
+                </svg>
+                <span>Level {user.level}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="bg-primary h-full rounded-full transition-all duration-500"
+                    style={{ width: `${(user.xp % 1000) / 10}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {user.xp.toLocaleString()} XP
+                </span>
+              </div>
+            </div>
+          )}
+
+          <nav className="flex flex-col gap-1">
+            {navLinks
+              .filter((link) => link.name !== "Admin" || user?.role === "admin")
+              .map((link) => {
+                const Icon = link.icon;
+                const isLearn = link.name === "Learn";
+                const linkDisabled = isLearn && user?.role !== "admin";
+
+                if (linkDisabled) {
+                  return (
+                    <div
+                      key={link.name}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-muted-foreground/40 cursor-not-allowed select-none"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon size={16} />
+                        <span>{link.name}</span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                        <FlaskConical size={10} />
+                        BETA
+                      </span>
+                    </div>
+                  );
+                }
+
+                const isActive =
+                  pathname === link.href ||
+                  (pathname !== "/" &&
+                    link.href !== "/" &&
+                    pathname?.startsWith(link.href));
+
+                return (
+                  <button
+                    key={link.name}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (pathname === link.href) {
+                        window.dispatchEvent(new Event("user-updated"));
+                      } else {
+                        router.push(link.href);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left",
+                      isActive
+                        ? "bg-primary/10 text-primary border border-primary/20 font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    <Icon size={18} />
+                    <span>{link.name}</span>
+                  </button>
+                );
+              })}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
