@@ -4,6 +4,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hover-capability variant. Tailwind wraps `hover:` / `group-hover:` in
+   `@media (hover: hover)`, so on touch devices they never match. A plain
+   `opacity-0 group-hover:opacity-100` control is therefore permanently
+   invisible AND permanently hit-testable on a phone — the worst of both. Gate
+   reveal-on-hover affordances on hover capability instead:
+
+     class="can-hover:opacity-0 group-hover:opacity-100"
+
+   `group-hover:` already only fires where hover exists, so the base state stays
+   visible on touch. Note: `pointer: fine` is NOT a safe substitute — hover and
+   pointer are independent media features (pen-primary devices report a fine
+   pointer with no hover). */
+@custom-variant can-hover (@media (hover: hover));
+
 @theme {
   /* Named breakpoints. --breakpoint-nav must stay in sync with
      MOBILE_WORKSPACE_BREAKPOINT (frontend/lib/mobile-workspace.ts): below 900px
@@ -22,6 +36,12 @@
   --color-brand-offwhite-muted: #88889A;
   --color-brand-success: #22C55E;
   --color-brand-error: #ef4444;
+  --color-brand-warning: #F59E0B;
+  /* Used for admin/edit affordances across the workspace + mobile shell
+     (bg-brand-accent-teal, /10 /20 /30 tints, and a solid button with
+     `text-black`). Was referenced in 6 places but never defined, so those
+     elements rendered with no colour at all. */
+  --color-brand-accent-teal: #2DD4BF;
   --color-brand-cool-accent: #7B8CBB;
   --color-brand-cool-accent-muted: #5A6A94;
 }
@@ -366,3 +386,20 @@
 .mockup-window-dots span:nth-child(1) { background-color: #ff5f57; }
 .mockup-window-dots span:nth-child(2) { background-color: #febc2e; }
 .mockup-window-dots span:nth-child(3) { background-color: #28c840; }
+
+/* --- Resizable split pane --------------------------------------------------
+   Handle thickness is a variable so both panes can subtract exactly half of it
+   from their `flex-basis` and still sum to 100% — without it the trailing pane
+   silently loses a sliver to the parent's `overflow-hidden`. Thicker on touch
+   (the pane stacks, so the handle is horizontal and needs a real tap target),
+   unchanged at the `nav:` breakpoint and above to preserve the desktop look.
+   Keep the 900px value in sync with `--breakpoint-nav` above. */
+.split-pane {
+  --split-handle: 16px;
+}
+
+@media (min-width: 900px) {
+  .split-pane {
+    --split-handle: 6px;
+  }
+}

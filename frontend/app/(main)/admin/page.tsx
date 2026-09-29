@@ -343,7 +343,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pt-4 pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pt-4 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite mb-2">
@@ -474,12 +474,12 @@ export default function AdminDashboard() {
               placeholder="Filter problems..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64"
+              className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64 max-w-full"
             />
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[420px] scrollbar-thin">
+        <div className="overflow-x-auto overflow-y-auto max-h-[420px] scrollbar-thin">
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-brand-offwhite-muted uppercase tracking-wider border-b border-brand-charcoal-border bg-brand-charcoal-card sticky top-0 z-10">
               <tr>
@@ -1375,7 +1375,7 @@ export default function AdminDashboard() {
               Live
             </div>
           </div>
-          <div className="p-5 space-y-6 overflow-y-auto max-h-[calc(100vh-240px)] scrollbar-thin">
+          <div className="p-5 space-y-6 overflow-y-auto max-h-[calc(100dvh-240px)] scrollbar-thin">
             {activityLogs.map((log, i) => {
               const Icon = ICON_MAP[log.icon] || Activity;
               return (

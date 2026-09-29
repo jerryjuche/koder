@@ -148,7 +148,7 @@ export default function CourseCatalog() {
 
   if (loading) {
     return (
-      <div className="max-w-screen-2xl mx-auto px-4 py-8 md:px-6">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
         <div className="mb-8 space-y-3">
           <div className="h-8 w-40 bg-muted rounded-xl animate-pulse" />
           <div className="h-4 w-64 bg-muted rounded-lg animate-pulse" />
@@ -167,7 +167,7 @@ export default function CourseCatalog() {
 
   if (error) {
     return (
-      <div className="max-w-screen-2xl mx-auto px-4 py-16 text-center">
+      <div className="max-w-screen-2xl mx-auto px-4 py-16 text-center sm:px-6 lg:px-8">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
           <BookOpen className="h-7 w-7 text-destructive" />
         </div>
@@ -188,7 +188,7 @@ export default function CourseCatalog() {
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-8 md:px-6">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
       {/* ── Glassmorphic Learning Profile Hero ── */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}

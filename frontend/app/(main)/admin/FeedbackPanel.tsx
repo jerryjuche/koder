@@ -110,7 +110,7 @@ export default function FeedbackPanel({ compact }: Props) {
                 placeholder="Search feedback..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-56 text-brand-offwhite placeholder:text-brand-offwhite-muted/40"
+                className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-56 max-w-full text-brand-offwhite placeholder:text-brand-offwhite-muted/40"
               />
             </div>
           </div>

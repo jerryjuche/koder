@@ -341,7 +341,7 @@ export default React.memo(function ModuleCards({ modules, moduleMeta, moduleProg
                       <div className="absolute top-2 right-2 z-20 w-8 h-8 rounded-xl bg-primary/20 backdrop-blur-md flex items-center justify-center shadow-lg shadow-primary/25 ring-1 ring-primary/20">
                         <LockKeyhole size={16} className="text-primary" />
                       </div>
-                      <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-brand-charcoal-base/40 backdrop-blur-[2px]">
+                      <div className="absolute inset-0 z-10 flex items-center justify-center can-hover:opacity-0 group-hover:opacity-100 transition-all duration-300 bg-brand-charcoal-base/40 backdrop-blur-[2px]">
                         <div className="flex flex-col items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-b from-brand-charcoal-panel/90 to-brand-charcoal-base/95 backdrop-blur-md border border-primary/20 shadow-[0_0_30px_-8px_rgba(212,175,55,0.15)]">
                           <LockKeyhole size={22} className="text-primary" />
                           <span className="text-xs font-bold text-primary tracking-[0.15em] uppercase">Locked</span>

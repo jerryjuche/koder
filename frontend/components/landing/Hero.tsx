@@ -34,7 +34,7 @@ export default function Hero() {
     <motion.section
       ref={ref}
       style={{ opacity: heroOpacity, scale: heroScale }}
-      className="relative min-h-[90vh] flex items-center overflow-hidden"
+      className="relative min-h-[90dvh] flex items-center overflow-hidden"
     >
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">

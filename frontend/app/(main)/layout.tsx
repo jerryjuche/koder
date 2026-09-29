@@ -10,7 +10,7 @@ import AnimatedBackground from '@/components/ui/AnimatedBackground';
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
-      <div className="relative min-h-screen flex flex-col bg-background text-foreground">
+      <div className="relative min-h-dvh flex flex-col bg-background text-foreground">
         {/* Subtle animated hexagon grid — ambient background texture */}
         <AnimatedBackground fadeEnd="75%" opacity={0.75} />
         <TopNav />

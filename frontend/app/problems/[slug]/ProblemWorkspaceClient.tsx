@@ -719,7 +719,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
   if (!problem) {
     return (
-      <div className="h-screen w-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="h-[100dvh] w-full bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
@@ -1660,7 +1660,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setEditOpen(false)}
           />
-          <div className="relative w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-2xl mx-4 max-h-[85dvh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-accent-teal/10 border border-brand-accent-teal/20 flex items-center justify-center">

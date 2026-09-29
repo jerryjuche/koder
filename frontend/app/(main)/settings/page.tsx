@@ -290,14 +290,14 @@ function SettingsPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="min-h-dvh bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-charcoal-base min-h-screen pt-4 pb-8 px-4 sm:px-6 lg:px-8">
+    <div className="bg-brand-charcoal-base min-h-dvh pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon size={32} className="text-brand-muted-gold" />
@@ -964,7 +964,7 @@ function SettingsPageContent() {
 export default function SettingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="min-h-dvh bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     }>

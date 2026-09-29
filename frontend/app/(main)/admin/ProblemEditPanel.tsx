@@ -208,7 +208,7 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn("max-h-[90vh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-5xl")}>
+      <DialogContent className={cn("max-h-[90dvh] overflow-hidden flex flex-col bg-brand-charcoal-card border-brand-charcoal-border text-brand-offwhite", aiPanelOpen ? "max-w-[1400px]" : "max-w-5xl")}>
         <DialogHeader className="shrink-0 border-b border-brand-charcoal-border pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

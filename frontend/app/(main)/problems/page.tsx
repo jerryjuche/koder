@@ -222,7 +222,7 @@ export default function ProblemsPage() {
 
   if (loading) {
     return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-8 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto space-y-6 pt-4 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="h-8 w-48 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -401,7 +401,7 @@ export default function ProblemsPage() {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => setMobileFiltersOpen(false)}
       />
-      <div className="fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r border-sidebar-border p-5 overflow-y-auto animate-in slide-in-from-left">
+      <div className="fixed left-0 top-0 bottom-0 w-[min(18rem,85vw)] bg-sidebar border-r border-sidebar-border p-5 overflow-y-auto animate-in slide-in-from-left">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-sm font-semibold text-sidebar-foreground flex items-center gap-2">
             <Filter size={15} /> Filters

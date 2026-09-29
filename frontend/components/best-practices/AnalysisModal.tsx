@@ -266,7 +266,7 @@ export function AnalysisModal({
       <Dialog open={open} onOpenChange={onOpenChange} modal={!chatOpen}>
         <DialogContent
           showCloseButton={false}
-          className="flex h-[85vh] max-h-[85vh] flex-col gap-0 overflow-hidden bg-[#141414] p-0 sm:max-w-[880px]"
+          className="flex h-[85dvh] max-h-[85dvh] flex-col gap-0 overflow-hidden bg-[#141414] p-0 sm:max-w-[880px]"
         >
           {/* Header */}
           <DialogHeader className="flex shrink-0 flex-row items-center gap-2 border-b border-white/10 px-6 pb-4 pt-5">

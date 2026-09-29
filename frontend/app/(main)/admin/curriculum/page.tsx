@@ -681,7 +681,7 @@ export default function CurriculumAdminPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
+      <div className="flex items-center justify-center h-[60dvh]">
         <div className="text-center space-y-3">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
           <p className="text-sm text-muted-foreground">Loading curriculum...</p>
@@ -691,7 +691,7 @@ export default function CurriculumAdminPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -710,7 +710,7 @@ export default function CurriculumAdminPage() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Courses</h2>
             <span className="text-xs text-muted-foreground">{courses.length}</span>
           </div>
-          <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[75dvh] overflow-y-auto pr-1">
             {courses.length === 0 && (
               <div className="text-center py-8 border-2 border-dashed rounded-xl">
                 <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
@@ -799,7 +799,7 @@ export default function CurriculumAdminPage() {
               </Card>
 
               {/* Lessons list */}
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[50dvh] overflow-y-auto pr-1">
                 {loadingLessons ? (
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -857,7 +857,7 @@ export default function CurriculumAdminPage() {
                           <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{sec.section_type}</Badge>
                           <span className="truncate text-xs">{sec.title || "Untitled"}</span>
                         </div>
-                        <div className="flex gap-0.5 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-0.5 shrink-0 ml-2 can-hover:opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={async () => {
                               if (idx === 0) return;
@@ -918,7 +918,7 @@ export default function CurriculumAdminPage() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Projects</h2>
             <span className="text-xs text-muted-foreground">{projects.length}</span>
           </div>
-          <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[75dvh] overflow-y-auto pr-1">
             {!selectedLesson && (
               <div className="text-center py-8 border-2 border-dashed rounded-xl">
                 <Beaker className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
@@ -954,7 +954,7 @@ export default function CurriculumAdminPage() {
 
       {/* ── Dialogs ── */}
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeAllForms(); }}>
-        <DialogContent className={`sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden ${showCourseForm ? "sm:max-w-2xl" : showLessonForm ? "sm:max-w-2xl" : showProjectForm ? "sm:max-w-xl" : "sm:max-w-lg"}`}>
+        <DialogContent className={`sm:max-w-2xl max-h-[85dvh] flex flex-col overflow-hidden ${showCourseForm ? "sm:max-w-2xl" : showLessonForm ? "sm:max-w-2xl" : showProjectForm ? "sm:max-w-xl" : "sm:max-w-lg"}`}>
           <DialogHeader className="shrink-0 border-b pb-3">
             <DialogTitle className="flex items-center gap-2 text-lg">
               {showCourseForm && <BookOpen className="h-5 w-5 text-primary" />}
@@ -1188,7 +1188,7 @@ export default function CurriculumAdminPage() {
                         Lesson Content (Markdown)
                       </summary>
                       <div className="border-t">
-                        <div className="grid grid-cols-2 gap-0 h-[40vh] min-h-[200px]">
+                        <div className="grid grid-cols-2 gap-0 h-[40dvh] min-h-[200px]">
                           <div className="flex flex-col border-r">
                             <div className="px-4 py-2 bg-muted/10 border-b">
                               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Editor</span>
@@ -1224,7 +1224,7 @@ export default function CurriculumAdminPage() {
                           <Plus className="h-3 w-3 mr-1" /> Add Section
                         </Button>
                       </div>
-                      <div className="space-y-1.5 max-h-[40vh] min-h-[100px] overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-[40dvh] min-h-[100px] overflow-y-auto pr-1">
                         {sections.length === 0 && (
                           <p className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-xl">No sections yet. Add one to get started.</p>
                         )}
@@ -1244,7 +1244,7 @@ export default function CurriculumAdminPage() {
                               <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{sec.section_type}</Badge>
                               <span className="truncate text-xs text-foreground/80">{sec.title || "Untitled"}</span>
                             </div>
-                            <div className="flex gap-0.5 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-0.5 shrink-0 ml-2 can-hover:opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={async () => {
                                   if (idx === 0) return;
@@ -1329,7 +1329,7 @@ export default function CurriculumAdminPage() {
                         <h4 className="text-sm font-medium mb-1">Quiz Questions</h4>
                         <p className="text-xs text-muted-foreground">Manage quiz questions for this lesson.</p>
                       </div>
-                      <div className="space-y-2 max-h-[40vh] min-h-[100px] overflow-y-auto pr-1">
+                      <div className="space-y-2 max-h-[40dvh] min-h-[100px] overflow-y-auto pr-1">
                         {(formData.quiz_questions?.length ?? 0) === 0 && (
                           <p className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-xl">No quiz questions yet. Add one below.</p>
                         )}
@@ -1351,7 +1351,7 @@ export default function CurriculumAdminPage() {
                                   updated.splice(i, 1);
                                   updateField("quiz_questions", updated);
                                 }}
-                                className="p-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                                className="p-1 rounded hover:bg-red-50 transition-colors can-hover:opacity-0 group-hover:opacity-100 shrink-0"
                               >
                                 <Trash2 className="h-3 w-3 text-red-400" />
                               </button>

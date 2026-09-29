@@ -432,24 +432,24 @@ export default function SectionExercise({
     <div>
       {multiFile ? (
         /* Multi-file editor: tabbed Monaco + PyodideConsole */
-        <div className="border rounded-lg overflow-hidden" style={{ minHeight: "520px" }}>
+        <div className="border rounded-lg overflow-hidden">
           <MultiFileEditor files={multiFile.files} entryPoint={multiFile.entryPoint} />
         </div>
       ) : isPython ? (
-        /* Split pane: editor + PyodideConsole side by side */
-        <div className="border rounded-lg overflow-hidden" style={{ height: "400px" }}>
+        /* Split pane: editor + PyodideConsole. Stacks vertically on phones. */
+        <div className="border rounded-lg overflow-hidden h-[340px] sm:h-[400px]">
           <ResizableSplitPane
             left={editorContent}
             right={consoleContent}
             defaultLeftPercent={60}
             minLeftPercent={35}
             minRightPercent={25}
-            className="h-[400px]"
+            className="h-full"
           />
         </div>
       ) : (
         /* Standalone: editor only (Go or non-Python) */
-        <div style={{ height: "260px" }}>
+        <div className="h-[240px] sm:h-[260px]">
           {editorContent}
         </div>
       )}

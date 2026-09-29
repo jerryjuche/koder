@@ -197,7 +197,7 @@ export function LearningCard({
               ))}
 
               {!isLocked && (
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/20 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 border border-primary/30 shadow-md">
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/20 text-primary can-hover:opacity-0 group-hover:opacity-100 transition-opacity duration-300 border border-primary/30 shadow-md">
                   <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                 </div>
               )}

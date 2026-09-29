@@ -173,7 +173,7 @@ export default function BestPracticesAnnouncementPanel() {
           <div className="space-y-3">
             {/* Stats preview */}
             <div className="rounded-2xl border border-brand-charcoal-border/60 bg-brand-charcoal-card p-3">
-              <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                 <div>
                   <div className="text-lg font-bold text-brand-offwhite">--</div>
                   <div className="text-[10px] text-brand-offwhite-muted uppercase">Solutions</div>

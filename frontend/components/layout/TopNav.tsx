@@ -102,7 +102,7 @@ export default function TopNav() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex gap-1.5">
+          <nav className="hidden nav:flex gap-1.5">
             {navLinks
               .filter((link) => link.name !== "Admin" || user?.role === "admin")
               .map((link) => {
@@ -206,7 +206,7 @@ export default function TopNav() {
               </button>
 
               {notifMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] max-nav:fixed max-nav:inset-x-3 max-nav:top-16 max-nav:mt-0 max-nav:w-auto bg-card border border-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-2 border-b border-border">
                     <h3 className="font-semibold text-foreground">Notifications</h3>
                   </div>
@@ -370,7 +370,7 @@ export default function TopNav() {
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+              className="nav:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -386,7 +386,7 @@ export default function TopNav() {
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+              className="nav:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -397,7 +397,7 @@ export default function TopNav() {
 
       {/* Mobile Navigation Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200 shadow-xl">
+        <div className="nav:hidden border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200 shadow-xl">
           {user && (
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <div className="flex items-center gap-1.5 text-primary text-xs font-bold">

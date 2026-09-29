@@ -214,7 +214,7 @@ export default function MyContributions() {
         onOpenChange={(open) => !open && setSelectedProblem(null)}
       >
         <DialogContent
-          className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0"
+          className="max-w-4xl max-h-[90dvh] overflow-hidden flex flex-col p-0 gap-0"
           showCloseButton={false}
         >
           <DialogHeader className="p-6 border-b border-border bg-muted/30 rounded-t-xl">

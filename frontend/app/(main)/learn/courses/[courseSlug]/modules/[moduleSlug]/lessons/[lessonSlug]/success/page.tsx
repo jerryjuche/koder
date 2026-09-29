@@ -157,14 +157,14 @@ export default function LessonSuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="min-h-dvh bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-brand-charcoal-base text-brand-offwhite pb-20">
+    <div className="min-h-dvh bg-brand-charcoal-base text-brand-offwhite pb-20">
       {/* Header Banner */}
       <div className="bg-gradient-to-b from-brand-success/10 to-transparent border-b border-brand-charcoal-border pt-20 pb-12 text-center">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-success/20 text-brand-success mb-6 shadow-[0_0_40px_rgba(34,197,94,0.3)]">

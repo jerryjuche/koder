@@ -1,8 +1,15 @@
 import * as React from "react"
+import { MOBILE_WORKSPACE_BREAKPOINT } from "@/lib/mobile-workspace"
 
-const DEFAULT_MOBILE_BREAKPOINT = 768 // TopNav hamburger breakpoint; the workspace uses 900 (MOBILE_WORKSPACE_BREAKPOINT)
-
-export function useIsMobile(breakpoint: number = DEFAULT_MOBILE_BREAKPOINT) {
+/**
+ * Below this width the app renders its mobile shells.
+ *
+ * Sourced from `lib/mobile-workspace.ts` so the hook, the CSS `nav:` variant
+ * (`--breakpoint-nav` in `app/globals.css`) and the mobile workspace all read
+ * the same number. TopNav does NOT use this hook — it collapses to the
+ * hamburger purely via the CSS `nav:` variant.
+ */
+export function useIsMobile(breakpoint: number = MOBILE_WORKSPACE_BREAKPOINT) {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(() => {
     return typeof window !== "undefined" ? window.innerWidth < breakpoint : undefined
   })
@@ -20,4 +27,3 @@ export function useIsMobile(breakpoint: number = DEFAULT_MOBILE_BREAKPOINT) {
 
   return !!isMobile
 }
-

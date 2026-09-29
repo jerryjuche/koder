@@ -12,7 +12,7 @@ export default function CoursesError({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4">
+    <div className="min-h-[60dvh] flex items-center justify-center px-4">
       <Card className="p-8 max-w-md w-full text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
           <AlertTriangle size={32} className="text-destructive" />

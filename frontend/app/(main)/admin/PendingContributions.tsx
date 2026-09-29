@@ -119,7 +119,7 @@ export default function PendingContributions({ compact }: Props) {
       {/* Rich Modal */}
       {selectedProblem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto">
-          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-brand-charcoal-card border-brand-charcoal-border shadow-2xl relative my-auto">
+          <Card className="w-full max-w-4xl max-h-[90dvh] flex flex-col bg-brand-charcoal-card border-brand-charcoal-border shadow-2xl relative my-auto">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-brand-charcoal-border flex justify-between items-start shrink-0">
               <div>

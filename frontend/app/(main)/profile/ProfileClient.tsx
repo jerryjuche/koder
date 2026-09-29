@@ -25,7 +25,7 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
 
 function ProfileSkeleton() {
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header skeleton */}
         <div className="rounded-2xl bg-brand-charcoal-card/40 backdrop-blur-sm border border-white/6 p-8">
@@ -119,7 +119,7 @@ export default function ProfileClient() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -141,7 +141,7 @@ export default function ProfileClient() {
 
   return (
     <TooltipProvider>
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
+      <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Page title */}
           <motion.div

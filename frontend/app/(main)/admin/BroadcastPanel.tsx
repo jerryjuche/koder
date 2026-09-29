@@ -183,7 +183,7 @@ export default function BroadcastPanel({ compact }: Props) {
         {/* Create Form */}
         {showForm && (
           <div className="bg-brand-charcoal-base border border-brand-charcoal-border rounded-xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label className="text-[10px] font-bold text-brand-offwhite-muted uppercase tracking-wider mb-1.5 block">Type</label>
                 <div className="relative">

@@ -94,15 +94,24 @@ export default function LessonSidebar({
     <TooltipProvider delayDuration={150}>
       <aside
         className={cn(
-          "border-r border-border/60 bg-card/50 backdrop-blur-xl shrink-0 flex flex-col h-full overflow-hidden shadow-xl transition-all duration-300 relative z-20",
-          isCollapsed ? "w-16" : "w-72 lg:w-80"
+          // Stacks above the lesson body on phones (full width, fixed height);
+          // a left rail from the `nav:` breakpoint up. The mobile height is
+          // definite (not a max-height) because the lesson list below is
+          // `flex-1` inside a scroll container, whose automatic minimum size is
+          // 0 — with an auto-height parent it would collapse to nothing.
+          "border-b nav:border-b-0 nav:border-r border-border/60 bg-card/50 backdrop-blur-xl shrink-0 flex flex-col nav:h-full overflow-hidden shadow-xl transition-all duration-300 relative z-20",
+          isCollapsed
+            ? "w-full nav:w-16 h-auto"
+            : "w-full nav:w-72 lg:w-80 h-[40dvh]"
         )}
       >
         {/* Module Header & Toggle Bar */}
         <div
           className={cn(
             "border-b border-border/50 shrink-0 bg-card/80 transition-all",
-            isCollapsed ? "p-3 flex flex-col items-center gap-3" : "p-4 md:p-5"
+            isCollapsed
+              ? "p-3 flex flex-row justify-center items-center gap-3 nav:flex-col"
+              : "p-4 md:p-5"
           )}
         >
           {isCollapsed ? (

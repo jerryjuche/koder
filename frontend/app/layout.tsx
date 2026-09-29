@@ -4,11 +4,12 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
+// Deliberately no `maximumScale` / `userScalable: false` — blocking pinch-zoom
+// fails WCAG 1.4.4 (Resize Text) and is hostile on small screens. `viewportFit:
+// 'cover'` pairs with the safe-area insets used by the mobile workspace shell.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#141414',
 };

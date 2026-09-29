@@ -174,16 +174,16 @@ export default function LeaderboardClient() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-4 pb-12 px-4">
+      <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-4 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="h-10 w-48 bg-card rounded-xl mx-auto" />
         <div className="h-4 w-64 bg-card rounded-xl mx-auto" />
-        <div className="flex justify-center gap-5 items-end mt-12">
+        <div className="flex flex-wrap justify-center gap-2.5 md:gap-3 lg:gap-4 items-end mt-12">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
               className={cn(
-                "bg-card rounded-2xl border border-border",
-                i === 2 ? "w-72 h-52" : "w-60 h-40"
+                "bg-card rounded-2xl border border-border w-[calc(50%-0.3125rem)] md:w-52",
+                i === 1 ? "h-52 lg:w-64" : "h-40 lg:w-56"
               )}
             />
           ))}
@@ -196,7 +196,7 @@ export default function LeaderboardClient() {
 
   return (
     <TooltipProvider>
-      <div className="max-w-5xl mx-auto pb-12 px-4 animate-in fade-in duration-500">
+      <div className="max-w-5xl mx-auto pt-4 pb-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
         {/* Header */}
         <div className="text-center space-y-4 pt-4 pb-2 relative">
           <div className="relative inline-flex">
@@ -217,11 +217,11 @@ export default function LeaderboardClient() {
 
         {/* Podium */}
         {leaderboard.length >= 1 && (
-          <div className="flex justify-center gap-3 sm:gap-4 items-end pt-8 pb-4">
+          <div className="flex flex-wrap justify-center gap-2.5 md:gap-3 lg:gap-4 items-end pt-8 pb-4">
             {top3.map((entry, i) => {
               if (!entry?.user)
                 return (
-                  <div key={"empty-" + i} className={cn("w-56", i === 1 ? "h-52" : "h-44")} />
+                  <div key={"empty-" + i} className={cn("w-[calc(50%-0.3125rem)] md:w-52 lg:w-56", i === 1 ? "h-52" : "h-44")} />
                 );
               const rankVal = i === 1 ? 1 : i === 0 ? 2 : 3;
               const isFirst = rankVal === 1;
@@ -232,9 +232,10 @@ export default function LeaderboardClient() {
                 <div
                   key={rankVal}
                   className={cn(
-                    "relative flex flex-col items-center px-5 pb-5 pt-10 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
+                    "relative flex flex-col items-center px-4 sm:px-5 pb-5 pt-10 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
                     config.cardBg,
-                    isFirst ? "w-64" : "w-56"
+                    "w-[calc(50%-0.3125rem)] md:w-52",
+                    isFirst ? "lg:w-64" : "lg:w-56"
                   )}
                 >
                   {/* Rank badge */}

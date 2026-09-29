@@ -307,7 +307,7 @@ function CopyButton({ timeout = 2000 }: { timeout?: number }) {
         "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all shrink-0",
         copied
           ? "text-emerald-500 bg-emerald-500/10"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 can-hover:opacity-0 group-hover:opacity-100 focus:opacity-100"
       )}
       title="Copy code"
     >
