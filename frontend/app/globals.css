@@ -5,6 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* Named breakpoints. --breakpoint-nav must stay in sync with
+     MOBILE_WORKSPACE_BREAKPOINT (frontend/lib/mobile-workspace.ts): below 900px
+     the TopNav collapses to the hamburger menu and the problem workspace
+     renders the 5-tab mobile shell. */
+  --breakpoint-nav: 900px;
+
   --color-brand-muted-gold: #D4AF37;
   --color-brand-muted-gold-dark: #C5A059;
   --color-brand-charcoal-base: #141414;
