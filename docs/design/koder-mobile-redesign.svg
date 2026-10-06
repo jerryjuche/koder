@@ -1,0 +1,1546 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1760 2880" width="1760" height="2880" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <title>Koder — Mobile Responsive Redesign</title>
+  <desc>Mockup sheet: dashboard, problems, learn, lesson viewer, problem workspace (problem/code/output tabs), profile and leaderboard at a 390x844 mobile viewport, with spec panels for navigation, chrome budget and design tokens.</desc>
+
+  <defs>
+    <style>
+      /* ---------- type ---------- */
+      .t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #D1D1D8; }
+      .m { font-family: "Fira Code", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; fill: #D1D1D8; }
+      .f9  { font-size: 9px; }   .f10 { font-size: 10px; } .f11 { font-size: 11px; }
+      .f12 { font-size: 12px; }  .f13 { font-size: 13px; } .f14 { font-size: 14px; }
+      .f15 { font-size: 15px; }  .f16 { font-size: 16px; } .f17 { font-size: 17px; }
+      .f19 { font-size: 19px; }  .f21 { font-size: 21px; } .f22 { font-size: 22px; }
+      .f26 { font-size: 26px; }  .f34 { font-size: 34px; }
+      .w4 { font-weight: 400; } .w5 { font-weight: 500; } .w6 { font-weight: 600; }
+      .w7 { font-weight: 700; } .w8 { font-weight: 800; }
+      /* ---------- colour ---------- */
+      .tx { fill: #D1D1D8; } .mu { fill: #88889A; } .dm { fill: #5C5C68; }
+      .gd { fill: #D4AF37; } .gd2 { fill: #C5A059; } .ok { fill: #22C55E; }
+      .er { fill: #EF4444; } .wn { fill: #F59E0B; } .tl { fill: #2DD4BF; } .co { fill: #7B8CBB; }
+      .wh { fill: #FFFFFF; }
+      /* ---------- anchors ---------- */
+      .ct { text-anchor: middle; } .en { text-anchor: end; }
+      .ls1 { letter-spacing: 0.08em; } .ls2 { letter-spacing: 0.16em; }
+      /* ---------- surfaces ---------- */
+      .bg   { fill: #141414; }
+      .chrome { fill: #0F0F0F; }
+      .panel { fill: #191919; }
+      .card { fill: #1E1E1E; }
+      .raised { fill: #262626; }
+      .codebg { fill: #0B0B0B; }
+      .bd  { stroke: #2A2A2A; fill: none; }
+      .bd2 { stroke: #333333; fill: none; }
+      .bar { fill: #2E2E2E; }
+      .bar2 { fill: #262626; }
+      /* Declared last so these beat the .t / .m fill rules above.
+         A presentation attribute (fill="") cannot win against a CSS rule
+         on the same element, so syntax + on-gold text must be classes. */
+      .dk { fill: #141414; }
+      .c-com { fill: #6A9955; } .c-kw { fill: #569CD6; } .c-ctrl { fill: #C586C0; }
+      .c-fn { fill: #DCDCAA; }  .c-var { fill: #9CDCFE; } .c-plain { fill: #D4D4D4; }
+    </style>
+
+    <filter id="phoneShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+
+    <!-- ============ icons (24x24 lucide-style) ============ -->
+    <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/>
+      <rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+    </symbol>
+    <symbol id="ic-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>
+    </symbol>
+    <symbol id="ic-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
+    </symbol>
+    <symbol id="ic-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/>
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </symbol>
+    <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </symbol>
+    <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+      <path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>
+    </symbol>
+    <symbol id="ic-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>
+    </symbol>
+    <symbol id="ic-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+      <path d="M9 18h6"/><path d="M10 22h4"/>
+    </symbol>
+    <symbol id="ic-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+    </symbol>
+    <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+    </symbol>
+    <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+    </symbol>
+    <symbol id="ic-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m15 18-6-6 6-6"/>
+    </symbol>
+    <symbol id="ic-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m9 18 6-6-6-6"/>
+    </symbol>
+    <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/>
+      <line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/>
+      <line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/>
+      <line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>
+    </symbol>
+    <symbol id="ic-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 6 9 17l-5-5"/>
+    </symbol>
+    <symbol id="ic-xcircle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>
+    </symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4v16l14-8z"/></symbol>
+    <symbol id="ic-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+    </symbol>
+    <symbol id="ic-reset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+    </symbol>
+    <symbol id="ic-brace" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/>
+      <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>
+    </symbol>
+    <symbol id="ic-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.4 1.3-3.2C8.4 8.4 9 9.4 10 9.4c0-3 2-5.4 2-7.4z"/>
+      <path d="M8.5 12.5C6.6 13.7 5 15.6 5 18a7 7 0 0 0 14 0c0-2-1-3.4-2-4.5"/>
+    </symbol>
+    <symbol id="ic-zap" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>
+    </symbol>
+    <symbol id="ic-shield" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3zm-1 14-3-3 1.4-1.4L11 13.2l4.6-4.6L17 10l-6 6z"/>
+    </symbol>
+    <symbol id="ic-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </symbol>
+    <symbol id="ic-medal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/>
+      <path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/>
+    </symbol>
+
+    <!-- ============ device clips ============ -->
+    <clipPath id="cp1"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp2"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp3"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp4"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp5"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp6"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp7"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp8"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+    <clipPath id="cp9"><rect x="4" y="4" width="382" height="836" rx="42"/></clipPath>
+
+    <!-- ============ gradients ============ -->
+    <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#C5A059"/>
+    </linearGradient>
+    <linearGradient id="gHeroTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F766E" stop-opacity="0.85"/><stop offset="100%" stop-color="#134E4A" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="gHeroCool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3B4A7A" stop-opacity="0.9"/><stop offset="100%" stop-color="#1E1E1E" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="gHeroGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7A5C12" stop-opacity="0.85"/><stop offset="100%" stop-color="#1E1E1E" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="gPodium1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.28"/><stop offset="100%" stop-color="#1E1E1E" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- ============ reusable screen parts ============ -->
+    <g id="part-status">
+      <text class="t f13 w6 tx" x="30" y="32">9:41</text>
+      <rect x="319" y="23" width="3" height="6" rx="1" fill="#D1D1D8"/>
+      <rect x="324" y="20.5" width="3" height="8.5" rx="1" fill="#D1D1D8"/>
+      <rect x="329" y="18" width="3" height="11" rx="1" fill="#D1D1D8"/>
+      <rect x="334" y="15.5" width="3" height="13.5" rx="1" fill="#D1D1D8"/>
+      <path d="M341 22.5a8.5 8.5 0 0 1 10.4 0" fill="none" stroke="#D1D1D8" stroke-width="1.9" stroke-linecap="round"/>
+      <path d="M344 26.2a4.2 4.2 0 0 1 4.4 0" fill="none" stroke="#D1D1D8" stroke-width="1.9" stroke-linecap="round"/>
+      <circle cx="346.2" cy="29.4" r="1.3" fill="#D1D1D8"/>
+      <rect x="355" y="18" width="17" height="11" rx="3" fill="none" stroke="#D1D1D8" stroke-width="1.4"/>
+      <rect x="357" y="20" width="11" height="7" rx="1.5" fill="#D1D1D8"/>
+      <rect x="373.5" y="21" width="2" height="5" rx="1" fill="#D1D1D8"/>
+    </g>
+    <g id="part-island">
+      <rect x="140" y="13" width="110" height="32" rx="16" fill="#000000"/>
+      <circle cx="228" cy="29" r="4.5" fill="#0A0A12"/>
+      <circle cx="228" cy="29" r="2" fill="#1B2A3A"/>
+    </g>
+    <g id="part-home-indicator">
+      <rect x="135" y="823" width="120" height="5" rx="2.5" fill="#D1D1D8" opacity="0.32"/>
+    </g>
+    <g id="part-bezel">
+      <rect x="0" y="0" width="390" height="844" rx="46" fill="#080808" stroke="#303030" stroke-width="1.5"/>
+    </g>
+  </defs>
+
+  <!-- ==================================================================
+       SHEET HEADER
+  =================================================================== -->
+  <rect width="1760" height="2880" fill="#0A0A0A"/>
+
+  <text class="t f12 w7 gd ls2" x="44" y="46">KODER · MOBILE RESPONSIVE REDESIGN</text>
+  <text class="t f34 w7 tx" x="44" y="90">Mobile design system &amp; screen mockups</text>
+  <text class="t f14 w4 mu" x="44" y="120">390 × 844 viewport (iPhone-class) · dark theme · tokens from frontend/app/globals.css</text>
+
+  <g transform="translate(44,142)">
+    <text class="t f11 w5 dm" x="0" y="12">Surfaces</text>
+    <rect x="68" y="1" width="20" height="14" rx="3" fill="#0F0F0F" stroke="#2A2A2A"/>
+    <rect x="94" y="1" width="20" height="14" rx="3" fill="#141414" stroke="#2A2A2A"/>
+    <rect x="120" y="1" width="20" height="14" rx="3" fill="#191919" stroke="#2A2A2A"/>
+    <rect x="146" y="1" width="20" height="14" rx="3" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <rect x="172" y="1" width="20" height="14" rx="3" fill="#262626" stroke="#2A2A2A"/>
+    <rect x="198" y="1" width="20" height="14" rx="3" fill="#0B0B0B" stroke="#2A2A2A"/>
+    <text class="t f11 w4 dm" x="228" y="12">Accents</text>
+    <circle cx="292" cy="8" r="7" fill="#D4AF37"/>
+    <circle cx="312" cy="8" r="7" fill="#22C55E"/>
+    <circle cx="332" cy="8" r="7" fill="#EF4444"/>
+    <circle cx="352" cy="8" r="7" fill="#F59E0B"/>
+    <circle cx="372" cy="8" r="7" fill="#2DD4BF"/>
+    <circle cx="392" cy="8" r="7" fill="#7B8CBB"/>
+    <text class="t f11 w5 dm" x="420" y="12">Single breakpoint</text>
+    <rect x="546" y="1" width="150" height="14" rx="7" fill="#191919" stroke="#2A2A2A"/>
+    <text class="t f10 w6 gd m" x="621" y="12" text-anchor="middle">nav: 900px</text>
+  </g>
+
+  <!-- ==================================================================
+       ROW 1 —  DASHBOARD / PROBLEMS / LEARN / LESSON
+  =================================================================== -->
+  <g>
+    <text class="t f15 w7 tx" x="44" y="196">01 · Dashboard</text>
+    <text class="t f11 w4 dm" x="172" y="196">Tab bar replaces the hamburger as primary navigation</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="470" y="196">02 · Problems list</text>
+    <text class="t f11 w4 dm" x="600" y="196">Filters move into a bottom sheet behind one 44px button</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="896" y="196">03 · Learn — catalog</text>
+    <text class="t f11 w4 dm" x="1036" y="196">Full-width hero cards, one per row, thumb-reachable CTAs</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="1322" y="196">04 · Lesson viewer</text>
+    <text class="t f11 w4 dm" x="1452" y="196">Sub-pages swap the tab bar for a sticky action bar</text>
+  </g>
+
+  <!-- ============================ FRAME 1 : DASHBOARD ============================ -->
+  <g transform="translate(44,210)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(44,210)" clip-path="url(#cp1)">
+    <rect width="390" height="844" class="bg"/>
+
+    <!-- app bar -->
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="20" y="58" width="28" height="28" rx="8" fill="url(#gGold)"/>
+    <path d="M29 66v12M29 66l6 4.5-6 4.5M35 78l3-2.6" stroke="#141414" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="t f17 w7 tx" x="56" y="78">Koder</text>
+    <use href="#ic-bell" x="303" y="64" width="22" height="22" style="color:#88889A"/>
+    <circle cx="321" cy="63" r="5" fill="#EF4444" stroke="#0F0F0F" stroke-width="2"/>
+    <circle cx="347" cy="74" r="15" fill="#3B4A7A"/>
+    <text class="t f11 w7 wh ct" x="347" y="78">JJ</text>
+
+    <!-- greeting -->
+    <text class="t f12 w4 mu" x="20" y="130">Good evening</text>
+    <text class="t f21 w7 tx" x="20" y="156">Jerry</text>
+    <rect x="288" y="130" width="82" height="26" rx="13" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-zap" x="296" y="136" width="13" height="13" style="color:#D4AF37"/>
+    <text class="t f12 w7 gd" x="314" y="148">Lv. 7</text>
+
+    <!-- stat cards: 104px wide, 8px gap, 112px pitch.
+         The 4th card lands at x=356 so ~30px peeks past the 386px screen edge -
+         a legible scroll affordance rather than the 6px a 108/12 rhythm gave. -->
+    <g>
+      <rect x="20" y="172" width="104" height="84" rx="14" class="card" stroke="#2A2A2A"/>
+      <use href="#ic-zap" x="34" y="186" width="15" height="15" style="color:#D4AF37"/>
+      <text class="t f21 w7 tx" x="34" y="232">6,240</text>
+      <text class="t f11 w5 dm ls1" x="34" y="248">TOTAL XP</text>
+    </g>
+    <g>
+      <rect x="132" y="172" width="104" height="84" rx="14" class="card" stroke="#2A2A2A"/>
+      <use href="#ic-fire" x="146" y="186" width="16" height="16" style="color:#F59E0B"/>
+      <text class="t f21 w7 tx" x="146" y="232">12</text>
+      <text class="t f11 w5 dm ls1" x="146" y="248">DAY STREAK</text>
+    </g>
+    <g>
+      <rect x="244" y="172" width="104" height="84" rx="14" class="card" stroke="#2A2A2A"/>
+      <use href="#ic-check" x="258" y="186" width="16" height="16" style="color:#22C55E"/>
+      <text class="t f21 w7 tx" x="258" y="232">143</text>
+      <text class="t f11 w5 dm ls1" x="258" y="248">SOLVED</text>
+    </g>
+    <g>
+      <rect x="356" y="172" width="104" height="84" rx="14" class="card" stroke="#2A2A2A"/>
+      <use href="#ic-medal" x="370" y="186" width="16" height="16" style="color:#7B8CBB"/>
+      <text class="t f21 w7 tx" x="370" y="232">#47</text>
+      <text class="t f11 w5 dm ls1" x="370" y="248">RANK</text>
+    </g>
+
+    <!-- search + filter -->
+    <rect x="20" y="272" width="286" height="44" rx="13" class="panel" stroke="#2A2A2A"/>
+    <use href="#ic-search" x="34" y="285" width="18" height="18" style="color:#88889A"/>
+    <text class="t f13 w4 dm" x="62" y="299">Search problems, modules…</text>
+    <rect x="318" y="272" width="52" height="44" rx="13" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-sliders" x="331" y="284" width="19" height="19" style="color:#D1D1D8"/>
+    <circle cx="360" cy="282" r="8" fill="#D4AF37"/>
+    <text class="t f11 w8 dk" x="360" y="286" text-anchor="middle">2</text>
+
+    <!-- chips -->
+    <rect x="20" y="328" width="50" height="32" rx="16" fill="#D4AF37" fill-opacity="0.13" stroke="#D4AF37" stroke-opacity="0.5"/>
+    <text class="t f12 w6 gd" x="45" y="349" text-anchor="middle">All</text>
+    <rect x="78" y="328" width="54" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu" x="105" y="349" text-anchor="middle">Go</text>
+    <rect x="140" y="328" width="78" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu" x="179" y="349" text-anchor="middle">Python</text>
+    <rect x="226" y="328" width="76" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu" x="264" y="349" text-anchor="middle">Solved</text>
+    <rect x="310" y="328" width="80" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+
+    <!-- continue learning -->
+    <text class="t f15 w7 tx" x="20" y="398">Continue learning</text>
+    <text class="t f12 w6 gd" x="370" y="398" text-anchor="end">See all</text>
+
+    <g>
+      <rect x="20" y="414" width="350" height="96" rx="16" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="414" width="350" height="96" rx="16" fill="url(#gHeroTeal)"/>
+      <rect x="20" y="414" width="350" height="96" rx="16" fill="url(#gHeroCool)" fill-opacity="0.5"/>
+      <rect x="36" y="432" width="30" height="30" rx="9" fill="#0F0F0F" fill-opacity="0.55"/>
+      <use href="#ic-book" x="43" y="439" width="16" height="16" style="color:#2DD4BF"/>
+      <text class="t f15 w7 tx" x="78" y="446">Python Mastery</text>
+      <text class="t f11 w4 mu" x="78" y="464">Module 3 · Lesson 8 of 14</text>
+      <rect x="78" y="476" width="200" height="5" rx="2.5" fill="#000000" fill-opacity="0.45"/>
+      <rect x="78" y="476" width="84" height="5" rx="2.5" fill="#D4AF37"/>
+      <text class="t f11 w7 gd" x="288" y="482">42%</text>
+      <rect x="308" y="462" width="46" height="30" rx="10" fill="#D4AF37"/>
+      <text class="t f11 w7 dk" x="331" y="481" text-anchor="middle">Resume</text>
+    </g>
+
+    <!-- modules -->
+    <text class="t f15 w7 tx" x="20" y="540">Modules</text>
+    <text class="t f12 w6 gd" x="370" y="540" text-anchor="end">View all</text>
+
+    <g>
+      <rect x="20" y="556" width="350" height="88" rx="14" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="572" width="40" height="40" rx="12" fill="#1F3D2E"/>
+      <use href="#ic-code" x="46" y="584" width="17" height="17" style="color:#22C55E"/>
+      <text class="t f14 w6 tx" x="86" y="588">Arrays &amp; Strings</text>
+      <text class="t f11 w4 dm" x="86" y="606">24 problems · 8 solved</text>
+      <rect x="86" y="618" width="220" height="5" rx="2.5" class="bar2"/>
+      <rect x="86" y="618" width="73" height="5" rx="2.5" fill="#22C55E"/>
+      <text class="t f12 w6 mu" x="356" y="604" text-anchor="end">33%</text>
+      <use href="#ic-right" x="344" y="616" width="14" height="14" style="color:#5C5C68"/>
+    </g>
+    <g>
+      <rect x="20" y="654" width="350" height="88" rx="14" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="670" width="40" height="40" rx="12" fill="#3A2F12"/>
+      <use href="#ic-bulb" x="46" y="682" width="17" height="17" style="color:#D4AF37"/>
+      <text class="t f14 w6 tx" x="86" y="686">Dynamic Programming</text>
+      <text class="t f11 w4 dm" x="86" y="704">18 problems · 2 solved</text>
+      <rect x="86" y="716" width="220" height="5" rx="2.5" class="bar2"/>
+      <rect x="86" y="716" width="24" height="5" rx="2.5" fill="#D4AF37"/>
+      <text class="t f12 w6 mu" x="356" y="702" text-anchor="end">11%</text>
+      <use href="#ic-right" x="344" y="714" width="14" height="14" style="color:#5C5C68"/>
+    </g>
+    <g>
+      <rect x="20" y="752" width="350" height="88" rx="14" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="768" width="40" height="40" rx="12" fill="#2E2418"/>
+      <use href="#ic-shield" x="46" y="780" width="17" height="17" style="color:#C5A059"/>
+      <text class="t f14 w6 tx" x="86" y="784">Trees &amp; Graphs</text>
+      <text class="t f11 w4 dm" x="86" y="802">31 problems · 0 solved</text>
+    </g>
+
+    <!-- bottom nav -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="27" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-home" x="29" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="39" y="800">Home</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="800">Problems</text>
+    <use href="#ic-book" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="195" y="800">Learn</text>
+    <use href="#ic-trophy" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="273" y="800">Ranks</text>
+    <use href="#ic-user" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="800">Profile</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(44,210)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 2 : PROBLEMS LIST ============================ -->
+  <g transform="translate(470,210)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(470,210)" clip-path="url(#cp2)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <text class="t f17 w7 tx" x="20" y="78">Problems</text>
+    <rect x="104" y="60" width="34" height="18" rx="9" fill="#D4AF37" fill-opacity="0.16" stroke="#D4AF37" stroke-opacity="0.35"/>
+    <text class="t f9 w7 gd ct" x="121" y="73">BETA</text>
+    <use href="#ic-bell" x="322" y="64" width="22" height="22" style="color:#88889A"/>
+    <circle cx="340" cy="63" r="5" fill="#EF4444" stroke="#0F0F0F" stroke-width="2"/>
+
+    <!-- sticky search + filter -->
+    <rect x="0" y="100" width="390" height="64" class="bg"/>
+    <rect x="20" y="112" width="270" height="44" rx="13" class="panel" stroke="#2A2A2A"/>
+    <use href="#ic-search" x="34" y="125" width="18" height="18" style="color:#88889A"/>
+    <text class="t f13 w4 dm" x="62" y="139">Search 259 problems</text>
+    <rect x="302" y="112" width="68" height="44" rx="13" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-sliders" x="313" y="124" width="19" height="19" style="color:#D4AF37"/>
+    <text class="t f12 w6 gd" x="338" y="140">2</text>
+
+    <!-- chips -->
+    <rect x="20" y="168" width="50" height="32" rx="16" fill="#D4AF37" fill-opacity="0.13" stroke="#D4AF37" stroke-opacity="0.5"/>
+    <text class="t f12 w6 gd ct" x="45" y="189">All</text>
+    <rect x="78" y="168" width="54" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="105" y="189">Go</text>
+    <rect x="140" y="168" width="78" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="179" y="189">Python</text>
+    <rect x="226" y="168" width="76" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="264" y="189">Solved</text>
+    <rect x="310" y="168" width="92" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="356" y="189">Unsolved</text>
+
+    <!-- count -->
+    <text class="t f12 w4 mu" x="20" y="224">Showing 12 of 259</text>
+    <text class="t f12 w4 dm en" x="370" y="224">Page 1 of 22</text>
+
+    <!-- problem rows -->
+    <g>
+      <rect x="20" y="238" width="350" height="108" rx="14" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="238" width="350" height="2" rx="1" fill="#22C55E"/>
+      <text class="m f11 w5 dm" x="34" y="266">#001</text>
+      <rect x="286" y="252" width="70" height="22" rx="11" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <text class="t f11 w7 gd ct" x="321" y="267">+50 XP</text>
+      <text class="t f15 w7 tx" x="34" y="290">Two Sum</text>
+      <use href="#ic-check" x="344" y="276" width="16" height="16" style="color:#22C55E"/>
+      <rect x="34" y="302" width="300" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="314" width="212" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="326" width="86" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.05"/>
+      <text class="t f10 w5 mu" x="41" y="335">ARRAYS-STRINGS</text>
+      <rect x="258" y="322" width="46" height="18" rx="9" fill="#22C55E" fill-opacity="0.14"/>
+      <text class="t f10 w7 ok ct" x="281" y="335">Easy</text>
+    </g>
+    <g>
+      <rect x="20" y="356" width="350" height="108" rx="14" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="356" width="350" height="2" rx="1" fill="#22C55E"/>
+      <text class="m f11 w5 dm" x="34" y="384">#002</text>
+      <rect x="286" y="370" width="70" height="22" rx="11" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <text class="t f11 w7 gd ct" x="321" y="385">+75 XP</text>
+      <text class="t f15 w7 tx" x="34" y="408">Longest Substring</text>
+      <use href="#ic-check" x="344" y="394" width="16" height="16" style="color:#22C55E"/>
+      <rect x="34" y="420" width="286" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="432" width="180" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="444" width="86" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.05"/>
+      <text class="t f10 w5 mu" x="41" y="453">ARRAYS-STRINGS</text>
+      <rect x="258" y="440" width="60" height="18" rx="9" fill="#F59E0B" fill-opacity="0.14"/>
+      <text class="t f10 w7 wn ct" x="288" y="453">Medium</text>
+    </g>
+    <g>
+      <rect x="20" y="474" width="350" height="108" rx="14" class="card" stroke="#2A2A2A"/>
+      <text class="m f11 w5 dm" x="34" y="502">#003</text>
+      <rect x="286" y="488" width="70" height="22" rx="11" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <text class="t f11 w7 gd ct" x="321" y="503">+120 XP</text>
+      <text class="t f15 w7 tx" x="34" y="526">Median of Two Arrays</text>
+      <rect x="34" y="538" width="300" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="550" width="240" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="562" width="70" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.05"/>
+      <text class="t f10 w5 mu" x="41" y="571">SORTING</text>
+      <rect x="264" y="558" width="54" height="18" rx="9" fill="#EF4444" fill-opacity="0.14"/>
+      <text class="t f10 w7 er ct" x="291" y="571">Hard</text>
+    </g>
+    <g>
+      <rect x="20" y="592" width="350" height="108" rx="14" class="card" stroke="#2A2A2A"/>
+      <text class="m f11 w5 dm" x="34" y="620">#004</text>
+      <rect x="286" y="606" width="70" height="22" rx="11" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <text class="t f11 w7 gd ct" x="321" y="621">+90 XP</text>
+      <text class="t f15 w7 tx" x="34" y="644">Reverse Linked List</text>
+      <rect x="34" y="656" width="272" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="668" width="160" height="5" rx="2.5" class="bar"/>
+      <rect x="34" y="680" width="96" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.05"/>
+      <text class="t f10 w5 mu" x="41" y="689">LINKED-LISTS</text>
+      <rect x="258" y="676" width="60" height="18" rx="9" fill="#F59E0B" fill-opacity="0.14"/>
+      <text class="t f10 w7 wn ct" x="288" y="689">Medium</text>
+    </g>
+    <g>
+      <rect x="20" y="710" width="350" height="108" rx="14" class="card" stroke="#2A2A2A"/>
+      <text class="m f11 w5 dm" x="34" y="738">#005</text>
+      <text class="t f15 w7 tx" x="34" y="762">Course Schedule II</text>
+    </g>
+
+    <!-- bottom nav -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="105" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-home" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="800">Home</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="117" y="800">Problems</text>
+    <use href="#ic-book" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="195" y="800">Learn</text>
+    <use href="#ic-trophy" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="273" y="800">Ranks</text>
+    <use href="#ic-user" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="800">Profile</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(470,210)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 3 : LEARN ============================ -->
+  <g transform="translate(896,210)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(896,210)" clip-path="url(#cp3)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <text class="t f17 w7 tx" x="20" y="78">Learn</text>
+    <rect x="84" y="60" width="34" height="18" rx="9" fill="#D4AF37" fill-opacity="0.16" stroke="#D4AF37" stroke-opacity="0.35"/>
+    <text class="t f9 w7 gd ct" x="101" y="73">BETA</text>
+    <use href="#ic-search" x="322" y="64" width="22" height="22" style="color:#88889A"/>
+    <use href="#ic-bookmark" x="352" y="64" width="22" height="22" style="color:#88889A"/>
+
+    <!-- continue card -->
+    <g>
+      <rect x="20" y="112" width="350" height="104" rx="16" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="112" width="350" height="104" rx="16" fill="url(#gHeroCool)"/>
+      <text class="t f10 w7 co ls2" x="36" y="136">CONTINUE WHERE YOU LEFT OFF</text>
+      <text class="t f16 w7 tx" x="36" y="160">Python Mastery</text>
+      <text class="t f11 w4 mu" x="36" y="178">Module 3 · Lesson 8 — Variables &amp; Types</text>
+      <rect x="36" y="190" width="200" height="5" rx="2.5" fill="#000000" fill-opacity="0.45"/>
+      <rect x="36" y="190" width="84" height="5" rx="2.5" fill="#D4AF37"/>
+      <rect x="286" y="164" width="68" height="36" rx="12" fill="#D4AF37"/>
+      <use href="#ic-play" x="297" y="174" width="15" height="15" style="color:#141414"/>
+      <text class="t f12 w7 dk" x="318" y="187">Resume</text>
+    </g>
+
+    <!-- filters -->
+    <rect x="20" y="234" width="50" height="32" rx="16" fill="#D4AF37" fill-opacity="0.13" stroke="#D4AF37" stroke-opacity="0.5"/>
+    <text class="t f12 w6 gd ct" x="45" y="255">All</text>
+    <rect x="78" y="234" width="88" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="122" y="255">Beginner</text>
+    <rect x="174" y="234" width="108" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="228" y="255">Intermediate</text>
+    <rect x="290" y="234" width="96" height="32" rx="16" class="panel" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu ct" x="338" y="255">Advanced</text>
+
+    <!-- course card 1 -->
+    <g>
+      <rect x="20" y="286" width="350" height="176" rx="18" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="286" width="350" height="84" rx="18" fill="url(#gHeroTeal)"/>
+      <rect x="20" y="352" width="350" height="18" fill="#1E1E1E"/>
+      <use href="#ic-book" x="36" y="304" width="22" height="22" style="color:#2DD4BF"/>
+      <rect x="272" y="304" width="82" height="24" rx="12" fill="#0F0F0F" fill-opacity="0.6"/>
+      <text class="t f11 w7 gd ct" x="313" y="320">Beginner</text>
+      <text class="t f19 w7 wh" x="36" y="350">Go Fundamentals</text>
+      <text class="t f12 w4 mu" x="36" y="394">Syntax, types, control flow and your first programs</text>
+      <rect x="36" y="410" width="60" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="66" y="425">4 modules</text>
+      <rect x="104" y="410" width="62" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="135" y="425">22 lessons</text>
+      <rect x="174" y="410" width="58" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="203" y="425">~6 hrs</text>
+      <rect x="36" y="442" width="262" height="5" rx="2.5" class="bar2"/>
+      <rect x="36" y="442" width="105" height="5" rx="2.5" fill="#22C55E"/>
+      <text class="t f12 w6 ok en" x="354" y="448">40%</text>
+    </g>
+
+    <!-- course card 2 -->
+    <g>
+      <rect x="20" y="478" width="350" height="176" rx="18" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="478" width="350" height="84" rx="18" fill="url(#gHeroCool)"/>
+      <rect x="20" y="544" width="350" height="18" fill="#1E1E1E"/>
+      <use href="#ic-code" x="36" y="496" width="22" height="22" style="color:#7B8CBB"/>
+      <rect x="264" y="496" width="90" height="24" rx="12" fill="#0F0F0F" fill-opacity="0.6"/>
+      <text class="t f11 w7 wn ct" x="309" y="512">Intermediate</text>
+      <text class="t f19 w7 wh" x="36" y="542">Python Mastery</text>
+      <text class="t f12 w4 mu" x="36" y="586">Idiomatic Python, OOP, generators and packaging</text>
+      <rect x="36" y="602" width="60" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="66" y="617">4 modules</text>
+      <rect x="104" y="602" width="62" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="135" y="617">14 lessons</text>
+      <rect x="174" y="602" width="58" height="22" rx="11" class="raised"/>
+      <text class="t f11 w5 tx ct" x="203" y="617">~9 hrs</text>
+      <rect x="36" y="634" width="262" height="5" rx="2.5" class="bar2"/>
+      <rect x="36" y="634" width="110" height="5" rx="2.5" fill="#D4AF37"/>
+      <text class="t f12 w6 gd en" x="354" y="640">42%</text>
+    </g>
+
+    <!-- course card 3 (clipped) -->
+    <g>
+      <rect x="20" y="670" width="350" height="176" rx="18" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="670" width="350" height="84" rx="18" fill="url(#gHeroGold)"/>
+      <use href="#ic-bulb" x="36" y="688" width="22" height="22" style="color:#D4AF37"/>
+      <text class="t f19 w7 wh" x="36" y="734">AI Fluency</text>
+      <text class="t f12 w4 mu" x="36" y="778">Prompting, evaluation and shipping with LLMs</text>
+    </g>
+
+    <!-- bottom nav -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="183" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-home" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="800">Home</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="800">Problems</text>
+    <use href="#ic-book" x="185" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="195" y="800">Learn</text>
+    <use href="#ic-trophy" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="273" y="800">Ranks</text>
+    <use href="#ic-user" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="800">Profile</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(896,210)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 4 : LESSON VIEWER ============================ -->
+  <g transform="translate(1322,210)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(1322,210)" clip-path="url(#cp4)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <use href="#ic-left" x="12" y="58" width="22" height="22" style="color:#D1D1D8"/>
+    <text class="t f14 w6 tx" x="52" y="74">Variables &amp; Types</text>
+    <text class="t f10 w4 dm" x="52" y="88">Module 1 · Lesson 3</text>
+    <rect x="286" y="62" width="46" height="24" rx="12" class="card" stroke="#2A2A2A"/>
+    <text class="t f11 w6 mu ct" x="309" y="78">3/12</text>
+    <use href="#ic-more" x="348" y="62" width="22" height="22" style="color:#88889A"/>
+
+    <!-- progress -->
+    <rect x="0" y="100" width="390" height="3" fill="#1E1E1E"/>
+    <rect x="0" y="100" width="98" height="3" fill="#D4AF37"/>
+
+    <!-- content -->
+    <text class="t f10 w7 gd ls2" x="20" y="136">MODULE 1 · LESSON 3</text>
+    <text class="t f22 w7 tx" x="20" y="168">Variables &amp; Types</text>
+    <text class="t f11 w4 dm" x="20" y="188">8 min read · 3 exercises</text>
+
+    <rect x="20" y="204" width="350" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="218" width="330" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="232" width="348" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="246" width="276" height="5" rx="2.5" class="bar"/>
+
+    <!-- callout -->
+    <rect x="20" y="272" width="350" height="88" rx="14" fill="#2DD4BF" fill-opacity="0.07" stroke="#2DD4BF" stroke-opacity="0.28"/>
+    <rect x="20" y="272" width="3" height="88" rx="1.5" fill="#2DD4BF"/>
+    <use href="#ic-bulb" x="38" y="288" width="17" height="17" style="color:#2DD4BF"/>
+    <text class="t f12 w7 tl" x="62" y="301">Why this matters</text>
+    <rect x="38" y="314" width="306" height="5" rx="2.5" fill="#2E2E2E"/>
+    <rect x="38" y="328" width="270" height="5" rx="2.5" fill="#2E2E2E"/>
+    <rect x="38" y="342" width="200" height="5" rx="2.5" fill="#2E2E2E"/>
+
+    <!-- code block -->
+    <rect x="20" y="376" width="350" height="152" rx="14" class="codebg" stroke="#2A2A2A"/>
+    <rect x="20" y="376" width="350" height="32" rx="14" fill="#161616"/>
+    <rect x="20" y="394" width="350" height="14" fill="#161616"/>
+    <text class="m f11 w5 co" x="34" y="397">types.py</text>
+    <use href="#ic-copy" x="344" y="384" width="15" height="15" style="color:#5C5C68"/>
+    <text class="m f12 c-com" x="34" y="432"># Python infers the type</text>
+    <text class="m f12 c-plain" x="34" y="452">name = <tspan fill="#CE9178">"Ada"</tspan></text>
+    <text class="m f12 c-plain" x="34" y="472">age = <tspan fill="#B5CEA8">36</tspan></text>
+    <text class="m f12 c-plain" x="34" y="492">score = <tspan fill="#B5CEA8">98.5</tspan></text>
+    <text class="m f12 c-plain" x="34" y="512">active = <tspan fill="#569CD6">True</tspan></text>
+
+    <rect x="20" y="546" width="330" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="560" width="348" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="574" width="290" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="588" width="348" height="5" rx="2.5" class="bar"/>
+    <rect x="20" y="602" width="180" height="5" rx="2.5" class="bar"/>
+
+    <!-- quiz stub -->
+    <rect x="20" y="628" width="350" height="112" rx="14" class="card" stroke="#2A2A2A"/>
+    <rect x="34" y="644" width="62" height="20" rx="10" fill="#7B8CBB" fill-opacity="0.16"/>
+    <text class="t f10 w7 co ct" x="65" y="658">QUIZ</text>
+    <text class="t f13 w6 tx" x="110" y="659">Question 1 of 2</text>
+    <rect x="34" y="676" width="322" height="46" rx="11" class="panel" stroke="#2A2A2A"/>
+    <circle cx="54" cy="699" r="8" fill="none" stroke="#5C5C68" stroke-width="1.6"/>
+    <rect x="72" y="696" width="200" height="5" rx="2.5" class="bar"/>
+
+    <!-- sticky action bar (replaces tab bar on sub-pages) -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="20" y="768" width="112" height="48" rx="14" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-left" x="44" y="784" width="16" height="16" style="color:#88889A"/>
+    <text class="t f13 w6 mu ct" x="94" y="798">Previous</text>
+    <rect x="144" y="768" width="226" height="48" rx="14" fill="url(#gGold)"/>
+    <text class="t f14 w7 dk" x="238" y="798" text-anchor="middle">Next section</text>
+    <use href="#ic-right" x="330" y="784" width="17" height="17" style="color:#141414"/>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(1322,210)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ==================================================================
+       ROW 2 —  WORKSPACE (PROBLEM / CODE / OUTPUT) + PROFILE
+  =================================================================== -->
+  <g>
+    <text class="t f15 w7 tx" x="44" y="1080">05 · Workspace — Problem tab</text>
+    <text class="t f11 w4 dm" x="266" y="1080">No action bar — 56px of chrome reclaimed</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="470" y="1080">06 · Workspace — Code tab</text>
+    <text class="t f11 w4 dm" x="672" y="1080">44px toolbar + 40px key row, all targets ≥ 40px</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="896" y="1080">07 · Workspace — Output tab</text>
+    <text class="t f11 w4 dm" x="1110" y="1080">Case pills pin to the top instead of scrolling away</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="1322" y="1080">08 · Profile</text>
+    <text class="t f11 w4 dm" x="1428" y="1080">2×2 stat grid, scrollable heatmap, segmented tabs</text>
+  </g>
+
+  <!-- ============================ FRAME 5 : WORKSPACE / PROBLEM ============================ -->
+  <g transform="translate(44,1094)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(44,1094)" clip-path="url(#cp5)">
+    <rect width="390" height="844" class="bg"/>
+
+    <!-- workspace app bar (52px content, 44px targets) -->
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <use href="#ic-left" x="4" y="54" width="24" height="24" style="color:#D1D1D8"/>
+    <text class="t f14 w7 tx" x="44" y="72">Two Sum</text>
+    <text class="t f10 w4 dm" x="44" y="87">ARRAYS-STRINGS</text>
+    <rect x="290" y="58" width="60" height="24" rx="12" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+    <use href="#ic-zap" x="298" y="64" width="12" height="12" style="color:#D4AF37"/>
+    <text class="t f11 w7 gd" x="314" y="75">+50</text>
+    <use href="#ic-more" x="356" y="58" width="22" height="22" style="color:#88889A"/>
+
+    <!-- meta chips -->
+    <rect x="20" y="116" width="52" height="26" rx="13" fill="#22C55E" fill-opacity="0.14" stroke="#22C55E" stroke-opacity="0.3"/>
+    <text class="t f11 w7 ok ct" x="46" y="133">Easy</text>
+    <rect x="80" y="116" width="112" height="26" rx="13" class="card" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu ct" x="136" y="133">ARRAYS-STRINGS</text>
+    <rect x="200" y="116" width="82" height="26" rx="13" fill="#22C55E" fill-opacity="0.12" stroke="#22C55E" stroke-opacity="0.3"/>
+    <use href="#ic-check" x="208" y="122" width="13" height="13" style="color:#22C55E"/>
+    <text class="t f11 w7 ok" x="226" y="133">Solved</text>
+
+    <text class="t f22 w7 tx" x="20" y="182">Two Sum</text>
+
+    <!-- compact stat strip (replaces 3 stacked cards) -->
+    <rect x="20" y="200" width="350" height="44" rx="13" class="panel" stroke="#2A2A2A"/>
+    <text class="t f15 w7 tx ct" x="78" y="222">68%</text>
+    <text class="t f10 w5 dm ls1 ct" x="78" y="236">ACCEPTANCE</text>
+    <rect x="156" y="210" width="1" height="24" fill="#2A2A2A"/>
+    <text class="t f15 w7 tx ct" x="234" y="222">12.4k</text>
+    <text class="t f10 w5 dm ls1 ct" x="234" y="236">SUBMISSIONS</text>
+    <rect x="312" y="210" width="1" height="24" fill="#2A2A2A"/>
+    <text class="t f15 w7 gd ct" x="341" y="222">30m</text>
+    <text class="t f10 w5 dm ls1 ct" x="341" y="236">EST.</text>
+
+    <!-- description -->
+    <rect x="20" y="270" width="6" height="6" rx="3" fill="#D4AF37"/>
+    <text class="t f11 w7 mu ls1" x="34" y="277">PROBLEM DESCRIPTION</text>
+    <rect x="20" y="290" width="350" height="146" rx="14" class="card" stroke="#2A2A2A"/>
+    <rect x="20" y="290" width="3" height="146" rx="1.5" fill="#D4AF37" fill-opacity="0.7"/>
+    <text class="t f13 w6 tx" x="36" y="314">Given an array of integers…</text>
+    <rect x="36" y="328" width="316" height="5" rx="2.5" class="bar"/>
+    <rect x="36" y="342" width="300" height="5" rx="2.5" class="bar"/>
+    <rect x="36" y="356" width="322" height="5" rx="2.5" class="bar"/>
+    <rect x="36" y="370" width="180" height="5" rx="2.5" class="bar"/>
+    <rect x="36" y="390" width="132" height="24" rx="7" class="raised"/>
+    <text class="m f12 gd" x="48" y="407">nums, target</text>
+    <rect x="36" y="422" width="240" height="5" rx="2.5" class="bar"/>
+
+    <!-- examples -->
+    <rect x="20" y="456" width="6" height="6" rx="3" fill="#22C55E"/>
+    <text class="t f11 w7 mu ls1" x="34" y="463">EXAMPLES (2)</text>
+
+    <rect x="20" y="478" width="350" height="196" rx="14" class="codebg" stroke="#2A2A2A"/>
+    <rect x="20" y="478" width="350" height="34" rx="14" fill="#161616"/>
+    <rect x="20" y="498" width="350" height="14" fill="#161616"/>
+    <text class="t f11 w7 mu ls1" x="34" y="500">EXAMPLE 1</text>
+    <use href="#ic-copy" x="332" y="488" width="15" height="15" style="color:#5C5C68"/>
+    <text class="t f10 w7 dm ls1" x="34" y="532">INPUT</text>
+    <rect x="34" y="540" width="322" height="34" rx="9" fill="#050505" stroke="#2A2A2A"/>
+    <text class="m f12 tx" x="46" y="562">nums = [2,7,11,15], target = 9</text>
+    <text class="t f10 w7 dm ls1" x="34" y="596">EXPECTED OUTPUT</text>
+    <rect x="34" y="604" width="322" height="34" rx="9" fill="#050505" stroke="#22C55E" stroke-opacity="0.25"/>
+    <text class="m f12 ok" x="46" y="626">[0, 1]</text>
+    <text class="t f11 w4 dm" x="34" y="660">Because nums[0] + nums[1] == 9.</text>
+
+    <rect x="20" y="686" width="350" height="60" rx="14" class="card" stroke="#2A2A2A"/>
+    <text class="t f13 w6 tx" x="36" y="712">Constraints</text>
+    <rect x="36" y="722" width="230" height="5" rx="2.5" class="bar"/>
+
+    <!-- bottom tab bar ONLY (no action bar) -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="27" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-file" x="29" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="39" y="802">Problem</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="802">Code</text>
+    <use href="#ic-terminal" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <circle cx="203" cy="767" r="4.5" fill="#22C55E" stroke="#0F0F0F" stroke-width="2"/>
+    <text class="t f10 w5 mu ct" x="195" y="802">Output</text>
+    <use href="#ic-bulb" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <circle cx="280" cy="766" r="7" fill="#D4AF37"/>
+    <text class="t f9 w8 dk ct" x="280" y="769">2</text>
+    <text class="t f10 w5 mu ct" x="273" y="802">Hints</text>
+    <use href="#ic-more" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="802">More</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(44,1094)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 6 : WORKSPACE / CODE ============================ -->
+  <g transform="translate(470,1094)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(470,1094)" clip-path="url(#cp6)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <use href="#ic-left" x="4" y="54" width="24" height="24" style="color:#D1D1D8"/>
+    <text class="t f14 w7 tx" x="44" y="72">Two Sum</text>
+    <text class="t f10 w4 dm" x="44" y="87">ARRAYS-STRINGS</text>
+    <rect x="290" y="58" width="60" height="24" rx="12" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+    <use href="#ic-zap" x="298" y="64" width="12" height="12" style="color:#D4AF37"/>
+    <text class="t f11 w7 gd" x="314" y="75">+50</text>
+    <use href="#ic-more" x="356" y="58" width="22" height="22" style="color:#88889A"/>
+
+    <!-- toolbar 44px -->
+    <rect x="0" y="100" width="390" height="44" fill="#191919"/>
+    <rect x="0" y="143" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="16" y="108" width="128" height="28" rx="9" class="bg" stroke="#2A2A2A"/>
+    <rect x="18" y="110" width="62" height="24" rx="7" fill="#D4AF37" fill-opacity="0.18"/>
+    <circle cx="32" cy="122" r="6" fill="#00ADD8"/>
+    <text class="t f10 w7 dk" x="31" y="126" text-anchor="middle">Go</text>
+    <text class="t f11 w6 mu" x="102" y="126" text-anchor="middle">Python</text>
+    <text class="m f11 w4 dm" x="152" y="126">solution.go</text>
+    <rect x="256" y="106" width="40" height="32" rx="9" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-brace" x="267" y="116" width="18" height="18" style="color:#D1D1D8"/>
+    <rect x="302" y="106" width="40" height="32" rx="9" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-copy" x="313" y="116" width="17" height="17" style="color:#D1D1D8"/>
+    <rect x="348" y="106" width="40" height="32" rx="9" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-reset" x="359" y="116" width="17" height="17" style="color:#D1D1D8"/>
+
+    <!-- key row 40px -->
+    <rect x="0" y="144" width="390" height="40" fill="#111111"/>
+    <rect x="0" y="183" width="390" height="1" fill="#2A2A2A"/>
+    <text class="t f9 w7 dm ls1" x="16" y="169">KEYS</text>
+    <rect x="56" y="150" width="52" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="82" y="169">Tab</text>
+    <rect x="114" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="134" y="169">:</text>
+    <rect x="160" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="180" y="169">(</text>
+    <rect x="206" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="226" y="169">)</text>
+    <rect x="252" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="272" y="169">{</text>
+    <rect x="298" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="318" y="169">}</text>
+    <rect x="344" y="150" width="40" height="28" rx="8" class="card" stroke="#2A2A2A"/>
+    <text class="m f12 w6 tx ct" x="364" y="169">[</text>
+
+    <!-- editor -->
+    <rect x="0" y="184" width="390" height="522" class="codebg"/>
+    <rect x="0" y="184" width="38" height="522" fill="#0E0E0E"/>
+    <text class="m f11 dm en" x="30" y="212">1</text>
+    <text class="m f11 dm en" x="30" y="236">2</text>
+    <text class="m f11 dm en" x="30" y="260">3</text>
+    <text class="m f11 dm en" x="30" y="284">4</text>
+    <text class="m f11 dm en" x="30" y="308">5</text>
+    <text class="m f11 dm en" x="30" y="332">6</text>
+    <text class="m f11 dm en" x="30" y="356">7</text>
+    <text class="m f11 dm en" x="30" y="380">8</text>
+    <text class="m f11 dm en" x="30" y="404">9</text>
+    <text class="m f11 dm en" x="30" y="428">10</text>
+
+    <text class="m f12 c-com" x="48" y="212">// return indices of the two numbers</text>
+    <text class="m f12 c-kw" x="48" y="236">func</text>
+    <text class="m f12 c-fn" x="84" y="236">twoSum</text>
+    <text class="m f12 c-plain" x="140" y="236">(nums []<tspan fill="#4EC9B0">int</tspan>, target <tspan fill="#4EC9B0">int</tspan>) []<tspan fill="#4EC9B0">int</tspan> {</text>
+    <text class="m f12 c-var" x="64" y="260">seen</text>
+    <text class="m f12 c-plain" x="106" y="260">:= <tspan fill="#569CD6">make</tspan>(<tspan fill="#569CD6">map</tspan>[<tspan fill="#4EC9B0">int</tspan>]<tspan fill="#4EC9B0">int</tspan>{})</text>
+    <text class="m f12 c-ctrl" x="64" y="284">for</text>
+    <text class="m f12 c-var" x="96" y="284">i</text>
+    <text class="m f12 c-plain" x="108" y="284">, <tspan fill="#9CDCFE">n</tspan> := <tspan fill="#C586C0">range</tspan> <tspan fill="#9CDCFE">nums</tspan> {</text>
+    <text class="m f12 c-ctrl" x="96" y="308">if</text>
+    <text class="m f12 c-var" x="118" y="308">j</text>
+    <text class="m f12 c-plain" x="130" y="308">, <tspan fill="#9CDCFE">ok</tspan> := <tspan fill="#9CDCFE">seen</tspan>[<tspan fill="#9CDCFE">target</tspan>-<tspan fill="#9CDCFE">n</tspan>]; <tspan fill="#9CDCFE">ok</tspan> {</text>
+    <text class="m f12 c-ctrl" x="128" y="332">return</text>
+    <text class="m f12 c-plain" x="182" y="332">[]<tspan fill="#4EC9B0">int</tspan>{<tspan fill="#9CDCFE">j</tspan>, <tspan fill="#9CDCFE">i</tspan>}</text>
+    <text class="m f12 c-plain" x="96" y="356">}</text>
+    <text class="m f12 c-var" x="96" y="380">seen</text>
+    <text class="m f12 c-plain" x="138" y="380">[<tspan fill="#9CDCFE">n</tspan>] = <tspan fill="#9CDCFE">i</tspan></text>
+    <text class="m f12 c-plain" x="64" y="404">}</text>
+    <text class="m f12 c-ctrl" x="64" y="428">return</text>
+    <text class="m f12 c-kw" x="118" y="428">nil</text>
+
+    <!-- caret -->
+    <rect x="176" y="418" width="1.5" height="14" fill="#D4D4D4"/>
+
+    <!-- action row 48px -->
+    <rect x="0" y="706" width="390" height="48" fill="#141414"/>
+    <rect x="0" y="706" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="16" y="712" width="170" height="40" rx="12" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-play" x="52" y="724" width="14" height="14" style="color:#88889A"/>
+    <text class="t f13 w6 tx" x="74" y="737">Test code</text>
+    <rect x="198" y="712" width="176" height="40" rx="12" fill="url(#gGold)"/>
+    <use href="#ic-play" x="256" y="724" width="14" height="14" style="color:#141414"/>
+    <text class="t f13 w7 dk" x="278" y="737">Submit</text>
+
+    <!-- tab bar -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="105" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-file" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="802">Problem</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="117" y="802">Code</text>
+    <use href="#ic-terminal" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <circle cx="203" cy="767" r="4.5" fill="#22C55E" stroke="#0F0F0F" stroke-width="2"/>
+    <text class="t f10 w5 mu ct" x="195" y="802">Output</text>
+    <use href="#ic-bulb" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <circle cx="280" cy="766" r="7" fill="#D4AF37"/>
+    <text class="t f9 w8 dk ct" x="280" y="769">2</text>
+    <text class="t f10 w5 mu ct" x="273" y="802">Hints</text>
+    <use href="#ic-more" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="802">More</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(470,1094)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 7 : WORKSPACE / OUTPUT ============================ -->
+  <g transform="translate(896,1094)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(896,1094)" clip-path="url(#cp7)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <use href="#ic-left" x="4" y="54" width="24" height="24" style="color:#D1D1D8"/>
+    <text class="t f14 w7 tx" x="44" y="72">Two Sum</text>
+    <text class="t f10 w4 dm" x="44" y="87">ARRAYS-STRINGS</text>
+    <rect x="290" y="58" width="60" height="24" rx="12" fill="#D4AF37" fill-opacity="0.14" stroke="#D4AF37" stroke-opacity="0.4"/>
+    <use href="#ic-zap" x="298" y="64" width="12" height="12" style="color:#D4AF37"/>
+    <text class="t f11 w7 gd" x="314" y="75">+50</text>
+    <use href="#ic-more" x="356" y="58" width="22" height="22" style="color:#88889A"/>
+
+    <!-- pinned case pills -->
+    <rect x="0" y="100" width="390" height="48" fill="#141414"/>
+    <rect x="0" y="147" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="16" y="108" width="86" height="32" rx="10" fill="#22C55E" fill-opacity="0.12" stroke="#22C55E" stroke-opacity="0.4"/>
+    <use href="#ic-check" x="26" y="118" width="13" height="13" style="color:#22C55E"/>
+    <text class="t f11 w6 ok" x="46" y="129">Case 1</text>
+    <rect x="110" y="108" width="86" height="32" rx="10" fill="#EF4444" fill-opacity="0.12" stroke="#EF4444" stroke-opacity="0.5"/>
+    <use href="#ic-xcircle" x="120" y="118" width="13" height="13" style="color:#EF4444"/>
+    <text class="t f11 w6 er" x="140" y="129">Case 2</text>
+    <rect x="204" y="108" width="86" height="32" rx="10" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-check" x="214" y="118" width="13" height="13" style="color:#88889A"/>
+    <text class="t f11 w5 mu" x="234" y="129">Case 3</text>
+    <rect x="298" y="108" width="86" height="32" rx="10" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-check" x="308" y="118" width="13" height="13" style="color:#88889A"/>
+    <text class="t f11 w5 mu" x="328" y="129">Case 4</text>
+
+    <!-- status banner -->
+    <rect x="16" y="162" width="358" height="74" rx="14" fill="#F59E0B" fill-opacity="0.09" stroke="#F59E0B" stroke-opacity="0.3"/>
+    <rect x="30" y="176" width="32" height="32" rx="10" fill="#F59E0B" fill-opacity="0.18"/>
+    <use href="#ic-xcircle" x="38" y="184" width="16" height="16" style="color:#F59E0B"/>
+    <text class="t f14 w7 tx" x="74" y="188">3 of 5 cases passed</text>
+    <text class="t f11 w4 mu" x="74" y="206">Case 2 output does not match expected</text>
+    <rect x="74" y="214" width="46" height="14" rx="7" class="raised"/>
+    <text class="m f10 w5 tx ct" x="97" y="224">4ms</text>
+    <rect x="296" y="176" width="64" height="28" rx="9" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-reset" x="305" y="184" width="13" height="13" style="color:#D1D1D8"/>
+    <text class="t f11 w6 tx" x="324" y="196">Re-run</text>
+
+    <!-- input -->
+    <text class="t f10 w7 dm ls1" x="16" y="264">INPUT</text>
+    <rect x="16" y="272" width="358" height="36" rx="10" class="codebg" stroke="#2A2A2A"/>
+    <text class="m f12 tx" x="28" y="295">nums = [3,3], target = 6</text>
+
+    <!-- diff -->
+    <text class="t f10 w7 dm ls1" x="16" y="336">DIFF COMPARISON</text>
+    <rect x="16" y="344" width="358" height="150" rx="12" class="codebg" stroke="#2A2A2A"/>
+    <rect x="16" y="344" width="358" height="26" rx="12" fill="#161616"/>
+    <rect x="16" y="358" width="358" height="12" fill="#161616"/>
+    <text class="t f10 w7 er ls1" x="30" y="362">ACTUAL OUTPUT</text>
+    <text class="m f12 er" x="240" y="362">[1, 0]</text>
+
+    <rect x="16" y="370" width="358" height="26" fill="#EF4444" fill-opacity="0.09"/>
+    <text class="m f12 mu" x="30" y="388">-</text>
+    <text class="m f12 er" x="46" y="388">[1, 0]</text>
+    <text class="m f12 dm" x="140" y="388">expected</text>
+
+    <rect x="16" y="396" width="358" height="26" fill="#22C55E" fill-opacity="0.09"/>
+    <text class="m f12 mu" x="30" y="414">+</text>
+    <text class="m f12 ok" x="46" y="414">[0, 1]</text>
+    <text class="m f12 dm" x="140" y="414">actual</text>
+
+    <text class="t f11 w4 mu" x="30" y="444">Order matters — return indices ascending.</text>
+    <text class="t f11 w4 dm" x="30" y="462">Hint: compare the full array, not its elements.</text>
+
+    <!-- next failure nav -->
+    <rect x="16" y="510" width="358" height="52" rx="12" class="card" stroke="#2A2A2A"/>
+    <text class="t f12 w5 mu" x="30" y="542">2 failures remaining · </text>
+    <text class="t f12 w6 gd" x="290" y="542">Jump to next</text>
+    <use href="#ic-right" x="344" y="532" width="14" height="14" style="color:#D4AF37"/>
+
+    <!-- action row -->
+    <rect x="0" y="706" width="390" height="48" fill="#141414"/>
+    <rect x="0" y="706" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="16" y="712" width="170" height="40" rx="12" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-play" x="52" y="724" width="14" height="14" style="color:#88889A"/>
+    <text class="t f13 w6 tx" x="74" y="737">Test code</text>
+    <rect x="198" y="712" width="176" height="40" rx="12" fill="url(#gGold)"/>
+    <use href="#ic-play" x="256" y="724" width="14" height="14" style="color:#141414"/>
+    <text class="t f13 w7 dk" x="278" y="737">Submit</text>
+
+    <!-- tab bar -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="183" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-file" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="802">Problem</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="802">Code</text>
+    <use href="#ic-terminal" x="185" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="195" y="802">Output</text>
+    <use href="#ic-bulb" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <circle cx="280" cy="766" r="7" fill="#D4AF37"/>
+    <text class="t f9 w8 dk ct" x="280" y="769">2</text>
+    <text class="t f10 w5 mu ct" x="273" y="802">Hints</text>
+    <use href="#ic-more" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="802">More</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(896,1094)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ FRAME 8 : PROFILE ============================ -->
+  <g transform="translate(1322,1094)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(1322,1094)" clip-path="url(#cp8)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <text class="t f17 w7 tx" x="20" y="78">Profile</text>
+    <use href="#ic-gear" x="346" y="62" width="24" height="24" style="color:#88889A"/>
+
+    <!-- identity -->
+    <circle cx="58" cy="160" r="38" fill="#3B4A7A"/>
+    <text class="t f26 w7 wh ct" x="58" y="170">JJ</text>
+    <circle cx="86" cy="132" r="9" fill="#141414"/>
+    <use href="#ic-check" x="79" y="125" width="15" height="15" style="color:#D4AF37"/>
+    <text class="t f19 w7 tx" x="110" y="152">Jerry Juche</text>
+    <text class="m f12 w5 gd" x="110" y="172">@jerryjuche</text>
+    <rect x="110" y="184" width="120" height="22" rx="11" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-zap" x="118" y="189" width="12" height="12" style="color:#D4AF37"/>
+    <text class="t f11 w6 gd" x="134" y="199">Level 7</text>
+
+    <!-- xp bar -->
+    <rect x="20" y="216" width="350" height="8" rx="4" class="raised"/>
+    <rect x="20" y="216" width="312" height="8" rx="4" fill="url(#gGold)"/>
+    <text class="t f11 w5 mu" x="20" y="242">6,240 / 7,000 XP to Level 8</text>
+    <text class="t f11 w6 gd en" x="370" y="242">89%</text>
+
+    <!-- 2x2 stats -->
+    <rect x="20" y="262" width="168" height="72" rx="14" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-check" x="36" y="278" width="16" height="16" style="color:#22C55E"/>
+    <text class="t f21 w7 tx" x="36" y="320">143</text>
+    <text class="t f10 w5 dm ls1" x="120" y="320">SOLVED</text>
+
+    <rect x="202" y="262" width="168" height="72" rx="14" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-fire" x="218" y="278" width="16" height="16" style="color:#F59E0B"/>
+    <text class="t f21 w7 tx" x="218" y="320">12</text>
+    <text class="t f10 w5 dm ls1" x="302" y="320">STREAK</text>
+
+    <rect x="20" y="346" width="168" height="72" rx="14" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-medal" x="36" y="362" width="16" height="16" style="color:#7B8CBB"/>
+    <text class="t f21 w7 tx" x="36" y="404">#47</text>
+    <text class="t f10 w5 dm ls1" x="120" y="404">RANK</text>
+
+    <rect x="202" y="346" width="168" height="72" rx="14" class="card" stroke="#2A2A2A"/>
+    <use href="#ic-target" x="218" y="362" width="16" height="16" style="color:#2DD4BF"/>
+    <text class="t f21 w7 tx" x="218" y="404">78%</text>
+    <text class="t f10 w5 dm ls1" x="302" y="404">ACCURACY</text>
+
+    <!-- segmented control -->
+    <rect x="20" y="436" width="350" height="40" rx="12" class="panel" stroke="#2A2A2A"/>
+    <rect x="24" y="440" width="84" height="32" rx="9" class="raised"/>
+    <text class="t f12 w7 tx ct" x="66" y="461">Stats</text>
+    <text class="t f12 w5 mu ct" x="156" y="461">Activity</text>
+    <text class="t f12 w5 mu ct" x="246" y="461">Awards</text>
+    <text class="t f12 w5 mu ct" x="330" y="461">Subs</text>
+
+    <!-- difficulty breakdown -->
+    <text class="t f13 w6 tx" x="20" y="504">Difficulty breakdown</text>
+    <text class="t f11 w5 mu" x="20" y="530">Easy</text>
+    <text class="t f11 w6 tx en" x="370" y="530">62 / 80</text>
+    <rect x="20" y="538" width="350" height="7" rx="3.5" class="raised"/>
+    <rect x="20" y="538" width="271" height="7" rx="3.5" fill="#22C55E"/>
+
+    <text class="t f11 w5 mu" x="20" y="566">Medium</text>
+    <text class="t f11 w6 tx en" x="370" y="566">68 / 142</text>
+    <rect x="20" y="574" width="350" height="7" rx="3.5" class="raised"/>
+    <rect x="20" y="574" width="168" height="7" rx="3.5" fill="#F59E0B"/>
+
+    <text class="t f11 w5 mu" x="20" y="602">Hard</text>
+    <text class="t f11 w6 tx en" x="370" y="602">13 / 37</text>
+    <rect x="20" y="610" width="350" height="7" rx="3.5" class="raised"/>
+    <rect x="20" y="610" width="123" height="7" rx="3.5" fill="#EF4444"/>
+
+    <!-- heatmap: 3 rows x 21 cols, 15px pitch, 24px label gutter -->
+    <text class="t f13 w6 tx" x="20" y="654">Contribution activity</text>
+    <rect x="20" y="668" width="350" height="68" rx="12" class="panel" stroke="#2A2A2A"/>
+    <text class="t f9 w5 dm ct" x="32" y="693">M</text>
+    <text class="t f9 w5 dm ct" x="32" y="708">W</text>
+    <text class="t f9 w5 dm ct" x="32" y="723">F</text>
+    <g fill="#242424">
+      <rect x="44" y="684" width="11" height="11" rx="2.5"/><rect x="59" y="684" width="11" height="11" rx="2.5"/><rect x="74" y="684" width="11" height="11" rx="2.5"/><rect x="89" y="684" width="11" height="11" rx="2.5"/><rect x="104" y="684" width="11" height="11" rx="2.5"/><rect x="119" y="684" width="11" height="11" rx="2.5"/><rect x="134" y="684" width="11" height="11" rx="2.5"/>
+      <rect x="149" y="684" width="11" height="11" rx="2.5"/><rect x="164" y="684" width="11" height="11" rx="2.5"/><rect x="179" y="684" width="11" height="11" rx="2.5"/><rect x="194" y="684" width="11" height="11" rx="2.5"/><rect x="209" y="684" width="11" height="11" rx="2.5"/><rect x="224" y="684" width="11" height="11" rx="2.5"/><rect x="239" y="684" width="11" height="11" rx="2.5"/>
+      <rect x="254" y="684" width="11" height="11" rx="2.5"/><rect x="269" y="684" width="11" height="11" rx="2.5"/><rect x="284" y="684" width="11" height="11" rx="2.5"/><rect x="299" y="684" width="11" height="11" rx="2.5"/><rect x="314" y="684" width="11" height="11" rx="2.5"/><rect x="329" y="684" width="11" height="11" rx="2.5"/><rect x="344" y="684" width="11" height="11" rx="2.5"/>
+      <rect x="44" y="699" width="11" height="11" rx="2.5"/><rect x="59" y="699" width="11" height="11" rx="2.5"/><rect x="74" y="699" width="11" height="11" rx="2.5"/><rect x="89" y="699" width="11" height="11" rx="2.5"/><rect x="104" y="699" width="11" height="11" rx="2.5"/><rect x="119" y="699" width="11" height="11" rx="2.5"/><rect x="134" y="699" width="11" height="11" rx="2.5"/>
+      <rect x="149" y="699" width="11" height="11" rx="2.5"/><rect x="164" y="699" width="11" height="11" rx="2.5"/><rect x="179" y="699" width="11" height="11" rx="2.5"/><rect x="194" y="699" width="11" height="11" rx="2.5"/><rect x="209" y="699" width="11" height="11" rx="2.5"/><rect x="224" y="699" width="11" height="11" rx="2.5"/><rect x="239" y="699" width="11" height="11" rx="2.5"/>
+      <rect x="254" y="699" width="11" height="11" rx="2.5"/><rect x="269" y="699" width="11" height="11" rx="2.5"/><rect x="284" y="699" width="11" height="11" rx="2.5"/><rect x="299" y="699" width="11" height="11" rx="2.5"/><rect x="314" y="699" width="11" height="11" rx="2.5"/><rect x="329" y="699" width="11" height="11" rx="2.5"/><rect x="344" y="699" width="11" height="11" rx="2.5"/>
+      <rect x="44" y="714" width="11" height="11" rx="2.5"/><rect x="59" y="714" width="11" height="11" rx="2.5"/><rect x="74" y="714" width="11" height="11" rx="2.5"/><rect x="89" y="714" width="11" height="11" rx="2.5"/><rect x="104" y="714" width="11" height="11" rx="2.5"/><rect x="119" y="714" width="11" height="11" rx="2.5"/><rect x="134" y="714" width="11" height="11" rx="2.5"/>
+      <rect x="149" y="714" width="11" height="11" rx="2.5"/><rect x="164" y="714" width="11" height="11" rx="2.5"/><rect x="179" y="714" width="11" height="11" rx="2.5"/><rect x="194" y="714" width="11" height="11" rx="2.5"/><rect x="209" y="714" width="11" height="11" rx="2.5"/><rect x="224" y="714" width="11" height="11" rx="2.5"/><rect x="239" y="714" width="11" height="11" rx="2.5"/>
+      <rect x="254" y="714" width="11" height="11" rx="2.5"/><rect x="269" y="714" width="11" height="11" rx="2.5"/><rect x="284" y="714" width="11" height="11" rx="2.5"/><rect x="299" y="714" width="11" height="11" rx="2.5"/><rect x="314" y="714" width="11" height="11" rx="2.5"/><rect x="329" y="714" width="11" height="11" rx="2.5"/><rect x="344" y="714" width="11" height="11" rx="2.5"/>
+    </g>
+    <g>
+      <rect x="59" y="684" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="89" y="684" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+      <rect x="119" y="684" width="11" height="11" rx="2.5" fill="#22C55E"/>
+      <rect x="179" y="684" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.55"/>
+      <rect x="209" y="684" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="254" y="684" width="11" height="11" rx="2.5" fill="#22C55E"/>
+      <rect x="299" y="684" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+      <rect x="344" y="684" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="74" y="699" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+      <rect x="104" y="699" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="134" y="699" width="11" height="11" rx="2.5" fill="#22C55E"/>
+      <rect x="164" y="699" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.55"/>
+      <rect x="224" y="699" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="269" y="699" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+      <rect x="314" y="699" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="44" y="714" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="104" y="714" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+      <rect x="149" y="714" width="11" height="11" rx="2.5" fill="#22C55E"/>
+      <rect x="194" y="714" width="11" height="11" rx="2.5" fill="#1F4A2C"/>
+      <rect x="254" y="714" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.55"/>
+      <rect x="284" y="714" width="11" height="11" rx="2.5" fill="#22C55E"/>
+      <rect x="329" y="714" width="11" height="11" rx="2.5" fill="#22C55E" fill-opacity="0.38"/>
+    </g>
+
+    <!-- bottom nav -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="339" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-home" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="802">Home</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="802">Problems</text>
+    <use href="#ic-book" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="195" y="802">Learn</text>
+    <use href="#ic-trophy" x="263" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="273" y="802">Ranks</text>
+    <use href="#ic-user" x="341" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="351" y="802">Profile</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(1322,1094)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ==================================================================
+       ROW 3 —  LEADERBOARD + SPEC PANELS
+  =================================================================== -->
+  <g>
+    <text class="t f15 w7 tx" x="44" y="1964">09 · Leaderboard</text>
+    <text class="t f11 w4 dm" x="164" y="1964">Podium + pinned "your rank" row</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="470" y="1964">Spec A · Navigation model</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="896" y="1964">Spec B · Chrome budget</text>
+  </g>
+  <g>
+    <text class="t f15 w7 tx" x="1322" y="1964">Spec C · Tokens &amp; targets</text>
+  </g>
+
+  <!-- ============================ FRAME 9 : LEADERBOARD ============================ -->
+  <g transform="translate(44,1978)" filter="url(#phoneShadow)"><use href="#part-bezel"/></g>
+  <g transform="translate(44,1978)" clip-path="url(#cp9)">
+    <rect width="390" height="844" class="bg"/>
+
+    <rect x="0" y="0" width="390" height="100" class="chrome"/>
+    <rect x="0" y="99" width="390" height="1" fill="#2A2A2A"/>
+    <text class="t f17 w7 tx" x="20" y="78">Leaderboard</text>
+    <use href="#ic-search" x="346" y="62" width="24" height="24" style="color:#88889A"/>
+
+    <!-- period -->
+    <rect x="20" y="112" width="350" height="38" rx="12" class="panel" stroke="#2A2A2A"/>
+    <rect x="24" y="116" width="112" height="30" rx="9" class="raised"/>
+    <text class="t f12 w7 tx ct" x="80" y="136">This week</text>
+    <text class="t f12 w5 mu ct" x="196" y="136">This month</text>
+    <text class="t f12 w5 mu ct" x="310" y="136">All time</text>
+
+    <!-- podium -->
+    <g>
+      <rect x="20" y="176" width="106" height="126" rx="16" class="card" stroke="#2A2A2A"/>
+      <rect x="20" y="176" width="106" height="42" rx="16" fill="#7B8CBB" fill-opacity="0.14"/>
+      <text class="t f16 w7 mu ct" x="73" y="203">2</text>
+      <circle cx="73" cy="240" r="21" fill="#4A5A3A"/>
+      <text class="t f13 w7 wh ct" x="73" y="245">AR</text>
+      <text class="t f11 w6 tx ct" x="73" y="274">Ana R.</text>
+      <text class="t f12 w7 gd ct" x="73" y="292">5,880 XP</text>
+    </g>
+    <g>
+      <rect x="140" y="160" width="110" height="150" rx="18" fill="#1E1E1E"/>
+      <rect x="140" y="160" width="110" height="150" rx="18" fill="url(#gPodium1)"/>
+      <rect x="140" y="160" width="110" height="150" rx="18" stroke="#D4AF37" stroke-opacity="0.55"/>
+      <use href="#ic-medal" x="183" y="170" width="24" height="24" style="color:#D4AF37"/>
+      <circle cx="195" cy="238" r="24" fill="#5A3A3A"/>
+      <text class="t f15 w7 wh ct" x="195" y="244">MK</text>
+      <text class="t f12 w7 tx ct" x="195" y="278">Mia K.</text>
+      <text class="t f13 w7 gd ct" x="195" y="298">7,410 XP</text>
+    </g>
+    <g>
+      <rect x="264" y="176" width="106" height="126" rx="16" class="card" stroke="#2A2A2A"/>
+      <rect x="264" y="176" width="106" height="42" rx="16" fill="#C5A059" fill-opacity="0.14"/>
+      <text class="t f16 w7 mu ct" x="317" y="203">3</text>
+      <circle cx="317" cy="240" r="21" fill="#3A4A5A"/>
+      <text class="t f13 w7 wh ct" x="317" y="245">TS</text>
+      <text class="t f11 w6 tx ct" x="317" y="274">Tom S.</text>
+      <text class="t f12 w7 gd ct" x="317" y="292">5,120 XP</text>
+    </g>
+
+    <!-- search -->
+    <rect x="20" y="332" width="350" height="42" rx="13" class="panel" stroke="#2A2A2A"/>
+    <use href="#ic-search" x="34" y="344" width="18" height="18" style="color:#88889A"/>
+    <text class="t f13 w4 dm" x="62" y="358">Find a developer</text>
+
+    <!-- header row -->
+    <text class="t f10 w7 dm ls1" x="20" y="400">RANK</text>
+    <text class="t f10 w7 dm ls1" x="90" y="400">DEVELOPER</text>
+    <text class="t f10 w7 dm ls1" x="370" y="400" text-anchor="end">XP</text>
+
+    <!-- rows -->
+    <g>
+      <rect x="20" y="410" width="350" height="62" rx="13" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="430" width="24" height="22" rx="7" class="raised"/>
+      <text class="t f12 w7 mu ct" x="46" y="446">4</text>
+      <circle cx="84" cy="441" r="17" fill="#2F3B52"/>
+      <text class="t f11 w7 wh ct" x="84" y="445">LB</text>
+      <text class="t f13 w6 tx" x="112" y="437">Lena Bosch</text>
+      <text class="m f11 w4 dm" x="112" y="453">@lbosch</text>
+      <text class="t f13 w7 gd en" x="356" y="441">4,980</text>
+      <text class="t f10 w4 dm en" x="356" y="457">96 solved</text>
+    </g>
+    <g>
+      <rect x="20" y="480" width="350" height="62" rx="13" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="500" width="24" height="22" rx="7" class="raised"/>
+      <text class="t f12 w7 mu ct" x="46" y="516">5</text>
+      <circle cx="84" cy="511" r="17" fill="#4A3A52"/>
+      <text class="t f11 w7 wh ct" x="84" y="515">DV</text>
+      <text class="t f13 w6 tx" x="112" y="507">Diego Vidal</text>
+      <text class="m f11 w4 dm" x="112" y="523">@dvidal</text>
+      <text class="t f13 w7 gd en" x="356" y="511">4,610</text>
+      <text class="t f10 w4 dm en" x="356" y="527">88 solved</text>
+    </g>
+    <g>
+      <rect x="20" y="550" width="350" height="62" rx="13" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="570" width="24" height="22" rx="7" class="raised"/>
+      <text class="t f12 w7 mu ct" x="46" y="586">6</text>
+      <circle cx="84" cy="581" r="17" fill="#3A5248"/>
+      <text class="t f11 w7 wh ct" x="84" y="585">PN</text>
+      <text class="t f13 w6 tx" x="112" y="577">Priya Nair</text>
+      <text class="m f11 w4 dm" x="112" y="593">@pnair</text>
+      <text class="t f13 w7 gd en" x="356" y="581">4,205</text>
+      <text class="t f10 w4 dm en" x="356" y="597">81 solved</text>
+    </g>
+    <g>
+      <rect x="20" y="620" width="350" height="62" rx="13" class="card" stroke="#2A2A2A"/>
+      <rect x="34" y="640" width="24" height="22" rx="7" class="raised"/>
+      <text class="t f12 w7 mu ct" x="46" y="656">7</text>
+      <circle cx="84" cy="651" r="17" fill="#52483A"/>
+      <text class="t f11 w7 wh ct" x="84" y="655">OY</text>
+      <text class="t f13 w6 tx" x="112" y="647">Ola Yilmaz</text>
+      <text class="m f11 w4 dm" x="112" y="663">@oyilmaz</text>
+      <text class="t f13 w7 gd en" x="356" y="651">3,940</text>
+      <text class="t f10 w4 dm en" x="356" y="667">74 solved</text>
+    </g>
+
+    <!-- pinned current user -->
+    <rect x="20" y="692" width="350" height="56" rx="13" fill="#D4AF37" fill-opacity="0.1" stroke="#D4AF37" stroke-opacity="0.45"/>
+    <rect x="20" y="692" width="3" height="56" rx="1.5" fill="#D4AF37"/>
+    <rect x="34" y="709" width="24" height="22" rx="7" fill="#D4AF37" fill-opacity="0.22"/>
+    <text class="t f12 w7 gd ct" x="46" y="725">47</text>
+    <circle cx="84" cy="720" r="17" fill="#3B4A7A"/>
+    <text class="t f11 w7 wh ct" x="84" y="724">JJ</text>
+    <text class="t f13 w7 tx" x="112" y="716">You</text>
+    <text class="m f11 w4 dm" x="112" y="732">@jerryjuche</text>
+    <text class="t f13 w7 gd en" x="356" y="720">6,240</text>
+    <text class="t f10 w4 mu en" x="356" y="736">143 solved</text>
+
+    <!-- bottom nav -->
+    <rect x="0" y="754" width="390" height="90" class="chrome"/>
+    <rect x="0" y="754" width="390" height="1" fill="#2A2A2A"/>
+    <rect x="261" y="754" width="24" height="2.5" rx="1.25" fill="#D4AF37"/>
+    <use href="#ic-home" x="29" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="39" y="802">Home</text>
+    <use href="#ic-code" x="107" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="117" y="802">Problems</text>
+    <use href="#ic-book" x="185" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="195" y="802">Learn</text>
+    <use href="#ic-trophy" x="263" y="768" width="20" height="20" style="color:#D4AF37"/>
+    <text class="t f10 w7 gd ct" x="273" y="802">Ranks</text>
+    <use href="#ic-user" x="341" y="768" width="20" height="20" style="color:#88889A"/>
+    <text class="t f10 w5 mu ct" x="351" y="802">Profile</text>
+
+    <use href="#part-status"/>
+  </g>
+  <g transform="translate(44,1978)"><use href="#part-island"/><use href="#part-home-indicator"/></g>
+
+  <!-- ============================ SPEC A : NAVIGATION ============================ -->
+  <g transform="translate(470,1978)">
+    <rect width="390" height="844" rx="20" class="panel" stroke="#2A2A2A"/>
+
+    <text class="t f10 w7 dm ls2" x="24" y="38">SPEC A</text>
+    <text class="t f17 w7 tx" x="24" y="64">Navigation model</text>
+    <rect x="24" y="76" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f12 w6 wn" x="24" y="102">Problem — today</text>
+    <rect x="24" y="112" width="342" height="48" rx="10" class="card" stroke="#2A2A2A"/>
+    <text class="t f11 w6 tx" x="40" y="133">Hamburger</text>
+    <text class="t f11 w4 mu" x="40" y="149">Nav hidden until tapped</text>
+    <text class="t f11 w7 er en" x="350" y="141">2 taps</text>
+
+    <text class="t f12 w6 ok" x="24" y="192">Proposed</text>
+    <rect x="24" y="202" width="342" height="66" rx="10" fill="#22C55E" fill-opacity="0.07" stroke="#22C55E" stroke-opacity="0.3"/>
+    <text class="t f11 w6 tx" x="40" y="224">Persistent bottom tab bar</text>
+    <text class="t f11 w4 mu" x="40" y="240">5 destinations, always visible, thumbs rest here</text>
+    <rect x="40" y="250" width="120" height="8" rx="4" class="raised"/>
+
+    <rect x="24" y="288" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="316">Bar anatomy</text>
+    <text class="t f11 w5 mu" x="24" y="340">56px tall</text>
+    <text class="t f11 w5 mu" x="24" y="360">2px gold top indicator</text>
+    <text class="t f11 w5 mu" x="24" y="380">20px icon + 10px label</text>
+    <text class="t f11 w5 mu" x="24" y="400">78px per destination</text>
+    <text class="t f11 w5 mu" x="24" y="420">Safe-area inset additive</text>
+
+    <rect x="210" y="316" width="156" height="112" rx="12" class="card" stroke="#2A2A2A"/>
+    <rect x="222" y="340" width="132" height="40" rx="8" class="chrome" stroke="#2A2A2A"/>
+    <rect x="248" y="340" width="20" height="2" rx="1" fill="#D4AF37"/>
+    <use href="#ic-home" x="238" y="348" width="14" height="14" style="color:#D4AF37"/>
+    <text class="t f9 w6 gd ct" x="245" y="374">Home</text>
+    <use href="#ic-code" x="264" y="348" width="14" height="14" style="color:#88889A"/>
+    <text class="t f9 w4 mu ct" x="271" y="374">Problems</text>
+    <use href="#ic-book" x="290" y="348" width="14" height="14" style="color:#88889A"/>
+    <text class="t f9 w4 mu ct" x="297" y="374">Learn</text>
+    <use href="#ic-trophy" x="316" y="348" width="14" height="14" style="color:#88889A"/>
+    <text class="t f9 w4 mu ct" x="323" y="374">Ranks</text>
+    <use href="#ic-user" x="342" y="348" width="14" height="14" style="color:#88889A"/>
+    <text class="t f9 w4 mu ct" x="349" y="374">Profile</text>
+    <text class="t f9 w5 dm ct" x="288" y="404">56px + inset</text>
+    <text class="t f9 w5 dm ct" x="288" y="418">safe area</text>
+
+    <rect x="24" y="448" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="476">Rules</text>
+    <rect x="24" y="490" width="14" height="14" rx="4" fill="#D4AF37" fill-opacity="0.2"/>
+    <text class="t f11 w5 gd" x="30" y="501">1</text>
+    <text class="t f11 w4 tx" x="48" y="501">Top-level screens get the tab bar</text>
+    <rect x="24" y="516" width="14" height="14" rx="4" fill="#2DD4BF" fill-opacity="0.2"/>
+    <text class="t f11 w5 tl" x="30" y="527">2</text>
+    <text class="t f11 w4 tx" x="48" y="527">Sub-pages swap it for an action bar</text>
+    <rect x="24" y="542" width="14" height="14" rx="4" fill="#7B8CBB" fill-opacity="0.2"/>
+    <text class="t f11 w5 co" x="30" y="553">3</text>
+    <text class="t f11 w4 tx" x="48" y="553">Workspace keeps its own 5 tabs</text>
+    <rect x="24" y="568" width="14" height="14" rx="4" fill="#22C55E" fill-opacity="0.2"/>
+    <text class="t f11 w5 ok" x="30" y="579">4</text>
+    <text class="t f11 w4 tx" x="48" y="579">One active indicator style everywhere</text>
+
+    <rect x="24" y="602" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="630">Breakpoint unification</text>
+    <text class="t f11 w4 mu" x="24" y="654">Nav collapses at 900px; grids reflow at 768 / 1024.</text>
+    <text class="t f11 w4 mu" x="24" y="672">768–900px therefore shows a mobile nav with a</text>
+    <text class="t f11 w4 mu" x="24" y="690">desktop grid. Collapse both onto the 900px token.</text>
+
+    <rect x="24" y="706" width="342" height="34" rx="9" class="codebg" stroke="#2A2A2A"/>
+    <text class="m f10 w4 dm" x="36" y="727">- grid-cols-1 md:grid-cols-2 lg:grid-cols-3</text>
+    <rect x="24" y="748" width="342" height="34" rx="9" fill="#22C55E" fill-opacity="0.07" stroke="#22C55E" stroke-opacity="0.28"/>
+    <text class="m f10 w4 ok" x="36" y="769">+ grid-cols-1 min-[560px]:2 nav:3</text>
+
+    <rect x="24" y="798" width="342" height="1" fill="#2A2A2A"/>
+    <text class="t f10 w4 dm" x="24" y="822">Files: TopNav.tsx · app/(main)/home/page.tsx</text>
+  </g>
+
+  <!-- ============================ SPEC B : CHROME BUDGET ============================ -->
+  <g transform="translate(896,1978)">
+    <rect width="390" height="844" rx="20" class="panel" stroke="#2A2A2A"/>
+
+    <text class="t f10 w7 dm ls2" x="24" y="38">SPEC B</text>
+    <text class="t f17 w7 tx" x="24" y="64">Chrome budget</text>
+    <rect x="24" y="76" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f12 w4 mu" x="24" y="102">Fixed vertical chrome in the workspace shell,</text>
+    <text class="t f12 w4 mu" x="24" y="120">measured from the component classes.</text>
+
+    <text class="t f13 w7 er" x="24" y="156">Today — 172px</text>
+    <rect x="24" y="168" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="187">MobileTopHeader  min-h-12</text>
+    <text class="m f11 w6 tx en" x="356" y="188">48px</text>
+    <rect x="24" y="202" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="221">MobileFloatingActions  py-2 + h-11</text>
+    <text class="m f11 w6 tx en" x="356" y="222">60px</text>
+    <rect x="24" y="236" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="255">MobileBottomTabs  h-16</text>
+    <text class="m f11 w6 tx en" x="356" y="256">64px</text>
+
+    <rect x="24" y="278" width="342" height="28" rx="8" fill="#EF4444" fill-opacity="0.09" stroke="#EF4444" stroke-opacity="0.3"/>
+    <text class="t f11 w6 er" x="34" y="297">Two stacked bottom bars on every tab</text>
+
+    <rect x="24" y="326" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 ok" x="24" y="354">Proposed — Problem / Hints / More</text>
+    <rect x="24" y="366" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="385">App bar</text>
+    <text class="m f11 w6 tx en" x="356" y="386">56px</text>
+    <rect x="24" y="400" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="419">Bottom tab bar (no action row)</text>
+    <text class="m f11 w6 tx en" x="356" y="420">56px</text>
+    <rect x="24" y="442" width="342" height="34" rx="8" fill="#22C55E" fill-opacity="0.08" stroke="#22C55E" stroke-opacity="0.3"/>
+    <text class="t f12 w7 ok" x="34" y="464">112px total</text>
+    <text class="t f12 w7 ok en" x="356" y="464">−35%</text>
+
+    <text class="t f13 w7 gd" x="24" y="512">Proposed — Code / Output</text>
+    <rect x="24" y="524" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="543">App bar</text>
+    <text class="m f11 w6 tx en" x="356" y="544">56px</text>
+    <rect x="24" y="558" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="577">Action row (Test / Submit)</text>
+    <text class="m f11 w6 tx en" x="356" y="578">48px</text>
+    <rect x="24" y="592" width="342" height="30" rx="8" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f10 w5 mu" x="34" y="611">Bottom tab bar</text>
+    <text class="m f11 w6 tx en" x="356" y="612">56px</text>
+    <rect x="24" y="634" width="342" height="34" rx="8" fill="#D4AF37" fill-opacity="0.09" stroke="#D4AF37" stroke-opacity="0.32"/>
+    <text class="t f12 w7 gd" x="34" y="656">160px total</text>
+    <text class="t f12 w7 gd en" x="356" y="656">−7%</text>
+
+    <rect x="24" y="690" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="718">Viewport share</text>
+    <text class="t f11 w5 mu" x="24" y="740">844px tall (portrait)</text>
+    <rect x="200" y="730" width="156" height="12" rx="6" class="raised"/>
+    <rect x="200" y="730" width="32" height="12" rx="6" fill="#EF4444"/>
+    <text class="t f11 w6 er en" x="356" y="740">20% → 13%</text>
+
+    <text class="t f11 w5 mu" x="24" y="766">667px tall (SE)</text>
+    <rect x="200" y="756" width="156" height="12" rx="6" class="raised"/>
+    <rect x="200" y="756" width="40" height="12" rx="6" fill="#EF4444"/>
+    <text class="t f11 w6 er en" x="356" y="766">26% → 17%</text>
+
+    <text class="t f11 w5 mu" x="24" y="792">390px tall (landscape)</text>
+    <rect x="200" y="782" width="156" height="12" rx="6" class="raised"/>
+    <rect x="200" y="782" width="69" height="12" rx="6" fill="#EF4444"/>
+    <text class="t f11 w6 er en" x="356" y="792">44% → 29%</text>
+
+    <rect x="24" y="812" width="342" height="1" fill="#2A2A2A"/>
+    <text class="t f10 w4 dm" x="24" y="832">Safe-area inset becomes additive, not subtracted</text>
+  </g>
+
+  <!-- ============================ SPEC C : TOKENS ============================ -->
+  <g transform="translate(1322,1978)">
+    <rect width="390" height="844" rx="20" class="panel" stroke="#2A2A2A"/>
+
+    <text class="t f10 w7 dm ls2" x="24" y="38">SPEC C</text>
+    <text class="t f17 w7 tx" x="24" y="64">Tokens &amp; targets</text>
+    <rect x="24" y="76" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="104">Surface ramp — 6 named steps</text>
+    <rect x="24" y="118" width="52" height="40" rx="9" fill="#0F0F0F" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="50" y="176">chrome</text>
+    <rect x="82" y="118" width="52" height="40" rx="9" fill="#141414" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="108" y="176">base</text>
+    <rect x="140" y="118" width="52" height="40" rx="9" fill="#191919" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="166" y="176">panel</text>
+    <rect x="198" y="118" width="52" height="40" rx="9" fill="#1E1E1E" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="224" y="176">card</text>
+    <rect x="256" y="118" width="52" height="40" rx="9" fill="#262626" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="282" y="176">raised</text>
+    <rect x="314" y="118" width="52" height="40" rx="9" fill="#0B0B0B" stroke="#2A2A2A"/>
+    <text class="t f9 w6 dm ct" x="340" y="176">code</text>
+
+    <rect x="24" y="196" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="224">Replaces ad-hoc hexes</text>
+    <rect x="24" y="238" width="342" height="86" rx="10" class="codebg" stroke="#2A2A2A"/>
+    <text class="m f10 w4 mu" x="38" y="260">bg-[#101010]  MobileBottomTabs</text>
+    <text class="m f10 w4 mu" x="38" y="278">bg-[#121212]  workspace editor</text>
+    <text class="m f10 w4 mu" x="38" y="296">bg-[#0E1013]  symbol row</text>
+    <text class="m f10 w4 mu" x="38" y="314">bg-[#0C0E12]  + #0A0C0F + #050608</text>
+
+    <rect x="24" y="338" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="366">Type scale — 11px floor</text>
+    <text class="t f14 w7 tx" x="24" y="392">Screen title · 17–22px</text>
+    <text class="t f12 w5 tx" x="24" y="414">Body &amp; controls · 13–15px</text>
+    <text class="t f11 w4 mu" x="24" y="434">Metadata · 12px</text>
+    <text class="t f10 w4 dm" x="24" y="454">Micro label · 11px, capitals only</text>
+    <rect x="24" y="466" width="342" height="28" rx="8" fill="#EF4444" fill-opacity="0.08" stroke="#EF4444" stroke-opacity="0.28"/>
+    <text class="t f11 w5 er" x="38" y="485">text-[9px] / text-[10px] found 114× today</text>
+
+    <rect x="24" y="510" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="538">Tap targets ≥ 44px</text>
+
+    <text class="t f10 w5 mu" x="24" y="562">Code toolbar button</text>
+    <rect x="220" y="552" width="40" height="12" rx="6" fill="#EF4444" fill-opacity="0.45"/>
+    <text class="m f10 w5 mu" x="266" y="562">28 → 40</text>
+
+    <text class="t f10 w5 mu" x="24" y="586">Key row chip</text>
+    <rect x="220" y="576" width="40" height="12" rx="6" fill="#EF4444" fill-opacity="0.45"/>
+    <text class="m f10 w5 mu" x="266" y="586">28 → 40</text>
+
+    <text class="t f10 w5 mu" x="24" y="610">Header icon button</text>
+    <rect x="220" y="600" width="54" height="12" rx="6" fill="#F59E0B" fill-opacity="0.4"/>
+    <text class="m f10 w5 mu" x="280" y="610">40 → 44</text>
+
+    <text class="t f10 w5 mu" x="24" y="634">Bottom tab</text>
+    <rect x="220" y="624" width="90" height="12" rx="6" fill="#22C55E" fill-opacity="0.4"/>
+    <text class="m f10 w5 mu" x="316" y="634">78 × 56</text>
+
+    <rect x="24" y="656" width="342" height="1" fill="#2A2A2A"/>
+
+    <text class="t f13 w7 tx" x="24" y="684">Safe area — additive</text>
+    <rect x="24" y="698" width="342" height="42" rx="9" fill="#EF4444" fill-opacity="0.08" stroke="#EF4444" stroke-opacity="0.28"/>
+    <text class="m f10 w4 er" x="38" y="716">h-16 pb-[env(safe-area-inset-bottom)]</text>
+    <text class="t f10 w4 mu" x="38" y="732">34px inset is subtracted from 64px → 30px box</text>
+
+    <rect x="24" y="750" width="342" height="42" rx="9" fill="#22C55E" fill-opacity="0.07" stroke="#22C55E" stroke-opacity="0.3"/>
+    <text class="m f10 w4 ok" x="38" y="768">min-h-14 + pt-[env(safe-area-inset-bottom)]</text>
+    <text class="t f10 w4 mu" x="38" y="784">Inset grows the bar instead of squashing it</text>
+
+    <rect x="24" y="802" width="342" height="1" fill="#2A2A2A"/>
+    <text class="t f10 w4 dm" x="24" y="822">Tokens live in app/globals.css @theme</text>
+    <text class="t f10 w4 dm" x="24" y="838">and components/mobile/*.tsx</text>
+  </g>
+</svg>

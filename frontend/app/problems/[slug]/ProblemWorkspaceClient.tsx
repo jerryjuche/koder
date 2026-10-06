@@ -1036,7 +1036,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     {problem.examples.map((ex, idx) => (
                       <div
                         key={ex.id}
-                        className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-[#0F1115] to-[#0A0C0F] overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
+                        className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-code to-brand-charcoal-inset overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
                       >
                         <div className="px-5 py-2.5 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50 flex items-center justify-between">
                           <div className="text-xs font-bold tracking-wide text-brand-offwhite/80 uppercase">
@@ -1048,7 +1048,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                             <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
                               Input
                             </div>
-                            <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
+                            <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-brand-charcoal-inset p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
                               {ex.input}
                             </div>
                           </div>
@@ -1056,7 +1056,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                             <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
                               Expected Output
                             </div>
-                            <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
+                            <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-brand-charcoal-inset p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
                               {ex.expected}
                             </div>
                           </div>
@@ -1188,9 +1188,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         )}
 
         {/* Middle: Editor & Results */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#121212]">
+        <div className="flex-1 flex flex-col min-w-0 bg-brand-charcoal-code">
           {/* Editor Header */}
-          <div className="h-10 flex items-center justify-between px-4 bg-[#121212] border-b border-brand-charcoal-border">
+          <div className="h-10 flex items-center justify-between px-4 bg-brand-charcoal-code border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
               {availableLanguages.length > 1 ? (
                 <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">

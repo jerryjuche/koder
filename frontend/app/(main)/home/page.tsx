@@ -358,7 +358,7 @@ export default function Dashboard() {
                 </div>
               </div>
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 xl:grid-cols-4 gap-5">
                   {[...Array(8)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
@@ -496,13 +496,13 @@ export default function Dashboard() {
 
               {/* Problem Grid */}
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
                   {filteredProblems.length === 0 ? (
                     <div className="col-span-full">
                       <Card className="p-10 text-center border-dashed border-white/10 bg-card/50">

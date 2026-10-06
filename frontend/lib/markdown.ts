@@ -32,12 +32,15 @@ function quoteBlock(quote: string[]): string {
     .join("")}</blockquote>`;
 }
 
+/* The fenced-block background is a literal rather than a Tailwind utility
+   because this renderer emits inline styles. #0B0B0B mirrors
+   --color-brand-charcoal-code in app/globals.css; keep the two in step. */
 function renderFence(lang: string, code: string): string {
   const caption =
     lang.length > 0
       ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.375rem 0.875rem;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);font-family:monospace;font-size:0.6875rem;letter-spacing:0.08em;text-transform:uppercase;color:#88889A">${escapeHtml(lang)}</div>`
       : "";
-  return `<div style="margin:0.875rem 0;border-radius:0.5rem;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">${caption}<pre style="margin:0;padding:0.875rem 1rem;overflow-x:auto;background:#0F1115;${CODE_STYLE}"><code>${escapeHtml(code)}</code></pre></div>`;
+  return `<div style="margin:0.875rem 0;border-radius:0.5rem;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">${caption}<pre style="margin:0;padding:0.875rem 1rem;overflow-x:auto;background:#0B0B0B;${CODE_STYLE}"><code>${escapeHtml(code)}</code></pre></div>`;
 }
 
 export function renderMarkdown(text: string): string {

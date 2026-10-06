@@ -44,6 +44,23 @@
   --color-brand-accent-teal: #2DD4BF;
   --color-brand-cool-accent: #7B8CBB;
   --color-brand-cool-accent-muted: #5A6A94;
+
+  /* Surface ramp — one named step per elevation. Replaces the ad-hoc near-black
+     hexes that had accumulated in the mobile shell (#101010, #121212, #0E1013,
+     #0C0E12, #0A0C0F, #050608): six values, no relationship between them, all
+     invisible to the token system. Ordered dark -> light for chrome, with two
+     dedicated wells for code and console surfaces. */
+  --color-brand-charcoal-chrome: #0F0F0F;
+  --color-brand-charcoal-raised: #262626;
+  --color-brand-charcoal-code: #0B0B0B;
+  --color-brand-charcoal-inset: #050505;
+
+  /* Type floor for touch surfaces. 11px is the smallest label that stays
+     legible on a phone; `text-xs` (12px) is the metadata floor. The mobile
+     shell previously used text-[9px] / text-[10px], which is unreadable and
+     failed contrast at the muted-on-charcoal pairings it was used with. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
 }
 
 @layer base {
@@ -173,6 +190,12 @@
 }
 
 :root {
+  /* Height of the persistent mobile tab bar (Spec A): the 56px row plus the
+     device's home-indicator inset. The (main) layout reserves this as bottom
+     padding so page content never scrolls under the fixed bar, and the
+     feedback FAB lifts above it. Keep the row in sync with MobileTabBar. */
+  --tabbar-height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+
   --background: #141414;
   --foreground: #D1D1D8;
   --card: #1E1E1E;

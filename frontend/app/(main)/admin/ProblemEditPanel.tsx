@@ -270,20 +270,20 @@ export default function ProblemEditPanel({ problem, onSave, onClose }: ProblemEd
                   </h3>
                   <div className="space-y-4">
                     {problem.examples.map((ex, idx) => (
-                      <div key={ex.id} className="bg-[#0F1115] border border-brand-charcoal-border/70 rounded-lg overflow-hidden">
+                      <div key={ex.id} className="bg-brand-charcoal-code border border-brand-charcoal-border/70 rounded-lg overflow-hidden">
                         <div className="px-4 py-2 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50">
                           <span className="text-xs font-bold tracking-wide text-brand-offwhite/70 uppercase">Example {idx + 1}</span>
                         </div>
                         <div className="p-4 space-y-3">
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Input</div>
-                            <code className="block font-mono text-xs text-brand-offwhite bg-[#050608] px-3 py-2 rounded border border-brand-charcoal-border/60 whitespace-pre-wrap break-words">
+                            <code className="block font-mono text-xs text-brand-offwhite bg-brand-charcoal-inset px-3 py-2 rounded border border-brand-charcoal-border/60 whitespace-pre-wrap break-words">
                               {typeof ex.input === 'string' ? ex.input : JSON.stringify(ex.input)}
                             </code>
                           </div>
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1">Expected Output</div>
-                            <code className="block font-mono text-xs text-brand-success bg-[#050608] px-3 py-2 rounded border border-brand-success/20 whitespace-pre-wrap break-words">
+                            <code className="block font-mono text-xs text-brand-success bg-brand-charcoal-inset px-3 py-2 rounded border border-brand-success/20 whitespace-pre-wrap break-words">
                               {ex.expected}
                             </code>
                           </div>

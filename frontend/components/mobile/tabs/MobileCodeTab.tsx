@@ -23,31 +23,63 @@ interface MobileCodeTabProps {
   editorRef: React.MutableRefObject<any>;
 }
 
-const COMMON_SYMBOLS = [
-  { label: "Tab", insert: "    " },
-  { label: ":", insert: ":" },
-  { label: "(", insert: "(" },
-  { label: ")", insert: ")" },
-  { label: "{", insert: "{" },
-  { label: "}", insert: "}" },
-  { label: "[", insert: "[" },
-  { label: "]", insert: "]" },
-  { label: "=", insert: " = " },
-  { label: '"', insert: '"' },
-  { label: "'", insert: "'" },
-  { label: ".", insert: "." },
-  { label: ",", insert: ", " },
-  { label: "+", insert: " + " },
-  { label: "-", insert: " - " },
-  { label: "*", insert: " * " },
-  { label: "/", insert: " / " },
-  { label: "_", insert: "_" },
-  { label: "->", insert: " -> " },
-  { label: "==", insert: " == " },
-  { label: "!=", insert: " != " },
-  { label: "<=", insert: " <= " },
-  { label: ">=", insert: " >= " },
+/**
+ * Key groups, in the order a symbol row should be scanned: whitespace first,
+ * then brackets, then operators. 23 undifferentiated chips was unscannable.
+ */
+const KEY_GROUPS: { id: string; items: { label: string; insert: string }[] }[] = [
+  {
+    id: "structure",
+    items: [{ label: "Tab", insert: "    " }],
+  },
+  {
+    id: "brackets",
+    items: [
+      { label: "(", insert: "(" },
+      { label: ")", insert: ")" },
+      { label: "{", insert: "{" },
+      { label: "}", insert: "}" },
+      { label: "[", insert: "[" },
+      { label: "]", insert: "]" },
+      { label: '"', insert: '"' },
+      { label: "'", insert: "'" },
+    ],
+  },
+  {
+    id: "operators",
+    items: [
+      { label: "=", insert: " = " },
+      { label: "==", insert: " == " },
+      { label: "!=", insert: " != " },
+      { label: "<=", insert: " <= " },
+      { label: ">=", insert: " >= " },
+      { label: "->", insert: " -> " },
+      { label: "+", insert: " + " },
+      { label: "-", insert: " - " },
+      { label: "*", insert: " * " },
+      { label: "/", insert: " / " },
+      { label: ".", insert: "." },
+      { label: ",", insert: ", " },
+      { label: "_", insert: "_" },
+    ],
+  },
 ];
+
+/* ---------------------------------------------------------------------------
+   Touch targets.
+
+   Toolbar / segmented controls render at a true 44px, so they need no trickery.
+
+   The key chips render at 32px for density and carry a transparent `after`
+   pseudo-element that expands the hit area to 44x44. That expansion is only
+   safe because the gap matches it: 6px of reach per side needs a >= 12px gap
+   (`gap-3`). A smaller gap would overlap neighbouring hit areas, which turns a
+   miss into the wrong action rather than no action.
+
+   `touch-manipulation` drops the 300ms tap delay.
+--------------------------------------------------------------------------- */
+const KEY_CHIP_HIT =
+  "relative after:absolute after:content-[''] after:-inset-1.5 touch-manipulation";
 
 export default function MobileCodeTab({
   code,
@@ -103,7 +135,8 @@ export default function MobileCodeTab({
           '"': `"${selectedText}"`,
           "'": `'${selectedText}'`,
         };
-        replacement = pairMap[textToInsert] || `${textToInsert}${selectedText}${textToInsert}`;
+        replacement =
+          pairMap[textToInsert] || `${textToInsert}${selectedText}${textToInsert}`;
       }
 
       ed.executeEdits("symbol-insert", [
@@ -118,22 +151,26 @@ export default function MobileCodeTab({
     [editorRef],
   );
 
+  const tokenName = `solution.${activeLanguage === "python" ? "py" : "go"}`;
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#121212] overflow-hidden">
-      {/* Mini Header / Toolbar */}
-      <div className="h-10 px-3 bg-brand-charcoal-card/90 border-b border-brand-charcoal-border flex items-center justify-between shrink-0">
-        {/* Language Tabs */}
-        <div className="flex items-center gap-2">
+    <div className="flex-1 flex flex-col min-h-0 bg-brand-charcoal-code overflow-hidden">
+      {/* Toolbar — 48px so every control inside can be a true 44px target */}
+      <div className="h-12 px-3 bg-brand-charcoal-chrome border-b border-brand-charcoal-border flex items-center justify-between gap-2 shrink-0">
+        {/* Language switcher */}
+        <div className="flex items-center gap-2 min-w-0">
           {availableLanguages.length > 1 ? (
-            <div className="flex rounded-md border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
+            <div className="flex h-11 rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base shrink-0">
               {availableLanguages.map((lang) => (
                 <button
                   key={lang}
+                  type="button"
                   onClick={() => onLanguageChange(lang)}
+                  aria-pressed={activeLanguage === lang}
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 text-xs font-semibold transition-colors",
+                    "flex h-full items-center gap-1.5 px-3.5 text-xs font-semibold transition-colors touch-manipulation",
                     activeLanguage === lang
-                      ? "bg-primary/20 text-primary"
+                      ? "bg-brand-muted-gold/20 text-brand-muted-gold"
                       : "text-brand-offwhite-muted hover:text-brand-offwhite",
                   )}
                 >
@@ -143,7 +180,7 @@ export default function MobileCodeTab({
               ))}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-offwhite-muted">
+            <div className="flex h-11 items-center gap-1.5 px-1 text-xs font-semibold text-brand-offwhite-muted shrink-0">
               <LanguageLogo
                 language={(availableLanguages[0] || "go") as "go" | "python"}
                 size={14}
@@ -152,75 +189,91 @@ export default function MobileCodeTab({
             </div>
           )}
 
-          <span className="text-[11px] font-mono text-brand-offwhite-muted/70 truncate hidden min-[420px]:inline">
-            solution.{activeLanguage === "python" ? "py" : "go"}
+          <span className="text-micro font-mono text-brand-offwhite-muted truncate hidden min-[480px]:inline">
+            {tokenName}
           </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1.5">
+        {/* Save state + actions */}
+        <div className="flex items-center gap-2 shrink-0">
           {!saved && (
-            <span className="text-[10px] text-brand-muted-gold animate-pulse mr-1 font-medium">
+            <span className="text-micro text-brand-muted-gold font-medium hidden min-[420px]:inline">
               ● Unsaved
             </span>
           )}
           {saved && code !== scaffoldAtToggle && (
-            <span className="text-[10px] text-brand-success mr-1 font-medium">
+            <span className="text-micro text-brand-success font-medium hidden min-[420px]:inline">
               ● Saved
             </span>
           )}
 
-          {/* Format button */}
           <button
+            type="button"
             onClick={handleFormat}
-            className="h-7 px-2 rounded bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite text-xs font-mono transition-colors flex items-center gap-1"
-            title="Format Code"
+            aria-label="Format code"
+            className="flex size-11 items-center justify-center rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite transition-colors font-mono text-xs touch-manipulation"
           >
-            {`{ }`}
+            {"{ }"}
           </button>
 
-          {/* Copy button */}
           <button
+            type="button"
             onClick={handleCopy}
-            className="w-7 h-7 rounded bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite flex items-center justify-center transition-colors"
-            title="Copy code"
+            aria-label="Copy code"
+            className="flex size-11 items-center justify-center rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite transition-colors touch-manipulation"
           >
             {copied ? (
-              <Check size={13} className="text-brand-success" />
+              <Check size={16} className="text-brand-success" />
             ) : (
-              <Copy size={13} />
+              <Copy size={16} />
             )}
           </button>
 
-          {/* Reset button */}
           <button
+            type="button"
             onClick={handleReset}
-            className="w-7 h-7 rounded bg-brand-charcoal-base border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite flex items-center justify-center transition-colors"
-            title="Reset to starter scaffold"
+            aria-label="Reset to starter scaffold"
+            className="flex size-11 items-center justify-center rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border text-brand-offwhite-muted hover:text-brand-offwhite transition-colors touch-manipulation"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={16} />
           </button>
         </div>
       </div>
 
-      {/* Symbol Bar for fast mobile coding */}
-      <div className="h-9 px-2 bg-[#0E1013] border-b border-brand-charcoal-border/70 flex items-center gap-1 overflow-x-auto custom-scrollbar shrink-0 select-none">
-        <span className="text-[9px] uppercase font-bold text-brand-offwhite-muted/50 tracking-wider pl-1 pr-1 shrink-0">
-          Keys:
+      {/* Symbol row — 40px, chips 32px visual / 44px hit */}
+      <div className="h-10 px-2 bg-brand-charcoal-code border-b border-brand-charcoal-border flex items-center gap-3 overflow-x-auto custom-scrollbar shrink-0 select-none">
+        <span className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted shrink-0 pl-1">
+          Keys
         </span>
-        {COMMON_SYMBOLS.map((s, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => insertSymbol(s.insert)}
-            className="h-7 min-w-8 px-1.5 rounded bg-brand-charcoal-card border border-brand-charcoal-border/80 text-brand-offwhite hover:bg-brand-charcoal-hover active:bg-brand-muted-gold/20 active:text-brand-muted-gold text-xs font-mono shrink-0 transition-colors flex items-center justify-center"
-          >
-            {s.label}
-          </button>
+
+        {KEY_GROUPS.map((group, gi) => (
+          <React.Fragment key={group.id}>
+            {gi > 0 && (
+              <span
+                className="w-px h-5 bg-brand-charcoal-border shrink-0"
+                aria-hidden="true"
+              />
+            )}
+            <div className="flex items-center gap-3 shrink-0">
+              {group.items.map((s) => (
+                <button
+                  key={`${group.id}-${s.label}`}
+                  type="button"
+                  onClick={() => insertSymbol(s.insert)}
+                  className={cn(
+                    "h-8 min-w-9 px-2 rounded-lg bg-brand-charcoal-card border border-brand-charcoal-border/80 text-brand-offwhite hover:bg-brand-charcoal-hover active:bg-brand-muted-gold/20 active:text-brand-muted-gold text-xs font-mono shrink-0 transition-colors flex items-center justify-center",
+                    KEY_CHIP_HIT,
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </React.Fragment>
         ))}
       </div>
 
-      {/* Editor Instance */}
+      {/* Editor */}
       <div className="flex-1 min-h-0 relative overflow-hidden">
         <CodeEditor
           key={`mobile-${activeLanguage}-${resetKey}`}
@@ -243,9 +296,9 @@ export default function MobileCodeTab({
           loading={
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center gap-2">
-                <div className="w-7 h-7 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
+                <div className="size-7 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin" />
                 <p className="text-xs text-brand-offwhite-muted">
-                  Loading editor...
+                  Loading editor…
                 </p>
               </div>
             </div>

@@ -32,8 +32,8 @@ export default function MobileHintsTab({
           </span>
         </div>
         <p className="text-xs text-brand-offwhite-muted mt-2 leading-relaxed">
-          Hints are ordered from subtle nudges to structural solution guidance.
-          Try thinking through each hint before unlocking the next one.
+          Hints run from subtle nudges to structural guidance. Try thinking
+          through each one before unlocking the next.
         </p>
       </div>
 
@@ -42,7 +42,7 @@ export default function MobileHintsTab({
         <div className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card/50 p-6 text-center">
           <Lightbulb size={24} className="mx-auto text-brand-offwhite-muted/50 mb-2" />
           <p className="text-xs text-brand-offwhite-muted">
-            No hints are available for this problem yet.
+            No hints available for this problem yet.
           </p>
         </div>
       )}
@@ -79,7 +79,7 @@ export default function MobileHintsTab({
                 <div className="flex items-center gap-2.5">
                   <div
                     className={cn(
-                      "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
+                      "size-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
                       isOpen
                         ? "bg-brand-muted-gold/20 text-brand-muted-gold"
                         : isLocked
@@ -104,13 +104,13 @@ export default function MobileHintsTab({
                       Hint {idx + 1}
                     </span>
                     {!isOpen && !isLocked && (
-                      <span className="text-[10px] text-brand-offwhite-muted/70 block">
+                      <span className="text-micro text-brand-offwhite-muted block">
                         Tap to reveal
                       </span>
                     )}
                     {isLocked && (
-                      <span className="text-[10px] text-brand-offwhite-muted/50 block">
-                        Unlock Hint {idx} first
+                      <span className="text-micro text-brand-offwhite-muted block">
+                        Unlock hint {idx} first
                       </span>
                     )}
                   </div>
@@ -126,7 +126,7 @@ export default function MobileHintsTab({
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-4 pt-1 border-t border-brand-muted-gold/20 text-xs text-brand-offwhite/90 leading-relaxed font-sans animate-in fade-in duration-200">
+                <div className="px-4 pb-4 pt-1 border-t border-brand-muted-gold/20 text-sm text-brand-offwhite leading-relaxed font-sans animate-in fade-in duration-200">
                   {hintText}
                 </div>
               )}

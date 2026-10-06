@@ -109,7 +109,7 @@ export default function ModuleDetail() {
               <div key={i} className="h-24 bg-muted rounded-2xl" />
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-48 bg-muted rounded-2xl" />
             ))}
@@ -358,7 +358,7 @@ export default function ModuleDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+          className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 xl:grid-cols-4 gap-5"
         >
           {totalCount === 0 && (
             <div className="col-span-full text-center py-12 border-2 border-dashed border-border/40 rounded-2xl bg-card/30">

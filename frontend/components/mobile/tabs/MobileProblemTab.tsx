@@ -48,7 +48,7 @@ export default function MobileProblemTab({
             {getDifficultyLabel(problem.difficulty)}
           </span>
 
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-brand-charcoal-card text-brand-offwhite-muted px-2 py-0.5 rounded border border-brand-charcoal-border">
+          <span className="text-micro font-bold uppercase tracking-wider bg-brand-charcoal-card text-brand-offwhite-muted px-2 py-0.5 rounded border border-brand-charcoal-border">
             {problem.module}
           </span>
 
@@ -71,47 +71,50 @@ export default function MobileProblemTab({
         </h1>
       </div>
 
-      {/* Quick Metrics Bar */}
-      <div className="grid grid-cols-3 gap-2 py-1">
-        <div className="bg-brand-charcoal-card/80 rounded-xl p-2.5 border border-brand-charcoal-border/70 text-center">
-          <div className="text-sm font-bold text-brand-offwhite">
+      {/* Problem metrics — one 44px strip, not three stacked cards. The cards
+          spent ~72px of the first viewport to show three numbers and pushed the
+          statement below the fold. */}
+      <div className="grid grid-cols-3 items-center h-11 rounded-xl border border-brand-charcoal-border bg-brand-charcoal-panel divide-x divide-brand-charcoal-border">
+        <div className="text-center">
+          <span className="block text-sm font-bold text-brand-offwhite tabular-nums leading-tight">
             {problem.success_rate !== undefined
               ? `${Math.round(problem.success_rate)}%`
               : "—"}
-          </div>
-          <div className="text-[10px] text-brand-offwhite-muted font-medium uppercase tracking-wider mt-0.5">
-            Acceptance
-          </div>
+          </span>
+          <span className="block text-micro font-medium uppercase tracking-wider text-brand-offwhite-muted leading-tight">
+            Accept.
+          </span>
         </div>
-
-        <div className="bg-brand-charcoal-card/80 rounded-xl p-2.5 border border-brand-charcoal-border/70 text-center">
-          <div className="text-sm font-bold text-brand-offwhite">
+        <div className="text-center">
+          <span className="block text-sm font-bold text-brand-offwhite tabular-nums leading-tight">
             {problem.total_submissions || 0}
-          </div>
-          <div className="text-[10px] text-brand-offwhite-muted font-medium uppercase tracking-wider mt-0.5">
-            Submissions
-          </div>
+          </span>
+          <span className="block text-micro font-medium uppercase tracking-wider text-brand-offwhite-muted leading-tight">
+            Subs
+          </span>
         </div>
-
-        <div className="bg-brand-charcoal-card/80 rounded-xl p-2.5 border border-brand-charcoal-border/70 text-center">
-          <div className="text-sm font-bold text-brand-muted-gold">
+        <div className="text-center">
+          <span className="block text-sm font-bold text-brand-muted-gold tabular-nums leading-tight">
             {problem.estTimeMinutes ||
               (problem.difficulty === 1 ? 15 : problem.difficulty === 2 ? 30 : 60)}
             m
-          </div>
-          <div className="text-[10px] text-brand-offwhite-muted font-medium uppercase tracking-wider mt-0.5">
-            Est. Time
-          </div>
+          </span>
+          <span className="block text-micro font-medium uppercase tracking-wider text-brand-offwhite-muted leading-tight">
+            Est. time
+          </span>
         </div>
       </div>
 
       {/* Problem Statement Markdown */}
       <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-2">
+        <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-muted-gold shadow-[0_0_8px_rgba(238,197,126,0.8)]" />
           Problem Description
         </div>
-        <div className="relative rounded-xl border border-brand-charcoal-border/80 bg-gradient-to-br from-brand-charcoal-card/90 to-brand-charcoal-base/50 p-4 shadow-md backdrop-blur-sm overflow-hidden text-sm leading-relaxed text-brand-offwhite/95 prose prose-invert prose-sm max-w-none">
+        {/* No `prose` classes here: renderMarkdown() emits inline styles, so the
+            Tailwind typography plugin can never reach the nodes it renders and
+            the classes only ever added dead specificity. */}
+        <div className="relative rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card p-4 overflow-hidden text-sm leading-relaxed text-brand-offwhite">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70" />
           <div
             dangerouslySetInnerHTML={{
@@ -128,7 +131,7 @@ export default function MobileProblemTab({
       {/* Examples Section */}
       {problem.examples && problem.examples.length > 0 && (
         <div className="space-y-3">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-2">
+          <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-success shadow-[0_0_8px_rgba(62,207,142,0.8)]" />
             Examples ({problem.examples.length})
           </div>
@@ -137,15 +140,15 @@ export default function MobileProblemTab({
             {problem.examples.map((ex, idx) => (
               <div
                 key={ex.id || idx}
-                className="rounded-xl border border-brand-charcoal-border bg-[#0C0E12] overflow-hidden shadow-sm"
+                className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-code overflow-hidden"
               >
                 <div className="px-3.5 py-2 bg-brand-charcoal-card/70 border-b border-brand-charcoal-border/60 flex items-center justify-between">
-                  <span className="text-[11px] font-bold tracking-wide text-brand-offwhite/90 uppercase">
+                  <span className="text-micro font-bold tracking-wide text-brand-offwhite uppercase">
                     Example {idx + 1}
                   </span>
                   <button
                     onClick={() => copyExampleInput(ex.input, idx)}
-                    className="flex items-center gap-1 text-[11px] text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+                    className="flex h-9 items-center gap-1 px-2 -mr-2 text-micro text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
                     title="Copy input"
                   >
                     {copiedIdx === idx ? (
@@ -159,19 +162,19 @@ export default function MobileProblemTab({
 
                 <div className="p-3.5 space-y-3 text-xs">
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1.5">
+                    <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted mb-1.5">
                       Input
                     </div>
-                    <div className="font-mono text-xs text-brand-offwhite bg-[#050608] p-2.5 rounded-lg border border-brand-charcoal-border/50 break-words whitespace-pre-wrap leading-relaxed">
+                    <div className="font-mono text-xs text-brand-offwhite bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-charcoal-border break-words whitespace-pre-wrap leading-relaxed">
                       {ex.input}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-1.5">
+                    <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted mb-1.5">
                       Expected Output
                     </div>
-                    <div className="font-mono text-xs text-brand-success bg-[#050608] p-2.5 rounded-lg border border-brand-success/20 break-words whitespace-pre-wrap leading-relaxed">
+                    <div className="font-mono text-xs text-brand-success bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-success/20 break-words whitespace-pre-wrap leading-relaxed">
                       {ex.expected}
                     </div>
                   </div>
@@ -184,7 +187,7 @@ export default function MobileProblemTab({
 
       {/* Constraints Section */}
       <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-2">
+        <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border" />
           Constraints &amp; Signatures
         </div>
@@ -221,7 +224,7 @@ export default function MobileProblemTab({
       {/* Learning Objective */}
       {problem.learningObjective && (
         <div className="space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-2">
+          <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
             Learning Objective
           </div>
@@ -239,14 +242,14 @@ export default function MobileProblemTab({
       {/* Topics / Tags */}
       {problem.tags && problem.tags.length > 0 && (
         <div className="space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-2">
+          <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-2">
             <Tag size={12} /> Topics
           </div>
           <div className="flex flex-wrap gap-1.5">
             {problem.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] uppercase tracking-wider bg-brand-muted-gold/10 text-brand-muted-gold px-2.5 py-1 rounded-full border border-brand-muted-gold/25 font-bold"
+                className="text-micro uppercase tracking-wider bg-brand-muted-gold/10 text-brand-muted-gold px-2.5 py-1 rounded-full border border-brand-muted-gold/25 font-bold"
               >
                 {tag}
               </span>

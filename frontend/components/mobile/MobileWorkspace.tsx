@@ -123,6 +123,12 @@ export default function MobileWorkspace({
 
   const hideBottomChrome = isKeyboardOpen && activeTab === "code";
 
+  /* Test/Submit only mean something next to the code or its results. Rendering
+     the action row on all five tabs cost 60px of permanent chrome on Problem,
+     Hints and More, where it could not be acted on. See docs/design/
+     koder-mobile-redesign.svg (Spec B) for the full chrome budget. */
+  const showActionRow = activeTab === "code" || activeTab === "output";
+
   return (
     <div className="h-[100dvh] flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
       {/* Top Header */}
@@ -204,8 +210,9 @@ export default function MobileWorkspace({
         )}
       </main>
 
-      {/* Floating Action Bar (Test & Submit) - hidden when keyboard is open while coding */}
-      {!hideBottomChrome && (
+      {/* Action Bar (Test & Submit) — Code/Output only, hidden while the
+          software keyboard is open on the Code tab */}
+      {!hideBottomChrome && showActionRow && (
         <MobileFloatingActions
           onTest={handleMobileTest}
           onSubmit={handleMobileSubmit}

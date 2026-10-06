@@ -153,7 +153,7 @@ export default function CourseCatalog() {
           <div className="h-8 w-40 bg-muted rounded-xl animate-pulse" />
           <div className="h-4 w-64 bg-muted rounded-lg animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
               key={i}
@@ -302,7 +302,7 @@ export default function CourseCatalog() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-8"
       >
         {filteredCourses.map((course) => {
           const diff = difficultyMeta(course.difficulty_level ?? 1);

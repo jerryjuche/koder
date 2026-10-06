@@ -7,7 +7,7 @@ export default function CoursesLoading() {
         <div className="h-9 w-56 bg-muted rounded-lg mb-3" />
         <div className="h-5 w-80 bg-muted rounded-lg" />
       </div>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-8">
         {[1, 2, 3].map((i) => (
           <Card key={i} className="overflow-hidden pt-0 border-0 shadow-lg">
             <div className="h-48 bg-muted" />

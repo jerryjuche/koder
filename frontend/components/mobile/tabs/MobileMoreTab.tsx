@@ -49,7 +49,7 @@ export default function MobileMoreTab({
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 custom-scrollbar pb-6 bg-brand-charcoal-base">
       {/* Navigation Group */}
       <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted">
+        <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted">
           Navigation
         </div>
         <div className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card/80 overflow-hidden divide-y divide-brand-charcoal-border/50">
@@ -62,8 +62,8 @@ export default function MobileMoreTab({
                 <Home size={16} />
               </div>
               <div>
-                <span className="text-xs font-semibold block">Dashboard</span>
-                <span className="text-[10px] text-brand-offwhite-muted block">
+                <span className="text-sm font-semibold block">Dashboard</span>
+                <span className="text-micro text-brand-offwhite-muted block">
                   Return to your learning overview
                 </span>
               </div>
@@ -80,8 +80,8 @@ export default function MobileMoreTab({
                 <ChevronLeft size={16} />
               </div>
               <div>
-                <span className="text-xs font-semibold block">Back to List</span>
-                <span className="text-[10px] text-brand-offwhite-muted block">
+                <span className="text-sm font-semibold block">Back to List</span>
+                <span className="text-micro text-brand-offwhite-muted block">
                   Return to problem catalog
                 </span>
               </div>
@@ -99,10 +99,10 @@ export default function MobileMoreTab({
                   <BookOpen size={16} />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs font-semibold block truncate">
+                  <span className="text-sm font-semibold block truncate">
                     Next: {nextProblem.title}
                   </span>
-                  <span className="text-[10px] text-brand-muted-gold font-medium block">
+                  <span className="text-micro text-brand-muted-gold font-medium block">
                     +{nextProblem.xpReward} XP available
                   </span>
                 </div>
@@ -115,7 +115,7 @@ export default function MobileMoreTab({
 
       {/* Problem Actions Group */}
       <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted">
+        <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted">
           Workspace Actions
         </div>
         <div className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card/80 overflow-hidden divide-y divide-brand-charcoal-border/50">
@@ -129,10 +129,10 @@ export default function MobileMoreTab({
                 <RotateCcw size={16} />
               </div>
               <div>
-                <span className="text-xs font-semibold text-brand-offwhite block">
+                <span className="text-sm font-semibold text-brand-offwhite block">
                   Reset Code
                 </span>
-                <span className="text-[10px] text-brand-offwhite-muted block">
+                <span className="text-micro text-brand-offwhite-muted block">
                   Revert to original boilerplate scaffold
                 </span>
               </div>
@@ -149,10 +149,10 @@ export default function MobileMoreTab({
                 <Share2 size={16} />
               </div>
               <div>
-                <span className="text-xs font-semibold text-brand-offwhite block">
+                <span className="text-sm font-semibold text-brand-offwhite block">
                   Share Problem
                 </span>
-                <span className="text-[10px] text-brand-offwhite-muted block">
+                <span className="text-micro text-brand-offwhite-muted block">
                   Copy direct problem link to clipboard
                 </span>
               </div>
@@ -169,10 +169,10 @@ export default function MobileMoreTab({
                 <Bug size={16} />
               </div>
               <div>
-                <span className="text-xs font-semibold text-brand-offwhite block">
+                <span className="text-sm font-semibold text-brand-offwhite block">
                   Report Bug
                 </span>
-                <span className="text-[10px] text-brand-offwhite-muted block">
+                <span className="text-micro text-brand-offwhite-muted block">
                   Report an issue with test cases or statement
                 </span>
               </div>
@@ -191,10 +191,10 @@ export default function MobileMoreTab({
                   <Edit3 size={16} />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-brand-offwhite block">
+                  <span className="text-sm font-semibold text-brand-offwhite block">
                     Edit Problem (Admin)
                   </span>
-                  <span className="text-[10px] text-brand-offwhite-muted block">
+                  <span className="text-micro text-brand-offwhite-muted block">
                     Update statement, difficulty, or constraints
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export default function MobileMoreTab({
 
       {/* Problem Summary Card */}
       <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-brand-offwhite-muted flex items-center gap-1.5">
+        <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted flex items-center gap-1.5">
           <Info size={12} /> Problem Details
         </div>
         <div className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card/50 p-4 space-y-2.5 text-xs">

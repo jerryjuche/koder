@@ -299,7 +299,7 @@ export default React.memo(function ModuleCards({ modules, moduleMeta, moduleProg
   });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 xl:grid-cols-4 gap-5">
       {sorted.map((mod, i) => {
         const metaName = moduleMeta[mod]?.display_name;
         const name = metaName || displayName(mod);

@@ -82,7 +82,7 @@ export default function CourseDetail() {
           <div className="grid grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (<div key={i} className="h-24 bg-muted rounded-2xl" />))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (<div key={i} className="h-52 bg-muted rounded-2xl" />))}
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function CourseDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-4"
         >
           {data.modules.length === 0 && (
             <div className="col-span-full text-center py-12 border-2 border-dashed border-border/40 rounded-2xl bg-card/30">
