@@ -196,28 +196,27 @@ export default function LeaderboardClient() {
 
   return (
     <TooltipProvider>
-      <div className="max-w-5xl mx-auto pt-4 pb-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="text-center space-y-4 pt-4 pb-2 relative">
-          <div className="relative inline-flex">
-            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-card border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
-              <Trophy size={32} className="text-primary" />
-            </div>
+      <div className="max-w-5xl mx-auto pt-3 pb-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+        {/* Header — compact standard ranking chrome */}
+        <div className="flex items-center gap-3 pt-1 pb-1">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+            <Trophy size={20} className="text-primary" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">
-            Leaderboard
-          </h1>
-          <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
-            <Users size={14} />
-            {leaderboard.length} student
-            {leaderboard.length !== 1 ? "s" : ""} competing
-          </p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight">
+              Leaderboard
+            </h1>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <Users size={12} />
+              {leaderboard.length} student
+              {leaderboard.length !== 1 ? "s" : ""} competing
+            </p>
+          </div>
         </div>
 
         {/* Podium */}
         {leaderboard.length >= 1 && (
-          <div className="flex flex-wrap justify-center gap-2.5 md:gap-3 lg:gap-4 items-end pt-8 pb-4">
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 lg:gap-4 items-end pt-4 pb-3">
             {top3.map((entry, i) => {
               if (!entry?.user)
                 return (
@@ -364,7 +363,7 @@ export default function LeaderboardClient() {
         {/* Table */}
         <Card className="overflow-hidden shadow-sm">
           {/* Toolbar */}
-          <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-muted/20">
+          <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-2.5 items-start sm:items-center justify-between bg-muted/20">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
               <Input

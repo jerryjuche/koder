@@ -30,120 +30,120 @@ export default function Achievements({ profile }: AchievementsProps) {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      >
-        <Card className="p-6 bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <Award size={18} className="text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Achievements</h3>
-                <p className="text-xs text-white/40">Badges earned through progress</p>
-              </div>
+      <Card className="p-4 bg-brand-charcoal-card border border-border/60">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Award size={16} className="text-primary" />
             </div>
-            <Badge variant="outline" className="font-mono border-white/10 text-white/50 bg-white/5">
-              {unlockedCount} / {achievements.length}
-            </Badge>
+            <div>
+              <h3 className="text-sm font-bold text-foreground leading-tight">
+                Achievements
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Badges from your progress
+              </p>
+            </div>
           </div>
+          <Badge
+            variant="outline"
+            className="font-mono text-[11px] border-border/60 text-muted-foreground bg-background/40 tabular-nums"
+          >
+            {unlockedCount}/{achievements.length}
+          </Badge>
+        </div>
 
-          <div className="space-y-3">
-            {achievements.map((achievement, i) => {
-              const Icon = achievement.icon;
-              return (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.05 + i * 0.04 }}
+        <div className="space-y-1.5">
+          {achievements.map((achievement) => {
+            const Icon = achievement.icon;
+            return (
+              <button
+                key={achievement.id}
+                type="button"
+                onClick={() => setSelected(achievement)}
+                className="w-full text-left"
+              >
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
+                    achievement.unlocked
+                      ? "bg-brand-charcoal-panel/50 border-border/50 hover:border-primary/30"
+                      : "bg-background/20 border-border/30 opacity-55"
+                  )}
                 >
-                  <button
-                    onClick={() => setSelected(achievement)}
-                    className="w-full text-left"
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+                      achievement.unlocked
+                        ? `${achievement.bg} ${achievement.border}`
+                        : "bg-muted/30 border-border/40"
+                    )}
                   >
-                    <Card
-                      className={cn(
-                        "hover:-translate-y-0.5 transition-all duration-300 cursor-pointer",
+                    <Icon
+                      size={18}
+                      className={
                         achievement.unlocked
-                          ? "bg-brand-charcoal-card/80 border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-white/5"
-                          : "bg-brand-charcoal-card/40 border-white/5 opacity-50 grayscale hover:opacity-70"
+                          ? achievement.color
+                          : "text-muted-foreground/50"
+                      }
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="font-semibold text-sm text-foreground truncate">
+                        {achievement.title}
+                      </h4>
+                      {achievement.unlocked && (
+                        <CheckCircle2
+                          size={12}
+                          className="text-primary shrink-0"
+                        />
                       )}
-                    >
-                      <div className="p-4 flex items-center gap-4">
-                        <div
-                          className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-colors",
-                            achievement.unlocked
-                              ? `${achievement.bg} ${achievement.border}`
-                              : "bg-white/[0.03] border-white/6"
-                          )}
-                        >
-                          <Icon
-                            size={22}
-                            className={achievement.unlocked ? achievement.color : "text-white/30"}
-                          />
-                        </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">
+                      {achievement.description}
+                    </p>
+                  </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h4 className="font-semibold text-sm text-white truncate">
-                              {achievement.title}
-                            </h4>
-                            {achievement.unlocked && (
-                              <CheckCircle2 size={12} className="text-amber-400 shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-xs text-white/40 line-clamp-1">
-                            {achievement.description}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center shrink-0">
-                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 transition-colors group-hover:bg-white/10">
-                            <ChevronRight size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </button>
-                </motion.div>
-              );
-            })}
-          </div>
-        </Card>
-      </motion.div>
+                  <ChevronRight
+                    size={14}
+                    className="text-muted-foreground/50 shrink-0"
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
 
       <Dialog
         open={selected !== null}
         onOpenChange={(open) => !open && setSelected(null)}
       >
-        <DialogContent className="max-w-sm bg-brand-charcoal-base/95 backdrop-blur-xl border border-white/8">
+        <DialogContent className="max-w-sm bg-brand-charcoal-card border border-border/60">
           <DialogHeader>
-            <div className="text-center mb-2 mt-2">
+            <div className="text-center mb-1 mt-1">
               <div
                 className={cn(
-                  "w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 border-2",
+                  "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3 border",
                   selected?.unlocked
                     ? selected.bg + " " + selected.border
-                    : "bg-white/5 border-white/10"
+                    : "bg-muted/30 border-border/50"
                 )}
               >
                 {selected && (
                   <selected.icon
-                    size={40}
+                    size={32}
                     className={
                       selected.unlocked
                         ? selected.color
-                        : "text-white/30"
+                        : "text-muted-foreground/50"
                     }
                   />
                 )}
               </div>
-              <DialogTitle className="text-2xl font-bold text-center text-white">
+              <DialogTitle className="text-lg font-bold text-center text-foreground">
                 {selected?.title}
               </DialogTitle>
             </div>
@@ -151,13 +151,16 @@ export default function Achievements({ profile }: AchievementsProps) {
               {selected?.unlocked ? (
                 <Badge
                   variant="outline"
-                  className="bg-amber-400/10 text-amber-400 border-amber-400/20 gap-1"
+                  className="bg-primary/10 text-primary border-primary/25 gap-1"
                 >
                   <CheckCircle2 size={12} />
                   Unlocked
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-white/5 text-white/40 border-white/10 gap-1">
+                <Badge
+                  variant="secondary"
+                  className="bg-muted/40 text-muted-foreground border-border/50 gap-1"
+                >
                   <Lock size={12} />
                   Locked
                 </Badge>
@@ -165,18 +168,21 @@ export default function Achievements({ profile }: AchievementsProps) {
             </div>
           </DialogHeader>
 
-          <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-            <p className="text-xs text-white/40 mb-1 font-semibold uppercase tracking-wider">
-              Criteria
+          <div className="bg-background/40 p-3 rounded-xl border border-border/50">
+            <p className="text-[10px] text-muted-foreground mb-1 font-semibold uppercase tracking-wider">
+              How to unlock
             </p>
-            <DialogDescription className="text-sm text-white/80">
+            <DialogDescription className="text-sm text-foreground/90">
               {selected?.criteria || selected?.description}
             </DialogDescription>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" className="w-full border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white">
+              <Button
+                variant="outline"
+                className="w-full border-border/60 bg-background/30 text-foreground hover:bg-background/50"
+              >
                 Close
               </Button>
             </DialogClose>
