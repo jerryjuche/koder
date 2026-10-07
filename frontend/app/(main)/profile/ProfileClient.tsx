@@ -19,7 +19,9 @@ import { useNotifications } from "@/lib/useNotifications";
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
   return (
-    <div className={`overflow-hidden rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-white/[0.03] bg-[length:200%_100%] animate-shimmer ${className}`} />
+    <div
+      className={`overflow-hidden rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-white/[0.03] bg-[length:200%_100%] animate-shimmer ${className}`}
+    />
   );
 }
 
@@ -27,7 +29,7 @@ function ProfileSkeleton() {
   return (
     <div className="pt-3 pb-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-4">
-        <div className="rounded-2xl bg-brand-charcoal-card border border-border/60 p-4">
+        <div className="rounded-2xl bg-brand-charcoal-card border border-border/50 p-4">
           <div className="flex gap-3.5 items-start">
             <SkeletonBlock className="w-14 h-14 rounded-full" />
             <div className="flex-1 space-y-2">
@@ -57,12 +59,13 @@ export default function ProfileClient() {
   const { notifications } = useNotifications();
 
   const hasContributionNotif = useMemo(
-    () => notifications.some(
-      (n) =>
-        !n.is_read &&
-        (n.type === "contribution_approved" ||
-          n.type === "contribution_rejected")
-    ),
+    () =>
+      notifications.some(
+        (n) =>
+          !n.is_read &&
+          (n.type === "contribution_approved" ||
+            n.type === "contribution_rejected")
+      ),
     [notifications]
   );
 
@@ -135,16 +138,14 @@ export default function ProfileClient() {
     <TooltipProvider>
       <div className="pt-3 pb-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
         <div className="max-w-6xl mx-auto space-y-4">
-          {/* Compact page label — desktop only title weight */}
+          {/* Page title — pure icon, no box */}
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <User size={16} className="text-primary" />
-            </div>
+            <User size={18} className="text-primary shrink-0" />
             <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground leading-tight">
+              <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">
                 Profile
               </h1>
-              <p className="text-[11px] text-muted-foreground hidden sm:block">
+              <p className="text-xs text-muted-foreground hidden sm:block mt-0.5">
                 Progress, rank, and activity
               </p>
             </div>
@@ -154,12 +155,18 @@ export default function ProfileClient() {
 
           <Tabs defaultValue="overview" className="w-full">
             <TabsList variant="line" className="w-full justify-start h-auto">
-              <TabsTrigger value="overview" className="gap-1.5 text-sm">
-                <FileText size={14} />
+              <TabsTrigger
+                value="overview"
+                className="gap-1.5 text-sm font-medium"
+              >
+                <FileText size={15} />
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="contributions" className="relative gap-1.5 text-sm">
-                <GitPullRequest size={14} />
+              <TabsTrigger
+                value="contributions"
+                className="relative gap-1.5 text-sm font-medium"
+              >
+                <GitPullRequest size={15} />
                 Contributions
                 {hasContributionNotif && (
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse absolute -top-0.5 -right-0.5" />

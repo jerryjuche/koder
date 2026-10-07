@@ -22,37 +22,39 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
   };
 
   return (
-    <div className="rounded-xl bg-brand-charcoal-card border border-border/60 overflow-hidden h-full">
-      <div className="flex items-stretch divide-x divide-border/50 h-full min-h-[72px]">
-        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="rounded-xl bg-brand-charcoal-card border border-border/50 overflow-hidden h-full">
+      <div className="flex items-stretch divide-x divide-border/40 h-full min-h-[80px]">
+        <div className="flex-1 flex flex-col items-center justify-center py-3.5 px-2 gap-1.5">
+          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Rank
           </span>
           <div className="flex items-center gap-1">
-            <Hash size={12} className="text-primary" />
-            <span className="text-base font-bold tabular-nums text-foreground">
+            <Hash size={13} className="text-primary" />
+            <span className="text-lg sm:text-base font-bold tabular-nums text-foreground">
               {profile.global_rank ?? "—"}
             </span>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+
+        <div className="flex-1 flex flex-col items-center justify-center py-3.5 px-2 gap-1.5">
+          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Rate
           </span>
           <div className="flex items-center gap-1">
-            <Target size={12} className="text-primary" />
-            <span className="text-base font-bold tabular-nums text-foreground">
+            <Target size={13} className="text-primary" />
+            <span className="text-lg sm:text-base font-bold tabular-nums text-foreground">
               {successRate}%
             </span>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+
+        <div className="flex-1 flex flex-col items-center justify-center py-3.5 px-2 gap-1.5">
+          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Best
           </span>
           <div className="flex items-center gap-1">
-            <Zap size={12} className="text-primary" />
-            <span className="text-base font-bold tabular-nums text-foreground">
+            <Zap size={13} className="text-primary" />
+            <span className="text-lg sm:text-base font-bold tabular-nums text-foreground">
               {formatRuntime(profile.stats.best_runtime_ms)}
             </span>
           </div>
