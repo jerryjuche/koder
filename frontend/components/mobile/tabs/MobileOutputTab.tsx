@@ -27,6 +27,24 @@ interface MobileOutputTabProps {
   cooldown: number;
 }
 
+
+/** Parse runner logs into readable lines (UI only — does not change execution data). */
+function formatLogLines(raw: string): { kind: "fail" | "got" | "want" | "run" | "meta" | "plain"; text: string }[] {
+  if (!raw?.trim()) return [];
+  return raw.split(/\r?\n/).filter(Boolean).map((line) => {
+    const t = line.trimEnd();
+    const u = t.toUpperCase();
+    if (u.startsWith("GOT:")) return { kind: "got" as const, text: t };
+    if (u.startsWith("WANT:") || u.startsWith("EXPECTED:")) return { kind: "want" as const, text: t };
+    if (u.includes("FAIL") || u.startsWith("--- FAIL") || u.startsWith("=== FAIL"))
+      return { kind: "fail" as const, text: t };
+    if (u.startsWith("=== RUN") || u.startsWith("--- PASS") || u.includes("PASS:"))
+      return { kind: "run" as const, text: t };
+    if (u.startsWith("===") || u.startsWith("---")) return { kind: "meta" as const, text: t };
+    return { kind: "plain" as const, text: t };
+  });
+}
+
 export default function MobileOutputTab({
   results,
   execution,
@@ -75,8 +93,8 @@ export default function MobileOutputTab({
           No results yet
         </h3>
         <p className="text-xs text-brand-offwhite-muted max-w-xs leading-relaxed mb-5">
-          Run your code against the test cases to see compiler diagnostics,
-          inputs, expected outputs and runtime diffs.
+          Tap Test code to run your solution. Results, diffs, and helpful
+          messages will show up here.
         </p>
         <button
           type="button"
@@ -186,8 +204,8 @@ export default function MobileOutputTab({
                     : isCompilerError
                       ? execution?.friendly_message ||
                         errorMsg ||
-                        "Fix the syntax or runtime error and re-run."
-                      : "Some cases did not match the expected output."}
+                        "Check the run details below, fix the issue, then test again."
+                      : "Compare your output with the expected value for each failed case below."}
                 </p>
               </div>
             </div>
@@ -202,26 +220,58 @@ export default function MobileOutputTab({
 
         {/* Compiler / error output details */}
         {(isCompilerError || execution?.output_logs) && (
-          <div className="rounded-xl border border-brand-charcoal-border bg-brand-charcoal-code overflow-hidden">
-            <div className="px-3.5 h-11 bg-brand-charcoal-chrome border-b border-brand-charcoal-border flex items-center justify-between">
-              <span className="text-micro font-bold text-brand-offwhite-muted flex items-center gap-1.5 uppercase tracking-wider">
-                <Terminal size={13} /> Output logs
+          <div className="rounded-xl border border-border/60 bg-brand-charcoal-card overflow-hidden">
+            <div className="px-3 h-10 border-b border-border/50 flex items-center justify-between bg-brand-charcoal-panel/60">
+              <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                <Terminal size={12} /> Run details
               </span>
               <button
                 type="button"
                 onClick={copyLogs}
-                className="flex h-9 items-center gap-1 px-2 -mr-1.5 text-micro text-brand-offwhite-muted hover:text-brand-offwhite transition-colors"
+                className="flex h-8 items-center gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 {copiedLogs ? (
-                  <Check size={13} className="text-brand-success" />
+                  <Check size={12} className="text-emerald-400" />
                 ) : (
-                  <Copy size={13} />
+                  <Copy size={12} />
                 )}
                 <span>{copiedLogs ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            <div className="p-3 font-mono text-xs text-brand-error bg-brand-charcoal-inset whitespace-pre-wrap break-all leading-relaxed overflow-x-auto max-h-60">
-              {execution?.output_logs || execution?.friendly_message || errorMsg}
+            <div className="p-2.5 space-y-0.5 overflow-x-auto max-h-56 font-mono text-[11px] leading-relaxed">
+              {formatLogLines(
+                execution?.output_logs || execution?.friendly_message || errorMsg || ""
+              ).map((row, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "px-2 py-0.5 rounded break-words whitespace-pre-wrap",
+                    row.kind === "fail" && "text-red-400 bg-red-500/5",
+                    row.kind === "got" && "text-amber-300",
+                    row.kind === "want" && "text-emerald-400",
+                    row.kind === "run" && "text-sky-400/90",
+                    row.kind === "meta" && "text-muted-foreground/70",
+                    row.kind === "plain" && "text-foreground/85",
+                  )}
+                >
+                  {row.kind === "got" && (
+                    <span className="text-[10px] font-sans font-semibold text-amber-400/80 mr-1.5">
+                      Your result
+                    </span>
+                  )}
+                  {row.kind === "want" && (
+                    <span className="text-[10px] font-sans font-semibold text-emerald-400/80 mr-1.5">
+                      Expected
+                    </span>
+                  )}
+                  {row.text}
+                </div>
+              ))}
+              {formatLogLines(
+                execution?.output_logs || execution?.friendly_message || errorMsg || ""
+              ).length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-1">No log output.</p>
+              )}
             </div>
           </div>
         )}
