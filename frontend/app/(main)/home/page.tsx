@@ -272,60 +272,62 @@ export default function Dashboard() {
   const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pt-4 pb-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-      {/* ── Mobile-first dashboard header (Prototype 1) ── */}
-      <div className="space-y-5">
-        {/* Greeting + level */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">{greeting}</p>
-            <h1 className="text-2xl nav:text-3xl font-bold tracking-tight text-foreground truncate">
-              {displayName}
-            </h1>
+    <div className="max-w-7xl mx-auto space-y-4 pt-3 pb-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+      {/* ── Compact dashboard header ── */}
+      <div className="space-y-3">
+        {/* Greeting — hide on module detail to save vertical space */}
+        {showTopicCards && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground leading-none mb-1">{greeting}</p>
+              <h1 className="text-xl nav:text-2xl font-bold tracking-tight text-foreground truncate leading-tight">
+                {displayName}
+              </h1>
+            </div>
+            {user && (
+              <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 border border-primary/25 px-2.5 py-1 text-primary">
+                <Zap size={12} className="fill-primary/20" />
+                <span className="text-[11px] font-bold tabular-nums">Lv. {user.level}</span>
+              </div>
+            )}
           </div>
-          {user && (
-            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/25 px-3 py-1.5 text-primary">
-              <Zap size={14} className="fill-primary/20" />
-              <span className="text-xs font-bold tabular-nums">Lv. {user.level}</span>
-            </div>
-          )}
-        </div>
+        )}
 
-        {/* 2×2 stat tiles */}
-        <div className="grid grid-cols-2 nav:grid-cols-4 gap-2.5">
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Zap size={14} className="text-primary" />
-              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Total XP</span>
+        {/* 4-up compact stats — always one row */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
+            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
+              <Zap size={12} className="text-primary shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">XP</span>
             </div>
-            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
               {(user?.xp ?? 0).toLocaleString()}
             </p>
           </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Flame size={14} className="text-orange-400" />
-              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Day streak</span>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
+            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
+              <Flame size={12} className="text-orange-400 shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Streak</span>
             </div>
-            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
               {user?.streak ?? 0}
             </p>
           </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <CheckCircle2 size={14} className="text-emerald-400" />
-              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Solved</span>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
+            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
+              <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Solved</span>
             </div>
-            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
               {totalSolved}
             </p>
           </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Hash size={14} className="text-primary" />
-              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Rank</span>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
+            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
+              <Hash size={12} className="text-primary shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rank</span>
             </div>
-            <p className="text-lg font-bold tabular-nums text-foreground leading-none">—</p>
+            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">—</p>
           </div>
         </div>
       </div>
@@ -333,11 +335,11 @@ export default function Dashboard() {
       <GoogleLinkBanner />
 
       {/* Tabs — full on desktop; compact on mobile */}
-      <div className="flex items-center gap-6 border-b border-border">
+      <div className="flex items-center gap-5 border-b border-border">
         <button
           onClick={() => setActiveTab("problems")}
           className={cn(
-            "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
+            "pb-2.5 text-sm font-semibold transition-colors relative flex items-center gap-1.5",
             activeTab === "problems" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -350,7 +352,7 @@ export default function Dashboard() {
         <button
           onClick={() => setActiveTab("best-practices")}
           className={cn(
-            "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
+            "pb-2.5 text-sm font-semibold transition-colors relative flex items-center gap-1.5",
             activeTab === "best-practices"
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -371,7 +373,7 @@ export default function Dashboard() {
         <>
           {showTopicCards ? (
             /* ── Topic list (Prototype 1 stack) ── */
-            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {/* Search + language/status chips */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -507,30 +509,30 @@ export default function Dashboard() {
 
           ) : (
             /* ── Filtered Problems ── */
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Back button + module header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => {
-                      setSelectedModule(null);
-                      const params = new URLSearchParams(window.location.search);
-                      params.delete("module");
-                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.pushState({}, "", newUrl);
-                    }}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
-                  >
-                    <ArrowLeft size={16} />
-                    Back to topics
-                  </button>
-                  <div className="w-px h-5 bg-border" />
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">{selectedModule}</h2>
-                    <p className="text-xs text-muted-foreground">
-                      {moduleProgress[selectedModule]?.solved || 0} / {moduleProgress[selectedModule]?.total || 0} solved
-                    </p>
-                  </div>
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Back + module title */}
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => {
+                    setSelectedModule(null);
+                    const params = new URLSearchParams(window.location.search);
+                    params.delete("module");
+                    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                    window.history.pushState({}, "", newUrl);
+                  }}
+                  className="shrink-0 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  <ArrowLeft size={16} />
+                  <span className="hidden min-[380px]:inline">Topics</span>
+                </button>
+                <div className="w-px h-5 bg-border shrink-0" />
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-foreground truncate leading-tight">
+                    {selectedModule ? moduleDisplayName(selectedModule) : ""}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {moduleProgress[selectedModule!]?.solved || 0} of {moduleProgress[selectedModule!]?.total || 0} solved
+                  </p>
                 </div>
               </div>
 
@@ -572,7 +574,7 @@ export default function Dashboard() {
               </div>
 
               {/* Filters (no module dropdown) */}
-              <Card className="p-4 flex flex-col lg:flex-row gap-4">
+              <Card className="p-3 flex flex-col gap-2.5">
                 <div className="relative flex-1">
                   <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -586,7 +588,7 @@ export default function Dashboard() {
                     className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                   />
                 </div>
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative">
                     <select
                       value={difficultyFilter}
@@ -606,7 +608,7 @@ export default function Dashboard() {
                         key={status}
                         onClick={() => setStatusFilter(status)}
                         className={cn(
-                          "px-5 py-1.5 rounded text-sm font-medium transition-colors capitalize",
+                          "px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize",
                           statusFilter === status
                             ? "bg-muted text-foreground shadow-sm"
                             : "text-muted-foreground hover:text-foreground"
@@ -628,13 +630,13 @@ export default function Dashboard() {
 
               {/* Problem Grid */}
               {loading ? (
-                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-3">
                   {[...Array(6)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-3">
                   {filteredProblems.length === 0 ? (
                     <div className="col-span-full">
                       <Card className="p-10 text-center border-dashed border-white/10 bg-card/50">
