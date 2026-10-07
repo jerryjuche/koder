@@ -51,70 +51,66 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={mounted ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-2xl border border-border/60 bg-brand-charcoal-card overflow-hidden"
+      className="rounded-2xl border border-border/50 bg-brand-charcoal-card overflow-hidden"
     >
-      {/* Gold accent line */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
-      <div className="p-4 sm:p-5 space-y-4">
-        {/* Identity row */}
+      <div className="p-4 sm:p-5 space-y-5">
+        {/* Identity */}
         <div className="flex items-start gap-3.5">
-          <div className="relative shrink-0">
-            <Avatar
-              src={!avatarError ? profile.google_avatar_url : undefined}
-              name={profile.name}
-              colorIndex={profile.color_index}
-              size="lg"
-              verified={user?.verified}
-              className="border-2 border-primary/30 shadow-md rounded-full"
-            />
-          </div>
+          <Avatar
+            src={!avatarError ? profile.google_avatar_url : undefined}
+            name={profile.name}
+            colorIndex={profile.color_index}
+            size="lg"
+            verified={user?.verified}
+            className="border-2 border-primary/25 shadow-md rounded-full"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-bold text-foreground truncate leading-tight">
+                <h2 className="text-xl font-bold text-foreground truncate leading-tight tracking-tight">
                   {profile.name}
                 </h2>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {profile.username && (
-                    <span className="text-xs font-mono text-primary/90">
+                    <span className="text-sm font-mono text-primary/90">
                       @{profile.username.replace(/^@/, "")}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Calendar size={11} />
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar size={12} />
                     {joinDate}
                   </span>
                 </div>
               </div>
 
-              {/* Level badge */}
-              <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 border border-primary/25 px-2.5 py-1 text-primary">
-                <Zap size={12} className="fill-primary/20" />
-                <span className="text-[11px] font-bold tabular-nums">Lv. {level}</span>
+              <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/12 border border-primary/20 px-2.5 py-1 text-primary">
+                <Zap size={13} className="fill-primary/20" />
+                <span className="text-xs font-bold tabular-nums">Lv. {level}</span>
               </div>
             </div>
 
             {profile.bio && (
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-2">
                 {profile.bio}
               </p>
             )}
           </div>
         </div>
 
-        {/* XP progress */}
+        {/* XP */}
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
               {xpInLevel.toLocaleString()} / 1,000 XP
             </span>
-            <span className="text-[11px] font-semibold text-primary tabular-nums">
+            <span className="text-xs font-semibold text-primary tabular-nums">
               {xpPercent.toFixed(0)}%
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-muted/80 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-muted/70 overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-primary"
               initial={{ width: 0 }}
@@ -124,67 +120,42 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
           </div>
         </div>
 
-        {/* 4-up stats — match home dashboard */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Zap size={12} className="text-primary shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                XP
-              </span>
+        {/* Flattened stats — bigger & bolder on mobile */}
+        <div className="grid grid-cols-4 gap-1 sm:gap-2">
+          {[
+            { icon: Zap, label: "XP", value: xp.toLocaleString(), color: "text-primary" },
+            { icon: Flame, label: "Streak", value: streakDays, color: "text-orange-400" },
+            { icon: CheckCircle2, label: "Solved", value: solvedCount, color: "text-emerald-400" },
+            { icon: Hash, label: "Rank", value: profile.global_rank ? `#${profile.global_rank}` : "—", color: "text-primary" },
+          ].map(({ icon: Icon, label, value, color }) => (
+            <div key={label} className="text-center py-1">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Icon size={13} className={`${color} shrink-0`} />
+                <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </span>
+              </div>
+              <p className="text-base sm:text-lg font-bold tabular-nums text-foreground leading-none">
+                {value}
+              </p>
             </div>
-            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
-              {xp.toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Flame size={12} className="text-orange-400 shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Streak
-              </span>
-            </div>
-            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
-              {streakDays}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Solved
-              </span>
-            </div>
-            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
-              {solvedCount}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Hash size={12} className="text-primary shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Rank
-              </span>
-            </div>
-            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
-              {profile.global_rank ? `#${profile.global_rank}` : "—"}
-            </p>
-          </div>
+          ))}
         </div>
 
-        {/* Secondary metrics row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/40 px-2.5 py-1.5">
-            <Target size={12} className="text-primary" />
-            <span className="text-xs font-bold tabular-nums text-foreground">{successRate}%</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Rate</span>
+        {/* Secondary metrics — clean inline */}
+        <div className="flex items-center justify-center gap-5 sm:gap-6 text-sm">
+          <div className="inline-flex items-center gap-1.5">
+            <Target size={14} className="text-primary" />
+            <span className="font-bold tabular-nums text-foreground">{successRate}%</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Rate</span>
           </div>
-          <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/40 px-2.5 py-1.5">
-            <Trophy size={12} className="text-primary" />
-            <span className="text-xs font-bold tabular-nums text-foreground">
+          <div className="w-px h-3.5 bg-border/60" />
+          <div className="inline-flex items-center gap-1.5">
+            <Trophy size={14} className="text-primary" />
+            <span className="font-bold tabular-nums text-foreground">
               {profile.global_rank ? `#${profile.global_rank}` : "—"}
             </span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Global</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Global</span>
           </div>
         </div>
 
@@ -194,10 +165,10 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
             variant="outline"
             size="sm"
             asChild
-            className="h-8 border-border/60 bg-background/30 hover:bg-background/50 text-foreground text-xs"
+            className="h-9 border-border/50 bg-background/20 hover:bg-background/40 text-foreground text-sm font-medium"
           >
             <Link href="/settings">
-              <Settings size={13} />
+              <Settings size={14} />
               Edit Profile
             </Link>
           </Button>
@@ -205,9 +176,9 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
             variant="ghost"
             size="sm"
             disabled
-            className="h-8 text-muted-foreground/50 cursor-not-allowed text-xs"
+            className="h-9 text-muted-foreground/50 cursor-not-allowed text-sm"
           >
-            <Share2 size={13} />
+            <Share2 size={14} />
             Share
           </Button>
         </div>
