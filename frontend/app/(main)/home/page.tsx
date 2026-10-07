@@ -14,6 +14,9 @@ import {
   Trophy,
   ArrowLeft,
   BookOpen,
+  Zap,
+  Hash,
+  Play,
 } from "lucide-react";
 import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
@@ -234,79 +237,102 @@ export default function Dashboard() {
     window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  })();
+
+  const displayName = user?.name?.split(" ")[0] || user?.username || "there";
+
+  // Highest incomplete module for "Continue learning" (UI only — uses existing progress)
+  const continueModule = (() => {
+    let best: { mod: string; solved: number; total: number; pct: number } | null = null;
+    for (const mod of modules) {
+      if (lockedModules.has(mod)) continue;
+      const p = moduleProgress[mod];
+      if (!p || p.total === 0) continue;
+      if (p.solved >= p.total) continue;
+      const pct = Math.round((p.solved / p.total) * 100);
+      if (!best || pct > best.pct || (pct === best.pct && p.solved > best.solved)) {
+        best = { mod, solved: p.solved, total: p.total, pct };
+      }
+    }
+    return best;
+  })();
+
+  const moduleDisplayName = (slug: string) =>
+    moduleMeta[slug]?.display_name ||
+    slug
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
   const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pt-4 pb-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-      {/* Header Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-1 text-foreground">
-              Dashboard
+      {/* ── Mobile-first dashboard header (Prototype 1) ── */}
+      <div className="space-y-5">
+        {/* Greeting + level */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">{greeting}</p>
+            <h1 className="text-2xl nav:text-3xl font-bold tracking-tight text-foreground truncate">
+              {displayName}
             </h1>
-            <p className="text-muted-foreground text-sm">
-              {visibleSolved} of {problems.length} problems solved
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle2 size={16} className="text-emerald-400" />
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {totalSolved}
-              </div>
-              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                Solved
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg
-                width="14"
-                height="16"
-                viewBox="0 0 12 16"
-                className="text-primary"
-                fill="currentColor"
-              >
-                <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-              </svg>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {user?.xp?.toLocaleString() || 0}
-              </div>
-              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                XP Earned
-              </div>
-            </div>
           </div>
           {user && (
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Flame size={16} className="text-orange-400" />
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                  {user.streak}
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Day Streak
-                </div>
-              </div>
+            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/25 px-3 py-1.5 text-primary">
+              <Zap size={14} className="fill-primary/20" />
+              <span className="text-xs font-bold tabular-nums">Lv. {user.level}</span>
             </div>
           )}
+        </div>
+
+        {/* 2×2 stat tiles */}
+        <div className="grid grid-cols-2 nav:grid-cols-4 gap-2.5">
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Zap size={14} className="text-primary" />
+              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Total XP</span>
+            </div>
+            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+              {(user?.xp ?? 0).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Flame size={14} className="text-orange-400" />
+              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Day streak</span>
+            </div>
+            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+              {user?.streak ?? 0}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <CheckCircle2 size={14} className="text-emerald-400" />
+              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Solved</span>
+            </div>
+            <p className="text-lg font-bold tabular-nums text-foreground leading-none">
+              {totalSolved}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-card border border-border/60 px-3.5 py-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Hash size={14} className="text-primary" />
+              <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">Rank</span>
+            </div>
+            <p className="text-lg font-bold tabular-nums text-foreground leading-none">—</p>
+          </div>
         </div>
       </div>
 
       <GoogleLinkBanner />
 
-      {/* Tabs */}
+      {/* Tabs — full on desktop; compact on mobile */}
       <div className="flex items-center gap-6 border-b border-border">
         <button
           onClick={() => setActiveTab("problems")}
@@ -344,19 +370,123 @@ export default function Dashboard() {
       {activeTab === "problems" ? (
         <>
           {showTopicCards ? (
-            /* ── Topic Card Grid ── */
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                  <BookOpen size={18} className="text-primary" />
+            /* ── Topic list (Prototype 1 stack) ── */
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Search + language/status chips */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search problems, modules..."
+                      className="w-full h-11 rounded-xl bg-brand-charcoal-card border border-border/60 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">Choose a topic to practice</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Select a module to view its problems and track your progress
-                  </p>
+                <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+                  {([
+                    { id: "all", label: "All" },
+                    { id: "go", label: "Go" },
+                    { id: "python", label: "Python" },
+                  ] as const).map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      onClick={() => {
+                        const lang = chip.id;
+                        setLanguageFilter(lang);
+                        setCurrentPage(1);
+                        const params = new URLSearchParams(window.location.search);
+                        if (lang === "all") params.delete("tab");
+                        else params.set("tab", lang);
+                        const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                        window.history.pushState({}, "", newUrl);
+                        clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
+                        setLoading(true);
+                        fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
+                          if (res.success) setProblems(res.data || []);
+                          setLoading(false);
+                        });
+                      }}
+                      className={cn(
+                        "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                        languageFilter === chip.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-brand-charcoal-card border border-border/60 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter(statusFilter === "solved" ? "all" : "solved")}
+                    className={cn(
+                      "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                      statusFilter === "solved"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-brand-charcoal-card border border-border/60 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Solved
+                  </button>
                 </div>
               </div>
+
+              {/* Continue learning */}
+              {continueModule && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">Continue learning</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectModule(continueModule.mod)}
+                    className="w-full text-left rounded-2xl border border-border/60 bg-gradient-to-br from-teal-500/10 via-brand-charcoal-card to-brand-charcoal-card p-4 transition-colors hover:border-primary/30"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 text-teal-400">
+                        <BookOpen size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground truncate">
+                          {moduleDisplayName(continueModule.mod)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {continueModule.solved} of {continueModule.total} solved
+                        </p>
+                        <div className="mt-2.5 flex items-center gap-3">
+                          <div className="h-1.5 flex-1 rounded-full bg-muted/80 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all"
+                              style={{ width: `${continueModule.pct}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold tabular-nums text-primary">
+                            {continueModule.pct}%
+                          </span>
+                        </div>
+                      </div>
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
+                        <Play size={12} className="fill-current" />
+                        Resume
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* Modules */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Modules</h2>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {modules.length} total
+                  </span>
+                </div>
               {loading ? (
                 <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 xl:grid-cols-4 gap-5">
                   {[...Array(8)].map((_, i) => (
@@ -372,7 +502,9 @@ export default function Dashboard() {
                   onSelect={handleSelectModule}
                 />
               )}
+              </div>
             </div>
+
           ) : (
             /* ── Filtered Problems ── */
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
