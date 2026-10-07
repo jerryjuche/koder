@@ -10,9 +10,10 @@ interface StatsOverviewProps {
 export default function StatsOverview({ profile }: StatsOverviewProps) {
   const attemptedCount = profile.stats.attempted_count;
   const solvedCount = profile.stats.solved_count;
-  const successRate = attemptedCount > 0
-    ? parseFloat(((solvedCount / attemptedCount) * 100).toFixed(1))
-    : 0;
+  const successRate =
+    attemptedCount > 0
+      ? parseFloat(((solvedCount / attemptedCount) * 100).toFixed(1))
+      : 0;
 
   const formatRuntime = (ms: number) => {
     if (ms <= 0) return "—";
@@ -21,27 +22,39 @@ export default function StatsOverview({ profile }: StatsOverviewProps) {
   };
 
   return (
-    <div className="rounded-xl bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6 overflow-hidden">
-      <div className="flex items-stretch divide-x divide-white/10">
-        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Rank</span>
-          <div className="flex items-center gap-1.5">
-            <Hash size={13} className="text-[#7B8CBB]" />
-            <span className="text-lg font-extrabold font-mono text-[#7B8CBB]">{profile.global_rank ?? "-"}</span>
+    <div className="rounded-xl bg-brand-charcoal-card border border-border/60 overflow-hidden h-full">
+      <div className="flex items-stretch divide-x divide-border/50 h-full min-h-[72px]">
+        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Rank
+          </span>
+          <div className="flex items-center gap-1">
+            <Hash size={12} className="text-primary" />
+            <span className="text-base font-bold tabular-nums text-foreground">
+              {profile.global_rank ?? "—"}
+            </span>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Success Rate</span>
-          <div className="flex items-center gap-1.5">
-            <Target size={13} className="text-amber-400" />
-            <span className="text-lg font-extrabold font-mono text-amber-400">{successRate}%</span>
+        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Rate
+          </span>
+          <div className="flex items-center gap-1">
+            <Target size={12} className="text-primary" />
+            <span className="text-base font-bold tabular-nums text-foreground">
+              {successRate}%
+            </span>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-1">
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Best Runtime</span>
-          <div className="flex items-center gap-1.5">
-            <Zap size={13} className="text-amber-400" />
-            <span className="text-lg font-extrabold font-mono text-amber-400">{formatRuntime(profile.stats.best_runtime_ms)}</span>
+        <div className="flex-1 flex flex-col items-center justify-center py-3 px-2 gap-1">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Best
+          </span>
+          <div className="flex items-center gap-1">
+            <Zap size={12} className="text-primary" />
+            <span className="text-base font-bold tabular-nums text-foreground">
+              {formatRuntime(profile.stats.best_runtime_ms)}
+            </span>
           </div>
         </div>
       </div>

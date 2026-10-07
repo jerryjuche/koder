@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { User as UserType, UserProfile } from "@/lib/types";
 import { useHasMounted } from "@/hooks/use-has-mounted";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -14,6 +13,8 @@ import {
   Target,
   Flame,
   Zap,
+  CheckCircle2,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/base/avatar/avatar";
@@ -23,42 +24,21 @@ interface ProfileHeaderProps {
   user?: UserType | null;
 }
 
-function MiniStat({ value, label, icon: Icon, accent }: {
-  value: number | string;
-  label: string;
-  icon: React.ElementType;
-  accent?: "warm" | "cool";
-}) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-charcoal-panel/60 backdrop-blur-sm border border-white/6">
-      <Icon size={13} className={`shrink-0 ${accent === "cool" ? "text-[#7B8CBB]/70" : "text-amber-400/70"}`} />
-      <span className="text-sm font-bold text-white tabular-nums">{value}</span>
-      <span className="text-[10px] text-white/45 uppercase tracking-wider hidden sm:inline">{label}</span>
-    </div>
-  );
-}
-
 export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
   const [avatarError, setAvatarError] = useState(false);
   const mounted = useHasMounted();
 
   const joinDate = new Date(profile.created_at).toLocaleDateString("en-US", {
-    month: "long",
+    month: "short",
     year: "numeric",
   });
 
-  const initials = profile.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-
   const solvedCount = profile.stats.solved_count ?? user?.solvedCount ?? 0;
   const attemptedCount = profile.stats.attempted_count ?? user?.attemptedCount ?? 0;
-  const successRate = attemptedCount > 0
-    ? ((solvedCount / attemptedCount) * 100).toFixed(0)
-    : "0";
+  const successRate =
+    attemptedCount > 0
+      ? ((solvedCount / attemptedCount) * 100).toFixed(0)
+      : "0";
   const streakDays = profile.stats.current_streak_days ?? user?.streak ?? 0;
   const xp = profile.xp ?? user?.xp ?? 0;
   const level = profile.level ?? user?.level ?? 1;
@@ -68,132 +48,168 @@ export default function ProfileHeader({ profile, user }: ProfileHeaderProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={mounted ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="relative rounded-2xl overflow-hidden"
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-2xl border border-border/60 bg-brand-charcoal-card overflow-hidden"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-[#7B8CBB]/10 via-transparent to-amber-500/8 animate-pulse-slow" />
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#7B8CBB]/8 rounded-full blur-3xl" />
-      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl" />
+      {/* Gold accent line */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
 
-      <div className="relative backdrop-blur-xl bg-brand-charcoal-panel/80 border border-white/8 rounded-2xl shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#7B8CBB]/40 via-amber-400 to-[#7B8CBB]/40" />
-
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-            <div className="relative flex-shrink-0 group">
-              <div className="absolute -inset-1 bg-gradient-to-br from-[#7B8CBB]/10 to-amber-400/5 rounded-full blur-sm" />
-              <Avatar
-                src={!avatarError ? profile.google_avatar_url : undefined}
-                name={profile.name}
-                colorIndex={profile.color_index}
-                size="xl"
-                verified={user?.verified}
-                className="border-2 border-amber-400/30 shadow-lg rounded-full"
-              />
-            </div>
-
-            <div className="flex-1 min-w-0 w-full">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white truncate tracking-tight">
-                      {profile.name}
-                    </h2>
-                    {profile.username && (
-                      <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 px-2.5 py-0.5 rounded-full text-xs font-mono shrink-0">
-                        {profile.username}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 mt-1.5 text-white/50 text-sm">
-                    <Calendar size={13} />
-                    <span>Joined {joinDate}</span>
-                  </div>
-
-                  {profile.bio && (
-                    <p className="text-sm text-white/60 mt-2 leading-relaxed max-w-xl">
-                      {profile.bio}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex-shrink-0 self-start flex items-center gap-3">
-                  <div className="relative w-16 h-16 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-                      <motion.circle
-                        cx="32" cy="32" r="28" fill="none"
-                        stroke="url(#xpGrad)" strokeWidth="4" strokeLinecap="round"
-
-                        strokeDasharray={`${2 * Math.PI * 28}`}
-                        initial={{ strokeDashoffset: 2 * Math.PI * 28 }}
-                        animate={mounted ? { strokeDashoffset: 2 * Math.PI * 28 * (1 - xpPercent / 100) } : {}}
-                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
-                      />
-                      <defs>
-                        <linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#7B8CBB" />
-                          <stop offset="50%" stopColor="#D4AF37" />
-                          <stop offset="100%" stopColor="#F59E0B" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="text-center">
-                      <div className="text-lg font-black text-white leading-none tracking-tight">{level}</div>
-                      <div className="text-[7px] text-amber-400/70 uppercase tracking-widest font-semibold">Level</div>
-                    </div>
-                  </div>
-
-                  <div className="px-4 py-2.5 rounded-xl border border-[#7B8CBB]/25 text-center min-w-[110px] bg-[#7B8CBB]/5">
-                    <div className="flex items-center justify-center gap-1 mb-0.5">
-                      <Trophy size={12} className="text-[#7B8CBB]" />
-                      <span className="text-[9px] font-bold text-[#7B8CBB]/70 uppercase tracking-wider">Rank</span>
-                    </div>
-                    <span className="text-xl font-bold text-[#7B8CBB] font-mono">
-                      #{profile.global_rank || "—"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-amber-400/70 font-mono font-semibold">{xpInLevel.toLocaleString()} / 1,000 XP</span>
-                  <span className="text-white/40">{xpPercent.toFixed(0)}%</span>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7B8CBB] via-amber-500 to-amber-400"
-                    initial={{ width: 0 }}
-                    animate={mounted ? { width: `${xpPercent}%` } : {}}
-                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <MiniStat value={`#${profile.global_rank || "-"}`} label="Rank" icon={Trophy} accent="cool" />
-                <MiniStat value={solvedCount} label="Solved" icon={Target} accent="warm" />
-                <MiniStat value={`${successRate}%`} label="Rate" icon={Zap} accent="warm" />
-                <MiniStat value={`${streakDays}d`} label="Streak" icon={Flame} accent="cool" />
-              </div>
-
-              <div className="mt-5 flex items-center gap-3 flex-wrap">
-                <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-white/70">
-                  <Link href="/settings">
-                    <Settings size={14} />
-                    Edit Profile
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" disabled className="text-white/30 cursor-not-allowed">
-                  <><Share2 size={14} /> Share Profile</>
-                </Button>
-              </div>
-            </div>
+      <div className="p-4 sm:p-5 space-y-4">
+        {/* Identity row */}
+        <div className="flex items-start gap-3.5">
+          <div className="relative shrink-0">
+            <Avatar
+              src={!avatarError ? profile.google_avatar_url : undefined}
+              name={profile.name}
+              colorIndex={profile.color_index}
+              size="lg"
+              verified={user?.verified}
+              className="border-2 border-primary/30 shadow-md rounded-full"
+            />
           </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-foreground truncate leading-tight">
+                  {profile.name}
+                </h2>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  {profile.username && (
+                    <span className="text-xs font-mono text-primary/90">
+                      @{profile.username.replace(/^@/, "")}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Calendar size={11} />
+                    {joinDate}
+                  </span>
+                </div>
+              </div>
+
+              {/* Level badge */}
+              <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 border border-primary/25 px-2.5 py-1 text-primary">
+                <Zap size={12} className="fill-primary/20" />
+                <span className="text-[11px] font-bold tabular-nums">Lv. {level}</span>
+              </div>
+            </div>
+
+            {profile.bio && (
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
+                {profile.bio}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* XP progress */}
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+              {xpInLevel.toLocaleString()} / 1,000 XP
+            </span>
+            <span className="text-[11px] font-semibold text-primary tabular-nums">
+              {xpPercent.toFixed(0)}%
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted/80 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={{ width: 0 }}
+              animate={mounted ? { width: `${xpPercent}%` } : {}}
+              transition={{ duration: 0.9, ease: "easeOut", delay: 0.15 }}
+            />
+          </div>
+        </div>
+
+        {/* 4-up stats — match home dashboard */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Zap size={12} className="text-primary shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                XP
+              </span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
+              {xp.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Flame size={12} className="text-orange-400 shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Streak
+              </span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
+              {streakDays}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Solved
+              </span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
+              {solvedCount}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-charcoal-panel/80 border border-border/50 px-2 py-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Hash size={12} className="text-primary shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Rank
+              </span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-foreground leading-none">
+              {profile.global_rank ? `#${profile.global_rank}` : "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Secondary metrics row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/40 px-2.5 py-1.5">
+            <Target size={12} className="text-primary" />
+            <span className="text-xs font-bold tabular-nums text-foreground">{successRate}%</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Rate</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/40 px-2.5 py-1.5">
+            <Trophy size={12} className="text-primary" />
+            <span className="text-xs font-bold tabular-nums text-foreground">
+              {profile.global_rank ? `#${profile.global_rank}` : "—"}
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Global</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-8 border-border/60 bg-background/30 hover:bg-background/50 text-foreground text-xs"
+          >
+            <Link href="/settings">
+              <Settings size={13} />
+              Edit Profile
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            className="h-8 text-muted-foreground/50 cursor-not-allowed text-xs"
+          >
+            <Share2 size={13} />
+            Share
+          </Button>
         </div>
       </div>
     </motion.div>
