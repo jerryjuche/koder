@@ -25,32 +25,24 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
 
 function ProfileSkeleton() {
   return (
-    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header skeleton */}
-        <div className="rounded-2xl bg-brand-charcoal-card/40 backdrop-blur-sm border border-white/6 p-8">
-          <div className="flex gap-6 items-start">
-            <SkeletonBlock className="w-24 h-24 rounded-full" />
-            <div className="flex-1 space-y-3">
-              <SkeletonBlock className="h-8 w-48" />
-              <SkeletonBlock className="h-4 w-32" />
-              <SkeletonBlock className="h-4 w-3/4" />
+    <div className="pt-3 pb-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-4">
+        <div className="rounded-2xl bg-brand-charcoal-card border border-border/60 p-4">
+          <div className="flex gap-3.5 items-start">
+            <SkeletonBlock className="w-14 h-14 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <SkeletonBlock className="h-5 w-40" />
+              <SkeletonBlock className="h-3 w-24" />
+              <SkeletonBlock className="h-3 w-2/3" />
             </div>
           </div>
         </div>
-
-        {/* Stats skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <SkeletonBlock key={i} className="h-28" />
+        <div className="grid grid-cols-4 gap-2">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonBlock key={i} className="h-14 rounded-xl" />
           ))}
         </div>
-
-        {/* Activity + Stats skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
-          <SkeletonBlock className="lg:col-span-4 h-40" />
-          <SkeletonBlock className="lg:col-span-2 h-24" />
-        </div>
+        <SkeletonBlock className="h-32 rounded-xl" />
       </div>
     </div>
   );
@@ -141,47 +133,42 @@ export default function ProfileClient() {
 
   return (
     <TooltipProvider>
-      <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Page title */}
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-3 mb-2"
-          >
-            <div className="p-2.5 rounded-xl bg-[#7B8CBB]/10 border border-[#7B8CBB]/20">
-              <User size={22} className="text-[#7B8CBB]" />
+      <div className="pt-3 pb-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+        <div className="max-w-6xl mx-auto space-y-4">
+          {/* Compact page label — desktop only title weight */}
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <User size={16} className="text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">
-                My Profile
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground leading-tight">
+                Profile
               </h1>
-              <p className="text-white/40 text-sm">
-                View your progress, rank, and problem-solving statistics
+              <p className="text-[11px] text-muted-foreground hidden sm:block">
+                Progress, rank, and activity
               </p>
             </div>
-          </motion.div>
+          </div>
 
           <ProfileHeader profile={profile} user={user} />
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList variant="line" className="w-full justify-start">
-              <TabsTrigger value="overview" className="gap-2">
-                <FileText size={16} />
+            <TabsList variant="line" className="w-full justify-start h-auto">
+              <TabsTrigger value="overview" className="gap-1.5 text-sm">
+                <FileText size={14} />
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="contributions" className="relative gap-2">
-                <GitPullRequest size={16} />
-                My Contributions
+              <TabsTrigger value="contributions" className="relative gap-1.5 text-sm">
+                <GitPullRequest size={14} />
+                Contributions
                 {hasContributionNotif && (
-                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse absolute -top-0.5 -right-1" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse absolute -top-0.5 -right-0.5" />
                 )}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6 mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+            <TabsContent value="overview" className="space-y-3 mt-3">
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
                 <div className="lg:col-span-4 min-w-0 overflow-x-auto">
                   <ContributionGraphSection activity={activity} />
                 </div>
@@ -189,7 +176,7 @@ export default function ProfileClient() {
                   <StatsOverview profile={profile} />
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2">
                   <ProgressMetrics profile={profile} />
                 </div>
@@ -199,8 +186,8 @@ export default function ProfileClient() {
               </div>
             </TabsContent>
 
-            <TabsContent value="contributions" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <TabsContent value="contributions" className="mt-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2">
                   <MyContributions />
                 </div>

@@ -21,7 +21,7 @@ const difficultyConfig: Record<string, { label: string; color: string; barColor:
 function AnimatedBar({ percent, color }: { percent: number; color: string }) {
   const mounted = useHasMounted();
   return (
-    <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+    <div className="h-2.5 bg-muted/50 rounded-full overflow-hidden">
       <motion.div
         className={`h-full rounded-full ${color}`}
         initial={{ width: 0 }}
@@ -64,22 +64,22 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
           visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
         }}
       >
-        <Card className="p-6 bg-brand-charcoal-card/60 backdrop-blur-sm border border-white/6">
-          <div className="flex items-center gap-3 mb-6">
+        <Card className="p-4 bg-brand-charcoal-card border border-border/60">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-[#7B8CBB]/10 flex items-center justify-center border border-[#7B8CBB]/20">
               <Layers size={18} className="text-[#7B8CBB]" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Difficulty Breakdown</h3>
-              <p className="text-xs text-white/40">Progress across problem difficulty levels</p>
+              <h3 className="text-base font-bold text-foreground">Difficulty Breakdown</h3>
+              <p className="text-xs text-foreground/40">Progress across problem difficulty levels</p>
             </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-3">
             {Object.entries(diffProgress).map(([key, stats]) => {
               const config = difficultyConfig[key] || {
                 label: key,
-                color: "text-white/60",
+                color: "text-foreground/60",
                 barColor: "bg-white/30",
                 gradient: "from-white/5 to-white/5",
               };
@@ -91,11 +91,11 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
                       <span className={`text-sm font-semibold ${config.color}`}>
                         {config.label}
                       </span>
-                      <Badge variant="outline" className="text-[10px] font-mono border-white/10 text-white/50 bg-white/5">
+                      <Badge variant="outline" className="text-[10px] font-mono border-border/50 text-foreground/50 bg-muted/50">
                         {stats.solved}/{stats.total}
                       </Badge>
                     </div>
-                    <span className="text-xs text-white/40 font-mono">
+                    <span className="text-xs text-foreground/40 font-mono">
                       {percentage.toFixed(0)}%
                     </span>
                   </div>
@@ -105,10 +105,10 @@ export default function ProgressMetrics({ profile }: ProgressMetricsProps) {
             })}
           </div>
 
-          <div className="mt-5 pt-4 border-t border-white/6">
+          <div className="mt-3 pt-3 border-t border-border/50">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold text-white">Overall Progress</span>
-              <span className="text-xs text-white/50 font-mono">
+              <span className="text-sm font-semibold text-foreground">Overall Progress</span>
+              <span className="text-xs text-foreground/50 font-mono">
                 {totalSolved}/{totalProblems}
               </span>
             </div>
