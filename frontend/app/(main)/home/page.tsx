@@ -3,25 +3,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
+  X,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   CheckCircle2,
-  Flame,
   Code,
   Trophy,
   ArrowLeft,
   BookOpen,
-  Zap,
-  Hash,
   Play,
 } from "lucide-react";
-import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
 import ProblemCard from "@/components/problems/ProblemCard";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, fetchLeaderboard, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -33,6 +30,8 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import LanguageSegmented, { type LanguageFilterValue } from "@/components/dashboard/LanguageSegmented";
 import { BestPracticesSection } from "@/components/best-practices";
 
 export default function Dashboard() {
@@ -48,6 +47,12 @@ export default function Dashboard() {
     return p === "1" || p === "true";
   });
   const [loading, setLoading] = useState(true);
+  // Global rank for the header. Resolved from the cached top-100 leaderboard:
+  // `value` is the exact rank, `capped` means the user sits below the window.
+  const [rank, setRank] = useState<{ value: number | null; capped: boolean }>({
+    value: null,
+    capped: false,
+  });
 
   // View state
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
@@ -94,8 +99,8 @@ export default function Dashboard() {
       setLoading(true);
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20, bpMine), fetchModuleLocks(), fetchModuleMeta()]).then(
-        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20, bpMine), fetchModuleLocks(), fetchModuleMeta(), fetchLeaderboard("all")]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes, lbRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -103,6 +108,21 @@ export default function Dashboard() {
           }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
+          if (lbRes.success && lbRes.data) {
+            const me = userRes.success ? userRes.data : null;
+            const mine = me
+              ? lbRes.data.find(
+                  (entry) =>
+                    entry.user &&
+                    (entry.user.id === me.id ||
+                      (!!me.username && entry.user.username === me.username)),
+                )
+              : undefined;
+            setRank({
+              value: mine?.rank ?? null,
+              capped: !mine && lbRes.data.length >= 100,
+            });
+          }
           if (locksRes.success && locksRes.data) {
             setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
           }
@@ -179,6 +199,24 @@ export default function Dashboard() {
       });
     }
   };
+
+  // One handler for every language control on the page: URL state, cache
+  // invalidation and refetch stay identical wherever the filter is rendered.
+  const handleLanguageChange = useCallback((lang: LanguageFilterValue) => {
+    setLanguageFilter(lang);
+    setCurrentPage(1);
+    const params = new URLSearchParams(window.location.search);
+    if (lang === "all") params.delete("tab");
+    else params.set("tab", lang);
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.pushState({}, "", newUrl);
+    clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
+    setLoading(true);
+    fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
+      if (res.success) setProblems(res.data || []);
+      setLoading(false);
+    });
+  }, []);
 
   const modules = useMemo(
     () => Array.from(new Set([...problems.map((p) => p.module), ...Array.from(lockedModules)])).sort(),
@@ -273,107 +311,72 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 pt-3 pb-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-      {/* ── Compact dashboard header ── */}
-      <div className="space-y-3">
-        {/* Greeting — hide on module detail to save vertical space */}
-        {showTopicCards && (
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-primary/90 leading-none mb-1.5 tracking-wide">
-                {greeting}
-              </p>
-              <h1 className="text-2xl nav:text-3xl font-extrabold tracking-tight text-foreground truncate leading-none">
-                {displayName}
-              </h1>
-            </div>
-            {user && (
-              <div className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-card border border-border/70 px-3 py-1.5 shadow-sm">
-                <span className="flex size-6 items-center justify-center rounded-md bg-primary/15 text-primary">
-                  <Zap size={13} className="fill-primary/30" />
-                </span>
-                <div className="leading-none">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Level</p>
-                  <p className="text-sm font-extrabold tabular-nums text-foreground">{user.level}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 4-up compact stats — always one row */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
-            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
-              <Zap size={12} className="text-primary shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">XP</span>
-            </div>
-            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
-              {(user?.xp ?? 0).toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
-            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
-              <Flame size={12} className="text-orange-400 shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Streak</span>
-            </div>
-            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
-              {user?.streak ?? 0}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
-            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
-              <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Solved</span>
-            </div>
-            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">
-              {totalSolved}
-            </p>
-          </div>
-          <div className="rounded-xl bg-brand-charcoal-card border border-border/50 px-2 py-2.5 text-center sm:text-left sm:px-3">
-            <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
-              <Hash size={12} className="text-primary shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rank</span>
-            </div>
-            <p className="text-sm sm:text-base font-bold tabular-nums text-foreground leading-none">—</p>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader
+        greeting={greeting}
+        name={displayName}
+        level={user?.level ?? 1}
+        xp={user?.xp ?? 0}
+        solved={totalSolved}
+        streak={user?.streak ?? 0}
+        rank={rank.value}
+        rankCapped={rank.capped}
+        showGreeting={showTopicCards}
+      />
 
       <GoogleLinkBanner />
 
-      {/* Tabs — full on desktop; compact on mobile */}
-      <div className="flex items-center gap-5 border-b border-border">
-        <button
-          onClick={() => setActiveTab("problems")}
-          className={cn(
-            "pb-2.5 text-sm font-semibold transition-colors relative flex items-center gap-1.5",
-            activeTab === "problems" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Code size={16} className={cn(activeTab === "problems" && "text-primary")} />
-          Problem Set
-          {activeTab === "problems" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab("best-practices")}
-          className={cn(
-            "pb-2.5 text-sm font-semibold transition-colors relative flex items-center gap-1.5",
-            activeTab === "best-practices"
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
-          Best Practices
-          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-            Beta
-          </span>
-          {activeTab === "best-practices" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
-          )}
-        </button>
+      {/* View switcher — in-page tabs: the selected tab owns the panel below.
+          Distinct from the filter segments further down so the two never read
+          as the same kind of control. */}
+      <div
+        role="tablist"
+        aria-label="Dashboard view"
+        className="flex items-center gap-6 border-b border-border"
+      >
+        {([
+          { id: "problems", label: "Problem Set", icon: Code, beta: false },
+          { id: "best-practices", label: "Best Practices", icon: Trophy, beta: true },
+        ] as const).map((tab) => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "group relative -mb-px flex items-center gap-2 rounded-t pb-2.5 pt-1 text-sm font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                active ? "text-foreground" : "text-brand-offwhite-muted hover:text-foreground",
+              )}
+            >
+              <Icon
+                size={15}
+                aria-hidden="true"
+                className={cn(
+                  "transition-colors",
+                  active
+                    ? "text-brand-muted-gold"
+                    : "text-brand-offwhite-muted/70 group-hover:text-foreground",
+                )}
+              />
+              {tab.label}
+              {tab.beta && (
+                <span className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-brand-offwhite-muted">
+                  Beta
+                </span>
+              )}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-muted-gold"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === "problems" ? (
@@ -381,65 +384,51 @@ export default function Dashboard() {
           {showTopicCards ? (
             /* ── Topic list (Prototype 1 stack) ── */
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Search + language/status chips */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search problems, modules..."
-                      className="w-full h-11 rounded-xl bg-brand-charcoal-card border border-border/60 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-                  {([
-                    { id: "all", label: "All" },
-                    { id: "go", label: "Go" },
-                    { id: "python", label: "Python" },
-                  ] as const).map((chip) => (
+              {/* Search + filters — two rows, two dimensions: the segmented
+                  control changes language, the toggle filters by status. */}
+              <div className="space-y-2.5">
+                <div className="relative">
+                  <Search
+                    size={15}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted"
+                  />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search problems, modules…"
+                    aria-label="Search problems and modules"
+                    className="h-10 w-full rounded-xl border border-border bg-brand-charcoal-card pl-9 pr-10 text-sm font-medium text-foreground transition-colors placeholder:text-brand-offwhite-muted/80 hover:border-white/[0.12] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-search-cancel-button]:appearance-none"
+                  />
+                  {searchQuery && (
                     <button
-                      key={chip.id}
                       type="button"
-                      onClick={() => {
-                        const lang = chip.id;
-                        setLanguageFilter(lang);
-                        setCurrentPage(1);
-                        const params = new URLSearchParams(window.location.search);
-                        if (lang === "all") params.delete("tab");
-                        else params.set("tab", lang);
-                        const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                        window.history.pushState({}, "", newUrl);
-                        clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
-                        setLoading(true);
-                        fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
-                          if (res.success) setProblems(res.data || []);
-                          setLoading(false);
-                        });
-                      }}
-                      className={cn(
-                        "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                        languageFilter === chip.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-brand-charcoal-card border border-border/60 text-muted-foreground hover:text-foreground",
-                      )}
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-brand-offwhite-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      {chip.label}
+                      <X size={13} />
                     </button>
-                  ))}
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <LanguageSegmented value={languageFilter} onChange={handleLanguageChange} />
                   <button
                     type="button"
-                    onClick={() => setStatusFilter(statusFilter === "solved" ? "all" : "solved")}
+                    aria-pressed={statusFilter === "solved"}
+                    onClick={() =>
+                      setStatusFilter(statusFilter === "solved" ? "all" : "solved")
+                    }
                     className={cn(
-                      "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                      "ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       statusFilter === "solved"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-brand-charcoal-card border border-border/60 text-muted-foreground hover:text-foreground",
+                        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+                        : "border-border bg-brand-charcoal-card text-brand-offwhite-muted hover:text-foreground",
                     )}
                   >
+                    <CheckCircle2 size={13} aria-hidden="true" />
                     Solved
                   </button>
                 </div>
@@ -543,42 +532,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Language Filter Tabs */}
-              <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
-                {(["all", "go", "python"] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setLanguageFilter(lang);
-                      setCurrentPage(1);
-                      const params = new URLSearchParams(window.location.search);
-                      if (lang === "all") {
-                        params.delete("tab");
-                      } else {
-                        params.set("tab", lang);
-                      }
-                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.pushState({}, "", newUrl);
-                      clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
-                      setLoading(true);
-                      fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
-                        if (res.success) setProblems(res.data || []);
-                        setLoading(false);
-                      });
-                    }}
-                    className={cn(
-                      "px-4 py-1.5 rounded text-sm font-medium transition-all capitalize flex items-center gap-1.5",
-                      languageFilter === lang
-                        ? "bg-muted text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {lang === "go" && <LanguageLogo language="go" size={16} />}
-                    {lang === "python" && <LanguageLogo language="python" size={16} />}
-                    {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
-                  </button>
-                ))}
-              </div>
+              {/* Language filter — same control as the topics view */}
+              <LanguageSegmented value={languageFilter} onChange={handleLanguageChange} />
 
               {/* Filters (no module dropdown) */}
               <Card className="p-3 flex flex-col gap-2.5">
