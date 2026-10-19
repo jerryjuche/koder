@@ -98,49 +98,50 @@ export function SolutionCard({
         }}
         className="group flex flex-col overflow-hidden rounded-lg border border-border bg-brand-charcoal-card transition-all duration-150 hover:border-white/15 hover:bg-[#222222] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 cursor-pointer select-none"
       >
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="w-8 shrink-0 text-center font-mono text-xs font-medium text-muted-foreground">
-            #{String(rank).padStart(2, "0")}
-          </span>
+        <div className="flex flex-col gap-2 px-3 sm:px-4 py-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-7 shrink-0 text-center font-mono text-xs font-medium text-muted-foreground tabular-nums">
+              #{String(rank).padStart(2, "0")}
+            </span>
 
-          <div className="shrink-0">
-            <SolutionAuthorRow solution={solution} avatarSize="sm" />
+            <div className="min-w-0 flex-1">
+              <SolutionAuthorRow solution={solution} avatarSize="sm" />
+            </div>
+
+            <div className="hidden md:flex shrink-0 items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className={cn("h-1.5 w-1.5 rounded-full", languageDot[solution.language] || "bg-muted-foreground")} />
+                {languageLabel[solution.language] || solution.language}
+              </span>
+              <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-emerald-400">
+                <Zap size={12} className="fill-emerald-400/60" />
+                {solution.runtime_ms} ms
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <LikeButton solution={solution} onLike={onLike} size="xs" />
+              <span className="rounded-md p-1.5 text-muted-foreground transition-colors group-hover:text-foreground">
+                <ChevronDown
+                  size={16}
+                  className={cn("transition-transform duration-200", expanded && "rotate-180")}
+                />
+              </span>
+            </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <ProblemLink solution={solution} />
+          {/* Actions row — never overlaps the author name */}
+          <div className="flex items-center gap-2 pl-9 min-w-0">
+            <div className="min-w-0 flex-1 hidden sm:block">
+              <ProblemLink solution={solution} />
+            </div>
+            <AIAnalysisPill hasAnalysis onClick={() => setAnalysisOpen(true)} />
             {solution.module && (
-              <span className="hidden shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
+              <span className="hidden lg:inline-flex shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 {solution.module}
               </span>
             )}
-            <AIAnalysisPill hasAnalysis onClick={() => setAnalysisOpen(true)} />
           </div>
-
-          <div className="hidden shrink-0 items-center gap-3 md:flex">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <span className={cn("h-1.5 w-1.5 rounded-full", languageDot[solution.language] || "bg-muted-foreground")} />
-              {languageLabel[solution.language] || solution.language}
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-emerald-400">
-              <Zap size={12} className="fill-emerald-400/60" />
-              {solution.runtime_ms} ms
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {formatRelativeTime(solution.created_at)}
-            </span>
-          </div>
-
-          <div className="shrink-0">
-            <LikeButton solution={solution} onLike={onLike} size="xs" />
-          </div>
-
-          <span className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors group-hover:text-foreground">
-            <ChevronDown
-              size={16}
-              className={cn("transition-transform duration-200", expanded && "rotate-180")}
-            />
-          </span>
         </div>
 
         <AnimatePresence initial={false}>

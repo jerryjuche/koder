@@ -41,82 +41,98 @@ export function BestPracticesToolbar({
   resultCount: number;
 }) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-      <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => onMineChange(false)}
-          className={cn(
-            "px-3.5 py-1.5 rounded text-sm font-medium transition-all flex items-center gap-1.5",
-            !mine
-              ? "bg-muted text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Users size={14} />
-          All
-        </button>
-        <button
-          onClick={() => onMineChange(true)}
-          className={cn(
-            "px-3.5 py-1.5 rounded text-sm font-medium transition-all flex items-center gap-1.5",
-            mine
-              ? "bg-muted text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Heart size={14} />
-          Mine
-        </button>
-      </div>
-
-      <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
-        {langs.map((l) => (
+    <div className="space-y-2.5">
+      {/* Row 1: scope + language */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-0.5 bg-card border border-border/60 rounded-xl p-1">
           <button
-            key={l.value}
-            onClick={() => onLangChange(l.value)}
+            onClick={() => onMineChange(false)}
             className={cn(
-              "px-3.5 py-1.5 rounded text-sm font-medium transition-all capitalize flex items-center gap-1.5",
-              lang === l.value
+              "px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
+              !mine
                 ? "bg-muted text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {l.value === "go" && <LanguageLogo language="go" size={14} />}
-            {l.value === "python" && <LanguageLogo language="python" size={14} />}
-            {l.value === "all" && <Trophy size={14} />}
-            {l.label}
+            <Users size={14} />
+            All
           </button>
-        ))}
-      </div>
+          <button
+            onClick={() => onMineChange(true)}
+            className={cn(
+              "px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
+              mine
+                ? "bg-muted text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Heart size={14} />
+            Mine
+          </button>
+        </div>
 
-      <div className="relative w-fit">
-        <ArrowDownWideNarrow className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={14} />
-        <select
-          value={sort}
-          onChange={(e) => onSortChange(e.target.value as BpSort)}
-          aria-label="Sort solutions"
-          className="appearance-none bg-card border border-border/60 rounded-lg pl-9 pr-9 py-2 text-sm text-foreground font-medium focus:outline-none focus:border-primary transition-colors cursor-pointer"
-        >
-          {sorts.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+        <div className="flex items-center gap-0.5 bg-card border border-border/60 rounded-xl p-1">
+          {langs.map((l) => (
+            <button
+              key={l.value}
+              onClick={() => onLangChange(l.value)}
+              className={cn(
+                "px-3 py-2 rounded-lg text-xs font-semibold transition-all capitalize flex items-center gap-1.5",
+                lang === l.value
+                  ? "bg-muted text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {l.value !== "all" && (
+                <LanguageLogo language={l.value as "go" | "python"} size={12} />
+              )}
+              {l.value === "all" && <Trophy size={12} />}
+              {l.label}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      <div className="relative flex-1 lg:max-w-xs ml-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={15} />
-        <input
-          type="text"
-          placeholder="Search author or problem..."
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          className="w-full bg-card border border-border/60 rounded-lg pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-        />
+      {/* Row 2: sort + search */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="flex items-center gap-0.5 bg-card border border-border/60 rounded-xl p-1 w-fit">
+          <ArrowDownWideNarrow size={14} className="ml-2 text-muted-foreground shrink-0" />
+          {sorts.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => onSortChange(s.value)}
+              className={cn(
+                "px-3 py-2 rounded-lg text-xs font-semibold transition-all",
+                sort === s.value
+                  ? "bg-muted text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative flex-1 min-w-0">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Search author or problem"
+            className="w-full h-10 pl-9 pr-3 rounded-xl bg-card border border-border/60 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
       </div>
 
-      <p className="text-xs text-muted-foreground font-medium shrink-0">
-        {resultCount} {resultCount === 1 ? "solution" : "solutions"}
-      </p>
+      {resultCount >= 0 && (
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {resultCount} solution{resultCount === 1 ? "" : "s"}
+        </p>
+      )}
     </div>
   );
 }

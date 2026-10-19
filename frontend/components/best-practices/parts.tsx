@@ -59,11 +59,11 @@ export function AIAnalysisPill({
         e.stopPropagation();
         onClick();
       }}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-300 transition-colors hover:bg-purple-500/20"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-500/35 bg-violet-500/10 px-2.5 py-1.5 text-[11px] font-bold text-violet-300 transition-colors hover:bg-violet-500/20 active:scale-[0.98]"
       aria-label="Open AI analysis"
     >
-      <Sparkles size={10} className="fill-purple-400/60" />
-      AI Analysis
+      <Sparkles size={12} className="fill-violet-400/50 shrink-0" />
+      <span>AI Analysis</span>
     </button>
   );
 }

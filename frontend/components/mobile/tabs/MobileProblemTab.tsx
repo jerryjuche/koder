@@ -38,7 +38,8 @@ export default function MobileProblemTab({
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 custom-scrollbar pb-6">
       {/* Problem Header Info */}
       <div className="space-y-2.5">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
           <span
             className={cn(
               "text-xs font-bold px-2.5 py-0.5 rounded-full",
@@ -58,7 +59,8 @@ export default function MobileProblemTab({
             </span>
           )}
 
-          <div className="ml-auto flex items-center gap-1 text-brand-muted-gold text-xs font-bold bg-brand-muted-gold/10 px-2.5 py-0.5 rounded border border-brand-muted-gold/20">
+          </div>
+          <div className="shrink-0 flex items-center gap-1 text-brand-muted-gold text-xs font-bold bg-brand-muted-gold/10 px-2.5 py-1 rounded-lg border border-brand-muted-gold/25">
             <svg width="10" height="12" viewBox="0 0 12 16" fill="currentColor">
               <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
             </svg>

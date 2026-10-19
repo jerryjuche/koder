@@ -279,15 +279,22 @@ export default function Dashboard() {
         {showTopicCards && (
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground leading-none mb-1">{greeting}</p>
-              <h1 className="text-xl nav:text-2xl font-bold tracking-tight text-foreground truncate leading-tight">
+              <p className="text-[13px] font-semibold text-primary/90 leading-none mb-1.5 tracking-wide">
+                {greeting}
+              </p>
+              <h1 className="text-2xl nav:text-3xl font-extrabold tracking-tight text-foreground truncate leading-none">
                 {displayName}
               </h1>
             </div>
             {user && (
-              <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 border border-primary/25 px-2.5 py-1 text-primary">
-                <Zap size={12} className="fill-primary/20" />
-                <span className="text-[11px] font-bold tabular-nums">Lv. {user.level}</span>
+              <div className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-card border border-border/70 px-3 py-1.5 shadow-sm">
+                <span className="flex size-6 items-center justify-center rounded-md bg-primary/15 text-primary">
+                  <Zap size={13} className="fill-primary/30" />
+                </span>
+                <div className="leading-none">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Level</p>
+                  <p className="text-sm font-extrabold tabular-nums text-foreground">{user.level}</p>
+                </div>
               </div>
             )}
           </div>
