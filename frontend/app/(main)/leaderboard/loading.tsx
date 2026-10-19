@@ -1,40 +1,35 @@
-import { cn } from "@/lib/utils";
-
 export default function LeaderboardLoading() {
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-4 pb-12 px-4">
-      <div className="h-10 w-48 bg-card rounded-xl mx-auto" />
-      <div className="h-4 w-64 bg-card rounded-xl mx-auto" />
-      <div className="flex justify-center gap-5 items-end mt-12">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className={cn(
-              "bg-card rounded-2xl border border-border",
-              i === 2 ? "w-72 h-52" : "w-60 h-40"
-            )}
-          />
-        ))}
+    <div className="mx-auto max-w-5xl animate-pulse px-4 pb-10 pt-3 sm:px-6 lg:px-8">
+      <div className="flex items-end justify-between gap-3 pb-1">
+        <div className="space-y-2">
+          <div className="h-3 w-12 rounded bg-card" />
+          <div className="h-7 w-40 rounded-lg bg-card" />
+        </div>
+        <div className="h-8 w-24 rounded-xl bg-card" />
       </div>
-      <div className="h-16 bg-card rounded-2xl border border-border" />
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <div className="h-9 w-64 bg-muted rounded-lg" />
+      <div className="grid grid-cols-3 items-end gap-2 pt-5 sm:gap-3">
+        <div className="h-36 rounded-2xl bg-card" />
+        <div className="h-44 rounded-2xl bg-card" />
+        <div className="h-36 rounded-2xl bg-card" />
+      </div>
+      <div className="mt-5 h-16 rounded-2xl bg-card" />
+      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex flex-col gap-2.5 border-b border-border p-3">
+          <div className="h-10 rounded-xl bg-muted" />
+          <div className="h-10 rounded-lg bg-muted" />
         </div>
-        <div className="divide-y divide-border/40">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4">
-              <div className="w-8 h-8 rounded-full bg-muted" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-32 bg-muted rounded" />
-                <div className="h-3 w-20 bg-muted rounded" />
-              </div>
-              <div className="h-4 w-16 bg-muted rounded" />
-              <div className="h-4 w-12 bg-muted rounded" />
-              <div className="h-4 w-14 bg-muted rounded" />
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3 border-t border-border/50 px-4 py-3">
+            <div className="h-4 w-4 rounded bg-muted" />
+            <div className="size-10 shrink-0 rounded-full bg-muted" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-28 rounded bg-muted" />
+              <div className="h-3 w-20 rounded bg-muted" />
             </div>
-          ))}
-        </div>
+            <div className="h-4 w-14 rounded bg-muted" />
+          </div>
+        ))}
       </div>
     </div>
   );

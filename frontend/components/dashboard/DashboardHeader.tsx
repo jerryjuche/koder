@@ -34,7 +34,7 @@ function Metric({
   iconClass: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 border-l border-border/60 px-3 py-2.5 first:border-l-0 sm:px-4">
+    <div className="flex flex-col gap-1 border-l border-border/60 px-3 py-2.5 first:border-l-0 sm:px-4 md:flex-none md:py-2 md:px-5">
       <dt className="flex items-center gap-1.5 text-micro font-semibold uppercase tracking-wider text-brand-offwhite-muted">
         <Icon size={12} className={cn("shrink-0", iconClass)} aria-hidden="true" />
         {label}
@@ -71,9 +71,12 @@ export default function DashboardHeader({
   const rankLabel = rank !== null ? `#${rank}` : rankCapped ? "100+" : "—";
 
   return (
-    <section aria-label="Your progress" className="space-y-3">
+    <section
+      aria-label="Your progress"
+      className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-5"
+    >
       {showGreeting && (
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex items-end justify-between gap-4 md:justify-start md:gap-5">
           <div className="min-w-0">
             <p className="text-xs font-semibold tracking-wide text-brand-muted-gold">
               {greeting}
@@ -101,7 +104,10 @@ export default function DashboardHeader({
         </div>
       )}
 
-      <dl className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-brand-charcoal-card">
+      {/* Mobile: full-width 3-up strip. Desktop: same cells inline with the
+          greeting, sized to content — a full-width strip there stretched each
+          number across ~400px of empty card. */}
+      <dl className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-brand-charcoal-card md:flex md:flex-none md:rounded-xl">
         <Metric
           icon={CheckCircle2}
           label="Solved"

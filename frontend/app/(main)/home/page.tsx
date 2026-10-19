@@ -9,12 +9,10 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  CheckCircle2,
   Code,
   Trophy,
   ArrowLeft,
   BookOpen,
-  Play,
 } from "lucide-react";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
 import ProblemCard from "@/components/problems/ProblemCard";
@@ -414,64 +412,50 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <LanguageSegmented value={languageFilter} onChange={handleLanguageChange} />
-                  <button
-                    type="button"
-                    aria-pressed={statusFilter === "solved"}
-                    onClick={() =>
-                      setStatusFilter(statusFilter === "solved" ? "all" : "solved")
-                    }
-                    className={cn(
-                      "ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      statusFilter === "solved"
-                        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
-                        : "border-border bg-brand-charcoal-card text-brand-offwhite-muted hover:text-foreground",
-                    )}
-                  >
-                    <CheckCircle2 size={13} aria-hidden="true" />
-                    Solved
-                  </button>
                 </div>
               </div>
 
-              {/* Continue learning */}
+              {/* Continue learning — one compact row; the whole card is the
+                  Resume affordance, so no second gold button competes with it */}
               {continueModule && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-foreground">Continue learning</h2>
+                    <span className="text-xs font-bold tabular-nums text-brand-muted-gold">
+                      {continueModule.pct}%
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleSelectModule(continueModule.mod)}
-                    className="w-full text-left rounded-2xl border border-border/60 bg-gradient-to-br from-teal-500/10 via-brand-charcoal-card to-brand-charcoal-card p-4 transition-colors hover:border-primary/30"
+                    className="group w-full rounded-2xl border border-border bg-brand-charcoal-card px-3 py-3 text-left transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 text-teal-400">
-                        <BookOpen size={18} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground truncate">
-                          {moduleDisplayName(continueModule.mod)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {continueModule.solved} of {continueModule.total} solved
-                        </p>
-                        <div className="mt-2.5 flex items-center gap-3">
-                          <div className="h-1.5 flex-1 rounded-full bg-muted/80 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-primary transition-all"
-                              style={{ width: `${continueModule.pct}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-bold tabular-nums text-primary">
-                            {continueModule.pct}%
-                          </span>
-                        </div>
-                      </div>
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
-                        <Play size={12} className="fill-current" />
-                        Resume
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                      >
+                        <BookOpen size={16} />
                       </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {moduleDisplayName(continueModule.mod)}
+                        </span>
+                        <span className="mt-0.5 block text-xs tabular-nums text-brand-offwhite-muted">
+                          {continueModule.solved} of {continueModule.total} solved
+                        </span>
+                        <span className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                          <span
+                            className="block h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${continueModule.pct}%` }}
+                          />
+                        </span>
+                      </span>
+                      <ChevronRight
+                        size={16}
+                        aria-hidden="true"
+                        className="shrink-0 text-brand-offwhite-muted transition-colors group-hover:text-brand-muted-gold"
+                      />
                     </div>
                   </button>
                 </div>
