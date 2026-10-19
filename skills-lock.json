@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "cleanui": {
+      "source": "peterhdd/cleanui",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "0c6e524d22b837e4831c4e9796cd253f07e8a7504661943b1153f87f88b6365c"
+    },
+    "design-better": {
+      "source": "buildgreatproducts/builder-os",
+      "sourceType": "github",
+      "skillPath": "skills/design-better/SKILL.md",
+      "computedHash": "81d1155e34e23b5f9e945310d064b7e1fb5eabb50102db97c945916bdc2721d9"
+    },
     "design-mobile-apps": {
       "source": "designed-by-ai/skills",
       "sourceType": "github",
@@ -17,7 +29,7 @@
       "source": "ayghri/i-have-adhd",
       "sourceType": "github",
       "skillPath": "skills/i-have-adhd/SKILL.md",
-      "computedHash": "2be8f3214ebd0907429eafacc95c1cc3b4f21fe9d1892a30df9be7f32dc09d65"
+      "computedHash": "e12ff08dfe4b5baae7065c2f05a5738b8a55f3ccbed82ba45f5496c8e83b2a25"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
