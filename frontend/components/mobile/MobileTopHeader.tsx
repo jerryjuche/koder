@@ -67,7 +67,7 @@ export default function MobileTopHeader({
         </div>
       </div>
 
-      {/* Right: XP badge & Admin Edit */}
+      {/* Right: Admin Edit only — XP lives once on the problem body */}
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {isAdmin && onOpenEdit && (
           <button
@@ -79,13 +79,6 @@ export default function MobileTopHeader({
             <Edit3 size={18} />
           </button>
         )}
-
-        <div className="flex items-center gap-1 text-brand-muted-gold text-xs font-bold bg-brand-muted-gold/10 px-2 h-7 rounded-md border border-brand-muted-gold/25">
-          <svg width="8" height="10" viewBox="0 0 12 16" fill="currentColor" aria-hidden="true">
-            <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-          </svg>
-          <span className="tabular-nums">+{problem.xpReward}</span>
-        </div>
       </div>
     </header>
   );

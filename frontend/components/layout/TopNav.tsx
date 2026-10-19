@@ -314,71 +314,89 @@ export default function TopNav() {
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex items-center gap-3 py-1">
-                      <Avatar
-                        src={!avatarError ? user.google_avatar_url : undefined}
-                        name={user.name}
-                        colorIndex={user.colorIndex}
-                        size="sm"
-                        verified={user.verified}
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-foreground">{user.name}</p>
-                          {user.role === "admin" && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              Admin
-                            </span>
-                          )}
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-[min(17.5rem,calc(100vw-1.5rem))] p-0 overflow-hidden rounded-2xl border border-border/70 bg-brand-charcoal-card shadow-2xl shadow-black/40"
+                >
+                  <DropdownMenuLabel className="p-0">
+                    <div className="px-4 pt-4 pb-3 bg-gradient-to-b from-primary/10 to-transparent border-b border-border/50">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={!avatarError ? user.google_avatar_url : undefined}
+                          name={user.name}
+                          colorIndex={user.colorIndex}
+                          size="md"
+                          verified={user.verified}
+                          className="ring-2 ring-primary/25"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-[15px] font-bold text-foreground truncate">
+                              {user.name}
+                            </p>
+                            {user.role === "admin" && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/25">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-mono text-primary/90 truncate mt-0.5">
+                            @{user.username || user.studentId}
+                          </p>
+                          <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-background/50 border border-border/50 px-2 py-0.5 text-[11px] font-bold text-primary">
+                            <Zap size={11} />
+                            Lv.{user.level} · {user.xp.toLocaleString()} XP
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="text-amber-400 font-mono text-xs">
-                            {user.username || user.studentId}
-                          </span>
-                        </p>
-                        {/* Level/XP used to live only in the removed mobile
-                            hamburger dropdown — surfacing it here keeps it
-                            reachable on every screen size. */}
-                        <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-primary">
-                          <Zap size={11} />
-                          Lv.{user.level} · {user.xp.toLocaleString()} XP
-                        </p>
                       </div>
                     </div>
                   </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <UserIcon size={16} /> Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings size={16} /> Settings
-                  </Link>
-                </DropdownMenuItem>
-                {/* Admin used to be reachable only through the mobile
-                    hamburger menu; with the tab bar owning navigation, the
-                    avatar menu is its home on every viewport. */}
-                {user.role === "admin" && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">
-                      <ShieldCheck size={16} /> Admin
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await logout();
-                    window.location.href = "/login";
-                  }}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                >
-                  <LogOut size={16} /> Sign Out
-                </DropdownMenuItem>
+
+                  <div className="p-1.5 space-y-0.5">
+                    <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                      <Link href="/profile">
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <UserIcon size={16} />
+                        </span>
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                      <Link href="/settings">
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <Settings size={16} />
+                        </span>
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    {user.role === "admin" && (
+                      <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                        <Link href="/admin">
+                          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <ShieldCheck size={16} />
+                          </span>
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </div>
+
+                  <DropdownMenuSeparator className="my-0" />
+                  <div className="p-1.5">
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await logout();
+                        window.location.href = "/login";
+                      }}
+                      className="rounded-xl h-11 gap-3 px-3 text-sm font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                    >
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                        <LogOut size={16} />
+                      </span>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -81,10 +81,10 @@ export default function LoginPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-3xl p-8 shadow-2xl shadow-input"
+      className="bg-brand-charcoal-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-xl shadow-black/30"
     >
       <div className="flex flex-col items-center text-center mb-8">
         <motion.div
@@ -101,7 +101,7 @@ export default function LoginPage() {
             className="object-contain drop-shadow-lg mb-5"
           />
         </motion.div>
-        <h1 className="text-2xl font-bold text-brand-offwhite mb-1.5">Welcome back</h1>
+        <h1 className="text-[22px] sm:text-2xl font-bold tracking-tight text-brand-offwhite mb-1.5">Welcome back</h1>
         <p className="text-brand-offwhite-muted text-sm max-w-xs mx-auto">
           Sign in to your account to continue solving problems.
         </p>

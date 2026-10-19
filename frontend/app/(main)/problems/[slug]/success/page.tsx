@@ -197,14 +197,14 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
   return (
     <div className="min-h-dvh bg-brand-charcoal-base text-brand-offwhite pb-20">
       {/* Header Banner */}
-      <div className="bg-gradient-to-b from-brand-success/10 to-transparent border-b border-brand-charcoal-border pt-20 pb-12 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-success/20 text-brand-success mb-6 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+      <div className="bg-gradient-to-b from-brand-success/10 to-transparent border-b border-brand-charcoal-border pt-12 sm:pt-16 pb-8 sm:pb-10 text-center px-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-brand-success/20 text-brand-success mb-4 sm:mb-6 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
           <CheckCircle2 size={40} />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 tracking-tight">
           Solution Accepted!
         </h1>
-        <div className="flex items-center justify-center gap-2 text-brand-offwhite-muted mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-brand-offwhite-muted mb-6 sm:mb-8 text-sm sm:text-base px-2">
           <span>{problem.title}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-brand-charcoal-border"></span>
           <span className="flex items-center gap-1 text-brand-muted-gold">
@@ -212,7 +212,7 @@ export default function SuccessPage({ params }: { params: Promise<{ slug: string
           </span>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 px-4 sm:px-6 max-w-lg mx-auto w-full">
           {isFromLesson ? (
             <Link
               href={`/learn/courses/${lessonContext.courseSlug}/modules/${lessonContext.moduleSlug}/lessons/${lessonContext.lessonSlug}`}

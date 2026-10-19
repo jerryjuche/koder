@@ -19,7 +19,9 @@ import {
   type HTMLAttributes,
   type ReactNode,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -305,9 +307,21 @@ export const ContributionGraphCalendar = ({
     () => getMonthLabels(weeks, labels.months),
     [weeks, labels.months]
   );
+  // Start scrolled to the latest weeks (current month) so users see recent
+  // activity first and can swipe left for earlier months.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const id = requestAnimationFrame(() => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [width, weeks.length]);
 
   return (
     <div
+      ref={scrollRef}
       className={cn("max-w-full overflow-x-auto overflow-y-hidden", className)}
       {...props}
     >
