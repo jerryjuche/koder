@@ -66,7 +66,7 @@ export default function MobileProblemTab({
           </div>
         </div>
 
-        <h1 className="text-xl font-bold text-brand-offwhite leading-tight">
+        <h1 className="text-[22px] font-bold text-brand-offwhite leading-snug tracking-tight">
           {problem.title}
         </h1>
       </div>
@@ -114,7 +114,7 @@ export default function MobileProblemTab({
         {/* No `prose` classes here: renderMarkdown() emits inline styles, so the
             Tailwind typography plugin can never reach the nodes it renders and
             the classes only ever added dead specificity. */}
-        <div className="relative rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card p-4 overflow-hidden text-sm leading-relaxed text-brand-offwhite">
+        <div className="relative rounded-xl border border-brand-charcoal-border bg-brand-charcoal-card p-4 overflow-hidden text-[15px] sm:text-base font-medium leading-7 text-brand-offwhite">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-muted-gold to-transparent opacity-70" />
           <div
             dangerouslySetInnerHTML={{
@@ -160,12 +160,12 @@ export default function MobileProblemTab({
                   </button>
                 </div>
 
-                <div className="p-3.5 space-y-3 text-xs">
+                <div className="p-3.5 space-y-3 text-[13px]">
                   <div>
                     <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted mb-1.5">
                       Input
                     </div>
-                    <div className="font-mono text-xs text-brand-offwhite bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-charcoal-border break-words whitespace-pre-wrap leading-relaxed">
+                    <div className="font-mono text-[13px] text-brand-offwhite bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-charcoal-border break-words whitespace-pre-wrap leading-relaxed">
                       {ex.input}
                     </div>
                   </div>
@@ -174,7 +174,7 @@ export default function MobileProblemTab({
                     <div className="text-micro font-bold uppercase tracking-wider text-brand-offwhite-muted mb-1.5">
                       Expected Output
                     </div>
-                    <div className="font-mono text-xs text-brand-success bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-success/20 break-words whitespace-pre-wrap leading-relaxed">
+                    <div className="font-mono text-[13px] text-brand-success bg-brand-charcoal-inset p-2.5 rounded-lg border border-brand-success/20 break-words whitespace-pre-wrap leading-relaxed">
                       {ex.expected}
                     </div>
                   </div>

@@ -28,22 +28,87 @@ interface MobileOutputTabProps {
 }
 
 
-/** Parse runner logs into readable lines (UI only — does not change execution data). */
-function formatLogLines(raw: string): { kind: "fail" | "got" | "want" | "run" | "meta" | "plain"; text: string }[] {
+
+/** Turn runner logs into plain language for learners (UI only). */
+function humanizeLogLines(
+  raw: string,
+): { kind: "fail" | "got" | "want" | "pass" | "info"; label?: string; text: string }[] {
   if (!raw?.trim()) return [];
-  return raw.split(/\r?\n/).filter(Boolean).map((line) => {
-    const t = line.trimEnd();
+  const out: {
+    kind: "fail" | "got" | "want" | "pass" | "info";
+    label?: string;
+    text: string;
+  }[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t) continue;
     const u = t.toUpperCase();
-    if (u.startsWith("GOT:")) return { kind: "got" as const, text: t };
-    if (u.startsWith("WANT:") || u.startsWith("EXPECTED:")) return { kind: "want" as const, text: t };
-    if (u.includes("FAIL") || u.startsWith("--- FAIL") || u.startsWith("=== FAIL"))
-      return { kind: "fail" as const, text: t };
-    if (u.startsWith("=== RUN") || u.startsWith("--- PASS") || u.includes("PASS:"))
-      return { kind: "run" as const, text: t };
-    if (u.startsWith("===") || u.startsWith("---")) return { kind: "meta" as const, text: t };
-    return { kind: "plain" as const, text: t };
-  });
+
+    // Skip noisy framework headers
+    if (
+      u.startsWith("=== RUN") ||
+      u.startsWith("--- FAIL: TESTSOLUTION/") ||
+      u.startsWith("--- PASS: TESTSOLUTION/") ||
+      /^===+\s*$/.test(u) ||
+      /^---+\s*$/.test(u)
+    ) {
+      continue;
+    }
+
+    // Case fail: "=== FAIL: Case 1"
+    const caseFail = t.match(/^(?:===?\s*)?FAIL:\s*Case\s+(\d+)/i);
+    if (caseFail) {
+      out.push({
+        kind: "fail",
+        label: "Failed",
+        text: `Test case ${caseFail[1]} did not match`,
+      });
+      continue;
+    }
+    if (u.includes("FAIL") && /case\s*\d+/i.test(t)) {
+      const n = t.match(/case\s*[_ ]?(\d+)/i)?.[1];
+      out.push({
+        kind: "fail",
+        label: "Failed",
+        text: n ? `Test case ${n} did not match` : "A test case failed",
+      });
+      continue;
+    }
+
+    if (u.startsWith("GOT:")) {
+      const val = t.slice(4).trim();
+      out.push({
+        kind: "got",
+        label: "Your result",
+        text:
+          val === "" || val.toLowerCase() === "none"
+            ? "Nothing (None / null)"
+            : val,
+      });
+      continue;
+    }
+    if (u.startsWith("WANT:") || u.startsWith("EXPECTED:")) {
+      const val = t.replace(/^(WANT|EXPECTED):\s*/i, "").trim();
+      out.push({ kind: "want", label: "Expected", text: val || "(empty)" });
+      continue;
+    }
+
+    if (u.includes("PASS") && /case/i.test(t)) {
+      const n = t.match(/case\s*[_ ]?(\d+)/i)?.[1];
+      out.push({
+        kind: "pass",
+        label: "Passed",
+        text: n ? `Test case ${n}` : "Test case passed",
+      });
+      continue;
+    }
+
+    if (u.startsWith("=== ") || u.startsWith("--- ")) continue;
+    out.push({ kind: "info", text: t });
+  }
+  return out;
 }
+
 
 export default function MobileOutputTab({
   results,
@@ -223,7 +288,7 @@ export default function MobileOutputTab({
           <div className="rounded-xl border border-border/60 bg-brand-charcoal-card overflow-hidden">
             <div className="px-3 h-10 border-b border-border/50 flex items-center justify-between bg-brand-charcoal-panel/60">
               <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-                <Terminal size={12} /> Run details
+                <Terminal size={12} /> What went wrong
               </span>
               <button
                 type="button"
@@ -238,40 +303,39 @@ export default function MobileOutputTab({
                 <span>{copiedLogs ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            <div className="p-2.5 space-y-0.5 overflow-x-auto max-h-56 font-mono text-[11px] leading-relaxed">
-              {formatLogLines(
-                execution?.output_logs || execution?.friendly_message || errorMsg || ""
-              ).map((row, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "px-2 py-0.5 rounded break-words whitespace-pre-wrap",
-                    row.kind === "fail" && "text-red-400 bg-red-500/5",
-                    row.kind === "got" && "text-amber-300",
-                    row.kind === "want" && "text-emerald-400",
-                    row.kind === "run" && "text-sky-400/90",
-                    row.kind === "meta" && "text-muted-foreground/70",
-                    row.kind === "plain" && "text-foreground/85",
-                  )}
-                >
-                  {row.kind === "got" && (
-                    <span className="text-[10px] font-sans font-semibold text-amber-400/80 mr-1.5">
-                      Your result
-                    </span>
-                  )}
-                  {row.kind === "want" && (
-                    <span className="text-[10px] font-sans font-semibold text-emerald-400/80 mr-1.5">
-                      Expected
-                    </span>
-                  )}
-                  {row.text}
-                </div>
-              ))}
-              {formatLogLines(
-                execution?.output_logs || execution?.friendly_message || errorMsg || ""
-              ).length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 py-1">No log output.</p>
-              )}
+            <div className="p-2.5 space-y-1.5 overflow-x-auto max-h-64 leading-relaxed">
+              {(() => {
+                const rows = humanizeLogLines(
+                  execution?.output_logs || execution?.friendly_message || errorMsg || "",
+                );
+                if (rows.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground px-2 py-2">
+                      No extra details from this run.
+                    </p>
+                  );
+                }
+                return rows.map((row, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-lg break-words",
+                      row.kind === "fail" && "bg-red-500/10 text-red-300",
+                      row.kind === "got" && "bg-amber-500/10 text-amber-200",
+                      row.kind === "want" && "bg-emerald-500/10 text-emerald-300",
+                      row.kind === "pass" && "bg-emerald-500/10 text-emerald-300",
+                      row.kind === "info" && "text-foreground/90",
+                    )}
+                  >
+                    {row.label && (
+                      <span className="block text-[11px] font-sans font-bold uppercase tracking-wide opacity-80 mb-0.5">
+                        {row.label}
+                      </span>
+                    )}
+                    <span className="font-mono text-[13px] leading-snug">{row.text}</span>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}
