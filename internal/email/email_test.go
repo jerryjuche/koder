@@ -38,18 +38,16 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"https://koder.sbs/logo.png",
 		"background-color:#D4AF37",
 		"border-bottom:2px solid #B8941F",
-		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 		"Reset Password",
-		"This secure link expires in <strong style=\"color:#111827;\">1 hour</strong>.",
+		"This link expires in <strong style=\"color:#111827;\">1 hour</strong>.",
 		"Didn't request this?",
-		"Or open this link",
+		"Or copy this link:",
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"<strong>Jerry</strong> from Koder",
+		">Jerry</div>",
+		">Koder</div>",
 		"&copy; ",
-		"Koder",
-		"border-top:1px solid #E5E7EB",
 	}
 	for _, want := range required {
 		if !strings.Contains(out, want) {
@@ -198,11 +196,12 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"Fibonacci",
 		"Alice",
 		"Bob",
-		"Or open this link",
+		"Or copy this link:",
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"<strong>Jerry</strong> from Koder",
+		">Jerry</div>",
+		">Koder</div>",
 		"&copy; ",
 		"border-bottom:2px solid #B8941F",
 	}
@@ -332,7 +331,8 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"<strong>Jerry</strong> from Koder",
+		">Jerry</div>",
+		">Koder</div>",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered reminder missing %q", want)
