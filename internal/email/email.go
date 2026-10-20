@@ -309,7 +309,7 @@ func bestPracticesBody() string {
 
 <!-- Header band -->
 <tr>
-<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<td style="background-color:` + EmailBackground + `;padding:16px;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -320,8 +320,7 @@ func bestPracticesBody() string {
 </td>
 <td style="width:12px;">&nbsp;</td>
 <td style="vertical-align:middle;">
-<div style="font-size:20px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
-<div style="margin-top:4px;color:` + TextSecondary + `;font-size:12px;">{{.Tagline}}</div>
+<div style="font-size:18px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
 </td>
 </tr>
 </table>
@@ -333,12 +332,12 @@ func bestPracticesBody() string {
 
 <!-- Hero -->
 <tr>
-<td style="padding:32px 16px 0 16px;text-align:center;">
+<td style="padding:20px 16px 0 16px;text-align:left;">
 
-<h1 style="margin:0;font-size:30px;line-height:36px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Discover Best Practices</h1>
+<h1 style="margin:0;font-size:24px;line-height:30px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Discover Best Practices</h1>
 
-<p style="margin:18px auto 0;max-width:420px;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
-See how top developers solve real problems. Browse community solutions, get AI-powered code analysis, and learn from the best.
+<p style="margin:10px 0 0;color:` + TextSecondary + `;font-size:15px;line-height:22px;">
+Top community solutions for real problems — full source, ranked by likes and speed.
 </p>
 
 </td>
@@ -346,12 +345,12 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 
 <!-- Feature Card 1: Community Solutions -->
 <tr>
-<td style="padding:24px 16px 0 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<td style="padding:16px 16px 0 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:12px;">
 <tr>
-<td style="padding:20px;">
-<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">Community Solutions</div>
-<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Compare how others approached the same problem. Sort by most liked, fastest runtime, or newest submissions. Every solution includes the full source code and developer stats.</p>
+<td style="padding:14px 16px;">
+<div style="font-size:15px;font-weight:700;color:` + TextPrimary + `;">Community solutions</div>
+<p style="margin:4px 0 0;font-size:14px;line-height:20px;color:` + TextSecondary + `;">Browse solutions sorted by likes, runtime, or recency. Full source and stats on every entry.</p>
 </td>
 </tr>
 </table>
@@ -364,8 +363,8 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
 <tr>
 <td style="padding:20px;">
-<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">AI-Powered Code Analysis</div>
-<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Click any solution to get instant AI analysis: quality scores, efficiency and readability ratings, time and space complexity breakdown, key techniques, strengths, and areas for improvement. Ask follow-up questions about the approach.</p>
+<div style="font-size:15px;font-weight:700;color:` + TextPrimary + `;">Code analysis</div>
+<p style="margin:4px 0 0;font-size:14px;line-height:20px;color:` + TextSecondary + `;">Open any solution for quality, complexity, and technique notes — plus follow-up questions if you need them.</p>
 </td>
 </tr>
 </table>
@@ -379,7 +378,7 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 <tr>
 <td style="padding:20px;">
 <div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;">How to Get Featured</div>
-<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Solve any problem to submit your solution. Other developers can like your code, and the top-rated solutions appear at the top of Best Practices. The more problems you solve, the more your solutions get discovered.</p>
+<p style="margin:6px 0 0;font-size:14px;line-height:22px;color:` + TextSecondary + `;">Solve problems, share solutions, earn likes — top entries surface in Best Practices.</p>
 </td>
 </tr>
 </table>
@@ -416,12 +415,12 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 
 <!-- CTA -->
 <tr>
-<td style="padding:28px 16px 0 16px;text-align:center;">
+<td style="padding:18px 16px 0 16px;text-align:center;">
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
 <tr>
-<td style="border-radius:14px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
-<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Explore Best Practices</a>
+<td style="border-radius:10px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;">
+<a href="{{.CTAURL}}" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:700;color:#121212;text-decoration:none;border-radius:10px;">Explore Best Practices</a>
 </td>
 </tr>
 </table>
@@ -431,23 +430,23 @@ See how top developers solve real problems. Browse community solutions, get AI-p
 
 <!-- Fallback link -->
 <tr>
-<td style="padding:20px 16px 0 16px;">
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
-<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+<td style="padding:12px 16px 0 16px;">
+<div style="border:1px solid ` + BorderColor + `;border-radius:10px;padding:12px 14px;">
+<div style="font-size:12px;color:` + TextSecondary + `;margin-bottom:4px;font-weight:600;">Or open this link</div>
+<div style="word-break:break-all;font-size:13px;line-height:18px;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
 </div>
 </td>
 </tr>
 
 <!-- Footer -->
 <tr>
-<td style="padding:28px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:20px 16px 24px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
-<div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by <strong>Jerry Koko</strong> from Koder</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
-<div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:700;">{{.PlatformName}}</div>
+<div style="margin-top:6px;font-size:13px;line-height:18px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:12px;font-size:13px;line-height:18px;color:` + TextPrimary + `;"><strong>Jerry</strong> from Koder</div>
+<div style="margin-top:8px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:12px;font-size:11px;line-height:16px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>
@@ -462,7 +461,7 @@ func problemReminderBody() string {
 
 <!-- Header band -->
 <tr>
-<td style="background-color:` + EmailBackground + `;padding:20px 16px;" bgcolor="` + EmailBackground + `">
+<td style="background-color:` + EmailBackground + `;padding:16px;" bgcolor="` + EmailBackground + `">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="left">
@@ -473,8 +472,7 @@ func problemReminderBody() string {
 </td>
 <td style="width:12px;">&nbsp;</td>
 <td style="vertical-align:middle;">
-<div style="font-size:20px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
-<div style="margin-top:4px;color:` + TextSecondary + `;font-size:12px;">{{.Tagline}}</div>
+<div style="font-size:18px;font-weight:700;color:` + TextPrimary + `;letter-spacing:-0.3px;">{{.PlatformName}}</div>
 </td>
 </tr>
 </table>
@@ -486,12 +484,12 @@ func problemReminderBody() string {
 
 <!-- Hero -->
 <tr>
-<td style="padding:24px 16px 0 16px;">
+<td style="padding:16px 16px 0 16px;">
 
-<h1 style="margin:0;font-size:28px;line-height:34px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
+<h1 style="margin:0;font-size:22px;line-height:28px;color:` + TextPrimary + `;font-weight:700;letter-spacing:-0.3px;">Ready for a quick challenge?</h1>
 
-<p style="margin:14px 0 0;color:` + TextSecondary + `;font-size:16px;line-height:24px;">
-Sharpen your skills with this short exercise: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</strong>
+<p style="margin:8px 0 0;color:` + TextSecondary + `;font-size:15px;line-height:22px;">
+Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</strong>
 </p>
 
 </td>
@@ -499,15 +497,15 @@ Sharpen your skills with this short exercise: <strong style="color:` + TextPrima
 
 <!-- Problem card & CTA -->
 <tr>
-<td style="padding:20px 16px 0 16px;">
+<td style="padding:14px 16px 0 16px;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:` + CardSurface + `;border:1px solid ` + BorderColor + `;border-radius:12px;">
 <tr>
-<td style="padding:20px;color:` + TextPrimary + `;font-size:14px;line-height:22px;">
-<div style="font-size:18px;font-weight:700;color:` + TextPrimary + `;margin-bottom:8px;">{{.ProblemTitle}}</div>
-<div style="font-size:14px;color:` + TextSecondary + `;margin-bottom:16px;line-height:22px;">{{.ProblemExcerptHTML}}</div>
+<td style="padding:16px;color:` + TextPrimary + `;font-size:14px;line-height:20px;">
+<div style="font-size:16px;font-weight:700;color:` + TextPrimary + `;margin-bottom:6px;">{{.ProblemTitle}}</div>
+<div style="font-size:14px;color:` + TextSecondary + `;margin-bottom:14px;line-height:20px;">{{.ProblemExcerptHTML}}</div>
 <div>
-<a href="{{.CTAURL}}" style="display:inline-block;padding:14px 24px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);color:#121212;font-weight:700;border-radius:12px;text-decoration:none;">Open Problem</a>
+<a href="{{.CTAURL}}" style="display:inline-block;padding:12px 22px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;color:#121212;font-weight:700;border-radius:10px;text-decoration:none;font-size:15px;">Open Problem</a>
 </div>
 </td>
 </tr>
@@ -518,23 +516,23 @@ Sharpen your skills with this short exercise: <strong style="color:` + TextPrima
 
 <!-- Fallback link -->
 <tr>
-<td style="padding:20px 16px 0 16px;">
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
-<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:8px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
+<td style="padding:12px 16px 0 16px;">
+<div style="border:1px solid ` + BorderColor + `;border-radius:10px;padding:12px 14px;">
+<div style="font-size:12px;color:` + TextSecondary + `;margin-bottom:4px;font-weight:600;">Or open this link</div>
+<div style="word-break:break-all;font-size:13px;line-height:18px;"><a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.CTAURL}}</a></div>
 </div>
 </td>
 </tr>
 
 <!-- Footer -->
 <tr>
-<td style="padding:28px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:20px 16px 24px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
-<div style="margin-top:10px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Sent by <strong>Jerry Koko</strong> from Koder</div>
-<div style="margin-top:14px;font-size:13px;line-height:20px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
-<div style="margin-top:16px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:700;">{{.PlatformName}}</div>
+<div style="margin-top:6px;font-size:13px;line-height:18px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:12px;font-size:13px;line-height:18px;color:` + TextPrimary + `;"><strong>Jerry</strong> from Koder</div>
+<div style="margin-top:8px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:12px;font-size:11px;line-height:16px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>
@@ -644,7 +642,7 @@ If you made this request, click the button below to choose a new password.
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
 <tr>
 <td style="border-radius:14px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
-<a href="{{.ResetURL}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:14px;letter-spacing:0.2px;">Reset Password</a>
+<a href="{{.ResetURL}}" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:700;color:#121212;text-decoration:none;border-radius:10px;">Reset Password</a>
 </td>
 </tr>
 </table>
@@ -676,9 +674,9 @@ This secure link expires in <strong style="color:` + TextPrimary + `;">{{.Expire
 <tr>
 <td style="padding:20px 16px 0 16px;">
 
-<div style="background-color:` + EmailBackground + `;border:1px solid ` + BorderColor + `;border-radius:14px;padding:16px;">
-<div style="font-size:13px;color:` + TextSecondary + `;margin-bottom:10px;font-weight:600;">Button not working?</div>
-<div style="word-break:break-all;font-size:14px;line-height:22px;color:` + TextPrimary + `;"><a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.ResetURL}}</a></div>
+<div style="border:1px solid ` + BorderColor + `;border-radius:10px;padding:12px 14px;">
+<div style="font-size:12px;color:` + TextSecondary + `;margin-bottom:4px;font-weight:600;">Or open this link</div>
+<div style="word-break:break-all;font-size:13px;line-height:18px;"><a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.ResetURL}}</a></div>
 </div>
 
 </td>
@@ -686,13 +684,13 @@ This secure link expires in <strong style="color:` + TextPrimary + `;">{{.Expire
 
 <!-- Footer -->
 <tr>
-<td style="padding:28px 16px 32px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
+<td style="padding:20px 16px 24px 16px;background-color:` + EmailBackground + `;border-top:1px solid ` + BorderColor + `;" bgcolor="` + EmailBackground + `">
 
-<div style="font-size:14px;color:` + TextPrimary + `;font-weight:600;">{{.PlatformName}}</div>
-<div style="margin-top:12px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">{{.Tagline}}</div>
-<div style="margin-top:14px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Sent by <strong>Jerry Koko</strong> from Koder</div>
-<div style="margin-top:18px;font-size:13px;line-height:22px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
-<div style="margin-top:18px;font-size:12px;line-height:20px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
+<div style="font-size:14px;color:` + TextPrimary + `;font-weight:700;">{{.PlatformName}}</div>
+<div style="margin-top:6px;font-size:13px;line-height:18px;color:` + TextSecondary + `;">{{.Tagline}}</div>
+<div style="margin-top:12px;font-size:13px;line-height:18px;color:` + TextPrimary + `;"><strong>Jerry</strong> from Koder</div>
+<div style="margin-top:8px;font-size:12px;line-height:18px;color:` + TextSecondary + `;">Need help? <a href="mailto:{{.SupportEmail}}" style="color:` + ButtonGold + `;text-decoration:none;">{{.SupportEmail}}</a></div>
+<div style="margin-top:12px;font-size:11px;line-height:16px;color:` + TextSecondary + `;">&copy; {{.Year}} {{.PlatformName}}. All rights reserved.</div>
 
 </td>
 </tr>
