@@ -42,11 +42,11 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"Reset Password",
 		"This secure link expires in <strong style=\"color:#111827;\">1 hour</strong>.",
 		"Didn't request this?",
-		"Button not working?",
+		"Or open this link",
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"Sent by <strong>Jerry Koko</strong> from Koder",
+		"<strong>Jerry</strong> from Koder",
 		"&copy; ",
 		"Koder",
 		"border-top:1px solid #E5E7EB",
@@ -187,9 +187,9 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;",
 		"See top-rated community solutions",
 		"Discover Best Practices",
-		"See how top developers solve real problems",
-		"Community Solutions",
-		"AI-Powered Code Analysis",
+		"Top community solutions for real problems",
+		"Community solutions",
+		"Code analysis",
 		"How to Get Featured",
 		"Explore Best Practices",
 		"https://koder.sbs/home", // CTA URL
@@ -198,13 +198,12 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		"Fibonacci",
 		"Alice",
 		"Bob",
-		"Button not working?",
+		"Or open this link",
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"Sent by <strong>Jerry Koko</strong> from Koder",
+		"<strong>Jerry</strong> from Koder",
 		"&copy; ",
-		"box-shadow:0 4px 14px rgba(212,175,55,0.35)",
 		"border-bottom:2px solid #B8941F",
 	}
 	for _, want := range required {
@@ -230,9 +229,9 @@ func TestRenderBestPractices_FeatureCardsPresent(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"Compare how others approached the same problem",
-		"Click any solution to get instant AI analysis",
-		"Solve any problem to submit your solution",
+		"Browse solutions sorted by likes, runtime, or recency",
+		"Open any solution for quality, complexity, and technique notes",
+		"Solve problems, share solutions, earn likes",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("feature card description missing %q", want)
@@ -333,7 +332,7 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		"support@koder.sbs",
 		"mailto:support@koder.sbs",
 		"Koder turns every problem into an instant feedback loop.",
-		"Sent by <strong>Jerry Koko</strong> from Koder",
+		"<strong>Jerry</strong> from Koder",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered reminder missing %q", want)
