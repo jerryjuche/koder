@@ -249,6 +249,9 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(1*1024*1024)).Patch("/admin/users/{id}/verified", adminHandler.ToggleUserVerified)
 			r.With(BodySizeLimitMiddleware(1*1024*1024)).Post("/admin/users/{id}/reset-password", adminHandler.ResetUserPassword)
 			r.Get("/admin/email-logs", passwordResetHandler.ListEmailLogs)
+			// Renders a transactional email without sending it, so admins can
+			// inspect the exact markup before broadcasting.
+			r.Get("/admin/email-preview", adminHandler.PreviewEmail)
 
 			// Problem module locks
 			r.Get("/admin/module-locks", adminHandler.ListProblemModuleLocks)

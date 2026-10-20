@@ -31,9 +31,10 @@ import {
   LessonSection,
   Project,
   NewLessonSection,
-  TestCase,
-  AllModule,
-  SolutionExplanation,
+  TestCase,	AllModule,
+	SolutionExplanation,
+	EmailPreview,
+	EmailTemplateId,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -988,6 +989,26 @@ export async function sendBestPracticesAnnouncement(data: {
       body: JSON.stringify(data),
     },
   );
+}
+
+/**
+ * Renders a transactional email for inspection. Nothing is sent.
+ * Clears the 30s GET cache for this endpoint first so a preview always shows
+ * the current template data.
+ */
+export async function previewEmailTemplate(params: {
+  template: EmailTemplateId;
+  problem_slug?: string;
+  cta_url?: string;
+  subject?: string;
+}): Promise<ApiResponse<EmailPreview>> {
+  const search = new URLSearchParams({ template: params.template });
+  if (params.problem_slug) search.set("problem_slug", params.problem_slug);
+  if (params.cta_url) search.set("cta_url", params.cta_url);
+  if (params.subject) search.set("subject", params.subject);
+
+  clearCache("/admin/email-preview");
+  return fetchApi<EmailPreview>(`/admin/email-preview?${search.toString()}`);
 }
 
 export async function deactivateBroadcast(

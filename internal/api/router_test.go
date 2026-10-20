@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -18,16 +20,47 @@ type nilStore struct {
 	store.Store
 }
 
+func testRouterConfig() *config.Config {
+	return &config.Config{
+		Environment:        "test",
+		JWTSecret:          strings.Repeat("x", 32),
+		FrontendURL:        "http://localhost:3000",
+		EmailFrom:          "Koder <noreply@koder.sbs>",
+		AccessTokenMinutes: 60,
+		RefreshTokenDays:   7,
+		SandboxBaseDir:     "/tmp/koder",
+		Port:               8080,
+	}
+}
+
+// TestRouter_EmailPreviewIsAdminOnly verifies the preview endpoint is wired up
+// and sits behind authentication (an unauthenticated call cannot render
+// internal email markup).
+func TestRouter_EmailPreviewIsAdminOnly(t *testing.T) {
+	app, err := NewRouter(testRouterConfig(), &nilStore{}, (*executor.Executor)(nil), broker.New())
+	if err != nil {
+		t.Fatalf("NewRouter failed: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/email-preview?template=password_reset", nil)
+	w := httptest.NewRecorder()
+	app.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated preview request, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
 func TestNewRouter_DoesNotPanic(t *testing.T) {
 	cfg := &config.Config{
-		Environment:     "test",
-		JWTSecret:       strings.Repeat("x", 32),
-		FrontendURL:     "http://localhost:3000",
-		EmailFrom:       "Koder <noreply@koder.sbs>",
+		Environment:        "test",
+		JWTSecret:          strings.Repeat("x", 32),
+		FrontendURL:        "http://localhost:3000",
+		EmailFrom:          "Koder <noreply@koder.sbs>",
 		AccessTokenMinutes: 60,
-		RefreshTokenDays: 7,
-		SandboxBaseDir:   "/tmp/koder",
-		Port:             8080,
+		RefreshTokenDays:   7,
+		SandboxBaseDir:     "/tmp/koder",
+		Port:               8080,
 	}
 	// chi panics with "all middlewares must be defined before routes on a mux"
 	// if any route is registered before r.Use() on the same mux. This test

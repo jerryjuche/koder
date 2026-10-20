@@ -135,6 +135,20 @@ export type EmailLog = {
   updated_at: string;
 };
 
+export type EmailTemplateId =
+  | "password_reset"
+  | "problem_reminder"
+  | "best_practices";
+
+/** Admin preview of a rendered transactional email (nothing is sent). */
+export type EmailPreview = {
+  template: EmailTemplateId;
+  subject: string;
+  from: string;
+  html: string;
+  send_ready: boolean;
+};
+
 export type Submission = {
   id: string;
   problem_id: string;

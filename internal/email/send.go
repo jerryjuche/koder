@@ -10,6 +10,21 @@ import (
 	"time"
 )
 
+// BuildResendPayload assembles the Resend /emails request body. Every
+// transactional email carries the inline logo attachment that the templates
+// reference as src="cid:koder-logo"; without it the header image would not
+// render.
+func BuildResendPayload(from string, to []string, subject, htmlBody, textBody string) map[string]interface{} {
+	return map[string]interface{}{
+		"from":        from,
+		"to":          to,
+		"subject":     subject,
+		"text":        textBody,
+		"html":        htmlBody,
+		"attachments": EmailAttachments(),
+	}
+}
+
 // SendEmailViaResend sends an email via the Resend API. It retries on
 // transient network or 5xx errors with exponential backoff. Returns the
 // provider email ID when successful, or an error.
@@ -18,13 +33,7 @@ func SendEmailViaResend(ctx context.Context, client *http.Client, apiKey, from s
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
 
-	payload := map[string]interface{}{
-		"from":    from,
-		"to":      to,
-		"subject": subject,
-		"text":    textBody,
-		"html":    htmlBody,
-	}
+	payload := BuildResendPayload(from, to, subject, htmlBody, textBody)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", 0, nil, fmt.Errorf("marshal payload: %w", err)

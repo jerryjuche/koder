@@ -930,6 +930,7 @@ POST /submit {problem_slug, code, language} (5 req/45s per user, admin bypass)
 | PATCH      | `/admin/users/{id}/verified`           | ToggleUserVerified                                              | `admin.go`          |
 | POST       | `/admin/users/{id}/reset-password`     | ResetUserPassword                                               | `admin.go`          |
 | GET        | `/admin/email-logs`                    | ListEmailLogs (?limit,?offset,?status,?email)                   | `password_reset.go` |
+| GET        | `/admin/email-preview`                 | PreviewEmail (?template=password_reset\|problem_reminder\|best_practices, ?problem_slug, ?cta_url) — renders a template without sending | `admin.go` |
 | POST       | `/admin/broadcast-emails`              | SendProblemReminder (Resend, per-problem reminder to all users) | `admin.go`          |
 | GET        | `/admin/module-locks`                  | ListProblemModuleLocks                                          | `admin.go`          |
 | POST       | `/admin/module-locks/{moduleName}`     | ToggleProblemModuleLock                                         | `admin.go`          |

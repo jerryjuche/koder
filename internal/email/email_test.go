@@ -1,20 +1,25 @@
 package email
 
 import (
-	"html/template"
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"image/png"
+	"math"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
 
 func testData() PasswordResetData {
 	return PasswordResetData{
-		PlatformName: "Koder",
-		FirstName:    "Ada",
-		ResetURL:     "https://koder.sbs/reset-password?token=abc123&x=1",
-		LogoURL:      template.URL("https://koder.sbs/logo.png"),
-		SupportEmail: "support@koder.sbs",
-		Tagline:      "Koder turns every problem into an instant feedback loop.",
-		PreviewTitle: "Reset Your Password — Koder",
+		PlatformName:  "Koder",
+		FirstName:     "Ada",
+		ResetURL:      "https://koder.sbs/reset-password?token=abc123&x=1",
+		SupportEmail:  "support@koder.sbs",
+		Tagline:       "Koder turns every problem into an instant feedback loop.",
+		PreviewTitle:  "Reset Your Password — Koder",
 		PreheaderText: "Hi Ada, we received a password reset request for your Koder account.",
 	}
 }
@@ -35,7 +40,7 @@ func TestRenderPasswordReset_ContainsBrandAndStructure(t *testing.T) {
 		"Reset your password",
 		"Hi <strong style=\"color:#111827;\">Ada</strong>",
 		"https://koder.sbs/reset-password?token=abc123&amp;x=1",
-		"https://koder.sbs/logo.png",
+		`src="cid:koder-logo"`,
 		"background-color:#D4AF37",
 		"border-bottom:2px solid #B8941F",
 		"Reset Password",
@@ -105,13 +110,172 @@ func TestRenderPasswordReset_AppliesDefaults(t *testing.T) {
 	}
 }
 
-func TestRenderPasswordReset_InlineLogoFallback(t *testing.T) {
-	out, err := RenderPasswordResetString(PasswordResetData{FirstName: "Ada", ResetURL: "https://koder.sbs/reset-password?token=abc", LogoURL: template.URL("")})
+// TestInlineLogoForPreview covers the admin preview path: browsers cannot
+// resolve cid: URLs, so preview markup carries the logo as a data URI.
+func TestInlineLogoForPreview(t *testing.T) {
+	out, err := RenderPasswordResetString(testData())
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	if !strings.Contains(out, LogoDataURI) {
-		t.Errorf("expected inline SVG logo data URI fallback in <img> src")
+	if !strings.Contains(out, "cid:"+LogoContentID) {
+		t.Fatal("expected the sent email to keep the cid: reference")
+	}
+
+	preview := InlineLogoForPreview(out)
+	if strings.Contains(preview, "cid:") {
+		t.Errorf("preview markup still references cid:")
+	}
+	if !strings.Contains(preview, "data:image/png;base64,"+base64.StdEncoding.EncodeToString(LogoPNG())[:32]) {
+		t.Error("preview markup is missing the inlined logo data URI")
+	}
+
+	// Markup without a logo reference is returned unchanged.
+	if got := InlineLogoForPreview("<p>plain</p>"); got != "<p>plain</p>" {
+		t.Errorf("unexpected rewrite: %q", got)
+	}
+}
+
+func TestEmbeddedLogoMatchesInlineAttachment(t *testing.T) {
+	cfg, err := png.DecodeConfig(bytes.NewReader(LogoPNG()))
+	if err != nil {
+		t.Fatalf("embedded logo is not a valid PNG: %v", err)
+	}
+	if cfg.Width == 0 || cfg.Height == 0 {
+		t.Fatalf("embedded logo has no dimensions: %dx%d", cfg.Width, cfg.Height)
+	}
+
+	// The rendered dimensions must preserve the artwork's aspect ratio so the
+	// wide lockup is never squashed into a square (the old bug).
+	artRatio := float64(cfg.Width) / float64(cfg.Height)
+	displayRatio := float64(LogoDisplayWidth) / float64(LogoDisplayHeight)
+	if math.Abs(artRatio-displayRatio) > 0.05 {
+		t.Errorf("logo aspect ratio drifted: artwork %.2f vs display %.2f", artRatio, displayRatio)
+	}
+
+	attachments := EmailAttachments()
+	if len(attachments) != 1 {
+		t.Fatalf("expected 1 inline attachment, got %d", len(attachments))
+	}
+	att := attachments[0]
+	if att["content_id"] != LogoContentID {
+		t.Errorf("attachment content_id = %q, want %q", att["content_id"], LogoContentID)
+	}
+	if att["filename"] != LogoFilename {
+		t.Errorf("attachment filename = %q, want %q", att["filename"], LogoFilename)
+	}
+	raw, err := base64.StdEncoding.DecodeString(att["content"])
+	if err != nil {
+		t.Fatalf("attachment content is not base64: %v", err)
+	}
+	if !bytes.Equal(raw, LogoPNG()) {
+		t.Errorf("attachment bytes differ from the embedded logo")
+	}
+}
+
+// TestRenderedEmailsInlineTheLogo guards the fix for the inconsistent header
+// logo: every template must reference the CID attachment and must not
+// hot-link an external image, so the artwork cannot be proxied, blocked, or
+// 404 on a different deployment.
+func TestRenderedEmailsInlineTheLogo(t *testing.T) {
+	emails := map[string]func() (string, error){
+		"password-reset": func() (string, error) { return RenderPasswordResetString(testData()) },
+		"reminder": func() (string, error) {
+			return RenderProblemReminderString(ProblemReminderData{
+				FirstName:    "Ada",
+				ProblemTitle: "Binary Search",
+				CTAURL:       "https://koder.sbs/problems/binary-search",
+			})
+		},
+		"best-practices": func() (string, error) {
+			return RenderBestPracticesString(BestPracticesData{
+				FirstName: "Ada",
+				CTAURL:    "https://koder.sbs/home",
+			})
+		},
+	}
+
+	for name, render := range emails {
+		out, err := render()
+		if err != nil {
+			t.Fatalf("%s: render failed: %v", name, err)
+		}
+		for _, want := range []string{
+			`src="cid:` + LogoContentID + `"`,
+			`alt="Koder"`,
+			`width="` + strconv.Itoa(LogoDisplayWidth) + `"`,
+			`height="` + strconv.Itoa(LogoDisplayHeight) + `"`,
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s: header logo missing %q", name, want)
+			}
+		}
+		if strings.Contains(out, "logo.png\"") {
+			t.Errorf("%s: header logo must not be hot-linked from an external URL", name)
+		}
+	}
+}
+
+// TestBuildResendPayloadIncludesInlineLogo verifies the wire payload carries
+// the inline logo, so the CID reference in the HTML resolves in every client.
+func TestBuildResendPayloadIncludesInlineLogo(t *testing.T) {
+	payload := BuildResendPayload("Koder <noreply@koder.sbs>", []string{"ada@example.com"}, "Subject", "<p>hi</p>", "hi")
+
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	var decoded struct {
+		From        string              `json:"from"`
+		To          []string            `json:"to"`
+		HTML        string              `json:"html"`
+		Attachments []map[string]string `json:"attachments"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+	if decoded.From == "" || len(decoded.To) != 1 || decoded.HTML != "<p>hi</p>" {
+		t.Errorf("payload lost core fields: %+v", decoded)
+	}
+	if len(decoded.Attachments) != 1 {
+		t.Fatalf("expected 1 inline attachment, got %d", len(decoded.Attachments))
+	}
+	att := decoded.Attachments[0]
+	if att["content_id"] != LogoContentID || att["filename"] != LogoFilename {
+		t.Errorf("unexpected inline attachment: %+v", att)
+	}
+	if att["content"] == "" {
+		t.Error("inline attachment has no content")
+	}
+}
+
+// TestRenderedEmailsUseCompactTypeScale keeps the templates compact: nothing
+// renders larger than the 17px heading size.
+func TestRenderedEmailsUseCompactTypeScale(t *testing.T) {
+	out, err := RenderPasswordResetString(testData())
+	if err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+
+	sizeRe := regexp.MustCompile(`font-size:(\d+)px`)
+	matches := sizeRe.FindAllStringSubmatch(out, -1)
+	if len(matches) == 0 {
+		t.Fatal("no font sizes found in rendered email")
+	}
+	for _, m := range matches {
+		px, err := strconv.Atoi(m[1])
+		if err != nil {
+			t.Fatalf("unparseable font size %q: %v", m[1], err)
+		}
+		if px == 1 {
+			continue // hidden preheader, deliberately 1px
+		}
+		if px > 17 {
+			t.Errorf("font-size:%dpx exceeds the compact 17px ceiling", px)
+		}
+		if px < 10 {
+			t.Errorf("font-size:%dpx is below the 10px readability floor", px)
+		}
 	}
 }
 
@@ -154,7 +318,6 @@ func TestRenderBestPractices_ContainsBrandAndStructure(t *testing.T) {
 		PlatformName:   "Koder",
 		FirstName:      "Ada",
 		CTAURL:         "https://koder.sbs/home",
-		LogoURL:        template.URL("https://koder.sbs/logo.png"),
 		SupportEmail:   "support@koder.sbs",
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
 		SolutionCount:  42,
@@ -304,7 +467,6 @@ func TestRenderProblemReminderString_ContainsLightThemeStyling(t *testing.T) {
 		ProblemSlug:    "binary-search",
 		ProblemExcerpt: "Solve the classic **search** problem in *log n* time.",
 		CTAURL:         "https://koder.sbs/problems/binary-search",
-		LogoURL:        "https://koder.sbs/logo.png",
 		SupportEmail:   "support@koder.sbs",
 		Tagline:        "Koder turns every problem into an instant feedback loop.",
 		Year:           2026,

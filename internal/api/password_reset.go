@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -320,33 +319,21 @@ If you didn't request this, you can safely ignore this email.
 
 — The Koder Team`, name, resetLink)
 
-	var logoURL template.URL
-	if h.cfg != nil && h.cfg.FrontendURL != "" {
-		logoURL = template.URL(strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png")
-	}
-
 	htmlBody, err := emailtmpl.RenderPasswordResetString(emailtmpl.PasswordResetData{
-		PlatformName: "Koder",
-		FirstName:    name,
-		ResetURL:     resetLink,
-		LogoURL:      logoURL,
-		SupportEmail: emailAddressFromFrom(h.cfg.EmailFrom),
-		Tagline:      "Koder turns every problem into an instant feedback loop.",
-		ExpiresIn:    "1 hour",
-		PreviewTitle: "Reset Your Password — Koder",
+		PlatformName:  "Koder",
+		FirstName:     name,
+		ResetURL:      resetLink,
+		SupportEmail:  emailAddressFromFrom(h.cfg.EmailFrom),
+		Tagline:       "Koder turns every problem into an instant feedback loop.",
+		ExpiresIn:     "1 hour",
+		PreviewTitle:  "Reset Your Password — Koder",
 		PreheaderText: fmt.Sprintf("Hi %s, we received a password reset request for your Koder account. Click the link below to set a new password.", name),
 	})
 	if err != nil {
 		return "", &emailSendError{message: fmt.Sprintf("failed to render email template: %v", err)}
 	}
 
-	payload := map[string]interface{}{
-		"from":    h.cfg.EmailFrom,
-		"to":      []string{email},
-		"subject": subject,
-		"text":    textBody,
-		"html":    htmlBody,
-	}
+	payload := emailtmpl.BuildResendPayload(h.cfg.EmailFrom, []string{email}, subject, htmlBody, textBody)
 
 	body, err := json.Marshal(payload)
 	if err != nil {
