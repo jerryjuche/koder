@@ -227,7 +227,7 @@ const StarIconDataURI = "data:image/svg+xml;charset=utf-8," +
 // badge in the Top Solutions list. Replaces the &#9829; HTML entity so the
 // icon renders consistently across all email clients (including Outlook).
 const SmallHeartIconDataURI = "data:image/svg+xml;charset=utf-8," +
-	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2392400E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E" +
+	"%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23D4AF37' stroke='%2392400E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E" +
 	"%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E"
 
 // DigestSolution holds the data for a single solution preview in the Best Practices email.
@@ -398,8 +398,8 @@ Top community solutions for real problems — full source, ranked by likes and s
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;">
-<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;">Explore Best Practices</a>
+<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Explore Best Practices</a>
 </td>
 </tr>
 </table>
@@ -491,8 +491,8 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;">
-<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;">Open Problem</a>
+<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Open Problem</a>
 </td>
 </tr>
 </table>
@@ -614,8 +614,8 @@ We received a request to reset the password for your {{.PlatformName}} account. 
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;">
-<a href="{{.ResetURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;">Reset Password</a>
+<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<a href="{{.ResetURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Reset Password</a>
 </td>
 </tr>
 </table>
