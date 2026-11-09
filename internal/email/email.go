@@ -398,8 +398,8 @@ Top community solutions for real problems — full source, ranked by likes and s
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
-<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Explore Best Practices</a>
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;padding:10px 22px;text-align:center;">
+<a href="{{.CTAURL}}" style="font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;text-align:center;">Explore Best Practices</a>
 </td>
 </tr>
 </table>
@@ -491,8 +491,8 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
-<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Open Problem</a>
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;padding:10px 22px;text-align:center;">
+<a href="{{.CTAURL}}" style="font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;text-align:center;">Open Problem</a>
 </td>
 </tr>
 </table>
@@ -553,7 +553,6 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
   .email-outer { padding: 10px 0 !important; }
   .email-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
   .card-pad { padding-left: 14px !important; padding-right: 14px !important; }
-  .btn-cta { display: block !important; width: 100% !important; text-align: center !important; }
 }
 </style>
 </head>
@@ -614,8 +613,8 @@ We received a request to reset the password for your {{.PlatformName}} account. 
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
-<a href="{{.ResetURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Reset Password</a>
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;padding:10px 22px;text-align:center;">
+<a href="{{.ResetURL}}" style="font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;text-align:center;">Reset Password</a>
 </td>
 </tr>
 </table>
