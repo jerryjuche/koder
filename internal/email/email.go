@@ -380,7 +380,7 @@ Top community solutions for real problems — full source, ranked by likes and s
 <div style="font-size:` + FontCaption + `;color:` + TextSecondary + `;margin-top:1px;line-height:14px;">by {{.UserName}} &middot; {{.Language}}</div>
 </td>
 <td align="right" style="white-space:nowrap;">
-<span style="font-size:` + FontCaption + `;font-weight:700;color:` + ButtonGold + `;"><img src="{{__SMALL_HEART_ICON__}}" alt="" width="12" height="12" style="display:inline;vertical-align:middle;border:0;outline:none;margin-right:2px;" /> {{.Likes}}</span>
+<span style="font-size:` + FontCaption + `;font-weight:700;color:` + ButtonGold + `;"><span style="color:` + ButtonGold + `;font-size:12px;vertical-align:middle;margin-right:1px;">&#9829;</span> {{.Likes}}</span>
 </td>
 </tr>
 </table>
@@ -394,11 +394,11 @@ Top community solutions for real problems — full source, ranked by likes and s
 
 <!-- CTA -->
 <tr>
-<td class="card-pad" style="padding:16px 20px 0 20px;text-align:center;">
+<td class="card-pad" align="center" style="padding:16px 20px 0 20px;text-align:center;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
 <a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Explore Best Practices</a>
 </td>
 </tr>
@@ -487,11 +487,11 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 
 <!-- CTA -->
 <tr>
-<td class="card-pad" style="padding:16px 20px 0 20px;text-align:center;">
+<td class="card-pad" align="center" style="padding:16px 20px 0 20px;text-align:center;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
 <a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Open Problem</a>
 </td>
 </tr>
@@ -610,11 +610,11 @@ We received a request to reset the password for your {{.PlatformName}} account. 
 
 <!-- CTA -->
 <tr>
-<td class="card-pad" style="padding:14px 20px 0 20px;">
+<td class="card-pad" align="center" style="padding:14px 20px 0 20px;text-align:center;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
 <tr>
-<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
+<td align="center" style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;text-align:center;">
 <a href="{{.ResetURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;text-align:center;">Reset Password</a>
 </td>
 </tr>
