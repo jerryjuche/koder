@@ -550,22 +550,20 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
 <title>{{if .PreviewTitle}}{{.PreviewTitle}}{{else}}{{.PlatformName}}{{end}}</title>
 <style type="text/css">
 @media only screen and (max-width:600px) {
-  .email-outer { padding: 10px 0 !important; }
-  .email-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
-  .card-pad { padding-left: 14px !important; padding-right: 14px !important; }
+  .card-pad { padding-left: 16px !important; padding-right: 16px !important; }
 }
 </style>
 </head>
-<body style="margin:0;padding:0;background-color:#F0F0F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:` + TextPrimary + `;">
+<body style="margin:0;padding:0;background-color:` + EmailBackground + `;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:` + TextPrimary + `;">
 {{if .PreheaderText}}<div style="display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">{{.PreheaderText}}</div>{{end}}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F0F0F0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:` + EmailBackground + `;">
 <tr>
-<td align="center" class="email-outer" style="padding:20px 12px;">
-
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" class="email-card" style="max-width:560px;width:100%;background-color:` + EmailBackground + `;border-radius:10px;overflow:hidden;border:1px solid ` + BorderColor + `;">
+<td align="center" style="padding:0;">
 
 <!-- Gold accent strip -->
-<tr><td style="background-color:` + ButtonGold + `;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:` + ButtonGold + `;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:` + EmailBackground + `;">
 
 {{template "content" .}}
 
