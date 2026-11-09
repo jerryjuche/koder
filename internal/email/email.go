@@ -380,7 +380,7 @@ Top community solutions for real problems — full source, ranked by likes and s
 <div style="font-size:` + FontCaption + `;color:` + TextSecondary + `;margin-top:1px;line-height:14px;">by {{.UserName}} &middot; {{.Language}}</div>
 </td>
 <td align="right" style="white-space:nowrap;">
-<span style="font-size:` + FontCaption + `;font-weight:700;color:` + ButtonGold + `;">&#9829; {{.Likes}}</span>
+<span style="font-size:` + FontCaption + `;font-weight:700;color:` + ButtonGold + `;"><img src="{{__SMALL_HEART_ICON__}}" alt="" width="12" height="12" style="display:inline;vertical-align:middle;border:0;outline:none;margin-right:2px;" /> {{.Likes}}</span>
 </td>
 </tr>
 </table>
@@ -469,7 +469,7 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 </td>
 </tr>
 
-<!-- Problem card & CTA -->
+<!-- Problem card -->
 <tr>
 <td class="card-pad" style="padding:12px 20px 0 20px;">
 
@@ -477,10 +477,22 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 <tr>
 <td style="padding:12px 14px;color:` + TextPrimary + `;">
 <div style="font-size:` + FontSubhead + `;font-weight:700;color:` + TextPrimary + `;margin-bottom:5px;line-height:18px;">{{.ProblemTitle}}</div>
-<div style="color:` + TextSecondary + `;margin-bottom:10px;">{{.ProblemExcerptHTML}}</div>
-<div>
-<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;color:#121212;font-weight:700;border-radius:8px;text-decoration:none;font-size:` + FontBody + `;line-height:16px;">Open Problem</a>
-</div>
+<div style="color:` + TextSecondary + `;font-size:` + FontBodySmall + `;line-height:17px;">{{.ProblemExcerptHTML}}</div>
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- CTA -->
+<tr>
+<td class="card-pad" style="padding:16px 20px 0 20px;text-align:center;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+<tr>
+<td style="border-radius:8px;background-color:` + ButtonGold + `;border-bottom:2px solid ` + ButtonGoldDark + `;">
+<a href="{{.CTAURL}}" class="btn-cta" style="display:inline-block;padding:10px 22px;font-size:` + FontBody + `;line-height:16px;font-weight:700;color:#121212;text-decoration:none;border-radius:8px;">Open Problem</a>
 </td>
 </tr>
 </table>
@@ -491,7 +503,7 @@ Try this problem: <strong style="color:` + TextPrimary + `;">{{.ProblemTitle}}</
 <!-- Fallback link -->
 <tr>
 <td class="card-pad" style="padding:10px 20px 0 20px;">
-<div style="font-size:` + FontCaption + `;color:#9CA3AF;line-height:15px;">Or copy this link: <a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;word-break:break-all;">{{.CTAURL}}</a></div>
+<div style="font-size:` + FontCaption + `;color:#9CA3AF;line-height:15px;text-align:center;">Or copy this link: <a href="{{.CTAURL}}" style="color:` + ButtonGold + `;text-decoration:none;word-break:break-all;">{{.CTAURL}}</a></div>
 </td>
 </tr>
 
@@ -541,7 +553,7 @@ const layoutBase = `{{define "layoutBase"}}<!DOCTYPE html>
   .email-outer { padding: 10px 0 !important; }
   .email-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
   .card-pad { padding-left: 14px !important; padding-right: 14px !important; }
-  .btn-cta { width: 100% !important; text-align: center !important; }
+  .btn-cta { display: block !important; width: 100% !important; text-align: center !important; }
 }
 </style>
 </head>
@@ -635,7 +647,7 @@ This link expires in <strong style="color:` + TextPrimary + `;">{{.ExpiresIn}}</
 <!-- Backup URL -->
 <tr>
 <td class="card-pad" style="padding:12px 20px 0 20px;">
-<div style="font-size:` + FontCaption + `;color:#9CA3AF;line-height:15px;">Or copy this link: <a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;word-break:break-all;">{{.ResetURL}}</a></div>
+<div style="font-size:` + FontCaption + `;color:#9CA3AF;line-height:15px;text-align:center;">Or copy this link: <a href="{{.ResetURL}}" style="color:` + ButtonGold + `;text-decoration:none;word-break:break-all;">{{.ResetURL}}</a></div>
 </td>
 </tr>
 
