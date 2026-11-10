@@ -186,14 +186,143 @@ func TestLoadConfig_NvidiaCustomValues(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_AIAliasesOverrideNvidia(t *testing.T) {
+	requiredEnvVars(t)
+	t.Setenv("AI_API_KEY", "my-custom-key")
+	t.Setenv("AI_MODEL", "org/custom-model")
+	t.Setenv("AI_BASE_URL", "https://custom.ai.example/v1")
+	// NVIDIA_* are still set by requiredEnvVars — the AI_* aliases must win.
+	t.Setenv("NVIDIA_MODEL", "should-not-win")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.NVIDIAAPIKey != "my-custom-key" {
+		t.Errorf("expected AI_API_KEY to win, got %s", cfg.NVIDIAAPIKey)
+	}
+	if cfg.NVIDIAModel != "org/custom-model" {
+		t.Errorf("expected AI_MODEL to win, got %s", cfg.NVIDIAModel)
+	}
+	if cfg.NVIDIABaseURL != "https://custom.ai.example/v1" {
+		t.Errorf("expected AI_BASE_URL to win, got %s", cfg.NVIDIABaseURL)
+	}
+}
+
+func TestLoadConfig_AIKeyAliasOnly(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
+	t.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
+	t.Setenv("NVIDIA_API_KEY", "")
+	t.Setenv("AI_API_KEY", "custom-key-only")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error with only AI_API_KEY, got %v", err)
+	}
+	if cfg.NVIDIAAPIKey != "custom-key-only" {
+		t.Errorf("expected NVIDIAAPIKey from AI_API_KEY, got %s", cfg.NVIDIAAPIKey)
+	}
+}
+
+func TestLoadConfig_AIKnobDefaults(t *testing.T) {
+	requiredEnvVars(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.AIMaxTokens != 8192 {
+		t.Errorf("expected default AIMaxTokens 8192, got %d", cfg.AIMaxTokens)
+	}
+	if cfg.AITemperature != 0.7 {
+		t.Errorf("expected default AITemperature 0.7, got %v", cfg.AITemperature)
+	}
+	if cfg.AIJSONMode {
+		t.Error("expected default AIJSONMode false")
+	}
+}
+
+func TestLoadConfig_AIKnobCustomValues(t *testing.T) {
+	requiredEnvVars(t)
+	t.Setenv("AI_MAX_TOKENS", "16384")
+	t.Setenv("AI_TEMPERATURE", "0.2")
+	t.Setenv("AI_JSON_MODE", "true")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.AIMaxTokens != 16384 {
+		t.Errorf("expected AIMaxTokens 16384, got %d", cfg.AIMaxTokens)
+	}
+	if cfg.AITemperature != 0.2 {
+		t.Errorf("expected AITemperature 0.2, got %v", cfg.AITemperature)
+	}
+	if !cfg.AIJSONMode {
+		t.Error("expected AIJSONMode true")
+	}
+}
+
+func TestLoadConfig_InvalidAIMaxTokens(t *testing.T) {
+	requiredEnvVars(t)
+
+	for _, v := range []string{"abc", "0", "-5"} {
+		t.Setenv("AI_MAX_TOKENS", v)
+		if _, err := Load(); err == nil {
+			t.Errorf("expected error for AI_MAX_TOKENS=%q", v)
+		}
+	}
+}
+
+func TestLoadConfig_InvalidAITemperature(t *testing.T) {
+	requiredEnvVars(t)
+
+	for _, v := range []string{"abc", "-0.1", "2.5"} {
+		t.Setenv("AI_TEMPERATURE", v)
+		if _, err := Load(); err == nil {
+			t.Errorf("expected error for AI_TEMPERATURE=%q", v)
+		}
+	}
+}
+
+func TestLoadConfig_AIJSONModeParsing(t *testing.T) {
+	requiredEnvVars(t)
+
+	for _, v := range []string{"1", "true", "TRUE", "yes", "on"} {
+		t.Setenv("AI_JSON_MODE", v)
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("expected no error for AI_JSON_MODE=%q, got %v", v, err)
+		}
+		if !cfg.AIJSONMode {
+			t.Errorf("expected AIJSONMode true for %q", v)
+		}
+	}
+
+	for _, v := range []string{"0", "false", "no", "off", "banana"} {
+		t.Setenv("AI_JSON_MODE", v)
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("expected no error for AI_JSON_MODE=%q, got %v", v, err)
+		}
+		if cfg.AIJSONMode {
+			t.Errorf("expected AIJSONMode false for %q", v)
+		}
+	}
+}
+
 func TestLoadConfig_MissingNvidiaKey(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	t.Setenv("JWT_SECRET", "this-is-a-very-long-secret-string-of-at-least-32-chars")
 	t.Setenv("NVIDIA_API_KEY", "")
+	t.Setenv("AI_API_KEY", "")
 
 	_, err := Load()
 	if err == nil {
-		t.Fatal("expected error for missing NVIDIA_API_KEY")
+		t.Fatal("expected error for missing AI/NVIDIA API key")
 	}
 }
 

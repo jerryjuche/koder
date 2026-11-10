@@ -217,14 +217,14 @@ export default function MultiFileEditor({ files, entryPoint }: MultiFileEditorPr
   return (
     <div>
       {/* Main editor + console split */}
-      <div className="border border-[#2A2A2A] rounded-lg overflow-hidden" style={{ height: "520px" }}>
+      <div className="border border-[#2A2A2A] rounded-lg overflow-hidden h-[380px] sm:h-[460px] lg:h-[520px]">
         <ResizableSplitPane
           left={editorContent}
           right={consoleContent}
           defaultLeftPercent={60}
           minLeftPercent={35}
           minRightPercent={25}
-          className="h-[520px]"
+          className="h-full"
         />
       </div>
 

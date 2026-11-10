@@ -358,7 +358,7 @@ export default function LessonViewerClient() {
 
   if (loading) {
     return (
-      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 h-[calc(100vh-3.5rem)] flex items-center justify-center bg-background">
+      <div className="h-[calc(100dvh-3.5rem)] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
           <p className="text-xs font-semibold text-muted-foreground animate-pulse">
@@ -371,7 +371,7 @@ export default function LessonViewerClient() {
 
   if (!lessonData) {
     return (
-      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-6 bg-background">
+      <div className="min-h-[calc(100dvh-3.5rem)] flex items-center justify-center p-6 bg-background">
         <div className="max-w-md text-center p-8 rounded-2xl bg-card border border-border">
           <BookOpen className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
           <h3 className="text-base font-bold mb-1">Lesson Not Found</h3>
@@ -390,7 +390,7 @@ export default function LessonViewerClient() {
 
   if (!lessonData.prerequisites_met && !isSessionUnlocked) {
     return (
-      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 h-[calc(100vh-3.5rem)] flex bg-background">
+      <div className="h-[calc(100dvh-3.5rem)] flex flex-col nav:flex-row bg-background">
         <LessonSidebar
           courseSlug={courseSlug}
           moduleSlug={moduleSlug}
@@ -433,8 +433,10 @@ export default function LessonViewerClient() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      {/* Edge-to-Edge Full Bleed Workspace Layout (Fixes 4-Corner Margins) */}
-      <div key={lessonSlug} className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 h-[calc(100vh-4rem)] flex bg-transparent overflow-hidden relative z-10">
+      {/* Full-height workspace. Nothing in the ancestry adds page padding, so
+          there are no negative margins to cancel — the old `-mx-*` offsets made
+          the viewport ~32px narrower than its content on every breakpoint. */}
+      <div key={lessonSlug} className="h-[calc(100dvh-4rem)] flex flex-col nav:flex-row bg-transparent overflow-hidden relative z-10">
         {/* Left Sidebar */}
         <LessonSidebar
           courseSlug={courseSlug}

@@ -31,8 +31,10 @@ import {
   LessonSection,
   Project,
   NewLessonSection,
-  TestCase,
-  AllModule,
+  TestCase,	AllModule,
+	SolutionExplanation,
+	EmailPreview,
+	EmailTemplateId,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -540,8 +542,11 @@ export async function fetchCommunitySolutions(
 
 export async function fetchBestPractices(
   limit: number = 20,
+  mine: boolean = false,
 ): Promise<ApiResponse<CommunitySolution[]>> {
-  return fetchApi<CommunitySolution[]>(`/best-practices?limit=${limit}`);
+  return fetchApi<CommunitySolution[]>(
+    `/best-practices?limit=${limit}${mine ? "&mine=1" : ""}`,
+  );
 }
 
 export async function likeSubmission(
@@ -556,6 +561,216 @@ export async function unlikeSubmission(
   return fetchApi<any>(`/submissions/${submissionId}/like`, {
     method: "DELETE",
   });
+}
+
+// AI Solution Explanations (Best Practices)
+
+// Upstream AI failures (details === "upstream_error") are transient provider
+// errors. Retry once after a short backoff instead of surfacing a 502 to the
+// student; non-upstream failures return immediately.
+async function retryUpstream<T>(
+  fn: () => Promise<ApiResponse<T>>,
+  retries = 1,
+  delayMs = 3000,
+): Promise<ApiResponse<T>> {
+  let res = await fn();
+  for (let i = 0; i < retries; i++) {
+    if (res.success) return res;
+    const err = res.error as { details?: string } | undefined;
+    if (err?.details !== "upstream_error") return res;
+    await new Promise((r) => setTimeout(r, delayMs));
+    res = await fn();
+  }
+  return res;
+}
+
+export async function explainSolution(
+  submissionId: string,
+): Promise<ApiResponse<{ cached: boolean; explanation: SolutionExplanation }>> {
+  return retryUpstream<{ cached: boolean; explanation: SolutionExplanation }>(() =>
+    fetchApi<{ cached: boolean; explanation: SolutionExplanation }>("/ai/explain", {
+      method: "POST",
+      body: JSON.stringify({ submission_id: submissionId }),
+    }),
+  );
+}
+
+export async function explainSolutionChat(
+  submissionId: string,
+  question: string,
+): Promise<ApiResponse<{ answer: string }>> {
+  return retryUpstream<{ answer: string }>(() =>
+    fetchApi<{ answer: string }>("/ai/explain/chat", {
+      method: "POST",
+      body: JSON.stringify({ submission_id: submissionId, question }),
+    }),
+  );
+}
+
+// ============================================
+// SSE streaming clients
+// ============================================
+// POST /ai/explain and /ai/explain/chat stream Server-Sent Events while a
+// cache miss is generated. Frame shapes (the client discriminates by key):
+//   data: {"delta":"..."}                         incremental generated text
+//   data: {"cached":false,"explanation":{...}}    final validated analysis
+//   data: {"error":{"code","message"}}            mid-stream failure
+//   data: [DONE]                                  normal termination
+// Cached responses and pre-stream failures arrive as ordinary JSON, so the
+// client inspects the content-type instead of assuming SSE.
+
+type ExplainStreamHandlers = {
+  onDelta: (delta: string) => void;
+  onFinal?: (explanation: SolutionExplanation, cached: boolean) => void;
+  onError?: (code: string, message: string) => void;
+};
+
+function parseStreamFrame(
+  line: string,
+): { done?: boolean; delta?: string; cached?: boolean; explanation?: SolutionExplanation; error?: { code: string; message: string } } | null {
+  if (!line.startsWith("data:")) return null;
+  const payload = line.slice(5).trim();
+  if (payload === "[DONE]") return { done: true };
+  try {
+    return JSON.parse(payload) as any;
+  } catch {
+    return null;
+  }
+}
+
+async function consumeExplainStream(
+  endpoint: string,
+  body: unknown,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  const attempt = async (): Promise<{ ok: boolean; retryAuth?: boolean }> => {
+    const token = localStorage.getItem("koder_token");
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return { ok: false };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, retryAuth: true };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+
+    // Cache hit or pre-stream error — plain JSON.
+    if (contentType.includes("application/json")) {
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+      if (!response.ok || data?.error) {
+        const code = data?.error?.code || "EXPLAIN_FAILED";
+        const message = data?.error?.message || "The AI could not answer.";
+        handlers.onError?.(code, message);
+        return { ok: false };
+      }
+      // Plain JSON carries three shapes: a cache-hit explanation, a buffered
+      // cache-miss explanation (servers without Flush support or older
+      // backends that never stream), and a buffered chat answer. Route all of
+      // them — a missed explanation or chat answer is the whole payload, so it
+      // must reach the handlers or the UI silently never responds.
+      if (data?.data?.explanation) {
+        handlers.onFinal?.(data.data.explanation, Boolean(data.data.cached));
+      } else if (typeof data?.data?.answer === "string") {
+        handlers.onDelta?.(data.data.answer);
+      }
+      return { ok: true };
+    }
+
+    if (!response.ok || !response.body) {
+      handlers.onError?.(
+        "EXPLAIN_FAILED",
+        "The AI could not answer. Please try again.",
+      );
+      return { ok: false };
+    }
+
+    // text/event-stream — parse frames incrementally as they arrive.
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let ok = true;
+    let closed = false;
+    try {
+      while (!closed) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx = buffer.indexOf("\n\n");
+        while (idx !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          for (const line of rawEvent.split("\n")) {
+            const frame = parseStreamFrame(line);
+            if (!frame) continue;
+            if (frame.done) {
+              closed = true;
+              break;
+            }
+            if (frame.delta) {
+              handlers.onDelta(frame.delta);
+            } else if (frame.explanation) {
+              handlers.onFinal?.(frame.explanation, Boolean(frame.cached));
+            } else if (frame.error) {
+              ok = false;
+              handlers.onError?.(frame.error.code, frame.error.message);
+            }
+          }
+          if (closed) break;
+          idx = buffer.indexOf("\n\n");
+        }
+      }
+    } catch {
+      ok = false;
+    }
+    return { ok };
+  };
+
+  let result = await attempt();
+  if (result.retryAuth) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      result = await attempt();
+    } else {
+      handlers.onError?.("AUTH_REQUIRED", "Session expired. Please log in again.");
+    }
+  }
+  return result.ok;
+}
+
+export async function explainSolutionStream(
+  submissionId: string,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  return consumeExplainStream("/ai/explain", { submission_id: submissionId }, handlers);
+}
+
+export async function explainSolutionChatStream(
+  submissionId: string,
+  question: string,
+  handlers: ExplainStreamHandlers,
+): Promise<boolean> {
+  return consumeExplainStream(
+    "/ai/explain/chat",
+    { submission_id: submissionId, question },
+    handlers,
+  );
 }
 
 // Community Contributions
@@ -759,6 +974,41 @@ export async function sendProblemReminder(data: {
       body: JSON.stringify(data),
     },
   );
+}
+
+export async function sendBestPracticesAnnouncement(data: {
+  subject?: string;
+  cta_url?: string;
+  test_email?: string;
+  send_to_all?: boolean;
+}): Promise<ApiResponse<{ attempted: number; sent: number; failed: number }>> {
+  return fetchApi<{ attempted: number; sent: number; failed: number }>(
+    "/admin/broadcast-best-practices",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+/**
+ * Renders a transactional email for inspection. Nothing is sent.
+ * Clears the 30s GET cache for this endpoint first so a preview always shows
+ * the current template data.
+ */
+export async function previewEmailTemplate(params: {
+  template: EmailTemplateId;
+  problem_slug?: string;
+  cta_url?: string;
+  subject?: string;
+}): Promise<ApiResponse<EmailPreview>> {
+  const search = new URLSearchParams({ template: params.template });
+  if (params.problem_slug) search.set("problem_slug", params.problem_slug);
+  if (params.cta_url) search.set("cta_url", params.cta_url);
+  if (params.subject) search.set("subject", params.subject);
+
+  clearCache("/admin/email-preview");
+  return fetchApi<EmailPreview>(`/admin/email-preview?${search.toString()}`);
 }
 
 export async function deactivateBroadcast(

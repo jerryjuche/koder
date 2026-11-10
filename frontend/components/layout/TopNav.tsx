@@ -16,6 +16,12 @@ import {
   Code2,
   BookOpen,
   FlaskConical,
+  Heart,
+  CheckCircle2,
+  XCircle,
+  GitPullRequest,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/UserContext";
@@ -94,7 +100,7 @@ export default function TopNav() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex gap-1.5">
+          <nav className="hidden nav:flex gap-1.5">
             {navLinks
               .filter((link) => link.name !== "Admin" || user?.role === "admin")
               .map((link) => {
@@ -198,7 +204,7 @@ export default function TopNav() {
               </button>
 
               {notifMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] max-nav:fixed max-nav:inset-x-3 max-nav:top-16 max-nav:mt-0 max-nav:w-auto bg-card border border-border rounded-xl shadow-xl py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-2 border-b border-border">
                     <h3 className="font-semibold text-foreground">Notifications</h3>
                   </div>
@@ -208,25 +214,55 @@ export default function TopNav() {
                         No new notifications.
                       </div>
                     ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            if (!n.is_read) markAsRead(n.id);
-                            setNotifMenuOpen(false);
-                            router.push("/settings?tab=notifications");
-                          }}
-                          className={cn(
-                            "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors",
-                            n.is_read ? "opacity-60" : "bg-muted/30"
-                          )}
-                        >
-                          <p className="text-sm text-foreground">{n.message}</p>
-                          <span className="text-xs text-muted-foreground mt-1 block">
-                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                      ))
+                      notifications.map((n) => {
+                        const liked = n.type === "solution_liked";
+                        const target = liked && n.related_slug ? `/problems/${n.related_slug}` : null;
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              if (!n.is_read) markAsRead(n.id);
+                              setNotifMenuOpen(false);
+                              if (target) {
+                                router.push(target);
+                              } else {
+                                router.push("/settings?tab=notifications");
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors flex items-start gap-3",
+                              n.is_read ? "opacity-60" : "bg-muted/30"
+                            )}
+                          >
+                            <span className={cn(
+                              "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md",
+                              n.type === "contribution_approved"
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : n.type === "contribution_rejected"
+                                ? "bg-red-500/10 text-red-400"
+                                : liked
+                                ? "bg-rose-500/10 text-rose-400"
+                                : "bg-amber-500/10 text-amber-400"
+                            )}>
+                              {n.type === "contribution_approved" ? (
+                                <CheckCircle2 size={13} />
+                              ) : n.type === "contribution_rejected" ? (
+                                <XCircle size={13} />
+                              ) : liked ? (
+                                <Heart size={13} fill="currentColor" />
+                              ) : (
+                                <GitPullRequest size={13} />
+                              )}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-sm text-foreground leading-snug">{n.message}</span>
+                              <span className="text-xs text-muted-foreground mt-1 block">
+                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                   {notifications.length > 0 && unreadCount > 0 && (
@@ -278,66 +314,104 @@ export default function TopNav() {
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex items-center gap-3 py-1">
-                      <Avatar
-                        src={!avatarError ? user.google_avatar_url : undefined}
-                        name={user.name}
-                        colorIndex={user.colorIndex}
-                        size="sm"
-                        verified={user.verified}
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-foreground">{user.name}</p>
-                          {user.role === "admin" && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              Admin
-                            </span>
-                          )}
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-[min(17.5rem,calc(100vw-1.5rem))] p-0 overflow-hidden rounded-2xl border border-border/70 bg-brand-charcoal-card shadow-2xl shadow-black/40"
+                >
+                  <DropdownMenuLabel className="p-0">
+                    <div className="px-4 pt-4 pb-3 bg-gradient-to-b from-primary/10 to-transparent border-b border-border/50">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={!avatarError ? user.google_avatar_url : undefined}
+                          name={user.name}
+                          colorIndex={user.colorIndex}
+                          size="md"
+                          verified={user.verified}
+                          className="ring-2 ring-primary/25"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-[15px] font-bold text-foreground truncate">
+                              {user.name}
+                            </p>
+                            {user.role === "admin" && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/25">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-mono text-primary/90 truncate mt-0.5">
+                            @{user.username || user.studentId}
+                          </p>
+                          <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-background/50 border border-border/50 px-2 py-0.5 text-[11px] font-bold text-primary">
+                            <Zap size={11} />
+                            Lv.{user.level} · {user.xp.toLocaleString()} XP
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="text-amber-400 font-mono text-xs">
-                            {user.username || user.studentId}
-                          </span>
-                        </p>
                       </div>
                     </div>
                   </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <UserIcon size={16} /> Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings size={16} /> Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await logout();
-                    window.location.href = "/login";
-                  }}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                >
-                  <LogOut size={16} /> Sign Out
-                </DropdownMenuItem>
+
+                  <div className="p-1.5 space-y-0.5">
+                    <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                      <Link href="/profile">
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <UserIcon size={16} />
+                        </span>
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                      <Link href="/settings">
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <Settings size={16} />
+                        </span>
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    {user.role === "admin" && (
+                      <DropdownMenuItem asChild className="rounded-xl h-11 gap-3 px-3 text-sm font-medium cursor-pointer">
+                        <Link href="/admin">
+                          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <ShieldCheck size={16} />
+                          </span>
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </div>
+
+                  <DropdownMenuSeparator className="my-0" />
+                  <div className="p-1.5">
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await logout();
+                        window.location.href = "/login";
+                      }}
+                      className="rounded-xl h-11 gap-3 px-3 text-sm font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                    >
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                        <LogOut size={16} />
+                      </span>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         ) : (
-          <Link
-            href="/login"
-            className="text-sm font-bold text-foreground hover:text-primary transition-colors"
-          >
-            Log In
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-bold text-foreground hover:text-primary transition-colors"
+            >
+              Log In
+            </Link>
+          </div>
         )}
       </div>
+
     </header>
   );
 }

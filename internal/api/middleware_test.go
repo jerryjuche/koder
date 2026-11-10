@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -615,4 +617,43 @@ func TestRateLimitMiddleware(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestRequestLoggingMiddleware_SkipsHealthAndVersion(t *testing.T) {
+	// Redirect slog to a buffer so we can assert on log output.
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(prev)
+
+	handler := RequestLoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, path := range []string{"/health", "/version"} {
+		buf.Reset()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("%s: expected 200, got %d", path, w.Code)
+		}
+		if buf.Len() != 0 {
+			t.Errorf("%s: expected no request log line, got: %s", path, buf.String())
+		}
+	}
+
+	// A normal request must still emit a request log line.
+	buf.Reset()
+	req := httptest.NewRequest(http.MethodGet, "/problems", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("/problems: expected 200, got %d", w.Code)
+	}
+	if buf.Len() == 0 {
+		t.Error("/problems: expected a request log line")
+	}
 }

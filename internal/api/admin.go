@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -36,13 +35,11 @@ type AdminHandler struct {
 	httpClient *http.Client
 }
 
-func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker) (*AdminHandler, error) {
+// NewAdminHandler creates the admin handler. The enricher is shared across all
+// AI endpoints (admin assist + solution explain) so the global 1s NIM gap keeps
+// requests serialized and the free-tier budget predictable.
+func NewAdminHandler(store store.Store, cfg *config.Config, b *broker.Broker, enricher *enricher.Enricher) (*AdminHandler, error) {
 	parser := parser.NewParser(cfg.SandboxBaseDir)
-	enricher, err := enricher.NewEnricher(context.Background(), cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	return &AdminHandler{store: store, parser: parser, enricher: enricher, broker: b, cfg: cfg, httpClient: nil}, nil
 }
 
@@ -329,6 +326,260 @@ func (h *AdminHandler) PublishAllDrafts(w http.ResponseWriter, r *http.Request) 
 	RespondSuccess(w, map[string]any{"published": published})
 }
 
+// Transactional email copy shared by the senders and the admin preview, so a
+// preview always shows exactly what a broadcast will deliver.
+const (
+	emailTagline           = "Koder turns every problem into an instant feedback loop."
+	emailPasswordResetSubj = "Koder — Reset Your Password"
+	emailBestPracticesSubj = "Koder — Discover Best Practices: See how top developers solve problems"
+)
+
+func reminderSubject(problemTitle string) string {
+	return "Koder — Try this problem: " + problemTitle
+}
+
+func bestPracticesSubject() string { return emailBestPracticesSubj }
+
+// errBestPracticesData marks a failure to load community stats (DB) as opposed
+// to a template rendering failure, so handlers can report the right error.
+var errBestPracticesData = errors.New("best practices data unavailable")
+
+// defaultReminderCTA points at the frontend root with redirect_to so clicks
+// from an email client land on the problem after authentication.
+func (h *AdminHandler) defaultReminderCTA(slug string) string {
+	targetPath := "/problems/" + slug
+	if h.cfg != nil && h.cfg.FrontendURL != "" {
+		return strings.TrimRight(h.cfg.FrontendURL, "/") + "/?redirect_to=" + url.QueryEscape(targetPath)
+	}
+	return "/?redirect_to=" + url.QueryEscape(targetPath)
+}
+
+func (h *AdminHandler) defaultBestPracticesCTA() string {
+	if h.cfg != nil && h.cfg.FrontendURL != "" {
+		return strings.TrimRight(h.cfg.FrontendURL, "/") + "/home?bp_tab=all"
+	}
+	return "/home?bp_tab=all"
+}
+
+// supportEmail returns the reply-to address embedded in every email footer.
+func (h *AdminHandler) supportEmail() string {
+	if h.cfg == nil {
+		return ""
+	}
+	return emailAddressFromFrom(h.cfg.EmailFrom)
+}
+
+// renderReminderEmail renders the problem-reminder template for a problem.
+// cta must already be the final absolute destination.
+func (h *AdminHandler) renderReminderEmail(problem *store.Problem, cta string) (string, error) {
+	return emailtmpl.RenderProblemReminderString(emailtmpl.ProblemReminderData{
+		PlatformName:   "Koder",
+		FirstName:      "Coder",
+		ProblemTitle:   problem.Title,
+		ProblemSlug:    problem.Slug,
+		ProblemExcerpt: problem.Statement,
+		CTAURL:         cta,
+		SupportEmail:   h.supportEmail(),
+		Tagline:        emailTagline,
+		PreviewTitle:   "Problem Reminder — Koder",
+		PreheaderText:  fmt.Sprintf("A new challenge is waiting: %s. Sharpen your skills with this short exercise.", problem.Title),
+	})
+}
+
+// renderBestPracticesEmail renders the Best Practices announcement with live
+// community stats. Failures loading the stats wrap errBestPracticesData.
+func (h *AdminHandler) renderBestPracticesEmail(ctx context.Context, cta string) (string, error) {
+	solutions, err := h.store.GetBestPractices(ctx, uuid.Nil, false, 500)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", errBestPracticesData, err)
+	}
+
+	goCount := 0
+	pythonCount := 0
+	totalLikes := 0
+	bestRuntime := 0
+	authorSet := make(map[string]bool)
+	topSolutions := make([]emailtmpl.DigestSolution, 0, 5)
+
+	for i, s := range solutions {
+		switch strings.ToLower(s.Language) {
+		case "go":
+			goCount++
+		case "python":
+			pythonCount++
+		}
+		totalLikes += s.Likes
+		if s.RuntimeMs > 0 && (bestRuntime == 0 || s.RuntimeMs < bestRuntime) {
+			bestRuntime = s.RuntimeMs
+		}
+		authorSet[s.UserName] = true
+		if i < 5 {
+			topSolutions = append(topSolutions, emailtmpl.DigestSolution{
+				UserName:     s.UserName,
+				ProblemTitle: s.ProblemTitle,
+				Language:     s.Language,
+				Likes:        s.Likes,
+			})
+		}
+	}
+
+	return emailtmpl.RenderBestPracticesString(emailtmpl.BestPracticesData{
+		PlatformName:   "Koder",
+		FirstName:      "Coder",
+		CTAURL:         cta,
+		SupportEmail:   h.supportEmail(),
+		Tagline:        emailTagline,
+		SolutionCount:  len(solutions),
+		GoCount:        goCount,
+		PythonCount:    pythonCount,
+		TotalLikes:     totalLikes,
+		BestRuntimeMs:  bestRuntime,
+		DeveloperCount: len(authorSet),
+		TopSolutions:   topSolutions,
+		PreviewTitle:   "Discover Best Practices — Koder",
+		PreheaderText:  "See top-rated community solutions, get AI-powered code analysis, and learn from the best developers.",
+	})
+}
+
+// Email template identifiers accepted by GET /admin/email-preview.
+const (
+	previewTemplatePasswordReset = "password_reset"
+	previewTemplateReminder      = "problem_reminder"
+	previewTemplateBestPractices = "best_practices"
+)
+
+// previewResetToken is a placeholder used only to render the reset template;
+// it is never a valid token.
+const previewResetToken = "preview-only-token"
+
+type emailPreviewResponse struct {
+	Template  string `json:"template"`
+	Subject   string `json:"subject"`
+	From      string `json:"from"`
+	HTML      string `json:"html"`
+	SendReady bool   `json:"send_ready"`
+}
+
+// PreviewEmail renders a transactional email template without sending it, so
+// admins can inspect the exact markup (logo, copy, CTA, footer) a broadcast
+// will produce. Nothing is dispatched and no email log is created.
+//
+// Query: template=password_reset|problem_reminder|best_practices,
+// problem_slug (required for problem_reminder), cta_url, subject (echoed back
+// when the admin has typed a custom subject).
+func (h *AdminHandler) PreviewEmail(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	templateName := strings.ToLower(strings.TrimSpace(q.Get("template")))
+	ctaOverride := strings.TrimSpace(q.Get("cta_url"))
+
+	var (
+		htmlBody string
+		subject  string
+	)
+
+	switch templateName {
+	case previewTemplatePasswordReset:
+		base := ""
+		if h.cfg != nil {
+			base = strings.TrimRight(h.cfg.FrontendURL, "/")
+		}
+		subject = emailPasswordResetSubj
+		body, err := emailtmpl.RenderPasswordResetString(emailtmpl.PasswordResetData{
+			PlatformName:  "Koder",
+			FirstName:     "Coder",
+			ResetURL:      base + "/reset-password?token=" + previewResetToken,
+			SupportEmail:  h.supportEmail(),
+			Tagline:       emailTagline,
+			ExpiresIn:     "1 hour",
+			PreviewTitle:  "Reset Your Password — Koder",
+			PreheaderText: "We received a password reset request for your Koder account. Click the link below to set a new password.",
+		})
+		if err != nil {
+			respondPreviewRenderError(w, templateName, err)
+			return
+		}
+		htmlBody = body
+
+	case previewTemplateReminder:
+		slug := strings.TrimSpace(q.Get("problem_slug"))
+		if slug == "" {
+			RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "problem_slug is required for the problem_reminder template", nil)
+			return
+		}
+		problem, err := h.store.GetProblemBySlugAny(r.Context(), slug)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				RespondError(w, http.StatusNotFound, "NOT_FOUND", "Problem not found", nil)
+				return
+			}
+			slog.Error("admin: failed to load problem for email preview", "error", err, "slug", slug)
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to load problem", nil)
+			return
+		}
+		cta := ctaOverride
+		if cta == "" {
+			cta = h.defaultReminderCTA(problem.Slug)
+		}
+		subject = reminderSubject(problem.Title)
+		body, err := h.renderReminderEmail(problem, cta)
+		if err != nil {
+			respondPreviewRenderError(w, templateName, err)
+			return
+		}
+		htmlBody = body
+
+	case previewTemplateBestPractices:
+		cta := ctaOverride
+		if cta == "" {
+			cta = h.defaultBestPracticesCTA()
+		}
+		subject = bestPracticesSubject()
+		body, err := h.renderBestPracticesEmail(r.Context(), cta)
+		if err != nil {
+			respondPreviewRenderError(w, templateName, err)
+			return
+		}
+		htmlBody = body
+
+	case "":
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "template is required (password_reset, problem_reminder, best_practices)", nil)
+		return
+
+	default:
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", fmt.Sprintf("unknown template %q (supported: password_reset, problem_reminder, best_practices)", templateName), nil)
+		return
+	}
+
+	if override := strings.TrimSpace(q.Get("subject")); override != "" {
+		subject = override
+	}
+
+	from := ""
+	sendReady := false
+	if h.cfg != nil {
+		from = h.cfg.EmailFrom
+		sendReady = strings.TrimSpace(h.cfg.ResendAPIKey) != ""
+	}
+
+	RespondSuccess(w, emailPreviewResponse{
+		Template:  templateName,
+		Subject:   subject,
+		From:      from,
+		HTML:      emailtmpl.InlineLogoForPreview(htmlBody),
+		SendReady: sendReady,
+	})
+}
+
+// respondPreviewRenderError maps a preview failure onto the right API error.
+func respondPreviewRenderError(w http.ResponseWriter, templateName string, err error) {
+	slog.Error("admin: failed to render email preview", "template", templateName, "error", err)
+	if errors.Is(err, errBestPracticesData) {
+		RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to load best practices data", nil)
+		return
+	}
+	RespondError(w, http.StatusInternalServerError, "TEMPLATE_ERROR", "Failed to render email preview", nil)
+}
+
 // sendReminderRequest is the payload for POST /admin/broadcast-emails
 type sendReminderRequest struct {
 	ProblemSlug string `json:"problem_slug"`
@@ -367,38 +618,12 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Build CTA URL. If no CTA provided by admin, build a frontend-root CTA
-	// that preserves the target via ?redirect_to=/problems/<slug> so clicks
-	// from email clients/new tabs correctly route users after authentication.
 	cta := strings.TrimSpace(req.CTAURL)
-	targetPath := "/problems/" + problem.Slug
 	if cta == "" {
-		if h.cfg != nil && h.cfg.FrontendURL != "" {
-			base := strings.TrimRight(h.cfg.FrontendURL, "/")
-			// final CTA is frontend root with redirect_to pointing to the problem path
-			cta = base + "/?redirect_to=" + url.QueryEscape(targetPath)
-		} else {
-			// Fallback to relative redirect if frontend URL not configured
-			cta = "/?redirect_to=" + url.QueryEscape(targetPath)
-		}
+		cta = h.defaultReminderCTA(problem.Slug)
 	}
 
-	var logoURL template.URL
-	if h.cfg != nil && h.cfg.FrontendURL != "" {
-		logoURL = template.URL(strings.TrimRight(h.cfg.FrontendURL, "/") + "/logo.png")
-	}
-
-	htmlBody, err := emailtmpl.RenderProblemReminderString(emailtmpl.ProblemReminderData{
-		PlatformName:   "Koder",
-		FirstName:      "Coder",
-		ProblemTitle:   problem.Title,
-		ProblemSlug:    problem.Slug,
-		ProblemExcerpt: problem.Statement,
-		CTAURL:         cta,
-		LogoURL:        logoURL,
-		SupportEmail:   emailAddressFromFrom(h.cfg.EmailFrom),
-		Tagline:        "Koder turns every problem into an instant feedback loop.",
-	})
+	htmlBody, err := h.renderReminderEmail(problem, cta)
 	if err != nil {
 		slog.Error("admin: failed to render reminder template", "error", err)
 		RespondError(w, http.StatusInternalServerError, "TEMPLATE_ERROR", "Failed to render email template", nil)
@@ -407,7 +632,7 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 
 	subject := strings.TrimSpace(req.Subject)
 	if subject == "" {
-		subject = "Koder — Try this problem: " + problem.Title
+		subject = reminderSubject(problem.Title)
 	}
 
 	// Determine recipients
@@ -472,6 +697,112 @@ func (h *AdminHandler) SendProblemReminder(w http.ResponseWriter, r *http.Reques
 		// Small pause to avoid hitting provider rate limits
 		time.Sleep(50 * time.Millisecond)
 	}
+
+	RespondSuccess(w, map[string]int{"attempted": len(recipients), "sent": sent, "failed": failed})
+}
+
+// sendBestPracticesRequest is the payload for POST /admin/broadcast-best-practices
+type sendBestPracticesRequest struct {
+	Subject   string `json:"subject"`
+	CTAURL    string `json:"cta_url"`
+	TestEmail string `json:"test_email"`
+	SendToAll bool   `json:"send_to_all"`
+}
+
+// SendBestPracticesAnnouncement sends a Best Practices announcement email
+// either as a single test email or to all registered users.
+func (h *AdminHandler) SendBestPracticesAnnouncement(w http.ResponseWriter, r *http.Request) {
+	var req sendBestPracticesRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Unable to parse request body", nil)
+		return
+	}
+
+	cta := strings.TrimSpace(req.CTAURL)
+	if cta == "" {
+		cta = h.defaultBestPracticesCTA()
+	}
+
+	htmlBody, err := h.renderBestPracticesEmail(r.Context(), cta)
+	if err != nil {
+		if errors.Is(err, errBestPracticesData) {
+			slog.Error("admin: failed to load best practices for email", "error", err)
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to load best practices data", nil)
+			return
+		}
+		slog.Error("admin: failed to render best-practices template", "error", err)
+		RespondError(w, http.StatusInternalServerError, "TEMPLATE_ERROR", "Failed to render email template", nil)
+		return
+	}
+
+	subject := strings.TrimSpace(req.Subject)
+	if subject == "" {
+		subject = bestPracticesSubject()
+	}
+
+	// Determine recipients
+	recipients := []string{}
+	if req.TestEmail != "" {
+		recipients = append(recipients, strings.TrimSpace(req.TestEmail))
+	} else if req.SendToAll {
+		emails, err := h.store.ListAllUserEmails(r.Context())
+		if err != nil {
+			slog.Error("admin: failed to list user emails", "error", err)
+			RespondError(w, http.StatusInternalServerError, "DB_ERROR", "Failed to list user emails", nil)
+			return
+		}
+		recipients = append(recipients, emails...)
+	} else {
+		RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "either test_email or send_to_all=true must be provided", nil)
+		return
+	}
+
+	sent := 0
+	failed := 0
+	ctx := r.Context()
+
+	client := h.httpClient
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
+	for _, to := range recipients {
+		emailLog, _ := h.store.CreateEmailLog(ctx, nil, to, "broadcast_best_practices")
+		logID := uuid.Nil
+		if emailLog != nil {
+			logID = emailLog.ID.Bytes
+		}
+
+		textBody := fmt.Sprintf("Discover Best Practices on %s\n\nSee how top developers solve problems with community solutions and AI-powered code analysis.\n\nExplore: %s\n", "Koder", cta)
+
+		providerID, statusCode, respBody, sendErr := emailtmpl.SendEmailViaResend(ctx, client, h.cfg.ResendAPIKey, h.cfg.EmailFrom, []string{to}, subject, htmlBody, textBody)
+
+		if logID != uuid.Nil {
+			h.store.UpdateEmailLogAttempts(ctx, logID, 1)
+		}
+
+		if sendErr != nil {
+			failed++
+			msg := sendErr.Error()
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "failed", nil, &msg)
+			}
+			slog.Error("admin: resend send failed", "to", to, "error", sendErr, "status", statusCode, "body", string(respBody))
+		} else {
+			if logID != uuid.Nil {
+				h.store.UpdateEmailLogStatus(ctx, logID, "sent", &providerID, nil)
+			}
+			sent++
+		}
+
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	h.store.LogActivity(r.Context(), "info",
+		fmt.Sprintf("Best Practices announcement sent to %d users (%d sent, %d failed)", len(recipients), sent, failed),
+		"text-brand-success", "Trophy",
+	)
 
 	RespondSuccess(w, map[string]int{"attempted": len(recipients), "sent": sent, "failed": failed})
 }

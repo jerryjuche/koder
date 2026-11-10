@@ -64,6 +64,8 @@ import {
 import { LanguageLogo } from "@/components/LanguageLogo";
 import { CodeEditor } from "@/components/CodeEditor";
 import { blockPaste } from "@/lib/monaco-paste-guard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileWorkspace from "@/components/mobile/MobileWorkspace";
 
 const GO_CODE = `package koder
 
@@ -259,6 +261,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
     learning_objective: "",
   });
   const { user } = useUser();
+  const isMobile = useIsMobile(900);
 
   // Map a backend ExecutionResult into the panel's TestResult shape, joining
   // visible test inputs from problem.examples by ordinal so the panel can show
@@ -716,7 +719,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
 
   if (!problem) {
     return (
-      <div className="h-screen w-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="h-[100dvh] w-full bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
@@ -733,9 +736,68 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
-      {/* Workspace Header */}
-      <header className="h-12 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-3">
+    <>
+      {isMobile ? (
+        <MobileWorkspace
+          problem={problem}
+          code={code}
+          onCodeChange={handleEditorChange}
+          onEditorMount={handleEditorMount}
+          getInitialValue={getInitialValue}
+          activeLanguage={activeLanguage}
+          availableLanguages={availableLanguages}
+          onLanguageChange={async (lang) => {
+            if (activeLanguage === lang) return;
+            if (code !== scaffoldAtToggle) {
+              setPendingLanguage(lang);
+              setLanguageConfirmOpen(true);
+            } else {
+              await applyLanguageSwitch(lang);
+            }
+          }}
+          resetKey={resetKey}
+          saved={saved}
+          scaffoldAtToggle={scaffoldAtToggle}
+          handleFormat={handleFormat}
+          handleReset={handleReset}
+          handleTest={handleTest}
+          handleSubmit={handleSubmit}
+          submitting={submitting}
+          cooldown={cooldown}
+          results={results}
+          lastExecution={lastExecution}
+          errorMsg={errorMsg}
+          hintsOpen={hintsOpen}
+          setHintsOpen={setHintsOpen}
+          onOpenReport={() => {
+            setReportOpen(true);
+            setReportSubmitted(false);
+            setReportDescription("");
+          }}
+          onOpenEdit={() => {
+            if (problem) {
+              setEditForm({
+                title: problem.title || "",
+                statement: problem.statement || "",
+                difficulty: problem.difficulty || 1,
+                xp_reward: problem.xpReward || 0,
+                tags: (problem.tags || []).join(", "),
+                module: problem.module || "",
+                constraints: problem.constraints || "",
+                learning_objective: problem.learningObjective || "",
+              });
+            }
+            setEditOpen(true);
+          }}
+          isAdmin={user?.role === "admin"}
+          nextProblem={nextProblem}
+          returnTo={returnTo}
+          editorRef={editorRef}
+        />
+      ) : (
+        <div className="h-screen flex flex-col bg-brand-charcoal-base text-brand-offwhite overflow-hidden">
+          {/* Workspace Header */}
+          <header className="h-12 border-b border-brand-charcoal-border bg-brand-charcoal-card shrink-0 flex items-center justify-between px-3">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href="/home"
@@ -974,7 +1036,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                     {problem.examples.map((ex, idx) => (
                       <div
                         key={ex.id}
-                        className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-[#0F1115] to-[#0A0C0F] overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
+                        className="group rounded-xl border border-brand-charcoal-border bg-gradient-to-br from-brand-charcoal-code to-brand-charcoal-inset overflow-hidden shadow-md transition-all duration-300 hover:border-brand-charcoal-border/80 hover:shadow-lg"
                       >
                         <div className="px-5 py-2.5 bg-brand-charcoal-hover/40 border-b border-brand-charcoal-border/50 flex items-center justify-between">
                           <div className="text-xs font-bold tracking-wide text-brand-offwhite/80 uppercase">
@@ -986,7 +1048,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                             <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
                               Input
                             </div>
-                            <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
+                            <div className="font-mono text-sm text-brand-offwhite break-words whitespace-pre-wrap bg-brand-charcoal-inset p-3.5 rounded-lg border border-brand-charcoal-border/60 shadow-inner">
                               {ex.input}
                             </div>
                           </div>
@@ -994,7 +1056,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
                             <div className="text-[11px] font-bold uppercase tracking-wider text-brand-offwhite-muted/70 mb-2">
                               Expected Output
                             </div>
-                            <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-[#050608] p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
+                            <div className="font-mono text-sm text-brand-success break-words whitespace-pre-wrap bg-brand-charcoal-inset p-3.5 rounded-lg border border-brand-success/20 shadow-inner">
                               {ex.expected}
                             </div>
                           </div>
@@ -1126,9 +1188,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
         )}
 
         {/* Middle: Editor & Results */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#121212]">
+        <div className="flex-1 flex flex-col min-w-0 bg-brand-charcoal-code">
           {/* Editor Header */}
-          <div className="h-10 flex items-center justify-between px-4 bg-[#121212] border-b border-brand-charcoal-border">
+          <div className="h-10 flex items-center justify-between px-4 bg-brand-charcoal-code border-b border-brand-charcoal-border">
             <div className="flex items-center gap-3">
               {availableLanguages.length > 1 ? (
                 <div className="flex rounded-lg border border-brand-charcoal-border overflow-hidden bg-brand-charcoal-base">
@@ -1344,6 +1406,9 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         )}
       </div>
+    </div>
+  )}
+
 
       {/* Report Issue Dialog */}
       {reportOpen && (
@@ -1355,7 +1420,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
               setReportDescription("");
             }}
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             {reportSubmitted ? (
               <div className="flex flex-col items-center text-center px-8 py-10">
                 <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-success/10 border border-brand-success/20">
@@ -1595,7 +1660,7 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setEditOpen(false)}
           />
-          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-2xl mx-4 max-h-[85dvh] overflow-y-auto rounded-2xl border border-brand-charcoal-border bg-brand-charcoal-card shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-brand-charcoal-border px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-accent-teal/10 border border-brand-accent-teal/20 flex items-center justify-center">
@@ -1764,6 +1829,6 @@ export default function ProblemWorkspaceClient({ slug }: { slug: string }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

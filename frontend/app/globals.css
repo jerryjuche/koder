@@ -4,7 +4,27 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hover-capability variant. Tailwind wraps `hover:` / `group-hover:` in
+   `@media (hover: hover)`, so on touch devices they never match. A plain
+   `opacity-0 group-hover:opacity-100` control is therefore permanently
+   invisible AND permanently hit-testable on a phone — the worst of both. Gate
+   reveal-on-hover affordances on hover capability instead:
+
+     class="can-hover:opacity-0 group-hover:opacity-100"
+
+   `group-hover:` already only fires where hover exists, so the base state stays
+   visible on touch. Note: `pointer: fine` is NOT a safe substitute — hover and
+   pointer are independent media features (pen-primary devices report a fine
+   pointer with no hover). */
+@custom-variant can-hover (@media (hover: hover));
+
 @theme {
+  /* Named breakpoints. --breakpoint-nav must stay in sync with
+     MOBILE_WORKSPACE_BREAKPOINT (frontend/lib/mobile-workspace.ts): below 900px
+     the TopNav collapses to the hamburger menu and the problem workspace
+     renders the 5-tab mobile shell. */
+  --breakpoint-nav: 900px;
+
   --color-brand-muted-gold: #D4AF37;
   --color-brand-muted-gold-dark: #C5A059;
   --color-brand-charcoal-base: #141414;
@@ -16,8 +36,31 @@
   --color-brand-offwhite-muted: #88889A;
   --color-brand-success: #22C55E;
   --color-brand-error: #ef4444;
+  --color-brand-warning: #F59E0B;
+  /* Used for admin/edit affordances across the workspace + mobile shell
+     (bg-brand-accent-teal, /10 /20 /30 tints, and a solid button with
+     `text-black`). Was referenced in 6 places but never defined, so those
+     elements rendered with no colour at all. */
+  --color-brand-accent-teal: #2DD4BF;
   --color-brand-cool-accent: #7B8CBB;
   --color-brand-cool-accent-muted: #5A6A94;
+
+  /* Surface ramp — one named step per elevation. Replaces the ad-hoc near-black
+     hexes that had accumulated in the mobile shell (#101010, #121212, #0E1013,
+     #0C0E12, #0A0C0F, #050608): six values, no relationship between them, all
+     invisible to the token system. Ordered dark -> light for chrome, with two
+     dedicated wells for code and console surfaces. */
+  --color-brand-charcoal-chrome: #0F0F0F;
+  --color-brand-charcoal-raised: #262626;
+  --color-brand-charcoal-code: #0B0B0B;
+  --color-brand-charcoal-inset: #050505;
+
+  /* Type floor for touch surfaces. 11px is the smallest label that stays
+     legible on a phone; `text-xs` (12px) is the metadata floor. The mobile
+     shell previously used text-[9px] / text-[10px], which is unreadable and
+     failed contrast at the muted-on-charcoal pairings it was used with. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
 }
 
 @layer base {
@@ -147,6 +190,12 @@
 }
 
 :root {
+  /* Height of the persistent mobile tab bar (Spec A): the 56px row plus the
+     device's home-indicator inset. The (main) layout reserves this as bottom
+     padding so page content never scrolls under the fixed bar, and the
+     feedback FAB lifts above it. Keep the row in sync with MobileTabBar. */
+  --tabbar-height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+
   --background: #141414;
   --foreground: #D1D1D8;
   --card: #1E1E1E;
@@ -214,4 +263,166 @@
   --sidebar-accent-foreground: #E0E0E0;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #D4AF37;
+}
+
+/* ---------------------------------------------------------------------------
+   Ported daisyUI effects — brand-tuned to Koder's charcoal / purple / gold
+   system. Self-contained plain CSS so no daisyUI dependency is required.
+   (aura, stats, radial-progress, divider, mockup-window)
+--------------------------------------------------------------------------- */
+
+@property --aura-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* --- Aura: rotating border light ----------------------------------------- */
+
+.aura {
+  --aura-padding: 0.125rem;
+  --aura-duration: 6s;
+  position: relative;
+  display: inline-block;
+  padding: var(--aura-padding);
+  border-radius: calc(var(--aura-padding) + var(--aura-radius, 0.5rem));
+  background-image: conic-gradient(
+    from var(--aura-angle),
+    transparent 225deg,
+    currentColor
+  );
+}
+
+/* Spin is opt-in (.aura-spin) so the glow can sit static until it is acting
+   as an active/processing indicator. */
+.aura-spin {
+  animation: aura-rotate var(--aura-duration) linear infinite;
+}
+
+.aura::before,
+.aura::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  translate: -50% -50%;
+  border-radius: inherit;
+  background-color: inherit;
+  background-image: inherit;
+  opacity: 0.7;
+  filter: blur(0.25rem);
+  pointer-events: none;
+}
+
+.aura-spin::before,
+.aura-spin::after {
+  animation: aura-rotate var(--aura-duration) linear infinite;
+}
+
+.aura::after {
+  opacity: 0.3;
+  filter: blur(1rem);
+}
+
+.aura > * {
+  position: relative;
+  z-index: 1;
+}
+
+.aura-xs { --aura-padding: 0; }
+.aura-sm { --aura-padding: 0.0625rem; }
+.aura-md { --aura-padding: 0.125rem; }
+.aura-lg { --aura-padding: 0.15625rem; }
+.aura-xl { --aura-padding: 0.25rem; }
+
+.aura-dual {
+  background-image: repeating-conic-gradient(
+    from var(--aura-angle),
+    transparent 0%,
+    transparent 40%,
+    currentColor 50%
+  );
+}
+
+.aura-gold {
+  background-image: repeating-conic-gradient(
+    from var(--aura-angle),
+    oklch(0.66 0.19 72),
+    oklch(0.96 0.08 103),
+    oklch(0.72 0.17 82),
+    oklch(0.96 0.08 103),
+    oklch(0.61 0.12 76),
+    oklch(0.66 0.19 72) 50%
+  );
+}
+
+@keyframes aura-rotate {
+  to {
+    --aura-angle: 360deg;
+    transform: translateZ(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-spin,
+  .aura-spin::before,
+  .aura-spin::after {
+    animation-duration: calc(var(--aura-duration, 6s) * 4);
+  }
+}
+
+/* --- Window mockup --------------------------------------------------------- */
+
+.mockup-window {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background-color: var(--color-brand-charcoal-panel);
+}
+
+.mockup-window-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-brand-charcoal-card);
+}
+
+.mockup-window-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.mockup-window-dots span {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+}
+
+.mockup-window-dots span:nth-child(1) { background-color: #ff5f57; }
+.mockup-window-dots span:nth-child(2) { background-color: #febc2e; }
+.mockup-window-dots span:nth-child(3) { background-color: #28c840; }
+
+/* --- Resizable split pane --------------------------------------------------
+   Handle thickness is a variable so both panes can subtract exactly half of it
+   from their `flex-basis` and still sum to 100% — without it the trailing pane
+   silently loses a sliver to the parent's `overflow-hidden`. Thicker on touch
+   (the pane stacks, so the handle is horizontal and needs a real tap target),
+   unchanged at the `nav:` breakpoint and above to preserve the desktop look.
+   Keep the 900px value in sync with `--breakpoint-nav` above. */
+.split-pane {
+  --split-handle: 16px;
+}
+
+@media (min-width: 900px) {
+  .split-pane {
+    --split-handle: 6px;
+  }
 }

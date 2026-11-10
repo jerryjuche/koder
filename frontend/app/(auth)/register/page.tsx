@@ -91,7 +91,7 @@ export default function RegisterPage() {
       initial={{ opacity: 0, y: 24, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-3xl p-8 shadow-2xl shadow-input"
+      className="bg-brand-charcoal-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-xl shadow-black/30 shadow-input"
     >
       <div className="flex flex-col items-center text-center mb-8">
         <motion.div
@@ -153,7 +153,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <LabelInputContainer>
               <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider text-brand-offwhite-muted">
                 First Name

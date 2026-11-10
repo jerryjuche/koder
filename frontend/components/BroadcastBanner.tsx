@@ -1,80 +1,87 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Info, Sparkles, RefreshCw, Wrench, Megaphone, X, ArrowRight } from "lucide-react";
+import {
+  Info,
+  AlertTriangle,
+  Sparkles,
+  Star,
+  ShieldAlert,
+  Bell,
+  X,
+  ArrowRight,
+} from "lucide-react";
 import { fetchActiveBroadcasts, dismissBroadcast } from "@/lib/api";
 import { useWebSocket } from "@/lib/event";
 import { Broadcast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const TYPE_STYLES: Record<string, { icon: React.ElementType; border: string; gradient: string; iconBg: string; iconColor: string; titleColor: string; textColor: string; button: string }> = {
+const TYPE_CONFIG: Record<
+  string,
+  {
+    icon: React.ElementType;
+    bg: string;
+    border: string;
+    text: string;
+    muted: string;
+    link: string;
+    linkHover: string;
+  }
+> = {
   info: {
     icon: Info,
-    border: "border-blue-500/20",
-    gradient: "from-blue-500/5 via-blue-500/[0.03] to-transparent",
-    iconBg: "bg-blue-500/10",
-    iconColor: "text-blue-400",
-    titleColor: "text-blue-300",
-    textColor: "text-blue-200/70",
-    button: "bg-blue-400/15 text-blue-300 hover:bg-blue-400/25",
+    bg: "bg-blue-500/10",
+    border: "border-b border-blue-500/20",
+    text: "text-blue-200",
+    muted: "text-blue-300/60",
+    link: "text-blue-300",
+    linkHover: "hover:text-blue-200",
   },
   warning: {
     icon: AlertTriangle,
-    border: "border-amber-500/20",
-    gradient: "from-amber-500/5 via-amber-500/[0.03] to-transparent",
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-400",
-    titleColor: "text-amber-300",
-    textColor: "text-amber-200/70",
-    button: "bg-amber-400/15 text-amber-300 hover:bg-amber-400/25",
+    bg: "bg-amber-500/10",
+    border: "border-b border-amber-500/20",
+    text: "text-amber-200",
+    muted: "text-amber-300/60",
+    link: "text-amber-300",
+    linkHover: "hover:text-amber-200",
   },
   update: {
-    icon: RefreshCw,
-    border: "border-emerald-500/20",
-    gradient: "from-emerald-500/5 via-emerald-500/[0.03] to-transparent",
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-400",
-    titleColor: "text-emerald-300",
-    textColor: "text-emerald-200/70",
-    button: "bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/25",
+    icon: Star,
+    bg: "bg-emerald-500/10",
+    border: "border-b border-emerald-500/20",
+    text: "text-emerald-200",
+    muted: "text-emerald-300/60",
+    link: "text-emerald-300",
+    linkHover: "hover:text-emerald-200",
   },
   new_feature: {
     icon: Sparkles,
-    border: "border-purple-500/20",
-    gradient: "from-purple-500/5 via-purple-500/[0.03] to-transparent",
-    iconBg: "bg-purple-500/10",
-    iconColor: "text-purple-400",
-    titleColor: "text-purple-300",
-    textColor: "text-purple-200/70",
-    button: "bg-purple-400/15 text-purple-300 hover:bg-purple-400/25",
+    bg: "bg-violet-500/10",
+    border: "border-b border-violet-500/20",
+    text: "text-violet-200",
+    muted: "text-violet-300/60",
+    link: "text-violet-300",
+    linkHover: "hover:text-violet-200",
   },
   maintenance: {
-    icon: Wrench,
-    border: "border-red-500/20",
-    gradient: "from-red-500/5 via-red-500/[0.03] to-transparent",
-    iconBg: "bg-red-500/10",
-    iconColor: "text-red-400",
-    titleColor: "text-red-300",
-    textColor: "text-red-200/70",
-    button: "bg-red-400/15 text-red-300 hover:bg-red-400/25",
+    icon: ShieldAlert,
+    bg: "bg-red-500/10",
+    border: "border-b border-red-500/20",
+    text: "text-red-200",
+    muted: "text-red-300/60",
+    link: "text-red-300",
+    linkHover: "hover:text-red-200",
   },
   announcement: {
-    icon: Megaphone,
-    border: "border-sky-500/20",
-    gradient: "from-sky-500/5 via-sky-500/[0.03] to-transparent",
-    iconBg: "bg-sky-500/10",
-    iconColor: "text-sky-400",
-    titleColor: "text-sky-300",
-    textColor: "text-sky-200/70",
-    button: "bg-sky-400/15 text-sky-300 hover:bg-sky-400/25",
+    icon: Bell,
+    bg: "bg-sky-500/10",
+    border: "border-b border-sky-500/20",
+    text: "text-sky-200",
+    muted: "text-sky-300/60",
+    link: "text-sky-300",
+    linkHover: "hover:text-sky-200",
   },
-};
-
-const PRIORITY_BADGES: Record<string, string> = {
-  low: "border-blue-500/20 bg-blue-500/10 text-blue-400",
-  medium: "border-amber-500/20 bg-amber-500/10 text-amber-400",
-  high: "border-orange-500/20 bg-orange-500/10 text-orange-400",
-  critical: "border-red-500/20 bg-red-500/10 text-red-400",
 };
 
 export default function BroadcastBanner() {
@@ -121,11 +128,20 @@ export default function BroadcastBanner() {
     };
   }, [fetchBanners]);
 
-  useWebSocket({
-    'broadcast.created': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-    'broadcast.updated': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-    'broadcast.deleted': useCallback(() => { fetchBanners(); }, [fetchBanners]),
-  }, [fetchBanners]);
+  useWebSocket(
+    {
+      "broadcast.created": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+      "broadcast.updated": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+      "broadcast.deleted": useCallback(() => {
+        fetchBanners();
+      }, [fetchBanners]),
+    },
+    [fetchBanners],
+  );
 
   const handleDismiss = async (id: string) => {
     await dismissBroadcast(id);
@@ -137,59 +153,63 @@ export default function BroadcastBanner() {
   if (visible.length === 0) return null;
 
   return (
-    <div className="space-y-2 mb-5 w-fit mx-auto">
+    <div className="w-full">
       {visible.map((broadcast) => {
-        const style = TYPE_STYLES[broadcast.type] || TYPE_STYLES.info;
-        const Icon = style.icon;
+        const config = TYPE_CONFIG[broadcast.type] || TYPE_CONFIG.info;
+        const Icon = config.icon;
+        const hasMessage =
+          broadcast.message && broadcast.message.trim().length > 0;
 
         return (
           <div
             key={broadcast.id}
             className={cn(
-              "relative flex items-center gap-3 rounded-xl border px-4 py-2.5",
-              "animate-in fade-in slide-in-from-top-2 duration-500",
-              style.gradient,
-              style.border,
-              broadcast.priority === "critical" && "ring-1 ring-red-500/30",
+              "relative w-full overflow-hidden",
+              config.bg,
+              config.border,
+              "animate-in fade-in slide-in-from-top-0 duration-300",
             )}
           >
-            <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", style.iconBg)}>
-              <Icon className={cn("size-4", style.iconColor)} />
-            </div>
+            <div className="mx-auto flex max-w-7xl items-start sm:items-center gap-3 px-4 py-3">
+              <Icon className={cn("h-4 w-4 shrink-0", config.text)} />
 
-            <span className={cn("text-sm font-semibold truncate", style.titleColor)}>
-              {broadcast.title}
-            </span>
+              <p className={cn("min-w-0 flex-1 text-sm leading-snug", config.text)}>
+                <span className="font-semibold">{broadcast.title}</span>
+                {hasMessage &&
+                  broadcast.message.trim().toLowerCase() !==
+                    broadcast.title.trim().toLowerCase() && (
+                    <span className={cn("block sm:inline sm:ml-1.5 mt-0.5 sm:mt-0", config.muted)}>
+                      {broadcast.message}
+                    </span>
+                  )}
+              </p>
 
-            <span className={cn(
-              "rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider leading-none shrink-0",
-              PRIORITY_BADGES[broadcast.priority] || PRIORITY_BADGES.medium
-            )}>
-              {broadcast.priority}
-            </span>
+              {broadcast.action_label && broadcast.action_url && (
+                <a
+                  href={broadcast.action_url}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors",
+                    config.link,
+                    config.linkHover,
+                  )}
+                >
+                  {broadcast.action_label}
+                  <ArrowRight className="h-3 w-3" />
+                </a>
+              )}
 
-            <span className="text-[10px] text-muted-foreground/40 font-medium shrink-0">Admin</span>
-
-            {broadcast.action_label && broadcast.action_url && (
-              <a
-                href={broadcast.action_url}
+              <button
+                onClick={() => handleDismiss(broadcast.id)}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shrink-0",
-                  style.button,
+                  "ml-1 shrink-0 p-0.5 rounded transition-colors",
+                  config.muted,
+                  "hover:bg-white/5",
                 )}
+                aria-label="Dismiss"
               >
-                {broadcast.action_label}
-                <ArrowRight size={10} />
-              </a>
-            )}
-
-            <button
-              onClick={() => handleDismiss(broadcast.id)}
-              className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 hover:bg-muted/30 hover:text-foreground transition-colors"
-              aria-label="Dismiss"
-            >
-              <X size={13} />
-            </button>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         );
       })}

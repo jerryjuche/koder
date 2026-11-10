@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchApi } from "./api";
 import { clearCache } from "./cache";
+import { subscribe } from "./event";
 
 export interface Notification {
   id: string;
@@ -8,6 +9,7 @@ export interface Notification {
   type: string;
   message: string;
   related_id?: string;
+  related_slug?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -87,9 +89,17 @@ export function useNotifications() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    // Instant refresh when another tab triggers a like on one of my solutions
+    // (the 7s poll is the fallback). This is a no-op for everyone else.
+    const unsubLike = subscribe("solution.liked", () => {
+      invalidateCache();
+      fetchNotifications();
+    });
+
     return () => {
       clearTimeout(timeoutId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      unsubLike();
     };
   }, [fetchNotifications]);
 

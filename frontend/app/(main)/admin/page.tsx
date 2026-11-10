@@ -31,6 +31,7 @@ import {
   BugPlay,
   Users,
   Mail,
+  Eye,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -71,10 +72,12 @@ import PendingContributions from "./PendingContributions";
 import FeedbackPanel from "./FeedbackPanel";
 import BroadcastPanel from "./BroadcastPanel";
 import EmailBroadcastPanel from "./EmailBroadcastPanel";
+import BestPracticesAnnouncementPanel from "./BestPracticesAnnouncementPanel";
 import ProblemEditPanel from "./ProblemEditPanel";
 import ProblemReports from "./ProblemReports";
 import UserVerificationPanel from "./UserVerificationPanel";
 import EmailLogsPanel from "./EmailLogsPanel";
+import EmailPreviewPanel from "./EmailPreviewPanel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -342,7 +345,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pt-4 pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pt-4 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-brand-offwhite mb-2">
@@ -473,12 +476,12 @@ export default function AdminDashboard() {
               placeholder="Filter problems..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64"
+              className="bg-brand-charcoal-base border border-brand-charcoal-border rounded text-sm px-8 py-1.5 focus:outline-none focus:border-brand-muted-gold w-64 max-w-full"
             />
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[420px] scrollbar-thin">
+        <div className="overflow-x-auto overflow-y-auto max-h-[420px] scrollbar-thin">
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-brand-offwhite-muted uppercase tracking-wider border-b border-brand-charcoal-border bg-brand-charcoal-card sticky top-0 z-10">
               <tr>
@@ -1156,6 +1159,34 @@ export default function AdminDashboard() {
           </AccordionItem>
         )}
 
+        {/* Email Previews (render before broadcasting) */}
+        <AccordionItem
+          value="email-preview"
+          className="border border-brand-charcoal-border rounded-xl bg-brand-charcoal-card overflow-hidden"
+        >
+          <AccordionTrigger className="px-5 py-4 hover:bg-brand-charcoal-hover/30 transition-colors duration-200 [&[data-state=open]>svg]:!rotate-180">
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-brand-muted-gold/15 flex items-center justify-center shrink-0">
+                  <Eye size={16} className="text-brand-muted-gold" />
+                </div>
+                <div className="text-left min-w-0">
+                  <h3 className="text-sm font-bold text-brand-offwhite">
+                    Email Previews
+                  </h3>
+                  <p className="text-[11px] text-brand-offwhite-muted/60">
+                    Render every transactional template exactly as it will be
+                    delivered — nothing is sent
+                  </p>
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-5 pb-5 pt-4">
+            <EmailPreviewPanel problems={problems} />
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Email Logs (delivery diagnostics) */}
         <AccordionItem
           value="email-logs"
@@ -1293,6 +1324,13 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Best Practices Announcement */}
+          <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
+            <div className="p-4">
+              <BestPracticesAnnouncementPanel />
+            </div>
+          </div>
+
           {/* Broadcasts */}
           <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-brand-charcoal-border flex items-center gap-2">
@@ -1367,7 +1405,7 @@ export default function AdminDashboard() {
               Live
             </div>
           </div>
-          <div className="p-5 space-y-6 overflow-y-auto max-h-[calc(100vh-240px)] scrollbar-thin">
+          <div className="p-5 space-y-6 overflow-y-auto max-h-[calc(100dvh-240px)] scrollbar-thin">
             {activityLogs.map((log, i) => {
               const Icon = ICON_MAP[log.icon] || Activity;
               return (

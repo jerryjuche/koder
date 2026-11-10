@@ -101,7 +101,10 @@ export type CodeSnippetProps = {
   collapsed?: boolean;
   maxHeight?: number;
   lineNumbers?: boolean;
+  hideCopy?: boolean;
+  hideHeader?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 };
 
 export function CodeSnippet({
@@ -111,7 +114,10 @@ export function CodeSnippet({
   collapsed = false,
   maxHeight = 180,
   lineNumbers = true,
+  hideCopy = false,
+  hideHeader = false,
   className,
+  style,
 }: CodeSnippetProps) {
   const [internal, setInternal] = useState(files[0]?.language ?? "");
   const activeValue = controlledValue ?? internal;
@@ -125,8 +131,9 @@ export function CodeSnippet({
           "group relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
           className
         )}
+        style={style}
       >
-        {files.length > 1 ? (
+        {!hideHeader && (files.length > 1 ? (
           <div className="flex items-center justify-between px-1.5 py-1 border-b border-border/40 bg-muted/30">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {files.map((f) => {
@@ -148,7 +155,7 @@ export function CodeSnippet({
                 );
               })}
             </div>
-            <CopyButton />
+            {!hideCopy && <CopyButton />}
           </div>
         ) : activeFile ? (
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-muted/30">
@@ -162,9 +169,9 @@ export function CodeSnippet({
                 {langLabel[activeFile.language] || activeFile.language}
               </span>
             </div>
-            <CopyButton />
+            {!hideCopy && <CopyButton />}
           </div>
-        ) : null}
+        ) : null)}
         <SnippetBody collapsed={collapsed} maxHeight={maxHeight} lineNumbers={lineNumbers} />
       </div>
     </SnippetCtx.Provider>
@@ -300,7 +307,7 @@ function CopyButton({ timeout = 2000 }: { timeout?: number }) {
         "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all shrink-0",
         copied
           ? "text-emerald-500 bg-emerald-500/10"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 can-hover:opacity-0 group-hover:opacity-100 focus:opacity-100"
       )}
       title="Copy code"
     >

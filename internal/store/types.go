@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -281,13 +282,14 @@ type UserProblem struct {
 
 // Notification represents an alert for a user.
 type Notification struct {
-	ID        pgtype.UUID  `db:"id" json:"id"`
-	UserID    pgtype.UUID  `db:"user_id" json:"user_id"`
-	Type      string       `db:"type" json:"type"`
-	Message   string       `db:"message" json:"message"`
-	RelatedID *pgtype.UUID `db:"related_id" json:"related_id,omitempty"`
-	IsRead    bool         `db:"is_read" json:"is_read"`
-	CreatedAt time.Time    `db:"created_at" json:"created_at"`
+	ID          pgtype.UUID  `db:"id" json:"id"`
+	UserID      pgtype.UUID  `db:"user_id" json:"user_id"`
+	Type        string       `db:"type" json:"type"`
+	Message     string       `db:"message" json:"message"`
+	RelatedID   *pgtype.UUID `db:"related_id" json:"related_id,omitempty"`
+	RelatedSlug string       `db:"related_slug" json:"related_slug,omitempty"`
+	IsRead      bool         `db:"is_read" json:"is_read"`
+	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
 }
 
 // NewUserProblem is the payload for creating a community contribution.
@@ -375,12 +377,57 @@ type CommunitySolution struct {
 	Verified      bool        `json:"verified"`
 	ProblemID     pgtype.UUID `json:"problem_id"`
 	ProblemSlug   string      `json:"problem_slug,omitempty"`
+	ProblemTitle  string      `json:"problem_title,omitempty"`
+	Module        string      `json:"module,omitempty"`
 	Language      string      `json:"language"`
 	Code          string      `json:"code"`
 	RuntimeMs     int         `json:"runtime_ms"`
 	Likes         int         `json:"likes"`
 	HasLiked      bool        `json:"has_liked"`
 	CreatedAt     time.Time   `json:"created_at"`
+}
+
+// SolutionExplanation is a cached AI-generated explanation of a best-practice solution.
+type SolutionExplanation struct {
+	SubmissionID    pgtype.UUID `json:"submission_id"`
+	Language        string      `json:"language"`
+	Summary         string      `json:"summary"`
+	Approach        string      `json:"approach"`
+	TimeComplexity  string      `json:"time_complexity"`
+	SpaceComplexity string      `json:"space_complexity"`
+	KeyTechniques   []string    `json:"key_techniques"`
+	Strengths       []string    `json:"strengths"`
+	Improvements    []string    `json:"improvements"`
+	QualityScore    int         `json:"quality_score"`
+	EfficiencyScore int         `json:"efficiency_score"`
+	ReadabilityScore int        `json:"readability_score"`
+	CorrectnessScore int        `json:"correctness_score"`
+	BestPracticesScore int      `json:"best_practices_score"`
+	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// SolutionForExplain describes a passable submission + its problem context,
+// used as the input for AI code explanation.
+type SolutionForExplain struct {
+	SubmissionID       pgtype.UUID
+	AuthorID           pgtype.UUID
+	Language           string
+	Code               string
+	ProblemTitle       string
+	ProblemSlug        string
+	ProblemStatement   string
+	ProblemConstraints string
+	Module             string
+	RuntimeMs          int
+}
+
+// SubmissionLikeSummary carries the author + problem context needed to notify
+// a submission's author when their solution receives a like.
+type SubmissionLikeSummary struct {
+	AuthorID     uuid.UUID
+	ProblemID    uuid.UUID
+	ProblemTitle string
+	ProblemSlug  string
 }
 
 // AIUsageLog records a single AI assist call for monitoring and billing.

@@ -12,7 +12,8 @@ export type EventType =
   | 'feedback.submitted'
   | 'lesson.completed'
   | 'user.xp.updated'
-  | 'progress.updated';
+  | 'progress.updated'
+  | 'solution.liked';
 
 type EventCallback = (data: any) => void;
 

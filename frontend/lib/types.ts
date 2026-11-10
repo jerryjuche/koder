@@ -135,6 +135,20 @@ export type EmailLog = {
   updated_at: string;
 };
 
+export type EmailTemplateId =
+  | "password_reset"
+  | "problem_reminder"
+  | "best_practices";
+
+/** Admin preview of a rendered transactional email (nothing is sent). */
+export type EmailPreview = {
+  template: EmailTemplateId;
+  subject: string;
+  from: string;
+  html: string;
+  send_ready: boolean;
+};
+
 export type Submission = {
   id: string;
   problem_id: string;
@@ -200,6 +214,8 @@ export type CommunitySolution = {
   verified: boolean;
   problem_id: string;
   problem_slug?: string;
+  problem_title?: string;
+  module?: string;
   language: string;
   code: string;
   runtime_ms: number;
@@ -208,16 +224,31 @@ export type CommunitySolution = {
   created_at: string;
 };
 
+export type SolutionExplanation = {
+  summary: string;
+  approach: string;
+  time_complexity: string;
+  space_complexity: string;
+  key_techniques: string[];
+  strengths: string[];
+  improvements: string[];
+  quality_score: number;
+  efficiency_score: number;
+  readability_score: number;
+  correctness_score: number;
+  best_practices_score: number;
+};
+
 export type NotificationItem = {
   id: string;
   user_id: string;
   type: string;
   message: string;
   related_id?: string;
+  related_slug?: string;
   is_read: boolean;
   created_at: string;
 };
-
 export type LeaderboardEntry = {
   rank: number;
   user: User;

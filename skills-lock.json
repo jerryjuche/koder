@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "cleanui": {
+      "source": "peterhdd/cleanui",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "0c6e524d22b837e4831c4e9796cd253f07e8a7504661943b1153f87f88b6365c"
+    },
+    "design-better": {
+      "source": "buildgreatproducts/builder-os",
+      "sourceType": "github",
+      "skillPath": "skills/design-better/SKILL.md",
+      "computedHash": "81d1155e34e23b5f9e945310d064b7e1fb5eabb50102db97c945916bdc2721d9"
+    },
+    "design-mobile-apps": {
+      "source": "designed-by-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/design-mobile-apps/SKILL.md",
+      "computedHash": "52c6844cc9284ea07aa0346adc67c64756475e2e29f1233d3a0dc66dba45bdcc"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    },
+    "i-have-adhd": {
+      "source": "ayghri/i-have-adhd",
+      "sourceType": "github",
+      "skillPath": "skills/i-have-adhd/SKILL.md",
+      "computedHash": "e12ff08dfe4b5baae7065c2f05a5738b8a55f3ccbed82ba45f5496c8e83b2a25"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
+    }
+  }
+}

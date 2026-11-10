@@ -1,46 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Trophy,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Search,
-  CheckCircle2,
-  Clock,
-  Zap,
-  Medal,
-  Crown,
-  Users,
-} from "lucide-react";
+import { Search, Users, X } from "lucide-react";
 import { fetchLeaderboard, fetchUser } from "@/lib/api";
 import { LeaderboardEntry, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/base/avatar/avatar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
-import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import Podium from "@/components/leaderboard/Podium";
+import RankRow from "@/components/leaderboard/RankRow";
 
 type Period = "weekly" | "monthly" | "all";
 
 const DISPLAY_LIMIT = 15;
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-}
+const PERIOD_LABELS: Record<Period, string> = {
+  weekly: "This Week",
+  monthly: "This Month",
+  all: "All Time",
+};
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "—";
@@ -53,55 +30,55 @@ function formatTime(ms: number): string {
   return `${minutes}m ${remainder.toFixed(1)}s`;
 }
 
-function getRankSuffix(rank: number): string {
-  if (rank === 1) return "st";
-  if (rank === 2) return "nd";
-  if (rank === 3) return "rd";
-  return "th";
+function Stat({ label, value, toneClass }: { label: string; value: string; toneClass: string }) {
+  return (
+    <div className="flex flex-col-reverse text-left sm:text-right">
+      <dt className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-brand-offwhite-muted">
+        {label}
+      </dt>
+      <dd className={cn("text-lg font-extrabold leading-none tabular-nums", toneClass)}>
+        {value}
+      </dd>
+    </div>
+  );
 }
 
-const PERIOD_LABELS: Record<Period, string> = {
-  weekly: "This Week",
-  monthly: "This Month",
-  all: "All Time",
-};
-
-const podiumConfig: Record<
-  number,
-  {
-    cardBg: string;
-    avatarRing: string;
-    rankBadge: string;
-    rankIcon: React.ElementType;
-    rankColor: string;
-  }
-> = {
-  1: {
-    cardBg:
-      "bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30 shadow-lg shadow-amber-500/5",
-    avatarRing: "ring-amber-400",
-    rankBadge:
-      "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30",
-    rankIcon: Crown,
-    rankColor: "text-amber-400",
-  },
-  2: {
-    cardBg:
-      "bg-gradient-to-b from-slate-400/10 to-transparent border-slate-400/20 shadow-md shadow-slate-400/5",
-    avatarRing: "ring-slate-400",
-    rankBadge: "bg-slate-500/20 text-slate-300 border border-slate-400/30",
-    rankIcon: Medal,
-    rankColor: "text-slate-300",
-  },
-  3: {
-    cardBg:
-      "bg-gradient-to-b from-orange-600/10 to-transparent border-orange-500/20 shadow-md shadow-orange-500/5",
-    avatarRing: "ring-orange-500",
-    rankBadge: "bg-orange-500/20 text-orange-400 border border-orange-500/30",
-    rankIcon: Medal,
-    rankColor: "text-orange-400",
-  },
-};
+function LoadingSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl animate-pulse px-4 pb-10 pt-3 sm:px-6 lg:px-8">
+      <div className="flex items-end justify-between gap-3 pb-1">
+        <div className="space-y-2">
+          <div className="h-3 w-12 rounded bg-brand-charcoal-card" />
+          <div className="h-7 w-40 rounded-lg bg-brand-charcoal-card" />
+        </div>
+        <div className="h-8 w-24 rounded-xl bg-brand-charcoal-card" />
+      </div>
+      <div className="grid grid-cols-3 items-end gap-2 pt-5 sm:gap-3">
+        <div className="h-36 rounded-2xl bg-brand-charcoal-card" />
+        <div className="h-44 rounded-2xl bg-brand-charcoal-card" />
+        <div className="h-36 rounded-2xl bg-brand-charcoal-card" />
+      </div>
+      <div className="mt-5 h-16 rounded-2xl bg-brand-charcoal-card" />
+      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-brand-charcoal-card">
+        <div className="flex flex-col gap-2.5 border-b border-border/60 p-3">
+          <div className="h-10 rounded-xl bg-brand-charcoal-panel" />
+          <div className="h-10 rounded-lg bg-brand-charcoal-panel" />
+        </div>
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3 border-t border-border/40 px-4 py-3">
+            <div className="h-4 w-4 rounded bg-brand-charcoal-panel" />
+            <div className="size-10 shrink-0 rounded-full bg-brand-charcoal-panel" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-28 rounded bg-brand-charcoal-panel" />
+              <div className="h-3 w-20 rounded bg-brand-charcoal-panel" />
+            </div>
+            <div className="h-4 w-14 rounded bg-brand-charcoal-panel" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function LeaderboardClient() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -170,420 +147,154 @@ export default function LeaderboardClient() {
     [leaderboard, user]
   );
 
+  /** Podium placement order — the winner sits in the middle column. */
   const top3 = [leaderboard[1], leaderboard[0], leaderboard[2]];
 
-  if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-4 pb-12 px-4">
-        <div className="h-10 w-48 bg-card rounded-xl mx-auto" />
-        <div className="h-4 w-64 bg-card rounded-xl mx-auto" />
-        <div className="flex justify-center gap-5 items-end mt-12">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={cn(
-                "bg-card rounded-2xl border border-border",
-                i === 2 ? "w-72 h-52" : "w-60 h-40"
-              )}
-            />
-          ))}
-        </div>
-        <div className="h-16 bg-card rounded-2xl border border-border" />
-        <div className="bg-card rounded-2xl border border-border h-72" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingSkeleton />;
 
   return (
-    <TooltipProvider>
-      <div className="max-w-5xl mx-auto pb-12 px-4 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="text-center space-y-4 pt-4 pb-2 relative">
-          <div className="relative inline-flex">
-            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-card border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
-              <Trophy size={32} className="text-primary" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+    <div className="mx-auto max-w-5xl animate-in fade-in duration-500 px-4 pb-10 pt-3 sm:px-6 lg:px-8">
+      {/* Header — same eyebrow + extrabold name rhythm as the dashboard */}
+      <header className="flex items-end justify-between gap-3 pb-1">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold tracking-wide text-brand-muted-gold">Ranks</p>
+          <h1 className="mt-1 truncate text-[26px] font-extrabold leading-none tracking-tight text-foreground sm:text-3xl">
             Leaderboard
           </h1>
-          <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
-            <Users size={14} />
-            {leaderboard.length} student
-            {leaderboard.length !== 1 ? "s" : ""} competing
-          </p>
+        </div>
+        <p className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-brand-charcoal-card px-2.5 py-1.5 text-xs font-semibold text-brand-offwhite-muted">
+          <Users size={13} className="text-brand-muted-gold" aria-hidden="true" />
+          <span className="tabular-nums">{leaderboard.length}</span>
+          <span className="hidden sm:inline">students</span>
+        </p>
+      </header>
+
+      {leaderboard.length >= 1 && <Podium entries={top3} />}
+
+      {/* Your ranking */}
+      {user && myEntry && (
+        <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-primary/25 bg-primary/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 font-mono text-base font-bold tabular-nums text-primary">
+              {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
+            </span>
+            <Avatar
+              src={user.google_avatar_url}
+              name={user.name}
+              colorIndex={user.colorIndex}
+              size="md"
+              verified={user.verified}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                Your ranking
+              </p>
+              <p title={user.name} className="truncate text-sm font-bold text-foreground">
+                {user.username || user.studentId}
+              </p>
+              <p className="truncate text-xs text-brand-offwhite-muted">{user.studentId}</p>
+            </div>
+          </div>
+          <dl className="flex items-center gap-5 sm:gap-7">
+            <Stat label="XP" value={user.xp.toLocaleString()} toneClass="text-primary" />
+            <Stat label="Solved" value={String(user.solvedCount)} toneClass="text-foreground" />
+            <Stat label="Best" value={formatTime(myEntry.bestTimeMs)} toneClass="text-foreground" />
+          </dl>
+        </div>
+      )}
+
+      {/* Rank list */}
+      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-brand-charcoal-card">
+        <div className="flex flex-col gap-2.5 border-b border-border/60 p-3">
+          <div className="relative">
+            <Search
+              size={15}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by username or name…"
+              aria-label="Search students"
+              className="h-10 w-full rounded-xl border border-border bg-brand-charcoal-panel pl-9 pr-10 text-sm font-medium text-foreground transition-colors placeholder:text-brand-offwhite-muted/80 hover:border-white/[0.12] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-search-cancel-button]:appearance-none"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-brand-offwhite-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div
+            role="group"
+            aria-label="Ranking period"
+            className="inline-flex w-full items-center gap-0.5 rounded-lg border border-border bg-brand-charcoal-panel p-1"
+          >
+            {(["weekly", "monthly", "all"] as Period[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={period === p}
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  "h-8 flex-1 rounded-md px-2 text-xs font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  period === p
+                    ? "bg-primary/15 text-primary ring-1 ring-primary/25"
+                    : "text-brand-offwhite-muted hover:bg-white/[0.04] hover:text-foreground",
+                )}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Podium */}
-        {leaderboard.length >= 1 && (
-          <div className="flex justify-center gap-3 sm:gap-4 items-end pt-8 pb-4">
-            {top3.map((entry, i) => {
-              if (!entry?.user)
-                return (
-                  <div key={"empty-" + i} className={cn("w-56", i === 1 ? "h-52" : "h-44")} />
-                );
-              const rankVal = i === 1 ? 1 : i === 0 ? 2 : 3;
-              const isFirst = rankVal === 1;
-              const config = podiumConfig[rankVal];
-              const RankIcon = config.rankIcon;
-
-              return (
-                <div
-                  key={rankVal}
-                  className={cn(
-                    "relative flex flex-col items-center px-5 pb-5 pt-10 rounded-2xl border transition-transform hover:-translate-y-1 duration-200",
-                    config.cardBg,
-                    isFirst ? "w-64" : "w-56"
-                  )}
-                >
-                  {/* Rank badge */}
-                  <div
-                    className={cn(
-                      "absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg",
-                      config.rankBadge
-                    )}
-                  >
-                    <RankIcon size={13} />
-                    <span>{rankVal}{getRankSuffix(rankVal)}</span>
-                  </div>
-
-                  {/* Avatar */}
-                  <div className="mb-3">
-                    <Avatar
-                      src={entry.user.google_avatar_url}
-                      name={entry.user.name}
-                      colorIndex={entry.user.colorIndex || 0}
-                      size="podium"
-                      verified={entry.user.verified}
-                      className={cn(
-                        "shadow-lg ring-[3px] ring-offset-2 ring-offset-background",
-                        config.avatarRing
-                      )}
-                    />
-                  </div>
-
-                  {/* Name + Stats */}
-                  <div className="text-center space-y-1.5 w-full">
-                    <ProfileHoverCard user={entry.user}>
-                      <p
-                        className={cn(
-                          "font-bold truncate max-w-[12rem] mx-auto cursor-pointer",
-                          isFirst
-                            ? "text-[15px] text-foreground"
-                            : "text-sm text-muted-foreground"
-                        )}
-                      >
-                        {entry.user.name}
-                      </p>
-                    </ProfileHoverCard>
-
-                    <div className="flex items-center justify-center gap-1.5 text-primary font-semibold">
-                      <Zap size={12} className="shrink-0" />
-                      <span className="text-sm">{(entry.user.xp || 0).toLocaleString()} XP</span>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
-                      <CheckCircle2 size={11} className="text-amber-400 shrink-0" />
-                      <span className="text-[11px]">{entry.user.solvedCount ?? 0} solved</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* My Ranking Banner */}
-        {user && myEntry && (
-          <Card className="bg-gradient-to-r from-primary/10 via-card to-card border-primary/25 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-primary/5 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center font-mono font-bold text-primary text-lg shrink-0">
-                {myRankInFull > 0 ? `#${myRankInFull}` : "—"}
-              </div>
-              <Avatar
-                src={user.google_avatar_url}
-                name={user.name}
-                colorIndex={user.colorIndex}
-                size="md"
-                verified={user.verified}
-                className="ring-2 ring-primary/30 ring-offset-2 ring-offset-background shrink-0"
+        <div className="divide-y divide-border/50">
+          {displayed.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <Users size={20} className="mx-auto text-brand-offwhite-muted" aria-hidden="true" />
+              <p className="mt-2 text-sm font-medium text-foreground">
+                No students match “{search}”.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-brand-offwhite-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+            displayed.map((entry, index) => (
+              <RankRow
+                key={entry.user?.id || index}
+                entry={entry}
+                rank={index + 1}
+                isMe={entry.user?.id === user?.id}
+                bestLabel={
+                  entry.bestTimeMs != null && entry.bestTimeMs > 0
+                    ? formatTime(entry.bestTimeMs)
+                    : "—"
+                }
               />
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">
-                  Your Ranking
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="text-base font-bold text-foreground font-mono cursor-default">
-                      {user.username || user.studentId}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs bg-black/90 border border-white/10 text-white/80">
-                    {user.name}
-                  </TooltipContent>
-                </Tooltip>
-                <div className="text-xs text-muted-foreground font-mono">
-                  {user.studentId}
-                </div>
-              </div>
-            </div>
+            ))
+          )}
+        </div>
 
-            <div className="flex items-center gap-6 sm:gap-8">
-              <div className="text-center">
-                <div className="text-xl font-bold text-primary">
-                  {user.xp.toLocaleString()}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  XP
-                </div>
-              </div>
-              <div className="w-px h-8 bg-border hidden sm:block" />
-              <div className="text-center">
-                <div className="text-xl font-bold text-foreground">
-                  {user.solvedCount}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Solved
-                </div>
-              </div>
-              <div className="w-px h-8 bg-border hidden sm:block" />
-              <div className="text-center">
-                <div className="text-xl font-bold text-cyan-400">
-                  {formatTime(myEntry.bestTimeMs)}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Best
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Table */}
-        <Card className="overflow-hidden shadow-sm">
-          {/* Toolbar */}
-          <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-muted/20">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
-              <Input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by username or name..."
-                className="pl-9 h-9 text-sm"
-              />
-            </div>
-
-            <div className="flex items-center bg-muted border border-border rounded-lg p-0.5 gap-0.5">
-              {(["weekly", "monthly", "all"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={cn(
-                    "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
-                    period === p
-                      ? "bg-card text-foreground shadow-sm border border-border"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {PERIOD_LABELS[p]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[560px]">
-              <thead>
-                <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3 w-14 text-center">Rank</th>
-                  <th className="px-2 py-3 w-8 text-center">
-                    <span className="sr-only">Trend</span>
-                  </th>
-                  <th className="px-4 py-3">Username</th>
-                  <th className="px-5 py-3 text-right">XP</th>
-                  <th className="px-5 py-3 text-center">Solved</th>
-                  <th className="px-5 py-3 text-right">Best Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {displayed.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-5 py-10 text-center text-muted-foreground text-sm"
-                    >
-                      {search
-                        ? `No students match "${search}"`
-                        : "No data available."}
-                    </td>
-                  </tr>
-                ) : (
-                  displayed.map((entry, idx) => {
-                    const rank = entry.rank ?? idx + 1;
-                    const rowUser = entry.user;
-                    const isMe = user?.id === rowUser?.id;
-
-                    return (
-                      <tr
-                        key={rowUser?.id || idx}
-                        style={{ animationDelay: `${idx * 30}ms` }}
-                        className={cn(
-                          "group transition-all duration-150 animate-in fade-in slide-in-from-bottom-1",
-                          isMe
-                            ? "bg-primary/5 border-l-2 border-l-primary"
-                            : "hover:bg-muted/40"
-                        )}
-                      >
-                        {/* Rank */}
-                        <td className="px-5 py-3.5 text-center">
-                          {rank <= 3 ? (
-                            <div
-                              className={cn(
-                                "w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-mono text-xs font-bold",
-                                rank === 1
-                                  ? "bg-amber-500/20 text-amber-400"
-                                  : rank === 2
-                                    ? "bg-slate-400/15 text-slate-300"
-                                    : "bg-orange-500/15 text-orange-400"
-                              )}
-                            >
-                              {rank}
-                            </div>
-                          ) : (
-                            <span className="text-sm font-mono text-muted-foreground">
-                              {rank}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Delta */}
-                        <td className="px-2 py-3.5 text-center">
-                          {entry.rankDelta === 0 ? (
-                            <Minus
-                              size={13}
-                              className="text-muted-foreground/50 mx-auto"
-                            />
-                          ) : entry.rankDelta > 0 ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-center text-amber-400 gap-0.5 cursor-default">
-                                  <TrendingUp size={12} />
-                                  <span className="text-[10px] font-bold">
-                                    {entry.rankDelta}
-                                  </span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="text-xs">
-                                Up {entry.rankDelta} rank
-                                {entry.rankDelta !== 1 ? "s" : ""}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-center text-rose-400 gap-0.5 cursor-default">
-                                  <TrendingDown size={12} />
-                                  <span className="text-[10px] font-bold">
-                                    {Math.abs(entry.rankDelta)}
-                                  </span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="text-xs">
-                                Down {Math.abs(entry.rankDelta)} rank
-                                {Math.abs(entry.rankDelta) !== 1 ? "s" : ""}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </td>
-
-                        {/* Student - Username primary, name on hover */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <Avatar
-                              src={rowUser?.google_avatar_url}
-                              name={rowUser?.name}
-                              colorIndex={rowUser?.colorIndex || 0}
-                              size="sm"
-                              verified={rowUser?.verified}
-                              className="shrink-0"
-                            />
-                            <div>
-                              <div className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
-                                {rowUser ? (
-                                  <ProfileHoverCard user={rowUser} side="bottom" align="start">
-                                    <span className="font-mono cursor-pointer">
-                                      {rowUser.username || rowUser.name || "Unknown"}
-                                    </span>
-                                  </ProfileHoverCard>
-                                ) : (
-                                  <span className="font-mono text-muted-foreground">Unknown</span>
-                                )}
-                                {isMe && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] px-1.5 py-0 h-4 text-primary border-primary/30 bg-primary/5 uppercase tracking-wider font-bold"
-                                  >
-                                    You
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* XP */}
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1 text-primary font-bold text-sm">
-                            <Zap size={11} />
-                            {(rowUser?.xp || 0).toLocaleString()}
-                          </div>
-                        </td>
-
-                        {/* Solved */}
-                        <td className="px-5 py-3.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <CheckCircle2
-                              size={14}
-                              className={
-                                (rowUser?.solvedCount ?? 0) > 0
-                                  ? "text-amber-400"
-                                  : "text-muted-foreground/30"
-                              }
-                            />
-                            <span className="text-sm font-semibold text-foreground">
-                              {rowUser?.solvedCount ?? 0}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Best Time */}
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5 font-mono text-sm text-amber-400">
-                            <Clock size={12} className="opacity-60" />
-                            {formatTime(entry.bestTimeMs)}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 py-3 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground bg-muted/10">
-            <span>
-              Showing {displayed.length} of {filtered.length} student
-              {filtered.length !== 1 ? "s" : ""}
-              {search && ` matching "${search}"`}
-            </span>
-          </div>
-        </Card>
+        <div className="border-t border-border/50 bg-brand-charcoal-panel/60 px-4 py-3 text-[11px] text-brand-offwhite-muted">
+          Showing {displayed.length} of {filtered.length} student
+          {filtered.length !== 1 ? "s" : ""}
+        </div>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ function OAuthCallbackInner() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-charcoal-base">
+    <div className="min-h-dvh flex items-center justify-center bg-brand-charcoal-base">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" />
         <p className="text-brand-offwhite-muted text-sm">Completing sign in...</p>
@@ -42,7 +42,7 @@ function OAuthCallbackInner() {
 export default function OAuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-brand-charcoal-base">
+      <div className="min-h-dvh flex items-center justify-center bg-brand-charcoal-base">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-brand-muted-gold/30 border-t-brand-muted-gold rounded-full animate-spin" />
           <p className="text-brand-offwhite-muted text-sm">Completing sign in...</p>

@@ -1,8 +1,18 @@
-import type {Metadata} from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
-import DesktopOnlyOverlay from '@/components/DesktopOnlyOverlay';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
+// Deliberately no `maximumScale` / `userScalable: false` — blocking pinch-zoom
+// fails WCAG 1.4.4 (Resize Text) and is hostile on small screens. `viewportFit:
+// 'cover'` pairs with the safe-area insets used by the mobile workspace shell.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#141414',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://koder.sbs'),
@@ -43,9 +53,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className="dark">
       <body suppressHydrationWarning>
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"} />
-        <DesktopOnlyOverlay />
         {children}
         <Analytics />
+        <SpeedInsights />
         <Toaster
           theme="dark"
           position="top-right"

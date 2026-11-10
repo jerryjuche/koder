@@ -983,6 +983,23 @@ func formatPythonLiteral(paramType string, data []byte) (string, error) {
 	return "", fmt.Errorf("unsupported type %q for Python literal", paramType)
 }
 
+// formatPythonExpected ensures a test case expected value is valid JSON
+// before it is embedded in the Python test template. Bare strings (e.g.
+// fish) are wrapped as JSON strings ("fish") so json.loads in the template
+// does not fail with Expecting value.
+func formatPythonExpected(raw string) string {
+	var js json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &js); err == nil {
+		return raw // already valid JSON
+	}
+	// Not valid JSON — treat as a bare string and wrap it as a JSON string.
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return raw // should never happen for a Go string
+	}
+	return string(b)
+}
+
 // executePython runs Python code execution: prepares sandbox files,
 // executes, parses output, optionally records submission + progress, and returns the result.
 func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, problem *store.Problem, testCases []store.TestCase, recordSubmission bool) (*ExecutionResult, error) {
@@ -1019,7 +1036,7 @@ func (e *Executor) executePython(ctx context.Context, req ExecutionRequest, prob
 		pyCases[i] = PyTestCaseRenderData{
 			Ordinal:  tc.Ordinal,
 			PyInputs: pyInputs,
-			Expected: tc.Expected,
+			Expected: formatPythonExpected(tc.Expected),
 		}
 	}
 

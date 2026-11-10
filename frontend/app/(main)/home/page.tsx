@@ -1,28 +1,22 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   Search,
+  X,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  CheckCircle2,
-  Clock,
-  Flame,
   Code,
-  Heart,
   Trophy,
   ArrowLeft,
   BookOpen,
-  FlaskConical,
 } from "lucide-react";
-import { LanguageLogo } from "@/components/LanguageLogo";
 import GoogleLinkBanner from "@/components/GoogleLinkBanner";
 import ProblemCard from "@/components/problems/ProblemCard";
-import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, ModuleMeta } from "@/lib/api";
+import { fetchProblems, fetchUser, fetchBestPractices, likeSubmission, unlikeSubmission, fetchModuleLocks, fetchModuleMeta, fetchLeaderboard, ModuleMeta } from "@/lib/api";
 import { clearCache } from "@/lib/cache";
 import { Problem, User, CommunitySolution } from "@/lib/types";
 import {
@@ -31,14 +25,12 @@ import {
 } from "@/lib/utils";
 import {
   Card,
-  CardContent,
-  CardHeader,
 } from "@/components/ui/card";
-import { CodeSnippet } from "@/components/application/code-snippet";
 import { toast } from "@/lib/toast";
 import ModuleCards from "@/components/dashboard/ModuleCards";
-import { ProfileHoverCard } from "@/components/profile/ProfileHoverCard";
-import { Avatar } from "@/components/base/avatar/avatar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import LanguageSegmented, { type LanguageFilterValue } from "@/components/dashboard/LanguageSegmented";
+import { BestPracticesSection } from "@/components/best-practices";
 
 export default function Dashboard() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -47,7 +39,18 @@ export default function Dashboard() {
   const [moduleMeta, setModuleMeta] = useState<Record<string, { display_name: string; is_pinned: boolean }>>({});
 
   const [bestPractices, setBestPractices] = useState<CommunitySolution[]>([]);
+  const [bpMine, setBpMine] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const p = new URLSearchParams(window.location.search).get("bp_mine");
+    return p === "1" || p === "true";
+  });
   const [loading, setLoading] = useState(true);
+  // Global rank for the header. Resolved from the cached top-100 leaderboard:
+  // `value` is the exact rank, `capped` means the user sits below the window.
+  const [rank, setRank] = useState<{ value: number | null; capped: boolean }>({
+    value: null,
+    capped: false,
+  });
 
   // View state
   const [activeTab, setActiveTab] = useState<"problems" | "best-practices">("problems");
@@ -79,13 +82,23 @@ export default function Dashboard() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
+  // Persist best-practices scope (?bp_mine=) in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (bpMine) params.set("bp_mine", "1");
+    else params.delete("bp_mine");
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, "", newUrl);
+  }, [bpMine]);
+
   useEffect(() => {
     let mounted = true;
     const loadData = () => {
+      setLoading(true);
       const langParam = new URLSearchParams(window.location.search).get("tab");
       const lang = langParam === "go" || langParam === "python" ? langParam : undefined;
-      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20), fetchModuleLocks(), fetchModuleMeta()]).then(
-        ([probRes, userRes, bpRes, locksRes, metaRes]) => {
+      Promise.all([fetchProblems(lang), fetchUser(), fetchBestPractices(20, bpMine), fetchModuleLocks(), fetchModuleMeta(), fetchLeaderboard("all")]).then(
+        ([probRes, userRes, bpRes, locksRes, metaRes, lbRes]) => {
           if (!mounted) return;
           if (probRes.success) {
             setProblems(probRes.data || []);
@@ -93,6 +106,21 @@ export default function Dashboard() {
           }
           if (userRes.success) setUser(userRes.data);
           if (bpRes.success) setBestPractices(bpRes.data || []);
+          if (lbRes.success && lbRes.data) {
+            const me = userRes.success ? userRes.data : null;
+            const mine = me
+              ? lbRes.data.find(
+                  (entry) =>
+                    entry.user &&
+                    (entry.user.id === me.id ||
+                      (!!me.username && entry.user.username === me.username)),
+                )
+              : undefined;
+            setRank({
+              value: mine?.rank ?? null,
+              capped: !mine && lbRes.data.length >= 100,
+            });
+          }
           if (locksRes.success && locksRes.data) {
             setLockedModules(new Set(locksRes.data.map((l) => l.module_name)));
           }
@@ -145,7 +173,7 @@ export default function Dashboard() {
       window.removeEventListener("focus", handleFocus);
       clearTimeout(debounceTimer);
     };
-  }, [languageFilter]);
+  }, [languageFilter, bpMine]);
 
   const handleLike = async (id: string, currentlyLiked: boolean) => {
     const original = [...bestPractices];
@@ -158,6 +186,9 @@ export default function Dashboard() {
     try {
       const res = currentlyLiked ? await unlikeSubmission(id) : await likeSubmission(id);
       if (!res.success) throw new Error("Failed to update like");
+      if (bpMine && currentlyLiked) {
+        setBestPractices((prev) => prev.filter((s) => s.id !== id));
+      }
     } catch (err: any) {
       setBestPractices(original);
       toast.error({
@@ -166,6 +197,24 @@ export default function Dashboard() {
       });
     }
   };
+
+  // One handler for every language control on the page: URL state, cache
+  // invalidation and refetch stay identical wherever the filter is rendered.
+  const handleLanguageChange = useCallback((lang: LanguageFilterValue) => {
+    setLanguageFilter(lang);
+    setCurrentPage(1);
+    const params = new URLSearchParams(window.location.search);
+    if (lang === "all") params.delete("tab");
+    else params.set("tab", lang);
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.pushState({}, "", newUrl);
+    clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
+    setLoading(true);
+    fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
+      if (res.success) setProblems(res.data || []);
+      setLoading(false);
+    });
+  }, []);
 
   const modules = useMemo(
     () => Array.from(new Set([...problems.map((p) => p.module), ...Array.from(lockedModules)])).sort(),
@@ -224,138 +273,204 @@ export default function Dashboard() {
     window.history.pushState({}, "", `?${params.toString()}`);
   }, []);
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  })();
+
+  const displayName = user?.name?.split(" ")[0] || user?.username || "there";
+
+  // Highest incomplete module for "Continue learning" (UI only — uses existing progress)
+  const continueModule = (() => {
+    let best: { mod: string; solved: number; total: number; pct: number } | null = null;
+    for (const mod of modules) {
+      if (lockedModules.has(mod)) continue;
+      const p = moduleProgress[mod];
+      if (!p || p.total === 0) continue;
+      if (p.solved >= p.total) continue;
+      const pct = Math.round((p.solved / p.total) * 100);
+      if (!best || pct > best.pct || (pct === best.pct && p.solved > best.solved)) {
+        best = { mod, solved: p.solved, total: p.total, pct };
+      }
+    }
+    return best;
+  })();
+
+  const moduleDisplayName = (slug: string) =>
+    moduleMeta[slug]?.display_name ||
+    slug
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
   const showTopicCards = !selectedModule || lockedModules.has(selectedModule);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pt-4 pb-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-      {/* Header Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-1 text-foreground">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {visibleSolved} of {problems.length} problems solved
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle2 size={16} className="text-emerald-400" />
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {totalSolved}
-              </div>
-              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                Solved
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg
-                width="14"
-                height="16"
-                viewBox="0 0 12 16"
-                className="text-primary"
-                fill="currentColor"
-              >
-                <path d="M6 0L0 8H5L4 16L12 6H7L8 0H6Z" />
-              </svg>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                {user?.xp?.toLocaleString() || 0}
-              </div>
-              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                XP Earned
-              </div>
-            </div>
-          </div>
-          {user && (
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-card border border-border/60 shadow-sm">
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Flame size={16} className="text-orange-400" />
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-bold leading-none mb-0.5 text-foreground">
-                  {user.streak}
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Day Streak
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto space-y-4 pt-3 pb-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+      <DashboardHeader
+        greeting={greeting}
+        name={displayName}
+        level={user?.level ?? 1}
+        xp={user?.xp ?? 0}
+        solved={totalSolved}
+        streak={user?.streak ?? 0}
+        rank={rank.value}
+        rankCapped={rank.capped}
+        showGreeting={showTopicCards}
+      />
 
       <GoogleLinkBanner />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-border">
-        <button
-          onClick={() => setActiveTab("problems")}
-          className={cn(
-            "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "problems" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Code size={16} className={cn(activeTab === "problems" && "text-primary")} />
-          Problem Set
-          {activeTab === "problems" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
-          )}
-        </button>
-        <button
-          onClick={() => { if (user?.role === "admin") setActiveTab("best-practices"); }}
-          aria-disabled={user?.role !== "admin" ? true : undefined}
-          title={user?.role !== "admin" ? "Private beta — administrators only" : undefined}
-          className={cn(
-            "pb-3 text-sm font-bold transition-colors relative flex items-center gap-2",
-            activeTab === "best-practices"
-              ? "text-foreground"
-              : user?.role === "admin"
-                ? "text-muted-foreground hover:text-foreground"
-                : "text-muted-foreground/40 cursor-not-allowed select-none"
-          )}
-        >
-          <Trophy size={16} className={cn(activeTab === "best-practices" && "text-primary")} />
-          Best Practices
-          {user?.role !== "admin" && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold leading-none bg-amber-500/15 text-amber-500 border border-amber-500/30">
-              <FlaskConical size={10} />
-              BETA
-            </span>
-          )}
-          {activeTab === "best-practices" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary"></div>
-          )}
-        </button>
+      {/* View switcher — in-page tabs: the selected tab owns the panel below.
+          Distinct from the filter segments further down so the two never read
+          as the same kind of control. */}
+      <div
+        role="tablist"
+        aria-label="Dashboard view"
+        className="flex items-center gap-6 border-b border-border"
+      >
+        {([
+          { id: "problems", label: "Problem Set", icon: Code, beta: false },
+          { id: "best-practices", label: "Best Practices", icon: Trophy, beta: true },
+        ] as const).map((tab) => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "group relative -mb-px flex items-center gap-2 rounded-t pb-2.5 pt-1 text-sm font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                active ? "text-foreground" : "text-brand-offwhite-muted hover:text-foreground",
+              )}
+            >
+              <Icon
+                size={15}
+                aria-hidden="true"
+                className={cn(
+                  "transition-colors",
+                  active
+                    ? "text-brand-muted-gold"
+                    : "text-brand-offwhite-muted/70 group-hover:text-foreground",
+                )}
+              />
+              {tab.label}
+              {tab.beta && (
+                <span className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-brand-offwhite-muted">
+                  Beta
+                </span>
+              )}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-muted-gold"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === "problems" ? (
         <>
           {showTopicCards ? (
-            /* ── Topic Card Grid ── */
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                  <BookOpen size={18} className="text-primary" />
+            /* ── Topic list (Prototype 1 stack) ── */
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Search + filters — two rows, two dimensions: the segmented
+                  control changes language, the toggle filters by status. */}
+              <div className="space-y-2.5">
+                <div className="relative">
+                  <Search
+                    size={15}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-offwhite-muted"
+                  />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search problems, modules…"
+                    aria-label="Search problems and modules"
+                    className="h-10 w-full rounded-xl border border-border bg-brand-charcoal-card pl-9 pr-10 text-sm font-medium text-foreground transition-colors placeholder:text-brand-offwhite-muted/80 hover:border-white/[0.12] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-search-cancel-button]:appearance-none"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-brand-offwhite-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">Choose a topic to practice</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Select a module to view its problems and track your progress
-                  </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <LanguageSegmented value={languageFilter} onChange={handleLanguageChange} />
                 </div>
               </div>
+
+              {/* Continue learning — one compact row; the whole card is the
+                  Resume affordance, so no second gold button competes with it */}
+              {continueModule && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">Continue learning</h2>
+                    <span className="text-xs font-bold tabular-nums text-brand-muted-gold">
+                      {continueModule.pct}%
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectModule(continueModule.mod)}
+                    className="group w-full rounded-2xl border border-border bg-brand-charcoal-card px-3 py-3 text-left transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                      >
+                        <BookOpen size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {moduleDisplayName(continueModule.mod)}
+                        </span>
+                        <span className="mt-0.5 block text-xs tabular-nums text-brand-offwhite-muted">
+                          {continueModule.solved} of {continueModule.total} solved
+                        </span>
+                        <span className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                          <span
+                            className="block h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${continueModule.pct}%` }}
+                          />
+                        </span>
+                      </span>
+                      <ChevronRight
+                        size={16}
+                        aria-hidden="true"
+                        className="shrink-0 text-brand-offwhite-muted transition-colors group-hover:text-brand-muted-gold"
+                      />
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* Modules */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Modules</h2>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {modules.length} total
+                  </span>
+                </div>
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 xl:grid-cols-4 gap-5">
                   {[...Array(8)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
@@ -369,75 +484,43 @@ export default function Dashboard() {
                   onSelect={handleSelectModule}
                 />
               )}
+              </div>
             </div>
+
           ) : (
             /* ── Filtered Problems ── */
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Back button + module header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => {
-                      setSelectedModule(null);
-                      const params = new URLSearchParams(window.location.search);
-                      params.delete("module");
-                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.pushState({}, "", newUrl);
-                    }}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
-                  >
-                    <ArrowLeft size={16} />
-                    Back to topics
-                  </button>
-                  <div className="w-px h-5 bg-border" />
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">{selectedModule}</h2>
-                    <p className="text-xs text-muted-foreground">
-                      {moduleProgress[selectedModule]?.solved || 0} / {moduleProgress[selectedModule]?.total || 0} solved
-                    </p>
-                  </div>
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Back + module title */}
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => {
+                    setSelectedModule(null);
+                    const params = new URLSearchParams(window.location.search);
+                    params.delete("module");
+                    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                    window.history.pushState({}, "", newUrl);
+                  }}
+                  className="shrink-0 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  <ArrowLeft size={16} />
+                  <span className="hidden min-[380px]:inline">Topics</span>
+                </button>
+                <div className="w-px h-5 bg-border shrink-0" />
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-foreground truncate leading-tight">
+                    {selectedModule ? moduleDisplayName(selectedModule) : ""}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {moduleProgress[selectedModule!]?.solved || 0} of {moduleProgress[selectedModule!]?.total || 0} solved
+                  </p>
                 </div>
               </div>
 
-              {/* Language Filter Tabs */}
-              <div className="flex items-center gap-1 bg-card border border-border/60 rounded-lg p-1 w-fit">
-                {(["all", "go", "python"] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setLanguageFilter(lang);
-                      setCurrentPage(1);
-                      const params = new URLSearchParams(window.location.search);
-                      if (lang === "all") {
-                        params.delete("tab");
-                      } else {
-                        params.set("tab", lang);
-                      }
-                      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                      window.history.pushState({}, "", newUrl);
-                      clearCache("/problems" + (lang !== "all" ? `?language=${lang}` : ""));
-                      setLoading(true);
-                      fetchProblems(lang !== "all" ? lang : undefined).then((res) => {
-                        if (res.success) setProblems(res.data || []);
-                        setLoading(false);
-                      });
-                    }}
-                    className={cn(
-                      "px-4 py-1.5 rounded text-sm font-medium transition-all capitalize flex items-center gap-1.5",
-                      languageFilter === lang
-                        ? "bg-muted text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {lang === "go" && <LanguageLogo language="go" size={16} />}
-                    {lang === "python" && <LanguageLogo language="python" size={16} />}
-                    {lang === "all" ? "All" : lang === "go" ? "Go" : "Python"}
-                  </button>
-                ))}
-              </div>
+              {/* Language filter — same control as the topics view */}
+              <LanguageSegmented value={languageFilter} onChange={handleLanguageChange} />
 
               {/* Filters (no module dropdown) */}
-              <Card className="p-4 flex flex-col lg:flex-row gap-4">
+              <Card className="p-3 flex flex-col gap-2.5">
                 <div className="relative flex-1">
                   <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -451,7 +534,7 @@ export default function Dashboard() {
                     className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                   />
                 </div>
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative">
                     <select
                       value={difficultyFilter}
@@ -471,7 +554,7 @@ export default function Dashboard() {
                         key={status}
                         onClick={() => setStatusFilter(status)}
                         className={cn(
-                          "px-5 py-1.5 rounded text-sm font-medium transition-colors capitalize",
+                          "px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize",
                           statusFilter === status
                             ? "bg-muted text-foreground shadow-sm"
                             : "text-muted-foreground hover:text-foreground"
@@ -493,13 +576,13 @@ export default function Dashboard() {
 
               {/* Problem Grid */}
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-3">
                   {[...Array(6)].map((_, i) => (
                     <Card key={i} className="h-56 animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 min-[560px]:grid-cols-2 nav:grid-cols-3 gap-3">
                   {filteredProblems.length === 0 ? (
                     <div className="col-span-full">
                       <Card className="p-10 text-center border-dashed border-white/10 bg-card/50">
@@ -588,96 +671,14 @@ export default function Dashboard() {
             </div>
           )}
         </>
-      ) : user?.role !== "admin" ? (
-        <div>
-          <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
-            <FlaskConical className="mx-auto mb-4 text-amber-500/30" size={48} />
-            <h3 className="text-lg font-bold text-foreground mb-2">Best Practices — Coming Soon</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              This feature is in private beta and currently available to administrators only.
-              Stay tuned for the public release.
-            </p>
-          </Card>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {loading ? (
-            <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="h-[320px] animate-pulse" />
-              ))}
-            </div>
-          ) : bestPractices.length === 0 ? (
-            <div className="col-span-full">
-              <Card className="p-12 text-center border-dashed border-white/10 bg-card/50">
-                <Trophy className="mx-auto mb-4 text-muted-foreground/20" size={48} />
-                <h3 className="text-lg font-bold text-foreground mb-2">No Best Practices Yet</h3>
-                <p className="text-muted-foreground">Solve problems and get likes to feature here!</p>
-              </Card>
-            </div>
-          ) : (
-            bestPractices.map((sol) => (
-              <Card
-                key={sol.id}
-                className="overflow-hidden flex flex-col gap-0 p-0"
-              >
-                <CardHeader className="p-4 flex-row items-center justify-between space-y-0 border-b border-border/50 bg-muted/20">
-                  <ProfileHoverCard userId={sol.user_id} side="bottom" align="start">
-                    <div className="flex items-center gap-3 cursor-pointer">
-                      <Avatar
-                        src={sol.user_avatar_url}
-                        name={sol.user_name}
-                        size="sm"
-                        verified={sol.verified}
-                      />
-                      <div>
-                        <div className="font-bold text-sm text-foreground flex items-center gap-2">
-                          {sol.user_name}
-                        {sol.problem_slug && (
-                          <Link href={`/problems/${sol.problem_slug}`} onClick={() => sessionStorage.setItem("return_to", window.location.href.replace(window.location.origin, ""))} className="text-xs text-primary hover:underline font-mono">
-                            in {sol.problem_slug}
-                          </Link>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono flex items-center gap-2 mt-0.5">
-                        <Clock size={12} /> {sol.runtime_ms}ms
-                      </div>
-                    </div>
-                  </div>
-                  </ProfileHoverCard>
-                  <button
-                    onClick={() => handleLike(sol.id, sol.has_liked)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-xs font-bold shrink-0",
-                      sol.has_liked
-                        ? "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20"
-                        : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Heart
-                      size={14}
-                      fill={sol.has_liked ? "currentColor" : "none"}
-                      className={cn(sol.has_liked && "text-rose-500")}
-                    />
-                    {sol.likes}
-                  </button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <CodeSnippet
-                    files={[{
-                      language: "go",
-                      filename: "solution.go",
-                      code: sol.code,
-                    }]}
-                    collapsed
-                    maxHeight={140}
-                    className="rounded-none border-0 shadow-none"
-                  />
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+        <BestPracticesSection
+          solutions={bestPractices}
+          loading={loading}
+          mine={bpMine}
+          onMineChange={setBpMine}
+          onLike={handleLike}
+        />
       )}
     </div>
   );

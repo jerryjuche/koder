@@ -59,12 +59,12 @@ export default function ProblemCard({
           window.location.href.replace(window.location.origin, ""),
         )
       }
-      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+      className="block w-full max-w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
       style={{ animationFillMode: "both", animationDelay: `${delay}ms` }}
     >
       <Card
         className={cn(
-          "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border shadow-sm hover:shadow-xl hover:shadow-primary/8",
+          "group relative overflow-hidden transition-all duration-300 h-full flex flex-col rounded-xl border shadow-sm hover:shadow-xl hover:shadow-primary/8 w-full max-w-full",
           "hover:-translate-y-1.5 hover:border-primary/30",
           "animate-in fade-in slide-in-from-bottom-2",
           problem.solved && "border-emerald-500/30 hover:border-emerald-500/50",

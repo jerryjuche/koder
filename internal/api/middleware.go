@@ -34,9 +34,22 @@ func generateRequestID() string {
 	return hex.EncodeToString(b)
 }
 
+// requestLoggingSkipPaths are infrastructure endpoints that produce no user
+// traffic value in request logs. Platform health probes (Render/Azure) hit
+// these at fixed intervals, and each hit would otherwise emit a full log line
+// plus a fresh request ID / CSP nonce — noise that buries real traffic.
+var requestLoggingSkipPaths = map[string]struct{}{
+	"/health":  {},
+	"/version": {},
+}
+
 // RequestLoggingMiddleware logs every request with method, path, status, duration, and correlation ID.
 func RequestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, skip := requestLoggingSkipPaths[r.URL.Path]; skip {
+			next.ServeHTTP(w, r)
+			return
+		}
 		start := time.Now()
 		reqID := generateRequestID()
 		r = r.WithContext(context.WithValue(r.Context(), reqIDContextKey, reqID))
@@ -72,6 +85,21 @@ func (lrw *loggingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) 
 	}
 	return nil, nil, fmt.Errorf("websocket: response does not implement http.Hijacker")
 }
+
+// Flush implements http.Flusher so streaming responses (SSE, long-polling)
+// work through the logging wrapper. Without it, the wrapper silently hides the
+// underlying writer's Flush and any handler's w.(http.Flusher) assertion fails,
+// degrading streaming endpoints to their buffered fallback.
+func (lrw *loggingResponseWriter) Flush() {
+	if flusher, ok := lrw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// Compile-time guard: the logging wrapper must stay a streaming-capable
+// ResponseWriter. If it ever drops Flush (or another required optional
+// interface), this line fails the build instead of degrading production.
+var _ http.Flusher = (*loggingResponseWriter)(nil)
 
 // RateLimiter implements a per-user sliding window rate limiter.
 type RateLimiter struct {

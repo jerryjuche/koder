@@ -69,7 +69,7 @@ export default function LandingContent({ onGetStarted }: { onGetStarted?: () => 
   );
 
   return (
-    <div className="min-h-screen overflow-hidden bg-brand-charcoal-base text-brand-offwhite">
+    <div className="min-h-dvh overflow-hidden bg-brand-charcoal-base text-brand-offwhite">
       {/* ─── NAVBAR ─── */}
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-brand-charcoal-border/60 bg-brand-charcoal-base/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">

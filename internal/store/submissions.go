@@ -3,11 +3,13 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // CreateSubmission inserts a new submission record with a 90-day TTL on output logs.
@@ -100,17 +102,46 @@ func (s *PostgresStore) GetProblemWithTestCases(ctx context.Context, problemID u
 }
 
 // LikeSubmission adds a like to a submission from a user.
-func (s *PostgresStore) LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) error {
+// It returns true when the like was newly inserted (the first time this user
+// liked this submission) and false when it already existed (idempotent no-op).
+// Callers use the boolean to trigger once-per-like side effects such as
+// notifying the submission's author.
+func (s *PostgresStore) LikeSubmission(ctx context.Context, submissionID, userID uuid.UUID) (bool, error) {
 	query := `
 		INSERT INTO submission_likes (submission_id, user_id)
 		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING
 	`
-	_, err := s.pool.Exec(ctx, query, submissionID, userID)
+	ct, err := s.pool.Exec(ctx, query, submissionID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to like submission: %w", err)
+		return false, fmt.Errorf("failed to like submission: %w", err)
 	}
-	return nil
+	return ct.RowsAffected() > 0, nil
+}
+
+// GetSubmissionLikeSummary returns the author and problem context for a
+// submission, used to notify the author when their solution receives a like.
+// Returns (nil, nil) when the submission does not exist.
+func (s *PostgresStore) GetSubmissionLikeSummary(ctx context.Context, submissionID uuid.UUID) (*SubmissionLikeSummary, error) {
+	query := `
+		SELECT sub.user_id, p.id, p.title, p.slug
+		FROM submissions sub
+		JOIN problems p ON sub.problem_id = p.id
+		WHERE sub.id = $1
+	`
+
+	var sum SubmissionLikeSummary
+	err := s.pool.QueryRow(ctx, query, submissionID).Scan(
+		&sum.AuthorID, &sum.ProblemID, &sum.ProblemTitle, &sum.ProblemSlug,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get submission like summary: %w", err)
+	}
+
+	return &sum, nil
 }
 
 // UnlikeSubmission removes a like from a submission from a user.
@@ -178,14 +209,23 @@ func (s *PostgresStore) GetTopCommunitySolutionsForProblem(ctx context.Context, 
 }
 
 // GetBestPractices gets the top liked successful submissions across all problems globally.
-func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid.UUID, limit int) ([]CommunitySolution, error) {
+// When mineOnly is true, only submissions liked by currentUserID are returned.
+func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid.UUID, mineOnly bool, limit int) ([]CommunitySolution, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 
-	query := `
+	hasAnyLike := `EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)`
+	hasMyLike := `EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1)`
+	likedBy := hasAnyLike
+	if mineOnly {
+		likedBy = hasMyLike
+	}
+
+	query := fmt.Sprintf(`
 		SELECT 
 			sub.id, sub.user_id, u.name as user_name, sub.problem_id, p.slug as problem_slug,
+			p.title as problem_title, p.module,
 			sub.language, sub.code, sub.runtime_ms, sub.created_at,
 			COUNT(sl.id) as likes,
 			EXISTS(SELECT 1 FROM submission_likes WHERE submission_id = sub.id AND user_id = $1) as has_liked,
@@ -195,11 +235,11 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		JOIN problems p ON sub.problem_id = p.id
 		LEFT JOIN submission_likes sl ON sub.id = sl.submission_id
 		WHERE sub.status = 'passed' AND p.visible = true
-		  AND EXISTS (SELECT 1 FROM submission_likes WHERE submission_id = sub.id)
-		GROUP BY sub.id, u.name, p.slug, u.google_avatar_url, u.verified
+		  AND %s
+		GROUP BY sub.id, u.name, p.slug, p.title, p.module, u.google_avatar_url, u.verified
 		ORDER BY likes DESC, sub.created_at DESC
 		LIMIT $2
-	`
+	`, likedBy)
 
 	rows, err := s.pool.Query(ctx, query, currentUserID, limit)
 	if err != nil {
@@ -212,6 +252,7 @@ func (s *PostgresStore) GetBestPractices(ctx context.Context, currentUserID uuid
 		var cs CommunitySolution
 		err := rows.Scan(
 			&cs.ID, &cs.UserID, &cs.UserName, &cs.ProblemID, &cs.ProblemSlug,
+			&cs.ProblemTitle, &cs.Module,
 			&cs.Language, &cs.Code, &cs.RuntimeMs, &cs.CreatedAt,
 			&cs.Likes, &cs.HasLiked, &cs.UserAvatarURL, &cs.Verified,
 		)

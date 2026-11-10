@@ -1,10 +1,46 @@
 package enricher
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/jerryjuche/koder/internal/config"
 	"github.com/jerryjuche/koder/internal/store"
 )
+
+// fakeProvider is a scriptable enrichmentProvider for unit tests.
+type fakeProvider struct {
+	out    string
+	err    error
+	system string
+	user   string
+}
+
+func (f *fakeProvider) Name() string { return "fake" }
+func (f *fakeProvider) GenerateContent(_ context.Context, systemPrompt, userPrompt string) (string, error) {
+	f.system = systemPrompt
+	f.user = userPrompt
+	return f.out, f.err
+}
+
+func (f *fakeProvider) GenerateContentStream(_ context.Context, systemPrompt, userPrompt string, onDelta func(string) error) error {
+	f.system = systemPrompt
+	f.user = userPrompt
+	if f.err != nil {
+		return f.err
+	}
+	if onDelta != nil && f.out != "" {
+		return onDelta(f.out)
+	}
+	return nil
+}
 
 func TestToSnakeCase(t *testing.T) {
 	tests := []struct {
@@ -228,4 +264,467 @@ func TestValidateEnrichedProblem(t *testing.T) {
 			t.Error("expected error for negative ordinal")
 		}
 	})
+}
+
+func TestExplainSolution(t *testing.T) {
+	validJSON := `{
+		"summary": "Adds two integers and returns the sum.",
+		"approach": "Return a + b directly.",
+		"time_complexity": "O(1) — a single addition, no loops.",
+		"space_complexity": "O(1) — only the result is stored.",
+		"key_techniques": ["arithmetic", "early return"],
+		"strengths": ["simple", "correct"],
+		"improvements": ["validate overflow"]
+	}`
+
+	t.Run("parses structured explanation", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: validJSON}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+			Code:     "func Sum(a, b int) int { return a + b }",
+			Language: "go",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.Summary == "" || exp.Approach == "" {
+			t.Error("expected summary and approach to be populated")
+		}
+		if exp.TimeComplexity != "O(1) — a single addition, no loops." {
+			t.Errorf("unexpected time_complexity: %q", exp.TimeComplexity)
+		}
+		if len(exp.KeyTechniques) != 2 || len(exp.Improvements) != 1 {
+			t.Errorf("unexpected techniques/improvements: %v / %v", exp.KeyTechniques, exp.Improvements)
+		}
+	})
+
+	t.Run("strips markdown fences", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "```json\n" + validJSON + "\n```"}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+			Code:     "func Sum(a, b int) int { return a + b }",
+			Language: "go",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.TimeComplexity == "" {
+			t.Error("expected parsed fields despite fences")
+		}
+	})
+
+	t.Run("requires code", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: validJSON}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "  "})
+		if err == nil {
+			t.Error("expected error for empty code")
+		}
+	})
+
+	t.Run("provider error propagates", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Error("expected error from provider")
+		}
+	})
+
+	t.Run("unparseable response errors", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "sorry, no JSON here"}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Error("expected parse error")
+		}
+		if !errors.Is(err, ErrAIInvalidResponse) {
+			t.Errorf("expected ErrAIInvalidResponse sentinel, got %v", err)
+		}
+	})
+
+	t.Run("provider error classified as upstream", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Fatal("expected error from provider")
+		}
+		if !errors.Is(err, ErrAIUpstream) {
+			t.Errorf("expected ErrAIUpstream sentinel, got %v", err)
+		}
+	})
+
+	t.Run("missing required sections classified as validation", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: `{"summary": "only a summary"}`}}
+		_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !errors.Is(err, ErrAIValidation) {
+			t.Errorf("expected ErrAIValidation sentinel, got %v", err)
+		}
+	})
+}
+
+func TestExplainSolutionScores(t *testing.T) {
+	scoreJSON := `{
+		"summary": "Sums the slice.",
+		"approach": "Iterate and accumulate.",
+		"time_complexity": "O(n)",
+		"space_complexity": "O(1)",
+		"quality_score": 92,
+		"efficiency_score": 88,
+		"readability_score": 76,
+		"correctness_score": 104,
+		"best_practices_score": -5
+	}`
+
+	t.Run("parses and clamps scores", func(t *testing.T) {
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: scoreJSON}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.QualityScore != 92 || exp.EfficiencyScore != 88 || exp.ReadabilityScore != 76 {
+			t.Errorf("unexpected scores: %+v", exp)
+		}
+		if exp.CorrectnessScore != 100 {
+			t.Errorf("expected correctness clamped to 100, got %d", exp.CorrectnessScore)
+		}
+		if exp.BestPracticesScore != 0 {
+			t.Errorf("expected best_practices clamped to 0, got %d", exp.BestPracticesScore)
+		}
+	})
+
+	t.Run("missing optional arrays default to empty", func(t *testing.T) {
+		minimal := `{
+			"summary": "Sums the slice.",
+			"approach": "Iterate and accumulate.",
+			"time_complexity": "O(n)",
+			"space_complexity": "O(1)"
+		}`
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: minimal}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.KeyTechniques == nil || exp.Strengths == nil || exp.Improvements == nil {
+			t.Error("expected non-nil optional arrays")
+		}
+		if len(exp.KeyTechniques) != 0 || len(exp.Strengths) != 0 || len(exp.Improvements) != 0 {
+			t.Errorf("expected empty optional arrays, got %+v", exp)
+		}
+	})
+
+	t.Run("missing scores default to zero", func(t *testing.T) {
+		noScores := `{
+			"summary": "Sums the slice.",
+			"approach": "Iterate and accumulate.",
+			"time_complexity": "O(n)",
+			"space_complexity": "O(1)"
+		}`
+		e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: noScores}}
+		exp, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{Code: "x"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if exp.QualityScore != 0 || exp.EfficiencyScore != 0 ||
+			exp.ReadabilityScore != 0 || exp.CorrectnessScore != 0 || exp.BestPracticesScore != 0 {
+			t.Errorf("expected zero scores, got %+v", exp)
+		}
+	})
+}
+
+func TestExplainSolutionGrounding(t *testing.T) {
+	fp := &fakeProvider{out: `{
+		"summary": "s", "approach": "a",
+		"time_complexity": "O(n)", "space_complexity": "O(1)"
+	}`}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+	_, err := e.ExplainSolution(context.Background(), &ExplainSolutionRequest{
+		Code:               "func Sum(a []int) int { return 0 }",
+		Language:           "go",
+		ProblemTitle:       "Sum a slice",
+		ProblemStatement:   "Return the sum of all integers in the slice.",
+		ProblemConstraints: "1 <= len(a) <= 10^5",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{
+		"Sum a slice",
+		"Return the sum of all integers in the slice.",
+		"1 <= len(a) <= 10^5",
+		"func Sum(a []int) int { return 0 }",
+	} {
+		if !strings.Contains(fp.user, want) {
+			t.Errorf("user prompt missing %q\n---\n%s", want, fp.user)
+		}
+	}
+	if !strings.Contains(fp.system, "quality_score") {
+		t.Errorf("system prompt missing scoring rubric\n---\n%s", fp.system)
+	}
+}
+
+func TestExplainChat(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "It is O(n) because of the loop."}}
+	answer, err := e.ExplainChat(context.Background(), &ExplainChatRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+		Question: "What is the complexity?",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(answer, "O(n)") {
+		t.Errorf("unexpected answer: %q", answer)
+	}
+}
+
+func TestExplainChatValidatesInput(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "answer"}}
+	if _, err := e.ExplainChat(context.Background(), &ExplainChatRequest{Code: "x"}); err == nil {
+		t.Error("expected error for empty question")
+	}
+	if _, err := e.ExplainChat(context.Background(), &ExplainChatRequest{Question: "why?"}); err == nil {
+		t.Error("expected error for empty code")
+	}
+}
+
+func TestExplainSolutionStream(t *testing.T) {
+	validJSON := `{
+		"summary": "Adds two integers and returns the sum.",
+		"approach": "Return a + b directly.",
+		"time_complexity": "O(1)",
+		"space_complexity": "O(1)"
+	}`
+	fp := &fakeProvider{out: validJSON}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+
+	var deltas []string
+	exp, err := e.ExplainSolutionStream(context.Background(), &ExplainSolutionRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+	}, func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(deltas) != 1 || deltas[0] != validJSON {
+		t.Errorf("expected one delta with the full JSON, got %v", deltas)
+	}
+	if exp.Summary == "" || exp.TimeComplexity != "O(1)" {
+		t.Errorf("expected parsed fields, got %+v", exp)
+	}
+	if !strings.Contains(fp.system, "quality_score") {
+		t.Errorf("expected professional system prompt to mention the scorecard, got\n%s", fp.system)
+	}
+}
+
+func TestExplainSolutionStreamError(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{err: errors.New("upstream down")}}
+	_, err := e.ExplainSolutionStream(context.Background(), &ExplainSolutionRequest{Code: "x"}, nil)
+	if err == nil {
+		t.Fatal("expected error from provider")
+	}
+	if !errors.Is(err, ErrAIUpstream) {
+		t.Errorf("expected ErrAIUpstream sentinel, got %v", err)
+	}
+}
+
+func TestExplainChatStream(t *testing.T) {
+	fp := &fakeProvider{out: "It is **O(n)** because of the loop:\n\n1. Step one\n2. Step two"}
+	e := &Enricher{cfg: &config.Config{}, provider: fp}
+
+	var deltas []string
+	answer, err := e.ExplainChatStream(context.Background(), &ExplainChatRequest{
+		Code:     "func Sum(a, b int) int { return a + b }",
+		Language: "go",
+		Question: "What is the complexity?",
+	}, func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(answer, "O(n)") {
+		t.Errorf("unexpected answer: %q", answer)
+	}
+	if len(deltas) != 1 || deltas[0] != fp.out {
+		t.Errorf("expected one delta with the answer, got %v", deltas)
+	}
+}
+
+func TestExplainChatStreamAbortsOnSinkError(t *testing.T) {
+	e := &Enricher{cfg: &config.Config{}, provider: &fakeProvider{out: "answer"}}
+	_, err := e.ExplainChatStream(context.Background(), &ExplainChatRequest{
+		Code:     "x",
+		Language: "go",
+		Question: "why?",
+	}, func(string) error {
+		return errors.New("sink aborted")
+	})
+	if err == nil {
+		t.Fatal("expected the sink error to propagate")
+	}
+	if !strings.Contains(err.Error(), "sink aborted") {
+		t.Errorf("expected sink error to propagate, got %v", err)
+	}
+}
+
+func TestNvidiaProviderStreaming(t *testing.T) {
+	var got nvidiaRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Errorf("unexpected authorization header: %q", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		frames := []string{
+			`data: {"choices":[{"delta":{"content":"Hello "},"finish_reason":null}]}`,
+			`data: {"choices":[{"delta":{"content":"world"},"finish_reason":null}]}`,
+			`data: {"choices":[{"delta":{"content":""},"finish_reason":"stop"}]}`,
+			`data: [DONE]`,
+		}
+		for _, f := range frames {
+			fmt.Fprintf(w, "%s\n\n", f)
+			if fl, ok := w.(http.Flusher); ok {
+				fl.Flush()
+			}
+		}
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "z-ai/glm-5.2", srv.URL, 16384, 0.2, true)
+	var deltas []string
+	err := p.GenerateContentStream(context.Background(), "sys", "user", func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.Stream {
+		t.Error("expected stream=true in request body")
+	}
+	if got.ResponseFormat == nil || got.ResponseFormat.Type != "json_object" {
+		t.Errorf("expected response_format json_object in stream, got %+v", got.ResponseFormat)
+	}
+	want := []string{"Hello ", "world"}
+	if !reflect.DeepEqual(deltas, want) {
+		t.Errorf("unexpected deltas %v, want %v", deltas, want)
+	}
+}
+
+func TestNvidiaProviderStreamingSinkErrorAborts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"first"},"finish_reason":null}]}`+"\n\n")
+		fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"second"},"finish_reason":null}]}`+"\n\n")
+		if fl, ok := w.(http.Flusher); ok {
+			fl.Flush()
+		}
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	err := p.GenerateContentStream(context.Background(), "sys", "user", func(string) error {
+		return errors.New("client gone")
+	})
+	if err == nil {
+		t.Fatal("expected sink error to abort the stream")
+	}
+	if !strings.Contains(err.Error(), "client gone") {
+		t.Errorf("expected sink error propagated, got %v", err)
+	}
+}
+
+func TestValidateExplainResponse(t *testing.T) {
+	valid := &store.SolutionExplanation{
+		Summary:         "s",
+		Approach:        "a",
+		TimeComplexity:  "O(n)",
+		SpaceComplexity: "O(1)",
+	}
+	if err := validateExplainResponse(valid); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	cases := []*store.SolutionExplanation{
+		nil,
+		{},
+		{Summary: "s"},
+		{Summary: "s", Approach: "a"},
+		{Summary: "s", Approach: "a", TimeComplexity: "O(n)"},
+	}
+	for i, c := range cases {
+		if err := validateExplainResponse(c); err == nil {
+			t.Errorf("case %d: expected error", i)
+		}
+	}
+}
+
+func TestNvidiaProviderRequestBody(t *testing.T) {
+	var got nvidiaRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Errorf("unexpected authorization header: %q", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"index":0,"message":{"content":"ok"},"finish_reason":"stop"}]}`))
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "z-ai/glm-5.2", srv.URL, 16384, 0.2, true)
+	out, err := p.GenerateContent(context.Background(), "sys", "user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "ok" {
+		t.Errorf("unexpected output %q", out)
+	}
+	if got.Model != "z-ai/glm-5.2" {
+		t.Errorf("unexpected model %q", got.Model)
+	}
+	if got.MaxTokens != 16384 {
+		t.Errorf("expected max_tokens 16384, got %d", got.MaxTokens)
+	}
+	if got.Temperature != 0.2 {
+		t.Errorf("expected temperature 0.2, got %v", got.Temperature)
+	}
+	if got.ResponseFormat == nil || got.ResponseFormat.Type != "json_object" {
+		t.Errorf("expected response_format json_object, got %+v", got.ResponseFormat)
+	}
+
+	got = nvidiaRequest{}
+	p2 := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	if _, err := p2.GenerateContent(context.Background(), "sys", "user"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.ResponseFormat != nil {
+		t.Errorf("expected no response_format when jsonMode off, got %+v", got.ResponseFormat)
+	}
+	if got.MaxTokens != 8192 || got.Temperature != 0.7 {
+		t.Errorf("expected default knobs, got max_tokens=%d temperature=%v", got.MaxTokens, got.Temperature)
+	}
+}
+
+func TestNvidiaProviderTruncationIsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"index":0,"message":{"content":"partial"},"finish_reason":"length"}]}`))
+	}))
+	defer srv.Close()
+
+	p := newNvidiaProvider("test-key", "m", srv.URL, 8192, 0.7, false)
+	_, err := p.GenerateContent(context.Background(), "sys", "user")
+	if err == nil {
+		t.Fatal("expected truncation to be an error")
+	}
+	if !errors.Is(err, ErrAIInvalidResponse) {
+		t.Errorf("expected ErrAIInvalidResponse, got %v", err)
+	}
 }

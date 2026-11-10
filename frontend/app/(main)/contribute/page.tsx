@@ -116,7 +116,7 @@ function ContributeContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-brand-offwhite font-display">Submit a Contribution</h1>
         <p className="text-brand-offwhite-muted mt-2">
@@ -280,7 +280,7 @@ function ContributeContent() {
             {form.test_cases.map((tc, index) => (
               <div key={index} className="flex gap-4 items-start p-4 bg-brand-charcoal-panel rounded-md border border-brand-charcoal-border">
                 <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-brand-offwhite-muted">Input (JSON array format `[arg1, arg2]`)</label>
                       <Input 

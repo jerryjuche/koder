@@ -32,10 +32,12 @@ func (s *PostgresStore) CreateNotification(ctx context.Context, userID uuid.UUID
 // GetUnreadNotifications retrieves up to 50 unread notifications for a user.
 func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error) {
 	query := `
-		SELECT id, user_id, type, message, related_id, is_read, created_at
-		FROM notifications
-		WHERE user_id = $1 AND is_read = FALSE
-		ORDER BY created_at DESC
+		SELECT n.id, n.user_id, n.type, n.message, n.related_id, n.is_read, n.created_at,
+		       CASE WHEN n.type = 'solution_liked' THEN p.slug END AS related_slug
+		FROM notifications n
+		LEFT JOIN problems p ON n.type = 'solution_liked' AND p.id = n.related_id
+		WHERE n.user_id = $1 AND n.is_read = FALSE
+		ORDER BY n.created_at DESC
 		LIMIT 50
 	`
 	rows, err := s.pool.Query(ctx, query, userID)
@@ -49,6 +51,7 @@ func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.
 		var n Notification
 		if err := rows.Scan(
 			&n.ID, &n.UserID, &n.Type, &n.Message, &n.RelatedID, &n.IsRead, &n.CreatedAt,
+			&n.RelatedSlug,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan notification: %w", err)
 		}
@@ -64,10 +67,12 @@ func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.
 // GetRecentNotifications retrieves the most recent notifications for a user (read + unread).
 func (s *PostgresStore) GetRecentNotifications(ctx context.Context, userID uuid.UUID, limit int) ([]Notification, error) {
 	query := `
-		SELECT id, user_id, type, message, related_id, is_read, created_at
-		FROM notifications
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+		SELECT n.id, n.user_id, n.type, n.message, n.related_id, n.is_read, n.created_at,
+		       CASE WHEN n.type = 'solution_liked' THEN p.slug END AS related_slug
+		FROM notifications n
+		LEFT JOIN problems p ON n.type = 'solution_liked' AND p.id = n.related_id
+		WHERE n.user_id = $1
+		ORDER BY n.created_at DESC
 		LIMIT $2
 	`
 	rows, err := s.pool.Query(ctx, query, userID, limit)
@@ -81,6 +86,7 @@ func (s *PostgresStore) GetRecentNotifications(ctx context.Context, userID uuid.
 		var n Notification
 		if err := rows.Scan(
 			&n.ID, &n.UserID, &n.Type, &n.Message, &n.RelatedID, &n.IsRead, &n.CreatedAt,
+			&n.RelatedSlug,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan notification: %w", err)
 		}

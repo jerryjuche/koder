@@ -8,7 +8,7 @@ import {
   User as UserIcon, Settings as SettingsIcon, Bell, Shield,
   Palette, LogOut, CheckCircle2, Chrome, CheckCheck,
   GitPullRequest, XCircle, Eye, EyeOff, Info, AlertTriangle,
-  AtSign, FileText, KeyRound, Trash2, Calendar, Download,
+  AtSign, FileText, KeyRound, Trash2, Calendar, Download, Heart,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -290,14 +290,14 @@ function SettingsPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="min-h-dvh bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-charcoal-base min-h-screen pt-4 pb-8 px-4 sm:px-6 lg:px-8">
+    <div className="bg-brand-charcoal-base min-h-dvh pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon size={32} className="text-brand-muted-gold" />
@@ -612,48 +612,61 @@ function SettingsPageContent() {
                           </button>
                         )}
                       </div>
-                      {notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={cn(
-                            "flex items-start gap-3 p-4 rounded-xl border transition-colors",
-                            n.is_read
-                              ? "border-brand-charcoal-border bg-brand-charcoal-base/50"
-                              : "border-brand-muted-gold/20 bg-brand-muted-gold/5"
-                          )}
-                        >
-                          <div className={cn(
-                            "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                            n.type === "contribution_approved"
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : n.type === "contribution_rejected"
-                              ? "bg-red-500/10 text-red-400"
-                              : "bg-brand-muted-gold/10 text-brand-muted-gold"
-                          )}>
-                            {n.type === "contribution_approved" ? (
-                              <CheckCircle2 size={16} />
-                            ) : n.type === "contribution_rejected" ? (
-                              <XCircle size={16} />
-                            ) : (
-                              <GitPullRequest size={16} />
+                      {notifications.map((n) => {
+                        const liked = n.type === "solution_liked";
+                        const target = liked && n.related_slug ? `/problems/${n.related_slug}` : null;
+                        const row = (
+                          <div
+                            className={cn(
+                              "flex items-start gap-3 p-4 rounded-xl border transition-colors",
+                              target && "cursor-pointer hover:border-brand-muted-gold/40 hover:bg-brand-muted-gold/5",
+                              n.is_read
+                                ? "border-brand-charcoal-border bg-brand-charcoal-base/50"
+                                : "border-brand-muted-gold/20 bg-brand-muted-gold/5"
+                            )}
+                          >
+                            <div className={cn(
+                              "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                              n.type === "contribution_approved"
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : n.type === "contribution_rejected"
+                                ? "bg-red-500/10 text-red-400"
+                                : liked
+                                ? "bg-rose-500/10 text-rose-400"
+                                : "bg-brand-muted-gold/10 text-brand-muted-gold"
+                            )}>
+                              {n.type === "contribution_approved" ? (
+                                <CheckCircle2 size={16} />
+                              ) : n.type === "contribution_rejected" ? (
+                                <XCircle size={16} />
+                              ) : liked ? (
+                                <Heart size={16} fill="currentColor" />
+                              ) : (
+                                <GitPullRequest size={16} />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn(
+                                "text-sm leading-relaxed",
+                                n.is_read ? "text-brand-offwhite-muted" : "text-brand-offwhite"
+                              )}>
+                                {n.message}
+                              </p>
+                              <span className="text-xs text-brand-offwhite-muted/60 mt-1.5 block">
+                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            {!n.is_read && (
+                              <div className="w-2 h-2 rounded-full bg-brand-muted-gold shrink-0 mt-2" />
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className={cn(
-                              "text-sm leading-relaxed",
-                              n.is_read ? "text-brand-offwhite-muted" : "text-brand-offwhite"
-                            )}>
-                              {n.message}
-                            </p>
-                            <span className="text-xs text-brand-offwhite-muted/60 mt-1.5 block">
-                              {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                          {!n.is_read && (
-                            <div className="w-2 h-2 rounded-full bg-brand-muted-gold shrink-0 mt-2" />
-                          )}
-                        </div>
-                      ))}
+                        );
+                        return target ? (
+                          <Link key={n.id} href={target}>{row}</Link>
+                        ) : (
+                          <div key={n.id}>{row}</div>
+                        );
+                      })}
                     </>
                   )}
                 </div>
@@ -951,7 +964,7 @@ function SettingsPageContent() {
 export default function SettingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-brand-charcoal-base flex items-center justify-center">
+      <div className="min-h-dvh bg-brand-charcoal-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-brand-muted-gold border-t-transparent animate-spin"></div>
       </div>
     }>

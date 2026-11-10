@@ -9,7 +9,7 @@ const ProblemWorkspaceClient = dynamic(() => import('./ProblemWorkspaceClient'),
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-brand-charcoal-base flex flex-col">
+    <div className="min-h-dvh bg-brand-charcoal-base flex flex-col">
       <div className="h-14 border-b border-brand-charcoal-border bg-brand-charcoal-card flex items-center px-4 gap-3">
         <div className="w-6 h-6 rounded bg-brand-charcoal-hover animate-pulse" />
         <div className="w-48 h-4 rounded bg-brand-charcoal-hover animate-pulse" />
