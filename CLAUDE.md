@@ -3,7 +3,7 @@
 > Zero-cost, production-grade automated code-grading platform for Go & Python curricula.
 > Students solve problems in a Monaco editor workspace, submit code, receive instant pass/fail results with diff output. AI (NVIDIA NIM / DeepSeek V4 Flash) enriches raw problem specs into structured test cases. Runs entirely on free-tier infrastructure.
 >
-> **Branch:** `update` | **Last indexed:** 2026-08-17 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (215 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
+> **Branch:** `staging` | **Last indexed:** 2026-11-12 | **Verified:** `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (233 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | **Working tree:** clean
 
 ---
 
@@ -34,22 +34,22 @@
 
 ---
 
-## 3. Repository Statistics (Verified: 2026-08-12)
+## 3. Repository Statistics (Verified: 2026-11-12)
 
 | Category                                            | Files                                     | Lines of Code       | Notes                                                                                                                                             |
 | --------------------------------------------------- | ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Go Backend** (`cmd/` + `internal/`)               | 69 source + 24 test                       | ~20,758 + ~5,611    | 9 packages, 163 Store interface methods, ~121 API endpoints; includes 4 cmd tools                                                                  |
+| **Go Backend** (`cmd/` + `internal/`)               | 70 source + 24 test                       | ~21,429 + ~6,180    | 9 packages, 164 Store interface methods, ~121 API endpoints; includes 4 cmd tools                                                                 |
 | **Go Sandbox** (`sandbox/`)                         | 8 source + 2 test + Dockerfile + fly.toml | ~1,382 + ~228 + ~63 | Zero external deps, 4-layer defense-in-depth, pinned black formatter                                                                              |
-| **SQL Migrations** (`migrations/`)                  | 56                                        | ~27,559             | 40 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
-| **Frontend App** (`app/`)                           | 75 `.tsx`                                 | ~18,466             | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC)                                                                    |
-| **Frontend Components** (`components/`)             | 98                                        | ~13,469             | 22 shadcn/ui + 76 custom (incl. `test-results/` diff primitives, `best-practices/` AI showcase, `MonacoPreloader`)                               |
-| **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 27                                        | ~4,714              | 23 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
+| **SQL Migrations** (`migrations/`)                  | 56                                        | ~27,554             | 40 schema + 14 seed + 1 content-refresh + 1 pipeline test, 25 tables                                                                              |
+| **Frontend App** (`app/`)                           | 77 `.tsx`                                 | ~19,043             | 7 route groups, all with loading + error boundaries (+ `globals.css`, 216 LOC)                                                                    |
+| **Frontend Components** (`components/`)             | 112                                       | ~16,197             | 22 shadcn/ui + mobile (9) + dashboard (4) + admin (curriculum/email preview) + test-results/ + best-practices/ (28)                               |
+| **Frontend Lib/Hooks** (`lib/`, `hooks/`)           | 28                                        | ~5,122              | 24 lib + 4 hooks, 60+ API functions, 40+ TS interfaces (excl. 4 generated vendor JSON grammars/themes, ~8,655 LOC)                                |
 | **Frontend Styles** (`styles/` + `app/globals.css`) | 4                                         | ~1,598              | theme.css (856 vars), typography.css (430 lines)                                                                                                  |
-| **Documentation**                                   | 21                                        | ~10,300             | 5 docs/ + 16 root/docs markdown files                                                                                                             |
+| **Documentation**                                   | 22                                        | ~11,100             | docs/ (7 files) + root documentation markdown files                                                                                               |
 | **Scripts**                                         | 7                                         | ~904                | data reset, build cache, seed transform, curriculum cleanup, practicals migration generator                                                       |
 | **Config/Build**                                    | 16                                        | ~699                | go.mod, go.sum, Procfile, build.sh, CI, env, env example, frontend configs, sandbox/azure                                                         |
 | **Root Data (JSON, SQL)**                           | 26                                        | ~11,823             | Problem JSONs, rollback/update SQL, curriculum JSON                                                                                               |
-| **Total (tracked source)**                          | **~392**                                  | **~110,400**        | Source code + migrations + docs + config + scripts + root data; excludes generated vendor JSON, `package-lock.json`, `.next/trace`, binary assets |
+| **Total (tracked source)**                          | **~424**                                  | **~120,400**        | Source code + migrations + docs + config + scripts + root data; excludes generated vendor JSON, `package-lock.json`, `.next/trace`, binary assets |
 
 ---
 
@@ -377,20 +377,23 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `page.tsx`  | 372   | Client | Community problem submission form, test cases, language_versions |
 | `error.tsx` | 32    | Client | Error boundary                                                   |
 
-#### Admin `(main)/admin/` (10 files)
+#### Admin `(main)/admin/` (13 files)
 
-| File                        | Lines | Type   | Purpose                                                                                                                                                                                                |
-| --------------------------- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `page.tsx`                  | 1,408 | Client | Dashboard: tabs for Stats, Ingest, Activity, Problems, Feedback, Broadcasts, Pending Contributions, Problem Reports, User Verification, Module Settings, Problem Module Locks, Curriculum Module Locks |
-| `error.tsx`                 | 32    | Client | Error boundary                                                                                                                                                                                         |
-| `BroadcastPanel.tsx`        | 334   | Client | Create/edit broadcasts, activate/deactivate toggles                                                                                                                                                    |
-| `EmailBroadcastPanel.tsx`   | 298   | Client | Send problem-reminder emails to all users via Resend (per-problem body/CTA), send-confirmation state                                                                                                   |
-| `FeedbackPanel.tsx`         | 276   | Client | Status filters, inline resolve                                                                                                                                                                         |
-| `PendingContributions.tsx`  | 268   | Client | Approval/rejection queue                                                                                                                                                                               |
-| `ProblemEditPanel.tsx`      | 666   | Client | 16-field editor, renderMarkdown preview, AI assist                                                                                                                                                     |
-| `ProblemReports.tsx`        | 681   | Client | Grouped/flat bug reports, search, resolved filter                                                                                                                                                      |
-| `UserVerificationPanel.tsx` | 305   | Client | Debounced search (300ms), verified toggle, reset-password dialog                                                                                                                                       |
-| `curriculum/page.tsx`       | 1,857 | Client | 3-panel CMS: course list → modules → lesson editor; full section CRUD, quiz metadata, dependency picker, multi-file config, project CRUD                                                               |
+| File                                  | Lines | Type   | Purpose                                                                                                                                                                                                |
+| ------------------------------------- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `page.tsx`                            | 1,408 | Client | Dashboard: tabs for Stats, Ingest, Activity, Problems, Feedback, Broadcasts, Pending Contributions, Problem Reports, User Verification, Module Settings, Problem Module Locks, Curriculum Module Locks |
+| `error.tsx`                           | 32    | Client | Error boundary                                                                                                                                                                                         |
+| `BroadcastPanel.tsx`                  | 334   | Client | Create/edit broadcasts, activate/deactivate toggles                                                                                                                                                    |
+| `EmailBroadcastPanel.tsx`             | 298   | Client | Send problem-reminder emails to all users via Resend (per-problem body/CTA), send-confirmation state                                                                                                   |
+| `EmailLogsPanel.tsx`                  | 260   | Client | Email delivery logs table, status badges, provider ID, retry count, error inspector                                                                                                                    |
+| `EmailPreviewPanel.tsx`               | 285   | Client | Real-time preview of transactional email templates (problem reminder, best practices, password reset) with responsive viewport toggle |
+| `BestPracticesAnnouncementPanel.tsx`  | 210   | Client | Broadcast and preview best practices announcement email campaigns                                                                                                                                      |
+| `FeedbackPanel.tsx`                   | 276   | Client | Status filters, inline resolve                                                                                                                                                                         |
+| `PendingContributions.tsx`            | 268   | Client | Approval/rejection queue                                                                                                                                                                               |
+| `ProblemEditPanel.tsx`                | 666   | Client | 16-field editor, renderMarkdown preview, AI assist                                                                                                                                                     |
+| `ProblemReports.tsx`                  | 681   | Client | Grouped/flat bug reports, search, resolved filter                                                                                                                                                      |
+| `UserVerificationPanel.tsx`           | 305   | Client | Debounced search (300ms), verified toggle, reset-password dialog                                                                                                                                       |
+| `curriculum/page.tsx`                 | 1,857 | Client | 3-panel CMS: course list → modules → lesson editor; full section CRUD, quiz metadata, dependency picker, multi-file config, project CRUD                                                               |
 
 #### Learn `(main)/learn/` (17 files)
 
@@ -509,11 +512,35 @@ Client → chi Router → Middleware Stack → Handler → Store → PostgreSQL
 | `learn/SectionExercise.tsx` | 509   | Monaco + PyodideConsole 60/40 split, multi-file, Ctrl+Enter, backend test |
 | `learn/LessonSidebar.tsx`   | 210   | Progress bar, section nav, prerequisite checklist with locked state       |
 
-#### Dashboard Components (1 file)
+#### Mobile Components (`mobile/` — 9 files, ~820 LOC)
 
-| File                        | Lines | Purpose                                                                      |
-| --------------------------- | ----- | ---------------------------------------------------------------------------- |
-| `dashboard/ModuleCards.tsx` | 454   | Module grid, WebP images, progress bars, locked padlock overlay, pinned sort |
+| File                                         | Lines | Purpose                                                                                     |
+| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
+| `mobile/MobileWorkspace.tsx`                 | 185   | Mobile problem workspace shell coordinating headers, bottom tabs, floating run/submit actions|
+| `mobile/MobileTopHeader.tsx`                 | 95    | Compact sticky top header (problem title, difficulty badge, status pill, language toggle)    |
+| `mobile/MobileBottomTabs.tsx`                | 65    | 5-tab fixed bottom navigation (Problem, Code, Output, Hints, More)                          |
+| `mobile/MobileFloatingActions.tsx`           | 88    | Floating action buttons for Test & Submit with run spinners                                 |
+| `mobile/tabs/MobileProblemTab.tsx`           | 120   | Rendered problem statement, input/output types, example test cases                           |
+| `mobile/tabs/MobileCodeTab.tsx`              | 140   | Monaco editor configured for touch-first mobile interaction                                 |
+| `mobile/tabs/MobileOutputTab.tsx`            | 95    | TestResultPanel wrapper formatted for narrow mobile screens                                 |
+| `mobile/tabs/MobileHintsTab.tsx`             | 75    | Progressive hint disclosure cards                                                           |
+| `mobile/tabs/MobileMoreTab.tsx`              | 55    | Secondary problem actions (reset code, report bug, community solutions)                     |
+
+#### Dashboard Components (`dashboard/` — 4 files, ~780 LOC)
+
+| File                           | Lines | Purpose                                                                      |
+| ------------------------------ | ----- | ---------------------------------------------------------------------------- |
+| `dashboard/DashboardHeader.tsx`| 180   | User stats band, streak ring, level gauge, rank display, search & filters    |
+| `dashboard/ProgressRing.tsx`   | 75    | SVG circular progress gauge with level indicator                             |
+| `dashboard/LanguageSegmented.tsx` | 65 | All/Go/Python segmented toggle with LanguageLogo icons                       |
+| `dashboard/ModuleCards.tsx`    | 454   | Module grid, WebP images, progress bars, locked padlock overlay, pinned sort |
+
+#### Layout & Navigation (`layout/` — 2 files, ~460 LOC)
+
+| File                     | Lines | Purpose                                                                                                         |
+| ------------------------ | ----- | --------------------------------------------------------------------------------------------------------------- |
+| `layout/TopNav.tsx`      | 344   | Logo, Dashboard/Problems/Learn links (BETA badges), notification bell, avatar menu, XP bar, Google link trigger |
+| `layout/MobileTabBar.tsx`| 115   | Fixed bottom navigation bar for mobile screens (< 900px)                                                        |
 
 #### Profile Components (1 file)
 

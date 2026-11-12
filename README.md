@@ -142,7 +142,7 @@ koder/
 │   ├── config/config.go             # Env var loading, startup validation, defaults
 │   │
 │   ├── store/                       # DATABASE LAYER — pure pgx/v5, no ORM
-│   │   ├── store.go                 # Store interface (80+ methods) + PostgresStore impl
+│   │   ├── store.go                 # Store interface (164 methods) + PostgresStore impl
 │   │   ├── errors.go                # FriendlyError type + unique constraint detection
 │   │   ├── types.go                 # All data types: User, Problem, Submission, etc.
 │   │   ├── users.go                 # User CRUD, bcrypt, Google linking, export, search
@@ -159,7 +159,11 @@ koder/
 │   │   ├── profile.go               # Full profile, module proficiency, recent submissions
 │   │   ├── ai_usage.go              # AI usage logging and stats (graceful missing table)
 │   │   ├── refresh_tokens.go        # Refresh token rotation + reuse detection
-│   │   ├── password_reset.go        # PIN + email password reset tokens
+│   │   ├── password_reset.go        # Email password reset tokens (PIN removed)
+│   │   ├── solution_explanations.go # Cached AI code explanations & quality scores
+│   │   ├── email_logs.go            # Transactional email delivery lifecycle logs
+│   │   ├── module_locks.go          # Problem category locking
+│   │   ├── module_meta.go           # Module display metadata & pinned status
 │   │   └── token_blacklist.go       # JWT revocation for logout
 │   │
 │   ├── auth/
@@ -271,7 +275,8 @@ koder/
 │   │   │   ├── contribute/          # Community problem contribution form
 │   │   │   ├── admin/               # Dashboard, BroadcastPanel, FeedbackPanel,
 │   │   │   │                           PendingContributions, ProblemReports,
-│   │   │   │                           UserVerificationPanel, curriculum/ CMS
+│   │   │   │                           UserVerificationPanel, EmailPreviewPanel,
+│   │   │   │                           BestPracticesAnnouncementPanel, curriculum/ CMS
 │   │   │   └── learn/               # Curriculum CMS student view
 │   │   │       ├── layout.tsx
 │   │   │       ├── courses/         # Course catalog → detail → module → lesson viewer
@@ -282,10 +287,12 @@ koder/
 │   │   │                               dialog, dropdown-menu, input, input-otp, label,
 │   │   │                               progress, select, tabs, textarea, tooltip, etc.)
 │   │   ├── auth/                    # Google button, label-input, divider, gradient
-│   │   ├── base/avatar/avatar.tsx    # Avatar with src/initials fallback + verified badge
+│   │   ├── base/avatar/avatar.tsx   # Avatar with src/initials fallback + verified badge
 │   │   ├── kibo-ui/                 # Code block (Shiki), contribution graph
 │   │   ├── learn/                   # SectionRenderer, SectionQuiz, SectionExercise
 │   │   │                               (Monaco), LessonSidebar
+│   │   ├── mobile/                  # MobileWorkspace, MobileTopHeader, MobileBottomTabs,
+│   │   │                               MobileFloatingActions, tabs (Code, Output, Hints, etc.)
 │   │   ├── test-results/            # ValueDiff, lineDiff, charDiff diff primitives
 │   │   ├── BroadcastBanner.tsx
 │   │   ├── FeedbackButton.tsx
@@ -294,8 +301,8 @@ koder/
 │   │   ├── best-practices/          # Best Practices showcase + AI analysis (SolutionCard,
 │   │   │                               AnalysisModal split command center, QualityGauge,
 │   │   │                               ScoreRadar, ComplexityScale, ExplainPanel, chat/)
-│   │   ├── layout/TopNav.tsx        # Nav: Dashboard, Problems, Learn, Leaderboard, Admin
-│   │   └── dashboard/ModuleCards.tsx
+│   │   ├── layout/                  # TopNav, MobileTabBar (bottom 5-tab shell)
+│   │   └── dashboard/               # DashboardHeader, ProgressRing, LanguageSegmented, ModuleCards
 │   ├── hooks/                       # use-google-one-tap, use-has-mounted, use-mobile
 │   ├── lib/
 │   │   ├── api.ts                   # 60+ typed endpoint functions (incl. SSE explain clients)
@@ -777,6 +784,7 @@ All endpoints return `application/json`. All protected endpoints require `Author
 | PATCH | `/admin/feedback/{id}` | Admin | Update status and admin notes |
 | GET | `/admin/problem-reports` | Admin | Bug reports grouped by problem slug |
 | GET | `/admin/email-logs` | Admin | Email delivery lifecycle (?status,?email,?limit,?offset) |
+| GET | `/admin/email-preview` | Admin | Preview rendered transactional email (?template=problem_reminder\|best_practices\|password_reset) |
 | POST | `/admin/broadcast-emails` | Admin | Send problem-reminder email to all users via Resend |
 | GET | `/health` | None | Service health (db ping, env info) |
 | GET | `/version` | None | Build commit + time + Go version |
@@ -932,7 +940,7 @@ Full-page course/module/lesson tree with inline editors. Section builder (11 typ
 | AI usage logging | Per-user/action tracking with success/failure rates |
 | Curriculum CMS | 8 tables, 25 Store methods, 26 API endpoints, full admin UI + student lesson viewer |
 | CI/CD pipeline | GitHub Actions: backend vet/test/build, frontend lint/tsc/build, deploy hooks |
-| Test suite | 215 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
+| Test suite | 233 backend + 11 sandbox tests across 9 backend suites + sandbox, `go vet` clean |
 | Security hardening | CSP headers, account data export, user search/verify, admin AI rate limiting |
 
 ---
