@@ -33,7 +33,7 @@ func (s *PostgresStore) CreateNotification(ctx context.Context, userID uuid.UUID
 func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error) {
 	query := `
 		SELECT n.id, n.user_id, n.type, n.message, n.related_id, n.is_read, n.created_at,
-		       CASE WHEN n.type = 'solution_liked' THEN p.slug END AS related_slug
+		       COALESCE(CASE WHEN n.type = 'solution_liked' THEN p.slug END, '') AS related_slug
 		FROM notifications n
 		LEFT JOIN problems p ON n.type = 'solution_liked' AND p.id = n.related_id
 		WHERE n.user_id = $1 AND n.is_read = FALSE
@@ -68,7 +68,7 @@ func (s *PostgresStore) GetUnreadNotifications(ctx context.Context, userID uuid.
 func (s *PostgresStore) GetRecentNotifications(ctx context.Context, userID uuid.UUID, limit int) ([]Notification, error) {
 	query := `
 		SELECT n.id, n.user_id, n.type, n.message, n.related_id, n.is_read, n.created_at,
-		       CASE WHEN n.type = 'solution_liked' THEN p.slug END AS related_slug
+		       COALESCE(CASE WHEN n.type = 'solution_liked' THEN p.slug END, '') AS related_slug
 		FROM notifications n
 		LEFT JOIN problems p ON n.type = 'solution_liked' AND p.id = n.related_id
 		WHERE n.user_id = $1
