@@ -1599,6 +1599,9 @@ export async function streamInsightMessage(
     let buffer = "";
     let ok = true;
     let closed = false;
+    // An error frame is reported exactly as it arrived; the generic
+    // "connection dropped" text must not overwrite the real cause.
+    let errorReported = false;
 
     try {
       while (!closed) {
@@ -1627,6 +1630,7 @@ export async function streamInsightMessage(
               handlers.onDelta(frame.delta);
             } else if (frame.error) {
               ok = false;
+              errorReported = true;
               handlers.onError?.(frame.error.code, frame.error.message);
             } else if (frame.report && frame.snapshot) {
               handlers.onFinal?.(frame as InsightTurnResult);
@@ -1640,7 +1644,7 @@ export async function streamInsightMessage(
       ok = false;
     }
 
-    if (!ok) {
+    if (!ok && !errorReported) {
       handlers.onError?.(
         "ADMIN_INSIGHTS_FAILED",
         "The connection dropped while the analyst was answering.",

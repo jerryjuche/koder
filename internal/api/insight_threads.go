@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -327,17 +328,22 @@ func (h *InsightsHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	flusher, canStream := w.(http.Flusher)
+	var stream *sseStream
 	if cached {
 		// No generation required — fall through to persistence and framing.
 	} else if canStream {
 		setStreamHeaders(w)
+		stream = newSSEStream(w, flusher)
+		stream.startKeepAlive(15 * time.Second)
+		defer stream.close()
+		stream.comment("analyst connected")
 		result, err = h.generator.GenerateInsightsStream(r.Context(), genReq, func(delta string) error {
 			select {
 			case <-r.Context().Done():
 				return r.Context().Err()
 			default:
 			}
-			if writeErr := writeSSEFrame(w, flusher, sseDeltaFrame{Delta: delta}); writeErr != nil {
+			if writeErr := stream.frame(sseDeltaFrame{Delta: delta}); writeErr != nil {
 				return errStreamWrite
 			}
 			return nil
@@ -369,7 +375,7 @@ func (h *InsightsHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, errStreamWrite) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return // client disconnected; headers are already sent
 		}
-		_ = writeSSEFrame(w, flusher, sseErrorFrameFrom("ADMIN_INSIGHTS_FAILED", "The AI could not answer that. Please try again."))
+		_ = stream.frame(sseErrorFrameFrom("ADMIN_INSIGHTS_FAILED", "The AI could not answer that. Please try again."))
 		return
 	}
 
@@ -421,11 +427,12 @@ func (h *InsightsHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := writeSSEFrame(w, flusher, resp); err != nil {
+	if err := stream.frame(resp); err != nil {
 		return
 	}
-	fmt.Fprint(w, "data: [DONE]\n\n")
-	flusher.Flush()
+	if err := stream.raw("data: [DONE]\n\n"); err != nil {
+		return
+	}
 
 	if logErr := h.store.LogActivity(r.Context(), "info",
 		fmt.Sprintf("Admin AI analyst (%s) in %dms", period, duration.Milliseconds()),
@@ -516,4 +523,105 @@ func truncateRunes(s string, limit int) string {
 		return s
 	}
 	return string(runes[:limit])
+}
+
+// ── SSE writer ─────────────────────────────────────────────────────────────
+
+// sseStream serialises frames written by the request handler with the
+// keep-alive comments a background ticker emits. Without the lock the two
+// would interleave mid-frame and corrupt the stream.
+type sseStream struct {
+	mu      sync.Mutex
+	w       http.ResponseWriter
+	flusher http.Flusher
+	ticker  *time.Ticker
+	done    chan struct{}
+	closed  bool
+}
+
+func newSSEStream(w http.ResponseWriter, flusher http.Flusher) *sseStream {
+	return &sseStream{w: w, flusher: flusher}
+}
+
+// frame writes one data frame and flushes it.
+func (s *sseStream) frame(v any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return errStreamWrite
+	}
+	return writeSSEFrame(s.w, s.flusher, v)
+}
+
+// raw writes pre-formatted bytes, such as the terminal [DONE] sentinel.
+func (s *sseStream) raw(payload string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return errStreamWrite
+	}
+	if _, err := fmt.Fprint(s.w, payload); err != nil {
+		return err
+	}
+	s.flusher.Flush()
+	return nil
+}
+
+// comment writes an SSE comment. Clients ignore it; intermediaries see bytes
+// and keep a connection open while the model is still thinking.
+func (s *sseStream) comment(text string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+	if _, err := fmt.Fprintf(s.w, ": %s\n\n", text); err == nil {
+		s.flusher.Flush()
+	}
+}
+
+// startKeepAlive emits a comment every interval until close is called.
+func (s *sseStream) startKeepAlive(interval time.Duration) {
+	s.mu.Lock()
+	if s.closed || s.ticker != nil {
+		s.mu.Unlock()
+		return
+	}
+	s.ticker = time.NewTicker(interval)
+	s.done = make(chan struct{})
+	ticker, done := s.ticker, s.done
+	s.mu.Unlock()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				s.comment("keep-alive")
+			}
+		}
+	}()
+}
+
+// close stops the keep-alive ticker and refuses later writes. It waits for any
+// write in flight, so nothing touches the ResponseWriter after the handler
+// returns.
+func (s *sseStream) close() {
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	s.closed = true
+	ticker, done := s.ticker, s.done
+	s.ticker, s.done = nil, nil
+	s.mu.Unlock()
+
+	if done != nil {
+		close(done)
+	}
+	if ticker != nil {
+		ticker.Stop()
+	}
 }
