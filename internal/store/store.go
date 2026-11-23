@@ -161,6 +161,23 @@ type Store interface {
 	LogAIUsage(ctx context.Context, userID uuid.UUID, action, problemSlug string, tokensIn, tokensOut, responseTimeMs int, success bool, errorMessage string) error
 	GetAIUsageStats(ctx context.Context) (*AIUsageStats, error)
 
+	// Admin AI insights (read-only aggregated snapshot + narrative cache)
+	GetInsightsSnapshot(ctx context.Context, period string, windowStart, windowEnd time.Time) (*InsightsSnapshot, error)
+	GetAdminInsightReport(ctx context.Context, period, questionHash string, notBefore time.Time) (reportJSON, snapshotJSON []byte, model string, createdAt time.Time, err error)
+	UpsertAdminInsightReport(ctx context.Context, adminID uuid.UUID, period, questionHash, question, model string, reportJSON, snapshotJSON []byte) error
+	CleanupExpiredAdminInsightReports(ctx context.Context, olderThan time.Time) error
+
+	// Admin AI conversations (saved threads + per-student drill-down)
+	CreateInsightThread(ctx context.Context, adminID uuid.UUID, title, period string) (*InsightThread, error)
+	ListInsightThreads(ctx context.Context, adminID uuid.UUID, limit int) ([]InsightThread, error)
+	GetInsightThread(ctx context.Context, adminID, threadID uuid.UUID) (*InsightThread, error)
+	UpdateInsightThread(ctx context.Context, adminID, threadID uuid.UUID, title, period string) (*InsightThread, error)
+	DeleteInsightThread(ctx context.Context, adminID, threadID uuid.UUID) error
+	AppendInsightMessage(ctx context.Context, msg *NewInsightMessage) (*InsightMessage, error)
+	ListInsightMessages(ctx context.Context, threadID uuid.UUID, limit int) ([]InsightMessage, error)
+	ListStudentDirectory(ctx context.Context) ([]InsightsStudentRef, error)
+	GetStudentInsight(ctx context.Context, userID uuid.UUID, start, end time.Time) (*StudentInsight, error)
+
 	// Refresh tokens
 	CreateRefreshToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	GetRefreshToken(ctx context.Context, tokenHash string) (*RefreshToken, error)

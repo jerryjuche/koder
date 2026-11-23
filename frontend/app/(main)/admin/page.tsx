@@ -68,6 +68,7 @@ import {
   AllModule,
 } from "@/lib/types";
 import { useWebSocket } from "@/lib/event";
+import AdminInsightsPanel from "@/components/admin/AdminInsightsPanel";
 import PendingContributions from "./PendingContributions";
 import FeedbackPanel from "./FeedbackPanel";
 import BroadcastPanel from "./BroadcastPanel";
@@ -455,6 +456,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Ask the platform — SQL-grounded AI activity report */}
+      <AdminInsightsPanel />
 
       {/* Problems (scrollable) */}
       <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">

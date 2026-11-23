@@ -75,6 +75,7 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 	explainRateLimiter := NewRateLimiter(10, 1*time.Minute)
 	slog.Info("explain_rate_limiter: enabled", "max_requests", 10, "window_seconds", 60)
 	explainHandler := NewExplainHandler(store, enricherInst)
+	insightsHandler := NewInsightsHandler(store, enricherInst)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -220,6 +221,20 @@ func NewRouter(cfg *config.Config, store storepkg.Store, exec *executor.Executor
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Post("/admin/enrich", adminHandler.Enrich)
 			r.With(BodySizeLimitMiddleware(5*1024*1024)).Post("/admin/enrich-all", adminHandler.EnrichAll)
 			r.With(AIRateLimitMiddleware(aiRateLimiter), BodySizeLimitMiddleware(1*1024*1024)).Post("/admin/ai/assist", adminHandler.AIAssist)
+			// Ask-the-platform endpoint: SQL-grounded snapshot + AI narrative.
+			// Same AI limiter as assist so one admin cannot burn the free tier.
+			r.With(AIRateLimitMiddleware(aiRateLimiter), BodySizeLimitMiddleware(64*1024)).Post("/admin/ai/insights", insightsHandler.Generate)
+			// Conversational analyst: saved threads, per-student drill-down and a
+			// streamed narrative. Thread CRUD shares the same limiter because the
+			// expensive path is the message turn, not the metadata.
+			// Thread metadata is cheap, so only the message turn (the model call)
+			// consumes the AI budget — browsing conversations must not 429.
+			r.Get("/admin/ai/threads", insightsHandler.ListThreads)
+			r.With(BodySizeLimitMiddleware(64*1024)).Post("/admin/ai/threads", insightsHandler.CreateThread)
+			r.Get("/admin/ai/threads/{id}", insightsHandler.GetThread)
+			r.With(BodySizeLimitMiddleware(64*1024)).Patch("/admin/ai/threads/{id}", insightsHandler.UpdateThread)
+			r.Delete("/admin/ai/threads/{id}", insightsHandler.DeleteThread)
+			r.With(AIRateLimitMiddleware(aiRateLimiter), BodySizeLimitMiddleware(64*1024)).Post("/admin/ai/threads/{id}/messages", insightsHandler.PostMessage)
 			r.Get("/admin/ai/usage", adminHandler.GetAIUsage)
 			r.Get("/admin/stats", adminHandler.GetAdminStats)
 			r.Get("/admin/activity", adminHandler.GetAdminActivity)

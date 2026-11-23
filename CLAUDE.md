@@ -1736,4 +1736,16 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=<google-client-id>
 
 ---
 
+### 2026-11-23 — Session 129: Conversational admin analyst — saved threads, streaming, XP/levels and drill-down
+
+- **Conversational:** turns live in `admin_insight_threads` / `admin_insight_messages` (`migrations/057`). Each turn replays the last 8 narrative turns so “why?” and “and last week?” resolve; both turns are written only after a successful answer. All reads/writes are owner-scoped (foreign thread id → 404).
+- **Streaming:** `POST /admin/ai/threads/{id}/messages` streams SSE narrative deltas from `GenerateContentStream`, decoded out of the partially received JSON by `internal/enricher/insights_stream.go` (escape-aware, withholds split escapes). Final frame carries the validated report + snapshot; non-Flusher servers get buffered JSON.
+- **Wider grounding:** `internal/store/insights_extended.go` adds previous-window comparison + deltas, lifetime-XP leaderboard with levels/top-10 movement/streaks, level distribution, at-risk students (quiet >7 days, or 3+ fails on one problem), weak-skill tags, curriculum/course funnel and a recent activity feed. Per-student profile (`GetStudentInsight`) gives XP, rank, streak, window stats, difficulty/module/tag breakdowns, stuck problems and recent solves.
+- **Named drill-down:** `internal/api/insight_subject.go` resolves a full name, username or unique first name deterministically; ambiguous names resolve to nobody rather than the wrong student.
+- **UI:** `AdminInsightsPanel.tsx` is a two-pane saved-thread conversation with streaming bubble, follow-up chips, composer, period chips and delete/new chat; `AdminInsightCards.tsx` renders metric tiles with deltas, clickable XP leaderboard, risk list, skill-gap bars, takeaway columns, an optional student profile, collapsible curriculum/levels/activity detail, and Markdown copy/export.
+- **Tests:** `internal/api/insights_threads_test.go` (stream frames, persistence, history, foreign-thread 404, period validation, name resolution) and `internal/enricher/insights_stream_test.go` (chunked extraction, escapes, history/student prompt).
+- **Verified:** `go vet ./internal/...`, `go test ./internal/...` (9/9 suites), `go build ./cmd/server`, sandbox vet/test/build, `npx tsc --noEmit`, ESLint, `next build`. SQL was not executed against a live PostgreSQL and the panel was not viewed in a browser.
+
+---
+
 _Last indexed: 2026-08-17 | Branch: `update` | Pre-verified: `go vet` clean (13/13 packages incl. sandbox), 9/9 Go test suites passing (215 backend + 11 sandbox tests, zero failures), ESLint 0 errors, `tsc --noEmit` 0 errors | Working tree: clean_
