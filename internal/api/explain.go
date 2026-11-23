@@ -370,28 +370,5 @@ func (h *ExplainHandler) logUsage(ctx context.Context, userID uuid.UUID, action,
 // from the browser. Upstream failures carry Retry-After so the client can back
 // off and retry instead of hammering a degraded provider.
 func (h *ExplainHandler) respondExplainError(w http.ResponseWriter, r *http.Request, err error, code, message string) {
-	var details string
-	switch {
-	case errors.Is(err, enricher.ErrAIValidation):
-		details = "validation_error"
-	case errors.Is(err, enricher.ErrAIInvalidResponse):
-		details = "invalid_response"
-	case errors.Is(err, enricher.ErrAIUpstream):
-		details = "upstream_error"
-	default:
-		details = "unknown_error"
-	}
-
-	if details == "upstream_error" {
-		w.Header().Set("Retry-After", "30")
-	}
-
-	slog.Warn("explain: responding failure",
-		"path", r.URL.Path,
-		"code", code,
-		"details", details,
-		"error", err,
-	)
-
-	RespondError(w, http.StatusBadGateway, code, message, details)
+	respondAIError(w, r, err, code, message)
 }

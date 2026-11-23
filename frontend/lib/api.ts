@@ -35,6 +35,11 @@ import {
 	SolutionExplanation,
 	EmailPreview,
 	EmailTemplateId,
+	AdminInsightPeriod,
+	AdminInsightsResult,
+	InsightThread,
+	InsightThreadDetail,
+	InsightTurnResult,
 } from "./types";
 import { getCache, setCache, clearCache } from "./cache";
 
@@ -1437,3 +1442,222 @@ export async function setModulePin(
     },
   );
 }
+
+// Admin AI insights — asks the platform a question. Numbers in the response are
+// computed server-side by SQL; the narrative is grounded in them. This legacy
+// one-shot endpoint is kept for scripts; the UI uses saved threads below.
+export async function fetchAdminInsights(params: {
+  question?: string;
+  period?: AdminInsightPeriod;
+}): Promise<ApiResponse<AdminInsightsResult>> {
+  return fetchApi<AdminInsightsResult>("/admin/ai/insights", {
+    method: "POST",
+    body: JSON.stringify({
+      question: params.question ?? "",
+      period: params.period ?? "today",
+    }),
+  });
+}
+
+// ── Conversational analyst threads ─────────────────────────────────────────
+
+export async function fetchInsightThreads(): Promise<
+  ApiResponse<InsightThread[]>
+> {
+  return fetchApi<InsightThread[]>("/admin/ai/threads");
+}
+
+export async function createInsightThread(params?: {
+  title?: string;
+  period?: AdminInsightPeriod;
+}): Promise<ApiResponse<InsightThread>> {
+  const res = await fetchApi<InsightThread>("/admin/ai/threads", {
+    method: "POST",
+    body: JSON.stringify({
+      title: params?.title ?? "",
+      period: params?.period ?? "today",
+    }),
+  });
+  clearCache("/admin/ai/threads");
+  return res;
+}
+
+export async function fetchInsightThread(
+  id: string,
+): Promise<ApiResponse<InsightThreadDetail>> {
+  return fetchApi<InsightThreadDetail>(`/admin/ai/threads/${id}`);
+}
+
+export async function updateInsightThread(
+  id: string,
+  params: { title?: string; period?: AdminInsightPeriod },
+): Promise<ApiResponse<InsightThread>> {
+  const res = await fetchApi<InsightThread>(`/admin/ai/threads/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      title: params.title ?? "",
+      period: params.period ?? "",
+    }),
+  });
+  clearCache("/admin/ai/threads");
+  return res;
+}
+
+export async function deleteInsightThread(
+  id: string,
+): Promise<ApiResponse<{ status: string }>> {
+  const res = await fetchApi<{ status: string }>(`/admin/ai/threads/${id}`, {
+    method: "DELETE",
+  });
+  clearCache("/admin/ai/threads");
+  return res;
+}
+
+export type InsightStreamHandlers = {
+  onDelta: (delta: string) => void;
+  onFinal?: (result: InsightTurnResult) => void;
+  onError?: (code: string, message: string) => void;
+};
+
+type InsightFrame = {
+  delta?: string;
+  error?: { code: string; message: string };
+  report?: InsightTurnResult["report"];
+  snapshot?: InsightTurnResult["snapshot"];
+} & Partial<InsightTurnResult>;
+
+// POST /admin/ai/threads/{id}/messages streams the narrative as SSE and ends
+// with one frame carrying the validated report + snapshot. Auth expiry is
+// retried once after a token refresh, mirroring the explain stream client.
+export async function streamInsightMessage(
+  threadId: string,
+  params: { question: string; period?: AdminInsightPeriod; subjectId?: string },
+  handlers: InsightStreamHandlers,
+): Promise<boolean> {
+  const attempt = async (): Promise<{ ok: boolean; retryAuth?: boolean }> => {
+    const token = localStorage.getItem("koder_token");
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/admin/ai/threads/${threadId}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          question: params.question,
+          period: params.period ?? "today",
+          subject_id: params.subjectId ?? "",
+        }),
+      });
+    } catch {
+      handlers.onError?.("NETWORK_ERROR", "Could not reach the server.");
+      return { ok: false };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, retryAuth: true };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+
+    // Pre-stream validation errors and non-flush servers answer with plain JSON.
+    if (contentType.includes("application/json")) {
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+      if (!response.ok || data?.error) {
+        handlers.onError?.(
+          data?.error?.code || "ADMIN_INSIGHTS_FAILED",
+          data?.error?.message || "The analyst could not answer that.",
+        );
+        return { ok: false };
+      }
+      const result = data?.data as InsightTurnResult | undefined;
+      if (result?.report && result?.snapshot) {
+        handlers.onFinal?.(result);
+        return { ok: true };
+      }
+      handlers.onError?.("EMPTY_RESPONSE", "The analyst returned nothing.");
+      return { ok: false };
+    }
+
+    if (!response.ok || !response.body) {
+      handlers.onError?.(
+        "ADMIN_INSIGHTS_FAILED",
+        "The analyst could not answer that. Please try again.",
+      );
+      return { ok: false };
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let ok = true;
+    let closed = false;
+
+    try {
+      while (!closed) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx = buffer.indexOf("\n\n");
+        while (idx !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          for (const line of rawEvent.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") {
+              closed = true;
+              break;
+            }
+            let frame: InsightFrame | null = null;
+            try {
+              frame = JSON.parse(payload) as InsightFrame;
+            } catch {
+              frame = null;
+            }
+            if (!frame) continue;
+            if (typeof frame.delta === "string" && frame.delta.length > 0) {
+              handlers.onDelta(frame.delta);
+            } else if (frame.error) {
+              ok = false;
+              handlers.onError?.(frame.error.code, frame.error.message);
+            } else if (frame.report && frame.snapshot) {
+              handlers.onFinal?.(frame as InsightTurnResult);
+            }
+          }
+          if (closed) break;
+          idx = buffer.indexOf("\n\n");
+        }
+      }
+    } catch {
+      ok = false;
+    }
+
+    if (!ok) {
+      handlers.onError?.(
+        "ADMIN_INSIGHTS_FAILED",
+        "The connection dropped while the analyst was answering.",
+      );
+    }
+    return { ok };
+  };
+
+  let result = await attempt();
+  if (result.retryAuth) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      result = await attempt();
+    } else {
+      handlers.onError?.("AUTH_REQUIRED", "Session expired. Please log in again.");
+    }
+  }
+  return result.ok;
+}
+

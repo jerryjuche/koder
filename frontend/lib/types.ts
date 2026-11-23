@@ -672,3 +672,297 @@ export interface CourseProgressEntry {
 export interface ProgressResponse {
   courses: CourseProgressEntry[];
 }
+
+// ── Admin AI insights (POST /admin/ai/insights) ───────────────────────────
+// The snapshot is computed by SQL on the server and is the only source of
+// numbers the AI may cite. Keep these shapes in sync with
+// internal/store/insights.go and internal/enricher/insights.go.
+
+export type AdminInsightPeriod =
+  | "today"
+  | "yesterday"
+  | "week"
+  | "month"
+  | "all";
+
+export type InsightsTotals = {
+  active_users: number;
+  new_users: number;
+  submissions: number;
+  passed: number;
+  failed: number;
+  pass_rate: number;
+  solutions: number;
+  xp_earned: number;
+  avg_runtime_ms: number;
+  submissions_per_active_user: number;
+};
+
+export type InsightsLifetime = {
+  students: number;
+  engaged_students: number;
+  active_problems: number;
+  total_solves: number;
+  active_last_7_days: number;
+};
+
+export type InsightsDailyCount = {
+  day: string;
+  submissions: number;
+  passed: number;
+  active_users: number;
+};
+
+export type InsightsPerformer = {
+  user_id: string;
+  name: string;
+  username: string;
+  xp_earned: number;
+  lifetime_xp: number;
+  solved: number;
+  attempts: number;
+  pass_rate: number;
+  avg_runtime_ms: number;
+  streak_days: number;
+};
+
+export type InsightsSkill = {
+  tag: string;
+  solved: number;
+  attempts: number;
+  pass_rate: number;
+};
+
+export type InsightsModule = {
+  module: string;
+  students: number;
+  solved: number;
+  attempts: number;
+  pass_rate: number;
+  avg_runtime_ms: number;
+};
+
+export type InsightsDifficulty = {
+  difficulty: number;
+  solved: number;
+  attempts: number;
+  pass_rate: number;
+};
+
+export type InsightsProblemHealth = {
+  slug: string;
+  title: string;
+  module: string;
+  difficulty: number;
+  attempts: number;
+  pass_rate: number;
+};
+
+export type InsightsCommunity = {
+  contributions_submitted: number;
+  contributions_pending: number;
+  contributions_reviewed: number;
+  feedback_new: number;
+  feedback_open: number;
+  likes: number;
+};
+
+export type InsightsCurriculum = {
+  lessons_completed: number;
+  lesson_learners: number;
+  lesson_xp: number;
+};
+
+export type InsightsAI = {
+  calls: number;
+  success_rate: number;
+  avg_response_ms: number;
+  tokens_in: number;
+  tokens_out: number;
+  by_action: { action: string; calls: number }[];
+};
+
+export type AdminInsightsSnapshot = {
+  generated_at: string;
+  period: AdminInsightPeriod;
+  window_start: string;
+  window_end: string;
+  totals: InsightsTotals;
+  lifetime: InsightsLifetime;
+  daily_activity: InsightsDailyCount[];
+  top_performers: InsightsPerformer[];
+  skills: InsightsSkill[];
+  modules: InsightsModule[];
+  difficulty: InsightsDifficulty[];
+  struggling_problems: InsightsProblemHealth[];
+  community: InsightsCommunity;
+  curriculum: InsightsCurriculum;
+  ai: InsightsAI;
+};
+
+export type AdminInsightReport = {
+  headline: string;
+  summary: string;
+  highlights: string[];
+  concerns: string[];
+  recommendations: string[];
+  follow_ups: string[];
+  metrics_used: string[];
+};
+
+export type AdminInsightsResult = {
+  report: AdminInsightReport;
+  snapshot: AdminInsightsSnapshot;
+  cached: boolean;
+  model?: string;
+  generated_at: string;
+};
+
+// ── Extended snapshot sections (internal/store/insights_extended.go) ───────
+
+export type InsightsComparison = {
+  window_start: string;
+  window_end: string;
+  previous: InsightsTotals;
+  submissions_delta: number;
+  passed_delta: number;
+  active_users_delta: number;
+  solved_delta: number;
+  xp_earned_delta: number;
+  pass_rate_delta: number;
+};
+
+export type InsightsLeaderboardEntry = {
+  user_id: string;
+  name: string;
+  username: string;
+  lifetime_xp: number;
+  level: number;
+  window_xp: number;
+  window_rank: number;
+  rank_change: number;
+  solved: number;
+  streak_days: number;
+};
+
+export type InsightsLevelBucket = {
+  level: number;
+  students: number;
+  xp_floor: number;
+};
+
+export type InsightsAtRiskStudent = {
+  user_id: string;
+  name: string;
+  username: string;
+  lifetime_xp: number;
+  level: number;
+  last_active: string;
+  days_quiet: number;
+};
+
+export type InsightsStuckStudent = {
+  user_id: string;
+  name: string;
+  username: string;
+  problem: string;
+  slug: string;
+  fails: number;
+};
+
+export type InsightsAtRisk = {
+  gone_quiet: InsightsAtRiskStudent[];
+  stuck: InsightsStuckStudent[];
+};
+
+export type InsightsFunnel = {
+  lessons_published: number;
+  lessons_completed_all_time: number;
+  completions_in_window: number;
+  learners_in_window: number;
+  lesson_xp_in_window: number;
+  courses_started: number;
+  courses_completed: number;
+  course_completion_rate: number;
+};
+
+export type InsightsActivity = {
+  type: string;
+  message: string;
+  created_at: string;
+};
+
+export type StudentInsight = {
+  user_id: string;
+  name: string;
+  username: string;
+  lifetime_xp: number;
+  level: number;
+  rank: number;
+  streak_days: number;
+  last_active: string | null;
+  solved_total: number;
+  window_attempts: number;
+  window_passed: number;
+  window_solved: number;
+  window_xp_earned: number;
+  window_pass_rate: number;
+  window_avg_runtime_ms: number;
+  lessons_completed: number;
+  difficulties: InsightsDifficulty[];
+  modules: InsightsModule[];
+  skills: InsightsSkill[];
+  struggling_with: InsightsProblemHealth[];
+  recent_solved: string[];
+};
+
+export type AdminInsightsSnapshotExtended = AdminInsightsSnapshot & {
+  comparison?: InsightsComparison | null;
+  leaderboard: InsightsLeaderboardEntry[];
+  levels: InsightsLevelBucket[];
+  at_risk: InsightsAtRisk;
+  weak_skills: InsightsSkill[];
+  funnel: InsightsFunnel;
+  activity_feed: InsightsActivity[];
+};
+
+// ── Conversational analyst (admin/ai/threads) ─────────────────────────────
+
+export type InsightThread = {
+  id: string;
+  title: string;
+  period: AdminInsightPeriod;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InsightMessage = {
+  id: string;
+  thread_id: string;
+  role: "user" | "assistant";
+  content: string;
+  report?: AdminInsightReport | null;
+  snapshot?: AdminInsightsSnapshotExtended | null;
+  subject?: StudentInsight | null;
+  model?: string;
+  created_at: string;
+};
+
+export type InsightThreadDetail = {
+  thread: InsightThread;
+  messages: InsightMessage[];
+};
+
+// Final frame (and non-streaming body) of one conversational turn.
+export type InsightTurnResult = {
+  thread_id: string;
+  user_message_id: string;
+  message_id: string;
+  report: AdminInsightReport;
+  snapshot: AdminInsightsSnapshotExtended;
+  subject?: StudentInsight | null;
+  cached: boolean;
+  model?: string;
+  generated_at: string;
+};
