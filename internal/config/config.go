@@ -101,6 +101,19 @@ func firstEnv(names ...string) string {
 	return ""
 }
 
+// normalizeAIBaseURL strips the pieces callers append themselves. The provider
+// posts to "<base>/chat/completions", so a base URL copied straight from a
+// provider dashboard (which often ends in "/chat/completions", or has a
+// trailing slash) would produce ".../chat/completions/chat/completions" - a
+// path no upstream serves, which gateways reject with 404/410 instead of a
+// useful error.
+func normalizeAIBaseURL(raw string) string {
+	url := strings.TrimSpace(raw)
+	url = strings.TrimRight(url, "/")
+	url = strings.TrimSuffix(url, "/chat/completions")
+	return strings.TrimRight(url, "/")
+}
+
 // firstEnvName returns the name of the first environment variable that is set,
 // or "" if none are. Used for logging which alias supplied the value.
 func firstEnvName(names ...string) string {
@@ -237,6 +250,7 @@ func Load() (*Config, error) {
 	if cfg.NVIDIABaseURL == "" {
 		cfg.NVIDIABaseURL = "https://integrate.api.nvidia.com/v1"
 	}
+	cfg.NVIDIABaseURL = normalizeAIBaseURL(cfg.NVIDIABaseURL)
 
 	// Provider knobs (AI_MAX_TOKENS / AI_TEMPERATURE / AI_JSON_MODE)
 	aiMaxTokensStr := os.Getenv("AI_MAX_TOKENS")

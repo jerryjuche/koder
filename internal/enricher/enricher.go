@@ -1180,9 +1180,12 @@ func (n *nvidiaProvider) doStreamRequest(ctx context.Context, payload []byte, at
 		bodySnippet := truncate(string(respBody), 1000)
 		slog.Error("nvidia HTTP error",
 			"status", resp.StatusCode,
+			"model", n.model,
+			"base_url", n.baseURL,
+			"stream", true,
 			"body", bodySnippet,
 		)
-		return fmt.Errorf("nvidia returned HTTP %d: %s", resp.StatusCode, bodySnippet)
+		return fmt.Errorf("nvidia returned HTTP %d for model %q via %s: %s", resp.StatusCode, n.model, n.baseURL, bodySnippet)
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -1279,9 +1282,11 @@ func (n *nvidiaProvider) doRequest(ctx context.Context, payload []byte, attempt 
 		bodySnippet := truncate(string(respBody), 1000)
 		slog.Error("nvidia HTTP error",
 			"status", resp.StatusCode,
+			"model", n.model,
+			"base_url", n.baseURL,
 			"body", bodySnippet,
 		)
-		return "", fmt.Errorf("nvidia returned HTTP %d: %s", resp.StatusCode, bodySnippet)
+		return "", fmt.Errorf("nvidia returned HTTP %d for model %q via %s: %s", resp.StatusCode, n.model, n.baseURL, bodySnippet)
 	}
 
 	var result nvidiaResponse
