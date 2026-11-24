@@ -509,3 +509,40 @@ func TestLoadConfig_AllowedOriginSingularFallback(t *testing.T) {
 		t.Errorf("expected ALLOWED_ORIGIN fallback value, got %s", cfg.AllowedOrigin)
 	}
 }
+
+func TestNormalizeAIBaseURL(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"plain", "https://integrate.api.nvidia.com/v1", "https://integrate.api.nvidia.com/v1"},
+		{"trailing slash", "https://integrate.api.nvidia.com/v1/", "https://integrate.api.nvidia.com/v1"},
+		{"already has completions path", "https://integrate.api.nvidia.com/v1/chat/completions", "https://integrate.api.nvidia.com/v1"},
+		{"completions path with slash", "https://integrate.api.nvidia.com/v1/chat/completions/", "https://integrate.api.nvidia.com/v1"},
+		{"surrounding whitespace", "  https://openrouter.ai/api/v1\n", "https://openrouter.ai/api/v1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := normalizeAIBaseURL(tc.in); got != tc.want {
+				t.Errorf("normalizeAIBaseURL(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestLoadConfig_NormalizesBaseURL(t *testing.T) {
+	requiredEnvVars(t)
+	// A base URL pasted with the completions path would make the provider post
+	// to .../chat/completions/chat/completions, which upstreams answer with
+	// 404/410 instead of a real error.
+	t.Setenv("AI_BASE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.NVIDIABaseURL != "https://integrate.api.nvidia.com/v1" {
+		t.Errorf("expected normalized NVIDIABaseURL, got %s", cfg.NVIDIABaseURL)
+	}
+}
