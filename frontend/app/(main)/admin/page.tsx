@@ -68,7 +68,7 @@ import {
   AllModule,
 } from "@/lib/types";
 import { useWebSocket } from "@/lib/event";
-import AdminInsightsPanel from "@/components/admin/AdminInsightsPanel";
+import AtlasLauncher from "@/components/admin/AtlasLauncher";
 import PendingContributions from "./PendingContributions";
 import FeedbackPanel from "./FeedbackPanel";
 import BroadcastPanel from "./BroadcastPanel";
@@ -457,8 +457,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Ask the platform — SQL-grounded AI activity report */}
-      <AdminInsightsPanel />
+      {/* Atlas entry point — the full chat console lives at /admin/insights */}
+      <AtlasLauncher />
 
       {/* Problems (scrollable) */}
       <div className="bg-brand-charcoal-card border border-brand-charcoal-border rounded-2xl overflow-hidden">
